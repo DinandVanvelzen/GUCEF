@@ -422,7 +422,7 @@ CTaskManagerServerResource::OnThreadUpdateEvent( CORE::CNotifier* notifier    ,
     if ( GUCEF_NULL != eventData )
     {        
         CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
-        UInt32 threadId = static_cast< CORE::CThreadPool::TThreadUpdateEventData* >( eventData )->GetData();    
+        TSystemThreadId threadId = static_cast< CORE::CThreadPool::TThreadUpdateEventData* >( eventData )->GetData();    
         
         CORE::CThreadInfo threadInfo;
         CORE::CString threadPoolName;

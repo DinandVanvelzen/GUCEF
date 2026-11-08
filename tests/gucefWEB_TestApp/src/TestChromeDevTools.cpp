@@ -357,7 +357,7 @@ class CForeignPulseCounter : public CORE::CObserver
 {
     public:
 
-    CForeignPulseCounter( CORE::PulseGeneratorPtr pulseGenerator, UInt32 ownerThreadId )
+    CForeignPulseCounter( CORE::PulseGeneratorPtr pulseGenerator, TThreadId ownerThreadId )
         : CORE::CObserver()
         , m_ownerThreadId( ownerThreadId )
         , m_foreignPulses( 0 )
@@ -376,11 +376,11 @@ class CForeignPulseCounter : public CORE::CObserver
     void OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
         MT::CScopeMutex lock( m_lock );
-        if ( MT::GetCurrentTaskID() != m_ownerThreadId )
+        if ( MT::GetCurrentThreadID() != m_ownerThreadId )
             ++m_foreignPulses;
     }
 
-    UInt32 m_ownerThreadId;
+    TThreadId m_ownerThreadId;
     UInt32 m_foreignPulses;
     MT::CMutex m_lock;
 };
@@ -663,7 +663,7 @@ PerformChromeDevToolsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: The client runs on its pulse generator and only waits on the thread that drives it" )
         try
         {
-            const UInt32 thisThreadId = MT::GetCurrentTaskID();
+            const TThreadId thisThreadId = MT::GetCurrentThreadID();
             CORE::PulseGeneratorPtr globalPulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
 
             // the pulse generator is given to the JSON-RPC client the commands go through

@@ -473,7 +473,7 @@ PerformJsonRpcWebSocketTests( void )
             // given at construction
             {
                 CORE::PulseGeneratorPtr localPulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
-                localPulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+                localPulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
                 WEB::CJsonRpcClient client( localPulseGenerator );
                 ASSERT_TRUE( client.GetPulseGenerator() == localPulseGenerator );
                 CCaptureTransport transport;
@@ -494,7 +494,7 @@ PerformJsonRpcWebSocketTests( void )
             // set afterwards: the timer moves along
             {
                 CORE::PulseGeneratorPtr localPulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
-                localPulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+                localPulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
                 WEB::CJsonRpcClient client;
                 ASSERT_TRUE( client.GetPulseGenerator() == globalPulseGenerator );
                 client.SetPulseGenerator( localPulseGenerator );

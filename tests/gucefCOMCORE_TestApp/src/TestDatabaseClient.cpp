@@ -477,7 +477,7 @@ PerformDatabaseClientTests( void )
     {
         CIDatabaseClientPtr client = factory.Create( "fake" );
         CTestFakeDatabaseClient* fake = AsFake( client );
-        const UInt32 thisThread = MT::GetCurrentTaskID();
+        const TThreadId thisThread = MT::GetCurrentThreadID();
 
         ASSERT_TRUE( client->Open( FakeSettings() ) );
         ASSERT_TRUE( client->IsOpen() );
@@ -621,7 +621,7 @@ PerformDatabaseClientTests( void )
     {
         CIDatabaseClientPtr client = factory.Create( "fake" );
         CTestFakeDatabaseClient* fake = AsFake( client );
-        const UInt32 thisThread = MT::GetCurrentTaskID();
+        const TThreadId thisThread = MT::GetCurrentThreadID();
 
         CORE::CFutureResult opened = client->OpenAsync( FakeSettings() );
         ASSERT_TRUE( Finished( opened ) );

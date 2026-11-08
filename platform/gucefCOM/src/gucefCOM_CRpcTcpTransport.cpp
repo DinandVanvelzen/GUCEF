@@ -320,7 +320,7 @@ bool
 CRpcTcpTransport::IsProtocolThread( void ) const
 {GUCEF_TRACE;
 
-    return !m_pulseGenerator.IsNULL() && m_pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentTaskID();
+    return !m_pulseGenerator.IsNULL() && m_pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
 }
 
 /*-------------------------------------------------------------------------*/

@@ -245,8 +245,8 @@ CChromeDevToolsClient::IsCallingThreadDriving( const char* operation ) const
 {GUCEF_TRACE;
 
     // A blocking member waits on the calling thread by pumping the pulse generator, which only its own thread may do
-    UInt32 callingThreadId = MT::GetCurrentTaskID();
-    UInt32 drivingThreadId = m_pulseGenerator.IsNULL() ? 0 : m_pulseGenerator->GetPulseDriverThreadId();
+    TThreadId callingThreadId = MT::GetCurrentThreadID();
+    TThreadId drivingThreadId = m_pulseGenerator.IsNULL() ? 0 : m_pulseGenerator->GetPulseDriverThreadId();
     if ( callingThreadId == drivingThreadId )
         return true;
 

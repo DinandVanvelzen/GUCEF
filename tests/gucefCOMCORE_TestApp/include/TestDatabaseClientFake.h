@@ -73,7 +73,7 @@ class CTestFakeDatabaseClient : public GUCEF::COMCORE::CDatabaseClientBase
     virtual GUCEF::CORE::CString GetLastErrorMessage( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /** The id of the thread the last call of the kind ran on: 0 open, 1 list, 2 open table, 3 create, 4 drop */
-    GUCEF::UInt32 GetThreadOfLastCall( GUCEF::UInt32 kind ) const;
+    GUCEF::TThreadId GetThreadOfLastCall( GUCEF::UInt32 kind ) const;
 
     GUCEF::UInt32 GetCallCount( void ) const;
 
@@ -85,12 +85,12 @@ class CTestFakeDatabaseClient : public GUCEF::COMCORE::CDatabaseClientBase
     private:
 
     typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::CORE::CDataTableDefinition > TDefinitionMap;
-    typedef GUCEF::map< GUCEF::UInt32, GUCEF::CORE::CString > TErrorMap;
+    typedef GUCEF::map< GUCEF::TThreadId, GUCEF::CORE::CString > TErrorMap;
 
     mutable GUCEF::MT::CMutex m_lock;
     TDefinitionMap m_tables;
     TErrorMap m_errors;
-    GUCEF::UInt32 m_threads[ 5 ];
+    GUCEF::TThreadId m_threads[ 5 ];
     GUCEF::UInt32 m_callCount;
     bool m_open;
 };

@@ -453,9 +453,10 @@ CHTTPServer::CHTTPServer( const CORE::PulseGeneratorPtr& pulsGenerator          
 CHTTPServer::~CHTTPServer()
 {GUCEF_TRACE;
 
-    // The subscriptions go first, without the lock of the server: they take the notification locks of what the server
-    // observes (the pulse generator, the server socket, the connections), whose events take the lock of the server.
-    // Once they are gone no event can start, and the lock waits for a handler that is still running
+    // The subscriptions go first: no event of what the server observes (the pulse generator, the server socket, the
+    // connections) starts after them. Telling those notifiers takes their notification locks under the server's
+    // notification lock, which is its lock (CObservingNotifier); their events take the server's lock under theirs. The
+    // two never meet: the server is destroyed on the thread that pulses its pulse generator, where its events run
     SignalUpcomingObserverDestruction();
     UnsubscribeAllFromObserver();
 

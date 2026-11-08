@@ -986,8 +986,8 @@ CJsonRpcEndpoint::CallAndWait( const CORE::CString& method   ,
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "JsonRpc: CallAndWait() refused for method \"" << method << "\": the endpoint has no pulse generator to wait with, see SetPulseGenerator()" );
         return false;
     }
-    UInt32 callingThreadId = MT::GetCurrentTaskID();
-    UInt32 drivingThreadId = pulseGenerator->GetPulseDriverThreadId();
+    TThreadId callingThreadId = MT::GetCurrentThreadID();
+    TThreadId drivingThreadId = pulseGenerator->GetPulseDriverThreadId();
     if ( callingThreadId != drivingThreadId )
     {
         if ( 0 == drivingThreadId )

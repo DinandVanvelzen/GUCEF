@@ -459,7 +459,7 @@ class CPulseCounter : public CORE::CObserver
 {
     public:
 
-    CPulseCounter( CORE::PulseGeneratorPtr pulseGenerator, UInt32 ownerThreadId )
+    CPulseCounter( CORE::PulseGeneratorPtr pulseGenerator, TThreadId ownerThreadId )
         : CORE::CObserver()
         , flushOnPulse( GUCEF_NULL )
         , m_ownerThreadId( ownerThreadId )
@@ -484,7 +484,7 @@ class CPulseCounter : public CORE::CObserver
     {
         {
             MT::CScopeMutex lock( m_lock );
-            if ( MT::GetCurrentTaskID() == m_ownerThreadId )
+            if ( MT::GetCurrentThreadID() == m_ownerThreadId )
                 ++m_ownerPulses;
             else
                 ++m_otherPulses;
@@ -493,7 +493,7 @@ class CPulseCounter : public CORE::CObserver
             flushOnPulse->Flush();
     }
 
-    UInt32 m_ownerThreadId;
+    TThreadId m_ownerThreadId;
     UInt32 m_ownerPulses;
     UInt32 m_otherPulses;
     MT::CMutex m_lock;
@@ -525,24 +525,24 @@ class CRpcLogCapture : public CORE::CILogger
         return m_text;
     }
 
-    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     {
         MT::CScopeMutex lock( m_lock );
         m_text += logMessage;
         m_text += "\n";
     }
 
-    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     {
         Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
     }
 
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     {
         Log( logMsgType, logLevel, logMessage, threadId, timestamp );
     }
 
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     {
         Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
     }
@@ -580,7 +580,7 @@ class CCallAndWaitThread : public MT::CActiveObject
 
     virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
-        threadId = MT::GetCurrentTaskID();
+        threadId = MT::GetCurrentThreadID();
         CORE::CDataNode params( GUCEF_DATATYPE_ARRAY );
         params.AddValueAsChild( CORE::CVariant( (Int32) 40 ) );
         params.AddValueAsChild( CORE::CVariant( (Int32) 2 ) );
@@ -612,7 +612,7 @@ class CCallAndWaitThread : public MT::CActiveObject
 
     bool result;
     COM::SJsonRpcResponse response;
-    UInt32 threadId;
+    TThreadId threadId;
 
     private:
 
@@ -1247,7 +1247,7 @@ PerformJsonRpcTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CallAndWait pumps the pulse generator set on the endpoint" )
         try
         {
-            const UInt32 thisThreadId = MT::GetCurrentTaskID();
+            const TThreadId thisThreadId = MT::GetCurrentThreadID();
             CORE::PulseGeneratorPtr globalPulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
 
             CMemoryTransport aToB;
@@ -1291,7 +1291,7 @@ PerformJsonRpcTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CallAndWait from a thread that does not drive the pulse generator is refused" )
         try
         {
-            const UInt32 thisThreadId = MT::GetCurrentTaskID();
+            const TThreadId thisThreadId = MT::GetCurrentThreadID();
             CORE::PulseGeneratorPtr globalPulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
 
             // this thread drives the application's pulse generator: its driver belongs to the thread that initialized the platform
@@ -1357,7 +1357,7 @@ PerformJsonRpcTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CallAndWait is refused while it is not known which thread drives the pulse generator" )
         try
         {
-            const UInt32 thisThreadId = MT::GetCurrentTaskID();
+            const TThreadId thisThreadId = MT::GetCurrentThreadID();
 
             CMemoryTransport aToB;
             CMemoryTransport bToA;
@@ -1461,7 +1461,7 @@ PerformJsonRpcTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CallAndWait returns when a pulse handler deletes the endpoint while it waits" )
         try
         {
-            const UInt32 thisThreadId = MT::GetCurrentTaskID();
+            const TThreadId thisThreadId = MT::GetCurrentThreadID();
             CORE::PulseGeneratorPtr localPulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
             localPulseGenerator->SetPulseDriverThreadId( thisThreadId );
 

@@ -94,7 +94,7 @@ class CRpcNotesTestService : public GUCEF::COMCORE::CRpcServiceImpl ,
     bool holdWatch;
     GUCEF::UInt32 calls;
     GUCEF::UInt32 saves;
-    GUCEF::UInt32 lastHandlerThread;
+    GUCEF::TThreadId lastHandlerThread;
     GUCEF::COMCORE::CRpcMetadata lastMetadata;
     GUCEF::UInt32 cancelledCalls;
     GUCEF::UInt64 importedChunks;
@@ -361,7 +361,7 @@ class CRpcNotesTestService : public GUCEF::COMCORE::CRpcServiceImpl ,
     {
         GUCEF::MT::CScopeMutex lock( m_lock );
         ++calls;
-        lastHandlerThread = GUCEF::MT::GetCurrentTaskID();
+        lastHandlerThread = GUCEF::MT::GetCurrentThreadID();
         lastMetadata = call.GetMetadata();
     }
 

@@ -450,6 +450,7 @@ CMcpServer::CMcpServer( CORE::PulseGeneratorPtr pulseGenerator ,
     , m_eventQueueLock()
     , m_queuedRequestEvents()
     , m_protocolThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_protocolSystemThreadId, 0 )
     , m_toolSnapshotGeneration( 0 )
     , m_toolSnapshot()
     , m_resourceSnapshotGeneration( 0 )
@@ -461,6 +462,7 @@ CMcpServer::CMcpServer( CORE::PulseGeneratorPtr pulseGenerator ,
 
     RegisterEvents();
     m_protocolThreadId.Store( m_pulseGenerator->GetPulseDriverThreadId() );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_protocolSystemThreadId.Store( m_pulseGenerator->GetPulseDriverSystemThreadId() ); )
     ApplySettings( m_settings );
 
     typedef CORE::CTEventHandlerFunctor< CMcpServer > TEventCallback;
@@ -1126,8 +1128,8 @@ CMcpServer::IsProtocolThread( void ) const
 {GUCEF_TRACE;
 
     // kept by the server itself: the pulse generator does not offer its driver thread id to other threads safely
-    UInt32 protocolThreadId = m_protocolThreadId.Load();
-    return 0 != protocolThreadId && MT::GetCurrentTaskID() == protocolThreadId;
+    TThreadId protocolThreadId = m_protocolThreadId.Load();
+    return 0 != protocolThreadId && MT::GetCurrentThreadID() == protocolThreadId;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3100,7 +3102,10 @@ void
 CMcpServer::OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    m_protocolThreadId.Store( MT::GetCurrentTaskID() );
+    MT::SThreadIds ownerIds;
+    MT::GetCurrentThreadIds( &ownerIds );
+    m_protocolThreadId.Store( ownerIds.threadId );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_protocolSystemThreadId.Store( ownerIds.systemThreadId ); )
     RaiseQueuedRequestEvents();
     ProcessContextNews();
     const UInt64 now = NowMonotonicMs();
@@ -3192,7 +3197,7 @@ CMcpServer::RunInProcess( SDispatch& dispatch, CMcpOperationTaskData& call, UInt
 
     // a pulse generator of this thread: a deferred handler's event driven work runs here, and only here
     CORE::PulseGeneratorPtr localPulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
-    localPulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    localPulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
     dispatch.context->SetPulseGenerator( localPulseGenerator );
 
     call.RunHandler();

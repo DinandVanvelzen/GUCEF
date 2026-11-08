@@ -368,7 +368,7 @@ class CMcpTestRig
         , channel( GUCEF_NULL )
         , extraChannels()
     {
-        pulseGenerator->SetPulseDriverThreadId( GUCEF::MT::GetCurrentTaskID() );
+        pulseGenerator->SetPulseDriverThreadId( GUCEF::MT::GetCurrentThreadID() );
         server = GUCEF_NEW GUCEF::COM::CMcpServer( pulseGenerator );
         GUCEF::COM::CMcpImplementationInfo info;
         info.name = "test-server";

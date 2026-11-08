@@ -89,12 +89,14 @@ CMcpRegistryBase::CMcpRegistryBase( const CORE::PulseGeneratorPtr& pulseGenerato
     , m_queueLock()
     , m_queuedEvents()
     , m_pulseThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_pulseSystemThreadId, 0 )
     , m_generation( 0 )
     , m_changePending( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
     m_pulseThreadId.Store( m_pulseGenerator->GetPulseDriverThreadId() );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_pulseSystemThreadId.Store( m_pulseGenerator->GetPulseDriverSystemThreadId() ); )
 
     typedef CORE::CTEventHandlerFunctor< CMcpRegistryBase > TEventCallback;
     TEventCallback callback( this, &CMcpRegistryBase::OnPulse );
@@ -147,8 +149,8 @@ CMcpRegistryBase::IsPulseThread( void ) const
 {GUCEF_TRACE;
 
     // kept by the registry itself: the pulse generator does not offer its driver thread id to other threads safely
-    UInt32 pulseThreadId = m_pulseThreadId.Load();
-    return 0 != pulseThreadId && MT::GetCurrentTaskID() == pulseThreadId;
+    TThreadId pulseThreadId = m_pulseThreadId.Load();
+    return 0 != pulseThreadId && MT::GetCurrentThreadID() == pulseThreadId;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -208,7 +210,10 @@ void
 CMcpRegistryBase::OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    m_pulseThreadId.Store( MT::GetCurrentTaskID() );
+    MT::SThreadIds ownerIds;
+    MT::GetCurrentThreadIds( &ownerIds );
+    m_pulseThreadId.Store( ownerIds.threadId );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_pulseSystemThreadId.Store( ownerIds.systemThreadId ); )
     FlushListChanged();
 }
 

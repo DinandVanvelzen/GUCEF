@@ -242,7 +242,7 @@ NewTransports( CRpcEndpointFixture& f, COMCORE::CIRpcTransportPtr& oldClient, CO
 inline void
 TestContractFetchThenCache( CIRpcConformanceTransports& transports )
 {
-    CORE::CString cacheDir = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucef_rpc_test_cache_" + CORE::ToString( MT::GetCurrentTaskID() ) );
+    CORE::CString cacheDir = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucef_rpc_test_cache_" + CORE::ToString( MT::GetCurrentThreadID() ) );
     CORE::DeleteDir( cacheDir, true );
     COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
     {

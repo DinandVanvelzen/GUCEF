@@ -91,7 +91,8 @@ struct STCPServerSockData;
  *  Close() closes and tells the connections that are open, the active ones and those accepted since the last pulse;
  *  a connection whose close was told already, or is being told by another thread, is not told again. A connection
  *  object goes to a later client only once its close was told (DisconnectedEvent, then ClientDisconnectedEvent), also
- *  after a Close() and a new listen.
+ *  after a Close() and a new listen. Close() does not delete the connection objects: it returns them to the inactive
+ *  ones, for reuse by later clients, and the destructor of the server socket deletes them.
  *
  *  TLS (SetTlsSettings()): every connection is protected by TLS and the users of the socket see plaintext only, the
  *  events and Send() of the connections are the same as without. ClientConnectedEvent comes when the client

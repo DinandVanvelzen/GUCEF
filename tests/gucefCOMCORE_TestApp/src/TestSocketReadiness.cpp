@@ -198,7 +198,7 @@ class CCountingPulseDriver : public CORE::CIPulseGeneratorDriver
     virtual void RequestPeriodicPulses( CORE::CPulseGenerator&, const UInt32 ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void RequestPulseInterval( CORE::CPulseGenerator&, const UInt32 ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void RequestStopOfPeriodicUpdates( CORE::CPulseGenerator& ) GUCEF_VIRTUAL_OVERRIDE {}
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE { return 1; }
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE { return 1; }
 };
 
 /*-------------------------------------------------------------------------*/

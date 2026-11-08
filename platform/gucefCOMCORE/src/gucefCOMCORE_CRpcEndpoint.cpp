@@ -346,10 +346,10 @@ struct CRpcEndpoint::SDeferredEvent
 struct CRpcEndpoint::SPendingHandler
 {
     CRpcServerCallPtr call;
-    UInt32 threadId;
+    TThreadId threadId;
 
     SPendingHandler( void ) : call(), threadId( 0 ) {}
-    SPendingHandler( const CRpcServerCallPtr& c, UInt32 t ) : call( c ), threadId( t ) {}
+    SPendingHandler( const CRpcServerCallPtr& c, TThreadId t ) : call( c ), threadId( t ) {}
 };
 
 /*-------------------------------------------------------------------------*/
@@ -715,7 +715,7 @@ CRpcEndpoint::RunPendingHandlers( void )
 
     // called holding the lock once: the handlers run without it, on the thread that dispatched them (the protocol
     // thread), in order. What they raise is deferred and goes out after them
-    UInt32 self = MT::GetCurrentTaskID();
+    TThreadId self = MT::GetCurrentThreadID();
     while ( true )
     {
         GUCEF::vector< CRpcServerCallPtr > mine;
@@ -1005,7 +1005,7 @@ CRpcEndpoint::IsProtocolThread( void ) const
 {GUCEF_TRACE;
 
     CORE::PulseGeneratorPtr pulseGenerator = m_protocolPulseGenerator;
-    return !pulseGenerator.IsNULL() && pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentTaskID();
+    return !pulseGenerator.IsNULL() && pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3290,8 +3290,8 @@ CRpcEndpoint::WaitForFuture( const CORE::CFutureResult& future, const char* what
         pulseGenerator = m_protocolPulseGenerator;
         nested = m_handlerDepth > 0 || m_blockingDepth > 0;
     }
-    UInt32 driver = pulseGenerator.IsNULL() ? 0 : pulseGenerator->GetPulseDriverThreadId();
-    UInt32 self = MT::GetCurrentTaskID();
+    TThreadId driver = pulseGenerator.IsNULL() ? 0 : pulseGenerator->GetPulseDriverThreadId();
+    TThreadId self = MT::GetCurrentThreadID();
     if ( driver == self )
     {
         // the work runs on this thread: pump its pulse generator until the answer (10.9)
@@ -4105,7 +4105,7 @@ CRpcEndpoint::DispatchServerCall( const CRpcServerCallPtr& callRef, TRpcExecutio
     }
 
     // the protocol thread, as part of the frame, once it released the endpoint lock (10.6, 10.9)
-    m_pendingHandlers.push_back( SPendingHandler( call, MT::GetCurrentTaskID() ) );
+    m_pendingHandlers.push_back( SPendingHandler( call, MT::GetCurrentThreadID() ) );
 }
 
 /*-------------------------------------------------------------------------*/

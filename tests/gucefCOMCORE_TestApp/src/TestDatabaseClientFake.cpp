@@ -138,9 +138,9 @@ CTestFakeDatabaseClient::Record( UInt32 kind )
 
     {
         MT::CObjectScopeLock lock( &m_lock );
-        m_threads[ kind ] = MT::GetCurrentTaskID();
+        m_threads[ kind ] = MT::GetCurrentThreadID();
         ++m_callCount;
-        m_errors.erase( MT::GetCurrentTaskID() );
+        m_errors.erase( MT::GetCurrentThreadID() );
     }
     if ( delayInMs > 0 && 0 != kind )
         MT::ThreadDelay( delayInMs );
@@ -154,7 +154,7 @@ CTestFakeDatabaseClient::Fail( CORE::TDataTableStatus status, const CORE::CStrin
 
     {
         MT::CObjectScopeLock lock( &m_lock );
-        m_errors[ MT::GetCurrentTaskID() ] = message;
+        m_errors[ MT::GetCurrentThreadID() ] = message;
     }
     CORE::TCloneableString eventData( message );
     NotifyObservers( DatabaseErrorEvent, &eventData );
@@ -163,7 +163,7 @@ CTestFakeDatabaseClient::Fail( CORE::TDataTableStatus status, const CORE::CStrin
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CTestFakeDatabaseClient::GetThreadOfLastCall( UInt32 kind ) const
 {GUCEF_TRACE;
 
@@ -371,7 +371,7 @@ CTestFakeDatabaseClient::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( &m_lock );
-    TErrorMap::const_iterator i = m_errors.find( MT::GetCurrentTaskID() );
+    TErrorMap::const_iterator i = m_errors.find( MT::GetCurrentThreadID() );
     return i == m_errors.end() ? CORE::CString() : (*i).second;
 }
 

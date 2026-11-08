@@ -139,7 +139,7 @@ CORE::PulseGeneratorPtr
 MakeTestPulseGenerator( void )
 {
     CORE::PulseGeneratorPtr pulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
-    pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
     return pulseGenerator;
 }
 

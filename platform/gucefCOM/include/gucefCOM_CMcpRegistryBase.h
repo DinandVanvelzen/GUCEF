@@ -143,7 +143,8 @@ class GUCEF_COM_PUBLIC_CPP CMcpRegistryBase : public CORE::CObservingNotifier
     CORE::PulseGeneratorPtr m_pulseGenerator;
     MT::CMutex m_queueLock;
     TQueuedEventVector m_queuedEvents;
-    MT::CTAtomic< UInt32 > m_pulseThreadId;            /**< the thread that pulses, as the last pulse found it */
+    MT::CTAtomic< TThreadId > m_pulseThreadId;            /**< the thread that pulses, as the last pulse found it */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_pulseSystemThreadId; )   /**< display only, recorded with m_pulseThreadId */
     UInt64 m_generation;
     MT::CTAtomic< UInt32 > m_changePending;
 };

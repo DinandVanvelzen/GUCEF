@@ -107,7 +107,9 @@ void
 CRpcProtocolTask::Stop( void )
 {GUCEF_TRACE;
 
-    bool ownThread = MT::GetCurrentTaskID() == GetDelegatorThreadId();
+    // the identity of the thread that pulses, not GetDelegatorThreadId(): that one is the operating system's id of the thread
+    CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+    bool ownThread = !pulseGenerator.IsNULL() && pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
     RequestTaskToStop( !ownThread );
 }
 

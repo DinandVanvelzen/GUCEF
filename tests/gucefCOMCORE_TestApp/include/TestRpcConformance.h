@@ -91,7 +91,7 @@ class CRpcEndpointEventRecorder : public GUCEF::CORE::CObserver
     GUCEF::COMCORE::CRpcStatus lastBindStatus;
     GUCEF::COMCORE::CRpcStatus lastClose;
     GUCEF::COMCORE::CRpcSessionGapEventData lastGap;
-    GUCEF::UInt32 eventThread;
+    GUCEF::TThreadId eventThread;
 
     CRpcEndpointEventRecorder( void )
         : GUCEF::CORE::CObserver(), established( 0 ), suspended( 0 ), resumed( 0 ), gaps( 0 ), closed( 0 ), accepted( 0 ), bound( 0 )
@@ -118,7 +118,7 @@ class CRpcEndpointEventRecorder : public GUCEF::CORE::CObserver
 
     void OnEvent( GUCEF::CORE::CNotifier*, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData )
     {
-        eventThread = GUCEF::MT::GetCurrentTaskID();
+        eventThread = GUCEF::MT::GetCurrentThreadID();
         if ( GUCEF::COMCORE::CRpcEndpoint::SessionEstablishedEvent == eventId ) ++established;
         else if ( GUCEF::COMCORE::CRpcEndpoint::SessionSuspendedEvent == eventId ) ++suspended;
         else if ( GUCEF::COMCORE::CRpcEndpoint::SessionResumedEvent == eventId ) ++resumed;
@@ -164,7 +164,7 @@ class CRpcStreamCollector : public GUCEF::CORE::CObserver
     GUCEF::vector< GUCEF::UInt64 > noteIds;
     bool ended;
     GUCEF::COMCORE::CRpcStatus status;
-    GUCEF::UInt32 eventThread;
+    GUCEF::TThreadId eventThread;
 
     CRpcStreamCollector( void ) : GUCEF::CORE::CObserver(), messages( 0 ), indices(), noteIds(), ended( false ), status(), eventThread( 0 ) {}
     virtual ~CRpcStreamCollector() { UnsubscribeAllFromObserver(); }
@@ -184,7 +184,7 @@ class CRpcStreamCollector : public GUCEF::CORE::CObserver
     void OnMessage( GUCEF::CORE::CNotifier*, const GUCEF::CORE::CEvent&, GUCEF::CORE::CICloneable* eventData )
     {
         ++messages;
-        eventThread = GUCEF::MT::GetCurrentTaskID();
+        eventThread = GUCEF::MT::GetCurrentThreadID();
         GUCEF::COMCORE::CRpcStreamMessageEventData* data = static_cast< GUCEF::COMCORE::CRpcStreamMessageEventData* >( eventData );
         indices.push_back( data->streamIndex );
         const GUCEF::COMCORE::CRpcMessage* note = data->message.GetMessage( 1 );
@@ -241,7 +241,7 @@ class CRpcConformanceFixture
     CRpcNotesTestService service;
     GUCEF::COMCORE::CRpcContractPtr notes;
     GUCEF::CORE::PulseGeneratorPtr pulseGenerator;
-    GUCEF::UInt32 previousDriver;
+    GUCEF::TThreadId previousDriver;
 
     explicit CRpcConformanceFixture( CIRpcConformanceTransports& t )
         : transports( t ), clientRegistry(), serverRegistry(), clientSettings(), serverSettings(), client(), server()
@@ -249,7 +249,7 @@ class CRpcConformanceFixture
     {
         pulseGenerator = GUCEF::CORE::CCoreGlobal::Instance()->GetPulseGenerator();
         previousDriver = pulseGenerator->GetPulseDriverThreadId();
-        pulseGenerator->SetPulseDriverThreadId( GUCEF::MT::GetCurrentTaskID() );
+        pulseGenerator->SetPulseDriverThreadId( GUCEF::MT::GetCurrentThreadID() );
         clientSettings.nodeName = "conformance-client";
         serverSettings.nodeName = "conformance-server";
         clientSettings.contractRegistry = &clientRegistry;

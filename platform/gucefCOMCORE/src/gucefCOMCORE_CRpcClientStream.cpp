@@ -245,7 +245,7 @@ CRpcClientStream::ReadNext( CRpcMessage& message, CRpcStatus& status, UInt32 tim
             protocolPulseGenerator = scope.GetEndpoint()->GetProtocolPulseGenerator();
     }
     CORE::PulseGeneratorPtr eventPulseGenerator = GetPulseGenerator();
-    UInt32 self = MT::GetCurrentTaskID();
+    TThreadId self = MT::GetCurrentThreadID();
     bool pumpProtocol = !protocolPulseGenerator.IsNULL() && protocolPulseGenerator->GetPulseDriverThreadId() == self;
     bool pumpEvents = !eventPulseGenerator.IsNULL() && eventPulseGenerator->GetPulseDriverThreadId() == self &&
                       eventPulseGenerator != protocolPulseGenerator;

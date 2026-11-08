@@ -558,7 +558,9 @@ CSocketReadinessWaiter::Shutdown( void )
     MT::CScopeMutex taskLock( m_taskLock );
     if ( m_taskRunning.Load() )
     {
-        bool ownThread = MT::GetCurrentTaskID() == GetDelegatorThreadId();
+        // the identity of the thread that pulses, not GetDelegatorThreadId(): that one is the operating system's id of the thread
+        CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+        bool ownThread = !pulseGenerator.IsNULL() && pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
         RequestTaskToStop( !ownThread );
     }
 }

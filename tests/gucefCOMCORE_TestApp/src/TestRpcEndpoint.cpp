@@ -247,18 +247,18 @@ class CPulseThreadRecorder : public CORE::CObserver
         SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, cb );
     }
 
-    UInt32 GetThreadId( void ) const { MT::CScopeMutex lock( m_lock ); return m_threadId; }
+    TThreadId GetThreadId( void ) const { MT::CScopeMutex lock( m_lock ); return m_threadId; }
 
     private:
 
     void OnPulse( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* )
     {
         MT::CScopeMutex lock( m_lock );
-        m_threadId = MT::GetCurrentTaskID();
+        m_threadId = MT::GetCurrentThreadID();
     }
 
     mutable MT::CMutex m_lock;
-    UInt32 m_threadId;
+    TThreadId m_threadId;
 };
 
 /** A service whose handler makes a nested blocking call on the protocol thread */
@@ -799,7 +799,7 @@ TestAccessPolicy( void )
 static void
 TestExecutionModes( void )
 {
-    UInt32 self = MT::GetCurrentTaskID();
+    TThreadId self = MT::GetCurrentThreadID();
     COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
     {
         // the protocol thread (here the test thread, which drives the global pulse generator)
@@ -871,7 +871,7 @@ static void
 TestProtocolTaskNamesItsThread( void )
 {
     // the blocking form and the nested call check compare the pulse generator's driver thread with
-    // MT::GetCurrentTaskID(): a dedicated protocol task must report the id of the thread that pulses
+    // MT::GetCurrentThreadID(): a dedicated protocol task must report the id of the thread that pulses
     COMCORE::CRpcProtocolTaskPtr task = COMCORE::CRpcProtocolTask::Start( "gucef.rpc" );
     REQUIRE_TRUE( !task.IsNULL() );
     CORE::PulseGeneratorPtr pulseGenerator = task->GetPulseGenerator();
@@ -883,8 +883,8 @@ TestProtocolTaskNamesItsThread( void )
     while ( 0 == recorder.GetThreadId() && ( MT::PrecisionTickCount() - start ) < 3 * MT::PrecisionTimerResolution() )
         MT::PrecisionDelay( 1 );
     pulseGenerator->RequestStopOfPeriodicUpdates( &recorder );
-    UInt32 pulsing = recorder.GetThreadId();
-    UInt32 reported = pulseGenerator->GetPulseDriverThreadId();
+    TThreadId pulsing = recorder.GetThreadId();
+    TThreadId reported = pulseGenerator->GetPulseDriverThreadId();
     if ( pulsing != reported )
         GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "RpcEndpoint test: the protocol task pulses on " << pulsing << " but reports driver " << reported );
     ASSERT_TRUE( 0 != pulsing );
@@ -932,7 +932,7 @@ TestBlockingCallWithoutKnownThread( void )
     COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
     CORE::PulseGeneratorPtr own = CORE::CPulseGenerator::CreateSharedObj();
     f.pulseGenerator = own;
-    own->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    own->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
     COMCORE::CIRpcTransportPtr a;
     COMCORE::CIRpcTransportPtr b;
     REQUIRE_TRUE( COMCORE::CRpcLoopbackTransport::CreatePair( own, own, a, b ) );
@@ -946,7 +946,7 @@ TestBlockingCallWithoutKnownThread( void )
     own->SetPulseDriverThreadId( 0 );
     ASSERT_FALSE( f.client->Call( g_getPath, GetRequest( f, 1 ), response, status ) );
     ASSERT_CODE( COMCORE::RPC_STATUS_FAILED_PRECONDITION, status );
-    own->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    own->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1006,7 +1006,7 @@ RunRpcThreadPoolHandlerCall( void )
     COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
     if ( notes.IsNULL() )
         return 2;
-    UInt32 self = MT::GetCurrentTaskID();
+    TThreadId self = MT::GetCurrentThreadID();
     CRpcEndpointFixture f;
     if ( !f.Connect( notes, notes, COMCORE::RPC_EXECUTION_THREAD_POOL ) )
         return 3;
@@ -1047,7 +1047,7 @@ TestThreadPoolHandlerInFreshProcess( void )
     ssize_t exePathLength = readlink( "/proc/self/exe", exePath, sizeof( exePath ) - 1 );
     REQUIRE_TRUE( exePathLength > 0 );
     exePath[ exePathLength ] = '\0';
-    CORE::CString resultFile = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucef_rpc_fresh_process_" + CORE::ToString( MT::GetCurrentTaskID() ) + ".txt" );
+    CORE::CString resultFile = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucef_rpc_fresh_process_" + CORE::ToString( MT::GetCurrentThreadID() ) + ".txt" );
     CORE::DeleteFile( resultFile );
     CORE::CProcess::TStringVector args;
     args.push_back( GUCEF_COMCORE_TESTAPP_RPC_FRESH_PROCESS_ARG );

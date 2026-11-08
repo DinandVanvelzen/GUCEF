@@ -779,7 +779,7 @@ class CRpcRawPeer
     public:
 
     CORE::PulseGeneratorPtr pulseGenerator;
-    UInt32 previousDriver;
+    TThreadId previousDriver;
     COMCORE::CRpcContractRegistry registry;
     COMCORE::CRpcEndpointSettings settings;
     COMCORE::CIRpcTransportPtr wire;
@@ -794,7 +794,7 @@ class CRpcRawPeer
         , endpointSide(), endpoint(), service(), events(), nextSeq( 1 )
     {
         previousDriver = pulseGenerator->GetPulseDriverThreadId();
-        pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+        pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
         registry.SetCacheDirectory( CORE::CString::Empty );
         settings.contractRegistry = &registry;
         settings.nodeName = "endpoint";
@@ -1295,8 +1295,8 @@ TestRequireSecureTransportOnReconnect( void )
     // factory of the scheme makes insecure transports here, so the session stays suspended instead of resuming over one
     COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
     CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
-    UInt32 previousDriver = pulseGenerator->GetPulseDriverThreadId();
-    pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    TThreadId previousDriver = pulseGenerator->GetPulseDriverThreadId();
+    pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
     COMCORE::CRpcTransportFactory& factory = COMCORE::CComCoreGlobal::Instance()->GetRpcTransportFactory();
     static CTestLoopbackFactory testFactory;      // its transports may outlive this function on the client's protocol task
     testFactory.insecure.Store( 0 );

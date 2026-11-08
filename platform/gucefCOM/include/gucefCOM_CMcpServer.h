@@ -510,7 +510,8 @@ class GUCEF_COM_PUBLIC_CPP CMcpServer : public CORE::CObservingNotifier         
     };
     MT::CMutex m_eventQueueLock;
     GUCEF::vector< SQueuedRequestEvent > m_queuedRequestEvents;
-    MT::CTAtomic< UInt32 > m_protocolThreadId;     /**< the thread that pulses, as the last pulse found it */
+    MT::CTAtomic< TThreadId > m_protocolThreadId;     /**< the thread that pulses, as the last pulse found it */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_protocolSystemThreadId; )   /**< display only, recorded with m_protocolThreadId */
 
     // list snapshots: rebuilt when the generation of the registry changes; protocol thread only
     UInt64 m_toolSnapshotGeneration;

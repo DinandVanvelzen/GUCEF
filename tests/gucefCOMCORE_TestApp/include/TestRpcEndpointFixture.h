@@ -85,7 +85,7 @@ class CRpcEndpointFixture
     CRpcLossyTransport* serverWire;
     CRpcNotesTestService service;
     GUCEF::CORE::PulseGeneratorPtr pulseGenerator;
-    GUCEF::UInt32 previousDriver;
+    GUCEF::TThreadId previousDriver;
     CIRpcConformanceTransports* pairMaker;                  /**< the transports under test; NULL: loopback on the test thread */
 
     explicit CRpcEndpointFixture( CIRpcConformanceTransports* transports = GUCEF_NULL )
@@ -94,7 +94,7 @@ class CRpcEndpointFixture
     {
         pulseGenerator = GUCEF::CORE::CCoreGlobal::Instance()->GetPulseGenerator();
         previousDriver = pulseGenerator->GetPulseDriverThreadId();
-        pulseGenerator->SetPulseDriverThreadId( GUCEF::MT::GetCurrentTaskID() );
+        pulseGenerator->SetPulseDriverThreadId( GUCEF::MT::GetCurrentThreadID() );
         clientSettings.nodeName = "client";
         serverSettings.nodeName = "server";
         clientSettings.contractRegistry = &clientRegistry;
