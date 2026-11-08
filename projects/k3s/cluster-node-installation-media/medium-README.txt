@@ -18,6 +18,13 @@ the machine waits until it is approved on the cluster:
     sudo gucefLabLink --list
     sudo gucefLabLink --approve <name of the machine>
 
+It says which version of the medium it installs (VERSION). Remove everything
+again, leaving the cluster when the machine joined it:
+
+    sudo bash <where this medium is mounted>/gucef-lab/uninstall.sh [--purge]
+
+--purge also removes the lab secret, the identity and the state of the services.
+
 Follow what it does:
 
     journalctl -u gucef-lablink -f
@@ -25,6 +32,8 @@ Follow what it does:
 Contents
 
     install.sh     installs the packages and sets up the service gucef-lablink
+    uninstall.sh   removes them again, and the k3s agent when the machine joined
+    VERSION        the version of the medium and its packages
     linux/         the packages, DEB (Debian, Ubuntu, Raspberry Pi OS) and RPM
                    (Fedora, RHEL, openSUSE), per architecture (-amd64, -arm64;
                    -all for the scripts); install.sh picks the right ones:

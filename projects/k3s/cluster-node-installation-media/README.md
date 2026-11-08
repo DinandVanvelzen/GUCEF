@@ -25,7 +25,9 @@ are skipped and the output says so.
 
 | File | Holds |
 |---|---|
-| `install.sh` | installs the packages and sets up the service `gucef-lablink` ([medium-install.sh](medium-install.sh)) |
+| `install.sh [--allow-downgrade]` | installs the packages of this medium's version and sets up the service `gucef-lablink`; refuses to replace newer packages unless `--allow-downgrade` ([medium-install.sh](medium-install.sh)) |
+| `uninstall.sh [--purge]` | removes the k3s agent when the machine joined, the services, the packages and the firewall rules of the lab; `--purge` also the lab secret, identity and state ([medium-uninstall.sh](medium-uninstall.sh)) |
+| `VERSION` | the version of the medium; `install.sh` installs only the packages of that version |
 | `linux/` | the packages, DEB and, when `rpmbuild` is there (`sudo apt-get install rpm`), RPM: `<package>-<version>-<amd64\|arm64\|all>.deb` and `.rpm` |
 | `docs/` | the README of each service and of its program: `gucef-mcp/README.md`, `gucef-mcp/gucefMcpLocalLlm.md`, `gucef-lablink/README.md`, `gucef-lablink/gucefLabLink.md` |
 | `lablink.env` | the settings of `lablink/config.env` of the checkout that apply to every machine, such as `LAB_ALLOW` |
@@ -33,7 +35,8 @@ are skipped and the output says so.
 | `README.txt` | how to use it ([medium-README.txt](medium-README.txt)) |
 | `SHA256SUMS` | checksums, checked by `install.sh` |
 
-Without a target it goes to `common/bin/cluster-node-installation-media`. The packages need glibc 2.34 or newer (Ubuntu 22.04, Debian 12, Raspberry Pi OS
+Without a target it goes to `common/bin/cluster-node-installation-media`. Next to `gucef-lab` it writes the same as one file to copy to
+another machine, `gucef-lab-<version>.tar.gz`, which unpacks to `gucef-lab-<version>`; older archives there are removed. The packages need glibc 2.34 or newer (Ubuntu 22.04, Debian 12, Raspberry Pi OS
 12, Fedora 35 and later); the output gives the version per architecture.
 
 ## Use it
@@ -52,7 +55,7 @@ upgrades.
 
 | Package | Files | Service |
 |---|---|---|
-| `gucef-k3s-scripts` | `/usr/share/gucef-k3s`: `agent-node`, `nvidia`, `host-node/set_inotify_limits.sh`, `llm/mcp`, `lablink` | |
+| `gucef-k3s-scripts` | `/usr/share/gucef-k3s`: `agent-node`, `nvidia`, `host-node/set_inotify_limits.sh`, `host-node/open_firewall_ports.sh`, `llm/mcp`, `lablink` | |
 | `gucef-mcp` | `/usr/lib/gucef-mcp`: the MCP server, its libraries, `local-agent.sh`, `README.md`, `gucefMcpLocalLlm.md` | `gucef-mcp` |
 | `gucef-lablink` | `/usr/lib/gucef-lablink`: `gucefLabLink`, its libraries, `README.md`, `gucefLabLink.md` | `gucef-lablink` |
 

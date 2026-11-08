@@ -42,7 +42,6 @@ Then, on a server node:
 kubectl get node <name>            # Ready
 nvidia/setup.sh                    # once: lets the device plugin run on ephemeral nodes
 llm/setup.sh --node <name>         # an LLM server on the GPU of the new node (see llm/README.md)
-llm/mcp/cluster.sh                 # without a GPU: the certificate and LLM servers of its MCP service
 ```
 
 ## Ephemeral nodes
@@ -68,4 +67,7 @@ server, or `leave.sh`, `kubectl delete node <name>` and join again.
 ## Network
 
 The nodes reach each other on 6443/tcp (API server), 8472/udp (flannel VXLAN) and 10250/tcp (kubelet), plus the host
-ports of workloads such as the LLM server, and 8791/tcp for the MCP service over HTTPS. `join.sh` reports when `ufw` is active; open these ports there.
+ports of workloads such as the LLM server, and 8791/tcp for the MCP service over HTTPS. `join.sh` opens the ports of a
+node for the networks of the machine when ufw or firewalld is active ([../host-node/open_firewall_ports.sh](../host-node/open_firewall_ports.sh));
+`lablink/install.sh` does it for the server. The certificate of the node's MCP service comes from the timer of
+`llm/mcp/cluster.sh` on the server within 2 minutes.

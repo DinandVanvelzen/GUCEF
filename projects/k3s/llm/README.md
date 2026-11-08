@@ -37,6 +37,10 @@ On an ephemeral node (`../agent-node/join.sh --ephemeral`, such as a workstation
 
 `setup.sh --node` works while the node is off too: the instance starts once the node is up.
 
+A node with an NVIDIA GPU that joins (a machine of the lab link) gets its instance by itself: the timer of
+`mcp/cluster.sh` runs `setup.sh --node <node> --no-wait` for every GPU node without an instance, once the node advertises
+its GPU. Not for a node labelled `gucef.org/llm=false` (`LAB_LLM=false` on that machine), nor with `LLM_AUTO_NODES=false`.
+
 ## Model selection
 
 Unless `LLM_MODEL_HF` is set, the model is chosen from the hardware:

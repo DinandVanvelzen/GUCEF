@@ -111,6 +111,10 @@ helm upgrade --install "${RELEASE_NAME}" nvdp/nvidia-device-plugin \
     --values "${VALUES_FILE}" \
     --wait --timeout 5m
 
+# after an upgrade the plugin pods start again: until they run, the node shows the GPUs of before but has none healthy
+for daemonset in $(${KUBECTL} get ds -n "${NAMESPACE}" -o name 2>/dev/null); do
+    ${KUBECTL} rollout status "${daemonset}" -n "${NAMESPACE}" --timeout=300s > /dev/null || echo "WARNING: ${daemonset} is not rolled out yet."
+done
 echo "Waiting for the node to advertise nvidia.com/gpu..."
 GPU_CAPACITY=""
 for _ in $(seq 1 30); do
@@ -130,10 +134,18 @@ echo "Node ${NODE_NAME} advertises nvidia.com/gpu: ${GPU_CAPACITY}"
 # ---------------------------------------------------------------------------
 # Smoke test: run nvidia-smi in a pod using the nvidia runtime
 # ---------------------------------------------------------------------------
-${KUBECTL} delete pod "${SMOKE_TEST_POD}" -n "${NAMESPACE}" --ignore-not-found > /dev/null
-${KUBECTL} apply -n "${NAMESPACE}" -f "${SCRIPT_DIR}/gpu-test-pod.yaml"
-if ${KUBECTL} wait pod "${SMOKE_TEST_POD}" -n "${NAMESPACE}" \
-        --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s; then
+# twice: a device plugin that has just registered can refuse the first pod (no healthy devices yet)
+SMOKE_PASSED=false
+for attempt in 1 2; do
+    ${KUBECTL} delete pod "${SMOKE_TEST_POD}" -n "${NAMESPACE}" --ignore-not-found > /dev/null
+    ${KUBECTL} apply -n "${NAMESPACE}" -f "${SCRIPT_DIR}/gpu-test-pod.yaml" > /dev/null
+    if ${KUBECTL} wait pod "${SMOKE_TEST_POD}" -n "${NAMESPACE}" --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s > /dev/null 2>&1; then
+        SMOKE_PASSED=true
+        break
+    fi
+    [ "${attempt}" = "1" ] && echo "The GPU smoke test is tried once more in 20 seconds." && sleep 20
+done
+if [ "${SMOKE_PASSED}" = "true" ]; then
     ${KUBECTL} logs "${SMOKE_TEST_POD}" -n "${NAMESPACE}"
     echo "GPU smoke test passed."
     ${KUBECTL} delete pod "${SMOKE_TEST_POD}" -n "${NAMESPACE}" > /dev/null

@@ -19,6 +19,11 @@
 #     registers them with Claude Code of the machines of the lab
 #   - the lab MCP token: one bearer token every node's MCP service accepts, so a
 #     client needs one token for all of them (Secret gucef-mcp-llm, made once)
+#   - an LLM server for every node with an NVIDIA GPU that has none (a machine
+#     that joins, see agent-node/join.sh): llm/setup.sh --node, the model chosen
+#     by its VRAM. Not for a node labelled gucef.org/llm=false (LAB_LLM=false of
+#     the lab link of that machine), nor with LLM_AUTO_NODES=false in
+#     llm/config.env
 #   - DaemonSet gucef-mcp-sync, on every node including ephemeral ones: copies
 #     the node's certificate and key, the CA certificate, the endpoints file and
 #     the lab MCP token to /var/lib/gucef-mcp, owned by the owner of that directory
@@ -26,8 +31,15 @@
 # Namespace gucef-mcp holds the keys of all nodes: whoever can read Secrets
 # there, or is root on a node, can read them.
 #
-# Usage: ./cluster.sh          (run again when nodes or LLM instances change;
-#                               llm/setup.sh and llm/uninstall.sh run it)
+# Run as root it also installs the systemd timer gucef-mcp-cluster, which runs
+# it with --if-changed every 2 minutes: a node that joins gets its certificate
+# and is in the list of MCP services without anyone running this script.
+#
+# Usage: sudo ./cluster.sh [--if-changed]
+#   --if-changed  only when the nodes, the LLM servers or this script changed
+#                 since the last run, or that run is a day old (certificate
+#                 renewal), or failed
+#   llm/setup.sh, llm/uninstall.sh and lablink/install.sh run it
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -41,6 +53,17 @@ ENDPOINTS_CONFIGMAP="gucef-mcp-endpoints"
 SYNC_IMAGE="${GUCEF_MCP_SYNC_IMAGE:-busybox:1.36}"
 CERT_DAYS=730
 RENEW_SECONDS=$(( 60 * 24 * 3600 ))
+STATE_FILE="/var/lib/gucef-mcp-cluster/last-run"
+TIMER="gucef-mcp-cluster"
+
+IF_CHANGED=false
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --if-changed) IF_CHANGED=true ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+    shift
+done
 
 if [ ! -r "${KUBECONFIG_PATH}" ]; then
     echo "ERROR: ${KUBECONFIG_PATH} is not readable. Run on a server node with sudo."
@@ -52,6 +75,46 @@ for tool in openssl python3; do
         exit 1
     fi
 done
+
+# what the result depends on: the nodes and their addresses, the LLM servers, this script, the day
+FINGERPRINT="$( {
+    ${KUBECTL} get nodes -o jsonpath='{range .items[*]}{.metadata.name} {.status.addresses} {.metadata.labels} {.status.allocatable.nvidia\.com/gpu}{"\n"}{end}' 2>/dev/null
+    ${KUBECTL} get svc,deploy -n "${LLM_NAMESPACE}" -o jsonpath='{range .items[*]}{.metadata.name} {.metadata.resourceVersion}{"\n"}{end}' 2>/dev/null
+    sha256sum "${BASH_SOURCE[0]}"
+    date -u +%Y-%m-%d
+} | sha256sum | cut -c1-32 )"
+if [ "${IF_CHANGED}" = "true" ] && [ "$(cat "${STATE_FILE}" 2>/dev/null)" = "${FINGERPRINT}" ]; then
+    exit 0
+fi
+
+# the timer that keeps this current, run from where this script is
+if [ "$(id -u)" -eq 0 ] && [ -d /run/systemd/system ]; then
+    SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    SERVICE_UNIT="[Unit]
+Description=GUCEF MCP services: certificates and lists of the nodes, kept current (llm/mcp/cluster.sh)
+After=k3s.service
+
+[Service]
+Type=oneshot
+Environment=KUBECONFIG_PATH=${KUBECONFIG_PATH}
+ExecStart=${SELF} --if-changed"
+    TIMER_UNIT="[Unit]
+Description=Runs ${TIMER}.service every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+
+[Install]
+WantedBy=timers.target"
+    if [ "$(cat "/etc/systemd/system/${TIMER}.service" 2>/dev/null)" != "${SERVICE_UNIT}" ] ||
+       [ "$(cat "/etc/systemd/system/${TIMER}.timer" 2>/dev/null)" != "${TIMER_UNIT}" ]; then
+        echo "${SERVICE_UNIT}" > "/etc/systemd/system/${TIMER}.service"
+        echo "${TIMER_UNIT}" > "/etc/systemd/system/${TIMER}.timer"
+        systemctl daemon-reload
+    fi
+    systemctl enable --quiet --now "${TIMER}.timer"
+fi
 
 WORK_DIR="$(mktemp -d)"
 chmod 700 "${WORK_DIR}"
@@ -134,6 +197,59 @@ ${KUBECTL} create secret generic "${TLS_SECRET}" -n "${NAMESPACE}" "${FROM_FILES
     ${KUBECTL} apply -f - > /dev/null
 
 # ---------------------------------------------------------------------------
+# An LLM server for every GPU node without one
+# ---------------------------------------------------------------------------
+LLM_AUTO_NODES="$( [ -f "${SCRIPT_DIR}/../config.env" ] && . "${SCRIPT_DIR}/../config.env"; echo "${LLM_AUTO_NODES:-true}" )"
+if [ "${LLM_AUTO_NODES}" = "true" ] && [ -x "${SCRIPT_DIR}/../setup.sh" ] && [ "$(id -u)" -eq 0 ]; then
+    # GPU nodes that are no server, may have one, and have no instance of their own and no pod of namespace llm:
+    # "ready NODE" when the node advertises its GPU, else "pending NODE LIFECYCLE" (the device plugin is not there yet;
+    # an instance then would run on the CPU)
+    ${KUBECTL} get nodes -o json > "${WORK_DIR}/nodes.json" 2>/dev/null
+    ${KUBECTL} get deploy,pods -n "${LLM_NAMESPACE}" -o json > "${WORK_DIR}/llm.json" 2>/dev/null
+    WANTED="$( python3 - "${WORK_DIR}/nodes.json" "${WORK_DIR}/llm.json" <<'PYEOF'
+import json, sys
+def items(path):
+    try:
+        with open(path) as f:
+            return json.load(f).get("items", [])
+    except Exception:
+        return []
+nodes = items(sys.argv[1])
+llm = items(sys.argv[2])
+deployments = set(i["metadata"]["name"] for i in llm if i.get("kind") == "Deployment")
+busy = set(i.get("spec", {}).get("nodeName") for i in llm if i.get("kind") == "Pod")
+for node in nodes:
+    labels = node["metadata"].get("labels", {})
+    name = node["metadata"]["name"]
+    if labels.get("gucef.org/gpu") != "nvidia" or labels.get("gucef.org/llm") == "false":
+        continue
+    if "node-role.kubernetes.io/control-plane" in labels:
+        continue
+    if "llama-server-" + name in deployments or name in busy:
+        continue
+    gpus = node.get("status", {}).get("allocatable", {}).get("nvidia.com/gpu", "0")
+    if gpus not in ( "", "0" ):
+        print("ready", name)
+    else:
+        print("pending", name, labels.get("gucef.org/node-lifecycle", "-"))
+PYEOF
+)"
+    # the device plugin advertises the GPUs of ephemeral nodes once it tolerates their taint
+    if echo "${WANTED}" | grep -q "^pending .* ephemeral$" &&
+       ! ${KUBECTL} get ds -n nvidia-device-plugin -o jsonpath='{..tolerations[*].key}' 2>/dev/null | grep -q "gucef.org/ephemeral"; then
+        echo "The NVIDIA device plugin, also for ephemeral nodes"
+        "${SCRIPT_DIR}/../../nvidia/setup.sh" || echo "WARNING: nvidia/setup.sh failed; GPUs of ephemeral nodes are not advertised."
+    fi
+    echo "${WANTED}" | grep "^pending " | while read -r _ NODE _; do
+        echo "GPU node ${NODE} does not advertise its GPU yet: its LLM server follows once it does"
+    done
+    echo "${WANTED}" | grep "^ready " | while read -r _ NODE; do
+        echo "An LLM server on GPU node ${NODE}"
+        "${SCRIPT_DIR}/../setup.sh" --node "${NODE}" --no-wait --no-mcp || echo "WARNING: no LLM server on ${NODE}, see above."
+    done
+fi
+
+# ---------------------------------------------------------------------------
 # The LLM servers
 # ---------------------------------------------------------------------------
 LLM_API_KEY_VALUE=""
@@ -193,9 +309,10 @@ ${KUBECTL} create configmap "${ENDPOINTS_CONFIGMAP}" -n "${NAMESPACE}" --from-fi
     --from-file=mcp-nodes="${WORK_DIR}/mcp-nodes" --dry-run=client -o yaml | ${KUBECTL} apply -f - > /dev/null
 printf '%s' "${LLM_API_KEY_VALUE}" > "${WORK_DIR}/llm-api-key"
 # the lab MCP token: made once, kept from then on
-${KUBECTL} get secret gucef-mcp-llm -n "${NAMESPACE}" -o jsonpath='{.data.mcp-token}' 2>/dev/null | base64 -d > "${WORK_DIR}/mcp-token" 2>/dev/null
+# the token alone, no line ending: it is a file the MCP services read as it is
+${KUBECTL} get secret gucef-mcp-llm -n "${NAMESPACE}" -o jsonpath='{.data.mcp-token}' 2>/dev/null | base64 -d 2>/dev/null | tr -d '[:space:]' > "${WORK_DIR}/mcp-token"
 if [ ! -s "${WORK_DIR}/mcp-token" ]; then
-    openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-43 > "${WORK_DIR}/mcp-token"
+    openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-43 | tr -d '\n' > "${WORK_DIR}/mcp-token"
 fi
 ${KUBECTL} create secret generic gucef-mcp-llm -n "${NAMESPACE}" --from-file=llm-api-key="${WORK_DIR}/llm-api-key" \
     --from-file=mcp-token="${WORK_DIR}/mcp-token" --dry-run=client -o yaml | ${KUBECTL} apply -f - > /dev/null
@@ -296,3 +413,7 @@ spec:
             secretName: gucef-mcp-llm
 EOF
 echo "The MCP files reach /var/lib/gucef-mcp on every node within a minute (DaemonSet ${NAMESPACE}/gucef-mcp-sync)."
+if [ "$(id -u)" -eq 0 ]; then
+    install -d -m 700 "$(dirname "${STATE_FILE}")"
+    echo "${FINGERPRINT}" > "${STATE_FILE}"
+fi

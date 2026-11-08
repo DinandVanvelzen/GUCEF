@@ -13,6 +13,7 @@
 # ---------------------------------------------------------------------------
 
 DROPIN_FILE="/etc/rancher/k3s/config.yaml.d/50-gucef-agent.yaml"
+JOINED_MARKER="/etc/rancher/k3s/gucef-node-joined"
 UNINSTALL_SCRIPT="/usr/local/bin/k3s-agent-uninstall.sh"
 
 ASSUME_YES=false
@@ -41,7 +42,7 @@ if [ "${ASSUME_YES}" != "true" ]; then
 fi
 
 "${UNINSTALL_SCRIPT}" || exit 1
-rm -f "${DROPIN_FILE}"
+rm -f "${DROPIN_FILE}" "${JOINED_MARKER}"
 echo ""
 echo "k3s agent removed. On a server node, remove the node object with:"
 echo "  kubectl delete node ${NODE_NAME}"

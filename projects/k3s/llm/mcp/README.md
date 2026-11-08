@@ -17,8 +17,10 @@ of that node and commands run there, as the user the service runs as. The server
 Nothing to do by hand on the nodes:
 
 - `llm/setup.sh` (on a server) installs the service on the server and brings the cluster side up to date
-- `agent-node/join.sh` installs the service on a machine that joins; `llm/setup.sh --node <name>` or
-  `llm/mcp/cluster.sh` on a server then gives it its certificate and the LLM servers
+- `lablink/install.sh` (on a server) does the same, and `cluster.sh` installs the timer `gucef-mcp-cluster`, which
+  runs it again within 2 minutes when nodes or LLM servers change
+- `agent-node/join.sh` installs the service on a machine that joins; the timer then gives it its certificate and the
+  LLM servers
 
 The service runs as the user that ran `sudo`. To install or update it alone:
 
@@ -31,7 +33,7 @@ sudo llm/mcp/cluster.sh            # on a server: certificates and LLM servers f
 |---|---|---|
 | `install.sh [--user NAME] [--skip-tests] [--prebuilt DIR] [--upgrade]` | every node, as root | builds the checkout it is in (`/var/lib/gucef-mcp/build`), runs the tests, installs the server stripped in `/opt/gucef-mcp/<version>`, sets up and (re)starts the service, registers it with Claude Code of the user as `local-llm`. Without a checkout (package `gucef-k3s-scripts`, see [../../cluster-node-installation-media/README.md](../../cluster-node-installation-media/README.md)) it installs the files of the package `gucef-mcp` instead of building |
 | `uninstall.sh [--purge]` | the node, as root | removes the service; `--purge` also `/var/lib/gucef-mcp` |
-| `cluster.sh` | a server, as root | the certificate authority, a certificate per node, the list of LLM servers, and the DaemonSet that copies them to each node |
+| `cluster.sh [--if-changed]` | a server, as root | the certificate authority, a certificate per node, the list of LLM servers, and the DaemonSet that copies them to each node; installs the timer `gucef-mcp-cluster` that runs it with `--if-changed` every 2 minutes (only when nodes, LLM servers or the script changed, and once a day) |
 
 `install.sh` is idempotent: it installs and restarts only when the build or the settings differ. A failing build or
 test keeps the installed version. Restarting ends work that runs on the service at that moment. Settings:

@@ -62,7 +62,8 @@ if( GUCEF_PACKAGE STREQUAL "gucef-k3s-scripts" )
              PATTERN ".gitignore" EXCLUDE
              PATTERN "*.old" EXCLUDE )
   endforeach()
-  install( PROGRAMS "${GUCEF_PACKAGE_SOURCE}/host-node/set_inotify_limits.sh" DESTINATION "share/gucef-k3s/host-node" )
+  install( PROGRAMS "${GUCEF_PACKAGE_SOURCE}/host-node/set_inotify_limits.sh" "${GUCEF_PACKAGE_SOURCE}/host-node/open_firewall_ports.sh"
+           DESTINATION "share/gucef-k3s/host-node" )
 
 else()
 

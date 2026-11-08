@@ -11,13 +11,17 @@
 # otherwise runs on CPU. The model is chosen from available VRAM and memory unless
 # LLM_MODEL_HF is set. Settings: config.env (see config.env.example)
 #
-# Usage: ./setup.sh [--node NODE] [--instance NAME]
+# Usage: ./setup.sh [--node NODE] [--instance NAME] [--no-wait] [--no-mcp]
 #   (no options)     the main instance "llama-server", on the first GPU node that
 #                    is not ephemeral, otherwise on this node
 #   --node NODE      an instance on that node. The instance name defaults to the
 #                    node name: llama-server-<node>
 #   --instance NAME  instance name; config.NAME.env, when present, is read after
 #                    config.env and overrides its settings for this instance
+#   --no-wait        do not wait until the instance is ready (the first start
+#                    downloads the model) and skip the smoke test
+#   --no-mcp         leave the MCP services alone (the caller brings them up to
+#                    date: mcp/cluster.sh, which runs this for GPU nodes)
 #
 # On an ephemeral node (agent-node/join.sh --ephemeral) the instance tolerates
 # the node's taint, keeps its model in a directory on the node
@@ -46,10 +50,14 @@ EPHEMERAL_TAINT_KEY="gucef.org/ephemeral"
 
 ARG_NODE=""
 ARG_INSTANCE=""
+NO_WAIT=false
+NO_MCP=false
 while [ $# -gt 0 ]; do
     case "$1" in
         --node) ARG_NODE="$2"; shift ;;
         --instance) ARG_INSTANCE="$2"; shift ;;
+        --no-wait) NO_WAIT=true ;;
+        --no-mcp) NO_MCP=true ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
     shift
@@ -90,7 +98,7 @@ LLM_IMAGE_CPU="${LLM_IMAGE_CPU:-ghcr.io/ggml-org/llama.cpp:server@sha256:4d2de15
 
 # The MCP services: the LLM servers and certificates for all nodes, the service of this machine
 mcp_sync() {
-    [ "${LLM_MCP}" = "true" ] || return 0
+    [ "${LLM_MCP}" = "true" ] && [ "${NO_MCP}" != "true" ] || return 0
     echo ""
     echo "MCP services (LLM_MCP=false in config.env leaves them alone)"
     "${SCRIPT_DIR}/mcp/cluster.sh" || echo "WARNING: mcp/cluster.sh failed; the MCP services keep what they have."
@@ -505,6 +513,11 @@ EOF
 echo ""
 if [ "$(${KUBECTL} get node "${TARGET_NODE}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" != "True" ]; then
     echo "Node ${TARGET_NODE} is not up. ${APP_NAME} starts when it is."
+    mcp_sync
+    exit 0
+fi
+if [ "${NO_WAIT}" = "true" ]; then
+    echo "${APP_NAME} starts on ${TARGET_NODE}; the first start downloads the model."
     mcp_sync
     exit 0
 fi

@@ -8,11 +8,13 @@
 # ran sudo. Re-running it installs newer packages and changes only what
 # differs.
 #
-# Usage: sudo bash install.sh [--secret SECRET] [--approval]
-#   --secret SECRET  the lab secret; default: lab-secret on this medium, or
-#                    asked for
-#   --approval       without the lab secret: the machine waits until it is
-#                    approved on the cluster (sudo gucefLabLink --approve NAME)
+# Usage: sudo bash install.sh [--secret SECRET] [--approval] [--allow-downgrade]
+#   --secret SECRET    the lab secret; default: lab-secret on this medium, or
+#                      asked for
+#   --approval         without the lab secret: the machine waits until it is
+#                      approved on the cluster (sudo gucefLabLink --approve NAME)
+#   --allow-downgrade  install this medium also when the machine has newer
+#                      packages; without it an older medium is refused
 # ---------------------------------------------------------------------------
 
 MEDIUM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,10 +23,12 @@ SETTINGS_FILE="/etc/gucef-lablink/settings.env"
 
 SECRET=""
 APPROVAL=false
+ALLOW_DOWNGRADE=false
 while [ $# -gt 0 ]; do
     case "$1" in
         --secret) SECRET="$2"; shift ;;
         --approval) APPROVAL=true ;;
+        --allow-downgrade) ALLOW_DOWNGRADE=true ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
     shift
@@ -42,6 +46,9 @@ if [ ! -d /run/systemd/system ]; then
     echo "ERROR: the services need systemd."
     exit 1
 fi
+
+MEDIUM_VERSION="$(tr -d '[:space:]' < "${MEDIUM_DIR}/VERSION" 2>/dev/null)"
+echo "GUCEF lab install medium ${MEDIUM_VERSION:-(without VERSION)} in ${MEDIUM_DIR}"
 
 if command -v sha256sum > /dev/null 2>&1 && [ -f "${MEDIUM_DIR}/SHA256SUMS" ]; then
     if ! ( cd "${MEDIUM_DIR}" && sha256sum --quiet -c SHA256SUMS ); then
@@ -70,9 +77,20 @@ if command -v apt-get > /dev/null 2>&1; then
 else
     EXTENSION=rpm
 fi
-for file in "${MEDIUM_DIR}"/linux/*-"${ARCH}.${EXTENSION}" "${MEDIUM_DIR}"/linux/*-all."${EXTENSION}"; do
+# the packages of this medium's version; files of another medium in the same directory are left out
+for package in gucef-k3s-scripts gucef-mcp gucef-lablink; do
+    if [ -n "${MEDIUM_VERSION}" ]; then
+        candidates="$(ls -1 "${MEDIUM_DIR}"/linux/"${package}-${MEDIUM_VERSION}"-{"${ARCH}",all}."${EXTENSION}" 2>/dev/null)"
+    else
+        candidates="$(ls -1 "${MEDIUM_DIR}"/linux/"${package}"-[0-9]*-{"${ARCH}",all}."${EXTENSION}" 2>/dev/null | sort -V | tail -1)"
+    fi
+    file="$(echo "${candidates}" | head -1)"
     [ -f "${file}" ] && cp "${file}" "${PACKAGES}/" && FILES+=("${PACKAGES}/$(basename "${file}")")
 done
+OTHERS="$(ls -1 "${MEDIUM_DIR}"/linux/ 2>/dev/null | grep -v -- "-${MEDIUM_VERSION:-none}-" | tr '\n' ' ')"
+if [ -n "${MEDIUM_VERSION}" ] && [ -n "${OTHERS// /}" ]; then
+    echo "NOTE: ${MEDIUM_DIR}/linux holds packages of another medium, they are left out: ${OTHERS}"
+fi
 KIND="${EXTENSION^^} (${ARCH})"
 chmod 644 "${PACKAGES}"/* 2> /dev/null
 if [ ${#FILES[@]} -lt 3 ]; then
@@ -81,9 +99,28 @@ if [ ${#FILES[@]} -lt 3 ]; then
     exit 1
 fi
 
+# an older medium does not replace newer packages by accident
+INSTALLED_VERSION=""
+if command -v dpkg-query > /dev/null 2>&1; then
+    INSTALLED_VERSION="$(dpkg-query -W -f='${Version}' gucef-lablink 2>/dev/null)"
+elif command -v rpm > /dev/null 2>&1; then
+    INSTALLED_VERSION="$(rpm -q --qf '%{VERSION}' gucef-lablink 2>/dev/null | grep -v 'not installed')"
+fi
+if [ -n "${MEDIUM_VERSION}" ] && [ -n "${INSTALLED_VERSION}" ] && [ "${INSTALLED_VERSION}" != "${MEDIUM_VERSION}" ] &&
+   [ "$(printf '%s\n%s\n' "${INSTALLED_VERSION}" "${MEDIUM_VERSION}" | sort -V | tail -1)" = "${INSTALLED_VERSION}" ]; then
+    if [ "${ALLOW_DOWNGRADE}" != "true" ]; then
+        echo "ERROR: this machine has version ${INSTALLED_VERSION}, newer than this medium (${MEDIUM_VERSION})."
+        echo "       Use the newest medium, or --allow-downgrade to go back to this one."
+        exit 1
+    fi
+    echo "Going back from ${INSTALLED_VERSION} to ${MEDIUM_VERSION} (--allow-downgrade)."
+fi
+
 echo "Installing ${FILES[*]##*/}"
 if command -v apt-get > /dev/null 2>&1; then
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -q --allow-downgrades "${FILES[@]}"
+    DOWNGRADE_OPTION=()
+    [ "${ALLOW_DOWNGRADE}" = "true" ] && DOWNGRADE_OPTION=(--allow-downgrades)
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -q "${DOWNGRADE_OPTION[@]}" "${FILES[@]}"
 elif command -v dnf > /dev/null 2>&1; then
     dnf install -y "${FILES[@]}"
 elif command -v zypper > /dev/null 2>&1; then
@@ -115,7 +152,7 @@ if [ -z "${SECRET}" ] && [ "${APPROVAL}" != "true" ]; then
         :
     elif [ -t 0 ]; then
         echo ""
-        echo "The lab secret links this machine without approval (on the cluster: sudo gucefLabLink --init shows it)."
+        echo "The lab secret links this machine without approval (the cluster shows it at the end of its install.sh, or: sudo cat /var/lib/gucef-lablink/secret)."
         read -r -s -p "Lab secret (Enter: wait for approval on the cluster instead): " SECRET
         echo ""
     fi

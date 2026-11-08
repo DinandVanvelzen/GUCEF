@@ -4,12 +4,17 @@
 # systemd service gucef-lablink (see tools/gucefLabLink/README.md):
 #
 #   - on a k3s server node it announces the cluster on the local network and
-#     answers the machines that link to it; the first run makes the lab secret
-#     and prints it
+#     answers the machines that link to it. Everything the cluster side needs is
+#     set up with it: the MCP service of the node (llm/mcp/install.sh), the
+#     certificates, lab MCP token and node list of the MCP services, kept
+#     current as nodes come and go (llm/mcp/cluster.sh and its timer), and the
+#     lab secret, which it shows
 #   - on any other machine it finds the cluster, links to it (with the lab
 #     secret, or after approval on the cluster), joins it as an ephemeral node
 #     (Linux, agent-node/join.sh) and sets up Claude Code of the user for the MCP
 #     services of the nodes
+#   - both: the ports of the lab are opened in the firewall (ufw, firewalld)
+#     for the lab networks (host-node/open_firewall_ports.sh)
 #
 # Idempotent: a re-run builds what changed, and installs and restarts only when
 # the result or the settings differ.
@@ -34,7 +39,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 K3S_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 GUCEF_ROOT="$(cd "${K3S_DIR}/../.." && pwd)"
 STATE_DIR="/var/lib/gucef-lablink"
-BUILD_DIR="${STATE_DIR}/build"
+BUILD_DIR="/var/cache/gucef-lablink/build"   # outside STATE_DIR, which only root can read
 INSTALL_ROOT="/opt/gucef-lablink"
 CONFIG_DIR="/etc/gucef-lablink"
 SERVICE="gucef-lablink"
@@ -101,6 +106,29 @@ LAB_JOIN="${LAB_JOIN:-true}"
 LAB_PERMANENT="${LAB_PERMANENT:-false}"
 LAB_CLAUDE_USER="${LAB_CLAUDE_USER:-${SUDO_USER}}"
 [ "${LAB_CLAUDE_USER}" = "root" ] && LAB_CLAUDE_USER=""
+
+# ---------------------------------------------------------------------------
+# Firewall, and on a server node the cluster side of the MCP services
+# ---------------------------------------------------------------------------
+FIREWALL_ROLE="machine"
+[ "${ROLE}" = "cluster" ] && FIREWALL_ROLE="cluster"
+[ "${ROLE}" != "cluster" ] && [ "${LAB_JOIN}" = "true" ] && FIREWALL_ROLE="node"
+"${K3S_DIR}/host-node/open_firewall_ports.sh" "${FIREWALL_ROLE}" ${LAB_ALLOW} || echo "WARNING: the firewall could not be changed; open the ports of the lab by hand."
+
+MCP_PROBLEM=""
+if [ "${ROLE}" = "cluster" ] && [ "${UPGRADE}" != "true" ]; then
+    echo ""
+    echo "The MCP service of this node"
+    if [ -z "${SUDO_USER}" ] || [ "${SUDO_USER}" = "root" ]; then
+        MCP_PROBLEM="the MCP service runs as a user: run this with sudo from that user"
+    elif ! "${K3S_DIR}/llm/mcp/install.sh" --user "${SUDO_USER}"; then
+        MCP_PROBLEM="the MCP service was not installed, see above"
+    fi
+    echo ""
+    echo "The cluster side of the MCP services"
+    "${K3S_DIR}/llm/mcp/cluster.sh" || MCP_PROBLEM="${MCP_PROBLEM:+${MCP_PROBLEM}; }llm/mcp/cluster.sh failed, see above"
+    echo ""
+fi
 
 install -d -m 700 "${STATE_DIR}"
 install -d -m 755 "${STATE_DIR}/logs" "${INSTALL_ROOT}" "${CONFIG_DIR}"
@@ -190,11 +218,15 @@ SECRET_SHOWN=""
 if [ "${UPGRADE}" = "true" ]; then
     :
 elif [ "${ROLE}" = "cluster" ]; then
-    "${LABLINK}" --state-dir "${STATE_DIR}" --init > "${STATE_DIR}/init.txt" 2>/dev/null
-    SECRET_SHOWN="$(sed -n 3p "${STATE_DIR}/init.txt" | tr -d ' ')"
-    rm -f "${STATE_DIR}/init.txt"
+    "${LABLINK}" --state-dir "${STATE_DIR}" --init > /dev/null 2>&1
+    SECRET_SHOWN="$(tr -d '[:space:]' < "${STATE_DIR}/secret" 2>/dev/null)"
 elif [ -n "${SECRET}" ]; then
-    "${LABLINK}" --state-dir "${STATE_DIR}" --set-secret "${SECRET}" > /dev/null || exit 1
+    # the log of the program is shown only when it fails
+    if ! SET_OUTPUT="$("${LABLINK}" --state-dir "${STATE_DIR}" --set-secret "${SECRET}" 2>&1)"; then
+        echo "${SET_OUTPUT}" | grep -E "ERROR|gucefLabLink:" | tail -5
+        echo "ERROR: the lab secret could not be stored."
+        exit 1
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -265,11 +297,13 @@ if [ "${ROLE}" = "cluster" ]; then
     if [ -n "${SECRET_SHOWN}" ]; then
         echo "  The lab secret, for machines that link without approval:"
         echo "    ${SECRET_SHOWN}"
-        echo "  On such a machine, from projects/k3s/lablink of a checkout of this repository:"
-        echo "    sudo ./install.sh --secret <the secret>"
-        echo "  or from an install medium (cluster-node-installation-media/make-media.sh):  sudo bash <medium>/gucef-lab/install.sh"
+        echo "  On a machine:  sudo bash <install medium>/gucef-lab/install.sh  (it asks for the secret),"
+        echo "  or from a checkout:  sudo projects/k3s/lablink/install.sh --secret <the secret>"
         echo "  Machines without it wait for approval:  sudo gucefLabLink --list  /  sudo gucefLabLink --approve <name>"
-        echo "  Open 47810/tcp and 47811/tcp, and 5353/udp (mDNS) and 47812/udp (broadcast) when a firewall is active."
+    fi
+    if [ -n "${MCP_PROBLEM}" ]; then
+        echo "WARNING: ${MCP_PROBLEM}. Machines link, but get no MCP services until this is fixed and this script runs again."
+        exit 1
     fi
 else
     echo "  It finds the cluster within a minute; follow it with: journalctl -u ${SERVICE} -f"

@@ -28,7 +28,7 @@ CLAUDE_USER="$(sed -n 's/.*--claude-user \([^ "]*\).*/\1/p' "${CONFIG_DIR}/args.
 systemctl disable --now "${SERVICE}.service" > /dev/null 2>&1
 rm -f "${UNIT_FILE}"
 systemctl daemon-reload
-rm -rf /opt/gucef-lablink "${CONFIG_DIR}"
+rm -rf /opt/gucef-lablink "${CONFIG_DIR}" /var/cache/gucef-lablink
 [ "$(readlink /usr/local/bin/gucefLabLink)" = "/opt/gucef-lablink/current/bin/gucefLabLink" ] && rm -f /usr/local/bin/gucefLabLink
 echo "Removed the service ${SERVICE}."
 

@@ -311,12 +311,14 @@ rm -f "${MEDIUM_DIR}"/linux/*.deb "${MEDIUM_DIR}"/linux/*.rpm "${MEDIUM_DIR}/lab
 cp "${PACKAGES_DIR}"/*.deb "${MEDIUM_DIR}/linux/" || exit 1
 cp "${PACKAGES_DIR}"/*.rpm "${MEDIUM_DIR}/linux/" 2> /dev/null
 cp "${SCRIPT_DIR}/medium-install.sh" "${MEDIUM_DIR}/install.sh"
+cp "${SCRIPT_DIR}/medium-uninstall.sh" "${MEDIUM_DIR}/uninstall.sh"
+echo "${VERSION}" > "${MEDIUM_DIR}/VERSION"
 cp "${SCRIPT_DIR}/medium-README.txt" "${MEDIUM_DIR}/README.txt"
 cp "${K3S_DIR}/llm/mcp/README.md" "${MEDIUM_DIR}/docs/gucef-mcp/README.md"
 cp "${GUCEF_ROOT}/tools/gucefMcpLocalLlm/README.md" "${MEDIUM_DIR}/docs/gucef-mcp/gucefMcpLocalLlm.md"
 cp "${K3S_DIR}/lablink/README.md" "${MEDIUM_DIR}/docs/gucef-lablink/README.md"
 cp "${GUCEF_ROOT}/tools/gucefLabLink/README.md" "${MEDIUM_DIR}/docs/gucef-lablink/gucefLabLink.md"
-chmod 755 "${MEDIUM_DIR}/install.sh" 2> /dev/null
+chmod 755 "${MEDIUM_DIR}/install.sh" "${MEDIUM_DIR}/uninstall.sh" 2> /dev/null
 
 # the lab link settings of this checkout that apply to every machine; the role, name and user are each machine's own
 if [ -f "${K3S_DIR}/lablink/config.env" ]; then
@@ -327,11 +329,15 @@ if [ -n "${LAB_SECRET}" ]; then
     ( umask 077 && echo "${LAB_SECRET}" > "${MEDIUM_DIR}/lab-secret" )
 fi
 ( cd "${MEDIUM_DIR}" && find . -type f ! -name SHA256SUMS -printf '%P\n' | sort | xargs sha256sum > SHA256SUMS )
-[ "$(id -u)" -eq 0 ] && [ "${BUILD_USER}" != "root" ] && chown -R "${BUILD_USER}" "${MEDIUM_DIR}" 2> /dev/null
+# one file to copy to another machine, named by its version and unpacking to gucef-lab-<version>; older ones next to it go
+ARCHIVE="${TARGET}/gucef-lab-${VERSION}.tar.gz"
+rm -f "${TARGET}"/gucef-lab-*.tar.gz "${TARGET}/gucef-lab.tar.gz"
+tar -C "${TARGET}" --transform "s,^gucef-lab,gucef-lab-${VERSION}," -czf "${ARCHIVE}" gucef-lab || { echo "ERROR: cannot write ${ARCHIVE}"; exit 1; }
+[ "$(id -u)" -eq 0 ] && [ "${BUILD_USER}" != "root" ] && chown -R "${BUILD_USER}" "${MEDIUM_DIR}" "${ARCHIVE}" 2> /dev/null
 sync
 
 echo ""
-echo "Install medium ${VERSION} in ${MEDIUM_DIR}:"
+echo "Install medium ${VERSION} in ${MEDIUM_DIR}, and as one file: ${ARCHIVE}"
 ( cd "${MEDIUM_DIR}" && find . -type f -printf '  %P\n' | sort )
 for arch in "${ARCH_LIST[@]}"; do
     echo "${arch}: built on glibc $(cat "${WORK_DIR}/dist/${arch}/glibc" 2>/dev/null): for Linux distributions with that glibc or newer."

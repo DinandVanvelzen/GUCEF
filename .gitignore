@@ -54,3 +54,5 @@ projects/k3s/longhorn/longhorn-disks.yaml
 projects/k3s/gucef_dev/vanvelzen-github-gucef-dev-base-latest.tar
 projects/k3s/gucef_dev/pod_volume/*
 .claude/settings.local.json
+
+projects/k3s/immich/sealed-secret.yaml

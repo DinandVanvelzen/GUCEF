@@ -309,12 +309,19 @@ ExecStart=/bin/sh -c 'if { [ -e ${STATE_DIR}/no-tls ] && [ -s ${STATE_DIR}/tls/t
 EOF
 )"
 
-[ "${UNIT_CHANGED}" = "true" ] && systemctl daemon-reload
 systemctl enable --quiet "${SERVICE}.service" "${SERVICE}-tls.path"
-systemctl start "${SERVICE}-tls.path"
+[ "${UNIT_CHANGED}" = "true" ] && systemctl daemon-reload
+# a path unit watches the paths it had when it started: it starts again so that it watches those of its definition
+systemctl stop "${SERVICE}-tls.service" > /dev/null 2>&1
+systemctl restart "${SERVICE}-tls.path"
+# a service that runs with a token of its own while the lab MCP token is there, or without HTTPS while the
+# certificate is there, starts again to take them
+STALE=false
+{ [ -e "${STATE_DIR}/own-token" ] && [ -s "${STATE_DIR}/lab-token" ]; } && STALE=true
+{ [ -e "${STATE_DIR}/no-tls" ] && [ -s "${STATE_DIR}/tls/tls.key" ]; } && STALE=true
 if ! systemctl is-active --quiet "${SERVICE}.service"; then
     systemctl start "${SERVICE}.service"
-elif [ "${VERSION}" != "${CURRENT_VERSION}" ] || [ "${CONFIG_CHANGED}" = "true" ] || [ "${UNIT_CHANGED}" = "true" ]; then
+elif [ "${VERSION}" != "${CURRENT_VERSION}" ] || [ "${CONFIG_CHANGED}" = "true" ] || [ "${UNIT_CHANGED}" = "true" ] || [ "${STALE}" = "true" ]; then
     echo "Restarting ${SERVICE}: work that runs on it now is ended."
     systemctl restart "${SERVICE}.service"
 fi

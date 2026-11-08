@@ -11,6 +11,8 @@
 #   - kubelet: graceful shutdown (pods are stopped cleanly when the machine
 #     shuts down) and resources reserved for the machine's own use
 #   - k3s agent of the given version, started at boot
+#   - firewall: the ports of a node, for the networks of this machine
+#     (host-node/open_firewall_ports.sh, ufw or firewalld when active)
 #   - the MCP service gucef-mcp (llm/mcp/install.sh), as the user that ran sudo:
 #     local LLM tools for Claude sessions on this machine and, once the node has
 #     its certificate from the cluster, for sessions on other machines
@@ -42,6 +44,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 K3S_CONFIG_DIR="/etc/rancher/k3s"
 DROPIN_FILE="${K3S_CONFIG_DIR}/config.yaml.d/50-gucef-agent.yaml"
+# kubelet settings that are no command line flags anymore: a configuration file in the drop-in directory k3s gives the kubelet
+KUBELET_DROPIN_FILE="/var/lib/rancher/k3s/agent/etc/kubelet.conf.d/50-gucef-agent.conf"
+# written once the agent runs: gucefLabLink takes the machine for a node from then on (a failed join is tried again)
+JOINED_MARKER="${K3S_CONFIG_DIR}/gucef-node-joined"
 AGENT_SERVICE="k3s-agent"
 AGENT_ENV_FILE="/etc/systemd/system/${AGENT_SERVICE}.service.env"
 K3S_BIN="/usr/local/bin/k3s"
@@ -100,6 +106,17 @@ fi
 # Existing agent
 # ---------------------------------------------------------------------------
 INSTALLED_VERSION=""
+# A join that did not complete (no marker and no kubelet that runs) leaves an agent with an identity the cluster does
+# not accept: it is removed, and with a token the machine joins afresh. A working node without the marker is kept
+if [ -f "/etc/systemd/system/${AGENT_SERVICE}.service" ] && [ ! -f "${JOINED_MARKER}" ] && [ -n "${TOKEN}" ] &&
+   [ "$(curl -s --max-time 2 "${KUBELET_HEALTHZ}")" != "ok" ]; then
+    echo "A previous join of this machine did not complete: the k3s agent is removed and the machine joins afresh."
+    [ -z "${NODE_NAME}" ] && NODE_NAME="$(sed -n 's/^node-name: *//p' "${DROPIN_FILE}" 2>/dev/null | tr -d '"')"
+    if [ -x /usr/local/bin/k3s-agent-uninstall.sh ]; then
+        /usr/local/bin/k3s-agent-uninstall.sh > /dev/null 2>&1 || echo "WARNING: k3s-agent-uninstall.sh reported a problem."
+    fi
+    rm -rf /etc/rancher/node "${DROPIN_FILE}" "${KUBELET_DROPIN_FILE}"
+fi
 if [ -x "${K3S_BIN}" ] && [ -f "/etc/systemd/system/${AGENT_SERVICE}.service" ]; then
     INSTALLED_VERSION="$("${K3S_BIN}" --version 2>/dev/null | awk 'NR == 1 {print $3}')"
     EXISTING_URL="$(sed -n 's/^K3S_URL=//p' "${AGENT_ENV_FILE}" 2>/dev/null | tr -d "'\"")"
@@ -162,6 +179,10 @@ if [ "${EPHEMERAL}" = "true" ] || grep -q "${EPHEMERAL_LABEL}" "${DROPIN_FILE}" 
     LABELS+=("${EPHEMERAL_LABEL}")
     TAINTS+=("${EPHEMERAL_TAINT}")
 fi
+# a machine whose lab link says LAB_LLM=false gets no LLM server of the cluster on its GPU
+LAB_LLM_SETTING="$( for settings in /etc/gucef-lablink/settings.env "${SCRIPT_DIR}/../lablink/config.env"; do
+    [ -f "${settings}" ] && ( . "${settings}"; echo "${LAB_LLM}" ); done | grep -v '^$' | head -1 )"
+[ "${LAB_LLM_SETTING}" = "false" ] && LABELS+=("gucef.org/llm=false")
 if [ "${HAS_GPU}" = "true" ]; then
     LABELS+=("nvidia.com/gpu.present=true" "gucef.org/gpu=nvidia")
     VRAM_MIB="$(gucef_nvidia_vram_mib)"
@@ -179,10 +200,17 @@ NEW_CONFIG="$(
         echo "node-taint:"
         printf '  - "%s"\n' "${TAINTS[@]}"
     fi
-    echo "kubelet-arg:"
-    echo "  - \"system-reserved=${SYSTEM_RESERVED}\""
-    echo "  - \"shutdown-grace-period=${SHUTDOWN_GRACE}s\""
-    echo "  - \"shutdown-grace-period-critical-pods=$(( SHUTDOWN_GRACE / 4 ))s\""
+)"
+NEW_KUBELET_CONFIG="$(
+    echo "# Written by projects/k3s/agent-node/join.sh"
+    echo "apiVersion: kubelet.config.k8s.io/v1beta1"
+    echo "kind: KubeletConfiguration"
+    echo "shutdownGracePeriod: ${SHUTDOWN_GRACE}s"
+    echo "shutdownGracePeriodCriticalPods: $(( SHUTDOWN_GRACE / 4 ))s"
+    echo "systemReserved:"
+    echo "${SYSTEM_RESERVED}" | tr ',' '\n' | while IFS='=' read -r resource amount; do
+        [ -n "${resource}" ] && echo "  ${resource}: \"${amount}\""
+    done
 )"
 CONFIG_CHANGED=false
 if [ "$(cat "${DROPIN_FILE}" 2>/dev/null)" != "${NEW_CONFIG}" ]; then
@@ -190,6 +218,12 @@ if [ "$(cat "${DROPIN_FILE}" 2>/dev/null)" != "${NEW_CONFIG}" ]; then
     echo "${NEW_CONFIG}" > "${DROPIN_FILE}"
     CONFIG_CHANGED=true
     echo "Wrote ${DROPIN_FILE}"
+fi
+if [ "$(cat "${KUBELET_DROPIN_FILE}" 2>/dev/null)" != "${NEW_KUBELET_CONFIG}" ]; then
+    mkdir -p "$(dirname "${KUBELET_DROPIN_FILE}")"
+    echo "${NEW_KUBELET_CONFIG}" > "${KUBELET_DROPIN_FILE}"
+    CONFIG_CHANGED=true
+    echo "Wrote ${KUBELET_DROPIN_FILE}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -199,7 +233,9 @@ if [ "${INSTALLED_VERSION}" != "${VERSION}" ]; then
     echo "Installing k3s agent ${VERSION}..."
     if ! curl -sfL "${INSTALL_URL}" | INSTALL_K3S_VERSION="${VERSION}" K3S_URL="${SERVER_URL}" K3S_TOKEN="${TOKEN}" \
             sh -s - agent; then
-        echo "ERROR: the k3s agent installation failed."
+        rm -f "${JOINED_MARKER}"
+        echo "ERROR: the k3s agent installation failed. The last lines of the agent:"
+        journalctl -u k3s-agent -n 40 --no-pager -o cat 2>/dev/null | sed 's/^/  /'
         exit 1
     fi
 elif [ "${CONFIG_CHANGED}" = "true" ]; then
@@ -220,17 +256,16 @@ for _ in $(seq 1 60); do
     sleep 2
 done
 if [ "${HEALTHY}" != "true" ]; then
+    rm -f "${JOINED_MARKER}"
     echo "ERROR: the kubelet did not become healthy. Recent k3s agent log:"
     journalctl -u "${AGENT_SERVICE}" -n 30 --no-pager
     exit 1
 fi
 echo "k3s agent ${VERSION} running as node ${NODE_NAME}."
+echo "node=${NODE_NAME} server=${SERVER_URL} version=${VERSION}" > "${JOINED_MARKER}"
 
-if command -v ufw > /dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-    echo ""
-    echo "NOTE: ufw is active. The cluster needs these ports open between the nodes:"
-    echo "  8472/udp (flannel VXLAN), 10250/tcp (kubelet), and the host ports of workloads on this node"
-fi
+# the ports a node needs, for the networks of this machine, when a firewall is active
+"${SCRIPT_DIR}/../host-node/open_firewall_ports.sh" node || echo "WARNING: the firewall could not be changed: open 8472/udp, 10250/tcp and 8791/tcp to the cluster."
 
 MCP_INSTALLED=false
 if [ "${SKIP_MCP}" != "true" ]; then

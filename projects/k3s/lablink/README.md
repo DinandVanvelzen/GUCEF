@@ -12,7 +12,9 @@ On a k3s server node, once:
 sudo lablink/install.sh
 ```
 
-It prints the lab secret. On each other machine, from `projects/k3s/lablink` of a checkout of this repository:
+That sets up the whole cluster side: the firewall ports, the MCP service of the node, the certificates, lab MCP token
+and node list of the MCP services (kept current by a timer as nodes come and go), and the lab link. It shows the lab
+secret. On each other machine, from `projects/k3s/lablink` of a checkout of this repository:
 
 ```bash
 sudo ./install.sh --secret <the secret>
@@ -38,8 +40,8 @@ sudo gucefLabLink --approve <name>
 sudo gucefLabLink --revoke <name>        # its token is refused from then on
 ```
 
-The certificates and the list of MCP services come from `llm/mcp/cluster.sh` (run by `llm/setup.sh`); run it again on a
-server after a machine joined, so the new node's MCP service gets its certificate.
+The certificates and the list of MCP services come from `llm/mcp/cluster.sh`; its timer `gucef-mcp-cluster` runs it
+within 2 minutes after a machine joined, so the new node's MCP service gets its certificate and is in the list.
 
 ## Settings
 
@@ -52,11 +54,14 @@ server after a machine joined, so the new node's MCP service gets its certificat
 | `LAB_ROLE` | `cluster` on a k3s server node, `machine` elsewhere |
 | `LAB_JOIN` | `true`: a Linux machine joins as a node |
 | `LAB_PERMANENT` | `false`: it joins as an ephemeral node |
+| `LAB_LLM` | `true`: a machine with an NVIDIA GPU gets an LLM server of the cluster on it when it joins |
 | `LAB_CLAUDE_USER` | the user that ran `sudo` |
 | `LAB_MDNS`, `LAB_BROADCAST` | `true` |
 | `LAB_CLUSTER_NAME` | the host name |
 
-Ports: 47810/tcp and 47811/tcp on the cluster, 5353/udp (mDNS) and 47812/udp (broadcast) everywhere.
+Ports: 47810/tcp and 47811/tcp on the cluster, 5353/udp (mDNS) and 47812/udp (broadcast) everywhere, and those of k3s
+and the MCP service on nodes. `install.sh` opens them for the lab networks (`LAB_ALLOW`) when ufw or firewalld is active
+([../host-node/open_firewall_ports.sh](../host-node/open_firewall_ports.sh)).
 
 ```bash
 systemctl status gucef-lablink
