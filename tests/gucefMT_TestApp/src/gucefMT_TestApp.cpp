@@ -69,6 +69,16 @@
 #define GUCEF_MT_TESTAPP_TESTMUTEX_H
 #endif /* GUCEF_MT_TESTAPP_TESTMUTEX_H ? */
 
+#ifndef GUCEF_MT_TESTAPP_TESTSEMAPHORE_H
+#include "TestSemaphore.h"
+#define GUCEF_MT_TESTAPP_TESTSEMAPHORE_H
+#endif /* GUCEF_MT_TESTAPP_TESTSEMAPHORE_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTSLOTDATAEXCHANGE_H
+#include "TestSlotDataExchange.h"
+#define GUCEF_MT_TESTAPP_TESTSLOTDATAEXCHANGE_H
+#endif /* GUCEF_MT_TESTAPP_TESTSLOTDATAEXCHANGE_H ? */
+
 #ifndef GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H
 #include "TestSpscQueue.h"
 #define GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H
@@ -231,7 +241,9 @@ GUCEF_OSMAIN_BEGIN
         PerformMutexTests();
         PerformReaderWriterLockTests();
         PerformAtomicTests();
+        PerformSemaphoreTests();
         PerformSpscQueueTests();
+        PerformSlotDataExchangeTests();
         PerformThreadDataTests();
 
         // Tests finished normally — disarm the watchdog before it fires

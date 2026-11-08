@@ -175,7 +175,12 @@ CMutex::~CMutex()
 
     if ( GUCEF_NULL == _mutexdata )
         return;
+
+    // Waits for a thread that may still hold the lock, then lets go again: a mutex must not be destroyed while it is
+    // locked. pthreads leaves that undefined and musl (Emscripten) keeps a locked recursive mutex linked in the owning
+    // thread's list of held mutexes, where the next lock or unlock by that thread writes into the freed memory
     Lock();
+    Unlock();
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     

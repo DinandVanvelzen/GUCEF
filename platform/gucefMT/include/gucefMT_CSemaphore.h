@@ -1,7 +1,7 @@
 /*
  *  gucefMT: GUCEF module providing multithreading solutions
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -37,23 +37,17 @@
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      TYPES                                                              //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-/**
- *      Foreward declaration of the actual mutex storage structure.
- */
-struct SDL_semaphore;
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
 namespace MT {
+
+/**
+ *      Foreward declaration of the platform specific semaphore storage structure.
+ */
+struct SSemaphoreData;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -62,9 +56,12 @@ namespace MT {
 //-------------------------------------------------------------------------*/
 
 /**
- *      Wrapper class for SDL semaphore's.
- *      The usage of this class allows you to forgo having to type the same
- *      tests and allocation/de-allocation code all the time.
+ *      Counting semaphore.
+ *      A native semaphore on Windows. Everywhere else a mutex and a condition variable on the
+ *      monotonic clock, so that timeouts are not affected by wall clock changes.
+ *      Timeouts are in milliseconds, GUCEF_MT_INFINITE_LOCK_TIMEOUT means without limit, as for locks.
+ *      A semaphore can be used from any thread, but it must not be destroyed while a thread is
+ *      still waiting on it.
  */
 class GUCEF_MT_PUBLIC_CPP CSemaphore
 {
@@ -86,9 +83,8 @@ class GUCEF_MT_PUBLIC_CPP CSemaphore
         /**
          *      Variant of Wait() with a timeout in milliseconds, returns 0 if
          *      the wait succeeds, 1 if the wait does not succeed in
-         *      the allotted time, and -1 on error. On some platforms this
-         *      function is implemented by looping with a delay of 1 ms, and so
-         *      should be avoided if possible.
+         *      the allotted time, and -1 on error. A timeout of 0 does not block
+         *      and GUCEF_MT_INFINITE_LOCK_TIMEOUT waits without limit.
          */
         Int32 WaitOrTimeout( UInt32 ms );
 
@@ -99,12 +95,14 @@ class GUCEF_MT_PUBLIC_CPP CSemaphore
         bool Post( void );
 
         /**
-         *      Returns the current count of the semaphore
+         *      Returns the current count of the semaphore, a snapshot that other threads
+         *      may already have changed. Zero when the semaphore could not be created.
          */
         UInt32 Value( void ) const;
 
         /**
-         *      constructor, allocates storage for a semaphore.
+         *      constructor, allocates storage for a semaphore. When the operating system refuses
+         *      to create one every member function reports an error.
          */
         CSemaphore( UInt32 initial_value );
 
@@ -115,7 +113,7 @@ class GUCEF_MT_PUBLIC_CPP CSemaphore
 
         private:
 
-        struct SDL_semaphore *sem;    /* SDL semaphore structure which we wrap */
+        struct SSemaphoreData* m_data;        /* platform specific storage */
 
         CSemaphore( void );                   /* we want an initial value  */
         CSemaphore( const CSemaphore& src );  /* Copying doesnt make sense */

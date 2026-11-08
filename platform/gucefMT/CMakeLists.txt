@@ -29,10 +29,12 @@ set( HEADER_FILES
   include/gucefMT_CSemaphore.h
   include/gucefMT_CTAtomic.h
   include/gucefMT_CTMailBox.h
+  include/gucefMT_CTSlotDataExchange.h
   include/gucefMT_CTSpscQueue.h
   include/gucefMT_DVRWLOCK.h
   include/gucefMT_ETypes.h
   include/gucefMT_LockStatus.h
+  include/gucefMT_SlotDataExchangePolicies.h
   include/gucefMT_ThreadStatus.h
   include/gucefMT_atomic_backends.h
   include/gucefMT_atomic_config.h
