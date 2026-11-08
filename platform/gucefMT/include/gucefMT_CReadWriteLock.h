@@ -40,6 +40,11 @@
 #define GUCEF_MT_CILOCKABLE_H
 #endif /* GUCEF_MT_CILOCKABLE_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"      /* TThreadId */
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      TYPES                                                              //
@@ -141,7 +146,26 @@ class GUCEF_MT_PUBLIC_CPP CReadWriteLock : public CILockable
      *  Note that this function is meant for output to humans. Race conditions ect. make it
      *  useless for any control code.    
      */
-    UInt32 ActiveReaderReentrancyDepth( UInt32 threadId ) const;
+    UInt32 ActiveReaderReentrancyDepth( TThreadId threadId ) const;
+
+    /**
+     *  Returns the operating system's id (GetCurrentThreadSystemID()) of the active reader with the given thread id
+     *  (GetCurrentThreadID()), 0 if that thread holds no read lock. For display, like ActiveReaderReentrancyDepth().
+     *  Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1 it is the given id itself.
+     */
+    TSystemThreadId ActiveReaderSystemThreadId( TThreadId threadId ) const;
+
+    /**
+     *  Returns the thread id (GetCurrentThreadID()) of the thread holding the write lock or, once released, the
+     *  thread that held it last; 0 if no thread ever held it. Meant for output to humans, like the counts.
+     */
+    TThreadId LastWriterThreadId( void ) const;
+
+    /**
+     *  Returns the operating system's id of the thread LastWriterThreadId() reports, for display.
+     *  Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1 it is that id itself.
+     */
+    TSystemThreadId LastWriterSystemThreadId( void ) const;
 
     /**
      *      Returns the current number of writers. Note that this function

@@ -59,7 +59,8 @@
 
 struct SMutex
 {
-    UInt32 lockedByThread;
+    TThreadId lockedByThread;    /* GetCurrentThreadID() of the holder, 0 when no thread holds the mutex */
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( lockedBySystemThread )  /* GetCurrentThreadSystemID() of the holder, display only */
     Int32 reentrancyCount;
     
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -102,6 +103,7 @@ MutexCreate( void )
     if ( GUCEF_NULL != mutex )
     {
         mutex->lockedByThread = 0;
+        GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = 0; )
         mutex->reentrancyCount = 0;
         mutex->id = CreateMutex( NULL, FALSE, NULL );
         if ( 0 == mutex->id )
@@ -119,6 +121,7 @@ MutexCreate( void )
     if ( GUCEF_NULL != mutex )
     {
         mutex->lockedByThread = 0;
+        GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = 0; )
         mutex->reentrancyCount = 0;
         InitializeCriticalSection( &mutex->critsection );
         GUCEF_TRACE_EXCLUSIVE_LOCK_CREATED( &mutex->critsection );
@@ -136,6 +139,7 @@ MutexCreate( void )
     TMutex* mutex = malloc( sizeof( TMutex ) );
     mutex->reentrancyCount = 0;
     mutex->lockedByThread = 0;
+    GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = 0; )
 
     int initResult = pthread_mutex_init( &mutex->id, &attr );
     pthread_mutexattr_destroy( &attr );
@@ -204,11 +208,15 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
     {
         case WAIT_OBJECT_0:
         {
-            UInt32 callerThreadId = (UInt32) GetCurrentThreadId();
-            if ( callerThreadId == mutex->lockedByThread )             
+            struct SThreadIds caller;
+            GetCurrentThreadIds( &caller );
+            if ( caller.threadId == mutex->lockedByThread )             
                 ++mutex->reentrancyCount;
             else
-                mutex->lockedByThread = callerThreadId;
+            {
+                mutex->lockedByThread = caller.threadId;
+                GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = caller.systemThreadId; )
+            }
 
             GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( mutex->id );
             GUCEF_END;
@@ -221,8 +229,10 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
         }
         case WAIT_ABANDONED:
         {
-            UInt32 callerThreadId = (UInt32) GetCurrentThreadId();
-            mutex->lockedByThread = callerThreadId;
+            struct SThreadIds caller;
+            GetCurrentThreadIds( &caller );
+            mutex->lockedByThread = caller.threadId;
+            GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = caller.systemThreadId; )
             mutex->reentrancyCount = 0;
 
             GUCEF_TRACE_EXCLUSIVE_LOCK_ABANDONED( mutex->id );
@@ -252,11 +262,15 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
         }
         else
         {
-            UInt32 callerThreadId = (UInt32) GetCurrentThreadId();
-            if ( callerThreadId == mutex->lockedByThread )             
+            struct SThreadIds caller;
+            GetCurrentThreadIds( &caller );
+            if ( caller.threadId == mutex->lockedByThread )             
                 ++mutex->reentrancyCount;
             else
-                mutex->lockedByThread = callerThreadId;
+            {
+                mutex->lockedByThread = caller.threadId;
+                GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = caller.systemThreadId; )
+            }
 
             GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( &mutex->critsection );
             return LOCKSTATUS_OPERATION_SUCCESS;
@@ -270,17 +284,21 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
     
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     
-    UInt32 callerThreadId = (UInt32) pthread_self();
+    struct SThreadIds caller;
+    GetCurrentThreadIds( &caller );
     int lockResult = pthread_mutex_lock( &mutex->id );
 
     if ( 0 != lockResult ) 
         return GUCEF_MUTEX_OPERATION_FAILED;
     
     /* same semantics as the Windows implementations: the first lock is not a re-entry */
-    if ( callerThreadId == mutex->lockedByThread )             
+    if ( caller.threadId == mutex->lockedByThread )             
         ++mutex->reentrancyCount;
     else
-        mutex->lockedByThread = callerThreadId;
+    {
+        mutex->lockedByThread = caller.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = caller.systemThreadId; )
+    }
     GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( &mutex->id );
     return GUCEF_MUTEX_OPERATION_SUCCESS;
     
@@ -298,13 +316,16 @@ MutexUnlock( struct SMutex* mutex )
     
     GUCEF_BEGIN;
 
-    UInt32 callerThreadId = (UInt32) GetCurrentThreadId();
+    TThreadId callerThreadId = GetCurrentThreadID();
     if ( mutex->lockedByThread == callerThreadId )
     {
         if ( mutex->reentrancyCount > 0 )
             --mutex->reentrancyCount;
         else
+        {
             mutex->lockedByThread = 0;
+            GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = 0; )
+        }
     }
     
     GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( mutex->id );
@@ -335,13 +356,16 @@ MutexUnlock( struct SMutex* mutex )
 
     GUCEF_BEGIN;
 
-    UInt32 callerThreadId = (UInt32) GetCurrentThreadId();
+    TThreadId callerThreadId = GetCurrentThreadID();
     if ( mutex->lockedByThread == callerThreadId )
     {
         if ( mutex->reentrancyCount > 0 )
             --mutex->reentrancyCount;
         else
+        {
             mutex->lockedByThread = 0;
+            GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = 0; )
+        }
     
         GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &mutex->critsection );
         LeaveCriticalSection( &mutex->critsection );
@@ -367,13 +391,16 @@ MutexUnlock( struct SMutex* mutex )
     
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     
-    UInt32 callerThreadId = (UInt32) pthread_self();
+    TThreadId callerThreadId = GetCurrentThreadID();
     if ( mutex->lockedByThread == callerThreadId )
     {
         if ( mutex->reentrancyCount > 0 )
             --mutex->reentrancyCount;
         else
+        {
             mutex->lockedByThread = 0;
+            GUCEF_SYSTEM_THREAD_ID_CODE( mutex->lockedBySystemThread = 0; )
+        }
     }
 
     GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &mutex->id );
@@ -417,6 +444,34 @@ MutexReentrancy( struct SMutex* mutex )
     if ( GUCEF_NULL != mutex )
         return mutex->reentrancyCount;
     return 0;
+}
+
+/*--------------------------------------------------------------------------*/
+
+TThreadId
+MutexLockedByThread( struct SMutex* mutex )
+{
+    if ( GUCEF_NULL != mutex )
+        return mutex->lockedByThread;
+    return 0;
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+MutexLockedBySystemThread( struct SMutex* mutex )
+{
+    if ( GUCEF_NULL != mutex )
+        return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( mutex->lockedBySystemThread, mutex->lockedByThread );
+    return 0;
+}
+
+/*--------------------------------------------------------------------------*/
+
+UInt32
+MutexStructSize( void )
+{
+    return (UInt32) sizeof( struct SMutex );
 }
 
 /*--------------------------------------------------------------------------*/

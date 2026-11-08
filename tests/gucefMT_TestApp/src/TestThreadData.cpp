@@ -79,7 +79,7 @@ struct SThreadTestData
     {}
 
     MT::SThreadData* td;     /**< set by the creator before MT::ThreadCreate(), read only after */
-    UInt32 selfId;              /**< written by the new thread, read by the creator after MT::ThreadWait() */
+    TSystemThreadId selfId;            /**< written by the new thread, read by the creator after MT::ThreadWait() */
     MT::CTAtomic< bool > hold;  /**< when true the thread function keeps running until release is set */
     MT::CTAtomic< bool > release;
 };
@@ -131,7 +131,7 @@ PerformThreadDataTests( void )
             }
 
             // Read from the creating thread, concurrent with the new thread starting up
-            UInt32 idAfterCreate = MT::ThreadID( testData.td );
+            TSystemThreadId idAfterCreate = MT::ThreadID( testData.td );
 
             ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == MT::ThreadWait( testData.td, ThreadWaitLimitInMs ) );
             if ( 0 == idAfterCreate )
@@ -163,7 +163,7 @@ PerformThreadDataTests( void )
             ASSERT_TRUE( 0 != MT::ThreadCreate( testData[ i ].td, &ThreadTestFunc, &testData[ i ] ) );
         }
 
-        UInt32 creatorIds[ DistinctThreadCount ];
+        TSystemThreadId creatorIds[ DistinctThreadCount ];
         for ( UInt32 i=0; i<DistinctThreadCount; ++i )
         {
             creatorIds[ i ] = MT::ThreadID( testData[ i ].td );

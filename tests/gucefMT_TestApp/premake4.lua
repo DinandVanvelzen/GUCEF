@@ -47,12 +47,16 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestAtomic.h",
+  "include/TestLockBenchmark.h",
   "include/TestMutex.h",
+  "include/TestOwnerThreadIds.h",
   "include/TestReaderWriterLock.h",
+  "include/TestRealtimeSchedulingScope.h",
   "include/TestSemaphore.h",
   "include/TestSlotDataExchange.h",
   "include/TestSpscQueue.h",
-  "include/TestThreadData.h"
+  "include/TestThreadData.h",
+  "include/TestThreadIdentity.h"
  } )
 
 
@@ -61,12 +65,16 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/TestAtomic.cpp",
+  "src/TestLockBenchmark.cpp",
   "src/TestMutex.cpp",
+  "src/TestOwnerThreadIds.cpp",
   "src/TestReaderWriterLock.cpp",
+  "src/TestRealtimeSchedulingScope.cpp",
   "src/TestSemaphore.cpp",
   "src/TestSlotDataExchange.cpp",
   "src/TestSpscQueue.cpp",
   "src/TestThreadData.cpp",
+  "src/TestThreadIdentity.cpp",
   "src/gucefMT_TestApp.cpp"
  } )
 

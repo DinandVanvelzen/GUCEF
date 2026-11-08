@@ -61,6 +61,18 @@ struct TThreadData;
 
 typedef UInt32 ( GUCEF_CALLSPEC_PREFIX *TThreadFunc)( void* ) GUCEF_CALLSPEC_SUFFIX;
 
+/**
+ *  Both ids of a thread, see GetCurrentThreadIds(): the identity (TThreadId, for ownership and same-thread checks)
+ *  and, only where the operating system's id is a different number (GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 0), the
+ *  system id (TSystemThreadId, for display). Where the define is 1 the system id is the identity itself.
+ */
+struct SThreadIds
+{
+    TThreadId threadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( systemThreadId )
+};
+typedef struct SThreadIds TThreadIds;
+
 #define GUCEF_THREAD_WAIT_FAILED        0
 #define GUCEF_THREAD_WAIT_OK            1
 #define GUCEF_THREAD_WAIT_TIMEOUT       2
@@ -128,8 +140,25 @@ ThreadCreate( struct SThreadData* td ,
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_MT_PUBLIC_C UInt32
+/**
+ *  Returns the id the operating system uses for the given thread created with ThreadCreate(), as tools such as
+ *  top, gdb or the Windows task manager show it: the kernel thread id (gettid()) on Linux and Android, the thread id
+ *  on Windows, the pthread handle on Emscripten. It is meant for display and for operating system calls.
+ *  GetCurrentThreadSystemID() gives the same kind of number for the calling thread.
+ *  It is not the same number as GetCurrentThreadID() on Linux and Android: never compare the two.
+ *  To test whether code runs on a given thread compare GetCurrentThreadID() values only, see ThreadIdentity().
+ */
+GUCEF_MT_PUBLIC_C TSystemThreadId
 ThreadID( struct SThreadData* td );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Returns the identity of the given thread created with ThreadCreate(), the value GetCurrentThreadID() gives on that
+ *  thread. Valid from the moment ThreadCreate() has returned. 0 for a null pointer or a thread that was not created.
+ */
+GUCEF_MT_PUBLIC_C TThreadId
+ThreadIdentity( struct SThreadData* td );
 
 /*--------------------------------------------------------------------------*/
 
@@ -203,8 +232,38 @@ ThreadGetCpuAffinityByCpuId( struct SThreadData* td ,
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_MT_PUBLIC_C UInt32
-GetCurrentTaskID( void );
+/**
+ *  Returns the identity of the calling thread, see TThreadId.
+ *  Cheap enough for every lock and unlock: on POSIX platforms it is pthread_self() with all of its bits, no system call.
+ *  On Linux and Android this is not the number ThreadID() gives, see there.
+ */
+GUCEF_MT_PUBLIC_C TThreadId
+GetCurrentThreadID( void );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Returns the id the operating system uses for the calling thread, the same kind of number ThreadID() gives for a
+ *  thread created with ThreadCreate(): the kernel thread id (gettid()) on Linux and Android, the thread id on Windows,
+ *  the Mach thread port on Apple, the pthread handle on Emscripten. Meant for display (log lines, thread listings)
+ *  and for operating system calls. On Linux and Android the first call on a thread makes a system call, later calls
+ *  read a per-thread copy. Do not use it to test which thread runs, use GetCurrentThreadID() for that.
+ *  Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1 (also when forced with -D) this is GetCurrentThreadID().
+ */
+GUCEF_MT_PUBLIC_C TSystemThreadId
+GetCurrentThreadSystemID( void );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Fills 'ids' with both ids of the calling thread: GetCurrentThreadID() and, where the system id is a different
+ *  number, GetCurrentThreadSystemID() (its per-thread copy: one thread local read more than GetCurrentThreadID()).
+ *  Meant for objects that record an owning thread, see SThreadIds.
+ *  When gucefMT is built with GUCEF_MT_RECORD_SYSTEM_THREAD_ID set to 0 the system id is filled with 0 ("not
+ *  recorded") and the call costs the same as GetCurrentThreadID().
+ */
+GUCEF_MT_PUBLIC_C void
+GetCurrentThreadIds( struct SThreadIds* ids );
 
 /*--------------------------------------------------------------------------*/
 

@@ -65,7 +65,8 @@ namespace MT {
 struct SMutexData
 {
     bool isLocked;
-    UInt32 threadLastOwningLock;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( systemThreadLastOwningLock )    /* display only, recorded with threadLastOwningLock */
+    TThreadId threadLastOwningLock;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     
@@ -75,6 +76,7 @@ struct SMutexData
 
     SMutexData( void )
         : isLocked( false )
+        GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( systemThreadLastOwningLock, 0 )
         , threadLastOwningLock( 0 )
         , id( 0 )
     {GUCEF_TRACE;
@@ -86,6 +88,7 @@ struct SMutexData
     
     SMutexData( void )
         : isLocked( false )
+        GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( systemThreadLastOwningLock, 0 )
         , threadLastOwningLock( 0 )
         , critsection()
     {GUCEF_TRACE;
@@ -100,6 +103,7 @@ struct SMutexData
 
     SMutexData( void )
         : isLocked( false )
+        GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( systemThreadLastOwningLock, 0 )
         , threadLastOwningLock( 0 )
         , id()
     {GUCEF_TRACE;
@@ -111,6 +115,18 @@ struct SMutexData
 };
 
 typedef struct SMutexData TMutexData;
+
+/*--------------------------------------------------------------------------*/
+
+/** Records the calling thread as the one holding the lock: its identity and, where it differs, its system id */
+inline void
+RecordLockOwner( TMutexData* mutexData )
+{
+    SThreadIds owner;
+    GetCurrentThreadIds( &owner );
+    mutexData->threadLastOwningLock = owner.threadId;
+    GUCEF_SYSTEM_THREAD_ID_CODE( mutexData->systemThreadLastOwningLock = owner.systemThreadId; )
+}
 
 /*--------------------------------------------------------------------------*/
 
@@ -229,7 +245,7 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
     {
         case WAIT_OBJECT_0:
         {
-            ((TMutexData*)_mutexdata)->threadLastOwningLock = (UInt32) ::GetCurrentThreadId();
+            RecordLockOwner( (TMutexData*) _mutexdata );
             ((TMutexData*)_mutexdata)->isLocked = true;
             GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( ((TMutexData*)_mutexdata)->id );
             return LOCKSTATUS_OPERATION_SUCCESS;
@@ -243,7 +259,7 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
             if ( GUCEF_NULL == _mutexdata )
                 return LOCKSTATUS_OPERATION_FAILED;
 
-            ((TMutexData*)_mutexdata)->threadLastOwningLock = (UInt32) ::GetCurrentThreadId();
+            RecordLockOwner( (TMutexData*) _mutexdata );
             ((TMutexData*)_mutexdata)->isLocked = true;
             GUCEF_TRACE_EXCLUSIVE_LOCK_ABANDONED( ((TMutexData*)_mutexdata)->id );
             return LOCKSTATUS_ABANDONED;
@@ -271,7 +287,7 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
         }
         else
         {
-            _mutexdata->threadLastOwningLock = (UInt32) ::GetCurrentThreadId();
+            RecordLockOwner( (TMutexData*) _mutexdata );
             _mutexdata->isLocked = true;
             GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( (::CRITICAL_SECTION*) &_mutexdata->critsection );
             return LOCKSTATUS_OPERATION_SUCCESS;
@@ -291,7 +307,7 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
         return LOCKSTATUS_OPERATION_FAILED;
     }
 
-    ((TMutexData*)_mutexdata)->threadLastOwningLock = (UInt32) pthread_self();
+    RecordLockOwner( (TMutexData*) _mutexdata );
     ((TMutexData*)_mutexdata)->isLocked = true;
     GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( &((TMutexData*)_mutexdata)->id );
     return LOCKSTATUS_OPERATION_SUCCESS;
@@ -338,7 +354,7 @@ CMutex::Unlock( void ) const
      *      specified critical section object, an error occurs that may cause another thread
      *      using EnterCriticalSection to wait indefinitely.
      */
-    if ( _mutexdata->threadLastOwningLock == (UInt32) ::GetCurrentThreadId() )
+    if ( _mutexdata->threadLastOwningLock == GetCurrentThreadID() )
     {
         _mutexdata->isLocked = false;
         GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &_mutexdata->critsection );
@@ -382,7 +398,7 @@ CMutex::AsLockable( void ) const
 
 /*--------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CMutex::GetThreadIdOfThreadLastHoldingTheLock( void ) const
 {GUCEF_TRACE;
 
@@ -390,6 +406,19 @@ CMutex::GetThreadIdOfThreadLastHoldingTheLock( void ) const
         return 0;
 
     return ((TMutexData*)_mutexdata)->threadLastOwningLock;
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+CMutex::GetSystemThreadIdOfThreadLastHoldingTheLock( void ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == _mutexdata )
+        return 0;
+
+    const TMutexData* mutexData = (const TMutexData*) _mutexdata;
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( mutexData->systemThreadLastOwningLock, mutexData->threadLastOwningLock );
 }
 
 /*--------------------------------------------------------------------------*/

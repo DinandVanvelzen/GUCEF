@@ -24,6 +24,7 @@ set( HEADER_FILES
   include/gucefMT_CObjectScopeLock.h
   include/gucefMT_CObjectScopeReadOnlyLock.h
   include/gucefMT_CReadWriteLock.h
+  include/gucefMT_CRealtimeSchedulingScope.h
   include/gucefMT_CScopeMutex.h
   include/gucefMT_CScopeRwLock.h
   include/gucefMT_CSemaphore.h
@@ -59,6 +60,7 @@ set( SOURCE_FILES
   src/gucefMT_CObjectScopeLock.cpp
   src/gucefMT_CObjectScopeReadOnlyLock.cpp
   src/gucefMT_CReadWriteLock.cpp
+  src/gucefMT_CRealtimeSchedulingScope.cpp
   src/gucefMT_CScopeMutex.cpp
   src/gucefMT_CScopeRwLock.cpp
   src/gucefMT_CSemaphore.cpp

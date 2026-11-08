@@ -268,6 +268,32 @@
 /*-------------------------------------------------------------------------*/
 
 /*
+ *  Whether the operating system's id of a thread (TSystemThreadId, the number debuggers and thread listings show) is
+ *  the same value of the same type as the thread identity (TThreadId, used for ownership and same-thread checks).
+ *  Decided by value, not by width:
+ *
+ *  1: Windows, where both are the DWORD of GetCurrentThreadId().
+ *     Emscripten, where no kernel thread exists: the id the runtime itself shows for a thread (for example in
+ *     "Pthread 0x... sent an error") is the pthread handle, which is also the identity (pthread_self()). Emscripten's
+ *     gettid() is a counter of its C library that no browser tool shows, so it is not used.
+ *  0: Linux and Android (gettid(), the kernel thread id, is not pthread_self(); also on 32-bit ARM where both are
+ *     32 bits wide), Apple (the Mach thread port is not pthread_self()) and every other platform.
+ *
+ *  When 1 an object that records an owning thread stores the identity only and its system id accessor returns the
+ *  identity, so the platform pays nothing for the second id. When 0 the object also stores the system id for
+ *  display, see GUCEF_SYSTEM_THREAD_ID_MEMBER(). Define it with -D to override the choice for an unusual target.
+ */
+#ifndef GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
+#   if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+#       define GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID    1
+#   else
+#       define GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID    0
+#   endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+/*
  *  Compile time Little or Big Endian byte order detection
  */
 #ifndef GUCEF_BYTEORDER_ENDIAN_COMPILE_TIME

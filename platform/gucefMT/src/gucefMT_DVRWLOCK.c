@@ -53,7 +53,8 @@
 
 struct SThreadSlot
 {
-    UInt32 threadId;
+    TThreadId threadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( systemThreadId )     /* display only, recorded with threadId */
     Int32 reentrancyCount;
 
     struct SThreadSlot* nextSlot;
@@ -71,17 +72,39 @@ struct SRWLock
     TThreadSlot* queuedWriters;
     TThreadSlot* freeThreadInfo;
     Int32 queuedReaderCount;
-    UInt32 lastQueuedReaderThreadId;
+    TThreadId lastQueuedReaderThreadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( lastQueuedReaderSystemThreadId )
     Int32 activeWriterCount;
     Int32 activeWriterReentrancyCount;
     Int32 queuedWriterCount;
     UInt8 writeLockAquisitionInProgress;
-    UInt32 writeLockAquisitionThreadId;
+    TThreadId writeLockAquisitionThreadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( writeLockAquisitionSystemThreadId )
     UInt32 wpriority;
-    UInt32 lastWriterThreadId;
+    TThreadId lastWriterThreadId;     /* the thread holding the write lock, or the one that held it last */
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( lastWriterSystemThreadId )
     struct SMutex* datalock;
     struct SMutex* writerlock;
 };
+
+/*
+ *  Records the calling thread in the owner field '<name>ThreadId' of the lock and, where it is a different number, its
+ *  operating system id in '<name>SystemThreadId' beside it (display only, see GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID)
+ */
+#define RWL_RECORD_CURRENT_THREAD( lock, name )                                                 \
+    {                                                                                           \
+        struct SThreadIds currentThreadIds;                                                     \
+        GetCurrentThreadIds( &currentThreadIds );                                               \
+        (lock)->name##ThreadId = currentThreadIds.threadId;                                     \
+        GUCEF_SYSTEM_THREAD_ID_CODE( (lock)->name##SystemThreadId = currentThreadIds.systemThreadId; ) \
+    }
+
+/** Clears the owner field '<name>ThreadId' of the lock and the system id beside it */
+#define RWL_CLEAR_THREAD( lock, name )                                                          \
+    {                                                                                           \
+        (lock)->name##ThreadId = 0;                                                             \
+        GUCEF_SYSTEM_THREAD_ID_CODE( (lock)->name##SystemThreadId = 0; )                        \
+    }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -137,7 +160,7 @@ rwl_impl_get_free_slot( TRWLock* rwlock )
 
 GUCEF_MT_PRIVATE_C
 TThreadSlot*
-rwl_impl_get_reader_slot( TRWLock* rwlock, UInt32 threadId )
+rwl_impl_get_reader_slot( TRWLock* rwlock, const struct SThreadIds* threadIds )
 {
     GUCEF_BEGIN;
 
@@ -149,7 +172,7 @@ rwl_impl_get_reader_slot( TRWLock* rwlock, UInt32 threadId )
      */
     while ( GUCEF_NULL != readerSlot )
     {
-        if ( readerSlot->threadId == threadId )
+        if ( readerSlot->threadId == threadIds->threadId )
             return readerSlot;
         readerSlot = readerSlot->nextSlot;
     }
@@ -161,7 +184,8 @@ rwl_impl_get_reader_slot( TRWLock* rwlock, UInt32 threadId )
     slot = rwl_impl_get_free_slot( rwlock );
     if ( GUCEF_NULL != slot )
     {
-        slot->threadId = threadId;
+        slot->threadId = threadIds->threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( slot->systemThreadId = threadIds->systemThreadId; )
         readerSlot = rwlock->activeReaders;
         rwlock->activeReaders = slot;
         slot->nextSlot = readerSlot;
@@ -183,7 +207,7 @@ rwl_impl_get_reader_slot( TRWLock* rwlock, UInt32 threadId )
 
 GUCEF_MT_PRIVATE_C
 TThreadSlot*
-rwl_impl_get_queued_writer_slot( TRWLock* rwlock, UInt32 threadId )
+rwl_impl_get_queued_writer_slot( TRWLock* rwlock, const struct SThreadIds* threadIds )
 {
     GUCEF_BEGIN;
 
@@ -195,7 +219,7 @@ rwl_impl_get_queued_writer_slot( TRWLock* rwlock, UInt32 threadId )
      */
     while ( GUCEF_NULL != queuedWriterSlot )
     {
-        if ( queuedWriterSlot->threadId == threadId )
+        if ( queuedWriterSlot->threadId == threadIds->threadId )
             return queuedWriterSlot;
         queuedWriterSlot = queuedWriterSlot->nextSlot;
     }
@@ -207,7 +231,8 @@ rwl_impl_get_queued_writer_slot( TRWLock* rwlock, UInt32 threadId )
     slot = rwl_impl_get_free_slot( rwlock );
     if ( GUCEF_NULL != slot )
     {
-        slot->threadId = threadId;
+        slot->threadId = threadIds->threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( slot->systemThreadId = threadIds->systemThreadId; )
         queuedWriterSlot = rwlock->queuedWriters;
         rwlock->queuedWriters = slot;
         slot->nextSlot = queuedWriterSlot;
@@ -229,7 +254,7 @@ rwl_impl_get_queued_writer_slot( TRWLock* rwlock, UInt32 threadId )
 
 GUCEF_MT_PRIVATE_C
 void
-rwl_impl_free_reader_slot( TRWLock* rwlock, UInt32 threadId )
+rwl_impl_free_reader_slot( TRWLock* rwlock, TThreadId threadId )
 {
     GUCEF_BEGIN;
 
@@ -255,6 +280,7 @@ rwl_impl_free_reader_slot( TRWLock* rwlock, UInt32 threadId )
              *  Reset the slot for re-use and add to the free slot list
              */
             readerSlot->threadId = 0;
+            GUCEF_SYSTEM_THREAD_ID_CODE( readerSlot->systemThreadId = 0; )
             readerSlot->reentrancyCount = 0;
             readerSlot->nextSlot = rwlock->freeThreadInfo;
             rwlock->freeThreadInfo = readerSlot;
@@ -273,7 +299,7 @@ rwl_impl_free_reader_slot( TRWLock* rwlock, UInt32 threadId )
 
 GUCEF_MT_PRIVATE_C
 void
-rwl_impl_free_queued_writer_slot( TRWLock* rwlock, UInt32 threadId )
+rwl_impl_free_queued_writer_slot( TRWLock* rwlock, TThreadId threadId )
 {
     GUCEF_BEGIN;
 
@@ -299,6 +325,7 @@ rwl_impl_free_queued_writer_slot( TRWLock* rwlock, UInt32 threadId )
              *  Reset the slot for re-use and add to the free slot list
              */
             queuedWriterSlot->threadId = 0;
+            GUCEF_SYSTEM_THREAD_ID_CODE( queuedWriterSlot->systemThreadId = 0; )
             queuedWriterSlot->reentrancyCount = 0;
             queuedWriterSlot->nextSlot = rwlock->freeThreadInfo;
             rwlock->freeThreadInfo = queuedWriterSlot;
@@ -321,9 +348,10 @@ rwl_impl_push_active_reader( TRWLock* rwlock )
 {
     GUCEF_BEGIN;
     
-    UInt32 threadId = GetCurrentTaskID();
+    struct SThreadIds threadIds;
+    GetCurrentThreadIds( &threadIds );
 
-    TThreadSlot* threadSlot = rwl_impl_get_reader_slot( rwlock, threadId );
+    TThreadSlot* threadSlot = rwl_impl_get_reader_slot( rwlock, &threadIds );
     if ( threadSlot == GUCEF_NULL )
         return 0;
 
@@ -343,9 +371,10 @@ rwl_impl_pop_active_reader( TRWLock* rwlock )
     
     if ( rwlock->activeReaderCount > 0 )
     {
-        UInt32 threadId = GetCurrentTaskID();
+        struct SThreadIds threadIds;
+        GetCurrentThreadIds( &threadIds );
 
-        TThreadSlot* threadSlot = rwl_impl_get_reader_slot( rwlock, threadId );
+        TThreadSlot* threadSlot = rwl_impl_get_reader_slot( rwlock, &threadIds );
         if ( threadSlot == GUCEF_NULL )
             return 0;
         
@@ -358,7 +387,7 @@ rwl_impl_pop_active_reader( TRWLock* rwlock )
         }
 
         if ( 0 == threadSlot->reentrancyCount )
-            rwl_impl_free_reader_slot( rwlock, threadId );
+            rwl_impl_free_reader_slot( rwlock, threadIds.threadId );
 
         GUCEF_END;
         return 1;
@@ -380,9 +409,10 @@ rwl_impl_push_queued_writer( TRWLock* rwlock )
 {
     GUCEF_BEGIN;
     
-    UInt32 threadId = GetCurrentTaskID();
+    struct SThreadIds threadIds;
+    GetCurrentThreadIds( &threadIds );
 
-    TThreadSlot* threadSlot = rwl_impl_get_queued_writer_slot( rwlock, threadId );
+    TThreadSlot* threadSlot = rwl_impl_get_queued_writer_slot( rwlock, &threadIds );
     if ( threadSlot == GUCEF_NULL )
         return 0;
 
@@ -402,9 +432,10 @@ rwl_impl_pop_queued_writer( TRWLock* rwlock )
     
     if ( rwlock->queuedWriterCount > 0 )
     {
-        UInt32 threadId = GetCurrentTaskID();
+        struct SThreadIds threadIds;
+        GetCurrentThreadIds( &threadIds );
 
-        TThreadSlot* threadSlot = rwl_impl_get_queued_writer_slot( rwlock, threadId );
+        TThreadSlot* threadSlot = rwl_impl_get_queued_writer_slot( rwlock, &threadIds );
         if ( threadSlot == GUCEF_NULL )
             return 0;
         
@@ -417,7 +448,7 @@ rwl_impl_pop_queued_writer( TRWLock* rwlock )
         }
 
         if ( 0 == threadSlot->reentrancyCount )
-            rwl_impl_free_queued_writer_slot( rwlock, threadId );
+            rwl_impl_free_queued_writer_slot( rwlock, threadIds.threadId );
 
         GUCEF_END;
         return 1;
@@ -439,7 +470,7 @@ rwl_impl_has_foreign_reader( TRWLock* rwlock )
 {
     GUCEF_BEGIN;
 
-    UInt32 calledThreadId = GetCurrentTaskID();
+    TThreadId calledThreadId = GetCurrentThreadID();
     TThreadSlot* readerSlot = rwlock->activeReaders;
 
     while  ( GUCEF_NULL != readerSlot )
@@ -464,7 +495,7 @@ rwl_impl_has_special_access_for_multiple_readers_escalating_to_writers( TRWLock*
 {
     GUCEF_BEGIN;
 
-    UInt32 calledThreadId = GetCurrentTaskID();
+    TThreadId calledThreadId = GetCurrentThreadID();
 
     /* 
      * We need to verify if ALL active readers are also queued writers
@@ -553,15 +584,15 @@ rwl_create( UInt32 writer_overrules )
         rwlock->activeReaders = GUCEF_NULL;
         rwlock->freeThreadInfo = GUCEF_NULL;
         rwlock->queuedReaderCount = 0;
-        rwlock->lastQueuedReaderThreadId = 0;
+        RWL_CLEAR_THREAD( rwlock, lastQueuedReader );
         rwlock->activeWriterCount = 0;
         rwlock->activeWriterReentrancyCount = 0;
         rwlock->queuedWriterCount = 0;
         rwlock->queuedWriters = GUCEF_NULL;
         rwlock->writeLockAquisitionInProgress = 0;
-        rwlock->writeLockAquisitionThreadId = 0;
+        RWL_CLEAR_THREAD( rwlock, writeLockAquisition );
         rwlock->wpriority = writer_overrules;
-        rwlock->lastWriterThreadId = 0;
+        RWL_CLEAR_THREAD( rwlock, lastWriter );
         rwlock->datalock = MutexCreate();
         rwlock->writerlock = MutexCreate();
 
@@ -749,7 +780,7 @@ rwl_active_writer_reentrancy_depth( const TRWLock *rwlock )
 /*--------------------------------------------------------------------------*/
 
 UInt32
-rwl_active_reader_reentrancy_depth( const TRWLock *rwlock, UInt32 threadId )
+rwl_active_reader_reentrancy_depth( const TRWLock *rwlock, TThreadId threadId )
 {
 	GUCEF_BEGIN;
 
@@ -786,6 +817,87 @@ rwl_active_reader_reentrancy_depth( const TRWLock *rwlock, UInt32 threadId )
     }
     
     GUCEF_END;
+    return 0;
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+rwl_active_reader_system_thread_id( const TRWLock *rwlock, TThreadId threadId )
+{
+    GUCEF_BEGIN;
+
+    if ( GUCEF_NULL != rwlock && 0 != threadId )
+    {
+        do
+        {
+            if ( MutexLock( rwlock->datalock, GUCEF_MUTEX_INFINITE_TIMEOUT ) == GUCEF_MUTEX_OPERATION_SUCCESS )
+            {
+                TThreadSlot* readerSlot = rwlock->activeReaders;
+                while ( GUCEF_NULL != readerSlot )
+                {
+                    if ( readerSlot->threadId == threadId )
+                    {
+                        TSystemThreadId systemThreadId = GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( readerSlot->systemThreadId, readerSlot->threadId );
+                        MutexUnlock( rwlock->datalock );
+
+                        GUCEF_END;
+                        return systemThreadId;
+                    }
+                    readerSlot = readerSlot->nextSlot;
+                }
+
+                MutexUnlock( rwlock->datalock );
+                GUCEF_END;
+                return 0;
+            }
+        }
+        while ( 0 == rwlock->delflag );
+    }
+
+    GUCEF_END;
+    return 0;
+}
+
+/*--------------------------------------------------------------------------*/
+
+TThreadId
+rwl_last_writer_thread_id( const TRWLock *rwlock )
+{
+    if ( GUCEF_NULL != rwlock )
+    {
+        do
+        {
+            if ( MutexLock( rwlock->datalock, GUCEF_MUTEX_INFINITE_TIMEOUT ) == GUCEF_MUTEX_OPERATION_SUCCESS )
+            {
+                TThreadId threadId = rwlock->lastWriterThreadId;
+                MutexUnlock( rwlock->datalock );
+                return threadId;
+            }
+        }
+        while ( 0 == rwlock->delflag );
+    }
+    return 0;
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+rwl_last_writer_system_thread_id( const TRWLock *rwlock )
+{
+    if ( GUCEF_NULL != rwlock )
+    {
+        do
+        {
+            if ( MutexLock( rwlock->datalock, GUCEF_MUTEX_INFINITE_TIMEOUT ) == GUCEF_MUTEX_OPERATION_SUCCESS )
+            {
+                TSystemThreadId systemThreadId = GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( rwlock->lastWriterSystemThreadId, rwlock->lastWriterThreadId );
+                MutexUnlock( rwlock->datalock );
+                return systemThreadId;
+            }
+        }
+        while ( 0 == rwlock->delflag );
+    }
     return 0;
 }
 
@@ -937,7 +1049,7 @@ rwl_reader_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                          *  trying to obtain a read lock in another scope, acting as a reader.
                          *  We have to check for this or the thread can self-deadlock
                          */
-                        if ( rwlock->lastWriterThreadId == GetCurrentTaskID() )
+                        if ( rwlock->lastWriterThreadId == GetCurrentThreadID() )
                         {
                             /*
                              *  The reader thread is also the writer thread
@@ -963,7 +1075,7 @@ rwl_reader_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                     if ( rwlock->wpriority > 0 )
                     {
                         rwlock->queuedReaderCount++;
-                        rwlock->lastQueuedReaderThreadId = GetCurrentTaskID();
+                        RWL_RECORD_CURRENT_THREAD( rwlock, lastQueuedReader );
                         MutexUnlock( rwlock->datalock );
 
                         done = 0;
@@ -1094,7 +1206,7 @@ rwl_reader_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                     else
                     {
                         rwlock->queuedReaderCount++;
-                        rwlock->lastQueuedReaderThreadId = GetCurrentTaskID();
+                        RWL_RECORD_CURRENT_THREAD( rwlock, lastQueuedReader );
                         MutexUnlock( rwlock->datalock );
 
                         do
@@ -1212,7 +1324,7 @@ rwl_reader_stop( TRWLock *rwlock )
             {
                 if ( rwlock->activeWriterCount > 0 )
                 {
-                    if ( rwlock->lastWriterThreadId == GetCurrentTaskID() )
+                    if ( rwlock->lastWriterThreadId == GetCurrentThreadID() )
                     {
                         /*
                          *  The caller is the currently active writer thread who also grabbed a read lock
@@ -1288,7 +1400,7 @@ rwl_reader_transition_to_writer( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
 	GUCEF_BEGIN;
     if ( GUCEF_NULL != rwlock )
     {
-        UInt32 callerThreadId = GetCurrentTaskID();
+        TThreadId callerThreadId = GetCurrentThreadID();
         do
         {
             if ( MutexLock( rwlock->datalock, GUCEF_MUTEX_INFINITE_TIMEOUT ) == GUCEF_MUTEX_OPERATION_SUCCESS )
@@ -1400,7 +1512,7 @@ rwl_reader_transition_to_writer( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
    
                     }
                     rwlock->activeWriterReentrancyCount = MutexReentrancy( rwlock->writerlock );
-                    rwlock->lastWriterThreadId = GetCurrentTaskID(); 
+                    RWL_RECORD_CURRENT_THREAD( rwlock, lastWriter );
                     MutexUnlock( rwlock->datalock );
                     GUCEF_END;
                     return GUCEF_RWLOCK_OPERATION_SUCCESS;                    
@@ -1435,7 +1547,7 @@ rwl_reader_transition_to_writer( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                          *  set the writeLockAquisitionInProgress flag 
                                          */
                                         rwlock->writeLockAquisitionInProgress = 1;
-                                        rwlock->writeLockAquisitionThreadId = GetCurrentTaskID();
+                                        RWL_RECORD_CURRENT_THREAD( rwlock, writeLockAquisition );
                                         MutexUnlock( rwlock->datalock );
                     
                                         do
@@ -1457,7 +1569,7 @@ rwl_reader_transition_to_writer( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                                          *  after that turned the queued writer into the active writer
                                                          */
                                                         rwlock->activeWriterCount++;
-                                                        rwlock->lastWriterThreadId = GetCurrentTaskID();
+                                                        RWL_RECORD_CURRENT_THREAD( rwlock, lastWriter );
                                                         rwlock->writeLockAquisitionInProgress = 0;
                                                         if ( rwl_impl_pop_queued_writer( rwlock ) != 0 ) 
                                                         {
@@ -1600,7 +1712,7 @@ rwl_reader_transition_to_writer( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                          *  It temporarly overrules the reader priority while we grab the other lock
                                          */
                                         rwlock->writeLockAquisitionInProgress = 1;
-                                        rwlock->writeLockAquisitionThreadId = GetCurrentTaskID();
+                                        RWL_RECORD_CURRENT_THREAD( rwlock, writeLockAquisition );
                                         MutexUnlock( rwlock->datalock );
                     
                                         do
@@ -1622,7 +1734,7 @@ rwl_reader_transition_to_writer( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                                          *  after that turned the queued writer into the active writer
                                                          */
                                                         rwlock->activeWriterCount++;
-                                                        rwlock->lastWriterThreadId = GetCurrentTaskID();
+                                                        RWL_RECORD_CURRENT_THREAD( rwlock, lastWriter );
                                                         rwlock->writeLockAquisitionInProgress = 0;
                                                         rwlock->activeWriterReentrancyCount = MutexReentrancy( rwlock->writerlock );
                                                         if ( rwl_impl_pop_queued_writer( rwlock ) != 0 ) 
@@ -1778,7 +1890,7 @@ rwl_writer_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                          *  trying to obtain another write lock in another scope
                          *  We have to check for this or the thread can self-deadlock
                          */
-                        if ( rwlock->lastWriterThreadId == GetCurrentTaskID() )
+                        if ( rwlock->lastWriterThreadId == GetCurrentThreadID() )
                         {
                             /*
                              *  The caller is already the currently active writer thread
@@ -1861,7 +1973,7 @@ rwl_writer_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                         {
    
                                         }
-                                        rwlock->lastWriterThreadId = GetCurrentTaskID();
+                                        RWL_RECORD_CURRENT_THREAD( rwlock, lastWriter );
                                         rwlock->activeWriterReentrancyCount = MutexReentrancy( rwlock->writerlock );
                                         MutexUnlock( rwlock->datalock );
                                         return GUCEF_RWLOCK_OPERATION_SUCCESS; 
@@ -1968,7 +2080,7 @@ rwl_writer_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                                      *  set the writeLockAquisitionInProgress flag 
                                                      */
                                                     rwlock->writeLockAquisitionInProgress = 1;
-                                                    rwlock->writeLockAquisitionThreadId = GetCurrentTaskID(); 
+                                                    RWL_RECORD_CURRENT_THREAD( rwlock, writeLockAquisition );
                                                     MutexUnlock( rwlock->datalock );
                     
                                                     do
@@ -2023,7 +2135,7 @@ rwl_writer_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                                                              *  We have successfully turned our queued writer into the active writer
                                                                              */
                                                                             rwlock->activeWriterCount++;
-                                                                            rwlock->lastWriterThreadId = GetCurrentTaskID();
+                                                                            RWL_RECORD_CURRENT_THREAD( rwlock, lastWriter );
                                                                             rwlock->writeLockAquisitionInProgress = 0;
                                                                             if ( rwl_impl_pop_queued_writer( rwlock ) != 0 ) 
                                                                             {
@@ -2260,7 +2372,7 @@ rwl_writer_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                              *  It temporarly overrules the reader priority while we grab the other lock
                                              */
                                             rwlock->writeLockAquisitionInProgress = 1;
-                                            rwlock->writeLockAquisitionThreadId = GetCurrentTaskID();
+                                            RWL_RECORD_CURRENT_THREAD( rwlock, writeLockAquisition );
                                             MutexUnlock( rwlock->datalock );
                     
                                             do
@@ -2304,7 +2416,7 @@ rwl_writer_start( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
                                                                  *  We have successfully turned our queued writer into the active writer
                                                                  */
                                                                 rwlock->activeWriterCount++;
-                                                                rwlock->lastWriterThreadId = GetCurrentTaskID();
+                                                                RWL_RECORD_CURRENT_THREAD( rwlock, lastWriter );
                                                                 rwlock->writeLockAquisitionInProgress = 0;
                                                                 if ( rwl_impl_pop_queued_writer( rwlock ) != 0 ) 
                                                                 {
@@ -2430,7 +2542,7 @@ rwl_writer_stop( TRWLock *rwlock )
             if ( MutexLock( rwlock->datalock, GUCEF_MUTEX_INFINITE_TIMEOUT ) == GUCEF_MUTEX_OPERATION_SUCCESS )
             {
                 if ( rwlock->activeWriterCount > 0                    &&
-                     rwlock->lastWriterThreadId == GetCurrentTaskID() )
+                     rwlock->lastWriterThreadId == GetCurrentThreadID() )
                 {
                     /*
                      *  The caller is the currently active writer thread
@@ -2478,7 +2590,7 @@ rwl_writer_transition_to_reader( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
         {
             if ( MutexLock( rwlock->datalock, GUCEF_MUTEX_INFINITE_TIMEOUT ) == GUCEF_MUTEX_OPERATION_SUCCESS )
             {
-	            UInt32 callerThreadId = GetCurrentTaskID();
+                TThreadId callerThreadId = GetCurrentThreadID();
                 
                 /*
                  *	Sanity check
@@ -2562,7 +2674,7 @@ rwl_writer_transition_to_reader( TRWLock* rwlock, UInt32 lockWaitTimeoutInMs )
 /*--------------------------------------------------------------------------*/
 
 void
-rwl_signal_thread_killed( TRWLock *rwlock, UInt32 killedThreadId )
+rwl_signal_thread_killed( TRWLock *rwlock, TThreadId killedThreadId )
 {
     if ( GUCEF_NULL == rwlock )
         return;
@@ -2603,6 +2715,7 @@ rwl_signal_thread_killed( TRWLock *rwlock, UInt32 killedThreadId )
                         {
                             readerSlot->reentrancyCount = 0;
                             readerSlot->threadId = 0;
+                            GUCEF_SYSTEM_THREAD_ID_CODE( readerSlot->systemThreadId = 0; )
                             if ( GUCEF_NULL != prevSlot )
                                 prevSlot->nextSlot = readerSlot->nextSlot;    
                             else
@@ -2632,6 +2745,7 @@ rwl_signal_thread_killed( TRWLock *rwlock, UInt32 killedThreadId )
                         {
                             queuedWriterSlot->reentrancyCount = 0;
                             queuedWriterSlot->threadId = 0;
+                            GUCEF_SYSTEM_THREAD_ID_CODE( queuedWriterSlot->systemThreadId = 0; )
                             if ( GUCEF_NULL != prevSlot )
                                 prevSlot->nextSlot = queuedWriterSlot->nextSlot;    
                             else

@@ -54,6 +54,11 @@
 #define GUCEF_MT_LOCKSTATUS_H
 #endif /* GUCEF_MT_LOCKSTATUS_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"      /* TThreadId */
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      TYPES                                                              //
@@ -193,7 +198,36 @@ rwl_queued_readers( const TRWLock *rwlock );
  *  It has no use in relation with the other rwl_ functions.
  */
 GUCEF_MT_PUBLIC_C UInt32
-rwl_active_reader_reentrancy_depth( const TRWLock *rwlock, UInt32 threadId );
+rwl_active_reader_reentrancy_depth( const TRWLock *rwlock, TThreadId threadId );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Returns the operating system's id (GetCurrentThreadSystemID()) of the active reader with the given identity
+ *  (GetCurrentThreadID()), 0 if that thread does not hold a read lock. For display, see GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID:
+ *  where it is 1 this is the identity itself; where gucefMT is built with GUCEF_MT_RECORD_SYSTEM_THREAD_ID set to 0
+ *  it is 0. A snapshot in time like rwl_active_reader_reentrancy_depth().
+ */
+GUCEF_MT_PUBLIC_C TSystemThreadId
+rwl_active_reader_system_thread_id( const TRWLock *rwlock, TThreadId threadId );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Returns the identity (GetCurrentThreadID()) of the thread that holds the write lock or, once released, held it
+ *  last; 0 if no thread ever held it. A snapshot in time for diagnostics.
+ */
+GUCEF_MT_PUBLIC_C TThreadId
+rwl_last_writer_thread_id( const TRWLock *rwlock );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Returns the operating system's id of the thread rwl_last_writer_thread_id() reports, for display; see
+ *  rwl_active_reader_system_thread_id() for the values where the ids are the same or not recorded.
+ */
+GUCEF_MT_PUBLIC_C TSystemThreadId
+rwl_last_writer_system_thread_id( const TRWLock *rwlock );
 
 /*--------------------------------------------------------------------------*/
 
@@ -266,7 +300,7 @@ rwl_writer_stop( TRWLock *rwlock );
  *  performed, checking for dangling references to said thread.
  */
 GUCEF_MT_PUBLIC_C void
-rwl_signal_thread_killed( TRWLock *rwlock, UInt32 killedThreadId );
+rwl_signal_thread_killed( TRWLock *rwlock, TThreadId killedThreadId );
 
 /*--------------------------------------------------------------------------*/
 

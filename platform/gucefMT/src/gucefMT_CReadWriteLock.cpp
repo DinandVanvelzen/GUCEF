@@ -178,10 +178,37 @@ CReadWriteLock::ActiveWriterReentrancyDepth( void ) const
 /*--------------------------------------------------------------------------*/
 
 UInt32 
-CReadWriteLock::ActiveReaderReentrancyDepth( UInt32 threadId ) const
+CReadWriteLock::ActiveReaderReentrancyDepth( TThreadId threadId ) const
 {GUCEF_TRACE;
 
     return rwl_active_reader_reentrancy_depth( _rwlock, threadId );
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+CReadWriteLock::ActiveReaderSystemThreadId( TThreadId threadId ) const
+{GUCEF_TRACE;
+
+    return rwl_active_reader_system_thread_id( _rwlock, threadId );
+}
+
+/*--------------------------------------------------------------------------*/
+
+TThreadId
+CReadWriteLock::LastWriterThreadId( void ) const
+{GUCEF_TRACE;
+
+    return rwl_last_writer_thread_id( _rwlock );
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+CReadWriteLock::LastWriterSystemThreadId( void ) const
+{GUCEF_TRACE;
+
+    return rwl_last_writer_system_thread_id( _rwlock );
 }
 
 /*--------------------------------------------------------------------------*/

@@ -165,6 +165,42 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 
 #endif
 
+/*
+ *  Identity of a thread as MT::GetCurrentThreadID() gives it, used for ownership and same-thread checks.
+ *  Two threads that are alive at the same time never have the same id. Once a thread has ended the platform may
+ *  give its id to a new thread. 0 is never the id of a live thread and serves as "no thread".
+ *
+ *  The width follows the platform's own thread identity, so an id is never truncated, while a field that holds an
+ *  id keeps the native word size and stays cheap to access atomically on 32 bit targets:
+ *      - Windows: 32 bit, the DWORD thread id of GetCurrentThreadId()
+ *      - POSIX platforms (Linux, Android, Apple, Emscripten): the width of pthread_t, which is the pointer width there:
+ *        64 bit on 64 bit Linux and Android, 64 bit on Apple (pthread_t is a pointer), 64 bit on wasm64,
+ *        32 bit on 32 bit ARM and x86 Linux and Android and on wasm32
+ *  An id identifies a thread only inside the running process: never store it in a narrower type and never write it
+ *  into a file or a wire format as an identity. gucefMT checks at compile time that the native id fits.
+ */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+typedef UInt32             TThreadId;
+#elif defined( GUCEF_64BIT )
+typedef UInt64             TThreadId;
+#else
+typedef UInt32             TThreadId;
+#endif
+
+/*
+ *  The operating system's id of a thread as MT::GetCurrentThreadSystemID() gives it: the number debuggers, top and
+ *  thread listings show (gettid() on Linux and Android, the DWORD on Windows, the Mach thread port on Apple, the
+ *  pthread handle on Emscripten). Meant for display and log lines only, never compared to decide which thread runs.
+ *  There is no conversion between TThreadId and TSystemThreadId: each is obtained for the calling thread from its own
+ *  function. Where both are the same value of the same type (GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1) this is the
+ *  same type as TThreadId, which is 32 bit on Windows and wasm32 but 64 bit on wasm64; elsewhere it is 32 bit.
+ */
+#if GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
+typedef TThreadId          TSystemThreadId;
+#else
+typedef UInt32             TSystemThreadId;
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CONSTANTS                                                          //

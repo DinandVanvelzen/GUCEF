@@ -64,6 +64,30 @@
   #include <emscripten/emscripten.h>
   #include <sys/time.h>
 
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+  #include <stdint.h>
+  #include <pthread.h>
+
+#endif
+
+/*
+ *  Compile time check that TThreadId holds every bit of the platform's thread identity (see GetCurrentThreadID()).
+ *  A failure here means the bitness detection in gucef_platform.h picked the wrong width for this target.
+ */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+typedef char TThreadIdHoldsTheNativeThreadId[ ( sizeof( DWORD ) <= sizeof( TThreadId ) ) ? 1 : -1 ];
+#else
+typedef char TThreadIdHoldsTheNativeThreadId[ ( sizeof( pthread_t ) <= sizeof( TThreadId ) ) ? 1 : -1 ];
+#endif
+
+/*
+ *  Compile time check that TSystemThreadId holds the operating system's thread id (see GetCurrentThreadSystemID())
+ */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+typedef char TSystemThreadIdHoldsTheNativeThreadId[ ( sizeof( DWORD ) <= sizeof( TSystemThreadId ) ) ? 1 : -1 ];
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+typedef char TSystemThreadIdHoldsTheNativeThreadId[ ( sizeof( pid_t ) <= sizeof( TSystemThreadId ) ) ? 1 : -1 ];
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -395,19 +419,44 @@ ThreadCreate( struct SThreadData* td ,
 
 /*--------------------------------------------------------------------------*/
 
-UInt32
+TSystemThreadId
 ThreadID( struct SThreadData* td )
 {
     if ( GUCEF_NULL == td )
         return 0;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    return (UInt32) td->threadid;
+    return (TSystemThreadId) td->threadid;
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-    return (UInt32) td->threadId;
+      #if GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
+    /* forced to be the identity, as GetCurrentThreadSystemID() gives it then */
+    return (TSystemThreadId) td->thread;
+      #else
+    return (TSystemThreadId) td->threadId;
+      #endif
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
     /* the id is the handle that the creating thread got from pthread_create(), the new thread never writes it */
-    return (UInt32)(uintptr_t)td->thread;
+    return (TSystemThreadId)(uintptr_t)td->thread;
+    #else
+    #error unsupported target platform
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+TThreadId
+ThreadIdentity( struct SThreadData* td )
+{
+    if ( GUCEF_NULL == td )
+        return 0;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    return (TThreadId) td->threadid;
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    /* the pthread_t that pthread_create() gave the creating thread: what pthread_self() gives on the new thread */
+    return (TThreadId) td->thread;
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    return (TThreadId)(uintptr_t)td->thread;
     #else
     #error unsupported target platform
     #endif
@@ -808,9 +857,10 @@ ThreadGetCpuAffinity( struct SThreadData* td        ,
     {
         *affinityMaskSize = sizeof(cpu_set_t);
     }
-    if ( GUCEF_NULL != affinityMask )
+    if ( GUCEF_NULL != affinityMask && GUCEF_NULL != td && 0 != td->threadId )
     {
-        int statusCode = sched_getaffinity( td->thread, (size_t) affinityMaskBufferSize, (cpu_set_t*) affinityMask );
+        /* the kernel thread id, as ThreadSetCpuAffinity() uses it: a pthread_t is a pointer on Android, not a thread id */
+        int statusCode = sched_getaffinity( td->threadId, (size_t) affinityMaskBufferSize, (cpu_set_t*) affinityMask );
         if ( 0 == statusCode )
             return 1;
     }
@@ -899,29 +949,157 @@ ThreadGetCpuAffinityByCpuId( struct SThreadData* td ,
 
 /*--------------------------------------------------------------------------*/
 
-UInt32
-GetCurrentTaskID( void )
+/*
+ *  The identity of the calling thread, see GetCurrentThreadID(). Static, so the compiler inlines it into GetCurrentThreadIds()
+ *  and recording both ids of an owner costs no extra call.
+ */
+static TThreadId
+CurrentThreadIdImpl( void )
 {
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    return GetCurrentThreadId();
+    /* the Win32 function, spelled with a lowercase d */
+    return (TThreadId) GetCurrentThreadId();
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
-    return (UInt32) pthread_self();
+    /*
+     *  pthread_t is an integer here (unsigned long in glibc and musl, long in bionic) of the same width as TThreadId:
+     *  the conversion keeps every bit. pthread_self() reads a register, gettid() would be a system call per lock.
+     */
+    return (TThreadId) pthread_self();
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS )
 
-    if ( emscripten_is_main_runtime_thread() )
-        return 0;
-    else
-        return (UInt32)(uintptr_t)pthread_self();
+    /*
+     *  pthread_t is a pointer here. The main runtime thread of Emscripten has a valid pthread_self() as well, with
+     *  or without thread support, so it gets a real id like every other thread (never 0, which means "no thread")
+     */
+    return (TThreadId) (uintptr_t) pthread_self();
 
     #else
 
     #error unsupported target platform
     return 0;
 
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+TThreadId
+GetCurrentThreadID( void )
+{
+    return CurrentThreadIdImpl();
+}
+
+/*--------------------------------------------------------------------------*/
+
+#if !GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID && ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+/*
+ *  gettid() is a system call: GetCurrentThreadSystemID() keeps the answer per thread. A per-thread copy is needed, a
+ *  copy kept with anything keyed by GetCurrentThreadID() would go stale because pthread_t values are reused for new
+ *  threads. fork() gives the forking thread another id in the child while its copy stays: the child clears it.
+ */
+#if defined( __GLIBC__ ) && ( defined( __GNUC__ ) || defined( __clang__ ) )
+  /*
+   *  read on every lock that records its owner: the initial-exec model makes that one load relative to the thread
+   *  pointer instead of a call to __tls_get_addr(). glibc keeps static TLS space in reserve for libraries loaded with
+   *  dlopen(), which this single variable fits in.
+   */
+  #define GUCEF_MT_SYSTEM_THREAD_ID_TLS_MODEL   __attribute__(( tls_model( "initial-exec" ) ))
+#else
+  #define GUCEF_MT_SYSTEM_THREAD_ID_TLS_MODEL
+#endif
+static __thread pid_t g_currentThreadSystemId GUCEF_MT_SYSTEM_THREAD_ID_TLS_MODEL = 0;
+static pthread_once_t g_currentThreadSystemIdForkHandlerOnce = PTHREAD_ONCE_INIT;
+
+static void
+ClearCurrentThreadSystemIdInForkChild( void )
+{
+    g_currentThreadSystemId = 0;
+}
+
+static void
+RegisterCurrentThreadSystemIdForkHandler( void )
+{
+    pthread_atfork( GUCEF_NULL, GUCEF_NULL, &ClearCurrentThreadSystemIdInForkChild );
+}
+
+#endif
+
+/*--------------------------------------------------------------------------*/
+
+/*
+ *  The operating system's id of the calling thread, see GetCurrentThreadSystemID()
+ */
+static TSystemThreadId
+CurrentThreadSystemIdImpl( void )
+{
+    #if GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
+
+    /*
+     *  The same value as the identity: on Windows both are the DWORD of GetCurrentThreadId(), on Emscripten both are
+     *  the pthread handle. A build that forces the define to 1 on another platform gets the identity as well, so the
+     *  system id of an owner recorded by an object always equals what this function gives on the owning thread.
+     */
+    return (TSystemThreadId) CurrentThreadIdImpl();
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    /* only with the define forced to 0: the same DWORD */
+    return (TSystemThreadId) GetCurrentThreadId();
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    /* only with the define forced to 0: the pthread handle, as ThreadID() gives it */
+    return (TSystemThreadId) (uintptr_t) pthread_self();
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    /* pid_t is 32 bit, the same number ThreadID() stores for a thread created with ThreadCreate() */
+    if ( 0 == g_currentThreadSystemId )
+    {
+        pthread_once( &g_currentThreadSystemIdForkHandlerOnce, &RegisterCurrentThreadSystemIdForkHandler );
+        g_currentThreadSystemId = gettid();
+    }
+    return (TSystemThreadId) g_currentThreadSystemId;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS )
+
+    /* a 32 bit Mach port name, unique among the live threads of the process */
+    return (TSystemThreadId) pthread_mach_thread_np( pthread_self() );
+
+    #else
+
+    #error unsupported target platform: decide GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID for it in gucef_platform.h
+    return 0;
+
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+GetCurrentThreadSystemID( void )
+{
+    return CurrentThreadSystemIdImpl();
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+GetCurrentThreadIds( struct SThreadIds* ids )
+{
+    ids->threadId = CurrentThreadIdImpl();
+
+    #if !GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
+      #if GUCEF_MT_RECORD_SYSTEM_THREAD_ID
+    ids->systemThreadId = CurrentThreadSystemIdImpl();
+      #else
+    ids->systemThreadId = 0;
+      #endif
     #endif
 }
 

@@ -519,7 +519,7 @@ CActiveObject::operator=( const CActiveObject& src )
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TSystemThreadId
 CActiveObject::GetThreadID( void ) const
 {GUCEF_TRACE;
 
@@ -528,6 +528,21 @@ CActiveObject::GetThreadID( void ) const
     if ( GUCEF_NULL != _td )
     {
         return ThreadID( _td );
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TThreadId
+CActiveObject::GetThreadIdentity( void ) const
+{GUCEF_TRACE;
+
+    CObjectScopeReadOnlyLock lock( this );
+
+    if ( GUCEF_NULL != _td )
+    {
+        return ThreadIdentity( _td );
     }
     return 0;
 }

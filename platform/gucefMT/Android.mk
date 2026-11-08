@@ -35,6 +35,7 @@ LOCAL_SRC_FILES := \
   src/gucefMT_CObjectScopeLock.cpp \
   src/gucefMT_CObjectScopeReadOnlyLock.cpp \
   src/gucefMT_CReadWriteLock.cpp \
+  src/gucefMT_CRealtimeSchedulingScope.cpp \
   src/gucefMT_CScopeMutex.cpp \
   src/gucefMT_CScopeRwLock.cpp \
   src/gucefMT_CSemaphore.cpp \

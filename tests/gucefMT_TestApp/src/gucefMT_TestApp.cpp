@@ -89,6 +89,11 @@
 #define GUCEF_MT_TESTAPP_TESTTHREADDATA_H
 #endif /* GUCEF_MT_TESTAPP_TESTTHREADDATA_H ? */
 
+#ifndef GUCEF_MT_TESTAPP_TESTTHREADIDENTITY_H
+#include "TestThreadIdentity.h"
+#define GUCEF_MT_TESTAPP_TESTTHREADIDENTITY_H
+#endif /* GUCEF_MT_TESTAPP_TESTTHREADIDENTITY_H ? */
+
 #ifndef GUCEF_MT_TESTAPP_TESTATOMIC_H
 #include "TestAtomic.h"
 #define GUCEF_MT_TESTAPP_TESTATOMIC_H
@@ -98,6 +103,21 @@
 #include "TestReaderWriterLock.h"
 #define GUCEF_MT_TESTAPP_TESTREADERWRITERLOCK_H
 #endif /* GUCEF_MT_TESTAPP_TESTREADERWRITERLOCK_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTOWNERTHREADIDS_H
+#include "TestOwnerThreadIds.h"
+#define GUCEF_MT_TESTAPP_TESTOWNERTHREADIDS_H
+#endif /* GUCEF_MT_TESTAPP_TESTOWNERTHREADIDS_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTLOCKBENCHMARK_H
+#include "TestLockBenchmark.h"
+#define GUCEF_MT_TESTAPP_TESTLOCKBENCHMARK_H
+#endif /* GUCEF_MT_TESTAPP_TESTLOCKBENCHMARK_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTREALTIMESCHEDULINGSCOPE_H
+#include "TestRealtimeSchedulingScope.h"
+#define GUCEF_MT_TESTAPP_TESTREALTIMESCHEDULINGSCOPE_H
+#endif /* GUCEF_MT_TESTAPP_TESTREALTIMESCHEDULINGSCOPE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -245,6 +265,10 @@ GUCEF_OSMAIN_BEGIN
         PerformSpscQueueTests();
         PerformSlotDataExchangeTests();
         PerformThreadDataTests();
+        PerformThreadIdentityTests();
+        PerformOwnerThreadIdsTests();
+        PerformRealtimeSchedulingScopeTests();
+        PerformLockBenchmarks();
 
         // Tests finished normally — disarm the watchdog before it fires
         watchdog.Cancel();

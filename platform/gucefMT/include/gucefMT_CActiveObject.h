@@ -136,7 +136,18 @@ class GUCEF_MT_PUBLIC_CPP CActiveObject : public virtual MT::CILockable
 
     void Resume( void );
 
-    UInt32 GetThreadID( void ) const;
+    /**
+     *  The operating system's id of the object's thread (ThreadID()), the number debuggers and thread listings show.
+     *  For display and as the key of thread listings; 0 when no thread was created.
+     *  To test whether code runs on the object's thread compare GetThreadIdentity() with GetCurrentThreadID().
+     */
+    TSystemThreadId GetThreadID( void ) const;
+
+    /**
+     *  The identity of the object's thread (ThreadIdentity(), what GetCurrentThreadID() gives on that thread),
+     *  0 when no thread was created. Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1 it equals GetThreadID().
+     */
+    TThreadId GetThreadIdentity( void ) const;
 
     /**
      *  Sets the CPU affinity mask for the thread

@@ -35,6 +35,11 @@
 #define GUCEF_MT_CILOCKABLE_H
 #endif /* GUCEF_MT_CILOCKABLE_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -83,7 +88,15 @@ class GUCEF_MT_PUBLIC_CPP CMutex : public CILockable
      *  This member function is only of limited use and should not be relied upon
      *  Its mainly provided for debugging purposes
      */
-    virtual UInt32 GetThreadIdOfThreadLastHoldingTheLock( void ) const;
+    virtual TThreadId GetThreadIdOfThreadLastHoldingTheLock( void ) const;
+
+    /**
+     *  The operating system's id (GetCurrentThreadSystemID()) of the thread GetThreadIdOfThreadLastHoldingTheLock()
+     *  reports, for display: it matches the thread list of a debugger. Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1
+     *  it is the identity; where gucefMT is built with GUCEF_MT_RECORD_SYSTEM_THREAD_ID set to 0 it is 0.
+     *  Like the identity accessor it is only of limited use, mainly for debugging.
+     */
+    virtual TSystemThreadId GetSystemThreadIdOfThreadLastHoldingTheLock( void ) const;
 
     CMutex( void );
 

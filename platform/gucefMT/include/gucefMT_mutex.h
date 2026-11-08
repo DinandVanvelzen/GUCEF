@@ -134,6 +134,34 @@ MutexReentrancy( struct SMutex* mutex );
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  Returns the identity (GetCurrentThreadID()) of the thread holding the lock, 0 when no thread holds it.
+ *  A snapshot in time for diagnostics and test code under controlled circumstances, like MutexLocked().
+ */
+GUCEF_MT_PUBLIC_C TThreadId 
+MutexLockedByThread( struct SMutex* mutex );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Returns the operating system's id (GetCurrentThreadSystemID()) of the thread holding the lock, 0 when no thread
+ *  holds it, for display: it matches the debugger's thread list. Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1 this
+ *  is the identity; where gucefMT is built with GUCEF_MT_RECORD_SYSTEM_THREAD_ID set to 0 it is always 0.
+ *  Never use it to decide which thread holds the lock, use MutexLockedByThread() for that.
+ */
+GUCEF_MT_PUBLIC_C TSystemThreadId 
+MutexLockedBySystemThread( struct SMutex* mutex );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Returns sizeof( struct SMutex ), the size of the mutex's private data, for tests that check which members exist
+ */
+GUCEF_MT_PUBLIC_C UInt32 
+MutexStructSize( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *      Unlocks the mutex after a call to Lock_Mutex(). Other processes
  *      will have the ability to get a mutex lock after this call.
  *      The boolean return value indicates wheter the unlock failed or succeeded.

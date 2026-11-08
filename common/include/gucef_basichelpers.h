@@ -119,6 +119,31 @@
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Helpers for objects that record an owning thread: they keep the identity (TThreadId) for their checks and, only
+ *  where the operating system's id differs from it (GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 0, see gucef_platform.h),
+ *  the system id (TSystemThreadId) beside it for display. Where the define is 1 these expand so that no member, no
+ *  store and no load of a second id exists.
+ *
+ *  GUCEF_SYSTEM_THREAD_ID_MEMBER( name )               declares the data member 'TSystemThreadId name;'
+ *  GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( name, value )   ', name( value )' for a constructor's initializer list
+ *  GUCEF_SYSTEM_THREAD_ID_CODE( code )                 the code, for example a store into such a member
+ *  GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( sysId, tId )   'sysId' where the ids differ, else the identity 'tId'
+ */
+#if GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID
+  #define GUCEF_SYSTEM_THREAD_ID_MEMBER( name )
+  #define GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( name, value )
+  #define GUCEF_SYSTEM_THREAD_ID_CODE( code )
+  #define GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( systemThreadIdExpr, threadIdExpr )   ( threadIdExpr )
+#else
+  #define GUCEF_SYSTEM_THREAD_ID_MEMBER( name )                                     TSystemThreadId name;
+  #define GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( name, value )                         , name( value )
+  #define GUCEF_SYSTEM_THREAD_ID_CODE( code )                                       code
+  #define GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( systemThreadIdExpr, threadIdExpr )   ( systemThreadIdExpr )
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #undef NULL
 #if defined(__cplusplus)
   #ifndef __CPP09NULLPTRSUPPORTED

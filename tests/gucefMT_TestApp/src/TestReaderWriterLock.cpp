@@ -1616,7 +1616,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReader( bool writersHavePriority,
         testData.readerWorkDurationInMs = 100;
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1627,7 +1627,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReader( bool writersHavePriority,
         ASSERT_TRUE( 0 == queuedWriterCount );
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1638,7 +1638,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReader( bool writersHavePriority,
         ASSERT_TRUE( 0 == queuedWriterCount );
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1720,7 +1720,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderReentrant( bool writersHave
         testData.readerWorkDurationInMs = 100;        
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1736,7 +1736,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderReentrant( bool writersHave
 
             ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1750,7 +1750,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderReentrant( bool writersHave
         {
             ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1800,7 +1800,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriterReentrant( bool writersHave
         testData.readerWorkDurationInMs = 100;        
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1816,7 +1816,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriterReentrant( bool writersHave
         {
             ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1832,7 +1832,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriterReentrant( bool writersHave
         {
             ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1883,7 +1883,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterReentrant( bool write
 
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1926,7 +1926,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterReentrant( bool write
                 ++readCount;
             }
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -1958,7 +1958,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterReentrant( bool write
                 ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
             }
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2022,7 +2022,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
 
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2042,7 +2042,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
         ASSERT_FALSE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2070,7 +2070,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
         }
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2104,7 +2104,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
             }
 
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2137,7 +2137,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
         }
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2186,7 +2186,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
 
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2206,7 +2206,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
         
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2226,7 +2226,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2243,7 +2243,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2261,7 +2261,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2280,7 +2280,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2295,7 +2295,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2318,7 +2318,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2333,7 +2333,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2348,7 +2348,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2373,7 +2373,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2388,7 +2388,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
-        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
         queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2430,7 +2430,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
 
         ASSERT_TRUE( writersHavePriority == testData.rwLock.DoWritersOverrule() );
         UInt32 activeReaderCount = testData.rwLock.ActiveReaderCount();
-        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+        UInt32 activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         UInt32 activeWriterCount = testData.rwLock.ActiveWriterCount();
         UInt32 queuedReaderCount = testData.rwLock.QueuedReaderCount();
         UInt32 queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2507,7 +2507,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
             }
 
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();
@@ -2547,7 +2547,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
                 }
             }
             activeReaderCount = testData.rwLock.ActiveReaderCount();
-            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentTaskID() );
+            activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
             queuedReaderCount = testData.rwLock.QueuedReaderCount();
             queuedWriterCount = testData.rwLock.QueuedWriterCount();

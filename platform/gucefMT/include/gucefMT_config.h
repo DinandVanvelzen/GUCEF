@@ -66,4 +66,16 @@
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Whether locks and other objects that record an owning thread also record that thread's operating system id
+ *  (for display, for example to match the owner with a debugger's thread list) where it is a different number than
+ *  the identity, see GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID. Recording costs one thread local read per acquisition.
+ *  Set to 0 to save that: the system id fields then read 0 ("not recorded"). No effect where the define is 1.
+ */
+#ifndef GUCEF_MT_RECORD_SYSTEM_THREAD_ID
+    #define GUCEF_MT_RECORD_SYSTEM_THREAD_ID    1
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* GUCEF_MT_CONFIG_H */
