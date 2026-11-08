@@ -7,3 +7,4 @@ platform/gucefCORE/include/*
 platform/gucefMT/include/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverALSA/*
+plugins/AUDIO/audiovoicecodecOPUS/*

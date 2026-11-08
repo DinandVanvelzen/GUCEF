@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <Module Name="audiovoicecodecOPUS" Type="SharedLibrary" Platform="linux;mswin;android" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO voice codec plugin for Opus</DescriptionHeadline>
+            <DescriptionDetails>Registers the voice codec "opus" (libopus) with the gucefAUDIO voice codec registry: encoders and decoders of mono voice frames with the low delay profile (CELT, frames of 2.5 to 20 ms) and the robust profile (SILK with forward error correction, frames of 20 ms), concealment of lost frames, and recovery of a lost frame from the next one. The encoders and decoders run on the audio threads: they allocate no memory, take no lock and do no IO. A C++ link-back plugin, as the audio drivers are.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="opus" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="opus" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

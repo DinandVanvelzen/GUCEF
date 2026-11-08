@@ -54,6 +54,7 @@ extern "C" {
 
 typedef struct _snd_pcm snd_pcm_t;
 typedef struct _snd_pcm_hw_params snd_pcm_hw_params_t;
+typedef struct _snd_pcm_sw_params snd_pcm_sw_params_t;
 typedef unsigned long snd_pcm_uframes_t;
 typedef long snd_pcm_sframes_t;
 
@@ -75,6 +76,18 @@ typedef int ( *TSndPcmHwParamsGetBufferSize )( const snd_pcm_hw_params_t* params
 typedef int ( *TSndPcmPrepare )( snd_pcm_t* pcm );
 typedef int ( *TSndPcmDrop )( snd_pcm_t* pcm );
 typedef snd_pcm_sframes_t ( *TSndPcmWritei )( snd_pcm_t* pcm, const void* buffer, snd_pcm_uframes_t frames );
+typedef snd_pcm_sframes_t ( *TSndPcmReadi )( snd_pcm_t* pcm, void* buffer, snd_pcm_uframes_t frames );
+typedef int ( *TSndPcmStart )( snd_pcm_t* pcm );
+typedef int ( *TSndPcmDelay )( snd_pcm_t* pcm, snd_pcm_sframes_t* delay );
+typedef snd_pcm_sframes_t ( *TSndPcmAvailUpdate )( snd_pcm_t* pcm );
+typedef int ( *TSndPcmSwParamsMalloc )( snd_pcm_sw_params_t** params );
+typedef void ( *TSndPcmSwParamsFree )( snd_pcm_sw_params_t* params );
+typedef int ( *TSndPcmSwParamsCurrent )( snd_pcm_t* pcm, snd_pcm_sw_params_t* params );
+typedef int ( *TSndPcmSwParamsSetStartThreshold )( snd_pcm_t* pcm, snd_pcm_sw_params_t* params, snd_pcm_uframes_t value );
+typedef int ( *TSndPcmSwParamsSetAvailMin )( snd_pcm_t* pcm, snd_pcm_sw_params_t* params, snd_pcm_uframes_t value );
+typedef int ( *TSndPcmSwParams )( snd_pcm_t* pcm, snd_pcm_sw_params_t* params );
+typedef int ( *TSndPcmLink )( snd_pcm_t* pcm1, snd_pcm_t* pcm2 );
+typedef int ( *TSndPcmUnlink )( snd_pcm_t* pcm );
 typedef int ( *TSndPcmRecover )( snd_pcm_t* pcm, int error, int silent );
 typedef const char* ( *TSndStrerror )( int error );
 typedef int ( *TSndDeviceNameHint )( int card, const char* iface, void*** hints );
@@ -98,15 +111,29 @@ class CAlsaApi
 
     // values of the ALSA enumerations that are used, as the ALSA interface defines them
     static const int StreamPlayback = 0;            /**< SND_PCM_STREAM_PLAYBACK */
+    static const int StreamCapture = 1;             /**< SND_PCM_STREAM_CAPTURE */
     static const int AccessRwInterleaved = 3;       /**< SND_PCM_ACCESS_RW_INTERLEAVED */
 
     CAlsaApi( void );
     ~CAlsaApi();
 
-    /** Loads libasound. False when it is not on the system or misses something that is needed */
+    /**
+     *  Loads libasound. False when it is not on the system or misses something that is needed for playback. Functions
+     *  that only capture, the software parameters, the delay query and linking need are optional: when libasound
+     *  lacks one, the feature is unavailable (see the Has...() methods) and the driver still loads
+     */
     bool Load( void );
     void Unload( void );
     bool IsLoaded( void ) const;
+
+    /** True when libasound has what recording needs: snd_pcm_readi() and snd_pcm_start() */
+    bool HasCaptureSupport( void ) const;
+
+    /** True when libasound has everything to set the software parameters (avail_min, start threshold) */
+    bool HasSoftwareParams( void ) const;
+
+    /** True when libasound has snd_pcm_delay() */
+    bool HasDelayQuery( void ) const;
 
     /** The ALSA sample format for a sample type in the byte order of this machine, -1 when ALSA has none */
     static int ToAlsaFormat( AUDIO::TSampleType sampleType );
@@ -132,6 +159,18 @@ class CAlsaApi
     TSndPcmPrepare pcmPrepare;
     TSndPcmDrop pcmDrop;
     TSndPcmWritei pcmWritei;
+    TSndPcmReadi pcmReadi;
+    TSndPcmStart pcmStart;
+    TSndPcmDelay pcmDelay;
+    TSndPcmAvailUpdate pcmAvailUpdate;
+    TSndPcmSwParamsMalloc swParamsMalloc;
+    TSndPcmSwParamsFree swParamsFree;
+    TSndPcmSwParamsCurrent swParamsCurrent;
+    TSndPcmSwParamsSetStartThreshold swParamsSetStartThreshold;
+    TSndPcmSwParamsSetAvailMin swParamsSetAvailMin;
+    TSndPcmSwParams swParams;
+    TSndPcmLink pcmLink;
+    TSndPcmUnlink pcmUnlink;
     TSndPcmRecover pcmRecover;
     TSndStrerror strerror;
     TSndDeviceNameHint deviceNameHint;
@@ -140,7 +179,7 @@ class CAlsaApi
 
     private:
 
-    void* GetFunction( const char* name, bool& allFound ) const;
+    void* GetFunction( const char* name, bool& allFound, bool required = true ) const;
 
     CAlsaApi( const CAlsaApi& src );            /**< not implemented */
     CAlsaApi& operator=( const CAlsaApi& src ); /**< not implemented */

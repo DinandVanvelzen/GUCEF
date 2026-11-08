@@ -68,6 +68,7 @@ platform/gucefVIDEO/include/*
 platform/gucefWEB/include/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverALSA/*
+plugins/AUDIO/audiovoicecodecOPUS/*
 plugins/CORE/codecspluginOPENSSL/*
 plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverCEGUI/*

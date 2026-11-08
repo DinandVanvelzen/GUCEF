@@ -81,6 +81,27 @@ GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Access for tests that run the driver on a fake libasound. The plugin is loaded by path and is not linked, so
+ *  the tests reach these through the symbol table. The table type is CAlsaApi of audiodriverALSA_CAlsaApi.h.
+ */
+
+/** Makes an API table that is not loaded: every function is null, the test fills in the ones it fakes. Release with GUCEFPlugin_ALSA_DeleteTestApi() after the driver and its devices are gone */
+GUCEF_AUDIODRIVER_ALSA_EXPORT_C void* GUCEFPlugin_ALSA_NewTestApi( void );
+
+GUCEF_AUDIODRIVER_ALSA_EXPORT_C void GUCEFPlugin_ALSA_DeleteTestApi( void* api );
+
+/** Makes a CAudioDriver (not registered) on a table of GUCEFPlugin_ALSA_NewTestApi(). The caller owns it: hold it in a TAudioDriverPtr */
+GUCEF_AUDIODRIVER_ALSA_EXPORT_C void* GUCEFPlugin_ALSA_NewTestDriver( void* api );
+
+/** CAlsaAudioDevice::GetCurrentDelayInFrames() of a CAudioDevice that was opened by such a driver */
+GUCEF_AUDIODRIVER_ALSA_EXPORT_C CORE::Int32 GUCEFPlugin_ALSA_GetCurrentDelay( void* device, CORE::Int32* delayInFrames );
+
+/** CAlsaAudioDriver::ComputeSoftwareParams() */
+GUCEF_AUDIODRIVER_ALSA_EXPORT_C void GUCEFPlugin_ALSA_ComputeSoftwareParams( CORE::Int32 isCapture, CORE::UInt32 periodSizeInFrames, CORE::UInt32 bufferSizeInFrames, CORE::UInt32* availMin, CORE::UInt32* startThreshold );
+
+/*-------------------------------------------------------------------------*/
+
 #ifdef __cplusplus
    }
 #endif /* __cplusplus */

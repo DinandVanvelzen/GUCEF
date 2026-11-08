@@ -130,6 +130,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiodri
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiodriverALSA ${CMAKE_BINARY_DIR}/audiodriverALSA )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiodriverWASAPI ${CMAKE_BINARY_DIR}/audiodriverWASAPI )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiodriverWEBAUDIO ${CMAKE_BINARY_DIR}/audiodriverWEBAUDIO )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiovoicecodecOPUS ${CMAKE_BINARY_DIR}/audiovoicecodecOPUS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authpluginANDROID ${CMAKE_BINARY_DIR}/authpluginANDROID )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authpluginEOS ${CMAKE_BINARY_DIR}/authpluginEOS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authpluginSTEAM ${CMAKE_BINARY_DIR}/authpluginSTEAM )

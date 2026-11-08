@@ -74,14 +74,29 @@ class CAlsaAudioDevice : public AUDIO::CAudioPushDevice
 
     virtual ~CAlsaAudioDevice() GUCEF_VIRTUAL_OVERRIDE;
 
-    /** The ALSA buffer: audio written now is heard after about this many frames */
+    /**
+     *  Playback: the ALSA buffer, audio written now is heard after about this many frames. Capture: the period, the
+     *  upper bound of what a block is behind the microphone (the hardware adds its own delay, see GetCurrentDelayInFrames())
+     */
     virtual CORE::UInt32 GetLatencyInFrames( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Asks ALSA (snd_pcm_delay) for the frames between now and the hardware: playback, the frames queued that are
+     *  not played yet; capture, the frames recorded that were not read yet. False when libasound has no snd_pcm_delay
+     *  or the query failed. ALSA handles are not synchronised: call it from the device thread (in the callback) or
+     *  while the device is stopped; it is not called by the loop itself
+     */
+    bool GetCurrentDelayInFrames( CORE::Int32& delayInFrames ) const;
 
     protected:
 
     virtual bool OnPushStart( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual TPushResult PushFrames( const void* frames, CORE::UInt32 frameCount ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool SupportsCapture( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual TPushResult PullFrames( void* frames, CORE::UInt32 frameCount ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void OnPushStop( void ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -96,6 +111,7 @@ class CAlsaAudioDevice : public AUDIO::CAudioPushDevice
     CAlsaApi& m_api;
     CORE::UInt32 m_bufferSizeInFrames;
     CORE::UInt32 m_bytesPerFrame;
+    bool m_isCapture;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -121,6 +137,19 @@ class CAlsaAudioDriver : public AUDIO::CAudioDriver
 
     virtual bool EnumerateDevices( AUDIO::TAudioDirection direction, AUDIO::TAudioDeviceInfoVector& devices ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  The software parameters of a device as ALSA understands them, in frames: 'availMin' is how much room (playback)
+     *  or data (capture) there must be before the device thread is woken, a period. 'startThreshold' is how much
+     *  there must be queued before a playback stream starts: all but one period of the buffer, so the first wake
+     *  comes after one period. A capture stream is started explicitly and restarts by itself after a recovered
+     *  overrun when the threshold is 1. A period or buffer of 0 gives 1.
+     */
+    static void ComputeSoftwareParams( AUDIO::TAudioDirection direction ,
+                                       CORE::UInt32 periodSizeInFrames  ,
+                                       CORE::UInt32 bufferSizeInFrames  ,
+                                       CORE::UInt32& availMin           ,
+                                       CORE::UInt32& startThreshold     );
+
     virtual bool OpenDevice( const AUDIO::CAudioDeviceParams& params, AUDIO::IAudioDeviceCallback* callback, AUDIO::TAudioDevicePtr& device ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
@@ -131,6 +160,12 @@ class CAlsaAudioDriver : public AUDIO::CAudioDriver
                     AUDIO::CAudioFormat& format             ,
                     CORE::UInt32& periodSizeInFrames        ,
                     CORE::UInt32& bufferSizeInFrames        );
+
+    /** Sets avail_min and the start threshold. Without the functions or when ALSA refuses, the defaults of ALSA stay */
+    void ApplySoftwareParams( snd_pcm_t* pcm                ,
+                              AUDIO::TAudioDirection direction ,
+                              CORE::UInt32 periodSizeInFrames  ,
+                              CORE::UInt32 bufferSizeInFrames  );
 
     CAlsaAudioDriver( const CAlsaAudioDriver& src );            /**< not implemented */
     CAlsaAudioDriver& operator=( const CAlsaAudioDriver& src ); /**< not implemented */

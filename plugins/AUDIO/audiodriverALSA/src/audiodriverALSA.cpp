@@ -152,6 +152,52 @@ GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     return "gucefMT,gucefCORE,gucefAUDIO";
 }
 
+/*-------------------------------------------------------------------------*/
+
+void*
+GUCEFPlugin_ALSA_NewTestApi( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CAlsaApi();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+GUCEFPlugin_ALSA_DeleteTestApi( void* api )
+{GUCEF_TRACE;
+
+    GUCEF_DELETE static_cast< CAlsaApi* >( api );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void*
+GUCEFPlugin_ALSA_NewTestDriver( void* api )
+{GUCEF_TRACE;
+
+    return static_cast< AUDIO::CAudioDriver* >( GUCEF_NEW CAlsaAudioDriver( *static_cast< CAlsaApi* >( api ) ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::Int32
+GUCEFPlugin_ALSA_GetCurrentDelay( void* device, CORE::Int32* delayInFrames )
+{GUCEF_TRACE;
+
+    const CAlsaAudioDevice* alsaDevice = static_cast< const CAlsaAudioDevice* >( static_cast< AUDIO::CAudioDevice* >( device ) );
+    return alsaDevice->GetCurrentDelayInFrames( *delayInFrames ) ? 1 : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+GUCEFPlugin_ALSA_ComputeSoftwareParams( CORE::Int32 isCapture, CORE::UInt32 periodSizeInFrames, CORE::UInt32 bufferSizeInFrames, CORE::UInt32* availMin, CORE::UInt32* startThreshold )
+{GUCEF_TRACE;
+
+    CAlsaAudioDriver::ComputeSoftwareParams( 0 != isCapture ? AUDIO::AUDIODIRECTION_CAPTURE : AUDIO::AUDIODIRECTION_PLAYBACK, periodSizeInFrames, bufferSizeInFrames, *availMin, *startThreshold );
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

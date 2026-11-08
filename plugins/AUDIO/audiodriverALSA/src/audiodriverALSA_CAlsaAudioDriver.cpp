@@ -87,6 +87,7 @@ CAlsaAudioDevice::CAlsaAudioDevice( const AUDIO::CAudioDeviceInfo& info   ,
     , m_api( api )
     , m_bufferSizeInFrames( bufferSizeInFrames )
     , m_bytesPerFrame( format.GetBytesPerFrame() )
+    , m_isCapture( AUDIO::AUDIODIRECTION_CAPTURE == info.GetDirection() )
 {GUCEF_TRACE;
 
 }
@@ -111,7 +112,22 @@ CORE::UInt32
 CAlsaAudioDevice::GetLatencyInFrames( void ) const
 {GUCEF_TRACE;
 
-    return m_bufferSizeInFrames;
+    return m_isCapture ? GetPeriodSizeInFrames() : m_bufferSizeInFrames;
+}
+
+
+bool
+CAlsaAudioDevice::GetCurrentDelayInFrames( CORE::Int32& delayInFrames ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_pcm || !m_api.HasDelayQuery() )
+        return false;
+
+    snd_pcm_sframes_t delay = 0;
+    if ( m_api.pcmDelay( m_pcm, &delay ) < 0 )
+        return false;
+    delayInFrames = (CORE::Int32) delay;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -125,6 +141,17 @@ CAlsaAudioDevice::OnPushStart( void )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDevice: Could not prepare \"" << GetDeviceInfo().GetId() << "\": " << m_api.ErrorText( result ) );
         return false;
+    }
+
+    if ( m_isCapture )
+    {
+        // a recording runs from here on, so the first block holds what happened since Start()
+        const int started = m_api.pcmStart( m_pcm );
+        if ( started < 0 )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDevice: Could not start recording on \"" << GetDeviceInfo().GetId() << "\": " << m_api.ErrorText( started ) );
+            return false;
+        }
     }
     return true;
 }
@@ -164,6 +191,54 @@ CAlsaAudioDevice::PushFrames( const void* frames, CORE::UInt32 frameCount )
 }
 
 /*-------------------------------------------------------------------------*/
+
+bool
+CAlsaAudioDevice::SupportsCapture( void ) const
+{GUCEF_TRACE;
+
+    return m_isCapture;
+}
+
+
+AUDIO::CAudioPushDevice::TPushResult
+CAlsaAudioDevice::PullFrames( void* frames, CORE::UInt32 frameCount )
+{
+    // no trace macro: this runs once per period on the device thread
+
+    CORE::UInt8* data = static_cast< CORE::UInt8* >( frames );
+    CORE::UInt32 remaining = frameCount;
+    bool overrun = false;
+    while ( remaining > 0 )
+    {
+        const snd_pcm_sframes_t read = m_api.pcmReadi( m_pcm, data, remaining );
+        if ( read >= 0 )
+        {
+            data += (size_t) read * m_bytesPerFrame;
+            remaining -= (CORE::UInt32) read;
+            continue;
+        }
+
+        // overran (-EPIPE: audio was lost), suspended or interrupted: ALSA can recover from those, the rest of the block is read after
+        const int error = (int) read;
+        if ( ( -EPIPE == error || -ESTRPIPE == error || -EINTR == error ) && m_api.pcmRecover( m_pcm, error, 1 ) >= 0 )
+        {
+            if ( -EINTR != error )
+            {
+                overrun = true;
+
+                // recovery leaves the stream prepared. With the start threshold of 1 the next read starts it, but
+                // a device with other rules (a plugin of ALSA) needs to be told. Already running is not an error
+                m_api.pcmStart( m_pcm );
+            }
+            continue;
+        }
+
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDevice: \"" << GetDeviceInfo().GetId() << "\" is lost: " << m_api.ErrorText( error ) );
+        return PUSHRESULT_DEVICE_LOST;
+    }
+    return overrun ? PUSHRESULT_UNDERRUN_RECOVERED : PUSHRESULT_OK;
+}
+
 
 void
 CAlsaAudioDevice::OnPushStop( void )
@@ -222,13 +297,19 @@ bool
 CAlsaAudioDriver::EnumerateDevices( AUDIO::TAudioDirection direction, AUDIO::TAudioDeviceInfoVector& devices )
 {GUCEF_TRACE;
 
-    if ( AUDIO::AUDIODIRECTION_PLAYBACK != direction )
-        return true;                // playback only for now
+    const bool capture = AUDIO::AUDIODIRECTION_CAPTURE == direction;
+    if ( AUDIO::AUDIODIRECTION_PLAYBACK != direction && !capture )
+        return true;
+    if ( capture && !m_api.HasCaptureSupport() )
+        return true;                // libasound cannot record, no capture devices
+
+    // the hint says Output or Input for devices that only go one way, nothing for those that do both
+    const char* const otherIoid = capture ? "Output" : "Input";
 
     void** hints = GUCEF_NULL;
     if ( m_api.deviceNameHint( -1, "pcm", &hints ) < 0 || GUCEF_NULL == hints )
     {
-        AUDIO::CAudioDeviceInfo info( "default", "Default", AUDIO::AUDIODIRECTION_PLAYBACK );
+        AUDIO::CAudioDeviceInfo info( "default", "Default", direction );
         info.SetIsDefault( true );
         devices.push_back( info );
         return true;
@@ -239,11 +320,11 @@ CAlsaAudioDriver::EnumerateDevices( AUDIO::TAudioDirection direction, AUDIO::TAu
         const CORE::CString name = TakeAlsaString( m_api.deviceNameGetHint( *hint, "NAME" ) );
         const CORE::CString description = TakeAlsaString( m_api.deviceNameGetHint( *hint, "DESC" ) );
         const CORE::CString ioid = TakeAlsaString( m_api.deviceNameGetHint( *hint, "IOID" ) );
-        if ( name.IsNULLOrEmpty() || "null" == name || ( !ioid.IsNULLOrEmpty() && "Output" != ioid ) )
+        if ( name.IsNULLOrEmpty() || "null" == name || ( !ioid.IsNULLOrEmpty() && otherIoid == ioid ) )
             continue;
 
         // the description has a line per detail, they read fine as one line
-        AUDIO::CAudioDeviceInfo info( name, description.IsNULLOrEmpty() ? name : description.ReplaceChar( '\n', ' ' ), AUDIO::AUDIODIRECTION_PLAYBACK );
+        AUDIO::CAudioDeviceInfo info( name, description.IsNULLOrEmpty() ? name : description.ReplaceChar( '\n', ' ' ), direction );
         info.SetIsDefault( "default" == name );
         devices.push_back( info );
     }
@@ -334,18 +415,88 @@ CAlsaAudioDriver::Negotiate( snd_pcm_t* pcm                          ,
 
 /*-------------------------------------------------------------------------*/
 
+void
+CAlsaAudioDriver::ComputeSoftwareParams( AUDIO::TAudioDirection direction ,
+                                         CORE::UInt32 periodSizeInFrames  ,
+                                         CORE::UInt32 bufferSizeInFrames  ,
+                                         CORE::UInt32& availMin           ,
+                                         CORE::UInt32& startThreshold     )
+{GUCEF_TRACE;
+
+    const CORE::UInt32 period = periodSizeInFrames > 0 ? periodSizeInFrames : 1;
+    const CORE::UInt32 buffer = bufferSizeInFrames > 0 ? bufferSizeInFrames : 1;
+
+    availMin = period;
+    if ( AUDIO::AUDIODIRECTION_CAPTURE == direction )
+    {
+        startThreshold = 1;
+    }
+    else
+    {
+        // all but one period of the buffer: playback starts once the loop wrote that much, which it does without waiting
+        // as the buffer has room. The write that fills the buffer is the last that does not block
+        startThreshold = buffer > period ? buffer - period : 1;
+    }
+}
+
+
+void
+CAlsaAudioDriver::ApplySoftwareParams( snd_pcm_t* pcm                   ,
+                                       AUDIO::TAudioDirection direction ,
+                                       CORE::UInt32 periodSizeInFrames  ,
+                                       CORE::UInt32 bufferSizeInFrames  )
+{GUCEF_TRACE;
+
+    if ( !m_api.HasSoftwareParams() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDriver: libasound has no software parameter functions, the defaults of ALSA stay" );
+        return;
+    }
+
+    CORE::UInt32 availMin = 0;
+    CORE::UInt32 startThreshold = 0;
+    ComputeSoftwareParams( direction, periodSizeInFrames, bufferSizeInFrames, availMin, startThreshold );
+
+    snd_pcm_sw_params_t* sw = GUCEF_NULL;
+    if ( m_api.swParamsMalloc( &sw ) < 0 || GUCEF_NULL == sw )
+        return;
+
+    int result = m_api.swParamsCurrent( pcm, sw );
+    if ( result >= 0 )
+        result = m_api.swParamsSetAvailMin( pcm, sw, availMin );
+    if ( result >= 0 )
+        result = m_api.swParamsSetStartThreshold( pcm, sw, startThreshold );
+    if ( result >= 0 )
+        result = m_api.swParams( pcm, sw );
+    if ( result < 0 )
+    {
+        // not fatal, ALSA keeps its defaults (start at the first write, wake when a period is free)
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDriver: The device refused the software parameters, the defaults stay: " << m_api.ErrorText( result ) );
+    }
+    m_api.swParamsFree( sw );
+}
+
+
 bool
 CAlsaAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
                               AUDIO::IAudioDeviceCallback* callback   ,
                               AUDIO::TAudioDevicePtr& device          )
 {GUCEF_TRACE;
 
-    if ( AUDIO::AUDIODIRECTION_PLAYBACK != params.GetDirection() || GUCEF_NULL == callback )
+    const AUDIO::TAudioDirection direction = params.GetDirection();
+    const bool capture = AUDIO::AUDIODIRECTION_CAPTURE == direction;
+    if ( ( AUDIO::AUDIODIRECTION_PLAYBACK != direction && !capture ) || GUCEF_NULL == callback )
         return false;
 
     const CORE::CString pcmName = params.GetDeviceId().IsNULLOrEmpty() ? CORE::CString( "default" ) : params.GetDeviceId();
+    if ( capture && !m_api.HasCaptureSupport() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDriver: Cannot record from \"" << pcmName << "\", libasound has no snd_pcm_readi or snd_pcm_start" );
+        return false;
+    }
+
     snd_pcm_t* pcm = GUCEF_NULL;
-    const int result = m_api.pcmOpen( &pcm, pcmName.C_String(), CAlsaApi::StreamPlayback, 0 );
+    const int result = m_api.pcmOpen( &pcm, pcmName.C_String(), capture ? CAlsaApi::StreamCapture : CAlsaApi::StreamPlayback, 0 );
     if ( result < 0 || GUCEF_NULL == pcm )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDriver: Could not open \"" << pcmName << "\": " << m_api.ErrorText( result ) );
@@ -361,19 +512,21 @@ CAlsaAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
         m_api.pcmClose( pcm );
         return false;
     }
+    ApplySoftwareParams( pcm, direction, periodSize, bufferSize );
 
-    AUDIO::CAudioDeviceInfo info( pcmName, pcmName, AUDIO::AUDIODIRECTION_PLAYBACK );
+    AUDIO::CAudioDeviceInfo info( pcmName, pcmName, direction );
     info.SetIsDefault( "default" == pcmName );
     info.SetPreferredFormat( format );
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDriver: Opened \"" << pcmName << "\" at " << format.GetSampleRate() << " Hz, " <<
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AlsaAudioDriver: Opened \"" << pcmName << "\" for " << ( capture ? "recording" : "playback" ) << " at " << format.GetSampleRate() << " Hz, " <<
         format.GetChannelCount() << " channels, sample type " << (CORE::UInt32) format.GetSampleType() << ", period " << periodSize << " frames, buffer " << bufferSize << " frames" );
 
-    device = AUDIO::TAudioDevicePtr( GUCEF_NEW CAlsaAudioDevice( info, callback, format, periodSize, bufferSize, pcm, m_api ) );
+    CAlsaAudioDevice* alsaDevice = GUCEF_NEW CAlsaAudioDevice( info, callback, format, periodSize, bufferSize, pcm, m_api );
+    alsaDevice->ApplyDeviceOptions( params );       // the generic push device options, such as "realtimePriority"
+    device = AUDIO::TAudioDevicePtr( alsaDevice );
     return true;
 }
 
-/*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //

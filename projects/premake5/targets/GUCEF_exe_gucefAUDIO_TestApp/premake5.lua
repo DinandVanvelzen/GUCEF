@@ -42,6 +42,7 @@ filter "ANDROID"
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
   include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "plugins/AUDIO/audiocodecpluginOGG" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
   include( "tests/gucefAUDIO_TestApp" )
   include( "tests/gucefAUDIO_TestCodecPlugin" )
 
@@ -119,6 +120,7 @@ filter "LINUX32"
   include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "plugins/AUDIO/audiodriverALSA" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
   include( "tests/gucefAUDIO_TestApp" )
   include( "tests/gucefAUDIO_TestCodecPlugin" )
 
@@ -135,6 +137,7 @@ filter "LINUX64"
   include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "plugins/AUDIO/audiodriverALSA" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
   include( "tests/gucefAUDIO_TestApp" )
   include( "tests/gucefAUDIO_TestCodecPlugin" )
 
@@ -200,6 +203,7 @@ filter "WIN32"
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
   include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "plugins/AUDIO/audiocodecpluginOGG" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
   include( "tests/gucefAUDIO_TestApp" )
   include( "tests/gucefAUDIO_TestCodecPlugin" )
 
@@ -215,6 +219,7 @@ filter "WIN64"
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
   include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "plugins/AUDIO/audiocodecpluginOGG" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
   include( "tests/gucefAUDIO_TestApp" )
   include( "tests/gucefAUDIO_TestCodecPlugin" )
 

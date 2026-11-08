@@ -615,7 +615,9 @@ CWasapiAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "WasapiAudioDriver: Opened \"" << info.GetName() << "\" at " << format.GetSampleRate() << " Hz, " <<
         format.GetChannelCount() << " channels, sample type " << (CORE::UInt32) format.GetSampleType() << ", period " << periodSize << " frames, buffer " << bufferSize << " frames" );
 
-    device = AUDIO::TAudioDevicePtr( GUCEF_NEW CWasapiAudioDevice( info, callback, format, periodSize, bufferSize, client, renderClient, bufferEvent ) );
+    CWasapiAudioDevice* wasapiDevice = GUCEF_NEW CWasapiAudioDevice( info, callback, format, periodSize, bufferSize, client, renderClient, bufferEvent );
+    wasapiDevice->ApplyDeviceOptions( params );     // the generic push device options, such as "realtimePriority" (MMCSS)
+    device = AUDIO::TAudioDevicePtr( wasapiDevice );
     return true;
 }
 

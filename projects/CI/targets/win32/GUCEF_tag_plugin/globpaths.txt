@@ -44,6 +44,7 @@ platform/gucefVIDEO/include/*
 platform/gucefWEB/include/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverWASAPI/*
+plugins/AUDIO/audiovoicecodecOPUS/*
 plugins/GUI/guidriverWin32/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFreeImage/*

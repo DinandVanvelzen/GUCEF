@@ -61,6 +61,7 @@ namespace ALSA {
 //-------------------------------------------------------------------------*/
 
 const int CAlsaApi::StreamPlayback;
+const int CAlsaApi::StreamCapture;
 const int CAlsaApi::AccessRwInterleaved;
 
 /*-------------------------------------------------------------------------*/
@@ -84,6 +85,18 @@ CAlsaApi::CAlsaApi( void )
     , pcmPrepare( GUCEF_NULL )
     , pcmDrop( GUCEF_NULL )
     , pcmWritei( GUCEF_NULL )
+    , pcmReadi( GUCEF_NULL )
+    , pcmStart( GUCEF_NULL )
+    , pcmDelay( GUCEF_NULL )
+    , pcmAvailUpdate( GUCEF_NULL )
+    , swParamsMalloc( GUCEF_NULL )
+    , swParamsFree( GUCEF_NULL )
+    , swParamsCurrent( GUCEF_NULL )
+    , swParamsSetStartThreshold( GUCEF_NULL )
+    , swParamsSetAvailMin( GUCEF_NULL )
+    , swParams( GUCEF_NULL )
+    , pcmLink( GUCEF_NULL )
+    , pcmUnlink( GUCEF_NULL )
     , pcmRecover( GUCEF_NULL )
     , strerror( GUCEF_NULL )
     , deviceNameHint( GUCEF_NULL )
@@ -105,14 +118,21 @@ CAlsaApi::~CAlsaApi()
 /*-------------------------------------------------------------------------*/
 
 void*
-CAlsaApi::GetFunction( const char* name, bool& allFound ) const
+CAlsaApi::GetFunction( const char* name, bool& allFound, bool required ) const
 {GUCEF_TRACE;
 
     CORE::TAnyPointer address = CORE::GetFunctionAddress( m_module, name, 0 );
     if ( GUCEF_NULL == address.funcPtr )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaApi: libasound has no function " << name );
-        allFound = false;
+        if ( required )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AlsaApi: libasound has no function " << name );
+            allFound = false;
+        }
+        else
+        {
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AlsaApi: libasound has no function " << name << ", the feature that needs it is unavailable" );
+        }
     }
     return reinterpret_cast< void* >( address.funcPtr );
 }
@@ -153,6 +173,21 @@ CAlsaApi::Load( void )
     pcmDrop = (TSndPcmDrop) GetFunction( "snd_pcm_drop", allFound );
     pcmWritei = (TSndPcmWritei) GetFunction( "snd_pcm_writei", allFound );
     pcmRecover = (TSndPcmRecover) GetFunction( "snd_pcm_recover", allFound );
+
+    // optional: when missing the feature is unavailable, playback still works
+    bool optionalFound = true;
+    pcmReadi = (TSndPcmReadi) GetFunction( "snd_pcm_readi", optionalFound, false );
+    pcmStart = (TSndPcmStart) GetFunction( "snd_pcm_start", optionalFound, false );
+    pcmDelay = (TSndPcmDelay) GetFunction( "snd_pcm_delay", optionalFound, false );
+    pcmAvailUpdate = (TSndPcmAvailUpdate) GetFunction( "snd_pcm_avail_update", optionalFound, false );
+    swParamsMalloc = (TSndPcmSwParamsMalloc) GetFunction( "snd_pcm_sw_params_malloc", optionalFound, false );
+    swParamsFree = (TSndPcmSwParamsFree) GetFunction( "snd_pcm_sw_params_free", optionalFound, false );
+    swParamsCurrent = (TSndPcmSwParamsCurrent) GetFunction( "snd_pcm_sw_params_current", optionalFound, false );
+    swParamsSetStartThreshold = (TSndPcmSwParamsSetStartThreshold) GetFunction( "snd_pcm_sw_params_set_start_threshold", optionalFound, false );
+    swParamsSetAvailMin = (TSndPcmSwParamsSetAvailMin) GetFunction( "snd_pcm_sw_params_set_avail_min", optionalFound, false );
+    swParams = (TSndPcmSwParams) GetFunction( "snd_pcm_sw_params", optionalFound, false );
+    pcmLink = (TSndPcmLink) GetFunction( "snd_pcm_link", optionalFound, false );
+    pcmUnlink = (TSndPcmUnlink) GetFunction( "snd_pcm_unlink", optionalFound, false );
     strerror = (TSndStrerror) GetFunction( "snd_strerror", allFound );
     deviceNameHint = (TSndDeviceNameHint) GetFunction( "snd_device_name_hint", allFound );
     deviceNameGetHint = (TSndDeviceNameGetHint) GetFunction( "snd_device_name_get_hint", allFound );
@@ -186,6 +221,31 @@ CAlsaApi::IsLoaded( void ) const
 {GUCEF_TRACE;
 
     return GUCEF_NULL != m_module;
+}
+
+
+bool
+CAlsaApi::HasCaptureSupport( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != pcmReadi && GUCEF_NULL != pcmStart;
+}
+
+
+bool
+CAlsaApi::HasSoftwareParams( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != swParamsMalloc && GUCEF_NULL != swParamsFree && GUCEF_NULL != swParamsCurrent &&
+           GUCEF_NULL != swParamsSetStartThreshold && GUCEF_NULL != swParamsSetAvailMin && GUCEF_NULL != swParams;
+}
+
+
+bool
+CAlsaApi::HasDelayQuery( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != pcmDelay;
 }
 
 /*-------------------------------------------------------------------------*/

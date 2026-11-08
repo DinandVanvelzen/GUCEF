@@ -300,7 +300,9 @@ CAAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AAudioDriver: Opened \"" << deviceId << "\" at " << format.GetSampleRate() << " Hz, " <<
         format.GetChannelCount() << " channels, sample type " << (CORE::UInt32) format.GetSampleType() << ", burst " << burst << " frames, buffer " << bufferSize << " frames" );
 
-    device = AUDIO::TAudioDevicePtr( GUCEF_NEW CAAudioDevice( info, callback, format, (CORE::UInt32) burst, (CORE::UInt32) ( bufferSize > 0 ? bufferSize : burst ), stream, m_api ) );
+    CAAudioDevice* aaudioDevice = GUCEF_NEW CAAudioDevice( info, callback, format, (CORE::UInt32) burst, (CORE::UInt32) ( bufferSize > 0 ? bufferSize : burst ), stream, m_api );
+    aaudioDevice->ApplyDeviceOptions( params );     // the generic push device options, such as "realtimePriority"
+    device = AUDIO::TAudioDevicePtr( aaudioDevice );
     return true;
 }
 

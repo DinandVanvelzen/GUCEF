@@ -2,3 +2,4 @@ dependencies/libogg/*
 dependencies/libvorbis/*
 dependencies/opus/*
 plugins/AUDIO/audiocodecpluginOGG/*
+plugins/AUDIO/audiovoicecodecOPUS/*

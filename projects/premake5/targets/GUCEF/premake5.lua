@@ -143,6 +143,7 @@ filter "ALL"
   include( "plugins/AUDIO/audiodriverALSA" )
   include( "plugins/AUDIO/audiodriverWASAPI" )
   include( "plugins/AUDIO/audiodriverWEBAUDIO" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
   include( "plugins/AUTH/authpluginANDROID" )
   include( "plugins/AUTH/authpluginEOS" )
   include( "plugins/AUTH/authpluginSTEAM" )
