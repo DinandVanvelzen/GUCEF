@@ -92,6 +92,7 @@ CDRNTablePublisher::CDRNTablePublisher( CDRNDataGrid& grid, const CDRNTablePubli
     , m_metaChanged( false )
     , m_updateDepth( 0 )
     , m_updateThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_updateSystemThreadId, 0 )
     , m_rowPrefixSize( 0 )
     , m_stream()
     , m_existing()
@@ -135,7 +136,7 @@ CDRNTablePublisher::IsInUpdateOnThisThread( void ) const
 {GUCEF_TRACE;
 
     // set and cleared by the thread itself under the node lock: another thread's update never matches
-    return m_updateThreadId.Load() == MT::GetCurrentTaskID();
+    return m_updateThreadId.Load() == MT::GetCurrentThreadID();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -233,7 +234,12 @@ CDRNTablePublisher::BeginUpdate( void )
     // node lock is held until the update ends: an update of another thread waits for this one
     GetNodeLock().Lock();
     if ( 0 == m_updateDepth )
-        m_updateThreadId.Store( MT::GetCurrentTaskID() );
+    {
+        MT::SThreadIds ownerIds;
+        MT::GetCurrentThreadIds( &ownerIds );
+        m_updateThreadId.Store( ownerIds.threadId );
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_updateSystemThreadId.Store( ownerIds.systemThreadId ); )
+    }
     ++m_updateDepth;
     return true;
 }
@@ -271,7 +277,10 @@ CDRNTablePublisher::EndUpdate( void )
     }
     --m_updateDepth;
     if ( 0 == m_updateDepth )
+    {
         m_updateThreadId.Store( 0 );
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_updateSystemThreadId.Store( 0 ); )
+    }
     GetNodeLock().Unlock();
     return success;
 }
@@ -460,7 +469,7 @@ CDRNTablePublisher::PublishFrom( CORE::CIDataTable& table, const CORE::CDataTabl
         CORE::PulseGeneratorPtr tablePulseGenerator = table.GetPulseGenerator();
         if ( tablePulseGenerator.IsNULL() )
             tablePulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
-        if ( tablePulseGenerator->GetPulseDriverThreadId() != MT::GetCurrentTaskID() )
+        if ( tablePulseGenerator->GetPulseDriverThreadId() != MT::GetCurrentThreadID() )
         {
             if ( inUpdate )
             {

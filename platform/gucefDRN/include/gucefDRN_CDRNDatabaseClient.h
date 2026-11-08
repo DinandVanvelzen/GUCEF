@@ -145,7 +145,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNDatabaseClient : public COMCORE::CDatabaseClientB
     };
     friend class CSessionWatcher;
 
-    typedef GUCEF::map< UInt32, CORE::CString >                         TErrorMap;
+    typedef GUCEF::map< TThreadId, CORE::CString >                   TErrorMap;
     typedef GUCEF::map< CORE::CString, CDRNDataGridTableSettings >      TTableSettingsMap;
 
     CDRNDatabaseClient( const CDRNDatabaseClient& src );                /**< not implemented */

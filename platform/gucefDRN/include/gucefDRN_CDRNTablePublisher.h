@@ -202,7 +202,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNTablePublisher
     UInt32 m_removedInUpdate;
     bool m_metaChanged;
     UInt32 m_updateDepth;               /**< of the thread in m_updateThreadId, under the node lock */
-    MT::CTAtomic< UInt32 > m_updateThreadId;    /**< the thread that has the update open, 0 when none is */
+    MT::CTAtomic< TThreadId > m_updateThreadId;    /**< the thread that has the update open, 0 when none is */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_updateSystemThreadId; )   /**< display only, recorded with m_updateThreadId */
     UInt32 m_rowPrefixSize;             /**< bytes of version and revision in front of the cells */
     CORE::CVariantStream m_stream;
     CORE::CVariant m_existing;

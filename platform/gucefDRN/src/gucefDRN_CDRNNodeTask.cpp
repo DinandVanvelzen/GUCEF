@@ -82,6 +82,7 @@ CDRNNodeTask::CDRNNodeTask( CDRNNode& node )
     , m_startStateChanged( 0 )
     , m_immediatePulseRequested( 0 )
     , m_driverTaskId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverTaskSystemThreadId, 0 )
     , m_readinessWaiter()
 {GUCEF_TRACE;
 
@@ -187,9 +188,12 @@ CDRNNodeTask::OnTaskStart( CORE::CTaskPtr task )
     if ( m_pulseGenerator.IsNULL() )
         return false;
     m_previousDriver = m_pulseGenerator->GetPulseGeneratorDriver();
-    m_driverTaskId.Store( MT::GetCurrentTaskID() );
+    MT::SThreadIds ownerIds;
+    MT::GetCurrentThreadIds( &ownerIds );
+    m_driverTaskId.Store( ownerIds.threadId );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_driverTaskSystemThreadId.Store( ownerIds.systemThreadId ); )
     m_pulseGenerator->SetPulseGeneratorDriver( this );
-    m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
 
     // this driver ends the node's wait on a pulse request from another thread (RequestImmediatePulse()): the sockets
     // of the node's channels wake the node when they become ready instead of waiting for its next cycle
@@ -259,8 +263,8 @@ CDRNNodeTask::OnTaskEnded( CORE::CTaskPtr task, bool wasForced )
     // the task's own thread calls this after its last cycle: from then on it does not touch the node. Another thread
     // calls it when it gave up waiting for the task's thread to end (CActiveObject::Deactivate), while that thread may
     // still be in a cycle: that is not the end of the work for the node
-    UInt32 driverTaskId = m_driverTaskId.Load();
-    if ( 0 == driverTaskId || MT::GetCurrentTaskID() == driverTaskId )
+    const TThreadId driverTaskId = m_driverTaskId.Load();
+    if ( 0 == driverTaskId || MT::GetCurrentThreadID() == driverTaskId )
     {
         ReleasePulseGenerator();
         SetStartState( STARTSTATE_ENDED );
@@ -298,7 +302,7 @@ CDRNNodeTask::RequestImmediatePulse( CORE::CPulseGenerator& /* pulseGenerator */
 
     // a request of another thread (the socket readiness waiter, a sender) ends the node's wait between its cycles;
     // the node's own thread looks at the flag before it waits
-    if ( MT::GetCurrentTaskID() != m_driverTaskId.Load() )
+    if ( MT::GetCurrentThreadID() != m_driverTaskId.Load() )
         m_node->WakeOwnThread();
 }
 
@@ -341,13 +345,21 @@ CDRNNodeTask::RequestStopOfPeriodicUpdates( CORE::CPulseGenerator& /* pulseGener
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CDRNNodeTask::GetPulseDriverThreadId( void ) const
 {GUCEF_TRACE;
 
-    // the kernel thread id of the delegator (GetDelegatorThreadId()) is another number on Linux
-    UInt32 taskId = m_driverTaskId.Load();
-    return 0 != taskId ? taskId : GetDelegatorThreadId();
+    // 0 until the task's thread started: the delegator's own thread id (GetDelegatorThreadId()) is the operating
+    // system's id of the thread, another kind of number than the thread identity users of the pulse generator compare with
+    return m_driverTaskId.Load();
+}
+/*-------------------------------------------------------------------------*/
+
+TSystemThreadId
+CDRNNodeTask::GetPulseDriverSystemThreadId( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( m_driverTaskSystemThreadId.Load(), m_driverTaskId.Load() );
 }
 
 /*-------------------------------------------------------------------------//

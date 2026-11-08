@@ -75,7 +75,7 @@ class CPulseThreadRecorder : public CORE::CObserver
     public:
 
     MT::CTAtomic< UInt32 > pulses;
-    MT::CTAtomic< UInt32 > pulseThread;
+    MT::CTAtomic< TThreadId > pulseThread;
     MT::CTAtomic< UInt32 > otherThreadPulses;
 
     CPulseThreadRecorder( void ) : CORE::CObserver(), pulses( 0 ), pulseThread( 0 ), otherThreadPulses( 0 ) {}
@@ -87,8 +87,8 @@ class CPulseThreadRecorder : public CORE::CObserver
     {
         if ( CORE::CPulseGenerator::PulseEvent != eventid )
             return;
-        UInt32 thread = MT::GetCurrentTaskID();
-        UInt32 expected = 0;
+        const TThreadId thread = MT::GetCurrentThreadID();
+        TThreadId expected = 0;
         if ( !pulseThread.CompareExchangeStrong( expected, thread ) && expected != thread )
             ++otherThreadPulses;
         ++pulses;
@@ -119,9 +119,9 @@ class CSessionRecorder : public CORE::CObserver
     UInt32 closedReason;
     TStringVector appLog;
     GUCEF::vector< UInt32 > leftPeers;
-    UInt32 eventThreadId;
+    TThreadId eventThreadId;
     UInt32 wrongThreadEvents;
-    UInt32 expectedThreadId;
+    TThreadId expectedThreadId;
 
     protected:
 
@@ -132,7 +132,7 @@ class CSessionRecorder : public CORE::CObserver
                 DRN::CDRNSession::SessionClosedEvent == eventid || DRN::CDRNSession::AppMessageEvent == eventid ) )
             return;
 
-        eventThreadId = MT::GetCurrentTaskID();
+        eventThreadId = MT::GetCurrentThreadID();
         if ( 0 != expectedThreadId && eventThreadId != expectedThreadId )
             ++wrongThreadEvents;
 
@@ -234,7 +234,7 @@ RunSessionScenario( DRN::TDRNTopology topology, UInt32 peerCount, const CORE::CS
     GUCEF::vector< CSessionRecorder* > recorders;
     GUCEF::vector< DRN::CDRNEndpoint > endpoints;
     CORE::CString result;
-    UInt32 mainThreadId = MT::GetCurrentTaskID();
+    TThreadId mainThreadId = MT::GetCurrentThreadID();
     CORE::CString sessionName = "arena-" + CORE::UInt32ToString( peerCount ) + "-" + CORE::UInt32ToString( (UInt32) topology );
 
     for ( UInt32 i=0; i<peerCount; ++i )
@@ -615,8 +615,8 @@ PerformDRNSessionTests( void )
         for ( UInt32 i=0; i<200 && recorder.pulses.Load() < 20; ++i )
             MT::ThreadDelay( 5 );
         ASSERT_TRUE( recorder.pulses.Load() >= 20 );
-        UInt32 nodeThread = recorder.pulseThread.Load();
-        ASSERT_TRUE( 0 != nodeThread && MT::GetCurrentTaskID() != nodeThread );
+        TThreadId nodeThread = recorder.pulseThread.Load();
+        ASSERT_TRUE( 0 != nodeThread && MT::GetCurrentThreadID() != nodeThread );
 
         // an immediate pulse asked for from another thread is made on the node's thread, not on the asking one
         nodePulse->RequestImmediatePulse();

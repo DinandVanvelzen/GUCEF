@@ -256,7 +256,7 @@ CLinkRecorder::OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid,
         return;
     }
 
-    eventThreadId = MT::GetCurrentTaskID();
+    eventThreadId = MT::GetCurrentThreadID();
     if ( DRN::CDRNNode::LinkOperationalEvent == eventid )
     {
         const DRN::CDRNNodeLinkInfo& info = static_cast< DRN::CDRNNodeLinkEventData* >( eventdata )->GetData();

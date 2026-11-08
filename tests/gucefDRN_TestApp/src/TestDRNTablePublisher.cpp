@@ -353,10 +353,10 @@ class CLogLineCounter : public CORE::CILogger
         return m_lines.Load();
     }
 
-    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CString&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
-    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CVariantStream&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType, const Int32, const CORE::CString&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType, const Int32, const CORE::CVariantStream&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
+    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CString&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
+    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CVariantStream&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType, const Int32, const CORE::CString&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType, const Int32, const CORE::CVariantStream&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_lines.FetchAdd( 1 ); }
     virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void SetMinimalLogLevel( const Int32 ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual Int32 GetMinimalLogLevel( void ) const GUCEF_VIRTUAL_OVERRIDE { return CORE::LOGLEVEL_EVERYTHING; }
@@ -406,7 +406,7 @@ class CTablePulser : public MT::CActiveObject
 
     virtual bool OnThreadStart( void* ) GUCEF_VIRTUAL_OVERRIDE
     {
-        m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+        m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
         return true;
     }
 

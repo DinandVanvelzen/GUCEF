@@ -205,7 +205,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNChannelReaper : public CORE::CTSharedObjCreator< 
     virtual ~CDRNChannelReaper();
 
     /** The thread the channels belong to, 0 when any thread may destroy them */
-    void SetOwnerThreadId( UInt32 threadId );
+    void SetOwnerThreadId( TThreadId threadId );
 
     /** Lets go of the channel: right away on the owner thread, otherwise at the next Reap() */
     void Release( CIDRNChannelPtr& channel );
@@ -221,7 +221,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNChannelReaper : public CORE::CTSharedObjCreator< 
     typedef GUCEF::vector< CIDRNChannelPtr > TChannelVector;
 
     MT::CMutex m_lock;
-    UInt32 m_ownerThreadId;
+    TThreadId m_ownerThreadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_ownerSystemThreadId )   /**< display only, recorded with m_ownerThreadId */
     TChannelVector m_released;
 };
 

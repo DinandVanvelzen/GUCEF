@@ -267,7 +267,7 @@ class CTransportEvents : public CORE::CObserver
     UInt32 disconnected;
     UInt32 frames;
     COMCORE::CRpcStatus lastStatus;
-    UInt32 eventThread;
+    TThreadId eventThread;
 
     CTransportEvents( void ) : CORE::CObserver(), connected( 0 ), disconnected( 0 ), frames( 0 ), lastStatus(), eventThread( 0 ) {}
     virtual ~CTransportEvents() { UnsubscribeAllFromObserver(); }
@@ -285,11 +285,11 @@ class CTransportEvents : public CORE::CObserver
 
     private:
 
-    void OnConnected( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { ++connected; eventThread = MT::GetCurrentTaskID(); }
-    void OnFrame( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { ++frames; eventThread = MT::GetCurrentTaskID(); }
+    void OnConnected( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { ++connected; eventThread = MT::GetCurrentThreadID(); }
+    void OnFrame( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { ++frames; eventThread = MT::GetCurrentThreadID(); }
     void OnDisconnected( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* eventData )
     {
-        eventThread = MT::GetCurrentTaskID();
+        eventThread = MT::GetCurrentThreadID();
         if ( GUCEF_NULL != eventData )
             lastStatus = *static_cast< COMCORE::CRpcStatus* >( eventData );
         ++disconnected;
@@ -304,7 +304,7 @@ class CDisconnectWatch : public CORE::CObserver
     public:
 
     MT::CTAtomic< UInt32 > disconnected;
-    MT::CTAtomic< UInt32 > eventThread;
+    MT::CTAtomic< TThreadId > eventThread;
 
     CDisconnectWatch( void ) : CORE::CObserver(), disconnected( 0 ), eventThread( 0 ) {}
     virtual ~CDisconnectWatch() { UnsubscribeAllFromObserver(); }
@@ -320,7 +320,7 @@ class CDisconnectWatch : public CORE::CObserver
 
     void OnDisconnected( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* )
     {
-        eventThread.Store( MT::GetCurrentTaskID() );
+        eventThread.Store( MT::GetCurrentThreadID() );
         disconnected.Store( disconnected.Load() + 1 );
     }
 };
@@ -363,17 +363,17 @@ class CLogCapture : public CORE::CILogger
         return m_text;
     }
 
-    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CString& logMessage, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CString& logMessage, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE
     {
         MT::CScopeMutex lock( m_lock );
         m_text += logMessage;
         m_text += "\n";
     }
-    virtual void Log( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void Log( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     { Log( type, level, logMessage.ToString(), threadId, timestamp ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     { Log( type, level, logMessage, threadId, timestamp ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
     { Log( type, level, logMessage.ToString(), threadId, timestamp ); }
     virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void SetMinimalLogLevel( const Int32 ) GUCEF_VIRTUAL_OVERRIDE {}
@@ -716,7 +716,7 @@ class CBlockingCaller : public MT::CActiveObject
 
     virtual bool OnThreadCycle( void* ) GUCEF_VIRTUAL_OVERRIDE
     {
-        m_threadId.Store( MT::GetCurrentTaskID() );
+        m_threadId.Store( MT::GetCurrentThreadID() );
         COMCORE::CRpcMethodRef ref;
         COMCORE::CRpcStatus status;
         if ( m_endpoint->ResolveMethod( g_getPath, ref, status ) )
@@ -738,7 +738,7 @@ class CBlockingCaller : public MT::CActiveObject
 
     bool IsDone( void ) const { return m_done.Load(); }
     UInt32 GetSucceeded( void ) const { return m_succeeded.Load(); }
-    UInt32 GetThreadId( void ) const { return m_threadId.Load(); }
+    TThreadId GetThreadId( void ) const { return m_threadId.Load(); }
 
     private:
 
@@ -746,7 +746,7 @@ class CBlockingCaller : public MT::CActiveObject
     UInt32 m_callCount;
     MT::CTAtomic< UInt32 > m_succeeded;
     MT::CTAtomic< bool > m_done;
-    MT::CTAtomic< UInt32 > m_threadId;
+    MT::CTAtomic< TThreadId > m_threadId;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -1668,7 +1668,7 @@ PerformDRNRpcTransportTests( void )
             ASSERT_FALSE( w.clientDrn->SendFrame( "x", 1, COMCORE::RPC_PROTECTION_CONFIDENTIAL ) );
             ASSERT_TRUE( PumpUntil( clientEvents.disconnected, 1, 3000 ) );
             ASSERT_TRUE( PumpUntil( serverEvents.disconnected, 1, 3000 ) );
-            ASSERT_TRUE( clientEvents.eventThread == MT::GetCurrentTaskID() );
+            ASSERT_TRUE( clientEvents.eventThread == MT::GetCurrentThreadID() );
             ASSERT_TRUE( COMCORE::RPC_STATUS_UNAVAILABLE == serverEvents.lastStatus.code );
             PumpFor( 50 );
             ASSERT_TRUE( 1 == clientEvents.disconnected && 1 == serverEvents.disconnected );
@@ -1979,9 +1979,9 @@ RunThreadingCase( COMCORE::TRpcExecutionMode mode, bool withStream )
         w.mode = mode;
         REQUIRE_TRUE( w.Start( 2 ) );
         REQUIRE_TRUE( w.Connect() );
-        UInt32 testThread = MT::GetCurrentTaskID();
-        UInt32 serverNodeThread = w.group.nodes[ 0 ]->GetPulseGenerator()->GetPulseDriverThreadId();
-        UInt32 clientNodeThread = w.group.nodes[ 1 ]->GetPulseGenerator()->GetPulseDriverThreadId();
+        TThreadId testThread = MT::GetCurrentThreadID();
+        TThreadId serverNodeThread = w.group.nodes[ 0 ]->GetPulseGenerator()->GetPulseDriverThreadId();
+        TThreadId clientNodeThread = w.group.nodes[ 1 ]->GetPulseGenerator()->GetPulseDriverThreadId();
         ASSERT_TRUE( 0 != serverNodeThread && testThread != serverNodeThread && testThread != clientNodeThread );
         ASSERT_TRUE( w.f.client->GetTransport()->GetPulseGenerator() == w.group.nodes[ 1 ]->GetPulseGenerator() );
 
@@ -1991,7 +1991,7 @@ RunThreadingCase( COMCORE::TRpcExecutionMode mode, bool withStream )
             COMCORE::CRpcCallResult result = w.Call( g_getPath, i + 1 );
             ASSERT_TRUE( result.status.IsOk() && i + 1 == result.response.GetUInt64( 1 ) );
         }
-        UInt32 handlerThread = w.f.service.lastHandlerThread;
+        TThreadId handlerThread = w.f.service.lastHandlerThread;
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DRN RPC threads: test " << testThread << ", server node " << serverNodeThread << ", client node " << clientNodeThread << ", handler " << handlerThread );
         ASSERT_TRUE( ( COMCORE::RPC_EXECUTION_CALLING_THREAD == w.mode ) ? ( serverNodeThread == handlerThread ) : ( testThread == handlerThread ) );
 

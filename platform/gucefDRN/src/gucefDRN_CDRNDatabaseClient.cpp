@@ -199,7 +199,7 @@ CDRNDatabaseClient::Fail( CORE::TDataTableStatus status, const CORE::CString& me
 
     {
         MT::CScopeMutex lock( m_lock );
-        m_errors[ MT::GetCurrentTaskID() ] = message;
+        m_errors[ MT::GetCurrentThreadID() ] = message;
     }
     CORE::TCloneableString eventData( message );
     const_cast< CDRNDatabaseClient* >( this )->NotifyObserversFromThread( DatabaseErrorEvent, &eventData );
@@ -213,7 +213,7 @@ CDRNDatabaseClient::Succeed( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    m_errors.erase( MT::GetCurrentTaskID() );
+    m_errors.erase( MT::GetCurrentThreadID() );
     return CORE::DATATABLE_STATUS_OK;
 }
 
@@ -224,7 +224,7 @@ CDRNDatabaseClient::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    TErrorMap::const_iterator i = m_errors.find( MT::GetCurrentTaskID() );
+    TErrorMap::const_iterator i = m_errors.find( MT::GetCurrentThreadID() );
     return i == m_errors.end() ? CORE::CString::Empty : (*i).second;
 }
 

@@ -108,7 +108,7 @@ class CLinkRecorder : public CORE::CObserver
     DRN::CDRNLatencyInfo lastLatencyInfo;
     DRN::TDRNPeerLinkVector links;
     GUCEF::vector< CRecordedMessage > messages;
-    UInt32 eventThreadId;           /**< thread that delivered the last node event */
+    TThreadId eventThreadId;         /**< thread that delivered the last node event */
 
     protected:
 

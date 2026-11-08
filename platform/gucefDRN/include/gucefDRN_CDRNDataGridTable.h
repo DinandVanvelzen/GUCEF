@@ -230,7 +230,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGridTable : public CORE::CIDataTable
 
     typedef CORE::CTEventHandlerFunctor< CDRNDataGridTable >    TEventCallback;
     typedef GUCEF::map< CORE::CObserver*, UInt32 >              TObserverMap;
-    typedef GUCEF::map< UInt32, CORE::CString >                 TLastErrorMap;
+    typedef GUCEF::map< TThreadId, CORE::CString >           TLastErrorMap;
     typedef GUCEF::vector< CDRNDataGridPendingWritePtr >        TPendingWriteVector;
 
     class CScanTicks
@@ -240,7 +240,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGridTable : public CORE::CIDataTable
         UInt32 lastTick;
         CScanTicks( void ) : firstTick( 0 ), lastTick( 0 ) {}
     };
-    typedef GUCEF::map< UInt32, CScanTicks >                    TScanTicksMap;
+    typedef GUCEF::map< TThreadId, CScanTicks >              TScanTicksMap;
 
     CDRNDataGridTable( const CDRNDataGridTable& src );                  /**< not implemented */
     CDRNDataGridTable& operator=( const CDRNDataGridTable& src );       /**< not implemented */

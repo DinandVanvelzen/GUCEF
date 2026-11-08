@@ -130,11 +130,19 @@ CDRNNodePulseDriver::RequestStopOfPeriodicUpdates( CORE::CPulseGenerator& /* pul
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CDRNNodePulseDriver::GetPulseDriverThreadId( void ) const
 {GUCEF_TRACE;
 
     return m_appPulseGenerator.IsNULL() ? 0 : m_appPulseGenerator->GetPulseDriverThreadId();
+}
+/*-------------------------------------------------------------------------*/
+
+TSystemThreadId
+CDRNNodePulseDriver::GetPulseDriverSystemThreadId( void ) const
+{GUCEF_TRACE;
+
+    return m_appPulseGenerator.IsNULL() ? 0 : m_appPulseGenerator->GetPulseDriverSystemThreadId();
 }
 
 /*-------------------------------------------------------------------------//

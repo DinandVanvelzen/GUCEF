@@ -423,7 +423,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     mutable MT::CMutex m_nodeLock;
     MT::CSemaphore m_threadWake;                    /**< posted by WakeOwnThread() for the own thread's wait */
     MT::CTAtomic< UInt32 > m_threadWakePending;     /**< a post that the own thread did not take yet */
-    MT::CTAtomic< UInt32 > m_workingThreadId;       /**< the thread in RunThreadCycle(), 0 for none */
+    MT::CTAtomic< TThreadId > m_workingThreadId;     /**< the thread in RunThreadCycle(), 0 for none */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_workingSystemThreadId; )   /**< display only, recorded with m_workingThreadId */
 };
 
 /*-------------------------------------------------------------------------//

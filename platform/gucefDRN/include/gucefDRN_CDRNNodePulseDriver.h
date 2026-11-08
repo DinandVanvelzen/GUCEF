@@ -93,7 +93,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodePulseDriver : public CORE::CIPulseGeneratorDr
     virtual void QueueImmediatePulse( CORE::CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** The thread that drives the pulse generator of the application, which is the thread the node works on */
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    /** The operating system's id of that thread, for display */
+    virtual TSystemThreadId GetPulseDriverSystemThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

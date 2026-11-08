@@ -537,7 +537,7 @@ CDRNRpcTransport::IsOnNodeThread( void ) const
         return node->IsWorkingOnThisThread();
 
     // let go of by the node: the thread of the pulse generator it worked on, which takes no node lock here any more
-    return !m_pulseGenerator.IsNULL() && m_pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentTaskID();
+    return !m_pulseGenerator.IsNULL() && m_pulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
 }
 
 /*-------------------------------------------------------------------------*/

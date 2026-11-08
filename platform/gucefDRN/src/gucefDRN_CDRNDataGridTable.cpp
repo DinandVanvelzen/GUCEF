@@ -320,7 +320,7 @@ CDRNDataGridTable::Fail( CORE::TDataTableStatus status, const CORE::CString& mes
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    m_lastErrors[ MT::GetCurrentTaskID() ] = message;
+    m_lastErrors[ MT::GetCurrentThreadID() ] = message;
     return status;
 }
 
@@ -331,7 +331,7 @@ CDRNDataGridTable::Succeed( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    TLastErrorMap::iterator i = m_lastErrors.find( MT::GetCurrentTaskID() );
+    TLastErrorMap::iterator i = m_lastErrors.find( MT::GetCurrentThreadID() );
     if ( i != m_lastErrors.end() )
         m_lastErrors.erase( i );
     return CORE::DATATABLE_STATUS_OK;
@@ -344,7 +344,7 @@ CDRNDataGridTable::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    TLastErrorMap::const_iterator i = m_lastErrors.find( MT::GetCurrentTaskID() );
+    TLastErrorMap::const_iterator i = m_lastErrors.find( MT::GetCurrentThreadID() );
     return i != m_lastErrors.end() ? (*i).second : CORE::CString::Empty;
 }
 
@@ -448,7 +448,7 @@ CDRNDataGridTable::GetLastScanTicks( UInt32& firstTick, UInt32& lastTick ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    TScanTicksMap::const_iterator i = m_scanTicks.find( MT::GetCurrentTaskID() );
+    TScanTicksMap::const_iterator i = m_scanTicks.find( MT::GetCurrentThreadID() );
     if ( i == m_scanTicks.end() )
         return false;
     firstTick = (*i).second.firstTick;
@@ -726,7 +726,7 @@ CDRNDataGridTable::TakeSnapshot( const CORE::CDataTableQuery& query, CORE::CMemo
         m_mismatchedValues += mismatchedValues;
         m_mismatchedKeys += mismatchedKeys;
         ++m_snapshotCount;
-        CScanTicks& ticks = m_scanTicks[ MT::GetCurrentTaskID() ];
+        CScanTicks& ticks = m_scanTicks[ MT::GetCurrentThreadID() ];
         ticks.firstTick = firstTick;
         ticks.lastTick = lastTick;
         if ( !lookup && 0 != m_settings.snapshotCacheMs )

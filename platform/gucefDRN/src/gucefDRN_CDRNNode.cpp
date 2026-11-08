@@ -247,6 +247,7 @@ CDRNNode::CDRNNode( void )
     , m_threadWake( 0 )
     , m_threadWakePending( 0 )
     , m_workingThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_workingSystemThreadId, 0 )
 {GUCEF_TRACE;
 
     Construct();
@@ -292,6 +293,7 @@ CDRNNode::CDRNNode( const CORE::PulseGeneratorPtr& appPulseGenerator )
     , m_threadWake( 0 )
     , m_threadWakePending( 0 )
     , m_workingThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_workingSystemThreadId, 0 )
 {GUCEF_TRACE;
 
     Construct();
@@ -653,7 +655,7 @@ CDRNNode::OnOwnThreadStarted( void )
 
     // called on the node's own thread when it starts, which drives the node's pulse generator from now on
     MT::CScopeMutex lock( m_nodeLock );
-    m_channelReaper->SetOwnerThreadId( MT::GetCurrentTaskID() );
+    m_channelReaper->SetOwnerThreadId( MT::GetCurrentThreadID() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -695,11 +697,16 @@ CDRNNode::RunThreadCycle( void )
     // every pulse of the node's pulse generator happens here, under the node lock: the node lock is the first lock the
     // thread that works on the node takes for it (gucefDRN design 9, lock order)
     MT::CScopeMutex lock( m_nodeLock );
-    const UInt32 previousWorkingThreadId = m_workingThreadId.Load();
-    m_workingThreadId.Store( MT::GetCurrentTaskID() );
+    const TThreadId previousWorkingThreadId = m_workingThreadId.Load();
+    GUCEF_SYSTEM_THREAD_ID_CODE( const TSystemThreadId previousWorkingSystemThreadId = m_workingSystemThreadId.Load(); )
+    MT::SThreadIds ownerIds;
+    MT::GetCurrentThreadIds( &ownerIds );
+    m_workingThreadId.Store( ownerIds.threadId );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_workingSystemThreadId.Store( ownerIds.systemThreadId ); )
     if ( !m_pulseGenerator.IsNULL() )
         m_pulseGenerator->ForceDirectPulse();
     m_workingThreadId.Store( previousWorkingThreadId );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_workingSystemThreadId.Store( previousWorkingSystemThreadId ); )
 }
 
 /*-------------------------------------------------------------------------*/
@@ -718,7 +725,7 @@ bool
 CDRNNode::IsWorkingOnThisThread( void ) const
 {GUCEF_TRACE;
 
-    return m_workingThreadId.Load() == MT::GetCurrentTaskID();
+    return m_workingThreadId.Load() == MT::GetCurrentThreadID();
 }
 
 /*-------------------------------------------------------------------------*/

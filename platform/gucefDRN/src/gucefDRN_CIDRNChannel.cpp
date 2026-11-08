@@ -153,6 +153,7 @@ CDRNChannelReaper::CDRNChannelReaper( void )
     : CORE::CTSharedObjCreator< CDRNChannelReaper, MT::CMutex >( this )
     , m_lock()
     , m_ownerThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_ownerSystemThreadId, 0 )
     , m_released()
 {GUCEF_TRACE;
 
@@ -169,11 +170,16 @@ CDRNChannelReaper::~CDRNChannelReaper()
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNChannelReaper::SetOwnerThreadId( UInt32 threadId )
+CDRNChannelReaper::SetOwnerThreadId( TThreadId threadId )
 {GUCEF_TRACE;
+
+    // the operating system's id is known only when the calling thread records itself
+    MT::SThreadIds callerIds;
+    MT::GetCurrentThreadIds( &callerIds );
 
     MT::CScopeMutex lock( m_lock );
     m_ownerThreadId = threadId;
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_ownerSystemThreadId = threadId == callerIds.threadId ? callerIds.systemThreadId : 0; )
 }
 
 /*-------------------------------------------------------------------------*/
@@ -187,7 +193,7 @@ CDRNChannelReaper::Release( CIDRNChannelPtr& channel )
 
     {
         MT::CScopeMutex lock( m_lock );
-        if ( 0 != m_ownerThreadId && MT::GetCurrentTaskID() != m_ownerThreadId )
+        if ( 0 != m_ownerThreadId && MT::GetCurrentThreadID() != m_ownerThreadId )
         {
             m_released.push_back( channel );
             channel.Unlink();

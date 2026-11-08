@@ -142,8 +142,10 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeTask : public CORE::CTaskConsumer         ,
 
     virtual void RequestStopOfPeriodicUpdates( CORE::CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
-    /** The task's thread as MT::GetCurrentTaskID() gives it there: what users of the pulse generator compare with */
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    /** The task's thread as MT::GetCurrentThreadID() gives it there: what users of the pulse generator compare with */
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    /** The operating system's id of the task's thread, for display; 0 before it started */
+    virtual TSystemThreadId GetPulseDriverSystemThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -168,7 +170,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeTask : public CORE::CTaskConsumer         ,
     MT::CTAtomic< UInt32 > m_startState;
     MT::CSemaphore m_startStateChanged;             /**< posted on every change of m_startState */
     MT::CTAtomic< UInt32 > m_immediatePulseRequested;
-    MT::CTAtomic< UInt32 > m_driverTaskId;          /**< MT::GetCurrentTaskID() of the task's thread, 0 before it started */
+    MT::CTAtomic< TThreadId > m_driverTaskId;   /**< MT::GetCurrentThreadID() of the task's thread, 0 before it started */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_driverTaskSystemThreadId; )   /**< display only, recorded with m_driverTaskId */
     COMCORE::CSocketReadinessWaiterPtr m_readinessWaiter;   /**< wakes the node for the sockets on its pulse generator while the task drives it */
 };
 
