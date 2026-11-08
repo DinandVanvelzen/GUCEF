@@ -32,6 +32,7 @@ LOCAL_SRC_FILES := \
   src/xmlvect.c
 
 LOCAL_C_INCLUDES := \
+  $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/include/libparsifal \
   $(MY_MODULE_PATH)/include
 

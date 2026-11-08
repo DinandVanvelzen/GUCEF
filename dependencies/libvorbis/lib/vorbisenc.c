@@ -459,8 +459,16 @@ static void vorbis_encode_residue_setup(vorbis_info *vi,
   codec_setup_info *ci=vi->codec_setup;
   int i;
 
-  vorbis_info_residue0 *r=ci->residue_param[number]=
-    _ogg_malloc(sizeof(*r));
+  vorbis_info_residue0 *r;
+
+  /* DV edit: with 3 to 8 channels the mapping templates of both block
+     sizes reference the same residue number, so this setup runs twice for
+     one slot and the previous allocation was overwritten and leaked
+     (about 2.8 KB per encoder init, found with ASan/LSan). The second
+     setup replaces the first completely, so free the old one first.
+     No upstream fix exists as of xiph/vorbis main. */
+  if(ci->residue_param[number])_ogg_free(ci->residue_param[number]);
+  r=ci->residue_param[number]=_ogg_malloc(sizeof(*r));
 
   memcpy(r,res->res,sizeof(*r));
   if(ci->residues<=number)ci->residues=number+1;

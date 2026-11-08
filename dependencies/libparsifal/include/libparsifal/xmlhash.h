@@ -53,10 +53,29 @@ typedef struct tagXMLHTABLE {
 #endif
 #define PRVNAM3_ALIGNUP(size,align) ( ((size) + (align) - 1) & ~((align) - 1) )
 
+/* DV edit: the nodes of a table are taken from pools as blocks of dataoffset + sizeof(type) bytes. For a type
+   smaller than the alignment of XMLHTABLEBUCKET (the namedAtts table of int in parsifal.c makes blocks of 20
+   bytes on 64-bit) every second block then starts misaligned for the bucket at its start. On CPUs where alignment
+   matters (GUCEF_CPU_REQUIRES_ALIGNED_ACCESS in gucef_platform.h) the block size is rounded up to the bucket
+   alignment. Upstream has no fix: 1.1.0 is the last release of libparsifal. */
+#ifdef PARSIFAL_CUSTOM_GUCEF_BUILD
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+#endif /* PARSIFAL_CUSTOM_GUCEF_BUILD ? */
+
+#if defined( GUCEF_CPU_REQUIRES_ALIGNED_ACCESS ) && ( GUCEF_CPU_REQUIRES_ALIGNED_ACCESS != 0 )
+#define PRVNAM3_SETDT(table, type, sizeoftype) (\
+  (table)->dataoffset = PRVNAM3_ALIGNUP(sizeof(XMLHTABLEBUCKET), PRVNAM3_ALIGNOF(type)),\
+  (table)->blocksize = PRVNAM3_ALIGNUP((table)->dataoffset + (sizeoftype), PRVNAM3_ALIGNOF(XMLHTABLEBUCKET))\
+)
+#else
 #define PRVNAM3_SETDT(table, type, sizeoftype) (\
   (table)->dataoffset = PRVNAM3_ALIGNUP(sizeof(XMLHTABLEBUCKET), PRVNAM3_ALIGNOF(type)),\
   (table)->blocksize = (table)->dataoffset + (sizeoftype)\
 )
+#endif /* GUCEF_CPU_REQUIRES_ALIGNED_ACCESS ? */
 
 /* example of setting int via macro (of course getting Insert return value as
 appropriate pointer and setting its value would work but sometimes its cleaner

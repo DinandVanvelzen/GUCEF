@@ -569,7 +569,13 @@ static int _bisect_forward_serialno(OggVorbis_File *vf,
     if(ret)return(ret);
 
     ret=_fetch_headers(vf,&vi,&vc,&next_serialno_list,&next_serialnos,NULL);
-    if(ret)return(ret);
+    if(ret){
+      /* DV edit: _fetch_headers can fail after it already allocated the
+         serialno list (damaged chained files), free it so the error path
+         does not leak. No upstream fix exists as of xiph/vorbis main. */
+      if(next_serialno_list)_ogg_free(next_serialno_list);
+      return(ret);
+    }
     serialno = vf->os.serialno;
     dataoffset = vf->offset;
 
@@ -579,7 +585,14 @@ static int _bisect_forward_serialno(OggVorbis_File *vf,
 
     ret=_bisect_forward_serialno(vf,next,vf->offset,end,endgran,endserial,
                                  next_serialno_list,next_serialnos,m+1);
-    if(ret)return(ret);
+    if(ret){
+      /* DV edit: same leak on the failing recursion; the local headers
+         are not yet owned by vf either, so release them too. */
+      if(next_serialno_list)_ogg_free(next_serialno_list);
+      vorbis_info_clear(&vi);
+      vorbis_comment_clear(&vc);
+      return(ret);
+    }
 
     if(next_serialno_list)_ogg_free(next_serialno_list);
 
