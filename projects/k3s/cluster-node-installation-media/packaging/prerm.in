@@ -1,0 +1,10 @@
+#!/bin/sh
+# @GUCEF_PACKAGE@ before removal (dpkg: remove; rpm: %preun 0); not on upgrades
+case "$1" in
+    remove|0)
+        if [ -x "@UNINSTALL_SCRIPT@" ]; then
+            "@UNINSTALL_SCRIPT@" || true
+        fi
+        ;;
+esac
+exit 0

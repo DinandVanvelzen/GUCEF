@@ -10,21 +10,58 @@
 # Uses the NVIDIA GPU when the node advertises nvidia.com/gpu (see nvidia/setup.sh),
 # otherwise runs on CPU. The model is chosen from available VRAM and memory unless
 # LLM_MODEL_HF is set. Settings: config.env (see config.env.example)
+#
+# Usage: ./setup.sh [--node NODE] [--instance NAME]
+#   (no options)     the main instance "llama-server", on the first GPU node that
+#                    is not ephemeral, otherwise on this node
+#   --node NODE      an instance on that node. The instance name defaults to the
+#                    node name: llama-server-<node>
+#   --instance NAME  instance name; config.NAME.env, when present, is read after
+#                    config.env and overrides its settings for this instance
+#
+# On an ephemeral node (agent-node/join.sh --ephemeral) the instance tolerates
+# the node's taint, keeps its model in a directory on the node
+# (LLM_HOST_MODEL_DIR) and listens on LLM_PORT of the node itself (hostPort)
+# instead of a LoadBalancer port, so clients reach it directly while the node is
+# up. In the cluster it is the ClusterIP service llama-server-<name>.
+#
+# Afterwards the MCP server gucefMcpLocalLlm is brought up to date (LLM_MCP,
+# default true): mcp/cluster.sh gives every node's MCP service the list of LLM
+# servers and its certificate, mcp/install.sh builds, tests and runs the service
+# on this machine (see mcp/README.md).
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-/etc/rancher/k3s/k3s.yaml}"
 KUBECTL="kubectl --kubeconfig ${KUBECONFIG_PATH}"
 NAMESPACE="llm"
-APP_NAME="llama-server"
-PVC_NAME="llama-server-models"
-SECRET_NAME="llama-server-secrets"
 PRIORITY_CLASS_NAME="gucef-low-priority"
 CONTAINER_PORT=8080
 PREFERRED_STORAGE_CLASS="longhorn-jbod"
+EPHEMERAL_LABEL_KEY="gucef.org/node-lifecycle"
+EPHEMERAL_TAINT_KEY="gucef.org/ephemeral"
 
 # shellcheck source=../nvidia/node_detect.sh
 . "${SCRIPT_DIR}/../nvidia/node_detect.sh"
+
+ARG_NODE=""
+ARG_INSTANCE=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --node) ARG_NODE="$2"; shift ;;
+        --instance) ARG_INSTANCE="$2"; shift ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+    shift
+done
+INSTANCE="${ARG_INSTANCE:-${ARG_NODE}}"
+if [ -n "${INSTANCE}" ] && [[ ! "${INSTANCE}" =~ ^[a-z0-9]([a-z0-9-]{0,40}[a-z0-9])?$ ]]; then
+    echo "ERROR: instance name '${INSTANCE}' must be lower case letters, digits and '-'. Use --instance."
+    exit 1
+fi
+APP_NAME="llama-server${INSTANCE:+-${INSTANCE}}"
+PVC_NAME="${APP_NAME}-models"
+SECRET_NAME="${APP_NAME}-secrets"
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -35,8 +72,13 @@ if [ ! -f "${SCRIPT_DIR}/config.env" ]; then
 fi
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/config.env"
+if [ -n "${INSTANCE}" ] && [ -f "${SCRIPT_DIR}/config.${INSTANCE}.env" ]; then
+    # shellcheck disable=SC1090
+    . "${SCRIPT_DIR}/config.${INSTANCE}.env"
+    echo "Read ${SCRIPT_DIR}/config.${INSTANCE}.env"
+fi
 
-LLM_MODEL_ALIAS="${LLM_MODEL_ALIAS:-local-qwen}"
+LLM_MCP="${LLM_MCP:-true}"
 LLM_CTX_SIZE="${LLM_CTX_SIZE:-131072}"
 LLM_MULTIMODAL="${LLM_MULTIMODAL:-false}"
 LLM_VRAM_RESERVE_MIB="${LLM_VRAM_RESERVE_MIB:-1024}"
@@ -46,22 +88,51 @@ LLM_PARALLEL="${LLM_PARALLEL:-1}"
 LLM_IMAGE_CUDA="${LLM_IMAGE_CUDA:-ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:a361e47e28e8801e290f3c855292e0f25047e5d8e998b0d101431f54db68e008}"
 LLM_IMAGE_CPU="${LLM_IMAGE_CPU:-ghcr.io/ggml-org/llama.cpp:server@sha256:4d2de15a0ffbce704777c64026b40512a71e0bbc0b303a5fe5ea9bf71760dff9}"
 
+# The MCP services: the LLM servers and certificates for all nodes, the service of this machine
+mcp_sync() {
+    [ "${LLM_MCP}" = "true" ] || return 0
+    echo ""
+    echo "MCP services (LLM_MCP=false in config.env leaves them alone)"
+    "${SCRIPT_DIR}/mcp/cluster.sh" || echo "WARNING: mcp/cluster.sh failed; the MCP services keep what they have."
+    if [ -n "${SUDO_USER}" ] && [ "${SUDO_USER}" != "root" ]; then
+        "${SCRIPT_DIR}/mcp/install.sh" --user "${SUDO_USER}" || echo "WARNING: the MCP service of this machine was not updated, see above."
+    else
+        echo "The MCP service of this machine runs as a user: sudo ${SCRIPT_DIR}/mcp/install.sh from that user."
+    fi
+}
+
 # ---------------------------------------------------------------------------
 # Target node and hardware
 # ---------------------------------------------------------------------------
+# Whether node $1 advertises an allocatable NVIDIA GPU
+node_has_gpu() {
+    local ALLOCATABLE
+    [ "${GUCEF_K3S_FORCE_NO_GPU}" = "1" ] && return 1
+    ALLOCATABLE="$(${KUBECTL} get node "$1" -o jsonpath='{.status.allocatable.nvidia\.com/gpu}' 2>/dev/null)"
+    [ -n "${ALLOCATABLE}" ] && [ "${ALLOCATABLE}" != "0" ]
+}
+
 USE_GPU=false
-GPU_NODE="$(${KUBECTL} get nodes -l gucef.org/gpu=nvidia -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)"
-if [ -n "${GPU_NODE}" ] && [ "${GUCEF_K3S_FORCE_NO_GPU}" != "1" ]; then
-    GPU_ALLOCATABLE="$(${KUBECTL} get node "${GPU_NODE}" -o jsonpath='{.status.allocatable.nvidia\.com/gpu}')"
-    if [ -n "${GPU_ALLOCATABLE}" ] && [ "${GPU_ALLOCATABLE}" != "0" ]; then
+if [ -n "${ARG_NODE}" ]; then
+    if ! ${KUBECTL} get node "${ARG_NODE}" > /dev/null 2>&1; then
+        echo "ERROR: node '${ARG_NODE}' not found."
+        exit 1
+    fi
+    TARGET_NODE="${ARG_NODE}"
+    node_has_gpu "${TARGET_NODE}" && USE_GPU=true
+else
+    # Ephemeral nodes are not always on; they only get instances of their own (--node)
+    GPU_NODE="$(${KUBECTL} get nodes -l "gucef.org/gpu=nvidia,${EPHEMERAL_LABEL_KEY}!=ephemeral" \
+        -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)"
+    if [ -n "${GPU_NODE}" ] && node_has_gpu "${GPU_NODE}"; then
         USE_GPU=true
         TARGET_NODE="${GPU_NODE}"
     fi
-fi
-if [ "${USE_GPU}" != "true" ]; then
-    TARGET_NODE="$(gucef_k8s_node_name "${KUBECONFIG_PATH}")"
-    if [ -z "${TARGET_NODE}" ]; then
-        TARGET_NODE="$(${KUBECTL} get nodes -o jsonpath='{.items[0].metadata.name}')"
+    if [ "${USE_GPU}" != "true" ]; then
+        TARGET_NODE="$(gucef_k8s_node_name "${KUBECONFIG_PATH}")"
+        if [ -z "${TARGET_NODE}" ]; then
+            TARGET_NODE="$(${KUBECTL} get nodes -o jsonpath='{.items[0].metadata.name}')"
+        fi
     fi
 fi
 if [ -z "${TARGET_NODE}" ]; then
@@ -70,6 +141,11 @@ if [ -z "${TARGET_NODE}" ]; then
 fi
 TARGET_NODE_HOSTNAME="$(${KUBECTL} get node "${TARGET_NODE}" -o jsonpath='{.metadata.labels.kubernetes\.io/hostname}')"
 TARGET_NODE_HOSTNAME="${TARGET_NODE_HOSTNAME:-${TARGET_NODE}}"
+EPHEMERAL=false
+if [ "$(${KUBECTL} get node "${TARGET_NODE}" -o jsonpath="{.metadata.labels.gucef\.org/node-lifecycle}")" = "ephemeral" ]; then
+    EPHEMERAL=true
+    LLM_HOST_MODEL_DIR="${LLM_HOST_MODEL_DIR:-/var/lib/gucef/llm-models}"
+fi
 
 VRAM_MIB=0
 if [ "${USE_GPU}" = "true" ]; then
@@ -110,9 +186,9 @@ case "${LLM_CPU_LIMIT}" in
 esac
 [ "${LLM_THREADS}" -lt 1 ] && LLM_THREADS=1
 
-# Model selection
+# Model selection: the MoE model needs about 32 GiB of VRAM and memory together
 if [ -z "${LLM_MODEL_HF}" ]; then
-    if [ "${MEM_LIMIT_MIB}" -ge 32768 ]; then
+    if [ $(( MEM_LIMIT_MIB + VRAM_MIB )) -ge 32768 ]; then
         LLM_MODEL_HF="unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M"
     elif [ "${VRAM_MIB}" -ge 7000 ] || [ "${MEM_LIMIT_MIB}" -ge 12288 ]; then
         LLM_MODEL_HF="unsloth/Qwen3.5-9B-GGUF:Q4_K_M"
@@ -121,26 +197,47 @@ if [ -z "${LLM_MODEL_HF}" ]; then
     fi
 fi
 
-echo "Target node:   ${TARGET_NODE}"
+# The name the server reports for its model, by which clients pick it (gucefMcpLocalLlm routes on it):
+# the model of the Hugging Face repository in lower case, e.g. unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M -> qwen3.6-35b-a3b
+if [ -z "${LLM_MODEL_ALIAS}" ]; then
+    LLM_MODEL_ALIAS="${LLM_MODEL_HF##*/}"
+    LLM_MODEL_ALIAS="${LLM_MODEL_ALIAS%%:*}"
+    LLM_MODEL_ALIAS="$(echo "${LLM_MODEL_ALIAS}" | tr '[:upper:]' '[:lower:]' | sed -e 's/-gguf$//')"
+fi
+
+echo "Instance:      ${APP_NAME}"
+echo "Target node:   ${TARGET_NODE}$([ "${EPHEMERAL}" = "true" ] && echo " (ephemeral)")"
 echo "GPU:           ${USE_GPU} (VRAM ${VRAM_MIB} MiB)"
 echo "Limits:        memory ${LLM_MEMORY_LIMIT}, cpu ${LLM_CPU_LIMIT}"
 echo "Model:         ${LLM_MODEL_HF} (served as '${LLM_MODEL_ALIAS}')"
 
 # ---------------------------------------------------------------------------
-# Port conflict check (k3s ServiceLB binds LoadBalancer ports on the node IP)
+# Port conflict check (k3s ServiceLB binds LoadBalancer ports on the node IP;
+# an instance on an ephemeral node binds a host port of that node)
 # ---------------------------------------------------------------------------
-CONFLICTING_SERVICES="$(${KUBECTL} get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}/{.metadata.name}{" "}{.spec.ports[*].port}{"\n"}{end}' \
-    | grep -v "^${NAMESPACE}/${APP_NAME} " | awk -v port="${LLM_PORT}" '{for (i = 2; i <= NF; i++) if ($i == port) print $1}')"
-if [ -n "${CONFLICTING_SERVICES}" ]; then
-    echo "ERROR: port ${LLM_PORT} is already used by LoadBalancer service(s): ${CONFLICTING_SERVICES}"
-    echo "Set LLM_PORT in ${SCRIPT_DIR}/config.env to a free port."
-    exit 1
-fi
-if ! ${KUBECTL} get svc "${APP_NAME}" -n "${NAMESPACE}" > /dev/null 2>&1 \
-        && command -v ss > /dev/null 2>&1 \
-        && [ -n "$(ss -ltnH "sport = :${LLM_PORT}" 2>/dev/null)" ]; then
-    echo "ERROR: port ${LLM_PORT} is already in use on this host. Set LLM_PORT in ${SCRIPT_DIR}/config.env."
-    exit 1
+if [ "${EPHEMERAL}" = "true" ]; then
+    CONFLICTING_PODS="$(${KUBECTL} get pods -A --field-selector "spec.nodeName=${TARGET_NODE}" \
+        -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{" "}{.spec.containers[*].ports[*].hostPort}{"\n"}{end}' \
+        | grep -v "^${NAMESPACE}/${APP_NAME}-" | awk -v port="${LLM_PORT}" '{for (i = 2; i <= NF; i++) if ($i == port) print $1}')"
+    if [ -n "${CONFLICTING_PODS}" ]; then
+        echo "ERROR: host port ${LLM_PORT} on node ${TARGET_NODE} is already used by: ${CONFLICTING_PODS}"
+        echo "Set LLM_PORT in ${SCRIPT_DIR}/config.${INSTANCE}.env to a free port."
+        exit 1
+    fi
+else
+    CONFLICTING_SERVICES="$(${KUBECTL} get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}/{.metadata.name}{" "}{.spec.ports[*].port}{"\n"}{end}' \
+        | grep -v "^${NAMESPACE}/${APP_NAME} " | awk -v port="${LLM_PORT}" '{for (i = 2; i <= NF; i++) if ($i == port) print $1}')"
+    if [ -n "${CONFLICTING_SERVICES}" ]; then
+        echo "ERROR: port ${LLM_PORT} is already used by LoadBalancer service(s): ${CONFLICTING_SERVICES}"
+        echo "Set LLM_PORT in ${SCRIPT_DIR}/config.env to a free port."
+        exit 1
+    fi
+    if ! ${KUBECTL} get svc "${APP_NAME}" -n "${NAMESPACE}" > /dev/null 2>&1 \
+            && command -v ss > /dev/null 2>&1 \
+            && [ -n "$(ss -ltnH "sport = :${LLM_PORT}" 2>/dev/null)" ]; then
+        echo "ERROR: port ${LLM_PORT} is already in use on this host. Set LLM_PORT in ${SCRIPT_DIR}/config.env."
+        exit 1
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -170,9 +267,12 @@ if [ -z "${LLM_API_KEY}" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Model storage
+# Model storage: a PVC, or with LLM_HOST_MODEL_DIR a directory on the node
+# (the default on ephemeral nodes, which have no Longhorn storage)
 # ---------------------------------------------------------------------------
-if ${KUBECTL} get pvc "${PVC_NAME}" -n "${NAMESPACE}" > /dev/null 2>&1; then
+if [ -n "${LLM_HOST_MODEL_DIR}" ]; then
+    echo "Model directory on node ${TARGET_NODE}: ${LLM_HOST_MODEL_DIR}"
+elif ${KUBECTL} get pvc "${PVC_NAME}" -n "${NAMESPACE}" > /dev/null 2>&1; then
     echo "PVC ${PVC_NAME} already exists, keeping it."
 else
     if [ -n "${LLM_STORAGE_CLASS}" ]; then
@@ -278,6 +378,26 @@ else
     GPU_LIMIT_YAML=""
 fi
 
+TOLERATIONS_YAML=""
+HOST_PORT_YAML=""
+SERVICE_TYPE="LoadBalancer"
+if [ "${EPHEMERAL}" = "true" ]; then
+    TOLERATIONS_YAML="      tolerations:
+        - key: ${EPHEMERAL_TAINT_KEY}
+          operator: Exists
+          effect: NoSchedule"
+    HOST_PORT_YAML="              hostPort: ${LLM_PORT}"
+    SERVICE_TYPE="ClusterIP"
+fi
+if [ -n "${LLM_HOST_MODEL_DIR}" ]; then
+    MODELS_VOLUME_YAML="          hostPath:
+            path: ${LLM_HOST_MODEL_DIR}
+            type: DirectoryOrCreate"
+else
+    MODELS_VOLUME_YAML="          persistentVolumeClaim:
+            claimName: ${PVC_NAME}"
+fi
+
 ${KUBECTL} apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -302,6 +422,7 @@ spec:
         app: ${APP_NAME}
     spec:
 ${RUNTIME_CLASS_YAML}
+${TOLERATIONS_YAML}
       priorityClassName: ${PRIORITY_CLASS_NAME}
       nodeSelector:
         kubernetes.io/hostname: ${TARGET_NODE_HOSTNAME}
@@ -327,6 +448,7 @@ ${ARGS_YAML}          env:
           ports:
             - name: http
               containerPort: ${CONTAINER_PORT}
+${HOST_PORT_YAML}
           resources:
             requests:
               cpu: 500m
@@ -358,8 +480,7 @@ ${GPU_LIMIT_YAML}
               mountPath: /models
       volumes:
         - name: models
-          persistentVolumeClaim:
-            claimName: ${PVC_NAME}
+${MODELS_VOLUME_YAML}
 ---
 apiVersion: v1
 kind: Service
@@ -369,7 +490,7 @@ metadata:
   labels:
     app: ${APP_NAME}
 spec:
-  type: LoadBalancer
+  type: ${SERVICE_TYPE}
   selector:
     app: ${APP_NAME}
   ports:
@@ -382,7 +503,12 @@ EOF
 # Wait and smoke test
 # ---------------------------------------------------------------------------
 echo ""
-echo "Waiting for llama-server to become ready. The first start downloads the model."
+if [ "$(${KUBECTL} get node "${TARGET_NODE}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" != "True" ]; then
+    echo "Node ${TARGET_NODE} is not up. ${APP_NAME} starts when it is."
+    mcp_sync
+    exit 0
+fi
+echo "Waiting for ${APP_NAME} to become ready. The first start downloads the model."
 echo "Follow progress with: kubectl --kubeconfig ${KUBECONFIG_PATH} logs -f -n ${NAMESPACE} deploy/${APP_NAME}"
 if ! ${KUBECTL} rollout status "deployment/${APP_NAME}" -n "${NAMESPACE}" --timeout=7200s; then
     echo "ERROR: llama-server did not become ready."
@@ -391,13 +517,18 @@ if ! ${KUBECTL} rollout status "deployment/${APP_NAME}" -n "${NAMESPACE}" --time
 fi
 
 LB_IP=""
+if [ "${EPHEMERAL}" = "true" ]; then
+    LB_IP="$(${KUBECTL} get node "${TARGET_NODE}" -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')"
+fi
 for _ in $(seq 1 30); do
+    [ -n "${LB_IP}" ] && break
     LB_IP="$(${KUBECTL} get svc "${APP_NAME}" -n "${NAMESPACE}" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
     [ -n "${LB_IP}" ] && break
     sleep 2
 done
 if [ -z "${LB_IP}" ]; then
     echo "WARNING: no LoadBalancer IP assigned to service ${APP_NAME}."
+    mcp_sync
     exit 0
 fi
 LLM_URL="http://${LB_IP}:${LLM_PORT}"
@@ -419,3 +550,5 @@ echo "LLM server ready."
 echo "  OpenAI compatible base URL:    ${LLM_URL}/v1"
 echo "  Anthropic compatible base URL: ${LLM_URL}"
 echo "  Model name:                    ${LLM_MODEL_ALIAS}"
+
+mcp_sync

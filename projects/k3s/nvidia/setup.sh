@@ -68,11 +68,22 @@ fi
 # Device plugin with time-slicing
 # Time-slicing advertises each physical GPU as GPU_TIMESLICE_REPLICAS
 # "nvidia.com/gpu" resources so several pods can share it. VRAM is not isolated.
+# Tolerations: the chart defaults, plus the taint of ephemeral nodes
+# (agent-node/join.sh --ephemeral) so the GPUs of those nodes are advertised too.
 # ---------------------------------------------------------------------------
 VALUES_FILE="$(mktemp)"
 trap 'rm -f "${VALUES_FILE}"' EXIT
 cat > "${VALUES_FILE}" <<EOF
 runtimeClassName: nvidia
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+  - key: gucef.org/ephemeral
+    operator: Exists
+    effect: NoSchedule
 config:
   default: time-slicing
   map:

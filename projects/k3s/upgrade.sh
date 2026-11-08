@@ -29,6 +29,12 @@
 # Other nodes are rolled back over SSH (see K3S_SSH_USER, K3S_SSH_OPTS); this
 # node directly. Before upgrading, SSH access to the other nodes is checked.
 #
+# Ephemeral nodes (label gucef.org/node-lifecycle=ephemeral, see
+# agent-node/join.sh) are not always on and are left out: they do not count
+# for the current version, are not upgraded and need not be Ready. The script
+# lists those not at the target version; agent-node/join.sh --version on such a
+# node brings it to the servers' version when it is up.
+#
 # Datastores:
 #   embedded SQLite  single server node; the database is copied (k3s is stopped
 #                    for a few seconds, running pods are not affected)
@@ -77,7 +83,9 @@ SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=10 ${K3S_SSH_OPTS}"
 SERVER_SERVICE="k3s"
 AGENT_SERVICE="k3s-agent"
 SERVER_SELECTOR="node-role.kubernetes.io/control-plane=true"
-AGENT_SELECTOR="!node-role.kubernetes.io/control-plane"
+AGENT_SELECTOR="!node-role.kubernetes.io/control-plane,gucef.org/node-lifecycle!=ephemeral"
+MANAGED_SELECTOR="gucef.org/node-lifecycle!=ephemeral"
+EPHEMERAL_SELECTOR="gucef.org/node-lifecycle=ephemeral"
 CHECK_INTERVAL=15
 PHASE_TIMEOUT=3600
 API_TIMEOUT=300
@@ -208,9 +216,22 @@ node_inventory() {
         -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.addresses[?(@.type=="InternalIP")].address}{" "}{.status.nodeInfo.kubeletVersion}{"\n"}{end}' 2>/dev/null
 }
 
-# Lowest k3s version among all nodes
+# Lowest k3s version among the nodes that are not ephemeral
 current_version() {
-    node_versions "" | sort -V | head -n 1
+    node_versions "${MANAGED_SELECTOR}" | sort -V | head -n 1
+}
+
+# Lists the ephemeral nodes that do not run version $1
+report_ephemeral_nodes() {
+    local TARGET_MINOR NAME IP VERSION
+    TARGET_MINOR="$(minor_of "$1")"
+    node_inventory "${EPHEMERAL_SELECTOR}" | while read -r NAME IP VERSION; do
+        [ -z "${NAME}" ] || [ "${VERSION}" = "$1" ] && continue
+        echo "Ephemeral node ${NAME} runs ${VERSION}; on that node, when it is up: sudo agent-node/join.sh --version $1"
+        if [ $(( TARGET_MINOR - $(minor_of "${VERSION}") )) -gt 3 ]; then
+            echo "  WARNING: more than 3 minor versions behind; Kubernetes does not support that. Update it before using it."
+        fi
+    done
 }
 
 # Number of nodes matching selector $2 whose version differs from $1.
@@ -313,7 +334,7 @@ health_regressions() {
 }
 
 nodes_not_ready() {
-    ${KUBECTL} get nodes --no-headers 2>/dev/null | awk '$2 !~ /^Ready/ {print $1}'
+    ${KUBECTL} get nodes -l "${MANAGED_SELECTOR}" --no-headers 2>/dev/null | awk '$2 !~ /^Ready/ {print $1}'
 }
 
 # Waits until all nodes are Ready and no namespace is worse than baseline $1,
@@ -665,8 +686,9 @@ AGENT_COUNT="$(node_inventory "${AGENT_SELECTOR}" | grep -c .)"
 echo "Nodes: ${SERVER_COUNT} server(s), ${AGENT_COUNT} agent(s)"
 echo "Current k3s version (lowest across nodes): ${CURRENT_VERSION}"
 echo "Target k3s version:                        ${TARGET_VERSION}"
+report_ephemeral_nodes "${TARGET_VERSION}"
 
-if [ "$(nodes_not_at "${TARGET_VERSION}" "")" = "0" ]; then
+if [ "$(nodes_not_at "${TARGET_VERSION}" "${MANAGED_SELECTOR}")" = "0" ]; then
     echo "All nodes already run ${TARGET_VERSION}. Nothing to do."
     exit 0
 fi
@@ -787,6 +809,7 @@ done
 echo ""
 echo "k3s upgrade complete:"
 ${KUBECTL} get nodes -o wide
+report_ephemeral_nodes "${TARGET_VERSION}"
 if [ "${SKIP_BACKUP}" != "true" ]; then
     echo "Backups are kept in ${BACKUP_ROOT}; remove old ones when no longer needed."
 fi

@@ -1,0 +1,11 @@
+#!/bin/sh
+# @GUCEF_PACKAGE@ after install or upgrade (dpkg: configure; rpm: %post 1 or 2):
+# a service that is set up runs from the new files; one that is not set up stays so
+case "$1" in
+    configure|[0-9]*)
+        if [ -d /run/systemd/system ] && [ -x "@SETUP_SCRIPT@" ]; then
+            "@SETUP_SCRIPT@" --upgrade || echo "@GUCEF_PACKAGE@: @SETUP_SCRIPT@ --upgrade failed, run it again"
+        fi
+        ;;
+esac
+exit 0

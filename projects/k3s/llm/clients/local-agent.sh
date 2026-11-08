@@ -10,7 +10,7 @@
 # Environment:
 #   LOCAL_LLM_URL      server base URL (default http://localhost:8080)
 #   LOCAL_LLM_API_KEY  API key, if the server requires one
-#   LOCAL_LLM_MODEL    model name (default local-qwen)
+#   LOCAL_LLM_MODEL    model name (default: the model the server reports)
 # ---------------------------------------------------------------------------
 
 WORK_DIR="$(pwd)"
@@ -29,7 +29,6 @@ if ! command -v claude > /dev/null 2>&1; then
 fi
 
 LOCAL_LLM_URL="${LOCAL_LLM_URL:-http://localhost:8080}"
-LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-local-qwen}"
 
 if ! curl -sf --max-time 5 "${LOCAL_LLM_URL}/health" > /dev/null; then
     echo "ERROR: local LLM server not reachable at ${LOCAL_LLM_URL}"
@@ -42,7 +41,12 @@ fi
 MIN_CTX_SIZE=100000
 AUTH_HEADER=()
 [ -n "${LOCAL_LLM_API_KEY}" ] && AUTH_HEADER=(-H "Authorization: Bearer ${LOCAL_LLM_API_KEY}")
-CTX_SIZE="$(curl -sf --max-time 5 "${AUTH_HEADER[@]}" "${LOCAL_LLM_URL}/props" | grep -o '"n_ctx":[0-9]*' | head -n 1 | cut -d: -f2)"
+PROPS="$(curl -sf --max-time 5 "${AUTH_HEADER[@]}" "${LOCAL_LLM_URL}/props")"
+CTX_SIZE="$(echo "${PROPS}" | grep -o '"n_ctx":[0-9]*' | head -n 1 | cut -d: -f2)"
+if [ -z "${LOCAL_LLM_MODEL}" ]; then
+    LOCAL_LLM_MODEL="$(echo "${PROPS}" | grep -o '"model_alias":"[^"]*"' | head -n 1 | cut -d'"' -f4)"
+    LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-local}"
+fi
 CTX_ENV=()
 if [ -z "${CTX_SIZE}" ]; then
     echo "WARNING: could not read the context size from ${LOCAL_LLM_URL}/props; long tasks may exceed it."
@@ -54,8 +58,10 @@ fi
 
 cd "${WORK_DIR}" || exit 1
 
-# CLAUDECODE is unset so the agent can start from within another Claude Code session
-env -u CLAUDECODE \
+# CLAUDECODE is unset so the agent can start from within another Claude Code session.
+# exec: stopping this script stops the agent itself.
+# --tools: only the definitions of these tools are sent, which halves the prompt the local model processes first
+exec env -u CLAUDECODE \
     "${CTX_ENV[@]}" \
     ANTHROPIC_BASE_URL="${LOCAL_LLM_URL}" \
     ANTHROPIC_AUTH_TOKEN="${LOCAL_LLM_API_KEY:-local}" \
@@ -68,6 +74,7 @@ env -u CLAUDECODE \
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
     claude -p "${TASK}" \
         --permission-mode acceptEdits \
+        --tools "Read,Edit,Write,Glob,Grep" \
         --allowedTools "Read,Edit,Write,Glob,Grep" \
         --disallowedTools "Bash,WebFetch,WebSearch,Agent" \
         --strict-mcp-config

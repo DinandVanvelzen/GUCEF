@@ -12,13 +12,38 @@ Uses the NVIDIA GPU when available (see `../nvidia`), otherwise the CPU.
 On first run `config.env` is created with all settings commented out. Edit it and re-run `setup.sh` to apply changes.
 The first start downloads the model into the `llama-server-models` PVC; later starts reuse it.
 
+The main instance `llama-server` runs on the first GPU node that is not ephemeral, otherwise on the node `setup.sh`
+runs on.
+
+## More instances, ephemeral nodes
+
+```bash
+./setup.sh --node <node>             # instance llama-server-<node> on that node
+./setup.sh --instance <name> --node <node>
+./uninstall.sh --node <node>         # removes that instance only
+```
+
+`config.<instance>.env` (gitignored), when present, is read after `config.env` and holds settings for that instance
+only, e.g. another `LLM_MODEL_HF` or `LLM_PORT`.
+
+On an ephemeral node (`../agent-node/join.sh --ephemeral`, such as a workstation that is not always on), the instance:
+
+- tolerates the node's taint, and keeps its model files in a directory on the node (`LLM_HOST_MODEL_DIR`, default
+  `/var/lib/gucef/llm-models`); the node has no Longhorn storage.
+- listens on `LLM_PORT` of the node itself (hostPort): `http://<node>:8080`, also `http://localhost:8080` on that
+  machine. Inside the cluster it is the ClusterIP service `llama-server-<node>.llm`.
+- starts whenever the node is up. When the machine shuts down, it is stopped cleanly; clients then see it as
+  unreachable.
+
+`setup.sh --node` works while the node is off too: the instance starts once the node is up.
+
 ## Model selection
 
 Unless `LLM_MODEL_HF` is set, the model is chosen from the hardware:
 
 | Condition | Model | Size |
 |---|---|---|
-| LLM pod memory limit >= 32 GiB | `unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M` | 22 GB |
+| VRAM + LLM pod memory limit >= 32 GiB | `unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M` | 22 GB |
 | VRAM >= 7 GB or memory limit >= 12 GiB | `unsloth/Qwen3.5-9B-GGUF:Q4_K_M` | 5.7 GB |
 | otherwise | `unsloth/Qwen3.5-4B-GGUF:Q4_K_M` | 2.7 GB |
 
@@ -36,7 +61,9 @@ models (Qwen3.6-35B-A3B) the expert weights that do not fit stay in system RAM.
 | Anthropic compatible | `http://<node-ip>:8080` | `/v1/messages`, `/v1/messages/count_tokens` |
 | Health / Prometheus metrics | `http://<node-ip>:8080` | `/health`, `/metrics` |
 
-Model name: `LLM_MODEL_ALIAS` (default `local-qwen`).
+Model name: `LLM_MODEL_ALIAS`; by default the model in lower case without owner, quantization and `-GGUF`, e.g.
+`unsloth/Qwen3.6-35B-A3B-GGUF:Q4_K_M` is served as `qwen3.6-35b-a3b`. The server reports it in `/props` and
+`/v1/models`; clients use it to tell servers with different models apart.
 
 Authentication: set `LLM_API_KEY` in `config.env`. Clients send `Authorization: Bearer <key>` or `x-api-key: <key>`.
 Without a key the API is open to anyone who can reach the port: keep it LAN-only, do not port-forward it.
@@ -71,21 +98,17 @@ $env:LOCAL_LLM_URL = "http://<node-ip>:8080"
 .\clients\local-agent.ps1 -Dir C:\src\myrepo "Fix the indentation in src\foo.cpp to match the rest of the file"
 ```
 
-### Delegation from Claude Code
+### Claude Code tools: MCP server `gucefMcpLocalLlm`
 
-Add to a user-level `CLAUDE.md` on the client machine:
-
-```markdown
-## Local LLM delegation
-- Simple, mechanical edits (formatting, include guards, renames, CMake file lists) can be delegated to the
-  local model: `<path>/local-agent.sh -C <repo> "<precise task>"` (Windows: `local-agent.ps1 -Dir <repo> "<task>"`).
-- Give one precise task per call, naming the files.
-- Always review `git diff` afterwards and fix or revert mistakes.
-```
+`tools/gucefMcpLocalLlm` in the GUCEF repository is an MCP server that lets Claude Code hand work to the local LLMs:
+delegate tasks to `local-agent.sh`, digest build and test output, ask questions about files. `setup.sh` and
+`agent-node/join.sh` install it on the node as the service `gucef-mcp` ([mcp/README.md](mcp/README.md)). Its tools,
+options, and how to build and register it by hand:
+[tools/gucefMcpLocalLlm/README.md](../../../tools/gucefMcpLocalLlm/README.md).
 
 ### OpenAI-compatible tools (opencode, Continue, aider, Open WebUI, Home Assistant)
 
-Configure an OpenAI-compatible provider with base URL `http://<node-ip>:8080/v1`, model `local-qwen` and the API key (any
+Configure an OpenAI-compatible provider with base URL `http://<node-ip>:8080/v1`, model `<model name>` (see `/v1/models`) and the API key (any
 non-empty value when no key is set). Example `opencode.json`:
 
 ```json
@@ -96,10 +119,10 @@ non-empty value when no key is set). Example `opencode.json`:
       "npm": "@ai-sdk/openai-compatible",
       "name": "Local LLM",
       "options": { "baseURL": "http://<node-ip>:8080/v1", "apiKey": "{env:LOCAL_LLM_API_KEY}" },
-      "models": { "local-qwen": { "name": "Local Qwen" } }
+      "models": { "qwen3.6-35b-a3b": { "name": "Qwen3.6 35B A3B" } }
     }
   },
-  "model": "local/local-qwen"
+  "model": "local/qwen3.6-35b-a3b"
 }
 ```
 

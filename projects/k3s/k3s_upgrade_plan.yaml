@@ -35,6 +35,11 @@ spec:
     matchExpressions:
     - key: node-role.kubernetes.io/control-plane
       operator: DoesNotExist
+    # ephemeral nodes are not always on; agent-node/join.sh updates them
+    - key: gucef.org/node-lifecycle
+      operator: NotIn
+      values:
+      - ephemeral
   prepare:
     args:
     - prepare

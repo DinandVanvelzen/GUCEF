@@ -9,7 +9,7 @@
 # Environment:
 #   LOCAL_LLM_URL      server base URL (default http://localhost:8080)
 #   LOCAL_LLM_API_KEY  API key, if the server requires one
-#   LOCAL_LLM_MODEL    model name (default local-qwen)
+#   LOCAL_LLM_MODEL    model name (default: the model the server reports)
 # ---------------------------------------------------------------------------
 param(
     [Parameter(Mandatory = $true, Position = 0)][string]$Task,
@@ -22,7 +22,7 @@ if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
 }
 
 $url   = if ($env:LOCAL_LLM_URL)     { $env:LOCAL_LLM_URL }     else { "http://localhost:8080" }
-$model = if ($env:LOCAL_LLM_MODEL)   { $env:LOCAL_LLM_MODEL }   else { "local-qwen" }
+$model = $env:LOCAL_LLM_MODEL
 $key   = if ($env:LOCAL_LLM_API_KEY) { $env:LOCAL_LLM_API_KEY } else { "local" }
 
 try {
@@ -51,6 +51,7 @@ $minCtx = 100000
 try {
     $props = Invoke-RestMethod -Uri "$url/props" -TimeoutSec 5 -Headers @{ Authorization = "Bearer $key" }
     $ctx = [int]$props.default_generation_settings.n_ctx
+    if (-not $model -and $props.model_alias) { $model = [string]$props.model_alias }
     if ($ctx -ge $minCtx) {
         $vars["CLAUDE_CODE_AUTO_COMPACT_WINDOW"] = "$ctx"
     } else {
@@ -58,6 +59,11 @@ try {
     }
 } catch {
     Write-Warning "Could not read the context size from $url/props; long tasks may exceed it."
+}
+if (-not $model) { $model = "local" }
+foreach ($name in @("ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL",
+                    "ANTHROPIC_DEFAULT_HAIKU_MODEL", "CLAUDE_CODE_SUBAGENT_MODEL")) {
+    $vars[$name] = $model
 }
 $saved = @{}
 foreach ($name in $vars.Keys) {
@@ -72,6 +78,7 @@ Push-Location $Dir
 try {
     claude -p $Task `
         --permission-mode acceptEdits `
+        --tools "Read,Edit,Write,Glob,Grep" `
         --allowedTools "Read,Edit,Write,Glob,Grep" `
         --disallowedTools "Bash,WebFetch,WebSearch,Agent" `
         --strict-mcp-config
