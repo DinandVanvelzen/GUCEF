@@ -213,7 +213,7 @@ CVfsTablesDatabaseClient::Fail( CORE::TDataTableStatus status, const CORE::CStri
 
     {
         MT::CScopeMutex lock( m_lock );
-        m_errors[ MT::GetCurrentTaskID() ] = message;
+        m_errors[ MT::GetCurrentThreadID() ] = message;
     }
     CORE::TCloneableString eventData( message );
     const_cast< CVfsTablesDatabaseClient* >( this )->NotifyObserversFromThread( DatabaseErrorEvent, &eventData );
@@ -227,7 +227,7 @@ CVfsTablesDatabaseClient::Succeed( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    m_errors.erase( MT::GetCurrentTaskID() );
+    m_errors.erase( MT::GetCurrentThreadID() );
     return CORE::DATATABLE_STATUS_OK;
 }
 
@@ -238,7 +238,7 @@ CVfsTablesDatabaseClient::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    TErrorMap::const_iterator i = m_errors.find( MT::GetCurrentTaskID() );
+    TErrorMap::const_iterator i = m_errors.find( MT::GetCurrentThreadID() );
     return i == m_errors.end() ? CORE::CString::Empty : (*i).second;
 }
 

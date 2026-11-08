@@ -112,7 +112,7 @@ class DBPLUGIN_VFSTABLES_PUBLIC_CPP CVfsTablesDatabaseClient : public COMCORE::C
 
     private:
 
-    typedef GUCEF::map< UInt32, CORE::CString > TErrorMap;
+    typedef GUCEF::map< TThreadId, CORE::CString > TErrorMap;
 
     CVfsTablesDatabaseClient( const CVfsTablesDatabaseClient& src );              /**< not implemented */
     CVfsTablesDatabaseClient& operator=( const CVfsTablesDatabaseClient& src );   /**< not implemented */

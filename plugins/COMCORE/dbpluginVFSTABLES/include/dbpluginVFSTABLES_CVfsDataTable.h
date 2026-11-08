@@ -145,7 +145,7 @@ class DBPLUGIN_VFSTABLES_PUBLIC_CPP CVfsDataTable : public CORE::CIDataTable
         CORE::CDataTableBatchPtr rows;      /**< a full batch of the rows of the partition */
     };
     typedef GUCEF::vector< SPartitionRows > TPartitionRowsVector;
-    typedef GUCEF::map< UInt32, CORE::CString > TLastErrorMap;
+    typedef GUCEF::map< TThreadId, CORE::CString > TLastErrorMap;
 
     struct SRowOrder;
 

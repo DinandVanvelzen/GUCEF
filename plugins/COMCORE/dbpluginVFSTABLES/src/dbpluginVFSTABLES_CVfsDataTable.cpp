@@ -268,7 +268,7 @@ CVfsDataTable::Fail( CORE::TDataTableStatus status, const CORE::CString& message
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_errorLock );
-    m_lastErrors[ MT::GetCurrentTaskID() ] = message;
+    m_lastErrors[ MT::GetCurrentThreadID() ] = message;
     return status;
 }
 
@@ -279,7 +279,7 @@ CVfsDataTable::Succeed( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_errorLock );
-    m_lastErrors.erase( MT::GetCurrentTaskID() );
+    m_lastErrors.erase( MT::GetCurrentThreadID() );
     return CORE::DATATABLE_STATUS_OK;
 }
 
@@ -290,7 +290,7 @@ CVfsDataTable::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_errorLock );
-    TLastErrorMap::const_iterator i = m_lastErrors.find( MT::GetCurrentTaskID() );
+    TLastErrorMap::const_iterator i = m_lastErrors.find( MT::GetCurrentThreadID() );
     return i != m_lastErrors.end() ? (*i).second : CORE::CString::Empty;
 }
 
