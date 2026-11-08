@@ -77,6 +77,75 @@ static const char* DefaultPolicyHash = "c28b6ad2847cd5499be366e05652dc0170386bc4
 
 /*-------------------------------------------------------------------------*/
 
+/** An encryption codec of a test, with the capabilities, tag and parameter sizes it is given; it encodes nothing */
+class CCipherTestCodec : public CORE::CICodec
+{
+    public:
+
+    CCipherTestCodec( const CORE::CString& type, UInt32 capabilities, UInt32 overhead, UInt32 keySize, UInt32 nonceSize )
+        : CORE::CICodec(), m_type( type ), m_capabilities( capabilities ), m_overhead( overhead ), m_keySize( keySize ), m_nonceSize( nonceSize )
+    {}
+
+    virtual bool Encode( CORE::CIOAccess& source, CORE::CIOAccess& dest ) GUCEF_VIRTUAL_OVERRIDE { return false; }
+    virtual bool Decode( CORE::CIOAccess& source, CORE::CIOAccess& dest ) GUCEF_VIRTUAL_OVERRIDE { return false; }
+    virtual UInt32 GetCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_capabilities; }
+    virtual UInt32 GetOverhead( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_overhead; }
+    virtual void GetParameterInfo( CORE::CCodecParameterInfoList& info ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        info.push_back( CORE::CCodecParameterInfo( "key", GUCEF_DATATYPE_BINARY_BLOB, true, CORE::CVariant(), "key", m_keySize, m_keySize ) );
+        info.push_back( CORE::CCodecParameterInfo( "nonce", GUCEF_DATATYPE_BINARY_BLOB, false, CORE::CVariant(), "nonce", m_nonceSize, m_nonceSize ) );
+    }
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_type; }
+    virtual CORE::CString GetFamilyName( void ) const GUCEF_VIRTUAL_OVERRIDE { return CORE::CoreCodecTypes::EncryptionCodec; }
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW CCipherTestCodec( m_type, m_capabilities, m_overhead, m_keySize, m_nonceSize ); }
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CCipherTestCodec";
+        return classTypeName;
+    }
+
+    private:
+
+    CORE::CString m_type;
+    UInt32 m_capabilities;
+    UInt32 m_overhead;
+    UInt32 m_keySize;
+    UInt32 m_nonceSize;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Codecs a test registers, taken out again whichever way the test ends */
+struct SRegisteredTestCodecs
+{
+    GUCEF::vector< CORE::CCodecRegistry::TICodecPtr > codecs;
+
+    bool Register( const CORE::CCodecRegistry::TICodecPtr& codec, Int32 priority )
+    {
+        codecs.push_back( codec );
+        return CORE::CCoreGlobal::Instance()->GetCodecRegistry().RegisterCodec( codec, priority );
+    }
+
+    ~SRegisteredTestCodecs()
+    {
+        for ( UInt32 i=0; i<(UInt32) codecs.size(); ++i )
+            CORE::CCoreGlobal::Instance()->GetCodecRegistry().UnregisterCodec( codecs[ i ] );
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+Contains( const CORE::CString::StringVector& names, const CORE::CString& name )
+{
+    for ( UInt32 i=0; i<(UInt32) names.size(); ++i )
+        if ( names[ i ] == name )
+            return true;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static DRN::CDRNNodeSettings
 SecurityNodeSettings( void )
 {
@@ -574,10 +643,165 @@ PerformDRNSecurityTests( void )
             ASSERT_FALSE( minimum.IsWeakerThan( minimum, why ) );
         }
 
+        // ciphers: "*" in a minimum, denied ones
+        {
+            DRN::CDRNSecurityPolicy minimum;
+            minimum.ciphers.clear();
+            minimum.ciphers.push_back( "*" );
+            minimum.deniedCiphers.insert( "aes-256-gcm" );
+            DRN::CDRNSecurityPolicy candidate = minimum;
+            CORE::CString why;
+            ASSERT_FALSE( candidate.IsWeakerThan( minimum, why ) );
+            candidate.deniedCiphers.clear();
+            ASSERT_TRUE( candidate.IsWeakerThan( minimum, why ) && why == "it allows the cipher aes-256-gcm" );
+            candidate.ciphers.clear();
+            candidate.ciphers.push_back( "xchacha20-poly1305" );
+            ASSERT_FALSE( candidate.IsWeakerThan( minimum, why ) );
+            candidate.ciphers.push_back( "AES-256-GCM" );
+            ASSERT_TRUE( candidate.IsWeakerThan( minimum, why ) && why == "it allows the cipher aes-256-gcm" );
+            candidate.deniedCiphers.insert( "aes-256-gcm" );
+            ASSERT_FALSE( candidate.IsWeakerThan( minimum, why ) );     // named, but denied
+
+            DRN::CDRNSecurityPolicy named;
+            named.ciphers.clear();
+            named.ciphers.push_back( "xchacha20-poly1305" );
+            ASSERT_TRUE( minimum.IsWeakerThan( named, why ) && why == "it allows any cipher (*)" );
+            DRN::CDRNSecurityPolicy open;
+            open.ciphers.clear();          // a minimum without ciphers allows any
+            ASSERT_FALSE( minimum.IsWeakerThan( open, why ) );
+        }
+
         // secrets of any size compare in constant time
         ASSERT_TRUE( DRN::CDRNCrypto::ConstantTimeEqualsHashed( "secret", 6, "secret", 6 ) );
         ASSERT_FALSE( DRN::CDRNCrypto::ConstantTimeEqualsHashed( "secret", 6, "secreT", 6 ) );
         ASSERT_FALSE( DRN::CDRNCrypto::ConstantTimeEqualsHashed( "secret", 6, "secret!", 7 ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Security: \"*\" stands for every other usable cipher at its place, denied ciphers are never used, only authenticated ciphers of fitting sizes count" )
+    try
+    {
+        SRegisteredTestCodecs registered;
+        const UInt32 aead = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_AUTHENTICATED;
+        const UInt32 plain = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE;
+
+        // codecs packet protection cannot use, with a priority above every real provider
+        CORE::CCodecRegistry::TICodecPtr notAuthenticated( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCipherTestCodec( "test-not-authenticated", plain, 16, 32, 12 ) ) );
+        CORE::CCodecRegistry::TICodecPtr otherTag( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCipherTestCodec( "test-other-tag", aead, 8, 32, 12 ) ) );
+        CORE::CCodecRegistry::TICodecPtr otherKey( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCipherTestCodec( "test-other-key", aead, 16, 16, 12 ) ) );
+        CORE::CCodecRegistry::TICodecPtr bigNonce( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCipherTestCodec( "test-big-nonce", aead, 16, 32, 32 ) ) );
+        CORE::CCodecRegistry::TICodecPtr fakeChacha( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCipherTestCodec( "chacha20-poly1305", plain, 16, 32, 12 ) ) );
+        ASSERT_TRUE( registered.Register( notAuthenticated, 1000 ) && registered.Register( otherTag, 1000 ) );
+        ASSERT_TRUE( registered.Register( otherKey, 1000 ) && registered.Register( bigNonce, 1000 ) && registered.Register( fakeChacha, 1000 ) );
+
+        const CORE::CString::StringVector usable = DRN::CDRNCrypto::GetUsableCiphers();
+        ASSERT_FALSE( Contains( usable, "test-not-authenticated" ) || Contains( usable, "test-other-tag" ) || Contains( usable, "test-other-key" ) || Contains( usable, "test-big-nonce" ) );
+        ASSERT_FALSE( DRN::CDRNCrypto::IsCipherAvailable( "test-not-authenticated" ) );
+        // a provider packet protection cannot use is passed over for the next one of the cipher
+        if ( Contains( usable, "chacha20-poly1305" ) )
+        {
+            UInt32 nonceSize = 0;
+            CORE::CCodecRegistry::TICodecPtr chacha = DRN::CDRNCrypto::GetCipherCodec( "chacha20-poly1305", &nonceSize );
+            ASSERT_TRUE( !chacha.IsNULL() && chacha != fakeChacha && 12 == nonceSize );
+        }
+        if ( Contains( usable, "xchacha20-poly1305" ) )
+        {
+            UInt32 nonceSize = 0;
+            ASSERT_TRUE( !DRN::CDRNCrypto::GetCipherCodec( "xchacha20-poly1305", &nonceSize ).IsNULL() && 24 == nonceSize );
+        }
+
+        // of ciphers whose best providers have the same priority, the one DRN prefers comes first
+        if ( Contains( usable, "xchacha20-poly1305" ) && Contains( usable, "chacha20-poly1305" ) )
+        {
+            CORE::CCodecRegistry& registry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
+            CORE::CCodecRegistry::TICodecPtr xchacha = DRN::CDRNCrypto::GetCipherCodec( "xchacha20-poly1305" );
+            CORE::CCodecRegistry::TICodecPtr chacha = DRN::CDRNCrypto::GetCipherCodec( "chacha20-poly1305" );
+            Int32 xchachaPriority = 0, chachaPriority = 0;
+            if ( registry.TryGetCodecPriority( CORE::CoreCodecTypes::EncryptionCodec, "xchacha20-poly1305", xchacha.GetPointerAlways(), xchachaPriority ) &&
+                 registry.TryGetCodecPriority( CORE::CoreCodecTypes::EncryptionCodec, "chacha20-poly1305", chacha.GetPointerAlways(), chachaPriority ) &&
+                 xchachaPriority == chachaPriority )
+            {
+                UInt32 xchachaAt = 0, chachaAt = 0;
+                for ( UInt32 i=0; i<(UInt32) usable.size(); ++i )
+                {
+                    if ( usable[ i ] == "xchacha20-poly1305" ) xchachaAt = i;
+                    if ( usable[ i ] == "chacha20-poly1305" ) chachaAt = i;
+                }
+                ASSERT_TRUE( xchachaAt < chachaAt );
+            }
+        }
+
+        // named unusable ciphers are not used either
+        DRN::CDRNSecurityPolicy policy;
+        policy.ciphers.clear();
+        policy.ciphers.push_back( "test-not-authenticated" );
+        policy.ciphers.push_back( "test-other-tag" );
+        ASSERT_TRUE( policy.GetEffectiveCiphers().empty() );
+        ASSERT_FALSE( policy.IsPacketProtectionAvailable() );
+
+        // the rest needs two usable ciphers: a crypto plugin
+        ASSERT_TRUE( usable.size() >= 2 );
+        if ( usable.size() >= 2 )
+        {
+            // "*" alone: all usable ones in the order of their priority
+            policy.ciphers.clear();
+            policy.ciphers.push_back( "*" );
+            ASSERT_TRUE( policy.GetEffectiveCiphers() == usable );
+
+            // a named one first, "*" after it, without the named one again
+            const CORE::CString last = usable.back();
+            policy.ciphers.clear();
+            policy.ciphers.push_back( last );
+            policy.ciphers.push_back( "*" );
+            CORE::CString::StringVector effective = policy.GetEffectiveCiphers();
+            ASSERT_TRUE( effective.size() == usable.size() && effective.front() == last );
+
+            // denied: never, named or through "*"
+            policy.deniedCiphers.insert( usable.front() );
+            effective = policy.GetEffectiveCiphers();
+            ASSERT_TRUE( effective.size() == usable.size() - 1 && !Contains( effective, usable.front() ) && effective.front() == last );
+            ASSERT_FALSE( policy.IsCipherAllowed( usable.front() ) );
+            ASSERT_TRUE( policy.IsCipherAllowed( "some-cipher" ) );        // by name: "*" covers it
+            policy.deniedCiphers.insert( last );
+            ASSERT_FALSE( Contains( policy.GetEffectiveCiphers(), last ) );
+
+            // without "*" only the named ones
+            DRN::CDRNSecurityPolicy namedOnly;
+            namedOnly.ciphers.clear();
+            namedOnly.ciphers.push_back( usable.front() );
+            ASSERT_TRUE( 1 == namedOnly.GetEffectiveCiphers().size() );
+            ASSERT_FALSE( namedOnly.IsCipherAllowed( "some-cipher" ) );
+
+            // a config: "!name" denies, "deniedCiphers" adds to it; the round trip keeps the meaning and the hash
+            CORE::CDataNode cfg( "DRNSecurityPolicy" );
+            cfg.SetAttribute( "ciphers", "xchacha20-poly1305, *, !aes-256-gcm" );
+            cfg.SetAttribute( "deniedCiphers", "chacha20-poly1305" );
+            DRN::CDRNSecurityPolicy loaded;
+            ASSERT_TRUE( loaded.LoadConfig( cfg ) );
+            ASSERT_TRUE( 2 == loaded.ciphers.size() && loaded.ciphers[ 0 ] == "xchacha20-poly1305" && loaded.ciphers[ 1 ] == "*" );
+            ASSERT_TRUE( 2 == loaded.deniedCiphers.size() && loaded.deniedCiphers.count( "aes-256-gcm" ) && loaded.deniedCiphers.count( "chacha20-poly1305" ) );
+            CORE::CDataNode saved( "DRNSecurityPolicy" );
+            ASSERT_TRUE( loaded.SaveConfig( saved ) );
+            DRN::CDRNSecurityPolicy reloaded;
+            ASSERT_TRUE( reloaded.LoadConfig( saved ) && reloaded == loaded );
+            ASSERT_FALSE( Contains( loaded.GetEffectiveCiphers(), "aes-256-gcm" ) || Contains( loaded.GetEffectiveCiphers(), "chacha20-poly1305" ) );
+
+            // "!name" in the list and a denied entry mean the same; denying changes the hash
+            DRN::CDRNSecurityPolicy inList;
+            inList.ciphers.clear();
+            inList.ciphers.push_back( "xchacha20-poly1305" );
+            inList.ciphers.push_back( "*" );
+            inList.ciphers.push_back( "!AES-256-GCM" );
+            inList.ciphers.push_back( "!chacha20-poly1305" );
+            ASSERT_TRUE( inList.GetPolicyHashString() == loaded.GetPolicyHashString() );
+            DRN::CDRNSecurityPolicy noneDenied = loaded;
+            noneDenied.deniedCiphers.clear();
+            ASSERT_TRUE( noneDenied.GetPolicyHashString() != loaded.GetPolicyHashString() );
+        }
     }
     catch ( ... )
     {

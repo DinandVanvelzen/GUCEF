@@ -109,7 +109,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkSettings
     UInt8 policyHash[ DRN_HANDSHAKE_HASH_SIZE ];    /**< of the node's security policy, compared in the handshake */
     bool requireEncryption;             /**< of the node's security policy */
     bool requireTokenPolicyHash;        /**< of the node's security policy */
-    CORE::CString::StringVector ciphers;    /**< of the node's security policy, most wanted first */
+    CORE::CString::StringVector ciphers;    /**< the effective ciphers of the node's security policy (GetEffectiveCiphers()), most wanted first */
     bool haveStaticKey;                 /**< the node has a static x25519 key: it can accept encrypted links */
     UInt8 staticPrivateKey[ DRN_HANDSHAKE_KEY_SIZE ];
     UInt8 staticPublicKey[ DRN_HANDSHAKE_KEY_SIZE ];

@@ -72,7 +72,7 @@ const UInt32 CDRNPacketProtection::KeySize;
 static const char RekeyInfo[] = "DRN 2 rekey";
 static const UInt64 DefaultRekeyPackets = (UInt64) 1 << 31;
 static const UInt64 DefaultRekeyBytes = (UInt64) 64 * 1024 * 1024 * 1024;
-static const UInt32 MaxNonceSize = 24;
+static const UInt32 MaxNonceSize = CDRNCrypto::CipherMaxNonceSize;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -165,8 +165,9 @@ bool
 CDRNPacketProtection::MakeInstance( CKeyState& state )
 {GUCEF_TRACE;
 
-    CORE::CCodecRegistry::TICodecPtr codec = CDRNCrypto::GetCodec( CORE::CoreCodecTypes::EncryptionCodec, m_cipher );
-    if ( codec.IsNULL() )
+    UInt32 nonceSize = 0;
+    CORE::CCodecRegistry::TICodecPtr codec = CDRNCrypto::GetCipherCodec( m_cipher, &nonceSize );
+    if ( codec.IsNULL() || nonceSize != m_nonceSize )
         return false;
     CORE::CValueList params;
     params.Set( "key", CORE::CVariant( state.key, KeySize ) );
@@ -204,7 +205,14 @@ CDRNPacketProtection::Setup( const CORE::CString& cipher, const UInt8* sendKey, 
 
     Clear();
     m_cipher = cipher.Lowercase();
-    m_nonceSize = m_cipher == "xchacha20-poly1305" ? 24 : 12;
+    // the nonce size the cipher takes, as its codec states it
+    m_nonceSize = 0;
+    if ( CDRNCrypto::GetCipherCodec( m_cipher, &m_nonceSize ).IsNULL() || m_nonceSize > MaxNonceSize )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNPacketProtection: Cipher \"" << m_cipher << "\" has no codec packet protection can use" );
+        Clear();
+        return false;
+    }
     m_sendDirection = sendDirection;
     memcpy( m_send.key, sendKey, KeySize );
     memcpy( m_receive.key, receiveKey, KeySize );

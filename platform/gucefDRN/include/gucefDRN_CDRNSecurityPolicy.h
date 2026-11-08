@@ -119,6 +119,14 @@ class GUCEF_DRN_EXPORT_CPP CDRNAnomalyThresholds
  *  requireEncryption is true by default: links are encrypted (handshake 2, CDRNPacketProtection) and a node without
  *  key agreement ("x25519") or any of the ciphers refuses to start (CanBeHonoured()). With requireEncryption false
  *  links are still encrypted when both sides can; an empty cipher list makes them plain.
+ *
+ *  Ciphers: 'ciphers' names the ciphers links may use, most wanted first. "*" in it stands for every other cipher
+ *  packet protection can use (CDRNCrypto::GetUsableCiphers(), in the order of their codecs' priority), at that place
+ *  in the order. 'deniedCiphers' is applied after that: a denied cipher is never used, whether named or through "*".
+ *  In a config both are attribute "ciphers" (a denied one as "!name") and "deniedCiphers". Whatever the names, only
+ *  ciphers whose codec packet protection can use are offered (CDRNCrypto::CipherCapabilities). The accepting side
+ *  of a link takes the first of its ciphers that the other side offers; both have the same policy (the policy hash),
+ *  so they differ only in the codecs "*" finds on each.
  */
 class GUCEF_DRN_EXPORT_CPP CDRNSecurityPolicy : public CORE::CIConfigurable
 {
@@ -132,7 +140,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNSecurityPolicy : public CORE::CIConfigurable
     bool requireEncryption;                     /**< every packet protected, default true; see the class description */
     bool requireSignedTokens;                   /**< token authenticators take only tokens signed by the issuer (ed25519), default false */
     bool requireTokenPolicyHash;                /**< tokens must carry the hash of this policy (a token with another hash is always refused), default false */
-    CORE::CString::StringVector ciphers;        /**< the ciphers acceptable for packet protection, most wanted first */
+    CORE::CString::StringVector ciphers;        /**< the ciphers acceptable for packet protection, most wanted first; "*" for any other usable one */
+    CORE::CString::StringSet deniedCiphers;     /**< ciphers never used, also not through "*" */
     CORE::CString::StringSet allowedChannelTypes;   /**< channel types links may use, empty = all */
     bool relayOnly;                             /**< members' own addresses are never revealed: only relay endpoints are passed on */
     CORE::CString::StringSet allowedAuthenticators; /**< authenticator types links may use, empty = all */
@@ -185,6 +194,18 @@ class GUCEF_DRN_EXPORT_CPP CDRNSecurityPolicy : public CORE::CIConfigurable
 
     /** Whether DRN can protect packets with one of the ciphers: key agreement and a cipher codec are there */
     bool IsPacketProtectionAvailable( void ) const;
+
+    /** "*" in the cipher list: any other cipher packet protection can use */
+    static const CORE::CString AnyCipher;
+
+    /**
+     *  The ciphers links offer and accept, most wanted first, lowercase, each once: the named ones and those "*"
+     *  stands for, without the denied ones, of those packet protection has a codec for
+     */
+    CORE::CString::StringVector GetEffectiveCiphers( void ) const;
+
+    /** Whether the policy allows the cipher by name: named or covered by "*", and not denied. Codecs are not looked at */
+    bool IsCipherAllowed( const CORE::CString& cipher ) const;
 
     /**
      *  The canonical encoding the policy hash is taken over: every field in a fixed order, names lowercased, the

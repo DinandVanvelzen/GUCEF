@@ -74,6 +74,17 @@ class GUCEF_DRN_EXPORT_CPP CDRNCrypto
     static const UInt32 SignatureSize = 64;     /**< ed25519 */
     static const UInt32 HashSize = 32;          /**< SHA-256 */
 
+    /**
+     *  What a cipher of packet protection must be (EncryptionCodec): GUCEF_CODEC_CAPABILITY_ENCODE, _DECODE and
+     *  _AUTHENTICATED (an AEAD cipher), a tag of CipherTagSize bytes (GetOverhead()), a "key" parameter that takes
+     *  KeySize bytes and a "nonce" parameter that takes a size from CipherMinNonceSize to CipherMaxNonceSize, both
+     *  with their sizes stated. Ciphers that are not are never used, whatever their name.
+     */
+    static const UInt32 CipherTagSize = 16;
+    static const UInt32 CipherMinNonceSize = 12;
+    static const UInt32 CipherMaxNonceSize = 24;
+    static const UInt32 CipherCapabilities;
+
     static const CORE::CString KeyAgreementType;    /**< "x25519" */
     static const CORE::CString SignatureType;       /**< "ed25519" */
 
@@ -89,8 +100,24 @@ class GUCEF_DRN_EXPORT_CPP CDRNCrypto
 
     static bool IsSignatureAvailable( void );
 
-    /** Is there a codec for the AEAD cipher */
+    /** Is there a codec for the cipher that packet protection can use (see CipherCapabilities) */
     static bool IsCipherAvailable( const CORE::CString& cipher );
+
+    /**
+     *  The codec of the cipher packet protection uses: of the providers of the cipher that it can use (see
+     *  CipherCapabilities), the one with the highest priority. NULL when there is none.
+     *  @param nonceSize receives the nonce size to use: the smallest the codec takes from CipherMinNonceSize up
+     */
+    static CORE::CCodecRegistry::TICodecPtr GetCipherCodec( const CORE::CString& cipher, UInt32* nonceSize = GUCEF_NULL );
+
+    /**
+     *  The names of all ciphers packet protection can use, each once: in the order of their best provider's priority
+     *  (highest first), equal priorities in the order of GetPreferredCiphers(), then by name
+     */
+    static CORE::CString::StringVector GetUsableCiphers( void );
+
+    /** The ciphers DRN prefers, most wanted first: "xchacha20-poly1305", "chacha20-poly1305", "aes-256-gcm" */
+    static const CORE::CString::StringVector& GetPreferredCiphers( void );
 
     /** A new x25519 key pair */
     static bool GenerateKeyAgreementKeyPair( UInt8* privateKey, UInt8* publicKey );

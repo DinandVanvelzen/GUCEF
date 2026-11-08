@@ -57,7 +57,8 @@ namespace DRN {
 
 /**
  *  Encrypts and authenticates the packets of a link with an AEAD cipher of the codec registry
- *  (EncryptionCodec: "xchacha20-poly1305", "chacha20-poly1305", "aes-256-gcm"), one key per direction.
+ *  (EncryptionCodec, see CDRNCrypto::CipherCapabilities: "xchacha20-poly1305", "chacha20-poly1305", "aes-256-gcm"
+ *  and any other the codecs offer), one key per direction. The nonce size is the one the codec states.
  *
  *  A protected packet is the packet header in the clear, its first byte DRN_PROTOCOL_ID_PROTECTED_0 or _1 (the key
  *  phase), followed by the encrypted body and the tag. The header is the associated data, so it cannot be changed.

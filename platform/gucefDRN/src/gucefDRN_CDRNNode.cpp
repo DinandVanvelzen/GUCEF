@@ -400,7 +400,7 @@ CDRNNode::UpdateLinkSettings( void )
     m_settings.securityPolicy.GetPolicyHash( m_linkSettings.policyHash );
     m_linkSettings.requireEncryption = m_settings.securityPolicy.requireEncryption;
     m_linkSettings.requireTokenPolicyHash = m_settings.securityPolicy.requireTokenPolicyHash;
-    m_linkSettings.ciphers = m_settings.securityPolicy.ciphers;
+    m_linkSettings.ciphers = m_settings.securityPolicy.GetEffectiveCiphers();
     m_linkSettings.allowPublicItems = m_settings.securityPolicy.allowPublicItems;
     m_linkSettings.publicItemProtection = m_settings.securityPolicy.publicItemProtection;
 

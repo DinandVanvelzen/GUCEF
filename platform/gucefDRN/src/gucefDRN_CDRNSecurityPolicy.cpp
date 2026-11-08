@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <algorithm>
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -67,6 +68,7 @@ namespace DRN {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString CDRNSecurityPolicy::ClassTypeName = "GUCEF::DRN::CDRNSecurityPolicy";
+const CORE::CString CDRNSecurityPolicy::AnyCipher = "*";
 
 /** Version of the canonical encoding, part of what is hashed */
 static const UInt8 PolicyEncodingVersion = 2;
@@ -94,6 +96,47 @@ LowercaseSet( const CORE::CString::StringSet& names )
         ++i;
     }
     return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The cipher settings in one form: the wanted names (with "*") lowercase, each once, in their order; the denied
+ *  names lowercase: those of 'denied' and those written "!name" in the list
+ */
+static void
+NormalizeCiphers( const CORE::CString::StringVector& ciphers ,
+                  const CORE::CString::StringSet& denied     ,
+                  CORE::CString::StringVector& wantedOut     ,
+                  CORE::CString::StringSet& deniedOut        )
+{GUCEF_TRACE;
+
+    wantedOut.clear();
+    deniedOut.clear();
+    CORE::CString::StringSet::const_iterator d = denied.begin();
+    while ( d != denied.end() )
+    {
+        CORE::CString name = (*d).Lowercase().Trim( true ).Trim( false );
+        if ( !name.IsNULLOrEmpty() )
+            deniedOut.insert( name );
+        ++d;
+    }
+    CORE::CString::StringSet listed;
+    for ( UInt32 i=0; i<ciphers.size(); ++i )
+    {
+        CORE::CString name = ciphers[ i ].Lowercase().Trim( true ).Trim( false );
+        if ( name.IsNULLOrEmpty() )
+            continue;
+        if ( '!' == name[ 0 ] )
+        {
+            name = name.CutChars( 1, true ).Trim( true );
+            if ( !name.IsNULLOrEmpty() )
+                deniedOut.insert( name );
+            continue;
+        }
+        if ( listed.insert( name ).second )
+            wantedOut.push_back( name );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -287,9 +330,7 @@ CDRNSecurityPolicy::CDRNSecurityPolicy( void )
     , anomalies()
 {GUCEF_TRACE;
 
-    ciphers.push_back( "xchacha20-poly1305" );
-    ciphers.push_back( "chacha20-poly1305" );
-    ciphers.push_back( "aes-256-gcm" );
+    ciphers = CDRNCrypto::GetPreferredCiphers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -300,6 +341,7 @@ CDRNSecurityPolicy::CDRNSecurityPolicy( const CDRNSecurityPolicy& src )
     , requireSignedTokens( src.requireSignedTokens )
     , requireTokenPolicyHash( src.requireTokenPolicyHash )
     , ciphers( src.ciphers )
+    , deniedCiphers( src.deniedCiphers )
     , allowedChannelTypes( src.allowedChannelTypes )
     , relayOnly( src.relayOnly )
     , allowedAuthenticators( src.allowedAuthenticators )
@@ -332,6 +374,7 @@ CDRNSecurityPolicy::operator=( const CDRNSecurityPolicy& src )
         requireSignedTokens = src.requireSignedTokens;
         requireTokenPolicyHash = src.requireTokenPolicyHash;
         ciphers = src.ciphers;
+        deniedCiphers = src.deniedCiphers;
         allowedChannelTypes = src.allowedChannelTypes;
         relayOnly = src.relayOnly;
         allowedAuthenticators = src.allowedAuthenticators;
@@ -399,17 +442,47 @@ CDRNSecurityPolicy::IsWeakerThan( const CDRNSecurityPolicy& minimum, CORE::CStri
         why = "it has no stateless cookies";
         return true;
     }
+    // ciphers: everything this policy allows by name, the minimum must allow too. An empty list (or "*") in the
+    // minimum allows any cipher but its denied ones; an empty list here (plain links) is any cipher
     CORE::CString extra;
-    CORE::CString::StringSet cipherSet;
-    CORE::CString::StringSet minimumCipherSet;
-    for ( UInt32 i=0; i<ciphers.size(); ++i )
-        cipherSet.insert( ciphers[ i ] );
-    for ( UInt32 i=0; i<minimum.ciphers.size(); ++i )
-        minimumCipherSet.insert( minimum.ciphers[ i ] );
-    if ( !IsNameSubset( cipherSet, minimumCipherSet, extra ) )
+    CORE::CString::StringVector wanted;
+    CORE::CString::StringSet denied;
+    NormalizeCiphers( ciphers, deniedCiphers, wanted, denied );
+    CORE::CString::StringVector minimumWanted;
+    CORE::CString::StringSet minimumDenied;
+    NormalizeCiphers( minimum.ciphers, minimum.deniedCiphers, minimumWanted, minimumDenied );
+    const bool anyCipher = wanted.empty() || std::find( wanted.begin(), wanted.end(), AnyCipher ) != wanted.end();
+    const bool minimumAnyCipher = minimumWanted.empty() || std::find( minimumWanted.begin(), minimumWanted.end(), AnyCipher ) != minimumWanted.end();
+    for ( UInt32 i=0; i<wanted.size(); ++i )
     {
-        why = "it allows the cipher " + extra;
-        return true;
+        const CORE::CString& cipher = wanted[ i ];
+        if ( cipher == AnyCipher || denied.find( cipher ) != denied.end() )
+            continue;
+        const bool minimumAllows = minimumDenied.find( cipher ) == minimumDenied.end() &&
+                                   ( minimumAnyCipher || std::find( minimumWanted.begin(), minimumWanted.end(), cipher ) != minimumWanted.end() );
+        if ( !minimumAllows )
+        {
+            why = "it allows the cipher " + cipher;
+            return true;
+        }
+    }
+    if ( anyCipher )
+    {
+        if ( !minimumAnyCipher )
+        {
+            why = wanted.empty() ? CORE::CString( "it allows the cipher any" ) : "it allows any cipher (" + AnyCipher + ")";
+            return true;
+        }
+        CORE::CString::StringSet::const_iterator n = minimumDenied.begin();
+        while ( n != minimumDenied.end() )
+        {
+            if ( denied.find( *n ) == denied.end() )
+            {
+                why = "it allows the cipher " + *n;
+                return true;
+            }
+            ++n;
+        }
     }
     if ( !IsNameSubset( allowedChannelTypes, minimum.allowedChannelTypes, extra ) )
     {
@@ -478,14 +551,56 @@ bool
 CDRNSecurityPolicy::IsPacketProtectionAvailable( void ) const
 {GUCEF_TRACE;
 
-    if ( !CDRNCrypto::IsKeyAgreementAvailable() )
-        return false;
-    for ( UInt32 i=0; i<ciphers.size(); ++i )
+    return CDRNCrypto::IsKeyAgreementAvailable() && !GetEffectiveCiphers().empty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString::StringVector
+CDRNSecurityPolicy::GetEffectiveCiphers( void ) const
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector wanted;
+    CORE::CString::StringSet denied;
+    NormalizeCiphers( ciphers, deniedCiphers, wanted, denied );
+
+    CORE::CString::StringVector effective;
+    CORE::CString::StringSet taken;
+    for ( UInt32 i=0; i<wanted.size(); ++i )
     {
-        if ( CDRNCrypto::IsCipherAvailable( ciphers[ i ] ) )
-            return true;
+        if ( wanted[ i ] != AnyCipher )
+        {
+            if ( denied.find( wanted[ i ] ) == denied.end() && CDRNCrypto::IsCipherAvailable( wanted[ i ] ) && taken.insert( wanted[ i ] ).second )
+                effective.push_back( wanted[ i ] );
+            continue;
+        }
+
+        // "*": the usable ciphers not named anywhere in the list, at this place
+        CORE::CString::StringVector usable = CDRNCrypto::GetUsableCiphers();
+        for ( UInt32 n=0; n<usable.size(); ++n )
+        {
+            const CORE::CString& cipher = usable[ n ];
+            if ( denied.find( cipher ) == denied.end() && std::find( wanted.begin(), wanted.end(), cipher ) == wanted.end() && taken.insert( cipher ).second )
+                effective.push_back( cipher );
+        }
     }
-    return false;
+    return effective;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNSecurityPolicy::IsCipherAllowed( const CORE::CString& cipher ) const
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector wanted;
+    CORE::CString::StringSet denied;
+    NormalizeCiphers( ciphers, deniedCiphers, wanted, denied );
+    const CORE::CString name = cipher.Lowercase().Trim( true ).Trim( false );
+    if ( name.IsNULLOrEmpty() || name == AnyCipher || denied.find( name ) != denied.end() )
+        return false;
+    return std::find( wanted.begin(), wanted.end(), name ) != wanted.end() ||
+           std::find( wanted.begin(), wanted.end(), AnyCipher ) != wanted.end();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -565,14 +680,10 @@ CDRNSecurityPolicy::GetCanonicalEncoding( CORE::CDynamicBuffer& encoding ) const
     writer.WriteUInt8( relayOnly ? 1 : 0 );
     writer.WriteUInt8( statelessCookies ? 1 : 0 );
 
-    // the cipher order is a preference and counts, the sets are written sorted
+    // the cipher order is a preference and counts ("*" as written), the sets are written sorted
     CORE::CString::StringVector cipherNames;
-    for ( UInt32 i=0; i<ciphers.size(); ++i )
-    {
-        CORE::CString name = ciphers[ i ].Lowercase().Trim( true ).Trim( false );
-        if ( !name.IsNULLOrEmpty() )
-            cipherNames.push_back( name );
-    }
+    CORE::CString::StringSet deniedNames;
+    NormalizeCiphers( ciphers, deniedCiphers, cipherNames, deniedNames );
     writer.WriteVarUInt32( (UInt32) cipherNames.size() );
     for ( UInt32 i=0; i<cipherNames.size(); ++i )
         writer.WriteString( cipherNames[ i ] );
@@ -619,6 +730,19 @@ CDRNSecurityPolicy::GetCanonicalEncoding( CORE::CDynamicBuffer& encoding ) const
         writer.WriteUInt8( 1 );
         writer.WriteUInt8( (UInt8) publicItemProtection );
     }
+
+    // denied ciphers, after the public items; without them the encoding is that of the versions before
+    if ( !deniedNames.empty() )
+    {
+        writer.WriteUInt8( 2 );
+        writer.WriteVarUInt32( (UInt32) deniedNames.size() );
+        CORE::CString::StringSet::const_iterator d = deniedNames.begin();
+        while ( d != deniedNames.end() )
+        {
+            writer.WriteString( *d );
+            ++d;
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -662,6 +786,8 @@ CDRNSecurityPolicy::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "requireSignedTokens", requireSignedTokens ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "requireTokenPolicyHash", requireTokenPolicyHash ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "ciphers", CORE::CString::Empty.Combine( ciphers, ',' ) ) && totalSuccess;
+    if ( !deniedCiphers.empty() )
+        totalSuccess = cfg.SetAttribute( "deniedCiphers", CORE::CString::Empty.Combine( deniedCiphers, ',' ) ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "allowedChannelTypes", CORE::CString::Empty.Combine( allowedChannelTypes, ',' ) ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "relayOnly", relayOnly ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "allowedAuthenticators", CORE::CString::Empty.Combine( allowedAuthenticators, ',' ) ) && totalSuccess;
@@ -708,7 +834,29 @@ CDRNSecurityPolicy::LoadConfig( const CORE::CDataNode& cfg )
     requireTokenPolicyHash = cfg.GetAttributeValueOrChildValueByName( "requireTokenPolicyHash" ).AsBool( requireTokenPolicyHash, true );
     const CORE::CVariant& cipherValue = cfg.GetAttributeValueOrChildValueByName( "ciphers" );
     if ( cipherValue.IsInitialized() )
-        ciphers = ParseNameList( cipherValue.AsString( CORE::CString::Empty, true ) );
+    {
+        // "!name" in the list denies the cipher; the list replaces the ciphers and the denied ones
+        CORE::CString::StringVector names = ParseNameList( cipherValue.AsString( CORE::CString::Empty, true ) );
+        ciphers.clear();
+        deniedCiphers.clear();
+        for ( UInt32 i=0; i<names.size(); ++i )
+        {
+            if ( '!' == names[ i ][ 0 ] )
+            {
+                CORE::CString denied = names[ i ].CutChars( 1, true ).Trim( true );
+                if ( !denied.IsNULLOrEmpty() )
+                    deniedCiphers.insert( denied );
+            }
+            else
+                ciphers.push_back( names[ i ] );
+        }
+    }
+    const CORE::CVariant& deniedValue = cfg.GetAttributeValueOrChildValueByName( "deniedCiphers" );
+    if ( deniedValue.IsInitialized() )
+    {
+        CORE::CString::StringSet denied = ParseNameSet( deniedValue.AsString( CORE::CString::Empty, true ) );
+        deniedCiphers.insert( denied.begin(), denied.end() );
+    }
     const CORE::CVariant& channelTypesValue = cfg.GetAttributeValueOrChildValueByName( "allowedChannelTypes" );
     if ( channelTypesValue.IsInitialized() )
         allowedChannelTypes = ParseNameSet( channelTypesValue.AsString( CORE::CString::Empty, true ) );

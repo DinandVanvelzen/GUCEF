@@ -75,14 +75,12 @@ EncryptionNodeSettings( void )
 
 /*-------------------------------------------------------------------------*/
 
-/** The first cipher of the policy that has a codec: what two default nodes agree on */
+/** The first cipher of the policy that has a codec: what two nodes of the policy agree on */
 static CORE::CString
 ExpectedCipher( const DRN::CDRNSecurityPolicy& policy )
 {
-    for ( UInt32 i=0; i<policy.ciphers.size(); ++i )
-        if ( DRN::CDRNCrypto::IsCipherAvailable( policy.ciphers[ i ] ) )
-            return policy.ciphers[ i ];
-    return CORE::CString::Empty;
+    CORE::CString::StringVector ciphers = policy.GetEffectiveCiphers();
+    return ciphers.empty() ? CORE::CString::Empty : ciphers.front();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -387,6 +385,59 @@ PerformDRNEncryptionTests( void )
         }
         GUCEF_TESTFW_TESTCASE_END
     }
+
+    // every usable cipher on its own, with the nonce size its codec states
+    const CORE::CString::StringVector usableCiphers = DRN::CDRNCrypto::GetUsableCiphers();
+    for ( UInt32 c=0; c<(UInt32) usableCiphers.size(); ++c )
+    {
+        const CORE::CString caseName = "Encryption: a link with only " + usableCiphers[ c ] + " uses it with the nonce size of its codec";
+        GUCEF_TESTFW_TESTCASE( caseName.C_String() )
+        try
+        {
+            DRN::CDRNNodeSettings settings = EncryptionNodeSettings();
+            settings.securityPolicy.ciphers.clear();
+            settings.securityPolicy.ciphers.push_back( usableCiphers[ c ] );
+            CLinkedPair pair;
+            UInt16 port = NextTestPort();
+            REQUIRE_TRUE( pair.Setup( settings, settings, LoopbackEndpoint( "tcp", port ), LoopbackEndpoint( "tcp", port ) ) );
+            ASSERT_TRUE( pair.linkA->GetProtection().GetCipher() == usableCiphers[ c ] && pair.linkB->GetProtection().GetCipher() == usableCiphers[ c ] );
+            SendNumbered( pair.linkA, DRN::DRN_LANE_RELIABLE_ORDERED, 20 );
+            CMessageCountCondition all( pair.recorderB, 20 );
+            ASSERT_TRUE( PumpUntil( all, 10000 ) );
+            ASSERT_TRUE( ArrivedInOrder( pair.recorderB, 20 ) );
+            ASSERT_TRUE( 0 == pair.linkB->GetAuthenticationFailureCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+        GUCEF_TESTFW_TESTCASE_END
+    }
+
+    GUCEF_TESTFW_TESTCASE( "Encryption: with \"*\" and a denied cipher the link uses the first usable cipher that is not denied" )
+    try
+    {
+        ASSERT_TRUE( usableCiphers.size() >= 2 );
+        if ( usableCiphers.size() >= 2 )
+        {
+            DRN::CDRNNodeSettings settings = EncryptionNodeSettings();
+            settings.securityPolicy.ciphers.clear();
+            settings.securityPolicy.ciphers.push_back( "*" );
+            settings.securityPolicy.deniedCiphers.insert( usableCiphers.front() );
+            CLinkedPair pair;
+            UInt16 port = NextTestPort();
+            REQUIRE_TRUE( pair.Setup( settings, settings, LoopbackEndpoint( "tcp", port ), LoopbackEndpoint( "tcp", port ) ) );
+            ASSERT_TRUE( pair.linkA->GetProtection().GetCipher() == usableCiphers[ 1 ] && pair.linkB->GetProtection().GetCipher() == usableCiphers[ 1 ] );
+            SendNumbered( pair.linkA, DRN::DRN_LANE_RELIABLE_ORDERED, 20 );
+            CMessageCountCondition all( pair.recorderB, 20 );
+            ASSERT_TRUE( PumpUntil( all, 10000 ) );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Encryption: a pinned key links, another key is refused, a second handshake gives other keys" )
     try

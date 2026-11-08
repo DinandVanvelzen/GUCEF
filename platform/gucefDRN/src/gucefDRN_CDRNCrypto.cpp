@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <algorithm>
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -54,6 +55,11 @@
 #define GUCEF_CORE_CRANDOM_H
 #endif /* GUCEF_CORE_CRANDOM_H ? */
 
+#ifndef GUCEF_CORE_CCODECPARAMETERINFO_H
+#include "gucefCORE_CCodecParameterInfo.h"
+#define GUCEF_CORE_CCODECPARAMETERINFO_H
+#endif /* GUCEF_CORE_CCODECPARAMETERINFO_H ? */
+
 #include "gucefDRN_CDRNCrypto.h"
 
 /*-------------------------------------------------------------------------//
@@ -74,6 +80,10 @@ namespace DRN {
 const UInt32 CDRNCrypto::KeySize;
 const UInt32 CDRNCrypto::SignatureSize;
 const UInt32 CDRNCrypto::HashSize;
+const UInt32 CDRNCrypto::CipherTagSize;
+const UInt32 CDRNCrypto::CipherMinNonceSize;
+const UInt32 CDRNCrypto::CipherMaxNonceSize;
+const UInt32 CDRNCrypto::CipherCapabilities = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_AUTHENTICATED;
 const CORE::CString CDRNCrypto::KeyAgreementType = "x25519";
 const CORE::CString CDRNCrypto::SignatureType = "ed25519";
 
@@ -125,7 +135,13 @@ CORE::CCodecRegistry::TICodecPtr
 CDRNCrypto::GetCodec( const CORE::CString& family, const CORE::CString& type )
 {GUCEF_TRACE;
 
-    return CORE::CCoreGlobal::Instance()->GetCodecRegistry().TryGetCodec( family, type );
+    // The algorithm is chosen by the caller (the ciphers of the security policy, in their order); this picks the
+    // implementation of it: the provider the registry ranks first (operating system, plugin, built in, or as their
+    // configuration sets it). An algorithm without a provider is not available, which the caller handles: no error
+    CORE::CCodecRegistry::TICodecPtrVector codecs;
+    if ( CORE::CCoreGlobal::Instance()->GetCodecRegistry().GetCodecs( family, type, codecs ) && !codecs.empty() )
+        return codecs.front();
+    return CORE::CCodecRegistry::TICodecPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -152,7 +168,140 @@ bool
 CDRNCrypto::IsCipherAvailable( const CORE::CString& cipher )
 {GUCEF_TRACE;
 
-    return !cipher.IsNULLOrEmpty() && !GetCodec( CORE::CoreCodecTypes::EncryptionCodec, cipher.Lowercase() ).IsNULL();
+    return !cipher.IsNULLOrEmpty() && !GetCipherCodec( cipher ).IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Whether packet protection can use the cipher codec (see CDRNCrypto::CipherCapabilities), and the nonce size it
+ *  would use with it
+ */
+static bool
+IsUsableCipherCodec( const CORE::CICodec& codec, UInt32& nonceSize )
+{GUCEF_TRACE;
+
+    if ( ( codec.GetCapabilities() & CDRNCrypto::CipherCapabilities ) != CDRNCrypto::CipherCapabilities )
+        return false;
+    if ( CDRNCrypto::CipherTagSize != codec.GetOverhead() )
+        return false;
+
+    bool keyFits = false;
+    nonceSize = 0;
+    CORE::CCodecParameterInfoList params;
+    codec.GetParameterInfo( params );
+    for ( UInt32 i=0; i<params.size(); ++i )
+    {
+        const CORE::CCodecParameterInfo& param = params[ i ];
+        if ( !param.HasSizeRange() )
+            continue;
+        if ( param.GetName() == "key" )
+            keyFits = param.AcceptsSize( CDRNCrypto::KeySize );
+        else
+        if ( param.GetName() == "nonce" )
+        {
+            for ( UInt32 size=CDRNCrypto::CipherMinNonceSize; size<=CDRNCrypto::CipherMaxNonceSize && 0 == nonceSize; ++size )
+                if ( param.AcceptsSize( size ) )
+                    nonceSize = size;
+        }
+    }
+    return keyFits && 0 != nonceSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CCodecRegistry::TICodecPtr
+CDRNCrypto::GetCipherCodec( const CORE::CString& cipher, UInt32* nonceSize )
+{GUCEF_TRACE;
+
+    CORE::CCodecRegistry::TICodecPtrVector codecs;
+    if ( cipher.IsNULLOrEmpty() ||
+         !CORE::CCoreGlobal::Instance()->GetCodecRegistry().GetCodecs( CORE::CoreCodecTypes::EncryptionCodec, cipher.Lowercase(), codecs ) )
+        return CORE::CCodecRegistry::TICodecPtr();
+
+    // highest priority first
+    for ( UInt32 i=0; i<codecs.size(); ++i )
+    {
+        UInt32 size = 0;
+        if ( !codecs[ i ].IsNULL() && IsUsableCipherCodec( *codecs[ i ], size ) )
+        {
+            if ( GUCEF_NULL != nonceSize )
+                *nonceSize = size;
+            return codecs[ i ];
+        }
+    }
+    return CORE::CCodecRegistry::TICodecPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString::StringVector&
+CDRNCrypto::GetPreferredCiphers( void )
+{GUCEF_TRACE;
+
+    static CORE::CString::StringVector preferred;
+    if ( preferred.empty() )
+    {
+        preferred.push_back( "xchacha20-poly1305" );
+        preferred.push_back( "chacha20-poly1305" );
+        preferred.push_back( "aes-256-gcm" );
+    }
+    return preferred;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A usable cipher with the priority of its best provider and its place in the preferred ciphers */
+struct SUsableCipher
+{
+    CORE::CString name;
+    Int32 priority;
+    UInt32 preference;
+};
+
+static bool
+IsMoreWanted( const SUsableCipher& a, const SUsableCipher& b )
+{
+    if ( a.priority != b.priority )
+        return a.priority > b.priority;
+    return a.preference < b.preference;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString::StringVector
+CDRNCrypto::GetUsableCiphers( void )
+{GUCEF_TRACE;
+
+    // highest priority first, equal ones by name
+    CORE::CCodecRegistry::TCodecProviderVector providers;
+    CORE::CCoreGlobal::Instance()->GetCodecRegistry().FindCodecs( CORE::CoreCodecTypes::EncryptionCodec, CipherCapabilities, providers );
+
+    const CORE::CString::StringVector& preferred = GetPreferredCiphers();
+    GUCEF::vector< SUsableCipher > usable;
+    CORE::CString::StringSet listed;
+    for ( UInt32 i=0; i<providers.size(); ++i )
+    {
+        const CORE::CString name = providers[ i ].codecType.Lowercase();
+        UInt32 nonceSize = 0;
+        if ( listed.find( name ) != listed.end() || providers[ i ].codec.IsNULL() || !IsUsableCipherCodec( *providers[ i ].codec, nonceSize ) )
+            continue;
+        listed.insert( name );
+        SUsableCipher cipher;
+        cipher.name = name;
+        cipher.priority = providers[ i ].priority;
+        cipher.preference = (UInt32) preferred.size();
+        for ( UInt32 p=0; p<preferred.size(); ++p )
+            if ( preferred[ p ] == name )
+                cipher.preference = p;
+        usable.push_back( cipher );
+    }
+    std::stable_sort( usable.begin(), usable.end(), IsMoreWanted );
+
+    CORE::CString::StringVector ciphers;
+    for ( UInt32 i=0; i<usable.size(); ++i )
+        ciphers.push_back( usable[ i ].name );
+    return ciphers;
 }
 
 /*-------------------------------------------------------------------------*/
