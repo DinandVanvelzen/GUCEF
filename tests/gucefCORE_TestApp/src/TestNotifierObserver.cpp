@@ -993,7 +993,7 @@ class CFunctorProbe : public CObserver
     UInt32 m_customNotifies;            /**< any other event that arrived through OnNotify() */
     CEvent m_lastCustomNotifyEvent;
     CEvent m_lastHandlerEvent;
-    MT::CTAtomic< UInt32 > m_handlerThreadId;
+    MT::CTAtomic< TThreadId > m_handlerThreadId;
     bool m_deleteSelfInHandler;
     bool* m_deletedFlag;
 
@@ -1018,7 +1018,7 @@ class CFunctorProbe : public CObserver
     {
         ++m_firstHandlerCalls;
         m_lastHandlerEvent = eventId;
-        m_handlerThreadId = MT::GetCurrentTaskID();
+        m_handlerThreadId = MT::GetCurrentThreadID();
         if ( m_deleteSelfInHandler )
         {
             if ( GUCEF_NULL != m_deletedFlag )
@@ -1075,7 +1075,7 @@ class COneShotSenderThread : public MT::CActiveObject
     COneShotSenderThread( CThreadedNotifier* notifier ) : MT::CActiveObject(), m_notifier( notifier ), m_senderThreadId( 0 ) {}
     virtual ~COneShotSenderThread() {}
 
-    UInt32 GetSenderThreadId( void ) const { return m_senderThreadId.Load(); }
+    TThreadId GetSenderThreadId( void ) const { return m_senderThreadId.Load(); }
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
 
@@ -1085,7 +1085,7 @@ class COneShotSenderThread : public MT::CActiveObject
 
     virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
     {
-        m_senderThreadId = MT::GetCurrentTaskID();
+        m_senderThreadId = MT::GetCurrentThreadID();
         m_notifier->Send();
         return true;
     }
@@ -1093,7 +1093,7 @@ class COneShotSenderThread : public MT::CActiveObject
     private:
 
     CThreadedNotifier* m_notifier;
-    MT::CTAtomic< UInt32 > m_senderThreadId;
+    MT::CTAtomic< TThreadId > m_senderThreadId;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -1224,7 +1224,7 @@ PerformNotifierFunctorTests( void )
         CFunctorProbe::TProbeCallback callback( &probe, &CFunctorProbe::OnFirstHandler );
         probe.SubscribeTo( &observed, ThreadedTestEvent(), callback );
 
-        UInt32 pumpThreadId = MT::GetCurrentTaskID();
+        TThreadId pumpThreadId = MT::GetCurrentThreadID();
         COneShotSenderThread sender( &observed );
         ASSERT_TRUE( sender.Activate( GUCEF_NULL, 1, 1 ) );
 

@@ -461,7 +461,7 @@ CTask::GetTaskStatusExtraInfo( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TSystemThreadId
 CTask::GetThreadId( void ) const
 {GUCEF_TRACE;
 

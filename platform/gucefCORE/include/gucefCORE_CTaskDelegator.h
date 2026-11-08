@@ -128,11 +128,11 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     static const CEvent ThreadResumedEvent;
     static const CEvent ThreadFinishedEvent;
 
-    typedef TCloneableUInt32    ThreadKilledEventData;       /**< thread ID of the thread in question */
-    typedef TCloneableUInt32    ThreadStartedEventData;      /**< thread ID of the thread in question */
-    typedef TCloneableUInt32    ThreadPausedEventData;       /**< thread ID of the thread in question */
-    typedef TCloneableUInt32    ThreadResumedEventData;      /**< thread ID of the thread in question */
-    typedef TCloneableUInt32    ThreadFinishedEventData;     /**< thread ID of the thread in question */
+    typedef CTCloneableObj< TSystemThreadId >    ThreadKilledEventData;       /**< operating system id of the thread in question (MT::ThreadID()) */
+    typedef CTCloneableObj< TSystemThreadId >    ThreadStartedEventData;      /**< operating system id of the thread in question (MT::ThreadID()) */
+    typedef CTCloneableObj< TSystemThreadId >    ThreadPausedEventData;       /**< operating system id of the thread in question (MT::ThreadID()) */
+    typedef CTCloneableObj< TSystemThreadId >    ThreadResumedEventData;      /**< operating system id of the thread in question (MT::ThreadID()) */
+    typedef CTCloneableObj< TSystemThreadId >    ThreadFinishedEventData;     /**< operating system id of the thread in question (MT::ThreadID()) */
 
 
     static void RegisterEvents( void );
@@ -257,7 +257,9 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     virtual void RequestStopOfPeriodicUpdates( CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    /** The operating system's id of the delegator thread while it drives the pulses (as GetThreadID()), else 0 */
+    virtual TSystemThreadId GetPulseDriverSystemThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /** Takes the cycle delay asked for through the pulse requests, on the delegator thread that uses it */
     void ApplyRequestedPulseDelta( void );
@@ -295,8 +297,8 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     MT::CTAtomic< Int32 > m_immediatePulseTicketMax;
     MT::CTAtomic< UInt32 > m_taskRequestedCycleDelayInMs;
     MT::CTAtomic< UInt32 > m_requestedPulseDeltaInMs;       /**< the cycle delay asked for, applied on the delegator thread, 0 = none */
-    MT::CTAtomic< UInt32 > m_driverTaskId;  /**< MT::GetCurrentTaskID() of the delegator thread, 0 before it runs and once it ended */
-    MT::CTAtomic< bool > m_driverThreadEnded;   /**< set when the delegator thread ended, cleared when it starts */
+    MT::CTAtomic< TThreadId > m_driverThreadId;    /**< MT::GetCurrentThreadID() of the delegator thread, 0 before it runs and once it ended */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_driverSystemThreadId; )   /**< display only, written with m_driverThreadId */
     MT::CSemaphore* m_wakeUpSignal;         /**< posted to end the delegator thread's wait between cycles, counts at most 1; NULL without a working semaphore (CTaskManager::IsTaskDelegatorWakeUpAvailable()) */
     MT::CTAtomic< bool > m_wakeUpPosted;    /**< whether m_wakeUpSignal holds a post the delegator thread did not take yet */
 };

@@ -60,13 +60,13 @@ class GUCEF_CORE_PUBLIC_CPP CJsonLoggingFormatter : public CILoggingFormatter
     virtual CString FormatLogMessage( const TLogMsgType logMsgType ,
                                       const Int32 logLevel         ,
                                       const CString& logMessage    ,
-                                      const UInt32 threadId        ,
+                                      const TSystemThreadId threadId        ,
                                       const CTimestamp& timestamp  ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CString FormatLogMessage( const TLogMsgType logMsgType     ,
                                       const Int32 logLevel             ,
                                       const CVariantStream& logMessage ,
-                                      const UInt32 threadId            ,
+                                      const TSystemThreadId threadId   ,
                                       const CTimestamp& timestamp      ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**

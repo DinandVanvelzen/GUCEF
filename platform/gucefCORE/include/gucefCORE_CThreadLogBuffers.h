@@ -80,9 +80,10 @@ class GUCEF_HIDDEN CThreadLogBuffers
 
     CLogStreamPtr GetBackBuffer( void );
 
-    UInt32 GetThreadId( void ) const;
+    /** MT::GetCurrentThreadID() of the thread owning these buffers */
+    TThreadId GetThreadId( void ) const;
 
-    void SetThreadId( UInt32 threadId, bool isPulseGeneratorThread );
+    void SetThreadId( TThreadId threadId, bool isPulseGeneratorThread );
 
     MT::CMutex& GetSwapLock( void );
 
@@ -112,7 +113,7 @@ class GUCEF_HIDDEN CThreadLogBuffers
     CLogStreamTypedPtr m_frontBuffer;    /**< Thread writes log entries here */
     CLogStreamTypedPtr m_backBuffer;     /**< Logger drains completed entries from here */
     MT::CMutex m_swapLock;               /**< Guards both buffer pointers: taken by the owning thread to get its front buffer and by the swap */
-    UInt32 m_threadId;                   /**< Thread ID owning these buffers */
+    TThreadId m_threadId;            /**< Thread owning these buffers, MT::GetCurrentThreadID() */
 };
 
 /*-------------------------------------------------------------------------//

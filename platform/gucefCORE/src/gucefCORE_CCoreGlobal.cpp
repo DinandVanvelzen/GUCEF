@@ -603,7 +603,7 @@ void
 CCoreGlobal::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         ,
                   const CString& logMessage    ,
-                  const UInt32 threadId        ,
+                  const TSystemThreadId threadId        ,
                   const CTimestamp& timestamp  )
 {
     if ( GUCEF_NULL != m_logManager  )

@@ -94,8 +94,8 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool )
     , m_immediatePulseTicketMax( 1 )
     , m_taskRequestedCycleDelayInMs( 0 )
     , m_requestedPulseDeltaInMs( 0 )
-    , m_driverTaskId( 0 )
-    , m_driverThreadEnded( false )
+    , m_driverThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
     , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
     , m_wakeUpPosted( false )
 {GUCEF_TRACE;
@@ -126,8 +126,8 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool ,
     , m_immediatePulseTicketMax( 1 )
     , m_taskRequestedCycleDelayInMs( 0 )
     , m_requestedPulseDeltaInMs( 0 )
-    , m_driverTaskId( 0 )
-    , m_driverThreadEnded( false )
+    , m_driverThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
     , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
     , m_wakeUpPosted( false )
 {GUCEF_TRACE;
@@ -269,11 +269,13 @@ bool
 CTaskDelegator::OnThreadStart( void* taskData )
 {GUCEF_TRACE;
 
-    // the id as MT::GetCurrentTaskID() gives it, on this thread: that is what the pulse generator's users compare with
-    // (on Linux GetThreadID() is the kernel thread id, a different number)
-    m_driverThreadEnded.Store( false );
-    m_driverTaskId.Store( MT::GetCurrentTaskID() );
-    m_pulseGenerator->SetPulseDriverThreadId( m_driverTaskId.Load() );
+    // the id as MT::GetCurrentThreadID() gives it, on this thread: that is what the pulse generator's users compare with
+    // (on Linux GetThreadID() is the kernel thread id, a different number, kept beside it for display)
+    MT::SThreadIds driverIds;
+    MT::GetCurrentThreadIds( &driverIds );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_driverSystemThreadId.Store( driverIds.systemThreadId ); )
+    m_driverThreadId.Store( driverIds.threadId );
+    m_pulseGenerator->SetPulseDriverThreadId( m_driverThreadId.Load() );
     ThreadStartedEventData id( GetThreadID() );
     NotifyObservers( ThreadStartedEvent, &id );
     return true;
@@ -607,7 +609,7 @@ CTaskDelegator::WakeUp( void )
     // without a working semaphore the delegator waits with a plain delay and takes the request at its next cycle
     if ( GUCEF_NULL == m_wakeUpSignal )
         return;
-    if ( MT::GetCurrentTaskID() == m_driverTaskId.Load() )
+    if ( MT::GetCurrentThreadID() == m_driverThreadId.Load() )
         return;
 
     // one post at a time: requests that come while a post waits to be taken need none of their own, the delegator
@@ -770,8 +772,8 @@ CTaskDelegator::OnThreadEnded( void* taskdata ,
     }
 
     // the thread is gone: a thread made later may get the same id, it must not pass for the driver of the pulse generator
-    m_driverTaskId.Store( 0 );
-    m_driverThreadEnded.Store( true );
+    m_driverThreadId.Store( 0 );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_driverSystemThreadId.Store( 0 ); )
     PulseGeneratorPtr pulseGenerator = m_pulseGenerator;
     if ( !pulseGenerator.IsNULL() )
         pulseGenerator->SetPulseDriverThreadId( 0 );
@@ -900,15 +902,21 @@ CTaskDelegator::Unlock( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CTaskDelegator::GetPulseDriverThreadId( void ) const
 {GUCEF_TRACE;
 
-    UInt32 taskId = m_driverTaskId.Load();
-    if ( 0 != taskId )
-        return taskId;
-    // before the thread runs its id as the platform gives it; once it ended no thread
-    return m_driverThreadEnded.Load() ? 0 : GetThreadID();
+    // 0 until the delegator thread runs (OnThreadStart()) and once it ended. GetThreadID() is no fallback for the time
+    // before that: it is the operating system's id of the thread, a different number than MT::GetCurrentThreadID()
+    return m_driverThreadId.Load();
+}
+/*-------------------------------------------------------------------------*/
+
+TSystemThreadId
+CTaskDelegator::GetPulseDriverSystemThreadId( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( m_driverSystemThreadId.Load(), m_driverThreadId.Load() );
 }
 
 /*-------------------------------------------------------------------------//

@@ -83,7 +83,14 @@ class GUCEF_CORE_PUBLIC_CPP CIPulseGeneratorDriver
      */
     virtual void QueueImmediatePulse( CPulseGenerator& pulseGenerator );
     
-    virtual UInt32 GetPulseDriverThreadId( void ) const = 0;
+    /** MT::GetCurrentThreadID() of the thread that drives the pulses, 0 when no thread does */
+    virtual TThreadId GetPulseDriverThreadId( void ) const = 0;
+    /**
+     *  The operating system's id (MT::GetCurrentThreadSystemID()) of the thread GetPulseDriverThreadId() reports, for
+     *  display only. The default returns GetPulseDriverThreadId() where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is 1 and
+     *  0 ("not known") elsewhere; a driver that records its thread overrides it.
+     */
+    virtual TSystemThreadId GetPulseDriverSystemThreadId( void ) const;
 
     protected:
 

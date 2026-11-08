@@ -54,7 +54,8 @@ CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( void )
     , m_loop( false )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
-    , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
+    , m_pulseDriverThreadId( MT::GetCurrentThreadID() )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_pulseDriverSystemThreadId, MT::GetCurrentThreadSystemID() )
 {GUCEF_TRACE;
 
 }
@@ -66,7 +67,8 @@ CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( const CBusyWaitPul
     , m_loop( false )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
-    , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
+    , m_pulseDriverThreadId( MT::GetCurrentThreadID() )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_pulseDriverSystemThreadId, MT::GetCurrentThreadSystemID() )
 {GUCEF_TRACE;
 
 }
@@ -125,7 +127,10 @@ CBusyWaitPulseGeneratorDriver::Run( CPulseGenerator& pulseGenerator            ,
                                     UInt32 desiredMaximumCycleDeltaInMilliSecs )
 {GUCEF_TRACE;
 
-    m_pulseDriverThreadId = MT::GetCurrentTaskID();
+    MT::SThreadIds driverIds;
+    MT::GetCurrentThreadIds( &driverIds );
+    m_pulseDriverThreadId = driverIds.threadId;
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_pulseDriverSystemThreadId = driverIds.systemThreadId; )
 
     m_loop = true;
     while ( m_loop )
@@ -186,11 +191,19 @@ CBusyWaitPulseGeneratorDriver::RequestStopOfPeriodicUpdates( CPulseGenerator& pu
 
 /*--------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CBusyWaitPulseGeneratorDriver::GetPulseDriverThreadId( void ) const 
 {GUCEF_TRACE;
 
     return m_pulseDriverThreadId;
+}   
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+CBusyWaitPulseGeneratorDriver::GetPulseDriverSystemThreadId( void ) const 
+{GUCEF_TRACE;
+
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( m_pulseDriverSystemThreadId.Load(), m_pulseDriverThreadId.Load() );
 }   
 
 /*-------------------------------------------------------------------------//

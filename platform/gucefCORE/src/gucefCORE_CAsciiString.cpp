@@ -532,7 +532,7 @@ CAsciiString::Set( const char *new_str ,
             m_length = len;
             m_string = GUCEF_NEW char[ len+1 ];
             assert( m_string != NULL );
-            memcpy( m_string, new_str, m_length+1 );
+            memcpy( m_string, new_str, m_length );    // the given bytes only: new_str need not be terminated
             m_string[ len ] = '\0';
         }
     }

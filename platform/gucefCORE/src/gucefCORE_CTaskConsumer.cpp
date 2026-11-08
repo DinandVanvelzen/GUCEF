@@ -178,7 +178,7 @@ CTaskConsumer::GetTaskDelegator( void )
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TSystemThreadId
 CTaskConsumer::GetDelegatorThreadId( void ) const
 {GUCEF_TRACE;
 

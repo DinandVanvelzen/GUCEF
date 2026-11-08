@@ -146,12 +146,12 @@ CString
 CJsonLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType ,
                                          const Int32 logLevel         ,
                                          const CString& logMessage    ,
-                                         const UInt32 threadId        ,
+                                         const TSystemThreadId threadId        ,
                                          const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     return "{\"timestamp\"=\"" + timestamp.ToDateTime().ToIso8601DateTimeString( true, true ) + "\"" 
-           ", \"thread\"=" + UInt32ToString( threadId ) +
+           ", \"thread\"=" + ToString( threadId ) +
            ", \"type\"=\"" + CLogManager::GetLogMsgTypeString( logMsgType ) + "\""
            ", \"lvl\"=\"" + LogLevelToString( logLevel ) + "\""
            ", \"msg\"=\"" + EscapeJson( logMessage ) + "\"}";
@@ -163,7 +163,7 @@ CString
 CJsonLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType     ,
                                          const Int32 logLevel             ,
                                          const CVariantStream& logMessage ,
-                                         const UInt32 threadId            ,
+                                         const TSystemThreadId threadId   ,
                                          const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

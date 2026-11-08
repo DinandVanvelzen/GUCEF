@@ -275,7 +275,7 @@ class CPulseThreadRecorder : public CObserver
     void SetDriverToStopAtFirstPulse( CBusyWaitPulseGeneratorDriver* driver ) { m_driverToStop = driver; }
 
     UInt32 GetPulses( void ) const { return m_pulses.Load(); }
-    UInt32 GetLastPulseThread( void ) const { return m_lastPulseThread.Load(); }
+    TThreadId GetLastPulseThread( void ) const { return m_lastPulseThread.Load(); }
     UInt64 GetFirstPulseTicks( void ) const { return m_firstPulseTicks.Load(); }
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
@@ -290,14 +290,14 @@ class CPulseThreadRecorder : public CObserver
     {
         if ( 0 == m_pulses.Load() )
             m_firstPulseTicks.Store( MT::PrecisionTickCount() );
-        m_lastPulseThread.Store( MT::GetCurrentTaskID() );
+        m_lastPulseThread.Store( MT::GetCurrentThreadID() );
         ++m_pulses;
         if ( GUCEF_NULL != m_driverToStop )
             m_driverToStop->RequestStopOfPeriodicUpdates( *static_cast< CPulseGenerator* >( notifier ) );
     }
 
     MT::CTAtomic< UInt32 > m_pulses;
-    MT::CTAtomic< UInt32 > m_lastPulseThread;
+    MT::CTAtomic< TThreadId > m_lastPulseThread;
     MT::CTAtomic< UInt64 > m_firstPulseTicks;
     CBusyWaitPulseGeneratorDriver* m_driverToStop;
 };
@@ -315,7 +315,7 @@ class CThroughDriverRequesterThread : public MT::CActiveObject
 
     bool IsDone( void ) const { return 0 != m_done.Load(); }
     bool WasTaken( void ) const { return 0 != m_taken.Load(); }
-    UInt32 GetRequestThread( void ) const { return m_thread.Load(); }
+    TThreadId GetRequestThread( void ) const { return m_thread.Load(); }
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
 
@@ -325,7 +325,7 @@ class CThroughDriverRequesterThread : public MT::CActiveObject
 
     virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
     {
-        m_thread.Store( MT::GetCurrentTaskID() );
+        m_thread.Store( MT::GetCurrentThreadID() );
         m_taken.Store( m_pulseGenerator->RequestImmediatePulseThroughDriver() ? 1 : 0 );
         m_done.Store( 1 );
         return true;
@@ -334,7 +334,7 @@ class CThroughDriverRequesterThread : public MT::CActiveObject
     private:
 
     PulseGeneratorPtr m_pulseGenerator;
-    MT::CTAtomic< UInt32 > m_thread;
+    MT::CTAtomic< TThreadId > m_thread;
     MT::CTAtomic< UInt32 > m_taken;
     MT::CTAtomic< UInt32 > m_done;
 };
@@ -422,7 +422,7 @@ class CInspectingPulseDriver : public CIPulseGeneratorDriver
     virtual void RequestPeriodicPulses( CPulseGenerator&, const UInt32 ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void RequestPulseInterval( CPulseGenerator&, const UInt32 ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void RequestStopOfPeriodicUpdates( CPulseGenerator& ) GUCEF_VIRTUAL_OVERRIDE {}
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE { return 0; }
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE { return 0; }
 
     MT::CTAtomic< UInt32 > requests;
     MT::CTAtomic< UInt32 > dataLockFreeDuringRequest;
@@ -463,7 +463,7 @@ class CHoldingPulseDriver : public CIPulseGeneratorDriver
         Hold( holdPeriodicCalls );
     }
 
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE
     {
         Called();
         Hold( holdThreadIdCalls );
@@ -666,7 +666,7 @@ PerformBusyWaitPulseGeneratorDriverTests( void )
             const UInt64 runStartTicks = MT::PrecisionTickCount();
             driver.Run( *pulseGenerator, 1000, 1000 );
             ASSERT_TRUE( recorder.GetPulses() >= 1 );
-            ASSERT_TRUE( MT::GetCurrentTaskID() == recorder.GetLastPulseThread() );
+            ASSERT_TRUE( MT::GetCurrentThreadID() == recorder.GetLastPulseThread() );
             const UInt64 firstPulseTicks = recorder.GetFirstPulseTicks();
             const Float64 firstPulseMs = firstPulseTicks >= runStartTicks ? MT::PrecisionTimerTicksToMs( firstPulseTicks - runStartTicks ) : -1.0;
             GUCEF_LOG( LOGLEVEL_NORMAL, "BusyWaitPulseGeneratorDriver: first pulse of the loop after " << firstPulseMs << " ms" );

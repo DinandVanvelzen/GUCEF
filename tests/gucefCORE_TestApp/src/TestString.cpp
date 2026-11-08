@@ -946,6 +946,27 @@ void
 PerformAsciiStringLinkedAndViewTests( void )
 {
     /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiString] A string made from one char, or from the first bytes of a buffer without a terminator, reads only those bytes" )
+    try
+    {
+        // Under the address sanitizer a read past the given bytes is an error of its own (it read one byte more before)
+        const char single = 'x';
+        CORE::CAsciiString fromChar( single );
+        ASSERT_TRUE(  fromChar == "x" );
+        ASSERT_TRUE(  fromChar.Length() == 1 );
+
+        char* exact = new char[ 3 ];
+        exact[ 0 ] = 'a'; exact[ 1 ] = 'b'; exact[ 2 ] = 'c';
+        CORE::CAsciiString fromBytes;
+        fromBytes.Set( exact, 3 );
+        delete [] exact;
+        ASSERT_TRUE(  fromBytes == "abc" );
+        ASSERT_TRUE(  fromBytes.Length() == 3 );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
     GUCEF_TESTFW_TESTCASE( "[CAsciiString] LinkTo(const char*, UInt32): buffer borrowed" )
     try
     {

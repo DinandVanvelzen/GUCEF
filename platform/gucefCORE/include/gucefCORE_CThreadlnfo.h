@@ -92,9 +92,9 @@ class GUCEF_CORE_PUBLIC_CPP CThreadInfo : public CIDataNodeSerializable
     virtual bool Deserialize( const CDataNode& domRootNode                  ,
                               const CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    void SetThreadId( UInt32 threadId );
+    void SetThreadId( TSystemThreadId threadId );
     
-    UInt32 GetThreadId( void ) const;
+    TSystemThreadId GetThreadId( void ) const;
 
     void SetThreadStatus( TThreadStatus threadStatus );
 
@@ -131,7 +131,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadInfo : public CIDataNodeSerializable
 
     private:
 
-    UInt32 m_threadId;
+    TSystemThreadId m_threadId;
     TThreadStatus m_threadStatus;
     UInt64 m_affinityMask;
     UInt32 m_threadCpuId;

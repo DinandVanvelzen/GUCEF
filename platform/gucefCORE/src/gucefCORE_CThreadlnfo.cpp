@@ -129,7 +129,7 @@ CThreadInfo::Deserialize( const CDataNode& domRootNode                  ,
 
     Clear();
     
-    m_threadId = domRootNode.GetAttributeValueOrChildValueByName( "threadId" ).AsUInt32( m_threadId, true );
+    m_threadId = (TSystemThreadId) domRootNode.GetAttributeValueOrChildValueByName( "threadId" ).AsUInt64( m_threadId, true );
     m_threadStatus = (TThreadStatus) domRootNode.GetAttributeValueOrChildValueByName( "threadStatusId" ).AsUInt8( (UInt8) m_threadStatus, true );
     m_affinityMask = domRootNode.GetAttributeValueOrChildValueByName( "affinityMask" ).AsUInt64( m_affinityMask, true );
     m_threadCpuId = domRootNode.GetAttributeValueOrChildValueByName( "threadCpuId" ).AsUInt32( m_threadCpuId, true );
@@ -142,7 +142,7 @@ CThreadInfo::Deserialize( const CDataNode& domRootNode                  ,
 /*-------------------------------------------------------------------------*/
 
 void 
-CThreadInfo::SetThreadId( UInt32 threadId )
+CThreadInfo::SetThreadId( TSystemThreadId threadId )
 {GUCEF_TRACE;
 
     m_threadId = threadId;
@@ -150,7 +150,7 @@ CThreadInfo::SetThreadId( UInt32 threadId )
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TSystemThreadId
 CThreadInfo::GetThreadId( void ) const
 {GUCEF_TRACE;
 

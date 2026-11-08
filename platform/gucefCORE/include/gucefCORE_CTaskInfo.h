@@ -102,9 +102,9 @@ class GUCEF_CORE_PUBLIC_CPP CTaskInfo : public CIDataNodeSerializable
     
     UInt32 GetTaskId( void ) const;
 
-    void SetThreadId( UInt32 threadId );
+    void SetThreadId( TSystemThreadId threadId );
     
-    UInt32 GetThreadId( void ) const;
+    TSystemThreadId GetThreadId( void ) const;
 
     void SetTaskStatus( TTaskStatus taskStatus );
 
@@ -135,7 +135,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskInfo : public CIDataNodeSerializable
     private:
 
     UInt32 m_taskId;
-    UInt32 m_threadId;
+    TSystemThreadId m_threadId;
     TTaskStatus m_taskStatus;
     bool m_hasTaskData;
     bool m_customTaskDataIsSerializable;

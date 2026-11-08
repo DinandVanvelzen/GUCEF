@@ -111,7 +111,9 @@ class GUCEF_CORE_PUBLIC_CPP CEmscriptenPulseGeneratorDriver : public CIPulseGene
 
     virtual void RequestStopOfPeriodicUpdates( CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual TSystemThreadId GetPulseDriverSystemThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -133,7 +135,8 @@ class GUCEF_CORE_PUBLIC_CPP CEmscriptenPulseGeneratorDriver : public CIPulseGene
     Int32 m_immediatePulseTickets;
     Int32 m_immediatePulseTicketMax;
     Float64 m_lastPulseTime;
-    UInt32 m_pulseDriverThreadId;
+    TThreadId m_pulseDriverThreadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_pulseDriverSystemThreadId )   /**< display only, written with m_pulseDriverThreadId */
 };
 
 #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ? */

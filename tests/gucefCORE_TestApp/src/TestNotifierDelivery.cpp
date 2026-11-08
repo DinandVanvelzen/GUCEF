@@ -114,6 +114,12 @@ class CDeliveryTestNotifier : public CNotifier
             NotifyObservers( DeliveryTestEvent() );
     }
 
+    /** Sends the test event to the given observer only */
+    void SendTo( CObserver& observer )
+    {
+        NotifySpecificObserver( observer, DeliveryTestEvent() );
+    }
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
     {
         static const CString typeName = "CDeliveryTestNotifier";
@@ -196,6 +202,35 @@ class CDeliveryTestObserver : public CObserver
 };
 
 typedef GUCEF::vector< CDeliveryTestObserver* > TDeliveryTestObservers;
+
+/*-------------------------------------------------------------------------*/
+
+/** What an observer throws from a delivery */
+struct SDeliveryTestFailure {};
+
+/**
+ *  An observer that throws from the first delivery of the test event (or the modify event) it gets, and counts the
+ *  deliveries after that
+ */
+class CDeliveryThrowingObserver : public CDeliveryTestObserver
+{
+    public:
+
+    bool thrown;
+
+    CDeliveryThrowingObserver( void ) : CDeliveryTestObserver(), thrown( false ) {}
+
+    virtual void OnNotify( CNotifier* sender, const CEvent& eventId, CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        const CEvent& expected = DELIVERYKIND_MODIFY_BROADCAST == kind ? CNotifier::ModifyEvent : DeliveryTestEvent();
+        if ( !thrown && expected == eventId )
+        {
+            thrown = true;
+            throw SDeliveryTestFailure();
+        }
+        CDeliveryTestObserver::OnNotify( sender, eventId, eventData );
+    }
+};
 
 /*-------------------------------------------------------------------------*/
 
@@ -458,6 +493,100 @@ PerformNotifierDeliveryTests( void )
             }
             ASSERT_TRUE( 0 == pulseGenerator->GetNrOfPeriodicPulseRequestors() );
             destroyer.UnsubscribeAllFromObserver();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "An observer that throws from a delivery: the exception leaves the notification, and the notifier delivers its later events, carries out subscriptions and is destroyed as usual" )
+        try
+        {
+            const EDeliveryKind kinds[] = { DELIVERYKIND_ONE_EVENT, DELIVERYKIND_ALL_EVENTS, DELIVERYKIND_MODIFY_BROADCAST };
+            for ( UInt32 k=0; k<3; ++k )
+            {
+                CDeliveryTestNotifier* notifier = GUCEF_NEW CDeliveryTestNotifier();
+                CDeliveryThrowingObserver thrower;
+                CDeliveryTestObserver counter;
+                CDeliveryTestObserver late;
+                thrower.notifier = counter.notifier = late.notifier = notifier;
+                thrower.kind = counter.kind = late.kind = kinds[ k ];
+                thrower.Subscribe();
+                counter.Subscribe();
+
+                bool thrown = false;
+                try
+                {
+                    notifier->Send( kinds[ k ] );
+                }
+                catch ( const SDeliveryTestFailure& )
+                {
+                    thrown = true;
+                }
+                ASSERT_TRUE( thrown );
+
+                // the observers walked after the one that threw did not get that event; the next one reaches all of them
+                const UInt32 counterReceived = counter.received;
+                notifier->Send( kinds[ k ] );
+                const bool delivered = ( counterReceived + 1 == counter.received ) && ( 1 == thrower.received );
+                ASSERT_TRUE( delivered );
+
+                late.Subscribe();
+                notifier->Send( kinds[ k ] );
+                ASSERT_TRUE( 1 == late.received );
+
+                // a notifier left busy would be destroyed while busy (an assert): it is left alone then
+                if ( delivered && 1 == late.received )
+                {
+                    GUCEF_DELETE notifier;
+                    ASSERT_TRUE( 1 == counter.destructionEvents && 1 == late.destructionEvents );
+                }
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "An observer that throws from an event sent to it alone: the exception leaves the notification, and the notifier delivers its later events and is destroyed as usual" )
+        try
+        {
+            const EDeliveryKind kinds[] = { DELIVERYKIND_ONE_EVENT, DELIVERYKIND_ALL_EVENTS };
+            for ( UInt32 k=0; k<2; ++k )
+            {
+                CDeliveryTestNotifier* notifier = GUCEF_NEW CDeliveryTestNotifier();
+                CDeliveryThrowingObserver thrower;
+                CDeliveryTestObserver counter;
+                thrower.notifier = counter.notifier = notifier;
+                thrower.kind = counter.kind = kinds[ k ];
+                thrower.Subscribe();
+                counter.Subscribe();
+
+                bool thrown = false;
+                try
+                {
+                    notifier->SendTo( thrower );
+                }
+                catch ( const SDeliveryTestFailure& )
+                {
+                    thrown = true;
+                }
+                ASSERT_TRUE( thrown );
+
+                notifier->SendTo( counter );
+                notifier->Send( kinds[ k ] );
+                const bool delivered = ( 2 == counter.received ) && ( 1 == thrower.received );
+                ASSERT_TRUE( delivered );
+
+                // a notifier left busy would be destroyed while busy (an assert): it is left alone then
+                if ( delivered )
+                {
+                    GUCEF_DELETE notifier;
+                    ASSERT_TRUE( 1 == counter.destructionEvents && 1 == thrower.destructionEvents );
+                }
+            }
         }
         catch ( ... )
         {

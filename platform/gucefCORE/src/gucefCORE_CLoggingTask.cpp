@@ -102,7 +102,7 @@ void
 CLoggingTask::Log( const TLogMsgType logMsgType ,
                    const Int32 logLevel         ,
                    const CString& logMessage    ,
-                   const UInt32 threadId        ,
+                   const TSystemThreadId threadId        ,
                    const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -126,7 +126,7 @@ void
 CLoggingTask::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                     const Int32 logLevel         ,
                                     const CString& logMessage    ,
-                                    const UInt32 threadId        ,
+                                    const TSystemThreadId threadId        ,
                                     const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -150,7 +150,7 @@ void
 CLoggingTask::Log( const TLogMsgType logMsgType     ,
                    const Int32 logLevel             ,
                    const CVariantStream& logMessage ,
-                   const UInt32 threadId            ,
+                   const TSystemThreadId threadId   ,
                    const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -174,7 +174,7 @@ void
 CLoggingTask::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                     const Int32 logLevel             ,
                                     const CVariantStream& logMessage ,
-                                    const UInt32 threadId            ,
+                                    const TSystemThreadId threadId   ,
                                     const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -244,7 +244,7 @@ bool
 CLoggingTask::OnTaskCycleLog( const TLogMsgType logMsgType ,
                               const Int32 logLevel         ,
                               const CString& logMessage    ,
-                              const UInt32 threadId        ,
+                              const TSystemThreadId threadId        ,
                               const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -266,7 +266,7 @@ bool
 CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType ,
                                                const Int32 logLevel         ,
                                                const CString& logMessage    ,
-                                               const UInt32 threadId        ,
+                                               const TSystemThreadId threadId        ,
                                                const CTimestamp& timestamp  )
 
 {GUCEF_TRACE;
@@ -289,7 +289,7 @@ bool
 CLoggingTask::OnTaskCycleLog( const TLogMsgType logMsgType     ,
                               const Int32 logLevel             ,
                               const CVariantStream& logMessage ,
-                              const UInt32 threadId            ,
+                              const TSystemThreadId threadId   ,
                               const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -311,7 +311,7 @@ bool
 CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType     ,
                                                const Int32 logLevel             ,
                                                const CVariantStream& logMessage ,
-                                               const UInt32 threadId            ,
+                                               const TSystemThreadId threadId   ,
                                                const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

@@ -240,7 +240,7 @@ CFileDataTable::Fail( TDataTableStatus status, const CString& message ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_errorLock );
-    m_lastErrors[ MT::GetCurrentTaskID() ] = message;
+    m_lastErrors[ MT::GetCurrentThreadID() ] = message;
     return status;
 }
 
@@ -251,7 +251,7 @@ CFileDataTable::Succeed( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_errorLock );
-    TLastErrorMap::iterator i = m_lastErrors.find( MT::GetCurrentTaskID() );
+    TLastErrorMap::iterator i = m_lastErrors.find( MT::GetCurrentThreadID() );
     if ( i != m_lastErrors.end() )
         m_lastErrors.erase( i );
     return DATATABLE_STATUS_OK;
@@ -264,7 +264,7 @@ CFileDataTable::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_errorLock );
-    TLastErrorMap::const_iterator i = m_lastErrors.find( MT::GetCurrentTaskID() );
+    TLastErrorMap::const_iterator i = m_lastErrors.find( MT::GetCurrentThreadID() );
     return i != m_lastErrors.end() ? (*i).second : CString::Empty;
 }
 

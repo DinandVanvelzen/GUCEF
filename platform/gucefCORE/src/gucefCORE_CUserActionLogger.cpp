@@ -70,7 +70,7 @@ CUserActionLogger::CUserActionLogger( const CString& filePath )
     if ( m_file.Open( m_filePath, "ab" ) )
     {
         m_logger.SetOutput( m_file );
-        m_logger.Log( LOG_USER, LOGLEVEL_CRITICAL, "---- a new session ----", MT::GetCurrentTaskID(), CTimestamp::NowUTCTime() );
+        m_logger.Log( LOG_USER, LOGLEVEL_CRITICAL, "---- a new session ----", MT::GetCurrentThreadSystemID(), CTimestamp::NowUTCTime() );
         m_logger.FlushLog();
     }
 }
@@ -107,7 +107,7 @@ void
 CUserActionLogger::Log( const TLogMsgType logMsgType ,
                         const Int32 logLevel         ,
                         const CString& logMessage    ,
-                        const UInt32 threadId        ,
+                        const TSystemThreadId threadId        ,
                         const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -125,7 +125,7 @@ void
 CUserActionLogger::Log( const TLogMsgType logMsgType     ,
                         const Int32 logLevel             ,
                         const CVariantStream& logMessage ,
-                        const UInt32 threadId            ,
+                        const TSystemThreadId threadId   ,
                         const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -143,7 +143,7 @@ void
 CUserActionLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                          const Int32 logLevel         ,
                                          const CString& logMessage    ,
-                                         const UInt32 threadId        ,
+                                         const TSystemThreadId threadId        ,
                                          const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -161,7 +161,7 @@ void
 CUserActionLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                          const Int32 logLevel             ,
                                          const CVariantStream& logMessage ,
-                                         const UInt32 threadId            ,
+                                         const TSystemThreadId threadId   ,
                                          const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

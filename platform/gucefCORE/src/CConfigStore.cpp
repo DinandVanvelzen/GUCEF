@@ -138,9 +138,11 @@ CConfigStore::CConfigStore( void )
     , m_optionalConfigurables()
     , m_configurableScopes()
     , m_configurableScopeThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_configurableScopeSystemThreadId, 0 )
     , m_isBusyLoadingConfig( false )
     , m_configurablesInUse()
     , m_configurablesUserThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_configurablesUserSystemThreadId, 0 )
     , m_configurablesLock()
     , m_globalConfigIsLoaded( false )
     , m_globalBootstrapConfigIsLoaded( false )
@@ -280,13 +282,13 @@ CConfigStore::Register( CGloballyConfigurable* configobj )
 
     // One that a load of the config makes is loaded by it as well. One made on another thread meanwhile is not: it
     // is still being constructed, the next load has it
-    if ( m_isBusyLoadingConfig && m_configurablesUserThreadId == MT::GetCurrentTaskID() )
+    if ( m_isBusyLoadingConfig && m_configurablesUserThreadId == MT::GetCurrentThreadID() )
         m_newConfigureables.insert( configobj );
     else
         m_configureables.insert( configobj );
 
     // A configurable that comes along with something that may fail is one that may fail as well
-    if ( !m_configurableScopes.empty() && 0 != m_configurableScopes.back() && m_configurableScopeThreadId == MT::GetCurrentTaskID() )
+    if ( !m_configurableScopes.empty() && 0 != m_configurableScopes.back() && m_configurableScopeThreadId == MT::GetCurrentThreadID() )
         m_optionalConfigurables.insert( configobj );
 }
 
@@ -299,7 +301,12 @@ CConfigStore::BeginConfigurableScope( bool configurablesAreOptional )
     // only the leaf lock: a plugin is loaded in a scope under the lock of the plugin control, see Register()
     MT::CScopeMutex lock( m_configurablesLock );
     if ( m_configurableScopes.empty() )
-        m_configurableScopeThreadId = MT::GetCurrentTaskID();
+    {
+        MT::SThreadIds ownerIds;
+        MT::GetCurrentThreadIds( &ownerIds );
+        m_configurableScopeThreadId = ownerIds.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_configurableScopeSystemThreadId = ownerIds.systemThreadId; )
+    }
     m_configurableScopes.push_back( configurablesAreOptional ? 1 : 0 );
 }
 
@@ -343,7 +350,7 @@ bool
 CConfigStore::IsInUseByOtherThread( CGloballyConfigurable* configobj ) const
 {GUCEF_TRACE;
 
-    if ( m_configurablesUserThreadId == MT::GetCurrentTaskID() )
+    if ( m_configurablesUserThreadId == MT::GetCurrentThreadID() )
         return false;
     TConfigurableVector::const_iterator i = m_configurablesInUse.begin();
     while ( i != m_configurablesInUse.end() )
@@ -373,7 +380,10 @@ CConfigStore::UseNextConfigurable( TConfigurableSet& todo, bool& isOptional )
 
         isOptional = m_optionalConfigurables.find( configobj ) != m_optionalConfigurables.end();
         m_configurablesInUse.push_back( configobj );
-        m_configurablesUserThreadId = MT::GetCurrentTaskID();
+        MT::SThreadIds ownerIds;
+        MT::GetCurrentThreadIds( &ownerIds );
+        m_configurablesUserThreadId = ownerIds.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_configurablesUserSystemThreadId = ownerIds.systemThreadId; )
         return configobj;
     }
     return GUCEF_NULL;
@@ -885,7 +895,10 @@ CConfigStore::ApplyConfigData( const CDataNode& loadedConfig ,
     {
         MT::CScopeMutex configurablesLock( m_configurablesLock );
         m_isBusyLoadingConfig = true;
-        m_configurablesUserThreadId = MT::GetCurrentTaskID();
+        MT::SThreadIds ownerIds;
+        MT::GetCurrentThreadIds( &ownerIds );
+        m_configurablesUserThreadId = ownerIds.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_configurablesUserSystemThreadId = ownerIds.systemThreadId; )
         todo = m_configureables;
     }
 

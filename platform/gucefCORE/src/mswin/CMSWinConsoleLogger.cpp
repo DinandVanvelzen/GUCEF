@@ -181,7 +181,7 @@ void
 CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
                           const Int32 logLevel         ,
                           const CString& logMessage    ,
-                          const UInt32 threadId        ,
+                          const TSystemThreadId threadId        ,
                           const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -224,7 +224,7 @@ void
 CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                            const Int32 logLevel         ,
                                            const CString& logMessage    ,
-                                           const UInt32 threadId        ,
+                                           const TSystemThreadId threadId        ,
                                            const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -261,7 +261,7 @@ void
 CMSWinConsoleLogger::Log( const TLogMsgType logMsgType     ,
                           const Int32 logLevel             ,
                           const CVariantStream& logMessage ,
-                          const UInt32 threadId            ,
+                          const TSystemThreadId threadId   ,
                           const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -276,7 +276,7 @@ void
 CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                            const Int32 logLevel             ,
                                            const CVariantStream& logMessage ,
-                                           const UInt32 threadId            ,
+                                           const TSystemThreadId threadId   ,
                                            const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

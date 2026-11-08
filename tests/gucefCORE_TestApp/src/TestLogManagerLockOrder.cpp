@@ -126,7 +126,7 @@ class CLockOrderCountingLogger : public CORE::CILogger
     virtual void Log( const CORE::TLogMsgType /*logMsgType*/ ,
                       const Int32 /*logLevel*/               ,
                       const CORE::CString& /*logMessage*/    ,
-                      const UInt32 /*threadId*/              ,
+                      const TSystemThreadId /*threadId*/     ,
                       const CORE::CTimestamp& /*timestamp*/  ) GUCEF_VIRTUAL_OVERRIDE
     {
         m_count.FetchAdd( 1 );
@@ -135,7 +135,7 @@ class CLockOrderCountingLogger : public CORE::CILogger
     virtual void Log( const CORE::TLogMsgType /*logMsgType*/     ,
                       const Int32 /*logLevel*/                   ,
                       const CORE::CVariantStream& /*logMessage*/ ,
-                      const UInt32 /*threadId*/                  ,
+                      const TSystemThreadId /*threadId*/         ,
                       const CORE::CTimestamp& /*timestamp*/      ) GUCEF_VIRTUAL_OVERRIDE
     {
         m_count.FetchAdd( 1 );
@@ -144,7 +144,7 @@ class CLockOrderCountingLogger : public CORE::CILogger
     virtual void LogWithoutFormatting( const CORE::TLogMsgType /*logMsgType*/ ,
                                        const Int32 /*logLevel*/               ,
                                        const CORE::CString& /*logMessage*/    ,
-                                       const UInt32 /*threadId*/              ,
+                                       const TSystemThreadId /*threadId*/     ,
                                        const CORE::CTimestamp& /*timestamp*/  ) GUCEF_VIRTUAL_OVERRIDE
     {
         m_count.FetchAdd( 1 );
@@ -153,7 +153,7 @@ class CLockOrderCountingLogger : public CORE::CILogger
     virtual void LogWithoutFormatting( const CORE::TLogMsgType /*logMsgType*/     ,
                                        const Int32 /*logLevel*/                   ,
                                        const CORE::CVariantStream& /*logMessage*/ ,
-                                       const UInt32 /*threadId*/                  ,
+                                       const TSystemThreadId /*threadId*/         ,
                                        const CORE::CTimestamp& /*timestamp*/      ) GUCEF_VIRTUAL_OVERRIDE
     {
         m_count.FetchAdd( 1 );

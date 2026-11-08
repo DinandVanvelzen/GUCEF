@@ -117,12 +117,12 @@ CString
 CCharSepLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType ,
                                             const Int32 logLevel         ,
                                             const CString& logMessage    ,
-                                            const UInt32 threadId        ,
+                                            const TSystemThreadId threadId        ,
                                             const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     return timestamp.ToDateTime().ToIso8601DateTimeString( true, true ) + m_seperatorChar + 
-           UInt32ToString( threadId ) + m_seperatorChar + 
+           ToString( threadId ) + m_seperatorChar + 
            CLogManager::GetLogMsgTypeString( logMsgType ) + m_seperatorChar + 
            LogLevelToString( logLevel ) + m_seperatorChar + 
            logMessage;
@@ -134,7 +134,7 @@ CString
 CCharSepLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType     ,
                                             const Int32 logLevel             ,
                                             const CVariantStream& logMessage ,
-                                            const UInt32 threadId            ,
+                                            const TSystemThreadId threadId   ,
                                             const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

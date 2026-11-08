@@ -63,7 +63,8 @@ CEmscriptenPulseGeneratorDriver::CEmscriptenPulseGeneratorDriver( void )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_lastPulseTime( 0 )
-    , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
+    , m_pulseDriverThreadId( MT::GetCurrentThreadID() )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_pulseDriverSystemThreadId, MT::GetCurrentThreadSystemID() )
 {GUCEF_TRACE;
 
 }
@@ -137,7 +138,10 @@ CEmscriptenPulseGeneratorDriver::Run( CPulseGenerator& pulseGenerator ,
                                       bool simulateInfiniteLoop       )
 {GUCEF_TRACE;
 
-    m_pulseDriverThreadId = MT::GetCurrentTaskID();
+    MT::SThreadIds driverIds;
+    MT::GetCurrentThreadIds( &driverIds );
+    m_pulseDriverThreadId = driverIds.threadId;
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_pulseDriverSystemThreadId = driverIds.systemThreadId; )
     m_pulseGenerator = &pulseGenerator;
     m_lastPulseTime = emscripten_get_now();
     m_running = true;
@@ -259,11 +263,19 @@ CEmscriptenPulseGeneratorDriver::RequestStopOfPeriodicUpdates( CPulseGenerator& 
 
 /*--------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CEmscriptenPulseGeneratorDriver::GetPulseDriverThreadId( void ) const
 {GUCEF_TRACE;
 
     return m_pulseDriverThreadId;
+}
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+CEmscriptenPulseGeneratorDriver::GetPulseDriverSystemThreadId( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( m_pulseDriverSystemThreadId, m_pulseDriverThreadId );
 }
 
 /*-------------------------------------------------------------------------//

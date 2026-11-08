@@ -103,7 +103,8 @@ class CForeignThread : public MT::CActiveObject
             for ( UInt32 i=0; i<m_nested && i<4; ++i )
                 extra[ i ] = GUCEF_NEW CORE::CExternalThreadScope( "test foreign thread" );
 
-            m_threadId.Store( MT::GetCurrentTaskID(), MT::MEMORDER_RELEASE );
+            // thread infos carry the operating system's id of the thread
+            m_threadId.Store( MT::GetCurrentThreadSystemID(), MT::MEMORDER_RELEASE );
             m_registered.Store( scope.IsRegistered(), MT::MEMORDER_RELEASE );
 
             UInt32 waited = 0;
@@ -130,7 +131,7 @@ class CForeignThread : public MT::CActiveObject
         while ( IsActive() && waited < timeoutInMs ) { MT::PrecisionDelay( 1 ); ++waited; }
         return done && !IsActive();
     }
-    UInt32 GetThreadIdOfThread( void ) const { return m_threadId.Load( MT::MEMORDER_ACQUIRE ); }
+    TSystemThreadId GetThreadIdOfThread( void ) const { return m_threadId.Load( MT::MEMORDER_ACQUIRE ); }
 
     private:
 
@@ -145,7 +146,7 @@ class CForeignThread : public MT::CActiveObject
     MT::CTAtomic< bool > m_registered;
     MT::CTAtomic< bool > m_release;
     MT::CTAtomic< bool > m_done;
-    MT::CTAtomic< UInt32 > m_threadId;
+    MT::CTAtomic< TSystemThreadId > m_threadId;
 };
 
 /*-------------------------------------------------------------------------//
@@ -175,7 +176,7 @@ PerformExternalThreadTests( void )
         CForeignThread thread( 0 );
         ASSERT_TRUE( thread.Activate( GUCEF_NULL, 0, 0 ) );
         ASSERT_TRUE( thread.WaitUntilRegistered( 10000 ) );
-        const UInt32 threadId = thread.GetThreadIdOfThread();
+        const TSystemThreadId threadId = thread.GetThreadIdOfThread();
 
         ASSERT_TRUE( taskManager.GetNrOfExternalThreads() == before + 1 );
 

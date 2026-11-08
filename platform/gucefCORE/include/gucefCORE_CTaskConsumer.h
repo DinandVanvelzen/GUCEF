@@ -119,7 +119,8 @@ class GUCEF_CORE_PUBLIC_CPP CTaskConsumer : public CTSGNotifier
     
     TTaskDelegatorBasicPtr GetTaskDelegator( void );
 
-    UInt32 GetDelegatorThreadId( void ) const;
+    /** The operating system's id (MT::ThreadID()) of the delegator's thread, for display; 0 without a delegator */
+    TSystemThreadId GetDelegatorThreadId( void ) const;
 
     /**
      *  Sets the CPU affinity mask for the thread

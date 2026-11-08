@@ -162,9 +162,9 @@ class GUCEF_CORE_PUBLIC_CPP CICodec : public CICloneable ,
         TCodecStatus status;
         CString message;
     };
-    typedef GUCEF::map< UInt32, SLastStatus > TLastStatusMap;
+    typedef GUCEF::map< TThreadId, SLastStatus > TLastStatusMap;
 
-    mutable TLastStatusMap m_lastStatus;    /**< per thread */
+    mutable TLastStatusMap m_lastStatus;    /**< per thread, by MT::GetCurrentThreadID() */
     MT::CMutex m_lastStatusLock;
 };
 

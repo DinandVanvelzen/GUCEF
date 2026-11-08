@@ -82,7 +82,9 @@ class GUCEF_CORE_PUBLIC_CPP CBusyWaitPulseGeneratorDriver : public CIPulseGenera
                       UInt32 forcedMinimalCycleDeltaInMilliSecs  = 25  ,
                       UInt32 desiredMaximumCycleDeltaInMilliSecs = 100 );
 
-    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual TThreadId GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual TSystemThreadId GetPulseDriverSystemThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -90,7 +92,8 @@ class GUCEF_CORE_PUBLIC_CPP CBusyWaitPulseGeneratorDriver : public CIPulseGenera
     MT::CTAtomic< bool > m_loop;
     MT::CTAtomic< Int32 > m_immediatePulseTickets;
     MT::CTAtomic< Int32 > m_immediatePulseTicketMax;
-    MT::CTAtomic< UInt32 > m_pulseDriverThreadId;
+    MT::CTAtomic< TThreadId > m_pulseDriverThreadId;
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_pulseDriverSystemThreadId; )   /**< display only, written with m_pulseDriverThreadId */
 };
 
 /*-------------------------------------------------------------------------//

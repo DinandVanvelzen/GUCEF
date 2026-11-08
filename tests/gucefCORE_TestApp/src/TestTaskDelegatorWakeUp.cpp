@@ -611,13 +611,13 @@ PerformTaskDelegatorWakeUpTests( void )
             ASSERT_TRUE( !endPulseGenerator.IsNULL() );
             if ( !endPulseGenerator.IsNULL() )
             {
-                UInt32 driverThreadId = endPulseGenerator->GetPulseDriverThreadId();
+                TThreadId driverThreadId = endPulseGenerator->GetPulseDriverThreadId();
                 ASSERT_TRUE( 0 != driverThreadId );
 
                 ASSERT_TRUE( endPool->RequestAllThreadsToStop( true, false, 5000 ) );
 
                 // a thread created later may get the same id: it must not count as the driver of this pulse generator
-                UInt32 driverThreadIdAfterEnd = endPulseGenerator->GetPulseDriverThreadId();
+                TThreadId driverThreadIdAfterEnd = endPulseGenerator->GetPulseDriverThreadId();
                 for ( UInt32 waitedMs=0; 0 != driverThreadIdAfterEnd && waitedMs<5000; ++waitedMs )
                 {
                     MT::ThreadDelay( 1 );

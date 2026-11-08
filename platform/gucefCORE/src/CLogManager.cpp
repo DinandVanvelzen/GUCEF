@@ -223,7 +223,7 @@ CLogManager::~CLogManager()
 /*-------------------------------------------------------------------------*/
 
 CThreadLogBuffers*
-CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
+CLogManager::GetOrCreateThreadBuffers( TThreadId threadId )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_threadBuffersLock );
@@ -720,8 +720,7 @@ CLogManager::Log( const TLogMsgType logMsgType ,
         return CLogStreamPtr();
 
     // Get or create per-thread buffers
-    UInt32 threadId = MT::GetCurrentTaskID();
-    CThreadLogBuffers* buffers = GetOrCreateThreadBuffers( threadId );
+    CThreadLogBuffers* buffers = GetOrCreateThreadBuffers( MT::GetCurrentThreadID() );
     
     if ( GUCEF_NULL != buffers )
     {
@@ -733,7 +732,8 @@ CLogManager::Log( const TLogMsgType logMsgType ,
             // Write log entry metadata at the start of this segment
             stream << static_cast< UInt8 >( logMsgType );
             stream << logLevel;
-            stream << threadId;
+            // the operating system's id of the thread, for display; the buffers themselves go by MT::GetCurrentThreadID()
+            stream << MT::GetCurrentThreadSystemID();
             stream << CTimestamp::NowUTCTime();
             
             // Return stream for user to continue writing
@@ -752,7 +752,7 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const CString& logMessage    )
 {GUCEF_TRACE;
 
-    Log( logMsgType, logLevel, logMessage, MT::GetCurrentTaskID(), CTimestamp::NowUTCTime() );
+    Log( logMsgType, logLevel, logMessage, MT::GetCurrentThreadSystemID(), CTimestamp::NowUTCTime() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -761,7 +761,7 @@ void
 CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         ,
                   const CString& logMessage    ,
-                  const UInt32 threadId        ,
+                  const TSystemThreadId threadId        ,
                   const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -826,7 +826,7 @@ CLogManager::Log( const TLogMsgType logMsgType     ,
                   const CVariantStream& logMessage )
 {GUCEF_TRACE;
 
-    Log( logMsgType, logLevel, logMessage, MT::GetCurrentTaskID(), CTimestamp::NowUTCTime() );
+    Log( logMsgType, logLevel, logMessage, MT::GetCurrentThreadSystemID(), CTimestamp::NowUTCTime() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -835,7 +835,7 @@ void
 CLogManager::Log( const TLogMsgType logMsgType     ,
                   const Int32 logLevel             ,
                   const CVariantStream& logMessage ,
-                  const UInt32 threadId            ,
+                  const TSystemThreadId threadId   ,
                   const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -1003,7 +1003,7 @@ CLogManager::FlushThreadStreamBuffer( CLogStreamPtr buffer )
         // Read the metadata we wrote at segment start
         UInt8 logMsgTypeVal = 0;
         Int32 logLevel = 0;
-        UInt32 threadId = 0;
+        TSystemThreadId threadId = 0;    /* written as MT::GetCurrentThreadSystemID() gives it */
         CTimestamp timestamp;
         
         segmentStream >> logMsgTypeVal;
@@ -1083,14 +1083,14 @@ CLogManager::SetPulseGenerator( PulseGeneratorPtr pulseGenerator )
                  CORE::CPulseGenerator::PulseEvent ,
                  callback                          );
 
-    UInt32 threadIdOfDriver = pulseGenerator->GetPulseDriverThreadId();
+    TThreadId threadIdOfDriver = pulseGenerator->GetPulseDriverThreadId();
 
     MT::CScopeMutex mapLock( m_threadBuffersLock );
 
     TThreadBufferMap::iterator i = m_threadBuffers.begin();
     while ( i != m_threadBuffers.end() )
     {
-        UInt32 entryForThreadId = (*i).first;
+        TThreadId entryForThreadId = (*i).first;
         CThreadLogBuffers* threadBuffers = (*i).second;
         if ( GUCEF_NULL != threadBuffers )
         {

@@ -587,7 +587,7 @@ CThreadPool::EnforceDesiredNrOfThreads( Int32 desiredMaxTotalNrOfThreads   ,
                     if ( !delegator->IsDeactivationRequested() )
                     {
                         // Ask thread to deactivate
-                        UInt32 threadId = delegator->GetThreadID();
+                        TSystemThreadId threadId = delegator->GetThreadID();
                         TTaskDelegatorBasicPtr delegatorRefCopy = (*i);
                         delegatorRefCopy->Deactivate( !gracefullEnforcement, false );
 
@@ -1198,7 +1198,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
     CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
     if ( !taskConsumer.IsNULL() && !taskConsumer->GetTaskDelegator().IsNULL() )
     {
-        UInt32 threadId = taskConsumer->GetTaskDelegator()->GetThreadID();
+        TSystemThreadId threadId = taskConsumer->GetTaskDelegator()->GetThreadID();
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because the taskConsumer given already has a delegator (thread: " + ToString( threadId ) + ") assigned" );
         task->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP_FAILED );
         return task;
@@ -1327,7 +1327,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
     // Sanity check: the task consumer should not already have a delegator assigned for this use-case
     if ( !taskConsumer->GetTaskDelegator().IsNULL() )
     {
-        UInt32 threadId = taskConsumer->GetTaskDelegator()->GetThreadID();
+        TSystemThreadId threadId = taskConsumer->GetTaskDelegator()->GetThreadID();
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because the taskConsumer given already has a delegator (thread: " + ToString( threadId ) + ") assigned" );
         task->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP_FAILED );
         return task;
@@ -1618,7 +1618,7 @@ CThreadPool::StartTask( const CString& taskType        ,
 bool 
 CThreadPool::TaskOfTypeExists( const CString& taskType  , 
                                UInt32* taskIdIfExists   , 
-                               UInt32* threadIdIfExists ,
+                               TSystemThreadId* threadIdIfExists ,
                                TTaskStatus* taskStatus  ) const
 {GUCEF_TRACE;
 
@@ -1667,12 +1667,12 @@ CThreadPool::StartTaskIfNoneExists( const CString& taskType        ,
 
     // Check if a task of the type given already exists while we have the lock
     UInt32 taskIdIfExists = 0;   
-    UInt32 threadIdIfExists = 0;
+    TSystemThreadId threadIdIfExists = 0;
     TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
     if ( TaskOfTypeExists( taskType, &taskIdIfExists, &threadIdIfExists, &taskStatus ) )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTaskIfNoneExists: Task of type \"" + taskType + "\" with ID " +
-                                            UInt32ToString( taskIdIfExists ) + " already exists and its using thread with ID " + UInt32ToString( threadIdIfExists ) );
+                                            UInt32ToString( taskIdIfExists ) + " already exists and its using thread with ID " + ToString( threadIdIfExists ) );
         return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS );
     }
 
@@ -1692,12 +1692,12 @@ CThreadPool::StartTaskIfNoneExists( const CString& taskType   ,
 
     // Check if a task of the type given already exists while we have the lock
     UInt32 taskIdIfExists = 0;   
-    UInt32 threadIdIfExists = 0;
+    TSystemThreadId threadIdIfExists = 0;
     TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
     if ( TaskOfTypeExists( taskType, &taskIdIfExists, &threadIdIfExists, &taskStatus ) )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTaskIfNoneExists: Task of type \"" + taskType + "\" with ID " +
-                                            UInt32ToString( taskIdIfExists ) + " already exists and its using thread with ID " + UInt32ToString( threadIdIfExists ) );
+                                            UInt32ToString( taskIdIfExists ) + " already exists and its using thread with ID " + ToString( threadIdIfExists ) );
         return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS );
     }
 
@@ -2234,7 +2234,7 @@ CThreadPool::GetTaskObjById( TIntegerTypeUsedForTaskId taskId ) const
 /*-------------------------------------------------------------------------*/
 
 CThreadPool::TTaskDelegatorBasicPtr
-CThreadPool::GetDelegatorForThreadId( const UInt32 threadId ) const
+CThreadPool::GetDelegatorForThreadId( const TSystemThreadId threadId ) const
 {GUCEF_TRACE;
 
     MT::CObjectScopeReadOnlyLock lock( this );
@@ -2266,7 +2266,7 @@ CThreadPool::GetDelegatorForThreadId( const UInt32 threadId ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CThreadPool::WaitForThreadToFinish( const UInt32 threadId ,
+CThreadPool::WaitForThreadToFinish( const TSystemThreadId threadId ,
                                     Int32 timeoutInMs     )
 {GUCEF_TRACE;
 
@@ -2317,10 +2317,12 @@ CThreadPool::WaitForTaskToFinish( const UInt32 taskId ,
 
         if ( !task.IsNULL() )
         {
-            UInt32 workerThreadId = task->GetThreadId();
-            UInt32 callerThreadId = MT::GetCurrentTaskID();
+            // compared by MT::GetCurrentThreadID(): the task's GetThreadId() is the operating system's id of its thread,
+            // a different number on Linux
+            CTask::TTaskDelegatorBasicPtr delegator = task->GetDelegator();
+            const bool callerRunsTheTask = !delegator.IsNULL() && delegator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
 
-            if ( workerThreadId != callerThreadId )
+            if ( !callerRunsTheTask )
             {
                 GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):WaitForTaskToFinish: Waiting for task with ID " + ToString( taskId ) + " to finish" );
 
@@ -2345,7 +2347,7 @@ CThreadPool::WaitForTaskToFinish( const UInt32 taskId ,
             else
             {
                 GUCEF_ERROR_LOG( LOGLEVEL_CRITICAL, "ThreadPool(" + m_poolName + "):WaitForTaskToFinish: Task with ID " + ToString( taskId ) + 
-                    " is requested to be waited on from thread " + ToString( callerThreadId ) + 
+                    " is requested to be waited on from thread " + ToString( task->GetThreadId() ) + 
                     " which is also the thread running the task. This is not allowed to prevent deadlocks" );                    
                 return false;
             }
@@ -2580,7 +2582,7 @@ CThreadPool::KillThreadWorkingOnTask( const UInt32 taskID )
     TTaskDelegatorBasicPtr delegator = GetDelegatorForTaskId( taskID, taskExists );
     if ( !delegator.IsNULL() )
     {                     
-        UInt32 threadId = delegator->GetThreadID();
+        TSystemThreadId threadId = delegator->GetThreadID();
 
         delegator->Deactivate( true, true );
 
@@ -2671,7 +2673,7 @@ CThreadPool::CreateCustomTaskDataForTaskTypeIfAvailable( const CString& taskType
 /*-------------------------------------------------------------------------*/
 
 bool
-CThreadPool::GetTaskIdForThreadId( const UInt32 threadId ,
+CThreadPool::GetTaskIdForThreadId( const TSystemThreadId threadId ,
                                    UInt32& taskId        ) const
 {GUCEF_TRACE;
 
@@ -2713,7 +2715,7 @@ CThreadPool::GetTaskIdForThreadId( const UInt32 threadId ,
 
 bool
 CThreadPool::GetThreadIdForTaskId( const UInt32 taskId ,
-                                   UInt32& threadId    ) const
+                                   TSystemThreadId& threadId    ) const
 {GUCEF_TRACE;
 
     threadId = 0;
@@ -2865,7 +2867,7 @@ CThreadPool::GetAllTaskInfo( TTaskInfoMap& info                                 
 /*-------------------------------------------------------------------------*/
 
 bool
-CThreadPool::GetThreadInfo( UInt32 threadId, CThreadInfo& info ) const
+CThreadPool::GetThreadInfo( TSystemThreadId threadId, CThreadInfo& info ) const
 {GUCEF_TRACE;
 
     info.Clear();
@@ -2904,7 +2906,7 @@ CThreadPool::GetAllThreadInfo( TThreadInfoMap& info ) const
         const TTaskDelegatorBasicPtr& delegator = (*i);
         if ( !delegator.IsNULL() )
         {
-            UInt32 threadId = (*i)->GetThreadID();
+            TSystemThreadId threadId = (*i)->GetThreadID();
             CThreadInfo& threadInfo = info[ threadId ];
             totalSuccess = delegator->GetThreadInfo( threadInfo ) && totalSuccess;
         }        
@@ -2916,7 +2918,7 @@ CThreadPool::GetAllThreadInfo( TThreadInfoMap& info ) const
         const TTaskDelegatorBasicPtr& delegator = (*i);
         if ( !delegator.IsNULL() )
         {
-            UInt32 threadId = (*i)->GetThreadID();
+            TSystemThreadId threadId = (*i)->GetThreadID();
             CThreadInfo& threadInfo = info[ threadId ];
             totalSuccess = delegator->GetThreadInfo( threadInfo ) && totalSuccess;
         }        

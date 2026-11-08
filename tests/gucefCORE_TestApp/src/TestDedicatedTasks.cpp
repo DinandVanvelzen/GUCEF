@@ -116,6 +116,36 @@ class CCountingConsumer : public CORE::CTaskConsumer
 
 typedef CORE::CTSharedPtr< CCountingConsumer, MT::CMutex > TCountingConsumerPtr;
 
+/** In its first cycle asks its own pool to wait for its own task, then ends */
+class CSelfWaitingConsumer : public CORE::CTaskConsumer
+{
+    public:
+
+    CSelfWaitingConsumer( void ) : CORE::CTaskConsumer(), waitResult( true ), waitedMs( 0 ), ended( false ) {}
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return "TestDedicatedTasks::CSelfWaitingConsumer"; }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        CORE::ThreadPoolPtr pool = GetThreadPool();
+        if ( !pool.IsNULL() )
+        {
+            const UInt64 start = MT::PrecisionTickCount();
+            waitResult.Store( pool->WaitForTaskToFinish( GetCurrentTaskId(), 3000 ) );
+            waitedMs.Store( (UInt32) MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start ) );
+        }
+        return true;
+    }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr, bool ) GUCEF_VIRTUAL_OVERRIDE { ended.Store( true ); }
+
+    MT::CTAtomic< bool > waitResult;
+    MT::CTAtomic< UInt32 > waitedMs;
+    MT::CTAtomic< bool > ended;
+};
+
+typedef CORE::CTSharedPtr< CSelfWaitingConsumer, MT::CMutex > TSelfWaitingConsumerPtr;
+
 /** Task data which counts its live instances */
 class CCountedTaskData : public CORE::CICloneable
 {
@@ -253,8 +283,8 @@ class CPhasedSetupConsumer : public CORE::CTaskConsumer
 
     virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE
     {
-        const UInt32 slowThread = slowTypeForThread.Load();
-        if ( 0 != slowThread && MT::GetCurrentTaskID() == slowThread )
+        const TThreadId slowThread = slowTypeForThread.Load();
+        if ( 0 != slowThread && MT::GetCurrentThreadID() == slowThread )
             MT::PrecisionDelay( 500 );
         return "TestDedicatedTasks::CPhasedSetupConsumer";
     }
@@ -273,7 +303,7 @@ class CPhasedSetupConsumer : public CORE::CTaskConsumer
         CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
     }
 
-    MT::CTAtomic< UInt32 > slowTypeForThread;
+    MT::CTAtomic< TThreadId > slowTypeForThread;
     UInt32 configured;                        /**< plain on purpose: set up between the phases, published by the start */
     MT::CTAtomic< UInt32 > seenAtStart;
     MT::CTAtomic< bool > ended;
@@ -355,7 +385,7 @@ PerformDedicatedTaskTests( void )
         ASSERT_FALSE( setup.HasNoFuture() );
 
         // the starting thread is held up whenever it asks for the type: a task that may go ahead runs to its end meanwhile
-        consumer->slowTypeForThread.Store( MT::GetCurrentTaskID() );
+        consumer->slowTypeForThread.Store( MT::GetCurrentThreadID() );
         CORE::CFutureResult started = pool->StartTaskWithConsumer( consumer );
         consumer->slowTypeForThread.Store( 0 );
 
@@ -442,6 +472,25 @@ PerformDedicatedTaskTests( void )
 
         ASSERT_TRUE( consumer->RequestTaskToStop( false ) );
         ASSERT_TRUE( WaitUntil( consumer->ended, 5000 ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DedicatedTasks: A task that asks its pool to wait for itself is refused at once instead of waiting for the timeout" )
+    try
+    {
+        // the pool has to recognise the calling thread as the one running the task (MT::GetCurrentThreadID())
+        CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksSelfWait" );
+        TSelfWaitingConsumerPtr consumer( GUCEF_NEW CSelfWaitingConsumer() );
+
+        CORE::CFutureResult started = pool->StartTaskWithConsumer( consumer );
+        ASSERT_FALSE( started.HasNoFuture() );
+        ASSERT_TRUE( WaitUntil( consumer->ended, 10000 ) );
+        ASSERT_FALSE( consumer->waitResult.Load() );
+        ASSERT_TRUE( consumer->waitedMs.Load() < 1000 );
     }
     catch( ... )
     {

@@ -221,7 +221,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     void Log( const TLogMsgType logMsgType ,
               const Int32 logLevel         ,
               const CString& logMessage    ,
-              const UInt32 threadId        ,
+              const TSystemThreadId threadId        ,
               const CTimestamp& timestamp  );
 
     void Log( const TLogMsgType logMsgType     ,
@@ -231,7 +231,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     void Log( const TLogMsgType logMsgType     ,
               const Int32 logLevel             ,
               const CVariantStream& logMessage ,
-              const UInt32 threadId            ,
+              const TSystemThreadId threadId   ,
               const CTimestamp& timestamp      );
 
     void SetMinLogLevel( const Int32 logLevel );
@@ -336,15 +336,16 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
         TLogMsgType logMsgType;
         Int32 logLevel;
         CString logMessage;
-        UInt32 threadId;
+        TSystemThreadId threadId;
         CTimestamp timestamp;
     };
     typedef struct SBootstrapLogEntry TBootstrapLogEntry;
     typedef GUCEF::vector< TBootstrapLogEntry > TBootstrapLogVector;
     typedef CTBasicSharedPtr< CLoggingTask, MT::CMutex > CLoggingTaskBasePtr;
-    typedef GUCEF::map< UInt32, CThreadLogBuffers* > TThreadBufferMap;
+    typedef GUCEF::map< TThreadId, CThreadLogBuffers* > TThreadBufferMap;    /**< by MT::GetCurrentThreadID() */
 
-    CThreadLogBuffers* GetOrCreateThreadBuffers( UInt32 threadId );
+    /** Called on the thread the buffers are for, threadId is its MT::GetCurrentThreadID() */
+    CThreadLogBuffers* GetOrCreateThreadBuffers( TThreadId threadId );
 
     /** pauses the logging task, if there is one, without the lock of the log manager; returns that task */
     CLoggingTaskBasePtr PauseLoggingTask( void );

@@ -298,7 +298,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     /**
      *  Obtains a coherent snapshot of thread information in a single lock protected call
      */
-    bool GetThreadInfo( UInt32 threadId         , 
+    bool GetThreadInfo( TSystemThreadId threadId         , 
                         CThreadInfo& info       ,
                         CString& threadPoolName ) const;
 
@@ -313,7 +313,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
      *
      *  @param taskId set to 0 by default/failure and set to the relevant task id on success
      */
-    bool GetTaskIdForThreadId( const UInt32 threadId ,
+    bool GetTaskIdForThreadId( const TSystemThreadId threadId ,
                                UInt32& taskId        ) const;
 
     /**
@@ -323,7 +323,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
      *  @param threadId set to 0 by default/failure and set to the relevant thread id on success 
      */
     bool GetThreadIdForTaskId( const UInt32 taskId ,
-                               UInt32& threadId    ) const;
+                               TSystemThreadId& threadId    ) const;
 
     /**
      *  If the task with the given id was provided with any 'work' data and said data is serializable this can be used to 
@@ -423,12 +423,15 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     {
         CString name;
         UInt32 registrations;
-        SExternalThread( void ) : name(), registrations( 0 ) {}
+        GUCEF_SYSTEM_THREAD_ID_MEMBER( systemThreadId )    /**< MT::GetCurrentThreadSystemID() of the thread where it differs from the key */
+        SExternalThread( void ) : name(), registrations( 0 ) GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( systemThreadId, 0 ) {}
     };
-    typedef GUCEF::map< UInt32, SExternalThread > TExternalThreadMap;
+    typedef GUCEF::map< TThreadId, SExternalThread > TExternalThreadMap;     /**< by MT::GetCurrentThreadID() */
 
+    /** The operating system's id of an external thread: the id its CThreadInfo shows, like ThreadID() for a pool thread */
+    static TSystemThreadId GetExternalSystemThreadId( const TExternalThreadMap::value_type& thread );
 
-    void MakeExternalThreadInfo( UInt32 threadId, const SExternalThread& thread, CThreadInfo& info ) const;
+    void MakeExternalThreadInfo( const TExternalThreadMap::value_type& thread, CThreadInfo& info ) const;
     void GetExternalThreadPoolInfo( CThreadPoolInfo& info ) const;
 
     TTaskIdGenerator::TNumericIDGeneratorTypedPtr m_taskIdGenerator;

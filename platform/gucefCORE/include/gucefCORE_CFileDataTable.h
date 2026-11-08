@@ -156,7 +156,7 @@ class GUCEF_CORE_PUBLIC_CPP CFileDataTable : public CIDataTable
     private:
 
     typedef CTSharedPtr< CFileDataTableFile, MT::CMutex > TFilePtr;
-    typedef GUCEF::map< UInt32, CString > TLastErrorMap;
+    typedef GUCEF::map< TThreadId, CString > TLastErrorMap;
     typedef GUCEF::vector< CDataTableBatchPtr > TBatchVector;
 
     CFileDataTable( const CFileDataTable& src );                    /**< not implemented */
@@ -186,7 +186,7 @@ class GUCEF_CORE_PUBLIC_CPP CFileDataTable : public CIDataTable
     mutable TFilePtr m_file;                /**< the file as last read, NULL until then or after a change */
     CDataTableAsyncLinkPtr m_asyncLink;
     mutable MT::CMutex m_errorLock;
-    mutable TLastErrorMap m_lastErrors;     /**< per thread */
+    mutable TLastErrorMap m_lastErrors;     /**< per thread, by MT::GetCurrentThreadID() */
 };
 
 /*-------------------------------------------------------------------------*/

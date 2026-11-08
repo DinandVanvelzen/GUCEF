@@ -172,7 +172,7 @@ CICodec::GetLastStatus( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lastStatusLock );
-    TLastStatusMap::const_iterator i = m_lastStatus.find( MT::GetCurrentTaskID() );
+    TLastStatusMap::const_iterator i = m_lastStatus.find( MT::GetCurrentThreadID() );
     if ( i != m_lastStatus.end() )
         return (*i).second.status;
     return GUCEF_CODEC_STATUS_OK;
@@ -185,7 +185,7 @@ CICodec::GetLastErrorMessage( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lastStatusLock );
-    TLastStatusMap::const_iterator i = m_lastStatus.find( MT::GetCurrentTaskID() );
+    TLastStatusMap::const_iterator i = m_lastStatus.find( MT::GetCurrentThreadID() );
     if ( i != m_lastStatus.end() )
         return (*i).second.message;
     return CString::Empty;
@@ -199,7 +199,7 @@ CICodec::SetLastStatus( TCodecStatus status   ,
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lastStatusLock );
-    SLastStatus& lastStatus = m_lastStatus[ MT::GetCurrentTaskID() ];
+    SLastStatus& lastStatus = m_lastStatus[ MT::GetCurrentThreadID() ];
     lastStatus.status = status;
     if ( GUCEF_NULL != message && '\0' != *message )
         lastStatus.message = message;

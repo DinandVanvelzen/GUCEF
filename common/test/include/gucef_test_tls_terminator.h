@@ -269,7 +269,7 @@ class CTlsTestTerminator
     UInt16 GetPort( void ) const { return m_port; }
 
     /** With true a connection that ends is cut at the TCP level without the TLS close notification, as an attacker or a fault would: the data may be truncated */
-    void SetAbortWithoutCloseNotify( bool abortWithoutCloseNotify ) { m_abortWithoutCloseNotify = abortWithoutCloseNotify; }
+    void SetAbortWithoutCloseNotify( bool abortWithoutCloseNotify ) { m_abortWithoutCloseNotify.Store( abortWithoutCloseNotify ); }
 
     /** How many connections were accepted so far */
     UInt32 GetAcceptedConnections( void ) { MT::CScopeMutex lock( m_lock ); return m_acceptedConnections; }
@@ -464,7 +464,7 @@ class CTlsTestTerminator
         }
 
         m_api.ERR_clear_error();
-        if ( !m_abortWithoutCloseNotify )
+        if ( !m_abortWithoutCloseNotify.Load() )
             m_api.SSL_shutdown( ssl );
         m_api.SSL_free( ssl );
         ::close( backendFd );
@@ -494,7 +494,7 @@ class CTlsTestTerminator
     UInt16 m_port;
     UInt16 m_backendPort;
     MT::CTAtomic< bool > m_running;     /**< read by the accept and connection threads, set by Start() and Stop() */
-    volatile bool m_abortWithoutCloseNotify;
+    MT::CTAtomic< bool > m_abortWithoutCloseNotify;     /**< set by the test thread, read by the connection threads */
     bool m_acceptThreadStarted;
     UInt32 m_liveConnections;
     UInt32 m_acceptedConnections;

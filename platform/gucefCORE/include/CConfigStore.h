@@ -232,11 +232,13 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
     TConfigurableSet m_newConfigureables;
     TConfigurableSet m_optionalConfigurables;   /**< registered in a scope of optional configurables */
     TUInt8Vector m_configurableScopes;          /**< per open scope: whether its configurables are optional */
-    UInt32 m_configurableScopeThreadId;         /**< the thread that began the open scopes */
+    TThreadId m_configurableScopeThreadId;  /**< the thread that began the open scopes */
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_configurableScopeSystemThreadId )   /**< display only, recorded with m_configurableScopeThreadId */
     bool m_isBusyLoadingConfig;
     TConfigurableVector m_configurablesInUse;   /**< called by a load or a save now, without m_configurablesLock */
-    UInt32 m_configurablesUserThreadId;         /**< the thread of that load or save, which hold the lock of the config
+    TThreadId m_configurablesUserThreadId;  /**< the thread of that load or save, which hold the lock of the config
                                                      store: one at a time */
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_configurablesUserSystemThreadId )   /**< display only, recorded with m_configurablesUserThreadId */
     mutable MT::CMutex m_configurablesLock;     /**< leaf lock of the configurables, their scopes and the state above:
                                                      never held while a configurable is called. A plugin is loaded and
                                                      its configurables are made under the lock of the plugin control,

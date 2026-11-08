@@ -97,6 +97,7 @@ CPulseGenerator::CPulseGenerator( void )
     , m_periodicUpdateRequestors()                     
     , m_driver( NULL )    
     , m_driverThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
     , m_notificationLock()
     , m_dataLock()
     , m_driverRequestsInFlight( 0 )
@@ -469,7 +470,8 @@ CPulseGenerator::SetPulseGeneratorDriver( CIPulseGeneratorDriver* driver )
 {GUCEF_TRACE;
 
     // asked before the data lock is taken: a driver may take a lock of its own to answer, the data lock stays a leaf
-    UInt32 driverThreadId = GUCEF_NULL != driver ? driver->GetPulseDriverThreadId() : 0;
+    TThreadId driverThreadId = GUCEF_NULL != driver ? driver->GetPulseDriverThreadId() : 0;
+    GUCEF_SYSTEM_THREAD_ID_CODE( TSystemThreadId driverSystemThreadId = GUCEF_NULL != driver ? driver->GetPulseDriverSystemThreadId() : 0; )
 
     MT::CScopeMutex dataLock( m_dataLock );
 
@@ -477,7 +479,10 @@ CPulseGenerator::SetPulseGeneratorDriver( CIPulseGeneratorDriver* driver )
     m_driver = driver;
 
     if ( GUCEF_NULL != m_driver )
+    {
         m_driverThreadId.Store( driverThreadId );
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_driverSystemThreadId.Store( driverSystemThreadId ); )
+    }
 
     if ( IsPulsingPeriodicly() )
     {
@@ -574,7 +579,7 @@ CPulseGenerator::RequestPeriodicPulses( void )
 
 /*--------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CPulseGenerator::GetPulseDriverThreadId( void ) const
 {
     // The driver is taken under the data lock and counted as in use, as in RequestImmediatePulseThroughDriver(): it is
@@ -589,12 +594,35 @@ CPulseGenerator::GetPulseDriverThreadId( void ) const
     }
     if ( GUCEF_NULL != driver )
     {
-        const UInt32 driverThreadId = driver->GetPulseDriverThreadId();
+        const TThreadId driverThreadId = driver->GetPulseDriverThreadId();
         --m_driverRequestsInFlight;
         return driverThreadId;
     }
 
     return m_driverThreadId.Load();
+}
+
+/*--------------------------------------------------------------------------*/
+
+TSystemThreadId
+CPulseGenerator::GetPulseDriverSystemThreadId( void ) const
+{
+    // the driver is asked the same way as in GetPulseDriverThreadId()
+    CIPulseGeneratorDriver* driver = GUCEF_NULL;
+    {
+        MT::CScopeMutex dataLock( m_dataLock );
+        driver = m_driver;
+        if ( GUCEF_NULL != driver )
+            ++m_driverRequestsInFlight;
+    }
+    if ( GUCEF_NULL != driver )
+    {
+        const TSystemThreadId driverSystemThreadId = driver->GetPulseDriverSystemThreadId();
+        --m_driverRequestsInFlight;
+        return driverSystemThreadId;
+    }
+
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( m_driverSystemThreadId.Load(), m_driverThreadId.Load() );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -647,11 +675,16 @@ CPulseGenerator::GetTimeSinceTickCountInMilliSecs( UInt64 sinceTickCount ) const
 /*--------------------------------------------------------------------------*/
 
 void
-CPulseGenerator::SetPulseDriverThreadId( UInt32 driverThreadId )
+CPulseGenerator::SetPulseDriverThreadId( TThreadId driverThreadId )
 {GUCEF_TRACE;
+
+    // the operating system's id is known only for the calling thread
+    MT::SThreadIds callerIds;
+    MT::GetCurrentThreadIds( &callerIds );
 
     MT::CScopeMutex dataLock( m_dataLock );
     m_driverThreadId.Store( driverThreadId );
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_driverSystemThreadId.Store( driverThreadId == callerIds.threadId ? callerIds.systemThreadId : 0 ); )
 }
 
 /*--------------------------------------------------------------------------*/
@@ -662,9 +695,13 @@ CPulseGenerator::OnDriverPulse( void )
 
     try
     {
+        MT::SThreadIds driverIds;
+        MT::GetCurrentThreadIds( &driverIds );
+
         MT::CScopeMutex dataLock( m_dataLock );
 
-        m_driverThreadId.Store( MT::GetCurrentTaskID() );
+        m_driverThreadId.Store( driverIds.threadId );
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_driverSystemThreadId.Store( driverIds.systemThreadId ); )
     
         UInt64 tickCount = MT::PrecisionTickCount();
         UInt64 deltaTicks = tickCount - m_lastCycleTickCount;

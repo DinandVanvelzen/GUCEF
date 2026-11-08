@@ -77,7 +77,7 @@ void
 CTextLineConsoleLogger::Log( const TLogMsgType logMsgType ,
                              const Int32 logLevel         ,
                              const CString& logMessage    ,
-                             const UInt32 threadId        ,
+                             const TSystemThreadId threadId        ,
                              const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -105,7 +105,7 @@ void
 CTextLineConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                               const Int32 logLevel         ,
                                               const CString& logMessage    ,
-                                              const UInt32 threadId        ,
+                                              const TSystemThreadId threadId        ,
                                               const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -127,7 +127,7 @@ void
 CTextLineConsoleLogger::Log( const TLogMsgType logMsgType     ,
                              const Int32 logLevel             ,
                              const CVariantStream& logMessage ,
-                             const UInt32 threadId            ,
+                             const TSystemThreadId threadId   ,
                              const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -140,7 +140,7 @@ void
 CTextLineConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                               const Int32 logLevel             ,
                                               const CVariantStream& logMessage ,
-                                              const UInt32 threadId            ,
+                                              const TSystemThreadId threadId   ,
                                               const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

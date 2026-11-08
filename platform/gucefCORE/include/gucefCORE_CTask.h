@@ -196,8 +196,9 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
      *  Helper function to get the thread id of the delegator object which is driving the associated task consumer if any
      *  Note that this will be a snapshot in time only. At any moment the task could start or complete changing the thread id
      *  from 0 to something and back. Hence the main utilization of this functionality is just for human consumption, display-only.
+     *  It is the operating system's id of the thread (MT::ThreadID()), not the MT::GetCurrentThreadID() identity.
      */
-    UInt32 GetThreadId( void ) const;
+    TSystemThreadId GetThreadId( void ) const;
 
     bool IsTaskInEndState( void ) const;
 

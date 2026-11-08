@@ -81,11 +81,14 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
     /**
      *  The logging backend should format the info given
      *  as appropriote and output it.
+     *  In all Log variants threadId is the operating system's id of the thread that logged, as
+     *  MT::GetCurrentThreadSystemID() and MT::ThreadID() give it (the number debuggers and thread listings show).
+     *  It is meant for display: it is not the MT::GetCurrentThreadID() identity used for thread ownership checks.
      */
     virtual void Log( const TLogMsgType logMsgType ,
                       const Int32 logLevel         ,
                       const CString& logMessage    ,
-                      const UInt32 threadId        ,
+                      const TSystemThreadId threadId        ,
                       const CTimestamp& timestamp  ) = 0;
 
     /**
@@ -96,7 +99,7 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
     virtual void Log( const TLogMsgType logMsgType     ,
                       const Int32 logLevel             ,
                       const CVariantStream& logMessage ,
-                      const UInt32 threadId            ,
+                      const TSystemThreadId threadId   ,
                       const CTimestamp& timestamp      ) = 0;
 
     /**
@@ -105,7 +108,7 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
     virtual void LogWithoutFormatting( const TLogMsgType logMsgType ,
                                        const Int32 logLevel         ,
                                        const CString& logMessage    ,
-                                       const UInt32 threadId        ,
+                                       const TSystemThreadId threadId        ,
                                        const CTimestamp& timestamp  ) = 0;
 
     /**
@@ -115,7 +118,7 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
     virtual void LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                        const Int32 logLevel             ,
                                        const CVariantStream& logMessage ,
-                                       const UInt32 threadId            ,
+                                       const TSystemThreadId threadId   ,
                                        const CTimestamp& timestamp      ) = 0;
 
     virtual void FlushLog( void ) = 0;

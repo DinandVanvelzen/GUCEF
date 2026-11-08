@@ -314,74 +314,85 @@ CNotifierImplementor::ForceNotifyObserversOnce( const CEvent& eventid ,
     TObserverVector newSubscribers;
     TObserverVector* outerNewSubscribers = m_newSubscribersOfDelivery;
     m_newSubscribersOfDelivery = &newSubscribers;
-    TObserverSet behindWalk;
-    std::less< CObserver* > observerOrder;
-
-    TObserverList::iterator i = m_observers.begin();
-    CObserver* walkPlace = GUCEF_NULL;
-    bool walked = false;
-    for ( ;; )
+    try
     {
-        TObserverList::iterator current;
-        if ( !behindWalk.empty() )
-        {
-            oPtr = *behindWalk.begin();
-            behindWalk.erase( behindWalk.begin() );
-            current = m_observers.find( oPtr );
-            if ( current == m_observers.end() )
-                continue;
-        }
-        else
-        {
-            if ( i == m_observers.end() )
-                break;
-            current = i;
-            oPtr = (*i).first;
-            walkPlace = oPtr;
-            walked = true;
-        }
+        TObserverSet behindWalk;
+        std::less< CObserver* > observerOrder;
 
-        // Check if we have not already notified this observer
-        if ( notifiedObservers.find( oPtr ) == notifiedObservers.end() )
+        TObserverList::iterator i = m_observers.begin();
+        CObserver* walkPlace = GUCEF_NULL;
+        bool walked = false;
+        for ( ;; )
         {
-            GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" << CORE::PointerToString( this ) << "): Class " << m_ownerNotifier->GetClassTypeName() << ": Dispatching event \"" << eventid.GetName() << "\" to " << oPtr->GetClassTypeName() << "(" << CORE::PointerToString( oPtr ) << ")" );
-
-            oPtr->OnNotify( m_ownerNotifier ,
-                            eventid         ,
-                            data            );
-
-            // Check if someone deleted our owner notifier
-            if ( m_ownerNotifier == GUCEF_NULL )
+            TObserverList::iterator current;
+            if ( !behindWalk.empty() )
             {
-                // Gracefully handle the destruction sequence
-                m_newSubscribersOfDelivery = outerNewSubscribers;
-                m_isBusy = false;
-                Destroy( this );
-                return false;
+                oPtr = *behindWalk.begin();
+                behindWalk.erase( behindWalk.begin() );
+                current = m_observers.find( oPtr );
+                if ( current == m_observers.end() )
+                    continue;
+            }
+            else
+            {
+                if ( i == m_observers.end() )
+                    break;
+                current = i;
+                oPtr = (*i).first;
+                walkPlace = oPtr;
+                walked = true;
             }
 
-            // Add the observer to our 'notified' list
-            notifiedObservers.insert( oPtr );
-
-            // Process command mail if needed
-            if ( !m_cmdMailStack.empty() )
-                ProcessCmdMailbox();
-        }
-
-        // Observers the mail subscribed at a place the walk has passed get the event before the walk goes on
-        if ( !newSubscribers.empty() )
-        {
-            if ( walked )
+            // Check if we have not already notified this observer
+            if ( notifiedObservers.find( oPtr ) == notifiedObservers.end() )
             {
-                for ( TObserverVector::iterator s = newSubscribers.begin(); s != newSubscribers.end(); ++s )
-                    if ( observerOrder( (*s), walkPlace ) )
-                        behindWalk.insert( (*s) );
-            }
-            newSubscribers.clear();
-        }
+                GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" << CORE::PointerToString( this ) << "): Class " << m_ownerNotifier->GetClassTypeName() << ": Dispatching event \"" << eventid.GetName() << "\" to " << oPtr->GetClassTypeName() << "(" << CORE::PointerToString( oPtr ) << ")" );
 
-        // The observer may have been removed while it was notified: the walk carries on after its place
-        i = walked ? m_observers.upper_bound( walkPlace ) : m_observers.begin();
+                oPtr->OnNotify( m_ownerNotifier ,
+                                eventid         ,
+                                data            );
+
+                // Check if someone deleted our owner notifier
+                if ( m_ownerNotifier == GUCEF_NULL )
+                {
+                    // Gracefully handle the destruction sequence
+                    m_newSubscribersOfDelivery = outerNewSubscribers;
+                    m_isBusy = false;
+                    Destroy( this );
+                    return false;
+                }
+
+                // Add the observer to our 'notified' list
+                notifiedObservers.insert( oPtr );
+
+                // Process command mail if needed
+                if ( !m_cmdMailStack.empty() )
+                    ProcessCmdMailbox();
+            }
+
+            // Observers the mail subscribed at a place the walk has passed get the event before the walk goes on
+            if ( !newSubscribers.empty() )
+            {
+                if ( walked )
+                {
+                    for ( TObserverVector::iterator s = newSubscribers.begin(); s != newSubscribers.end(); ++s )
+                        if ( observerOrder( (*s), walkPlace ) )
+                            behindWalk.insert( (*s) );
+                }
+                newSubscribers.clear();
+            }
+
+            // The observer may have been removed while it was notified: the walk carries on after its place
+            i = walked ? m_observers.upper_bound( walkPlace ) : m_observers.begin();
+        }
+    }
+    catch ( ... )
+    {
+        // An observer threw: the exception leaves the delivery, and the notifier is left as after a delivery (the
+        // caller ends the delivery, see NotifyObservers())
+        m_newSubscribersOfDelivery = outerNewSubscribers;
+        m_isBusy = false;
+        throw;
     }
 
     m_newSubscribersOfDelivery = outerNewSubscribers;
@@ -978,7 +989,24 @@ CNotifierImplementor::NotifyObservers( void )
 {GUCEF_TRACE;
 
     NotificationLock();
-    if ( ForceNotifyObserversOnce( CNotifier::ModifyEvent ) )
+    bool ownerAlive = true;
+    try
+    {
+        ownerAlive = ForceNotifyObserversOnce( CNotifier::ModifyEvent );
+    }
+    catch ( ... )
+    {
+        // An observer threw: the exception leaves the delivery, which ends as it would have otherwise
+        if ( m_ownerNotifier == GUCEF_NULL )
+            Destroy( this );
+        else
+        if ( m_scheduledForDestruction )
+            DestroyScheduledOwner();
+        else
+            NotificationUnlock();
+        throw;
+    }
+    if ( ownerAlive )
     {
         NotificationUnlock();
         return true;
@@ -1059,98 +1087,196 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
         TObserverVector* outerNewSubscribers = m_newSubscribersOfDelivery;
         if ( !busyProcessingMailbox )
             m_newSubscribersOfDelivery = &newSubscribers;
-        TObserverSet behindWalk;
-        std::less< CObserver* > observerOrder;
-
-        // Notify observers that are subscribed to this specific event (if any)
-        TNotificationList::iterator l = m_eventobservers.find( eventid );
-        if ( l != m_eventobservers.end() )
+        try
         {
-            TEventNotificationMap* observers = &(*l).second;
-            TEventNotificationMap::iterator n = observers->begin();
-            CObserver* walkPlace = GUCEF_NULL;
-            bool walked = false;
-            for ( ;; )
+            TObserverSet behindWalk;
+            std::less< CObserver* > observerOrder;
+
+            // Notify observers that are subscribed to this specific event (if any)
+            TNotificationList::iterator l = m_eventobservers.find( eventid );
+            if ( l != m_eventobservers.end() )
             {
-                TEventNotificationMap::iterator current;
-                bool fromWalk = false;
-                if ( !behindWalk.empty() )
+                TEventNotificationMap* observers = &(*l).second;
+                TEventNotificationMap::iterator n = observers->begin();
+                CObserver* walkPlace = GUCEF_NULL;
+                bool walked = false;
+                for ( ;; )
                 {
-                    oPtr = *behindWalk.begin();
-                    behindWalk.erase( behindWalk.begin() );
-                    current = observers->find( oPtr );
-                    if ( current == observers->end() )
-                        continue;
-                }
-                else
-                {
-                    if ( n == observers->end() )
-                        break;
-                    current = n;
-                    oPtr = (*n).first;
-                    walkPlace = oPtr;
-                    walked = true;
-                    fromWalk = true;
-                }
-                const UInt32 erasuresBefore = m_subscriptionErasures;
-
-                // Observers that already got the event are passed by
-                if ( !notifiedObservers.Contains( oPtr ) )
-                {
-                    bool notified = false;
-
-                    // Check if we should perform notification using the generic
-                    // handler or a user specified callback.
-                    TEventHandlerFunctorInterfaceVector& callbacks = (*current).second;
-                    if ( !callbacks.empty() )
+                    TEventNotificationMap::iterator current;
+                    bool fromWalk = false;
+                    if ( !behindWalk.empty() )
                     {
-                        TEventHandlerFunctorInterfaceVector::iterator m = callbacks.begin();
-                        while ( m != callbacks.end() )
-                        {
-                            CIEventHandlerFunctorBase* callback = (*m);
-                            if ( GUCEF_NULL != callback )
-                            {
-                                GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() +    
-                                    ": Dispatching event \"" + eventid.GetName() + "\" to " + callback->GetClassTypeName() + "(" + CORE::PointerToString( callback ) + ")" );
-
-                                callback->OnNotify( &sender   ,
-                                                    eventid   ,
-                                                    eventData );
-                                notified = true;
-
-                                // Check if someone deleted our owner notifier
-                                if ( m_ownerNotifier == GUCEF_NULL )
-                                {
-                                    // Gracefully handle the destruction sequence
-                                    m_newSubscribersOfDelivery = outerNewSubscribers;
-                                    m_isBusy = wasBusy;
-                                    if ( usesOwnSpill )
-                                        m_notifiedSpillInUse = false;
-                                    lock.EarlyUnlock();
-                                    Destroy( this );
-                                    return false;
-                                }
-
-                                // The observer may be gone, destroyed by its callback: then so are its callbacks
-                                if ( !IsSubscribedToEvent( oPtr, eventid ) )
-                                    break;
-                            }
-                            ++m;
-                        }
+                        oPtr = *behindWalk.begin();
+                        behindWalk.erase( behindWalk.begin() );
+                        current = observers->find( oPtr );
+                        if ( current == observers->end() )
+                            continue;
                     }
                     else
                     {
-                        GUCEF_DEBUG_LOG_EVERYTHING( "CNotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
+                        if ( n == observers->end() )
+                            break;
+                        current = n;
+                        oPtr = (*n).first;
+                        walkPlace = oPtr;
+                        walked = true;
+                        fromWalk = true;
+                    }
+                    const UInt32 erasuresBefore = m_subscriptionErasures;
+
+                    // Observers that already got the event are passed by
+                    if ( !notifiedObservers.Contains( oPtr ) )
+                    {
+                        bool notified = false;
+
+                        // Check if we should perform notification using the generic
+                        // handler or a user specified callback.
+                        TEventHandlerFunctorInterfaceVector& callbacks = (*current).second;
+                        if ( !callbacks.empty() )
+                        {
+                            TEventHandlerFunctorInterfaceVector::iterator m = callbacks.begin();
+                            while ( m != callbacks.end() )
+                            {
+                                CIEventHandlerFunctorBase* callback = (*m);
+                                if ( GUCEF_NULL != callback )
+                                {
+                                    GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() +    
+                                        ": Dispatching event \"" + eventid.GetName() + "\" to " + callback->GetClassTypeName() + "(" + CORE::PointerToString( callback ) + ")" );
+
+                                    callback->OnNotify( &sender   ,
+                                                        eventid   ,
+                                                        eventData );
+                                    notified = true;
+
+                                    // Check if someone deleted our owner notifier
+                                    if ( m_ownerNotifier == GUCEF_NULL )
+                                    {
+                                        // Gracefully handle the destruction sequence
+                                        m_newSubscribersOfDelivery = outerNewSubscribers;
+                                        m_isBusy = wasBusy;
+                                        if ( usesOwnSpill )
+                                            m_notifiedSpillInUse = false;
+                                        lock.EarlyUnlock();
+                                        Destroy( this );
+                                        return false;
+                                    }
+
+                                    // The observer may be gone, destroyed by its callback: then so are its callbacks
+                                    if ( !IsSubscribedToEvent( oPtr, eventid ) )
+                                        break;
+                                }
+                                ++m;
+                            }
+                        }
+                        else
+                        {
+                            GUCEF_DEBUG_LOG_EVERYTHING( "CNotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
+                                ": Dispatching event \"" + eventid.GetName() + "\" to " + oPtr->GetClassTypeName() + "(" + CORE::PointerToString( oPtr ) + ")" );
+
+                            oPtr->OnNotify( &sender   ,
+                                            eventid   ,
+                                            eventData );                            
+                            notified = true;
+                        }
+                  
+                        if ( notified )
+                        {
+                            // Check if someone deleted our owner notifier
+                            if ( m_ownerNotifier == GUCEF_NULL )
+                            {
+                                // Gracefully handle the destruction sequence
+                                m_newSubscribersOfDelivery = outerNewSubscribers;
+                                m_isBusy = wasBusy;
+                                if ( usesOwnSpill )
+                                    m_notifiedSpillInUse = false;
+                                lock.EarlyUnlock();
+                                Destroy( this );
+                                return false;
+                            }
+
+                            // Add the observer to our 'notified' list
+                            notifiedObservers.Add( oPtr );
+
+                            // Process command mail if needed
+                            if ( !busyProcessingMailbox && !m_cmdMailStack.empty() )
+                                ProcessCmdMailbox();
+                        }
+                    }
+
+                    // Observers the mail subscribed at a place the walk has passed get the event before the walk goes on
+                    if ( !newSubscribers.empty() )
+                    {
+                        if ( walked )
+                        {
+                            for ( TObserverVector::iterator s = newSubscribers.begin(); s != newSubscribers.end(); ++s )
+                                if ( observerOrder( (*s), walkPlace ) )
+                                    behindWalk.insert( (*s) );
+                        }
+                        newSubscribers.clear();
+                    }
+
+                    // The administration may have changed: by the mail, or by an observer that was destroyed while it was
+                    // notified (its destruction cannot wait for the mailbox). The observers of the event may be gone
+                    // altogether, else the walk carries on after its place. Without anything taken out the iterators hold:
+                    // the walk steps on, which meets observers subscribed after its place as well
+                    if ( erasuresBefore == m_subscriptionErasures )
+                    {
+                        if ( fromWalk )
+                            ++n;
+                        continue;
+                    }
+                    l = m_eventobservers.find( eventid );
+                    if ( l == m_eventobservers.end() )
+                        break;
+                    observers = &(*l).second;
+                    n = walked ? observers->upper_bound( walkPlace ) : observers->begin();
+                }
+            }
+
+            // Now we process observers that are subscribed to 'all' events
+            // these are catch-all subscriptions. This walk starts at the beginning, it meets every subscription made so far
+            newSubscribers.clear();
+            behindWalk.clear();
+            {
+                TObserverList::iterator i = m_observers.begin();
+                CObserver* walkPlace = GUCEF_NULL;
+                bool walked = false;
+                for ( ;; )
+                {
+                    TObserverList::iterator current;
+                    bool fromWalk = false;
+                    if ( !behindWalk.empty() )
+                    {
+                        oPtr = *behindWalk.begin();
+                        behindWalk.erase( behindWalk.begin() );
+                        current = m_observers.find( oPtr );
+                        if ( current == m_observers.end() )
+                            continue;
+                    }
+                    else
+                    {
+                        if ( i == m_observers.end() )
+                            break;
+                        current = i;
+                        oPtr = (*i).first;
+                        walkPlace = oPtr;
+                        walked = true;
+                        fromWalk = true;
+                    }
+                    const UInt32 erasuresBefore = m_subscriptionErasures;
+
+                    // Check if this observer is registered as interested in all events which is just a flag
+                    // and if we have not already notified this observer using a more dedicated subscription and potentially dedicated callback
+                    if ( (*current).second && !notifiedObservers.Contains( oPtr ) )
+                    {
+                        GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
                             ": Dispatching event \"" + eventid.GetName() + "\" to " + oPtr->GetClassTypeName() + "(" + CORE::PointerToString( oPtr ) + ")" );
 
+                        // Perform the notification because this observer has not been notified at all yet
                         oPtr->OnNotify( &sender   ,
                                         eventid   ,
-                                        eventData );                            
-                        notified = true;
-                    }
-                  
-                    if ( notified )
-                    {
+                                        eventData );
+
                         // Check if someone deleted our owner notifier
                         if ( m_ownerNotifier == GUCEF_NULL )
                         {
@@ -1171,125 +1297,56 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                         if ( !busyProcessingMailbox && !m_cmdMailStack.empty() )
                             ProcessCmdMailbox();
                     }
-                }
 
-                // Observers the mail subscribed at a place the walk has passed get the event before the walk goes on
-                if ( !newSubscribers.empty() )
-                {
-                    if ( walked )
+                    // Observers the mail subscribed at a place the walk has passed get the event before the walk goes on
+                    if ( !newSubscribers.empty() )
                     {
-                        for ( TObserverVector::iterator s = newSubscribers.begin(); s != newSubscribers.end(); ++s )
-                            if ( observerOrder( (*s), walkPlace ) )
-                                behindWalk.insert( (*s) );
+                        if ( walked )
+                        {
+                            for ( TObserverVector::iterator s = newSubscribers.begin(); s != newSubscribers.end(); ++s )
+                                if ( observerOrder( (*s), walkPlace ) )
+                                    behindWalk.insert( (*s) );
+                        }
+                        newSubscribers.clear();
                     }
-                    newSubscribers.clear();
-                }
 
-                // The administration may have changed: by the mail, or by an observer that was destroyed while it was
-                // notified (its destruction cannot wait for the mailbox). The observers of the event may be gone
-                // altogether, else the walk carries on after its place. Without anything taken out the iterators hold:
-                // the walk steps on, which meets observers subscribed after its place as well
-                if ( erasuresBefore == m_subscriptionErasures )
-                {
-                    if ( fromWalk )
-                        ++n;
-                    continue;
+                    // The observer may have been removed while it was notified: the walk carries on after its place.
+                    // Without anything taken out the iterator holds and the walk steps on
+                    if ( erasuresBefore == m_subscriptionErasures )
+                    {
+                        if ( fromWalk )
+                            ++i;
+                        continue;
+                    }
+                    i = walked ? m_observers.upper_bound( walkPlace ) : m_observers.begin();
                 }
-                l = m_eventobservers.find( eventid );
-                if ( l == m_eventobservers.end() )
-                    break;
-                observers = &(*l).second;
-                n = walked ? observers->upper_bound( walkPlace ) : observers->begin();
             }
         }
-
-        // Now we process observers that are subscribed to 'all' events
-        // these are catch-all subscriptions. This walk starts at the beginning, it meets every subscription made so far
-        newSubscribers.clear();
-        behindWalk.clear();
+        catch ( ... )
         {
-            TObserverList::iterator i = m_observers.begin();
-            CObserver* walkPlace = GUCEF_NULL;
-            bool walked = false;
-            for ( ;; )
+            // An observer threw: the exception leaves the delivery, and the notifier is left as a delivery that ends
+            // leaves it, so it delivers its later events and carries out subscription requests as usual
+            m_newSubscribersOfDelivery = outerNewSubscribers;
+            m_isBusy = wasBusy;
+            if ( usesOwnSpill )
+                m_notifiedSpillInUse = false;
+            if ( m_ownerNotifier == GUCEF_NULL )
             {
-                TObserverList::iterator current;
-                bool fromWalk = false;
-                if ( !behindWalk.empty() )
-                {
-                    oPtr = *behindWalk.begin();
-                    behindWalk.erase( behindWalk.begin() );
-                    current = m_observers.find( oPtr );
-                    if ( current == m_observers.end() )
-                        continue;
-                }
-                else
-                {
-                    if ( i == m_observers.end() )
-                        break;
-                    current = i;
-                    oPtr = (*i).first;
-                    walkPlace = oPtr;
-                    walked = true;
-                    fromWalk = true;
-                }
-                const UInt32 erasuresBefore = m_subscriptionErasures;
-
-                // Check if this observer is registered as interested in all events which is just a flag
-                // and if we have not already notified this observer using a more dedicated subscription and potentially dedicated callback
-                if ( (*current).second && !notifiedObservers.Contains( oPtr ) )
-                {
-                    GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
-                        ": Dispatching event \"" + eventid.GetName() + "\" to " + oPtr->GetClassTypeName() + "(" + CORE::PointerToString( oPtr ) + ")" );
-
-                    // Perform the notification because this observer has not been notified at all yet
-                    oPtr->OnNotify( &sender   ,
-                                    eventid   ,
-                                    eventData );
-
-                    // Check if someone deleted our owner notifier
-                    if ( m_ownerNotifier == GUCEF_NULL )
-                    {
-                        // Gracefully handle the destruction sequence
-                        m_newSubscribersOfDelivery = outerNewSubscribers;
-                        m_isBusy = wasBusy;
-                        if ( usesOwnSpill )
-                            m_notifiedSpillInUse = false;
-                        lock.EarlyUnlock();
-                        Destroy( this );
-                        return false;
-                    }
-
-                    // Add the observer to our 'notified' list
-                    notifiedObservers.Add( oPtr );
-
-                    // Process command mail if needed
-                    if ( !busyProcessingMailbox && !m_cmdMailStack.empty() )
-                        ProcessCmdMailbox();
-                }
-
-                // Observers the mail subscribed at a place the walk has passed get the event before the walk goes on
-                if ( !newSubscribers.empty() )
-                {
-                    if ( walked )
-                    {
-                        for ( TObserverVector::iterator s = newSubscribers.begin(); s != newSubscribers.end(); ++s )
-                            if ( observerOrder( (*s), walkPlace ) )
-                                behindWalk.insert( (*s) );
-                    }
-                    newSubscribers.clear();
-                }
-
-                // The observer may have been removed while it was notified: the walk carries on after its place.
-                // Without anything taken out the iterator holds and the walk steps on
-                if ( erasuresBefore == m_subscriptionErasures )
-                {
-                    if ( fromWalk )
-                        ++i;
-                    continue;
-                }
-                i = walked ? m_observers.upper_bound( walkPlace ) : m_observers.begin();
+                lock.EarlyUnlock();
+                Destroy( this );
+                throw;
             }
+            if ( !busyProcessingMailbox )
+            {
+                if ( !m_scheduledForDestruction )
+                    ProcessMailbox();
+                if ( m_scheduledForDestruction )
+                {
+                    lock.EarlyUnlock();
+                    DestroyScheduledOwner();
+                }
+            }
+            throw;
         }
 
         m_newSubscribersOfDelivery = outerNewSubscribers;
@@ -1561,9 +1618,35 @@ CNotifierImplementor::NotifySpecificObserver( CNotifier& sender           ,
                 // Perform the notification
                 // If an observer is subscribed to all events we never used specialized callbacks
                 // instead we always use the standard OnNotify()
-                specificObserver.OnNotify( &sender   ,
-                                           eventid   ,
-                                           eventData );
+                try
+                {
+                    specificObserver.OnNotify( &sender   ,
+                                               eventid   ,
+                                               eventData );
+                }
+                catch ( ... )
+                {
+                    // An observer threw: the exception leaves the delivery, and the notifier is left as after a
+                    // delivery, see NotifyObservers()
+                    m_isBusy = false;
+                    if ( m_ownerNotifier == GUCEF_NULL )
+                    {
+                        lock.EarlyUnlock();
+                        Destroy( this );
+                        throw;
+                    }
+                    if ( !busyProcessingMailbox )
+                    {
+                        if ( !m_cmdMailStack.empty() && !m_scheduledForDestruction )
+                            ProcessCmdMailbox();
+                        if ( m_scheduledForDestruction )
+                        {
+                            lock.EarlyUnlock();
+                            DestroyScheduledOwner();
+                        }
+                    }
+                    throw;
+                }
                 m_isBusy = false;
 
                 // Check if someone deleted our owner notifier
@@ -1607,30 +1690,56 @@ CNotifierImplementor::NotifySpecificObserver( CNotifier& sender           ,
             // handler or a user specified callback.
 
             TEventHandlerFunctorInterfaceVector& callbacks = (*n).second;
-            if ( !callbacks.empty() )
+            try
             {
-                TEventHandlerFunctorInterfaceVector::iterator m = callbacks.begin();
-                while ( m != callbacks.end() )
+                if ( !callbacks.empty() )
                 {
-                    CIEventHandlerFunctorBase* callback = (*m);
+                    TEventHandlerFunctorInterfaceVector::iterator m = callbacks.begin();
+                    while ( m != callbacks.end() )
+                    {
+                        CIEventHandlerFunctorBase* callback = (*m);
 
+                        GUCEF_DEBUG_LOG_EVERYTHING( "CNotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
+                            ": Dispatching event \"" + eventid.GetName() + "\" to " + callback->GetClassTypeName() + "(" + CORE::PointerToString( callback ) + ")" );
+
+                        callback->OnNotify( &sender   ,
+                                            eventid   ,
+                                            eventData );
+                        ++m;
+                    }
+                }
+                else
+                {
                     GUCEF_DEBUG_LOG_EVERYTHING( "CNotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
-                        ": Dispatching event \"" + eventid.GetName() + "\" to " + callback->GetClassTypeName() + "(" + CORE::PointerToString( callback ) + ")" );
+                        ": Dispatching event \"" + eventid.GetName() + "\" to " + specificObserver.GetClassTypeName() + "(" + CORE::PointerToString( &specificObserver ) + ")" );
 
-                    callback->OnNotify( &sender   ,
-                                        eventid   ,
-                                        eventData );
-                    ++m;
+                    specificObserver.OnNotify( &sender   ,
+                                               eventid   ,
+                                               eventData );                           
                 }
             }
-            else
+            catch ( ... )
             {
-                GUCEF_DEBUG_LOG_EVERYTHING( "CNotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
-                    ": Dispatching event \"" + eventid.GetName() + "\" to " + specificObserver.GetClassTypeName() + "(" + CORE::PointerToString( &specificObserver ) + ")" );
-
-                specificObserver.OnNotify( &sender   ,
-                                           eventid   ,
-                                           eventData );                           
+                // An observer threw: the exception leaves the delivery, and the notifier is left as after a
+                // delivery, see NotifyObservers()
+                m_isBusy = false;
+                if ( m_ownerNotifier == GUCEF_NULL )
+                {
+                    lock.EarlyUnlock();
+                    Destroy( this );
+                    throw;
+                }
+                if ( !busyProcessingMailbox )
+                {
+                    if ( !m_cmdMailStack.empty() && !m_scheduledForDestruction )
+                        ProcessCmdMailbox();
+                    if ( m_scheduledForDestruction )
+                    {
+                        lock.EarlyUnlock();
+                        DestroyScheduledOwner();
+                    }
+                }
+                throw;
             }
 
             m_isBusy = false;

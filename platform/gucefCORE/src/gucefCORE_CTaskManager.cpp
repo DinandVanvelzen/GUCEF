@@ -628,12 +628,16 @@ bool
 CTaskManager::RegisterExternalThread( const CString& threadName )
 {GUCEF_TRACE;
 
-    const UInt32 threadId = MT::GetCurrentTaskID();
+    MT::SThreadIds threadIds;
+    MT::GetCurrentThreadIds( &threadIds );
     MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
 
-    SExternalThread& thread = m_externalThreads[ threadId ];
+    SExternalThread& thread = m_externalThreads[ threadIds.threadId ];
     if ( 0 == thread.registrations )
+    {
         thread.name = threadName;
+        GUCEF_SYSTEM_THREAD_ID_CODE( thread.systemThreadId = threadIds.systemThreadId; )
+    }
     ++thread.registrations;
     return true;
 }
@@ -644,7 +648,7 @@ bool
 CTaskManager::UnregisterExternalThread( void )
 {GUCEF_TRACE;
 
-    const UInt32 threadId = MT::GetCurrentTaskID();
+    const TThreadId threadId = MT::GetCurrentThreadID();
     MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
 
     TExternalThreadMap::iterator i = m_externalThreads.find( threadId );
@@ -670,14 +674,23 @@ CTaskManager::GetNrOfExternalThreads( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+TSystemThreadId
+CTaskManager::GetExternalSystemThreadId( const TExternalThreadMap::value_type& thread )
+{GUCEF_TRACE;
+
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( thread.second.systemThreadId, thread.first );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
-CTaskManager::MakeExternalThreadInfo( UInt32 threadId, const SExternalThread& thread, CThreadInfo& info ) const
+CTaskManager::MakeExternalThreadInfo( const TExternalThreadMap::value_type& thread, CThreadInfo& info ) const
 {GUCEF_TRACE;
 
     info.Clear();
-    info.SetThreadId( threadId );
+    info.SetThreadId( GetExternalSystemThreadId( thread ) );
     info.SetThreadStatus( MT::THREADSTATUS_RUNNING );
-    info.SetThreadName( thread.name );
+    info.SetThreadName( thread.second.name );
     info.SetIsExternal( true );
 }
 
@@ -1105,7 +1118,7 @@ CTaskManager::GetInfo( CTaskManagerInfo& info ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CTaskManager::GetTaskIdForThreadId( const UInt32 threadId ,
+CTaskManager::GetTaskIdForThreadId( const TSystemThreadId threadId ,
                                     UInt32& taskId        ) const
 {GUCEF_TRACE;
 
@@ -1126,7 +1139,7 @@ CTaskManager::GetTaskIdForThreadId( const UInt32 threadId ,
 
 bool
 CTaskManager::GetThreadIdForTaskId( const UInt32 taskId ,
-                                    UInt32& threadId    ) const
+                                    TSystemThreadId& threadId    ) const
 {GUCEF_TRACE;
 
     threadId = 0;
@@ -1240,7 +1253,7 @@ CTaskManager::GetThreadPoolInfo( const CString& poolName, CThreadPoolInfo& info 
 /*-------------------------------------------------------------------------*/
 
 bool
-CTaskManager::GetThreadInfo( UInt32 threadId         ,   
+CTaskManager::GetThreadInfo( TSystemThreadId threadId         ,   
                              CThreadInfo& info       ,
                              CString& threadPoolName ) const
 {GUCEF_TRACE;
@@ -1260,12 +1273,17 @@ CTaskManager::GetThreadInfo( UInt32 threadId         ,
         ++i;
     }
 
-    TExternalThreadMap::const_iterator e = m_externalThreads.find( threadId );
-    if ( e != m_externalThreads.end() )
+    // thread infos carry the operating system's thread id, as the pools give it for their threads
+    TExternalThreadMap::const_iterator e = m_externalThreads.begin();
+    while ( e != m_externalThreads.end() )
     {
-        MakeExternalThreadInfo( (*e).first, (*e).second, info );
-        threadPoolName = ExternalThreadPoolName;
-        return true;
+        if ( GetExternalSystemThreadId( *e ) == threadId )
+        {
+            MakeExternalThreadInfo( *e, info );
+            threadPoolName = ExternalThreadPoolName;
+            return true;
+        }
+        ++e;
     }
 
     return false;
@@ -1291,7 +1309,7 @@ CTaskManager::GetAllThreadInfo( TThreadInfoMap& info ) const
     TExternalThreadMap::const_iterator e = m_externalThreads.begin();
     while ( e != m_externalThreads.end() )
     {
-        MakeExternalThreadInfo( (*e).first, (*e).second, info[ (*e).first ] );
+        MakeExternalThreadInfo( *e, info[ GetExternalSystemThreadId( *e ) ] );
         ++e;
     }
     return totalSuccess;

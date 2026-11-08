@@ -179,7 +179,7 @@ class CTestCaptureLogger : public CORE::CILogger
         CORE::TLogMsgType logMsgType;
         Int32 logLevel;
         CORE::CString logMessage;
-        UInt32 threadId;
+        TSystemThreadId threadId;
         bool wasFormatted;
     };
 
@@ -199,7 +199,7 @@ class CTestCaptureLogger : public CORE::CILogger
     virtual void Log( const CORE::TLogMsgType logMsgType ,
                       const Int32 logLevel               ,
                       const CORE::CString& logMessage    ,
-                      const UInt32 threadId              ,
+                      const TSystemThreadId threadId     ,
                       const CORE::CTimestamp& /*timestamp*/ ) GUCEF_VIRTUAL_OVERRIDE
     {
         if ( logLevel >= m_minLogLevel )
@@ -218,7 +218,7 @@ class CTestCaptureLogger : public CORE::CILogger
     virtual void Log( const CORE::TLogMsgType logMsgType     ,
                       const Int32 logLevel                   ,
                       const CORE::CVariantStream& logMessage ,
-                      const UInt32 threadId                  ,
+                      const TSystemThreadId threadId         ,
                       const CORE::CTimestamp& timestamp      ) GUCEF_VIRTUAL_OVERRIDE
     {
         Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
@@ -227,7 +227,7 @@ class CTestCaptureLogger : public CORE::CILogger
     virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType ,
                                        const Int32 logLevel               ,
                                        const CORE::CString& logMessage    ,
-                                       const UInt32 threadId              ,
+                                       const TSystemThreadId threadId     ,
                                        const CORE::CTimestamp& /*timestamp*/ ) GUCEF_VIRTUAL_OVERRIDE
     {
         if ( logLevel >= m_minLogLevel )
@@ -246,7 +246,7 @@ class CTestCaptureLogger : public CORE::CILogger
     virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType     ,
                                        const Int32 logLevel                   ,
                                        const CORE::CVariantStream& logMessage ,
-                                       const UInt32 threadId                  ,
+                                       const TSystemThreadId threadId         ,
                                        const CORE::CTimestamp& timestamp      ) GUCEF_VIRTUAL_OVERRIDE
     {
         LogWithoutFormatting( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
@@ -313,7 +313,7 @@ PreDrainThreadBuffer( void )
 static UInt32
 CountEntriesWith( CTestCaptureLogger& logger         ,
                   const CORE::CString& substr       ,
-                  UInt32 expectedThreadId           ,
+                  TSystemThreadId expectedThreadId  ,
                   UInt32& entriesWithWrongThreadId  )
 {
     MT::CScopeMutex lock( logger.m_lock );
@@ -363,7 +363,7 @@ class CLoggingTestWorker : public MT::CActiveObject
     public:
 
     UInt32 workerIndex;
-    UInt32 threadId;     /**< set by the worker thread itself */
+    TSystemThreadId threadId;   /**< set by the worker thread itself */
 
     CLoggingTestWorker( UInt32 index )
         : MT::CActiveObject()
@@ -400,7 +400,7 @@ class CLoggingTestWorker : public MT::CActiveObject
 
     virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
     {
-        threadId = MT::GetCurrentTaskID();
+        threadId = MT::GetCurrentThreadSystemID();
         CORE::CString prefix = "MTLogTest-Worker" + CORE::ToString( workerIndex ) + "-Msg";
         for ( UInt32 i=0; i<LoggingTestNrOfMsgsPerThread; ++i )
         {
@@ -1037,7 +1037,7 @@ PerformLoggingTests( void )
         {
             CORE::CUserActionLogger direct( logFile );
             ASSERT_TRUE( direct.IsOpen() );
-            direct.Log( CORE::LOG_USER, CORE::LOGLEVEL_NORMAL, "ClickedBeforeTheCrash", MT::GetCurrentTaskID(), CORE::CTimestamp::NowUTCTime() );
+            direct.Log( CORE::LOG_USER, CORE::LOGLEVEL_NORMAL, "ClickedBeforeTheCrash", MT::GetCurrentThreadSystemID(), CORE::CTimestamp::NowUTCTime() );
             CORE::CString unflushed;
             ASSERT_TRUE( CORE::LoadTextFileAsString( logFile, unflushed ) );
             ASSERT_TRUE( unflushed.HasSubstr( "a new session" ) >= 0 && unflushed.HasSubstr( "ClickedBeforeTheCrash" ) >= 0 );
@@ -1170,7 +1170,7 @@ PerformLoggingTests( void )
         CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
         logMgr.AddLogger( &captureLogger );
 
-        UInt32 thisThreadId = MT::GetCurrentTaskID();
+        TSystemThreadId thisThreadId = MT::GetCurrentThreadSystemID();
 
         {
             CORE::CLogStreamScope scope( CORE::LOG_STANDARD, CORE::LOGLEVEL_NORMAL );
@@ -1279,7 +1279,7 @@ PerformLoggingTests( void )
             PreDrainThreadBuffer();
 
             CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
-            CORE::CString logFilePath = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_LoggingTest21_" + CORE::ToString( MT::GetCurrentTaskID() ) + ".txt" );
+            CORE::CString logFilePath = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_LoggingTest21_" + CORE::ToString( MT::GetCurrentThreadSystemID() ) + ".txt" );
 
             CTestCaptureLogger captureLogger;
             {
@@ -1299,7 +1299,7 @@ PerformLoggingTests( void )
             }
 
             UInt32 wrongThreadIds = 0;
-            ASSERT_TRUE( LoggingTestNrOfMsgsPerThread == CountEntriesWith( captureLogger, "STLogTest-Main-Msg", MT::GetCurrentTaskID(), wrongThreadIds ) );
+            ASSERT_TRUE( LoggingTestNrOfMsgsPerThread == CountEntriesWith( captureLogger, "STLogTest-Main-Msg", MT::GetCurrentThreadSystemID(), wrongThreadIds ) );
             ASSERT_TRUE( 0 == wrongThreadIds );
             for ( UInt32 i=0; i<LoggingTestNrOfMsgsPerThread; ++i )
                 ASSERT_TRUE( captureLogger.HasEntryWith( "STLogTest-Main-Msg" + CORE::ToString( i ) + "-End" ) );
@@ -1328,8 +1328,8 @@ PerformLoggingTests( void )
             PreDrainThreadBuffer();
 
             CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
-            CORE::CString logFilePath = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_LoggingTest22_" + CORE::ToString( MT::GetCurrentTaskID() ) + ".txt" );
-            UInt32 mainThreadId = MT::GetCurrentTaskID();
+            CORE::CString logFilePath = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_LoggingTest22_" + CORE::ToString( MT::GetCurrentThreadSystemID() ) + ".txt" );
+            TSystemThreadId mainThreadId = MT::GetCurrentThreadSystemID();
 
             GUCEF::vector< CLoggingTestWorker* > workers;
             for ( UInt32 w=0; w<LoggingTestNrOfWorkerThreads; ++w )

@@ -128,7 +128,7 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
     void Log( const TLogMsgType logMsgType ,
               const Int32 logLevel         ,
               const CString& logMessage    ,
-              const UInt32 threadId        ,
+              const TSystemThreadId threadId        ,
               const CTimestamp& timestamp  );
 
     /**

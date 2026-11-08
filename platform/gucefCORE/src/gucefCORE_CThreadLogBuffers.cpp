@@ -98,7 +98,7 @@ CThreadLogBuffers::GetBackBuffer( void )
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TThreadId
 CThreadLogBuffers::GetThreadId( void ) const
 {GUCEF_TRACE;
 
@@ -108,7 +108,7 @@ CThreadLogBuffers::GetThreadId( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CThreadLogBuffers::SetThreadId( UInt32 threadId, bool isPulseGeneratorThread )
+CThreadLogBuffers::SetThreadId( TThreadId threadId, bool isPulseGeneratorThread )
 {GUCEF_TRACE;
 
     MT::CScopeMutex swapLock( m_swapLock );

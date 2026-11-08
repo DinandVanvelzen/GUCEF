@@ -89,6 +89,16 @@ CIPulseGeneratorDriver::QueueImmediatePulse( CPulseGenerator& pulseGenerator )
 
 /*--------------------------------------------------------------------------*/
 
+TSystemThreadId
+CIPulseGeneratorDriver::GetPulseDriverSystemThreadId( void ) const
+{GUCEF_TRACE;
+
+    // where the ids differ the system id cannot be derived from the identity: unknown unless the driver records it
+    return GUCEF_SYSTEM_THREAD_ID_OR_THREAD_ID( 0, GetPulseDriverThreadId() );
+}
+
+/*--------------------------------------------------------------------------*/
+
 void
 CIPulseGeneratorDriver::SendDriverPulse( CPulseGenerator& pulseGenerator )
 {GUCEF_TRACE;

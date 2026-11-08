@@ -164,6 +164,7 @@ CPumpedObserver::CPumpedObserver( bool allowSameThreadEventsToFlowThrough )
     , m_mailBeingDeliveredLostItsNotifier( false )
     , m_pulseGeneratorBeingLinked( GUCEF_NULL )
     , m_deliveringThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_deliveringSystemThreadId, 0 )
     , m_deliveryLock()
     , m_notificationLock()
 {GUCEF_TRACE;
@@ -186,6 +187,7 @@ CPumpedObserver::CPumpedObserver( PulseGeneratorPtr pulseGenerator        ,
     , m_mailBeingDeliveredLostItsNotifier( false )
     , m_pulseGeneratorBeingLinked( GUCEF_NULL )
     , m_deliveringThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_deliveringSystemThreadId, 0 )
     , m_deliveryLock()
     , m_notificationLock()
 {GUCEF_TRACE;
@@ -206,6 +208,7 @@ CPumpedObserver::CPumpedObserver( const CPumpedObserver& src )
     , m_mailBeingDeliveredLostItsNotifier( false )
     , m_pulseGeneratorBeingLinked( GUCEF_NULL )
     , m_deliveringThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_deliveringSystemThreadId, 0 )
     , m_deliveryLock()
     , m_notificationLock()
 {GUCEF_TRACE;
@@ -313,7 +316,7 @@ CPumpedObserver::ClearNotifierReferencesFromMailbox( CNotifier* notifier )
         while ( GUCEF_NULL != m_mailBeingDelivered &&
                 static_cast< CMailElement* >( m_mailBeingDelivered )->GetNotifier() == notifier )
         {
-            if ( m_deliveringThreadId == MT::GetCurrentTaskID() )
+            if ( m_deliveringThreadId == MT::GetCurrentThreadID() )
             {
                 m_mailBeingDeliveredLostItsNotifier = true;
                 break;
@@ -489,7 +492,10 @@ CPumpedObserver::OnPulse( CNotifier* notifier                       ,
             // That purge has to leave this mail alone, see ClearNotifierReferencesFromMailbox()
             m_mailBeingDelivered = maildata;
             m_mailBeingDeliveredLostItsNotifier = false;
-            m_deliveringThreadId = MT::GetCurrentTaskID();
+            MT::SThreadIds ownerIds;
+            MT::GetCurrentThreadIds( &ownerIds );
+            m_deliveringThreadId = ownerIds.threadId;
+            GUCEF_SYSTEM_THREAD_ID_CODE( m_deliveringSystemThreadId = ownerIds.systemThreadId; )
             lock.EarlyUnlock();
 
             bool timedOut = false;
@@ -528,6 +534,7 @@ CPumpedObserver::OnPulse( CNotifier* notifier                       ,
             lock.ReLock();
             m_mailBeingDelivered = GUCEF_NULL;
             m_deliveringThreadId = 0;
+            GUCEF_SYSTEM_THREAD_ID_CODE( m_deliveringSystemThreadId = 0; )
             m_mailBeingDeliveredLostItsNotifier = false;
 
             // a delivered mail, or one whose notifier no longer exists (there is no retrying its event), goes;
@@ -592,7 +599,7 @@ CPumpedObserver::OnNotify( CNotifier* notifier                       ,
         if ( !m_pulseGenerator.IsNULL()                                               &&
              m_allowSameThreadEventsToFlowThrough                                     &&
              m_notificationsHolds <= 0                                                &&
-             ( MT::GetCurrentTaskID() == m_pulseGenerator->GetPulseDriverThreadId() ) )
+             ( MT::GetCurrentThreadID() == m_pulseGenerator->GetPulseDriverThreadId() ) )
         {
             // We are already in the thread that will pump the events and there is no hold on notifications
             OnPumpedNotify( notifier  ,
@@ -645,7 +652,7 @@ CPumpedObserver::OnFunctorNotify( CNotifier* notifier                 ,
         if ( !m_pulseGenerator.IsNULL()                                               &&
              m_allowSameThreadEventsToFlowThrough                                     &&
              m_notificationsHolds <= 0                                                &&
-             ( MT::GetCurrentTaskID() == m_pulseGenerator->GetPulseDriverThreadId() ) )
+             ( MT::GetCurrentThreadID() == m_pulseGenerator->GetPulseDriverThreadId() ) )
         {        
             // We are already in the thread that will pump the events and there is no hold on notifications
             OnPumpedFunctorNotify( notifier  ,

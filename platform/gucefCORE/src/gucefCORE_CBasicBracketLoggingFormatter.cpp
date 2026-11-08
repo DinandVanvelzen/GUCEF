@@ -108,12 +108,12 @@ CString
 CBasicBracketLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType ,
                                                  const Int32 logLevel         ,
                                                  const CString& logMessage    ,
-                                                 const UInt32 threadId        ,
+                                                 const TSystemThreadId threadId        ,
                                                  const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     return "[TIMESTAMP=" + timestamp.ToDateTime().ToIso8601DateTimeString( true, true ) +  
-           "] [THREAD=" + UInt32ToString( threadId ) +
+           "] [THREAD=" + ToString( threadId ) +
            "] [TYPE=" + CLogManager::GetLogMsgTypeString( logMsgType ) +
            "] [LVL=" + LogLevelToString( logLevel ) +
            "] [MSG=" + logMessage + "]";
@@ -125,7 +125,7 @@ CString
 CBasicBracketLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType     ,
                                                  const Int32 logLevel             ,
                                                  const CVariantStream& logMessage ,
-                                                 const UInt32 threadId            ,
+                                                 const TSystemThreadId threadId   ,
                                                  const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

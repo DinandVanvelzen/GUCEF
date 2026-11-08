@@ -249,7 +249,8 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
     CICloneable* m_mailBeingDelivered;             /**< mail OnPulse() is delivering, it stays owned by OnPulse() */
     bool m_mailBeingDeliveredLostItsNotifier;      /**< its notifier was destroyed while it was being delivered */
     const CNotifier* m_pulseGeneratorBeingLinked;  /**< pulse generator this observer subscribes to or unsubscribes from right now */
-    UInt32 m_deliveringThreadId;                   /**< thread delivering m_mailBeingDelivered, under the mailbox lock */
+    TThreadId m_deliveringThreadId;            /**< thread delivering m_mailBeingDelivered, under the mailbox lock */
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_deliveringSystemThreadId )   /**< display only, recorded with m_deliveringThreadId */
     MT::CMutex m_deliveryLock;                     /**< held by OnPulse() while it delivers one mail, never with the mailbox lock */
     MT::CMutex m_notificationLock;                 /**< the notification lock (CTSGNotifier); the mailbox lock stays a leaf */
 };

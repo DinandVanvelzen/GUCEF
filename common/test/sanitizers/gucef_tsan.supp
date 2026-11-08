@@ -114,6 +114,31 @@ deadlock:CDRNLossyChannel::~CDRNLossyChannel
 # (accepted, kept by nobody) takes it again on the same thread.
 deadlock:GUCEF::DRN::CDRNRpcTransport::~CDRNRpcTransport
 
+# Destruction (http): the destructor of an http server tells the notifiers it observes (the pulse generator, its server
+# socket, the connections) of its destruction under its notification lock, which is the server's lock
+# (CObservingNotifier), and takes their notification locks; a pulse of that pulse generator takes the server's lock
+# (an OAuth2 flow that makes its loopback redirect server in a pulse: ApplyBindAddress() in the constructor, the
+# server's handlers). For one server the two never meet: everything of a server, its destruction included, happens on
+# the thread that drives its pulse generator (CHTTPServer), so no pulse of it runs on another thread meanwhile. That
+# is a usage rule of CHTTPServer which its code does not check: a server destroyed on another thread while a pulse of
+# its pulse generator runs can deadlock, and this entry would hide the report of that.
+deadlock:GUCEF::WEB::CHTTPServer::~CHTTPServer
+
+# Shared pointer destruction (MULTIPLAY lobby): the last reference of a gucef lobby (CGucefLobby, kept by the application
+# or retired by the lobby service) destroys it under the lobby's shared lock. Its destructor unsubscribes (the
+# notification locks of the pulse generators and thread safe notifiers it observes) and leaves its session and stops
+# its own DRN node (that node's lock). A copy of the lobby pointer under those locks (the lobby service in the lobby's
+# ready and failed events, delivered under the node lock and those notification locks) needs a live reference, so it
+# never meets that destruction.
+deadlock:GUCEF::MULTIPLAY::CGucefLobby::~CGucefLobby
+
+# Shared pointer destruction (discovery client): the last reference of a UDP broadcast discovery client (a game
+# advertiser's) destroys it under its shared lock, and the destructor unsubscribes its socket from the pulse generator
+# (that pulse generator's notification lock). The copy of the new client's pointer when the abstract factory hands it
+# out, in a pulse of that pulse generator (a DRN node's work that advertises a lobby), needs a live reference, so it
+# never meets that destruction.
+deadlock:GUCEF::COM::CUdpBroadcastDiscoveryClient::~CUdpBroadcastDiscoveryClient
+
 # Shared pointer destruction (table copy): as above, for the copy of a published table that a scan reuses; it goes with
 # the table, and its destructor unsubscribes from the pulse generator.
 deadlock:GUCEF::CORE::CMemoryDataTable::~CMemoryDataTable

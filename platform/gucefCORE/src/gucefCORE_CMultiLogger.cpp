@@ -220,7 +220,7 @@ CMultiLogger::Log( const TLogMsgType logMsgType ,
     Log( logMsgType                  ,
          logLevel                    ,
          logMessage                  ,
-         MT::GetCurrentTaskID()      ,
+         MT::GetCurrentThreadSystemID() ,
          CTimestamp::NowUTCTime()    );
 }
 
@@ -230,7 +230,7 @@ void
 CMultiLogger::Log( const TLogMsgType logMsgType ,
                    const Int32 logLevel         ,
                    const CString& logMessage    ,
-                   const UInt32 threadId        ,
+                   const TSystemThreadId threadId        ,
                    const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -277,7 +277,7 @@ void
 CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                     const Int32 logLevel         ,
                                     const CString& logMessage    ,
-                                    const UInt32 threadId        ,
+                                    const TSystemThreadId threadId        ,
                                     const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -324,7 +324,7 @@ void
 CMultiLogger::Log( const TLogMsgType logMsgType     ,
                    const Int32 logLevel             ,
                    const CVariantStream& logMessage ,
-                   const UInt32 threadId            ,
+                   const TSystemThreadId threadId   ,
                    const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
@@ -361,7 +361,7 @@ void
 CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                     const Int32 logLevel             ,
                                     const CVariantStream& logMessage ,
-                                    const UInt32 threadId            ,
+                                    const TSystemThreadId threadId   ,
                                     const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 

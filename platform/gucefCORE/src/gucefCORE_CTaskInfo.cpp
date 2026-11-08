@@ -171,7 +171,7 @@ CTaskInfo::Deserialize( const CDataNode& domRootNode                  ,
 {GUCEF_TRACE;
 
     m_taskId = domRootNode.GetAttributeValueOrChildValueByName( "taskId" ).AsUInt32( m_taskId, true );
-    m_threadId = domRootNode.GetAttributeValueOrChildValueByName( "threadId" ).AsInt32( m_threadId, true );
+    m_threadId = (TSystemThreadId) domRootNode.GetAttributeValueOrChildValueByName( "threadId" ).AsUInt64( m_threadId, true );
     m_taskStatus = (TTaskStatus) domRootNode.GetAttributeValueOrChildValueByName( "taskStatusId", m_taskStatus ).AsUInt8( m_taskStatus, true );
     m_hasTaskData = domRootNode.GetAttributeValueOrChildValueByName( "hasTaskData" ).AsBool( m_hasTaskData, true );
     m_customTaskDataIsSerializable = domRootNode.GetAttributeValueOrChildValueByName( "customTaskDataIsSerializable" ).AsBool( m_customTaskDataIsSerializable, true );
@@ -209,7 +209,7 @@ CTaskInfo::GetTaskId( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskInfo::SetThreadId( UInt32 threadId )
+CTaskInfo::SetThreadId( TSystemThreadId threadId )
 {GUCEF_TRACE;
 
     m_threadId = threadId;
@@ -217,7 +217,7 @@ CTaskInfo::SetThreadId( UInt32 threadId )
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+TSystemThreadId
 CTaskInfo::GetThreadId( void ) const
 {GUCEF_TRACE;
 

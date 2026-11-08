@@ -130,7 +130,7 @@ class GUCEF_CORE_PUBLIC_CPP CMemoryDataTable : public CIDataTable
     private:
 
     typedef CTSharedPtr< CMemoryDataTableData, MT::CMutex > TDataPtr;
-    typedef GUCEF::map< UInt32, CString > TLastErrorMap;
+    typedef GUCEF::map< TThreadId, CString > TLastErrorMap;
 
     CMemoryDataTable( const CMemoryDataTable& src );                /**< not implemented */
     CMemoryDataTable& operator=( const CMemoryDataTable& src );     /**< not implemented */
@@ -152,7 +152,7 @@ class GUCEF_CORE_PUBLIC_CPP CMemoryDataTable : public CIDataTable
     TDataPtr m_data;
     CDataTableAsyncLinkPtr m_asyncLink;
     mutable MT::CMutex m_errorLock;
-    mutable TLastErrorMap m_lastErrors;     /**< per thread */
+    mutable TLastErrorMap m_lastErrors;     /**< per thread, by MT::GetCurrentThreadID() */
 };
 
 /*-------------------------------------------------------------------------*/

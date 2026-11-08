@@ -168,17 +168,17 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     typedef CTFactoryBase< CTaskConsumer, MT::CMutex >                                      TTaskConsumerFactory;
     typedef CTFactoryBase< CIDataNodeSerializableTaskData, MT::CMutex >                     TTaskDataFactory;
     typedef GUCEF::map< UInt32, CTaskInfo >                                                 TTaskInfoMap;
-    typedef GUCEF::map< UInt32, CThreadInfo >                                               TThreadInfoMap;
+    typedef GUCEF::map< TSystemThreadId, CThreadInfo >                                      TThreadInfoMap;
     typedef CTask::TTaskIdVector                                                            TTaskIdVector;
     typedef CTask::TTaskPtrVector                                                           TTaskPtrVector;
-    typedef GUCEF::vector< UInt32 >                                                         TThreadIdVector;
+    typedef GUCEF::vector< TSystemThreadId >                                                TThreadIdVector;
 
-    typedef TCloneableUInt32                                    TThreadKilledEventData;
-    typedef TCloneableUInt32                                    TThreadStartedEventData;
-    typedef TCloneableUInt32                                    TThreadPausedEventData;
-    typedef TCloneableUInt32                                    TThreadResumedEventData;
-    typedef TCloneableUInt32                                    TThreadFinishedEventData;
-    typedef TCloneableUInt32                                    TThreadUpdateEventData;
+    typedef CTCloneableObj< TSystemThreadId >                   TThreadKilledEventData;
+    typedef CTCloneableObj< TSystemThreadId >                   TThreadStartedEventData;
+    typedef CTCloneableObj< TSystemThreadId >                   TThreadPausedEventData;
+    typedef CTCloneableObj< TSystemThreadId >                   TThreadResumedEventData;
+    typedef CTCloneableObj< TSystemThreadId >                   TThreadFinishedEventData;
+    typedef CTCloneableObj< TSystemThreadId >                   TThreadUpdateEventData;
     
     typedef TCloneableUInt32                                    TTaskQueuedEventData;
     typedef TCloneableUInt32                                    TTaskStartupEventData;
@@ -366,7 +366,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
 
     bool WaitForAllTasksToFinish( Int32 timeoutInMs );
 
-    bool WaitForThreadToFinish( const UInt32 threadId, Int32 timeoutInMs );
+    bool WaitForThreadToFinish( const TSystemThreadId threadId, Int32 timeoutInMs );
 
     bool WaitForAllThreadsToFinish( Int32 timeoutInMs );
 
@@ -456,7 +456,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
 
     bool TaskOfTypeExists( const CString& taskType               ,
                            UInt32* taskIdIfExists = GUCEF_NULL   , 
-                           UInt32* threadIdIfExists = GUCEF_NULL ,
+                           TSystemThreadId* threadIdIfExists = GUCEF_NULL ,
                            TTaskStatus* taskStatus = GUCEF_NULL  ) const;
     
     virtual const CString& GetClassTypeName( void ) const  GUCEF_VIRTUAL_OVERRIDE;
@@ -467,7 +467,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
      *
      *  @param taskId set to 0 by default/failure and set to the relevant task id on success
      */
-    bool GetTaskIdForThreadId( const UInt32 threadId ,
+    bool GetTaskIdForThreadId( const TSystemThreadId threadId ,
                                UInt32& taskId        ) const;
 
     /**
@@ -477,7 +477,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
      *  @param threadId set to 0 by default/failure and set to the relevant thread id on success 
      */
     bool GetThreadIdForTaskId( const UInt32 taskId ,
-                               UInt32& threadId    ) const;    
+                               TSystemThreadId& threadId    ) const;    
     
     /**
      *  Obtains a coherent snapshot of thread pool information in a single lock protected call
@@ -510,7 +510,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     /**
      *  Obtains a coherent snapshot of thread information in a single lock protected call
      */
-    bool GetThreadInfo( UInt32 threadId, CThreadInfo& info ) const;
+    bool GetThreadInfo( TSystemThreadId threadId, CThreadInfo& info ) const;
 
     /**
      *  Obtains a coherent snapshot of all thread information in a single lock protected call
@@ -642,7 +642,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
      */
     void ReleaseFreeTaskConsumers( const CString& taskType );
 
-    TTaskDelegatorBasicPtr GetDelegatorForThreadId( const UInt32 threadId ) const;
+    TTaskDelegatorBasicPtr GetDelegatorForThreadId( const TSystemThreadId threadId ) const;
 
     void SubscribeToTaskConsumerEvents( CTaskConsumerPtr& taskConsumer );
 

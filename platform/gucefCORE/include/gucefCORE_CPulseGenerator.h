@@ -141,9 +141,22 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
 
     CIPulseGeneratorDriver* GetPulseGeneratorDriver( void ) const;
 
-    void SetPulseDriverThreadId( UInt32 driverThreadId );
+    /**
+     *  Records the thread that drives the pulses when no driver object is set. When the calling thread records itself
+     *  its operating system id is recorded as well (see GetPulseDriverSystemThreadId()); for another thread it is not
+     *  known here and reads 0.
+     */
+    void SetPulseDriverThreadId( TThreadId driverThreadId );
     
-    UInt32 GetPulseDriverThreadId( void ) const;
+    /** MT::GetCurrentThreadID() of the thread that drives the pulses, 0 when no thread does */
+    TThreadId GetPulseDriverThreadId( void ) const;
+
+    /**
+     *  The operating system's id (MT::GetCurrentThreadSystemID()) of the thread GetPulseDriverThreadId() reports, for
+     *  display; 0 when no thread drives the pulses or the id is not known. Where GUCEF_SYSTEM_THREAD_ID_IS_THREAD_ID is
+     *  1 it is GetPulseDriverThreadId(). Never compare it to decide which thread runs.
+     */
+    TSystemThreadId GetPulseDriverSystemThreadId( void ) const;
 
     bool IsForcedStopOfPeriodicPulsesRequested( void ) const;
 
@@ -211,7 +224,8 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
     bool m_forcedStopOfPeriodPulses;
     TPeriodicPulseRequestorMap m_periodicUpdateRequestors;
     CIPulseGeneratorDriver* m_driver;
-    MT::CTAtomic< UInt32 > m_driverThreadId;            /**< written under m_dataLock, read without it (GetPulseDriverThreadId()) */
+    MT::CTAtomic< TThreadId > m_driverThreadId;            /**< written under m_dataLock, read without it (GetPulseDriverThreadId()) */
+    GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_driverSystemThreadId; )   /**< display only, written with m_driverThreadId */
     MT::CMutex m_notificationLock;
     MT::CMutex m_dataLock;
     mutable MT::CTAtomic< UInt32 > m_driverRequestsInFlight;    /**< calls made without m_dataLock inside the driver: RequestImmediatePulseThroughDriver(), GetPulseDriverThreadId(), RequestPeriodicPulses() */
