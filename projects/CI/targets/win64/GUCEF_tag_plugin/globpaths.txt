@@ -15,8 +15,10 @@ dependencies/glm/*
 dependencies/jasper/src/libjasper/*
 dependencies/libjpeg/*
 dependencies/libmng/*
+dependencies/libogg/*
 dependencies/libpng/*
 dependencies/libsquish/*
+dependencies/libvorbis/*
 dependencies/libvpx/*
 dependencies/libwebm/*
 dependencies/ncnn/*
@@ -36,6 +38,7 @@ platform/gucefPUBSUB/include/*
 platform/gucefVFS/include/*
 platform/gucefVIDEO/include/*
 platform/gucefWEB/include/*
+plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverWASAPI/*
 plugins/GUI/guidriverWin32/*
 plugins/IMAGE/imgpluginDEVIL/*

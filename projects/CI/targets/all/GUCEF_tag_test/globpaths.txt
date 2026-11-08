@@ -7,6 +7,7 @@ plugins/*
 tests/AncestryDotComBackup_TestApp/*
 tests/ProjectGen_TestApp/*
 tests/gucefAUDIO_TestApp/*
+tests/gucefAUDIO_TestCodecPlugin/*
 tests/gucefAUTH_PluginsTestApp/*
 tests/gucefAUTH_TestApp/*
 tests/gucefCOMCORE_TestApp/*

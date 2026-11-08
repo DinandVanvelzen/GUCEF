@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_gucefAUDIO_TestApp" )
 
-  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
+  platforms( { "ALL", "ANDROID", "ARDUINO", "EMSCRIPTEN", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
   location( "projects/premake5/targets" )
 
@@ -25,155 +25,205 @@ filter "ALL"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "ANDROID"
+  include( "dependencies/libogg" )
+  include( "dependencies/libvorbis" )
+  include( "dependencies/opus" )
+  include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "tests/gucefAUDIO_TestApp" )
-
-filter "ANDROID32"
-  include( "platform/gucefAUDIO" )
-  include( "platform/gucefCORE" )
-  include( "platform/gucefMT" )
-  include( "plugins/AUDIO/audiocodecpluginAU" )
-  include( "tests/gucefAUDIO_TestApp" )
-
-filter "ANDROID64"
-  include( "platform/gucefAUDIO" )
-  include( "platform/gucefCORE" )
-  include( "platform/gucefMT" )
-  include( "plugins/AUDIO/audiocodecpluginAU" )
-  include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "ARDUINO"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "EMSCRIPTEN"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
-  include( "tests/gucefAUDIO_TestApp" )
-
-filter "EMSCRIPTEN32"
-  include( "platform/gucefAUDIO" )
-  include( "platform/gucefCORE" )
-  include( "platform/gucefMT" )
-  include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "plugins/AUDIO/audiodriverWEBAUDIO" )
   include( "tests/gucefAUDIO_TestApp" )
-
-filter "EMSCRIPTEN64"
-  include( "platform/gucefAUDIO" )
-  include( "platform/gucefCORE" )
-  include( "platform/gucefMT" )
-  include( "plugins/AUDIO/audiocodecpluginAU" )
-  include( "plugins/AUDIO/audiodriverWEBAUDIO" )
-  include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "IOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "IPHONE"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "IPHONEOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "LINUX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "LINUX32"
+  include( "dependencies/libogg" )
+  include( "dependencies/libvorbis" )
+  include( "dependencies/opus" )
+  include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "plugins/AUDIO/audiodriverALSA" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "LINUX64"
+  include( "dependencies/libogg" )
+  include( "dependencies/libvorbis" )
+  include( "dependencies/opus" )
+  include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "plugins/AUDIO/audiodriverALSA" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "MAC"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "MACOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "MACOSX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "MSWIN"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "OSX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "WIN32"
+  include( "dependencies/libogg" )
+  include( "dependencies/libvorbis" )
+  include( "dependencies/opus" )
+  include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "WIN64"
+  include( "dependencies/libogg" )
+  include( "dependencies/libvorbis" )
+  include( "dependencies/opus" )
+  include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiocodecpluginOGG" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "WINDOWS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
   include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )

@@ -11,6 +11,7 @@ tests/AncestryDotComBackup_TestApp/*
 tests/MemoryLeakFinder_TestApp/*
 tests/ProjectGen_TestApp/*
 tests/gucefAUDIO_TestApp/*
+tests/gucefAUDIO_TestCodecPlugin/*
 tests/gucefAUTHGUI_TestApp/*
 tests/gucefAUTH_PluginsTestApp/*
 tests/gucefAUTH_TestApp/*
