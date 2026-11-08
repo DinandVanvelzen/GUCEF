@@ -231,7 +231,7 @@ PerformAuthManagerTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "AuthManager" );
 
     RegisterFakeLoginTask();
-    const UInt32 mainThreadId = MT::GetCurrentTaskID();
+    const TThreadId mainThreadId = MT::GetCurrentThreadID();
 
     GUCEF_TESTFW_TESTCASE( "Test: Only available, enabled and configured providers are offered, the last used first" )
         GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json or ed25519 codec is not available" );

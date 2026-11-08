@@ -304,7 +304,7 @@ PerformAndroidPluginTests( void )
             ASSERT_TRUE( 0 == CAndroidAuthBridge::Instance()->GetRequestCount() && 0 == google.GetPendingRequestCount() );
 
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_SUCCEEDED, 1, 1000 ) );
-            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentTaskID() );
+            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentThreadID() );
             // The nonces are not the same twice
             ASSERT_TRUE( google.TrySilentLogin( future ) );
             ASSERT_TRUE( fake.googleCalls[ 0 ].nonce != fake.googleCalls[ 1 ].nonce );
@@ -337,7 +337,7 @@ PerformAndroidPluginTests( void )
             ASSERT_TRUE( result.proof.kind == AUTH::CAuthProof::KindOidcIdToken );
             ASSERT_TRUE( result.proof.data.Reveal() == result.idToken.Reveal() );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_SUCCEEDED, 1, 1000 ) );
-            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentTaskID() );
+            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentThreadID() );
             ASSERT_TRUE( 0 == google.GetPendingRequestCount() );
         }
         catch ( ... )

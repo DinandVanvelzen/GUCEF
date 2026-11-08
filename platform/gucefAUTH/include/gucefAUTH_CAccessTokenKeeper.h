@@ -319,7 +319,8 @@ class GUCEF_AUTH_EXPORT_CPP CAccessTokenKeeper : public CORE::CObservingNotifier
 
     UInt32 m_refreshCount;
     UInt32 m_failedRefreshCount;
-    UInt32 m_pulseThreadId;             /**< the thread the timer of the keeper runs on, 0 before its first pulse */
+    TThreadId m_pulseThreadId;             /**< the thread the timer of the keeper runs on, 0 before its first pulse */
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_pulseSystemThreadId )   /**< display only, recorded with m_pulseThreadId */
 };
 
 /*-------------------------------------------------------------------------//

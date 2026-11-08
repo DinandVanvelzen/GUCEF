@@ -197,6 +197,7 @@ CAccessTokenKeeper::CAccessTokenKeeper( void )
     , m_refreshCount( 0 )
     , m_failedRefreshCount( 0 )
     , m_pulseThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_pulseSystemThreadId, 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -297,7 +298,10 @@ CAccessTokenKeeper::SetAccount( const CORE::CString& providerName, const CAccoun
     bool releaseWaiters = false;
     {
         MT::CScopeMutex lock( m_lock );
-        m_pulseThreadId = MT::GetCurrentTaskID();
+        MT::SThreadIds ownerIds;
+        MT::GetCurrentThreadIds( &ownerIds );
+        m_pulseThreadId = ownerIds.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_pulseSystemThreadId = ownerIds.systemThreadId; )
         if ( m_refreshing )
             m_providerFuture.RequestCancellation();
         releaseWaiters = m_hasWaitSource;
@@ -697,15 +701,27 @@ CAccessTokenKeeper::WaitForAccessToken( CSecretString& token, UInt64& expiresAtM
     if ( TOKEN_PENDING != status )
         return status;
 
-    // The renewal runs on the pulse thread: that thread cannot wait for it
+    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    RefreshStoreKnowledge();
+    bool requested = false;
     {
         MT::CScopeMutex lock( m_lock );
-        if ( 0 != m_pulseThreadId && MT::GetCurrentTaskID() == m_pulseThreadId )
-            return status;
-    }
 
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-    if ( !RequestRefresh( future ) )
+        // The renewal runs on the pulse thread: that thread cannot wait for it
+        if ( 0 != m_pulseThreadId && MT::GetCurrentThreadID() == m_pulseThreadId )
+            return status;
+
+        // A renewal that ended since the token was read above gave a token: nothing is asked for then, else this caller
+        // would start a second renewal of a token that was just renewed
+        if ( !m_shutDown && IsUsableLocked( Now() ) )
+        {
+            token = m_accessToken;
+            expiresAtMs = m_expiresAtMs;
+            return TOKEN_READY;
+        }
+        requested = RequestRefreshLocked( future );
+    }
+    if ( !requested )
         return GetAccessToken( token, expiresAtMs );
     try
     {
@@ -941,7 +957,10 @@ CAccessTokenKeeper::OnTimer( CORE::CNotifier* notifier, const CORE::CEvent& even
     CORE::CFutureResultSource refused;
     {
         MT::CScopeMutex lock( m_lock );
-        m_pulseThreadId = MT::GetCurrentTaskID();
+        MT::SThreadIds ownerIds;
+        MT::GetCurrentThreadIds( &ownerIds );
+        m_pulseThreadId = ownerIds.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( m_pulseSystemThreadId = ownerIds.systemThreadId; )
         if ( m_shutDown )
             return;
         refreshing = m_refreshing;

@@ -226,7 +226,7 @@ PerformEosPluginTests( void )
             ASSERT_TRUE( eos.configProductName == "GUCEF" );
 
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_SUCCEEDED, 1, 1000 ) );
-            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentTaskID() );
+            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentThreadID() );
             ASSERT_TRUE( 0 == provider.GetPendingLoginCount() );
 
             // The timer stopped with the login: the SDK is not ticked for nothing

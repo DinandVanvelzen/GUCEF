@@ -224,7 +224,7 @@ class CProviderRecorder : public GUCEF::CORE::CObserver
     struct SRecord
     {
         EKind kind;
-        GUCEF::UInt32 threadId;
+        GUCEF::TThreadId threadId;
         GUCEF::AUTH::CAuthResult result;
         GUCEF::AUTH::CAuthFailure failure;
         GUCEF::AUTH::CAuthActionRequired action;
@@ -274,7 +274,7 @@ class CProviderRecorder : public GUCEF::CORE::CObserver
     {
         using namespace GUCEF;
         SRecord record;
-        record.threadId = GUCEF::MT::GetCurrentTaskID();
+        record.threadId = GUCEF::MT::GetCurrentThreadID();
         if ( AUTH::CIAuthProvider::LoginSucceededEvent == eventId )
         {
             record.kind = KIND_SUCCEEDED;

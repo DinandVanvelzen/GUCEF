@@ -397,7 +397,7 @@ PerformSteamPluginTests( void )
 
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_SUCCEEDED, 1, 1000 ) );
             ASSERT_TRUE( 1 == recorder.Count( CProviderRecorder::KIND_SUCCEEDED ) );
-            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentTaskID() );
+            ASSERT_TRUE( recorder.records[ 0 ].threadId == MT::GetCurrentThreadID() );
             ASSERT_TRUE( recorder.records[ 0 ].result.accountRef == result.accountRef );
 
             // The timer stopped with the last ticket: no more frames are asked for
