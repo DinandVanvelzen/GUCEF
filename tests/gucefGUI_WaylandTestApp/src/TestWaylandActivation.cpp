@@ -154,10 +154,10 @@ class CLogCaptureAll : public CORE::CILogger
 
     CORE::CString m_text;
 
-    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CString& logMessage, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_text += logMessage; m_text += '\n'; }
-    virtual void Log( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE { Log( type, level, logMessage.ToString(), threadId, timestamp ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE { Log( type, level, logMessage, threadId, timestamp ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE { Log( type, level, logMessage.ToString(), threadId, timestamp ); }
+    virtual void Log( const CORE::TLogMsgType, const Int32, const CORE::CString& logMessage, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { m_text += logMessage; m_text += '\n'; }
+    virtual void Log( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE { Log( type, level, logMessage.ToString(), threadId, timestamp ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE { Log( type, level, logMessage, threadId, timestamp ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType type, const Int32 level, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE { Log( type, level, logMessage.ToString(), threadId, timestamp ); }
     virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void SetMinimalLogLevel( const Int32 ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual Int32 GetMinimalLogLevel( void ) const GUCEF_VIRTUAL_OVERRIDE { return CORE::LOGLEVEL_EVERYTHING; }

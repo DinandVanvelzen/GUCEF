@@ -88,10 +88,10 @@ class CUserMessageRecorder : public CORE::CILogger
 
     CUserMessageRecorder( void ) : CORE::CILogger(), lines(), m_minLogLevel( CORE::LOGLEVEL_EVERYTHING ) {}
 
-    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString& message, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message ); }
-    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream& message, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message.ToString() ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString& message, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream& message, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message.ToString() ); }
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString& message, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message ); }
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream& message, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message.ToString() ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString& message, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream& message, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Keep( logMsgType, message.ToString() ); }
     virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void SetMinimalLogLevel( const Int32 logLevel ) GUCEF_VIRTUAL_OVERRIDE { m_minLogLevel = logLevel; }
     virtual Int32 GetMinimalLogLevel( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_minLogLevel; }

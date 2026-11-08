@@ -105,7 +105,7 @@ CLogCapture::Count( const char* text ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CLogCapture::Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp )
+CLogCapture::Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp )
 {GUCEF_TRACE;
 
     if ( logMsgType == m_type )
@@ -115,7 +115,7 @@ CLogCapture::Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, cons
 /*-------------------------------------------------------------------------*/
 
 void
-CLogCapture::Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp )
+CLogCapture::Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp )
 {GUCEF_TRACE;
 
     Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
@@ -124,7 +124,7 @@ CLogCapture::Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, cons
 /*-------------------------------------------------------------------------*/
 
 void
-CLogCapture::LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp )
+CLogCapture::LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp )
 {GUCEF_TRACE;
 
     Log( logMsgType, logLevel, logMessage, threadId, timestamp );
@@ -133,7 +133,7 @@ CLogCapture::LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int
 /*-------------------------------------------------------------------------*/
 
 void
-CLogCapture::LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp )
+CLogCapture::LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const TSystemThreadId threadId, const CORE::CTimestamp& timestamp )
 {GUCEF_TRACE;
 
     Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );

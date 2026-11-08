@@ -102,10 +102,10 @@ class CUserMessageCounter : public CORE::CILogger
 
     CUserMessageCounter( void ) : CORE::CILogger(), userMessages( 0 ), otherMessages( 0 ), m_minLogLevel( CORE::LOGLEVEL_EVERYTHING ) {}
 
-    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
-    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
-    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream&, const UInt32, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CString&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32, const CORE::CVariantStream&, const TSystemThreadId, const CORE::CTimestamp& ) GUCEF_VIRTUAL_OVERRIDE { Count( logMsgType ); }
     virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
     virtual void SetMinimalLogLevel( const Int32 logLevel ) GUCEF_VIRTUAL_OVERRIDE { m_minLogLevel = logLevel; }
     virtual Int32 GetMinimalLogLevel( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_minLogLevel; }

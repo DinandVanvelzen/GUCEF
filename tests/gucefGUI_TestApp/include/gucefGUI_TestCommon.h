@@ -64,6 +64,7 @@ bool LoadFreeTypeFontPlugin( void );
 bool LoadLayoutCodecs( void );
 
 void PerformGuiCoreTests( void );
+void PerformGuiFormFactoryEventTests( void );
 void PerformGuiWidgetTests( void );
 void PerformGuiLayoutTests( void );
 void PerformGuiMediaTests( void );

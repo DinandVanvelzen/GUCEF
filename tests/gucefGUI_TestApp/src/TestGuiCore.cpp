@@ -900,3 +900,73 @@ PerformGuiCoreTests( void )
 }
 
 /*-------------------------------------------------------------------------*/
+
+/*
+ *  Records the forwarded form factory events of the GUI manager as text: "+T;" for a registration of form type T,
+ *  "-T;" for a removal
+ */
+class CTestFormFactoryEventRecorder : public CORE::CObserver
+{
+    public:
+
+    CTestFormFactoryEventRecorder( void ) : CORE::CObserver(), m_events() {}
+    virtual ~CTestFormFactoryEventRecorder() { UnsubscribeAllFromObserver(); }
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        const bool registered = ( eventId == GUI::CGUIManager::FormFactoryRegisteredEvent );
+        if ( !registered && eventId != GUI::CGUIManager::FormFactoryUnregisteredEvent )
+            return;
+        CORE::CString formType;
+        CORE::CTCloneableObj< CORE::CString >* keyContainer = static_cast< CORE::CTCloneableObj< CORE::CString >* >( eventData );
+        if ( GUCEF_NULL != keyContainer )
+            formType = keyContainer->GetData();
+        m_events += CORE::CString( registered ? "+" : "-" ) + formType + ";";
+    }
+
+    CORE::CString Take( void ) { CORE::CString events = m_events; m_events.Clear(); return events; }
+
+    private:
+
+    CORE::CString m_events;
+};
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformGuiFormFactoryEventTests( void )
+{
+    GUCEF_TESTFW_SUITE_SCOPE( "GuiFormFactoryEvents" );
+
+    GUCEF_TESTFW_TESTCASE( "The GUI manager forwards the registration and removal of a generic form factory, which its form factory sends as events" )
+    try
+    {
+        typedef CORE::CTFactory< GUI::CForm, GUI::CForm, MT::CMutex > TGenericFormFactory;
+
+        GUI::CGUIManager& manager = GUI::CGuiGlobal::Instance()->GetGuiManager();
+        CTestFormFactoryEventRecorder recorder;
+        recorder.SubscribeTo( &manager, GUI::CGUIManager::FormFactoryRegisteredEvent );
+        recorder.SubscribeTo( &manager, GUI::CGUIManager::FormFactoryUnregisteredEvent );
+
+        TGenericFormFactory formFactory;
+        manager.RegisterGenericFormFactory( "TestFormFactoryEventsForm", &formFactory );
+        ASSERT_TRUE( recorder.Take() == "+TestFormFactoryEventsForm;" );
+        ASSERT_TRUE( manager.HasGenericFormType( "TestFormFactoryEventsForm" ) );
+
+        GUI::CFormPtr form = manager.CreateGenericForm( "TestFormFactoryEventsForm" );
+        ASSERT_FALSE( form.IsNULL() );
+        form.Unlink();
+
+        manager.UnregisterGenericFormFactory( "TestFormFactoryEventsForm" );
+        ASSERT_TRUE( recorder.Take() == "-TestFormFactoryEventsForm;" );
+        ASSERT_FALSE( manager.HasGenericFormType( "TestFormFactoryEventsForm" ) );
+        recorder.UnsubscribeAllFromObserver();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/

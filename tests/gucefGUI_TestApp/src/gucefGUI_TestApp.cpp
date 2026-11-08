@@ -76,6 +76,7 @@ GUCEF_OSMAIN_BEGIN
         GUCEF::CORE::AppendToPath( xmlPath, "gucefGUI_TestApp_Results.xml" );
 
         PerformGuiCoreTests();
+        PerformGuiFormFactoryEventTests();
         PerformGuiWidgetTests();
         PerformGuiLayoutTests();
         PerformGuiMediaTests();
