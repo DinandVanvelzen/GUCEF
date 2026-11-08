@@ -741,8 +741,8 @@ PerformEosLobbyServiceTests( void )
         {
             CEosFixture fixture( 2 );
             SPair pair;
-            pair.hostEvents.expectedThreadId = MT::GetCurrentTaskID();
-            pair.guestEvents.expectedThreadId = MT::GetCurrentTaskID();
+            pair.hostEvents.expectedThreadId = MT::GetCurrentThreadID();
+            pair.guestEvents.expectedThreadId = MT::GetCurrentThreadID();
             REQUIRE_TRUE( MakePair( fixture, pair, CEosFixture::MakeParams() ) );
             ASSERT_TRUE( pair.host->SetSetting( "map", "ice" ) );
             ASSERT_TRUE( pair.guest->SetReady( true ) );

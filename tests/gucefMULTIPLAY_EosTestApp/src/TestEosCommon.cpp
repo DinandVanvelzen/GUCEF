@@ -163,7 +163,7 @@ CLogCapture::Text( void )
 CLobbyRecorder::CLobbyRecorder( void )
     : CORE::CObserver()
     , stateChanged( 0 ), paths(), joined(), left(), launches( 0 ), lastLaunch(), closed( 0 ), closedReason(), refusals( 0 ), refusalWhat(), refusalReasons()
-    , votesStarted( 0 ), votesEnded( 0 ), lastVotePassed( false ), lastVoteId(), countdowns(), eventThreadId( 0 ), wrongThreadEvents( 0 ), expectedThreadId( MT::GetCurrentTaskID() )
+    , votesStarted( 0 ), votesEnded( 0 ), lastVotePassed( false ), lastVoteId(), countdowns(), eventThreadId( 0 ), wrongThreadEvents( 0 ), expectedThreadId( MT::GetCurrentThreadID() )
 {
 }
 
@@ -220,7 +220,7 @@ CLobbyRecorder::Clear( void )
 void
 CLobbyRecorder::OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {
-    eventThreadId = MT::GetCurrentTaskID();
+    eventThreadId = MT::GetCurrentThreadID();
     if ( eventThreadId != expectedThreadId )
         ++wrongThreadEvents;
 

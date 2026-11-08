@@ -182,9 +182,9 @@ class CLobbyRecorder : public GUCEF::CORE::CObserver
     bool lastVotePassed;
     GUCEF::CORE::CString lastVoteId;
     GUCEF::vector< GUCEF::Int32 > countdowns;
-    GUCEF::UInt32 eventThreadId;
+    GUCEF::TThreadId eventThreadId;
     GUCEF::UInt32 wrongThreadEvents;
-    GUCEF::UInt32 expectedThreadId;
+    GUCEF::TThreadId expectedThreadId;
 
     CLobbyRecorder( void );
     virtual ~CLobbyRecorder();

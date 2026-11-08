@@ -264,7 +264,9 @@ CEosGlue::AcquirePlatform( const SEosPlatformShim* shim, const CEosPlatformSetti
     // One thread at a time makes or lets go of the platform of a table: it stays registered while that happens, marked,
     // and whoever acquires it meanwhile waits outside the lock until it is ready or gone. Two creates of the SDK
     // platform never overlap, and nobody is handed a platform that the SDK is still making or already releasing.
-    const UInt32 thisThread = MT::GetCurrentTaskID();
+    MT::SThreadIds thisThreadIds;
+    MT::GetCurrentThreadIds( &thisThreadIds );
+    const TThreadId thisThread = thisThreadIds.threadId;
     CEosPlatform* candidate = GUCEF_NULL;
     for ( ;; )
     {
@@ -308,6 +310,7 @@ CEosGlue::AcquirePlatform( const SEosPlatformShim* shim, const CEosPlatformSetti
                 // This thread makes it: the platform is registered as being made, who comes after waits for it
                 candidate->m_glueState = CEosPlatform::GLUESTATE_CREATING;
                 candidate->m_glueBusyThreadId = thisThread;
+                GUCEF_SYSTEM_THREAD_ID_CODE( candidate->m_glueBusySystemThreadId = thisThreadIds.systemThreadId; )
                 candidate->m_refCount = 1;
                 m_platforms.push_back( candidate );
                 registered = true;
@@ -352,6 +355,7 @@ CEosGlue::AcquirePlatform( const SEosPlatformShim* shim, const CEosPlatformSetti
     {
         MT::CScopeMutex lock( m_lock );
         candidate->m_glueBusyThreadId = 0;
+        GUCEF_SYSTEM_THREAD_ID_CODE( candidate->m_glueBusySystemThreadId = 0; )
         if ( created )
         {
             candidate->m_glueState = CEosPlatform::GLUESTATE_READY;
@@ -479,7 +483,10 @@ CEosGlue::ReleasePlatform( CEosPlatform* platform )
         // instead of finding the SDK platform that is being released
         platform->m_refCount = 0;
         platform->m_glueState = CEosPlatform::GLUESTATE_RELEASING;
-        platform->m_glueBusyThreadId = MT::GetCurrentTaskID();
+        MT::SThreadIds busyIds;
+        MT::GetCurrentThreadIds( &busyIds );
+        platform->m_glueBusyThreadId = busyIds.threadId;
+        GUCEF_SYSTEM_THREAD_ID_CODE( platform->m_glueBusySystemThreadId = busyIds.systemThreadId; )
     }
 
     // The SDK platform goes now, without the lock of the glue (see AcquirePlatform()), the object when nothing of it is

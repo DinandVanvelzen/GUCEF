@@ -212,7 +212,8 @@ class GUCEF_PLUGINGLUE_EOS_EXPORT_CPP CEosPlatform : public CORE::CObservingNoti
     bool m_createdHere;
     UInt32 m_refCount;
     EGlueState m_glueState;
-    UInt32 m_glueBusyThreadId;
+    TThreadId m_glueBusyThreadId;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_glueBusySystemThreadId )   /**< display only, recorded with m_glueBusyThreadId */
     CEosLoginState m_loginState;
     TDemandVector m_demands;
     UInt32 m_nextDemandId;

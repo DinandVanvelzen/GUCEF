@@ -398,11 +398,12 @@ CDRNMemoryChannelListener::GetPulseGenerator( void ) const
 CDRNMemoryChannel*
 CDRNMemoryChannelListener::AcceptFrom( CDRNMemoryChannel* connecting )
 {
-    // the caller holds the channel lock
+    // the caller holds the channel lock. The channel subscribes to the listener's pulse generator on the listener's
+    // thread when it is handed out (OnNotify): subscribing here, under the channel lock, would wait for that thread
+    // while it waits for the channel lock in its pulse
     if ( !m_listening )
         return GUCEF_NULL;
     CDRNMemoryChannel* channel = GUCEF_NEW CDRNMemoryChannel();
-    channel->SetPulseGenerator( m_pulseGenerator );
     channel->Accept( connecting, DRN::CDRNEndpoint( "mem://127.0.0.1:" + CORE::UInt32ToString( g_nextAcceptedPort++ ) ) );
     m_pendingAccepts.push_back( DRN::CIDRNChannelPtr( channel ) );
     return channel;
@@ -425,6 +426,7 @@ CDRNMemoryChannelListener::OnNotify( CORE::CNotifier* /* notifier */, const CORE
     }
     for ( UInt32 i=0; i<accepted.size(); ++i )
     {
+        accepted[ i ]->SetPulseGenerator( m_pulseGenerator );
         DRN::CDRNChannelEventData eventData( accepted[ i ] );
         if ( !NotifyObservers( ChannelAcceptedEvent, &eventData ) )
             return;

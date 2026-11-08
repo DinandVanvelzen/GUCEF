@@ -123,8 +123,10 @@ CEosPlatformSdk::GetPlatformHandle( void )
 /** The one platform of the process as the SDK has it */
 struct SSdkState
 {
-    MT::CMutex lock;
-    MT::CMutex platformLock;    /**< a leaf: the create, release and adoption of the platform never overlap */
+    MT::CMutex lock;            /**< a leaf: guards the queue of P2P events, nothing is called under it */
+    MT::CMutex platformLock;    /**< held while the platform is created, released or adopted, so those never overlap;
+                                     the SDK is called under it, and the release takes lock under it to clear the
+                                     events: lock comes after platformLock, never the other way round */
     EOS_HPlatform platform;
     bool ownsPlatform;
     bool initializedSdk;

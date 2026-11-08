@@ -62,7 +62,7 @@ class CSocketRecorder : public CORE::CObserver
     UInt32 closed;
     EEosNetworkType lastNetworkType;
     EEosConnectionCloseReason lastCloseReason;
-    UInt32 threadId;
+    TThreadId threadId;
 
     CSocketRecorder( void ) : CORE::CObserver(), packets(), requests( 0 ), requestsAccepted( 0 ), established( 0 ), interrupted( 0 ), closed( 0 ), lastNetworkType( EOSNETWORK_NONE ), lastCloseReason( EOSCLOSE_UNKNOWN ), threadId( 0 ) {}
 
@@ -70,7 +70,7 @@ class CSocketRecorder : public CORE::CObserver
 
     virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
     {
-        threadId = MT::GetCurrentTaskID();
+        threadId = MT::GetCurrentThreadID();
         if ( CEosP2PSocket::PacketReceivedEvent == eventId )
         {
             const CEosP2PPacketEventData* data = static_cast< const CEosP2PPacketEventData* >( eventData );
@@ -451,7 +451,7 @@ PerformEosP2PTests( void )
             ASSERT_TRUE( PumpUntil( gotHello ) );
             ASSERT_TRUE( recB.packets[ 0 ].from == a.Id() && 5 == recB.packets[ 0 ].data.size() && 0 == memcmp( &recB.packets[ 0 ].data[ 0 ], "hello", 5 ) );
             ASSERT_TRUE( sockB->IsConnectedTo( a.Id() ) && 1 == sockB->GetConnectionCount() && 1 == recB.requestsAccepted );
-            ASSERT_TRUE( MT::GetCurrentTaskID() == recB.threadId );
+            ASSERT_TRUE( MT::GetCurrentThreadID() == recB.threadId );
 
             // and back over the same connection
             ASSERT_TRUE( sockB->SendPacket( a.Id(), "welcome", 7, EOSRELIABILITY_RELIABLE_ORDERED, 3 ) );

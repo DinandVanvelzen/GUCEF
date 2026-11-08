@@ -83,7 +83,7 @@ class CPlatformRecorder : public CORE::CObserver
     UInt32 ticks;
     UInt32 loginChanges;
     CEosLoginState lastState;
-    UInt32 threadId;
+    TThreadId threadId;
 
     CPlatformRecorder( void ) : CORE::CObserver(), ticks( 0 ), loginChanges( 0 ), lastState(), threadId( 0 ) {}
 
@@ -91,7 +91,7 @@ class CPlatformRecorder : public CORE::CObserver
 
     virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
     {
-        threadId = MT::GetCurrentTaskID();
+        threadId = MT::GetCurrentThreadID();
         if ( CEosPlatform::TickEvent == eventId )
         {
             ++ticks;
@@ -161,12 +161,13 @@ class CStallingSdk
     MT::CTAtomic< UInt32 > creates;
     MT::CTAtomic< UInt32 > releases;
     MT::CTAtomic< bool > stallCreate;
+    MT::CTAtomic< bool > failCreate;
     MT::CTAtomic< bool > stallRelease;
     MT::CTAtomic< bool > stalled;
     MT::CTAtomic< bool > resume;
 
     CStallingSdk( void )
-        : ready( false ), creates( 0 ), releases( 0 ), stallCreate( false ), stallRelease( false ), stalled( false ), resume( false )
+        : ready( false ), creates( 0 ), releases( 0 ), stallCreate( false ), failCreate( false ), stallRelease( false ), stalled( false ), resume( false )
     {}
 
     SEosPlatformShim Shim( void )
@@ -197,13 +198,18 @@ class CStallingSdk
     {
         CStallingSdk* self = static_cast< CStallingSdk* >( context );
         self->creates.Store( self->creates.Load() + 1 );
-        self->ready.Store( true );
+
+        // A create that fails makes no platform: it is held up, when asked for, before it says so
+        const bool fail = self->failCreate.Load();
+        self->failCreate.Store( false );
+        if ( !fail )
+            self->ready.Store( true );
         if ( self->stallCreate.Load() )
         {
             self->stallCreate.Store( false );
             self->Stall();
         }
-        return true;
+        return !fail;
     }
 
     static void Release( void* context )
@@ -585,7 +591,7 @@ PerformEosGlueTests( void )
             platform->SetLoginState( peer.epicAccountId, peer.puid );
             ASSERT_TRUE( 1 == recorder.loginChanges && recorder.lastState.IsLoggedIn() && recorder.lastState.productUserId == peer.puid && recorder.lastState.epicAccountId == peer.epicAccountId );
             ASSERT_TRUE( platform->GetLoginState().productUserId == peer.puid );
-            ASSERT_TRUE( MT::GetCurrentTaskID() == recorder.threadId );
+            ASSERT_TRUE( MT::GetCurrentThreadID() == recorder.threadId );
 
             // the same state again is not a change
             platform->SetLoginState( peer.epicAccountId, peer.puid );
@@ -656,7 +662,7 @@ PerformEosGlueTests( void )
             ASSERT_TRUE( 5 == platform->GetTickInterval() && 2 == platform->GetTickDemandCount() );
             CCounterAtLeast enough( recorder.ticks, 8 );
             ASSERT_TRUE( PumpUntil( enough ) );
-            ASSERT_TRUE( peer.tickCalls >= 8 && MT::GetCurrentTaskID() == recorder.threadId );
+            ASSERT_TRUE( peer.tickCalls >= 8 && MT::GetCurrentThreadID() == recorder.threadId );
 
             // when it lets go the slow one is the pace again
             platform->RemoveTickDemand( fast );
@@ -846,6 +852,50 @@ PerformEosGlueTests( void )
 
             glue->ReleasePlatform( platform );
             ASSERT_TRUE( 2 == sdk.releases.Load() && !sdk.ready.Load() );
+            ASSERT_TRUE( platformsBefore == glue->GetPlatformCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A platform whose create fails while another thread waits for it: the waiting thread makes it itself and gets it, ready; nothing is left registered of the failed create" )
+        try
+        {
+            EnsureGlueSettings();
+            CEosGlue* glue = CEosGlue::Instance();
+            const UInt32 platformsBefore = glue->GetPlatformCount();
+            CStallingSdk sdk;
+            SEosPlatformShim shim = sdk.Shim();
+
+            // the first one is held up in a create of the SDK that is going to fail
+            sdk.failCreate.Store( true );
+            sdk.stallCreate.Store( true );
+            CGlueCaller first( shim, GUCEF_NULL );
+            REQUIRE_TRUE( first.Activate( GUCEF_NULL, 0, 0 ) );
+            REQUIRE_TRUE( sdk.WaitForStall( 10000 ) );
+
+            // the second one comes in meanwhile and waits for the platform being made
+            CGlueCaller second( shim, GUCEF_NULL );
+            REQUIRE_TRUE( second.Activate( GUCEF_NULL, 0, 0 ) );
+            ASSERT_FALSE( second.WaitUntilDone( 200 ) );
+            sdk.resume.Store( true );
+            REQUIRE_TRUE( first.WaitUntilDone( 10000 ) );
+            REQUIRE_TRUE( second.WaitUntilDone( 10000 ) );
+            first.Deactivate( false, true );
+            second.Deactivate( false, true );
+
+            ASSERT_TRUE( GUCEF_NULL == first.GetPlatform() );
+            CEosPlatform* platform = second.GetPlatform();
+            REQUIRE_TRUE( GUCEF_NULL != platform );
+            ASSERT_TRUE( 1 == platform->GetRefCount() );
+            ASSERT_TRUE( platform->IsReady() && platform->WasCreatedHere() );
+            ASSERT_TRUE( 2 == sdk.creates.Load() && 0 == sdk.releases.Load() );
+            ASSERT_TRUE( platformsBefore + 1 == glue->GetPlatformCount() );
+
+            glue->ReleasePlatform( platform );
+            ASSERT_TRUE( 1 == sdk.releases.Load() && !sdk.ready.Load() );
             ASSERT_TRUE( platformsBefore == glue->GetPlatformCount() );
         }
         catch ( ... )

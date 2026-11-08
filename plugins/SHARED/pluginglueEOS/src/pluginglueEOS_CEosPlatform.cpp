@@ -168,6 +168,7 @@ CEosPlatform::CEosPlatform( const SEosPlatformShim& shim, const CEosPlatformSett
     , m_refCount( 0 )
     , m_glueState( GLUESTATE_CREATING )
     , m_glueBusyThreadId( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_glueBusySystemThreadId, 0 )
     , m_loginState()
     , m_demands()
     , m_nextDemandId( 0 )
