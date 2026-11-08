@@ -137,6 +137,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNSecurityPolicy : public CORE::CIConfigurable
     bool relayOnly;                             /**< members' own addresses are never revealed: only relay endpoints are passed on */
     CORE::CString::StringSet allowedAuthenticators; /**< authenticator types links may use, empty = all */
     bool statelessCookies;                      /**< a UDP listener answers an unknown address with a cookie before it keeps any state, default true */
+    bool allowPublicItems;                      /**< items and RPC methods may be PUBLIC; without it everything is sealed and MAC / PLAIN packets are refused, default false */
+    TDRNPublicItemProtection publicItemProtection;  /**< how PUBLIC messages travel when allowPublicItems, default DRN_PUBLICPROTECTION_MAC */
     CDRNPolicyLimits limits;
     CDRNAnomalyThresholds anomalies;
 
@@ -171,6 +173,15 @@ class GUCEF_DRN_EXPORT_CPP CDRNSecurityPolicy : public CORE::CIConfigurable
      *  does not have, for example encryption while there is no packet protection.
      */
     bool CanBeHonoured( CORE::CString& whyNot ) const;
+
+    /**
+     *  The packet kind the messages of an item of this protection class use on a lane of a protected link:
+     *  CONFIDENTIAL (or allowPublicItems false) AEAD; PUBLIC MAC, or PLAIN on lane 3 with publicItemProtection none
+     */
+    TDRNPacketKind ResolvePacketKind( TDRNProtectionClass protectionClass, UInt8 lane ) const;
+
+    static const char* ProtectionClassToString( TDRNProtectionClass protectionClass );
+    static TDRNProtectionClass StringToProtectionClass( const CORE::CString& text, TDRNProtectionClass defaultClass );
 
     /** Whether DRN can protect packets with one of the ciphers: key agreement and a cipher codec are there */
     bool IsPacketProtectionAvailable( void ) const;

@@ -79,6 +79,8 @@ namespace DRN {
 static const char RecordingMagic[ 8 ] = { 'D', 'R', 'N', 'R', 'E', 'C', '0', '1' };
 static const UInt8 RecordTypeMessage = 1;
 static const UInt8 RecordFlagOutgoing = 0x01;
+static const UInt8 RecordFlagMacPacket = 0x02;
+static const UInt8 RecordFlagPlainPacket = 0x04;
 static const UInt32 FlushThreshold = 64 * 1024;
 
 /*-------------------------------------------------------------------------//
@@ -90,6 +92,7 @@ static const UInt32 FlushThreshold = 64 * 1024;
 CDRNRecordedMessage::CDRNRecordedMessage( void )
     : timeUs( 0 )
     , outgoing( false )
+    , packetKind( DRN_PACKETKIND_AEAD )
     , peerId( 0 )
     , linkId( 0 )
     , lane( 0 )
@@ -155,6 +158,9 @@ CDRNSessionRecorder::Start( CDRNSession& session, const CORE::CString& filePath,
     m_session = &session;
     session.SetRecorder( this );
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DRNSessionRecorder: Recording session \"" << session.GetName() << "\" to " << m_filePath );
+    if ( 0 != ( m_classMask & ( 1u << DRN_MSGCLASS_RPC ) ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DRNSessionRecorder: The recording of session \"" << session.GetName() <<
+                           "\" records the RPC message class: the payloads of sensitive RPC methods will be in " << m_filePath );
     return true;
 }
 
@@ -252,7 +258,8 @@ CDRNSessionRecorder::OnTraffic( const CDRNPeerLink& link       ,
                                 const void* part1              ,
                                 UInt32 size1                   ,
                                 const void* part2              ,
-                                UInt32 size2                   )
+                                UInt32 size2                   ,
+                                UInt8 packetKind               )
 {GUCEF_TRACE;
 
     if ( msgClass >= 32 || 0 == ( m_classMask & ( 1u << msgClass ) ) )
@@ -262,7 +269,13 @@ CDRNSessionRecorder::OnTraffic( const CDRNPeerLink& link       ,
     CDRNWireWriter writer( m_pending, m_pending.GetDataSize() );
     writer.WriteUInt8( RecordTypeMessage );
     writer.WriteVarUInt64( now >= m_startTime ? now - m_startTime : 0 );
-    writer.WriteUInt8( outgoing ? RecordFlagOutgoing : 0 );
+    UInt8 flags = outgoing ? RecordFlagOutgoing : 0;
+    if ( DRN_PACKETKIND_MAC == packetKind )
+        flags |= RecordFlagMacPacket;
+    else
+    if ( DRN_PACKETKIND_PLAIN == packetKind )
+        flags |= RecordFlagPlainPacket;
+    writer.WriteUInt8( flags );
     writer.WriteVarUInt32( link.GetSessionPeerId() );
     writer.WriteVarUInt32( link.GetLinkId() );
     writer.WriteUInt8( lane );
@@ -345,6 +358,7 @@ CDRNSessionRecordingReader::ReadNext( CDRNRecordedMessage& message )
         return false;
     }
     message.outgoing = 0 != ( flags & RecordFlagOutgoing );
+    message.packetKind = 0 != ( flags & RecordFlagPlainPacket ) ? (UInt8) DRN_PACKETKIND_PLAIN : ( 0 != ( flags & RecordFlagMacPacket ) ? (UInt8) DRN_PACKETKIND_MAC : (UInt8) DRN_PACKETKIND_AEAD );
     message.payload.SetDataSize( 0 );
     if ( payloadSize > 0 )
         message.payload.CopyFrom( 0, payloadSize, payload );

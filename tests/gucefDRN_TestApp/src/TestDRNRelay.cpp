@@ -55,6 +55,7 @@
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestDRNTestUtils.h"
+#include "TestDRNAllocationCounter.h"
 #include "TestDRNRelay.h"
 
 /*-------------------------------------------------------------------------//
@@ -174,8 +175,17 @@ class CConnectorDoneCondition : public CTestCondition
 
 static const char* FakeExternalAddress = "203.0.113.7";
 
+/** The external port the fake gateway maps a port to: 10000 above it, or below it for a port the sum would not fit */
+static UInt16
+FakeExternalPort( UInt16 internalPort )
+{
+    return internalPort < 40000 ? (UInt16) ( internalPort + 10000 ) : (UInt16) ( internalPort - 10000 );
+}
+
+/*-------------------------------------------------------------------------*/
+
 /**
- *  A NAT-PMP gateway on loopback: answers the external address and maps every port to the port + 10000
+ *  A NAT-PMP gateway on loopback: answers the external address and maps every port to FakeExternalPort()
  *  (as the gateway of the NAT traversal tests of gucefCOM_TestApp, NAT-PMP only)
  */
 class CFakeGateway : public CORE::CObserver
@@ -257,7 +267,7 @@ class CFakeGateway : public CORE::CObserver
             writer.WriteUInt16( 0 );
             writer.WriteUInt32( 1234 );
             writer.WriteUInt16( internalPort );
-            writer.WriteUInt16( (UInt16)( 0 == lifetime ? 0 : internalPort + 10000 ) );
+            writer.WriteUInt16( 0 == lifetime ? (UInt16) 0 : FakeExternalPort( internalPort ) );
             writer.WriteUInt32( lifetime );
         }
         if ( response.GetDataSize() > 0 )
@@ -434,17 +444,21 @@ PerformDRNRelayTests( void )
         ASSERT_TRUE( PumpUntil( atA, 10000 ) );
         ASSERT_TRUE( GUCEF_NULL != atA.Last() && 5000 == atA.Last()->payload.GetDataSize() );
 
-        // the round trip through the relay on loopback, the clock offset of two nodes on the same clock
+        // the round trip through the relay on loopback, the clock offset of two nodes on the same clock. The three nodes
+        // pulse on this thread: what a packet waits there for the pulses is the round trip, and a sanitizer makes every
+        // pulse many times longer, so there the bounds are ten times wider (still far below a round trip that went wrong)
+        const Int64 rttBoundUs = IsSanitizerBuild() ? 200000 : 20000;
+        const Int64 offsetBoundUs = IsSanitizerBuild() ? 50000 : 5000;
         PumpFor( 1200 );
         DRN::CDRNLatencyInfo info;
         linkA->GetLatencyInfo( info );
-        ASSERT_TRUE( info.sampleCount > 0 && info.smoothedRtt > 0 && info.smoothedRtt < 20000 );
+        ASSERT_TRUE( info.sampleCount > 0 && info.smoothedRtt > 0 && (Int64) info.smoothedRtt < rttBoundUs );
         DRN::CDRNLatencyInfo infoB;
         linkB->GetLatencyInfo( infoB );
         ASSERT_TRUE( infoB.sampleCount > 0 );
         Int64 remoteNow = (Int64) linkA->GetEstimatedRemoteTime( DRN::CDRNClock::NowInMicroseconds() );
         Int64 localNow = (Int64) DRN::CDRNClock::NowInMicroseconds();
-        ASSERT_TRUE( remoteNow - localNow > -5000 && remoteNow - localNow < 5000 );
+        ASSERT_TRUE( remoteNow - localNow > -offsetBoundUs && remoteNow - localNow < offsetBoundUs );
         ASSERT_TRUE( relay.GetRelayService()->GetForwardedBytes() > 5000 );
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Relay link: rtt " << info.smoothedRtt << " us, forwarded " << relay.GetRelayService()->GetForwardedBytes() << " bytes" );
 
@@ -494,8 +508,9 @@ PerformDRNRelayTests( void )
         Int64 remoteNow = (Int64) linkA->GetEstimatedRemoteTime( DRN::CDRNClock::NowInMicroseconds() );
         Int64 localNow = (Int64) DRN::CDRNClock::NowInMicroseconds();
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Delaying relay: rtt " << info.smoothedRtt << " us, min " << info.minRtt << " us, clock offset estimate " << ( remoteNow - localNow ) << " us" );
-        ASSERT_TRUE( info.sampleCount > 0 && info.minRtt >= 19000 && info.smoothedRtt < 40000 );
-        ASSERT_TRUE( remoteNow - localNow > -5000 && remoteNow - localNow < 5000 );
+        // the delay is a floor in every build; above it a sanitizer adds what its slower pulses take (see above)
+        ASSERT_TRUE( info.sampleCount > 0 && info.minRtt >= 19000 && (Int64) info.smoothedRtt < ( IsSanitizerBuild() ? 200000 : 40000 ) );
+        ASSERT_TRUE( remoteNow - localNow > ( IsSanitizerBuild() ? -50000 : -5000 ) && remoteNow - localNow < ( IsSanitizerBuild() ? 50000 : 5000 ) );
 
         connector.Unlink();
         nodeA.Stop();
@@ -890,8 +905,8 @@ PerformDRNRelayTests( void )
         REQUIRE_TRUE( 5 == endpoints.GetCount() );
         ASSERT_TRUE( endpoints.Get( 0 ).ToString() == "udp://127.0.0.1:" + CORE::UInt32ToString( udpPort ) );
         ASSERT_TRUE( endpoints.Get( 1 ).ToString() == "tcp://127.0.0.1:" + CORE::UInt32ToString( tcpPort ) );
-        ASSERT_TRUE( endpoints.Get( 2 ).ToString() == "udp://" + CORE::CString( FakeExternalAddress ) + ":" + CORE::UInt32ToString( udpPort + 10000 ) );
-        ASSERT_TRUE( endpoints.Get( 3 ).ToString() == "tcp://" + CORE::CString( FakeExternalAddress ) + ":" + CORE::UInt32ToString( tcpPort + 10000 ) );
+        ASSERT_TRUE( endpoints.Get( 2 ).ToString() == "udp://" + CORE::CString( FakeExternalAddress ) + ":" + CORE::UInt32ToString( FakeExternalPort( udpPort ) ) );
+        ASSERT_TRUE( endpoints.Get( 3 ).ToString() == "tcp://" + CORE::CString( FakeExternalAddress ) + ":" + CORE::UInt32ToString( FakeExternalPort( tcpPort ) ) );
         ASSERT_TRUE( DRN::CDRNEndpoint::ChannelTypeRelay == endpoints.Get( 4 ).GetChannelType() );
         ASSERT_TRUE( 2 == gateway.mapRequests && stunServer.requests >= 1 );
         // on loopback the reflexive address is the LAN one: in the list once

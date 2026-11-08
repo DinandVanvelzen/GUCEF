@@ -92,6 +92,7 @@ static const UInt8 KeyFlagReliable      = 0x01;
 static const UInt8 AnnounceFlagReliable         = 0x01;
 static const UInt8 AnnounceFlagDeltaAgainstAck  = 0x02;
 static const UInt8 AnnounceFlagSnapshot         = 0x04;
+static const UInt8 AnnounceFlagPublic           = 0x08;     /**< a PUBLIC item; never set without allowPublicItems */
 
 /** Deltas a replica keeps while its snapshot is on the way */
 static const UInt32 MaxBufferedDeltas   = 64;
@@ -790,6 +791,42 @@ CDRNDataGrid::WriteSubscribeParams( CDRNWireWriter& writer )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNDataGrid::IsExpectedPublicData( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CDRNWireReader& body ) const
+{GUCEF_TRACE;
+
+    // what SendBoundary, SendKeyDefines and SendDeltaMessages send: boundaries and key definitions on lane 0; deltas
+    // reliable on lane 0, unreliable (neither reliable nor part of a snapshot) on lane 3 of a grid that is not reliable
+    if ( DRN_MSGCLASS_REPL != msgClass )
+        return false;
+    switch ( opcode )
+    {
+        case DRN_REPL_SNAPSHOT_BEGIN:
+        case DRN_REPL_SNAPSHOT_END:
+        case DRN_REPL_KEY_DEFINE:
+            return DRN_LANE_RELIABLE_ORDERED == lane;
+        case DRN_REPL_GRID_DELTA:
+        {
+            CDRNWireReader reader( body );
+            UInt32 seq = 0;
+            UInt8 flags = 0;
+            if ( !reader.ReadVarUInt32( seq ) || !reader.ReadUInt8( flags ) )
+                return false;
+            bool reliable = 0 != ( flags & DeltaFlagReliable );
+            bool snapshot = 0 != ( flags & DeltaFlagSnapshot );
+            if ( DRN_LANE_RELIABLE_ORDERED == lane )
+                return reliable;
+            if ( DRN_LANE_UNRELIABLE == lane )
+                return !m_settings.reliable && !reliable && !snapshot;
+            return false;
+        }
+        default:
+            return false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDRNDataGrid::OnRemoved( void )
 {GUCEF_TRACE;
@@ -812,6 +849,8 @@ CDRNDataGrid::WriteAnnounceSettings( CDRNWireWriter& writer ) const
         flags |= AnnounceFlagDeltaAgainstAck;
     if ( m_settings.snapshotOnSubscribe )
         flags |= AnnounceFlagSnapshot;
+    if ( DRN_PROTECTION_PUBLIC == m_protectionClass )
+        flags |= AnnounceFlagPublic;
     writer.WriteUInt8( (UInt8) m_settings.authority );
     writer.WriteUInt8( flags );
     writer.WriteVarUInt32( m_settings.sendRateHz );
@@ -841,6 +880,8 @@ CDRNDataGrid::ReadAnnounceSettings( CDRNWireReader& reader )
     m_settings.reliable = 0 != ( flags & AnnounceFlagReliable );
     m_settings.deltaAgainstAck = 0 != ( flags & AnnounceFlagDeltaAgainstAck );
     m_settings.snapshotOnSubscribe = 0 != ( flags & AnnounceFlagSnapshot );
+    SetProtectionClass( 0 != ( flags & AnnounceFlagPublic ) ? DRN_PROTECTION_PUBLIC : DRN_PROTECTION_CONFIDENTIAL );
+    m_settings.protection = m_protectionClass;
     m_settings.sendRateHz = sendRateHz;
     m_settings.maxBytesPerTick = maxBytesPerTick;
     m_settings.capacity = capacity > 65536 ? 65536 : capacity;
@@ -1478,8 +1519,10 @@ CDRNDataGrid::OnDelta( CDRNWireReader& reader, bool replay )
         if ( index >= m_keyCount || !m_slots[ index ].used )
             return;     // KEY_DEFINE has not arrived yet: not acknowledged, the publisher sends it again
 
+        // a reliable key changes through reliable deltas only, as its publisher sends it: an unreliable delta (of no
+        // integrity in a PLAIN packet) neither changes it nor moves its sequence
         CKeySlot& slot = m_slots[ index ];
-        bool fresh = snapshot || !slot.rxSeqValid || DRNIsNewerSequence( seq, slot.rxSeq );
+        bool fresh = ( snapshot || !slot.rxSeqValid || DRNIsNewerSequence( seq, slot.rxSeq ) ) && ( reliable || !slot.reliableKey );
         bool removed = false;
         if ( !CDRNVariantCodec::Read( reader, fresh ? slot.value : m_rxScratch, &removed ) )
             return;

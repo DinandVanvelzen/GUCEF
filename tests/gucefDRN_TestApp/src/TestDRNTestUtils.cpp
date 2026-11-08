@@ -32,6 +32,11 @@
 #define GUCEF_WEB_CWEBSOCKETHANDSHAKE_H
 #endif /* GUCEF_WEB_CWEBSOCKETHANDSHAKE_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestDRNTestUtils.h"
 
 /*-------------------------------------------------------------------------//
@@ -42,7 +47,7 @@
 
 namespace DRNTEST {
 
-/** below the range the system hands out for outgoing connections, which a listener could collide with */
+/** where the system cannot be asked for a free port: below the range it hands out for outgoing connections */
 static UInt16 g_nextTestPort = 23110;
 
 /*-------------------------------------------------------------------------*/
@@ -131,6 +136,14 @@ PumpFor( UInt32 durationInMs )
 UInt16
 NextTestPort( void )
 {
+    // a port the system says is free now, for TCP and UDP both (the tests use one port number for links of either),
+    // never the same one twice in this process, so that runs of the test application side by side (and other test
+    // applications) do not take each other's ports; GUCEF_TEST_PORT_BASE gives a run a range of its own
+    // (gucef_test_unique.h). The DRN listeners take no port 0: a node that listens has to know its endpoint before it
+    // opens it, to advertise it
+    UInt16 port = TESTFW::FindFreeTcpAndUdpPort( 0 );
+    if ( 0 != port )
+        return port;
     return g_nextTestPort++;
 }
 

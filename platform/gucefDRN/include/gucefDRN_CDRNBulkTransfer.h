@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CTSGNOTIFIER_H
 #endif /* GUCEF_CORE_CTSGNOTIFIER_H ? */
 
+#ifndef GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#include "gucefDRN_CDRNApplicationNotifier.h"
+#define GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#endif /* GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H ? */
+
 #ifndef GUCEF_CORE_CTASKCONSUMER_H
 #include "gucefCORE_CTaskConsumer.h"
 #define GUCEF_CORE_CTASKCONSUMER_H
@@ -103,7 +108,7 @@ typedef CORE::CTCloneableObj< CDRNBulkTransferInfo > CDRNBulkTransferEventData;
  *  A receiver that accepts into a file it already has part of resumes where that file ends.
  *  Owned by the session's CDRNBulkTransferManager; events reach the application as the session's do.
  */
-class GUCEF_DRN_EXPORT_CPP CDRNBulkTransfer : public CORE::CTSGNotifier
+class GUCEF_DRN_EXPORT_CPP CDRNBulkTransfer : public CDRNApplicationNotifier
 {
     public:
 
@@ -194,7 +199,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNBulkTransfer : public CORE::CTSGNotifier
  *  The bulk transfers of a session, the session component of the BULK message class. Transfers between members
  *  that have no direct link go through the sequencer, which passes the messages on.
  */
-class GUCEF_DRN_EXPORT_CPP CDRNBulkTransferManager : public CORE::CTSGNotifier ,
+class GUCEF_DRN_EXPORT_CPP CDRNBulkTransferManager : public CDRNApplicationNotifier ,
                                                      public CIDRNSessionComponent
 {
     public:
@@ -248,6 +253,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNBulkTransferManager : public CORE::CTSGNotifier ,
 
     CDRNSession* m_session;
     TTransferVector m_transfers;
+    TTransferVector m_retired;          /**< transfers of an earlier membership: they go with the manager, without the node lock */
     UInt32 m_nextTransferId;
     CORE::CDynamicBuffer m_txBuffer;
 };

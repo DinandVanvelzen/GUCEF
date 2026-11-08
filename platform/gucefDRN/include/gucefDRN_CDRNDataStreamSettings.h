@@ -64,6 +64,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataStreamSettings : public CORE::CIConfigurable
     UInt32 retainedHistory;     /**< the last entries the publisher keeps for late subscribers */
     Float32 priority;
     TDRNNotifyMode notify;      /**< PER_CHANGE: an event per entry, PER_PACKET: one per tick, POLL: none */
+    UInt64 firstSeq;            /**< publisher: the sequence of the first entry, default 1; for a publisher that continues a numbering it persisted */
+    UInt64 epoch;               /**< publisher: 0 (default) = a random epoch at creation; else this one, for a publisher that persisted its numbering */
+    TDRNProtectionClass protection; /**< CONFIDENTIAL (default) or PUBLIC: readable by an observer of the link, see CDRNSecurityPolicy::allowPublicItems */
 
     CDRNDataStreamSettings( void );
     CDRNDataStreamSettings( const CDRNDataStreamSettings& src );

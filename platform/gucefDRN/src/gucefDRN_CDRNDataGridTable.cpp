@@ -223,6 +223,7 @@ CDRNDataGridTable::CDRNDataGridTable( CDRNSession& session                      
     , m_pendingLock()
     , m_pendingWrites()
     , m_writeTimer( GUCEF_NULL )
+    , m_makingWriteTimer( false )
 {GUCEF_TRACE;
 
     m_asyncLink = CORE::CDataTableAsyncLinkPtr( GUCEF_NEW CORE::CDataTableAsyncLink( this ) );
@@ -1137,9 +1138,38 @@ CDRNDataGridTable::EnqueueWrite( const CDRNDataGridPendingWritePtr& pending )
         first = 1 == m_pendingWrites.size();
     }
     CORE::CFutureResult future = pending->GetFuture();
+    EnsureWriteTimer();
     if ( first )
         StartPendingWrites();
     return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNDataGridTable::EnsureWriteTimer( void )
+{GUCEF_TRACE;
+
+    // Made once, by the first write that is enqueued, without a lock of the table, and enabled from then on: its pulses
+    // take the pending lock (OnWriteTimer()), and the timer takes its notification lock when it is enabled, disabled or
+    // subscribed to, so none of that happens under the pending lock, nor from within the events of the grid or of the
+    // timer (gucefDRN design 9, lock order). A pulse without an overdue write finds nothing to do.
+    if ( 0 == m_settings.writeTimeoutMs )
+        return;
+    {
+        MT::CScopeMutex lock( m_pendingLock );
+        if ( GUCEF_NULL != m_writeTimer || m_makingWriteTimer )
+            return;
+        m_makingWriteTimer = true;
+    }
+    CORE::CTimer* timer = GUCEF_NEW CORE::CTimer( GetPulseGenerator(), WriteTimerIntervalMs );
+    TEventCallback callback( this, &CDRNDataGridTable::OnWriteTimer );
+    SubscribeTo( timer, CORE::CTimer::TimerUpdateEvent, callback );
+    timer->SetEnabled( true );
+
+    MT::CScopeMutex lock( m_pendingLock );
+    m_writeTimer = timer;
+    m_makingWriteTimer = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1185,16 +1215,7 @@ CDRNDataGridTable::StartPendingWrites( void )
             continue;
         }
 
-        {
-            MT::CScopeMutex lock( m_pendingLock );
-            if ( GUCEF_NULL == m_writeTimer )
-            {
-                m_writeTimer = GUCEF_NEW CORE::CTimer( GetPulseGenerator(), WriteTimerIntervalMs );
-                TEventCallback callback( this, &CDRNDataGridTable::OnWriteTimer );
-                SubscribeTo( m_writeTimer, CORE::CTimer::TimerUpdateEvent, callback );
-            }
-            m_writeTimer->SetEnabled( 0 != m_settings.writeTimeoutMs );
-        }
+        // the write timer looks for overdue writes from now on (EnsureWriteTimer())
         break;
     }
     UpdateGridSubscriptions();
@@ -1211,8 +1232,6 @@ CDRNDataGridTable::EndPendingWrites( const CORE::CString& statusText )
         MT::CScopeMutex lock( m_pendingLock );
         ended = m_pendingWrites;
         m_pendingWrites.clear();
-        if ( GUCEF_NULL != m_writeTimer )
-            m_writeTimer->SetEnabled( false );
     }
     for ( UInt32 i=0; i<(UInt32) ended.size(); ++i )
         ended[ i ]->Fail( statusText );
@@ -1254,11 +1273,7 @@ CDRNDataGridTable::OnWriteTimer( CORE::CNotifier* /* notifier */, const CORE::CE
     {
         MT::CScopeMutex lock( m_pendingLock );
         if ( m_pendingWrites.empty() )
-        {
-            if ( GUCEF_NULL != m_writeTimer )
-                m_writeTimer->SetEnabled( false );
             return;
-        }
         if ( !m_pendingWrites.front()->IsOverdue( CDRNClock::NowInMicroseconds() ) )
             return;
         head = m_pendingWrites.front();
@@ -1374,6 +1389,12 @@ void
 CDRNDataGridTable::UpdateGridSubscriptions( void )
 {GUCEF_TRACE;
 
+    // The subscriptions at the grid change under the notification lock of the grid, then the subscription lock: the grid
+    // raises its events under its notification lock and their handlers take the locks of the table (OnProposeResult(),
+    // which may come here again), so the order is the same everywhere (gucefDRN design 9, lock order)
+    CDRNSession* session = GUCEF_NULL;
+    CDRNDataGrid* grid = AcquireGrid( session );
+    CORE::CNotifierScopeLock gridLock( grid );
     MT::CScopeMutex lock( m_subscriptionLock );
     bool wantAnswers = false;
     {
@@ -1382,8 +1403,6 @@ CDRNDataGridTable::UpdateGridSubscriptions( void )
     }
     const bool wantRows = !m_observers.empty();
 
-    CDRNSession* session = GUCEF_NULL;
-    CDRNDataGrid* grid = AcquireGrid( session );
     if ( GUCEF_NULL == grid )
     {
         m_followingRows = false;

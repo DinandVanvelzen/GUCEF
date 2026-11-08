@@ -91,6 +91,7 @@ CIDRNChannel::RegisterEvents( void )
 
 CIDRNChannel::CIDRNChannel( void )
     : CORE::CObservingNotifier()
+    , m_drivingPulseGenerator()
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -118,6 +119,24 @@ void
 CIDRNChannel::SetMaxReceivePacketSize( UInt32 /* maxPacketSize */ )
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIDRNChannel::SetDrivingPulseGenerator( CORE::PulseGeneratorPtr drivingPulseGenerator )
+{GUCEF_TRACE;
+
+    m_drivingPulseGenerator = drivingPulseGenerator;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::PulseGeneratorPtr
+CIDRNChannel::GetDrivingPulseGenerator( void ) const
+{GUCEF_TRACE;
+
+    return m_drivingPulseGenerator;
 }
 
 /*-------------------------------------------------------------------------*/

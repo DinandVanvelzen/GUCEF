@@ -67,6 +67,9 @@ namespace DRN {
 /** Room for the FORWARD header in a message on the link to the relay */
 static const UInt32 ForwardHeaderRoom = 8;
 
+/** The unfragmented payload of a link over a datagram of the default size */
+static const UInt32 DatagramLinkPayload = DRN_DEFAULT_DATAGRAM_SIZE - DRN_PACKET_PROTECTION_OVERHEAD - DRN_MAX_PACKET_HEADER_SIZE - DRN_MAX_MESSAGE_HEADER_SIZE;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -626,7 +629,11 @@ CDRNRelayClient::OnBindReply( CDRNRelayBinding& binding, CDRNWireReader& reader 
 
     binding.boundPeerId = peerId;
     binding.state = CDRNRelayBinding::BINDINGSTATE_BOUND;
+    // relayed packets reach members on datagram channels through the relay too, unfragmented (lane 3): never more
+    // than a link of the default datagram carries, also when this binding's own link is a stream channel
     UInt32 linkBudget = binding.link->GetMaxUnfragmentedPayload();
+    if ( linkBudget > DatagramLinkPayload )
+        linkBudget = DatagramLinkPayload;
     binding.maxPacketSize = linkBudget > ForwardHeaderRoom ? linkBudget - ForwardHeaderRoom : 0;
     if ( binding.maxPacketSize > DRN_DEFAULT_DATAGRAM_SIZE )
         binding.maxPacketSize = DRN_DEFAULT_DATAGRAM_SIZE;
@@ -670,7 +677,8 @@ CDRNRelayClient::OnForward( CDRNRelayBinding& binding, CDRNWireReader& reader )
         accepted->m_binding = &binding;
         accepted->m_connected = true;
         accepted->m_capabilities.maxPacketSize = binding.maxPacketSize;
-        accepted->SetPulseGenerator( m_node->GetPulseGenerator() );
+        accepted->SetPulseGenerator( m_node->GetWorkPulseGenerator() );
+        accepted->SetDrivingPulseGenerator( m_node->GetPulseGenerator() );
         m_channels.push_back( accepted );
         if ( fromPeerId >= binding.m_channelsByPeerId.size() )
             binding.m_channelsByPeerId.resize( fromPeerId + 1, GUCEF_NULL );

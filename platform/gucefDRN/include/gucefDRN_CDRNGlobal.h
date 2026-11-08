@@ -65,7 +65,8 @@ namespace DRN {
  *  and the registry of the sessions an application makes known by name.
  *  The built in "tcp", "udp" and "websocket" channels and the "anonymous", "shared-secret" and "token"
  *  authenticators are registered here, plugins register more. The "drn" database backend (CDRNDatabaseClient) is
- *  registered with the database client factory of gucefCOMCORE.
+ *  registered with the database client factory of gucefCOMCORE, the "drn" RPC transport and listener
+ *  (CDRNRpcTransport, CDRNRpcTransportListener) with its RPC transport and listener factories.
  */
 class GUCEF_DRN_EXPORT_CPP CDRNGlobal
 {

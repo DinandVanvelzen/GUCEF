@@ -25,7 +25,8 @@ LOCAL_SRC_FILES := \
   src/drnchannelpluginEOSP2P.cpp \
   src/drnchannelpluginEOSP2P_CEosP2PChannel.cpp \
   src/drnchannelpluginEOSP2P_CEosP2PChannelListener.cpp \
-  src/drnchannelpluginEOSP2P_CEosP2PEndpointInfo.cpp
+  src/drnchannelpluginEOSP2P_CEosP2PEndpointInfo.cpp \
+  src/drnchannelpluginEOSP2P_CEosP2PSocketEventQueue.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

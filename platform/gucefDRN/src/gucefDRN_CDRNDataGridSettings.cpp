@@ -32,6 +32,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_DRN_CDRNSECURITYPOLICY_H
+#include "gucefDRN_CDRNSecurityPolicy.h"
+#define GUCEF_DRN_CDRNSECURITYPOLICY_H
+#endif /* GUCEF_DRN_CDRNSECURITYPOLICY_H ? */
+
 #include "gucefDRN_CDRNDataGridSettings.h"
 
 /*-------------------------------------------------------------------------//
@@ -68,6 +73,7 @@ CDRNDataGridSettings::CDRNDataGridSettings( void )
     , notify( DRN_NOTIFY_PER_CHANGE )
     , priority( 1.0f )
     , snapshotOnSubscribe( true )
+    , protection( DRN_PROTECTION_CONFIDENTIAL )
     , votePolicy()
     , keyType( CORE::DATATABLE_TYPE_UNSUPPORTED )
     , valueType( CORE::DATATABLE_TYPE_UNSUPPORTED )
@@ -92,6 +98,7 @@ CDRNDataGridSettings::CDRNDataGridSettings( const CDRNDataGridSettings& src )
     , notify( src.notify )
     , priority( src.priority )
     , snapshotOnSubscribe( src.snapshotOnSubscribe )
+    , protection( src.protection )
     , votePolicy( src.votePolicy )
     , keyType( src.keyType )
     , valueType( src.valueType )
@@ -128,6 +135,7 @@ CDRNDataGridSettings::operator=( const CDRNDataGridSettings& src )
         notify = src.notify;
         priority = src.priority;
         snapshotOnSubscribe = src.snapshotOnSubscribe;
+        protection = src.protection;
         votePolicy = src.votePolicy;
         keyType = src.keyType;
         valueType = src.valueType;
@@ -258,6 +266,8 @@ CDRNDataGridSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "notify", NotifyModeToString( notify ) ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "priority", priority ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "snapshotOnSubscribe", snapshotOnSubscribe ) && totalSuccess;
+    if ( DRN_PROTECTION_CONFIDENTIAL != protection )
+        totalSuccess = cfg.SetAttribute( "protection", CDRNSecurityPolicy::ProtectionClassToString( protection ) ) && totalSuccess;
     if ( CORE::DATATABLE_TYPE_UNSUPPORTED != keyType )
         totalSuccess = cfg.SetAttribute( "keyType", CORE::CString( CORE::DataTableLogicalTypeToString( keyType ) ) ) && totalSuccess;
     if ( CORE::DATATABLE_TYPE_UNSUPPORTED != valueType )
@@ -301,6 +311,7 @@ CDRNDataGridSettings::LoadConfig( const CORE::CDataNode& cfg )
     notify = StringToNotifyMode( cfg.GetAttributeValueOrChildValueByName( "notify" ).AsString( NotifyModeToString( notify ), true ), notify );
     priority = cfg.GetAttributeValueOrChildValueByName( "priority" ).AsFloat32( priority, true );
     snapshotOnSubscribe = cfg.GetAttributeValueOrChildValueByName( "snapshotOnSubscribe" ).AsBool( snapshotOnSubscribe, true );
+    protection = CDRNSecurityPolicy::StringToProtectionClass( cfg.GetAttributeValueOrChildValueByName( "protection" ).AsString( CDRNSecurityPolicy::ProtectionClassToString( protection ), true ), protection );
     keyType = CORE::DATATABLE_TYPE_UNSUPPORTED;
     valueType = CORE::DATATABLE_TYPE_UNSUPPORTED;
     CORE::DataTableLogicalTypeFromString( cfg.GetAttributeValueOrChildValueByName( "keyType" ).AsString( CORE::CString::Empty, true ), keyType );

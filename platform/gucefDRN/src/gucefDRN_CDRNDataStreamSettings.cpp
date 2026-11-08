@@ -32,6 +32,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_DRN_CDRNSECURITYPOLICY_H
+#include "gucefDRN_CDRNSecurityPolicy.h"
+#define GUCEF_DRN_CDRNSECURITYPOLICY_H
+#endif /* GUCEF_DRN_CDRNSECURITYPOLICY_H ? */
+
 #include "gucefDRN_CDRNDataStreamSettings.h"
 
 /*-------------------------------------------------------------------------//
@@ -60,6 +65,9 @@ CDRNDataStreamSettings::CDRNDataStreamSettings( void )
     , retainedHistory( 0 )
     , priority( 1.0f )
     , notify( DRN_NOTIFY_PER_PACKET )
+    , firstSeq( 1 )
+    , epoch( 0 )
+    , protection( DRN_PROTECTION_CONFIDENTIAL )
 {GUCEF_TRACE;
 
 }
@@ -73,6 +81,9 @@ CDRNDataStreamSettings::CDRNDataStreamSettings( const CDRNDataStreamSettings& sr
     , retainedHistory( src.retainedHistory )
     , priority( src.priority )
     , notify( src.notify )
+    , firstSeq( src.firstSeq )
+    , epoch( src.epoch )
+    , protection( src.protection )
 {GUCEF_TRACE;
 
 }
@@ -98,6 +109,9 @@ CDRNDataStreamSettings::operator=( const CDRNDataStreamSettings& src )
         retainedHistory = src.retainedHistory;
         priority = src.priority;
         notify = src.notify;
+        firstSeq = src.firstSeq;
+        epoch = src.epoch;
+        protection = src.protection;
     }
     return *this;
 }
@@ -114,6 +128,12 @@ CDRNDataStreamSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "retainedHistory", retainedHistory ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "priority", priority ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "notify", CDRNDataGridSettings::NotifyModeToString( notify ) ) && totalSuccess;
+    if ( 1 != firstSeq )
+        totalSuccess = cfg.SetAttribute( "firstSeq", firstSeq ) && totalSuccess;
+    if ( 0 != epoch )
+        totalSuccess = cfg.SetAttribute( "epoch", epoch ) && totalSuccess;
+    if ( DRN_PROTECTION_CONFIDENTIAL != protection )
+        totalSuccess = cfg.SetAttribute( "protection", CDRNSecurityPolicy::ProtectionClassToString( protection ) ) && totalSuccess;
     return totalSuccess;
 }
 
@@ -128,6 +148,11 @@ CDRNDataStreamSettings::LoadConfig( const CORE::CDataNode& cfg )
     retainedHistory = cfg.GetAttributeValueOrChildValueByName( "retainedHistory" ).AsUInt32( retainedHistory, true );
     priority = cfg.GetAttributeValueOrChildValueByName( "priority" ).AsFloat32( priority, true );
     notify = CDRNDataGridSettings::StringToNotifyMode( cfg.GetAttributeValueOrChildValueByName( "notify" ).AsString( CDRNDataGridSettings::NotifyModeToString( notify ), true ), notify );
+    firstSeq = cfg.GetAttributeValueOrChildValueByName( "firstSeq" ).AsUInt64( firstSeq, true );
+    if ( 0 == firstSeq )
+        firstSeq = 1;
+    epoch = cfg.GetAttributeValueOrChildValueByName( "epoch" ).AsUInt64( epoch, true );
+    protection = CDRNSecurityPolicy::StringToProtectionClass( cfg.GetAttributeValueOrChildValueByName( "protection" ).AsString( CDRNSecurityPolicy::ProtectionClassToString( protection ), true ), protection );
     return true;
 }
 

@@ -88,6 +88,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNMessageView
     UInt32 laneSequence;    /**< only meaningful on the reliable lanes */
     const UInt8* payload;
     UInt32 payloadSize;
+    UInt8 packetKind;       /**< TDRNPacketKind of the packet it came in, the weakest of its fragments */
 
     CDRNMessageView( void );
 };

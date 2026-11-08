@@ -50,8 +50,10 @@ namespace DRN {
 static const UInt32 FragmentHeaderMaxSize = 5 + 5 + 5 + 5 + 5 + 1 + 5;
 
 static const UInt32 SentRingSize = DRN_RECEIVE_WINDOW_SIZE;
-static const UInt32 HeldRingSize = DRN_RECEIVE_WINDOW_SIZE;
+static const UInt32 HeldRingSize = DRN_RELIABLE_LANE_WINDOW;
 static const UInt32 InitialPendingRingSize = 256;
+
+const UInt32 CDRNLinkReliability::MaxPlainSequenceLead;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -205,6 +207,8 @@ CDRNLinkStats::Clear( void )
     fragmentedMessages = 0;
     preAuthRefusedPackets = 0;
     rateLimitedPackets = 0;
+    windowRefusedPackets = 0;
+    plainTooFarPackets = 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -223,6 +227,9 @@ CDRNLinkReliability::CPendingMessage::CPendingMessage( void )
     , needsSend( false )
     , lastSendTime( 0 )
     , sendCount( 0 )
+    , packetKind( DRN_PACKETKIND_AEAD )
+    , lane( 0 )
+    , laneSequence( 0 )
     , encoded()
 {GUCEF_TRACE;
 
@@ -248,6 +255,7 @@ CDRNLinkReliability::CHeldMessage::CHeldMessage( void )
     , laneSequence( 0 )
     , msgClass( 0 )
     , opcode( 0 )
+    , packetKind( DRN_PACKETKIND_AEAD )
     , payload()
 {GUCEF_TRACE;
 
@@ -262,10 +270,41 @@ CDRNLinkReliability::CFragmentAssembly::CFragmentAssembly( void )
     , totalSize( 0 )
     , count( 0 )
     , received( 0 )
+    , packetKind( DRN_PACKETKIND_AEAD )
     , got()
     , data()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDRNLinkReliability::CUnreliableQueue::CUnreliableQueue( void )
+    : queue()
+    , sizes()
+    , readIndex( 0 )
+    , readOffset( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNLinkReliability::CUnreliableQueue::HasMessages( void ) const
+{GUCEF_TRACE;
+    return readIndex < sizes.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNLinkReliability::CUnreliableQueue::Clear( void )
+{GUCEF_TRACE;
+    queue.SetDataSize( 0 );
+    sizes.clear();
+    readIndex = 0;
+    readOffset = 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,19 +316,22 @@ CDRNLinkReliability::CDRNLinkReliability( void )
     , m_nextFragmentGroup( 1 )
     , m_streamQueue()
     , m_streamQueueEnd( DRN_MAX_PACKET_HEADER_SIZE )
-    , m_unreliableQueue()
-    , m_unreliableSizes()
-    , m_unreliableReadIndex( 0 )
-    , m_unreliableReadOffset( 0 )
+    , m_streamBodyStart( DRN_MAX_PACKET_HEADER_SIZE )
+    , m_streamRuns()
+    , m_streamRunsHead( 0 )
+    , m_needsSendMacCount( 0 )
+    , m_nextPlainSequence( 1 )
     , m_pending()
     , m_pendingHead( 0 )
     , m_pendingNext( 0 )
+    , m_releaseNext( 0 )
     , m_needsSendCount( 0 )
     , m_sent()
     , m_packetIds()
     , m_datagram()
     , m_scratch()
     , m_receiveWindow()
+    , m_plainReceiveWindow()
     , m_highestReceivedSendTime( 0 )
     , m_highestReceivedLocalTime( 0 )
     , m_ackOwed( false )
@@ -300,7 +342,7 @@ CDRNLinkReliability::CDRNLinkReliability( void )
     , m_held()
     , m_heldCount( 0 )
     , m_heldRingSize( 0 )
-    , m_lane1Window()
+    , m_lane1Base( 0 )
     , m_fragments()
     , m_fragmentBytes( 0 )
     , m_currentPacketSequence( 0 )
@@ -314,6 +356,9 @@ CDRNLinkReliability::CDRNLinkReliability( void )
 
     m_nextLaneSequence[ 0 ] = 0;
     m_nextLaneSequence[ 1 ] = 0;
+    m_laneFloorId[ 0 ] = 0;
+    m_laneFloorId[ 1 ] = 0;
+    memset( m_lane1Received, 0, sizeof( m_lane1Received ) );
     Reset( true, 0, 1 );
 }
 
@@ -355,16 +400,23 @@ CDRNLinkReliability::Reset( bool transportIsReliable, UInt32 maxPacketSize, UInt
 
     m_streamQueue.SetDataSize( 0 );
     m_streamQueueEnd = DRN_MAX_PACKET_HEADER_SIZE;
-    m_unreliableQueue.SetDataSize( 0 );
-    m_unreliableSizes.clear();
-    m_unreliableReadIndex = 0;
-    m_unreliableReadOffset = 0;
+    m_streamBodyStart = DRN_MAX_PACKET_HEADER_SIZE;
+    m_streamRuns.clear();
+    m_streamRunsHead = 0;
+    for ( UInt32 k=0; k<DRN_PACKETKIND_COUNT; ++k )
+        m_unreliable[ k ].Clear();
+    m_needsSendMacCount = 0;
+    m_nextPlainSequence = 1;
+    m_plainReceiveWindow.Reset();
 
     m_pending.clear();
     if ( !m_transportIsReliable )
         m_pending.resize( InitialPendingRingSize );
     m_pendingHead = 0;
     m_pendingNext = 0;
+    m_releaseNext = 0;
+    m_laneFloorId[ 0 ] = 0;
+    m_laneFloorId[ 1 ] = 0;
     m_needsSendCount = 0;
 
     m_sent.clear();
@@ -387,7 +439,8 @@ CDRNLinkReliability::Reset( bool transportIsReliable, UInt32 maxPacketSize, UInt
         m_heldRingSize = HeldRingSize;
     }
     m_heldCount = 0;
-    m_lane1Window.Reset();
+    m_lane1Base = 0;
+    memset( m_lane1Received, 0, sizeof( m_lane1Received ) );
     ClearFragments();
     m_currentPacketSequence = 0;
     m_preAuthRestricted = false;
@@ -416,6 +469,7 @@ CDRNLinkReliability::ResizeHeldRing( UInt32 newSize )
         to.laneSequence = from.laneSequence;
         to.msgClass = from.msgClass;
         to.opcode = from.opcode;
+        to.packetKind = from.packetKind;
         to.payload.Swap( from.payload );
     }
     m_held.swap( resized );
@@ -537,6 +591,9 @@ CDRNLinkReliability::GrowPending( void )
         to.needsSend = from.needsSend;
         to.lastSendTime = from.lastSendTime;
         to.sendCount = from.sendCount;
+        to.packetKind = from.packetKind;
+        to.lane = from.lane;
+        to.laneSequence = from.laneSequence;
         to.encoded.Swap( from.encoded );
     }
     m_pending.swap( grown );
@@ -545,22 +602,73 @@ CDRNLinkReliability::GrowPending( void )
 /*-------------------------------------------------------------------------*/
 
 CDRNLinkReliability::CPendingMessage&
-CDRNLinkReliability::AddPending( void )
+CDRNLinkReliability::AddPending( UInt8 packetKind, UInt8 lane, UInt32 laneSequence )
 {GUCEF_TRACE;
     if ( m_pendingNext - m_pendingHead >= (UInt32) m_pending.size() )
         GrowPending();
 
+    // it waits for its lane window, ReleaseWithinLaneWindows() makes it due
     UInt32 id = m_pendingNext++;
     CPendingMessage& entry = m_pending[ id & ( m_pending.size() - 1 ) ];
     entry.id = id;
     entry.inUse = true;
     entry.acked = false;
-    entry.needsSend = true;
+    entry.needsSend = false;
     entry.lastSendTime = 0;
     entry.sendCount = 0;
+    entry.packetKind = packetKind;
+    entry.lane = lane;
+    entry.laneSequence = laneSequence;
     entry.encoded.SetDataSize( 0 );
-    ++m_needsSendCount;
     return entry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CDRNLinkReliability::GetLaneFloor( UInt8 lane )
+{GUCEF_TRACE;
+
+    // the lane sequence of the oldest message of the lane that is not acknowledged, the next lane sequence when there
+    // is none. The search goes on from where it ended before: a message once acknowledged stays so, so it visits
+    // every message once
+    UInt32 mask = (UInt32) m_pending.size() - 1;
+    UInt32 id = m_laneFloorId[ lane ];
+    if ( (UInt32) ( id - m_pendingHead ) > (UInt32) ( m_pendingNext - m_pendingHead ) )
+        id = m_pendingHead;
+    while ( id != m_pendingNext )
+    {
+        const CPendingMessage& entry = m_pending[ id & mask ];
+        if ( !entry.acked && entry.lane == lane )
+            break;
+        ++id;
+    }
+    m_laneFloorId[ lane ] = id;
+    return id != m_pendingNext ? m_pending[ id & mask ].laneSequence : m_nextLaneSequence[ lane ];
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNLinkReliability::ReleaseWithinLaneWindows( void )
+{GUCEF_TRACE;
+
+    // a message may go out once its lane sequence is within the window of its lane from the oldest message of the lane
+    // not acknowledged: the receiver takes every lane sequence of that window, so nothing it acknowledges is dropped.
+    // In the order of the queue: a message of one lane that waits holds back the later ones of the other lane, the
+    // oldest one of every lane is always due, so the window always moves on
+    UInt32 mask = (UInt32) m_pending.size() - 1;
+    while ( m_releaseNext != m_pendingNext )
+    {
+        CPendingMessage& entry = m_pending[ m_releaseNext & mask ];
+        if ( (UInt32) ( entry.laneSequence - GetLaneFloor( entry.lane ) ) >= DRN_RELIABLE_LANE_WINDOW )
+            break;
+        entry.needsSend = true;
+        ++m_needsSendCount;
+        if ( DRN_PACKETKIND_MAC == entry.packetKind )
+            ++m_needsSendMacCount;
+        ++m_releaseNext;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -572,16 +680,18 @@ CDRNLinkReliability::QueueReliableDatagram( UInt8 lane            ,
                                             const void* part1     ,
                                             UInt32 size1          ,
                                             const void* part2     ,
-                                            UInt32 size2          )
+                                            UInt32 size2          ,
+                                            UInt8 packetKind      )
 {GUCEF_TRACE;
     UInt32 budget = GetBodyBudget();
     UInt32 payloadSize = size1 + size2;
     UInt32 encodedSize = CDRNPacketCodec::GetMessageSize( opcode, lane, m_nextLaneSequence[ lane ], payloadSize );
     if ( encodedSize <= budget )
     {
-        CPendingMessage& entry = AddPending();
+        CPendingMessage& entry = AddPending( packetKind, lane, m_nextLaneSequence[ lane ] );
         CDRNWireWriter writer( entry.encoded );
         EncodeMessage( writer, lane, msgClass, opcode, m_nextLaneSequence[ lane ]++, part1, size1, part2, size2 );
+        ReleaseWithinLaneWindows();
         return true;
     }
 
@@ -614,11 +724,12 @@ CDRNLinkReliability::QueueReliableDatagram( UInt8 lane            ,
         header[ headerSize++ ] = msgClass;
         headerSize += CDRNWireWriter::EncodeVarUInt64( opcode, header + headerSize );
 
-        CPendingMessage& entry = AddPending();
+        CPendingMessage& entry = AddPending( packetKind, lane, m_nextLaneSequence[ lane ] );
         CDRNWireWriter writer( entry.encoded );
         EncodeMessage( writer, lane, DRN_MSGCLASS_LINK, DRN_LINK_FRAGMENT, m_nextLaneSequence[ lane ]++, header, headerSize, payload + offset, bytes );
     }
     ++m_stats.fragmentedMessages;
+    ReleaseWithinLaneWindows();
     return true;
 }
 
@@ -631,7 +742,8 @@ CDRNLinkReliability::QueueMessage( UInt8 lane                ,
                                    const void* part1         ,
                                    UInt32 size1              ,
                                    const void* part2         ,
-                                   UInt32 size2              )
+                                   UInt32 size2              ,
+                                   UInt8 packetKind          )
 {GUCEF_TRACE;
     if ( lane >= DRN_LANE_COUNT )
         return false;
@@ -642,19 +754,49 @@ CDRNLinkReliability::QueueMessage( UInt8 lane                ,
 
     ++m_stats.messagesSent;
 
+    // PLAIN carries lane 3 only: anything else of a public item goes in MAC packets
+    if ( DRN_PACKETKIND_PLAIN == packetKind && DRN_LANE_UNRELIABLE != lane )
+        packetKind = DRN_PACKETKIND_MAC;
+    if ( packetKind >= DRN_PACKETKIND_COUNT )
+        packetKind = DRN_PACKETKIND_AEAD;
+
     if ( m_transportIsReliable )
     {
         if ( m_streamQueue.GetDataSize() < m_streamQueueEnd )
             m_streamQueue.SetDataSize( m_streamQueueEnd );
+        UInt32 before = m_streamQueueEnd;
         CDRNWireWriter writer( m_streamQueue, m_streamQueueEnd );
         UInt32 laneSequence = DRNIsReliableLane( lane ) ? m_nextLaneSequence[ lane ]++ : 0;
         EncodeMessage( writer, lane, msgClass, opcode, laneSequence, part1, size1, part2, size2 );
         m_streamQueueEnd = writer.GetOffset();
+
+        // runs of equal kind are only kept while something else than AEAD is queued: one packet per run, in order
+        if ( DRN_PACKETKIND_AEAD != packetKind || m_streamRunsHead < m_streamRuns.size() )
+        {
+            if ( m_streamRunsHead >= m_streamRuns.size() && before > m_streamBodyStart )
+            {
+                CStreamRun aeadRun;
+                aeadRun.end = before;
+                aeadRun.packetKind = DRN_PACKETKIND_AEAD;
+                m_streamRuns.push_back( aeadRun );
+            }
+            if ( m_streamRunsHead < m_streamRuns.size() && m_streamRuns.back().packetKind == packetKind )
+            {
+                m_streamRuns.back().end = m_streamQueueEnd;
+            }
+            else
+            {
+                CStreamRun run;
+                run.end = m_streamQueueEnd;
+                run.packetKind = packetKind;
+                m_streamRuns.push_back( run );
+            }
+        }
         return true;
     }
 
     if ( DRNIsReliableLane( lane ) )
-        return QueueReliableDatagram( lane, msgClass, opcode, part1, size1, part2, size2 );
+        return QueueReliableDatagram( lane, msgClass, opcode, part1, size1, part2, size2, packetKind );
 
     // unreliable lanes on a datagram channel: never fragmented, the sender keeps them within the budget
     UInt32 encodedSize = CDRNPacketCodec::GetMessageSize( opcode, lane, 0, size1 + size2 );
@@ -664,9 +806,10 @@ CDRNLinkReliability::QueueMessage( UInt8 lane                ,
         --m_stats.messagesSent;
         return false;
     }
-    CDRNWireWriter writer( m_unreliableQueue, m_unreliableQueue.GetDataSize() );
+    CUnreliableQueue& unreliable = m_unreliable[ packetKind ];
+    CDRNWireWriter writer( unreliable.queue, unreliable.queue.GetDataSize() );
     EncodeMessage( writer, lane, msgClass, opcode, 0, part1, size1, part2, size2 );
-    m_unreliableSizes.push_back( encodedSize );
+    unreliable.sizes.push_back( encodedSize );
     return true;
 }
 
@@ -676,8 +819,9 @@ bool
 CDRNLinkReliability::HasQueuedOutput( void ) const
 {GUCEF_TRACE;
     if ( m_transportIsReliable )
-        return m_streamQueueEnd > DRN_MAX_PACKET_HEADER_SIZE;
-    return m_needsSendCount > 0 || m_unreliableReadIndex < m_unreliableSizes.size();
+        return m_streamQueueEnd > m_streamBodyStart;
+    return m_needsSendCount > 0 || m_unreliable[ DRN_PACKETKIND_AEAD ].HasMessages() || m_unreliable[ DRN_PACKETKIND_MAC ].HasMessages() ||
+           m_unreliable[ DRN_PACKETKIND_PLAIN ].HasMessages();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -699,12 +843,15 @@ CDRNLinkReliability::GetAckOwedSince( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNLinkReliability::FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UInt64 now, const UInt8*& packet, UInt32& packetSize )
+CDRNLinkReliability::FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UInt64 now, const UInt8*& packet, UInt32& packetSize, UInt8 packetKind )
 {GUCEF_TRACE;
+    bool plain = DRN_PACKETKIND_PLAIN == packetKind;
     CDRNPacketHeader header;
-    header.sequence = m_nextSequence;
+    header.sequence = plain ? m_nextPlainSequence : m_nextSequence;
     header.sendTime = now;
-    if ( m_receiveWindow.HasAny() )
+
+    // a PLAIN packet can be forged by anyone on the path: it acknowledges and echoes nothing
+    if ( !plain && m_receiveWindow.HasAny() )
     {
         header.ackSequence = m_receiveWindow.GetHighest();
         header.ackBits = m_receiveWindow.GetAckBits();
@@ -719,7 +866,7 @@ CDRNLinkReliability::FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UIn
     UInt32 headerSize = 0;
     {
         UInt8* p = headerBytes;
-        p[ headerSize++ ] = DRN_PROTOCOL_ID;
+        p[ headerSize++ ] = plain ? DRN_PROTOCOL_ID_PUBLIC_PLAIN : DRN_PROTOCOL_ID;
         headerSize += CDRNWireWriter::EncodeVarUInt64( header.sequence, p + headerSize );
         headerSize += CDRNWireWriter::EncodeVarUInt64( header.sendTime, p + headerSize );
         headerSize += CDRNWireWriter::EncodeVarUInt64( header.ackSequence, p + headerSize );
@@ -734,6 +881,16 @@ CDRNLinkReliability::FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UIn
     buffer.CopyFrom( packetStart, headerSize, headerBytes );
     packet = static_cast< const UInt8* >( buffer.GetConstBufferPtr( packetStart ) );
     packetSize = bodyEnd - packetStart;
+
+    if ( plain )
+    {
+        ++m_nextPlainSequence;
+        if ( 0 == m_nextPlainSequence )
+            m_nextPlainSequence = 1;
+        ++m_stats.packetsSent;
+        m_stats.bytesSent += packetSize;
+        return;
+    }
 
     CSentPacket& record = m_sent[ header.sequence & ( SentRingSize - 1 ) ];
     record.sequence = header.sequence;
@@ -755,22 +912,73 @@ CDRNLinkReliability::FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UIn
 
 /*-------------------------------------------------------------------------*/
 
+UInt8
+CDRNLinkReliability::ChooseDatagramKind( void ) const
+{GUCEF_TRACE;
+    // control and confidential first, then MAC, then PLAIN
+    if ( m_needsSendCount > m_needsSendMacCount || m_unreliable[ DRN_PACKETKIND_AEAD ].HasMessages() )
+        return DRN_PACKETKIND_AEAD;
+    if ( m_needsSendMacCount > 0 || m_unreliable[ DRN_PACKETKIND_MAC ].HasMessages() )
+        return DRN_PACKETKIND_MAC;
+    if ( m_unreliable[ DRN_PACKETKIND_PLAIN ].HasMessages() )
+        return DRN_PACKETKIND_PLAIN;
+    return DRN_PACKETKIND_AEAD;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CDRNLinkReliability::BuildPacket( UInt64 now, bool force, const UInt8*& packet, UInt32& packetSize )
 {GUCEF_TRACE;
+    UInt8 packetKind = DRN_PACKETKIND_AEAD;
+    return BuildPacket( now, force, packet, packetSize, packetKind );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNLinkReliability::BuildPacket( UInt64 now, bool force, const UInt8*& packet, UInt32& packetSize, UInt8& packetKind )
+{GUCEF_TRACE;
+    packetKind = DRN_PACKETKIND_AEAD;
     if ( m_transportIsReliable )
     {
-        bool hasBody = m_streamQueueEnd > DRN_MAX_PACKET_HEADER_SIZE;
+        bool hasBody = m_streamQueueEnd > m_streamBodyStart;
         if ( !hasBody && !force )
             return false;
         if ( m_streamQueue.GetDataSize() < m_streamQueueEnd )
             m_streamQueue.SetDataSize( m_streamQueueEnd );
+
+        if ( m_streamRunsHead < m_streamRuns.size() )
+        {
+            // one packet per run of equal kind, in queue order: the order of the stream is the order of delivery.
+            // The header of a later run goes in front of it, over the end of the run before, which went out already
+            const CStreamRun run = m_streamRuns[ m_streamRunsHead++ ];
+            packetKind = run.packetKind;
+            CDRNWireWriter writer( m_streamQueue, run.end );
+            FinishPacket( writer, m_streamBodyStart, now, packet, packetSize, packetKind );
+            m_streamBodyStart = run.end;
+            if ( m_streamRunsHead >= m_streamRuns.size() )
+            {
+                m_streamRuns.clear();
+                m_streamRunsHead = 0;
+                if ( m_streamBodyStart >= m_streamQueueEnd )
+                {
+                    m_streamQueueEnd = DRN_MAX_PACKET_HEADER_SIZE;
+                    m_streamBodyStart = DRN_MAX_PACKET_HEADER_SIZE;
+                }
+            }
+            return true;
+        }
+
         CDRNWireWriter writer( m_streamQueue, m_streamQueueEnd );
-        FinishPacket( writer, DRN_MAX_PACKET_HEADER_SIZE, now, packet, packetSize );
+        FinishPacket( writer, m_streamBodyStart, now, packet, packetSize, DRN_PACKETKIND_AEAD );
         m_streamQueueEnd = DRN_MAX_PACKET_HEADER_SIZE;
+        m_streamBodyStart = DRN_MAX_PACKET_HEADER_SIZE;
         return true;
     }
 
+    // a datagram never mixes kinds; while everything is AEAD this is the one kind there is
+    packetKind = ChooseDatagramKind();
     UInt32 budget = GetBodyBudget();
     if ( m_datagram.GetDataSize() < DRN_MAX_PACKET_HEADER_SIZE )
         m_datagram.SetDataSize( DRN_MAX_PACKET_HEADER_SIZE );
@@ -779,13 +987,14 @@ CDRNLinkReliability::BuildPacket( UInt64 now, bool force, const UInt8*& packet, 
     bool full = false;
 
     // reliable messages that are due go first
-    if ( m_needsSendCount > 0 )
+    UInt32 dueOfKind = DRN_PACKETKIND_AEAD == packetKind ? m_needsSendCount - m_needsSendMacCount : ( DRN_PACKETKIND_MAC == packetKind ? m_needsSendMacCount : 0 );
+    if ( dueOfKind > 0 )
     {
         UInt32 mask = (UInt32) m_pending.size() - 1;
         for ( UInt32 id = m_pendingHead; id != m_pendingNext; ++id )
         {
             CPendingMessage& entry = m_pending[ id & mask ];
-            if ( !entry.inUse || entry.acked || !entry.needsSend )
+            if ( !entry.inUse || entry.acked || !entry.needsSend || entry.packetKind != packetKind )
                 continue;
             UInt32 size = entry.encoded.GetDataSize();
             if ( bodySize + size > budget )
@@ -797,12 +1006,15 @@ CDRNLinkReliability::BuildPacket( UInt64 now, bool force, const UInt8*& packet, 
             bodySize += size;
             entry.needsSend = false;
             --m_needsSendCount;
+            if ( DRN_PACKETKIND_MAC == entry.packetKind )
+                --m_needsSendMacCount;
+            --dueOfKind;
             if ( entry.sendCount > 0 )
                 ++m_stats.messagesResent;
             ++entry.sendCount;
             entry.lastSendTime = now;
             m_packetIds.push_back( id );
-            if ( 0 == m_needsSendCount )
+            if ( 0 == dueOfKind )
                 break;
         }
     }
@@ -810,29 +1022,27 @@ CDRNLinkReliability::BuildPacket( UInt64 now, bool force, const UInt8*& packet, 
     // then the unreliable ones while there is room
     if ( !full )
     {
-        while ( m_unreliableReadIndex < m_unreliableSizes.size() )
+        CUnreliableQueue& unreliable = m_unreliable[ packetKind ];
+        while ( unreliable.readIndex < unreliable.sizes.size() )
         {
-            UInt32 size = m_unreliableSizes[ m_unreliableReadIndex ];
+            UInt32 size = unreliable.sizes[ unreliable.readIndex ];
             if ( bodySize + size > budget )
                 break;
-            writer.WriteBytes( m_unreliableQueue.GetConstBufferPtr( m_unreliableReadOffset ), size );
+            writer.WriteBytes( unreliable.queue.GetConstBufferPtr( unreliable.readOffset ), size );
             bodySize += size;
-            m_unreliableReadOffset += size;
-            ++m_unreliableReadIndex;
+            unreliable.readOffset += size;
+            ++unreliable.readIndex;
         }
-        if ( m_unreliableReadIndex >= m_unreliableSizes.size() )
-        {
-            m_unreliableSizes.clear();
-            m_unreliableReadIndex = 0;
-            m_unreliableReadOffset = 0;
-            m_unreliableQueue.SetDataSize( 0 );
-        }
+        if ( unreliable.readIndex >= unreliable.sizes.size() )
+            unreliable.Clear();
     }
 
     if ( 0 == bodySize && !force && !m_ackOwed )
         return false;
+    if ( 0 == bodySize && DRN_PACKETKIND_PLAIN == packetKind )
+        packetKind = DRN_PACKETKIND_AEAD;      // an ack only packet is never PLAIN
 
-    FinishPacket( writer, DRN_MAX_PACKET_HEADER_SIZE, now, packet, packetSize );
+    FinishPacket( writer, DRN_MAX_PACKET_HEADER_SIZE, now, packet, packetSize, packetKind );
     return true;
 }
 
@@ -844,14 +1054,17 @@ CDRNLinkReliability::CheckRetransmits( UInt64 now, UInt64 rto )
     if ( m_transportIsReliable || m_pendingHead == m_pendingNext )
         return;
 
+    // only the messages within their lane window were ever sent
     UInt32 mask = (UInt32) m_pending.size() - 1;
-    for ( UInt32 id = m_pendingHead; id != m_pendingNext; ++id )
+    for ( UInt32 id = m_pendingHead; id != m_releaseNext; ++id )
     {
         CPendingMessage& entry = m_pending[ id & mask ];
         if ( entry.inUse && !entry.acked && !entry.needsSend && entry.sendCount > 0 && now - entry.lastSendTime >= rto )
         {
             entry.needsSend = true;
             ++m_needsSendCount;
+            if ( DRN_PACKETKIND_MAC == entry.packetKind )
+                ++m_needsSendMacCount;
         }
     }
 }
@@ -881,6 +1094,8 @@ CDRNLinkReliability::AckPending( UInt32 id )
     {
         entry.needsSend = false;
         --m_needsSendCount;
+        if ( DRN_PACKETKIND_MAC == entry.packetKind )
+            --m_needsSendMacCount;
     }
 
     // let go of the acknowledged messages at the front
@@ -908,6 +1123,8 @@ CDRNLinkReliability::MarkForResend( UInt32 id )
     {
         entry.needsSend = true;
         ++m_needsSendCount;
+        if ( DRN_PACKETKIND_MAC == entry.packetKind )
+            ++m_needsSendMacCount;
     }
 }
 
@@ -1004,6 +1221,7 @@ CDRNLinkReliability::HandleFragment( const CDRNMessageView& message, CIDRNLinkMe
         assembly->opcode = opcode;
         assembly->lane = message.lane;
         assembly->totalSize = totalSize;
+        assembly->packetKind = message.packetKind;
         assembly->count = count;
         assembly->got.resize( count, 0 );
         assembly->data.SetBufferSize( totalSize, false );
@@ -1020,6 +1238,8 @@ CDRNLinkReliability::HandleFragment( const CDRNMessageView& message, CIDRNLinkMe
     if ( 0 != assembly->got[ index ] )
         return true;
     assembly->got[ index ] = 1;
+    if ( message.packetKind > assembly->packetKind )
+        assembly->packetKind = message.packetKind;     // a message joined from fragments has the weakest kind of them
     ++assembly->received;
     if ( bytes > 0 )
         assembly->data.CopyFrom( offset, bytes, reader.GetCurrentPtr() );
@@ -1033,6 +1253,7 @@ CDRNLinkReliability::HandleFragment( const CDRNMessageView& message, CIDRNLinkMe
     whole.msgClass = assembly->msgClass;
     whole.opcode = assembly->opcode;
     whole.lane = assembly->lane;
+    whole.packetKind = assembly->packetKind;
     whole.laneSequence = message.laneSequence;
     whole.payload = static_cast< const UInt8* >( assembly->data.GetConstBufferPtr() );
     whole.payloadSize = assembly->totalSize;
@@ -1078,6 +1299,7 @@ CDRNLinkReliability::DeliverLaneOrdered( const CDRNMessageView& message, CIDRNLi
             CDRNMessageView view;
             view.msgClass = held.msgClass;
             view.opcode = held.opcode;
+            view.packetKind = held.packetKind;
             view.lane = DRN_LANE_RELIABLE_ORDERED;
             view.laneSequence = held.laneSequence;
             view.payload = static_cast< const UInt8* >( held.payload.GetConstBufferPtr() );
@@ -1091,7 +1313,7 @@ CDRNLinkReliability::DeliverLaneOrdered( const CDRNMessageView& message, CIDRNLi
     if ( DRNIsNewerSequence( laneSequence, m_lane0Expected ) )
     {
         if ( laneSequence - m_lane0Expected >= m_heldRingSize )
-            return true;    // beyond what we hold back, the sender sends it again
+            return true;    // not reached: CheckBeforeTaking() refused the packet, unacknowledged, so it comes again
         CHeldMessage& held = m_held[ laneSequence & ( m_heldRingSize - 1 ) ];
         if ( held.used )
         {
@@ -1102,6 +1324,7 @@ CDRNLinkReliability::DeliverLaneOrdered( const CDRNMessageView& message, CIDRNLi
         held.laneSequence = laneSequence;
         held.msgClass = message.msgClass;
         held.opcode = message.opcode;
+        held.packetKind = message.packetKind;
         held.payload.SetDataSize( 0 );
         if ( message.payloadSize > 0 )
             held.payload.CopyFrom( 0, message.payloadSize, message.payload );
@@ -1115,6 +1338,42 @@ CDRNLinkReliability::DeliverLaneOrdered( const CDRNMessageView& message, CIDRNLi
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNLinkReliability::DeliverLaneUnordered( const CDRNMessageView& message, CIDRNLinkMessageSink& sink )
+{GUCEF_TRACE;
+
+    // every lane sequence from the oldest one not received on, within the lane window, is remembered: an older one
+    // was received, a newer one is not taken (CheckBeforeTaking())
+    UInt32 laneSequence = message.laneSequence;
+    if ( DRNIsNewerSequence( m_lane1Base, laneSequence ) || laneSequence - m_lane1Base >= DRN_RELIABLE_LANE_WINDOW )
+    {
+        ++m_stats.duplicateMessages;
+        return true;
+    }
+    UInt32 index = laneSequence & ( DRN_RELIABLE_LANE_WINDOW - 1 );
+    UInt32 bit = 1u << ( index & 31 );
+    if ( 0 != ( m_lane1Received[ index >> 5 ] & bit ) )
+    {
+        ++m_stats.duplicateMessages;
+        return true;
+    }
+    m_lane1Received[ index >> 5 ] |= bit;
+
+    // the oldest one not received moves on over what arrived, freeing the slots for the window's far end
+    for ( ;; )
+    {
+        UInt32 baseIndex = m_lane1Base & ( DRN_RELIABLE_LANE_WINDOW - 1 );
+        UInt32 baseBit = 1u << ( baseIndex & 31 );
+        if ( 0 == ( m_lane1Received[ baseIndex >> 5 ] & baseBit ) )
+            break;
+        m_lane1Received[ baseIndex >> 5 ] &= ~baseBit;
+        ++m_lane1Base;
+    }
+    return Deliver( message, sink );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDRNLinkReliability::TPacketResult
 CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
                                     UInt32 size                  ,
@@ -1122,7 +1381,8 @@ CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
                                     UInt64 lossDelay             ,
                                     CIDRNLinkMessageSink& sink   ,
                                     CDRNPacketHeader& header     ,
-                                    UInt32& lostBefore           )
+                                    UInt32& lostBefore           ,
+                                    UInt8 packetKind             )
 {GUCEF_TRACE;
     lostBefore = 0;
     m_limitViolation = LIMIT_NONE;
@@ -1130,11 +1390,21 @@ CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
     if ( !CDRNPacketCodec::ReadHeader( reader, header ) )
         return PACKET_MALFORMED;
 
-    // before the link is operational nothing but the handshake is taken, and of a packet with more nothing is
-    if ( m_preAuthRestricted && !IsAllowedBeforeOperational( reader ) )
+    // a packet is acknowledged only when all of it is taken: before the link is operational nothing but the handshake
+    // is, and on a datagram channel no reliable message beyond the window of its lane. Of a packet with more nothing is
+    // taken, so the sender sends it again
+    if ( m_preAuthRestricted || !m_transportIsReliable )
     {
-        ++m_stats.preAuthRefusedPackets;
-        return PACKET_REFUSED;
+        TPacketResult check = CheckBeforeTaking( reader );
+        if ( PACKET_ACCEPTED != check )
+        {
+            if ( PACKET_REFUSED == check )
+                ++m_stats.preAuthRefusedPackets;
+            else
+            if ( PACKET_WINDOW_FULL == check )
+                ++m_stats.windowRefusedPackets;
+            return check;
+        }
     }
 
     UInt32 gap = 0;
@@ -1160,6 +1430,8 @@ CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
     m_stats.bytesReceived += size;
 
     ProcessAcks( header, now, lossDelay );
+    if ( m_releaseNext != m_pendingNext )
+        ReleaseWithinLaneWindows();
 
     m_currentPacketSequence = header.sequence;
     while ( reader.GetRemaining() > 0 )
@@ -1172,6 +1444,7 @@ CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
             m_limitViolation = LIMIT_MESSAGE_SIZE;
             return PACKET_LIMIT_EXCEEDED;
         }
+        message.packetKind = packetKind;
 
         if ( DRNIsReliableLane( message.lane ) && !m_transportIsReliable && !m_ackOwed )
         {
@@ -1211,18 +1484,9 @@ CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
             case DRN_LANE_RELIABLE_UNORDERED:
             {
                 if ( m_transportIsReliable )
-                {
                     proceed = Deliver( message, sink );
-                }
                 else
-                {
-                    UInt32 laneGap = 0;
-                    CDRNSequenceWindow::TAcceptResult laneAccept = m_lane1Window.Accept( message.laneSequence, laneGap );
-                    if ( CDRNSequenceWindow::SEQUENCE_NEWEST == laneAccept || CDRNSequenceWindow::SEQUENCE_LATE == laneAccept )
-                        proceed = Deliver( message, sink );
-                    else
-                        ++m_stats.duplicateMessages;
-                }
+                    proceed = DeliverLaneUnordered( message, sink );
                 break;
             }
             default:
@@ -1240,35 +1504,129 @@ CDRNLinkReliability::ProcessPacket( const UInt8* data            ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CDRNLinkReliability::IsAllowedBeforeOperational( const CDRNWireReader& packetReader ) const
+CDRNLinkReliability::TPacketResult
+CDRNLinkReliability::ProcessPlainPacket( const UInt8* data, UInt32 size, CIDRNLinkMessageSink& sink, UInt32& refused )
+{GUCEF_TRACE;
+    refused = 0;
+    m_limitViolation = LIMIT_NONE;
+    if ( m_preAuthRestricted )
+    {
+        ++m_stats.preAuthRefusedPackets;
+        return PACKET_REFUSED;
+    }
+
+    // the header of a PLAIN packet: its sequence counts in the plain window only; acks and echo are never read
+    CDRNWireReader reader( data, size );
+    UInt8 protocol = 0;
+    UInt32 sequence = 0;
+    UInt64 value = 0;
+    UInt32 ackSequence = 0;
+    UInt32 ackBits = 0;
+    if ( !reader.ReadUInt8( protocol ) || DRN_PROTOCOL_ID_PUBLIC_PLAIN != protocol || !reader.ReadVarUInt32( sequence ) ||
+         !reader.ReadVarUInt64( value ) || !reader.ReadVarUInt32( ackSequence ) || !reader.ReadUInt32( ackBits ) ||
+         !reader.ReadVarUInt64( value ) || !reader.ReadVarUInt64( value ) )
+        return PACKET_MALFORMED;
+
+    // anyone can write a PLAIN sequence: one far ahead would carry the window away from the genuine packets (the
+    // sender's sequence starts at 1); one behind the window is not judged, it is delivered
+    bool tooFar = false;
+    if ( m_plainReceiveWindow.HasAny() )
+    {
+        UInt32 newest = m_plainReceiveWindow.GetHighest();
+        tooFar = DRNIsNewerSequence( sequence, newest ) && sequence - newest > MaxPlainSequenceLead;
+    }
+    else
+    {
+        tooFar = 0 == sequence || sequence > MaxPlainSequenceLead;
+    }
+    if ( tooFar )
+    {
+        ++m_stats.plainTooFarPackets;
+        return PACKET_TOO_FAR_AHEAD;
+    }
+    UInt32 gap = 0;
+    CDRNSequenceWindow::TAcceptResult accept = m_plainReceiveWindow.Accept( sequence, gap );
+    if ( CDRNSequenceWindow::SEQUENCE_DUPLICATE == accept )
+    {
+        ++m_stats.duplicatePackets;
+        return PACKET_DUPLICATE;
+    }
+    ++m_stats.packetsReceived;
+    m_stats.bytesReceived += size;
+
+    while ( reader.GetRemaining() > 0 )
+    {
+        CDRNMessageView message;
+        if ( !CDRNPacketCodec::ReadMessage( reader, message ) )
+            return PACKET_MALFORMED;
+        if ( 0 != m_maxMessageSize && message.payloadSize > m_maxMessageSize )
+        {
+            m_limitViolation = LIMIT_MESSAGE_SIZE;
+            return PACKET_LIMIT_EXCEEDED;
+        }
+        message.packetKind = DRN_PACKETKIND_PLAIN;
+
+        // lane 3 only: a PLAIN message on another lane could suppress or reorder genuine reliable ones
+        if ( DRN_LANE_UNRELIABLE != message.lane || DRN_MSGCLASS_LINK == message.msgClass )
+        {
+            ++refused;
+            continue;
+        }
+        if ( !Deliver( message, sink ) )
+            break;
+    }
+    return PACKET_ACCEPTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDRNLinkReliability::TPacketResult
+CDRNLinkReliability::CheckBeforeTaking( const CDRNWireReader& packetReader ) const
 {GUCEF_TRACE;
 
     CDRNWireReader reader( packetReader );
+    bool restricted = m_preAuthRestricted;
     UInt32 expected = m_lane0Expected;
     while ( reader.GetRemaining() > 0 )
     {
         CDRNMessageView message;
         if ( !CDRNPacketCodec::ReadMessage( reader, message ) )
-            return true;    // malformed: left to the normal processing
+            return PACKET_MALFORMED;
 
         bool inOrder = m_transportIsReliable || ( DRN_LANE_RELIABLE_ORDERED == message.lane && message.laneSequence == expected );
         if ( DRN_LANE_RELIABLE_ORDERED == message.lane && message.laneSequence == expected )
             ++expected;
 
-        if ( DRN_MSGCLASS_LINK != message.msgClass || DRN_LINK_FRAGMENT == message.opcode )
-            return false;
-        if ( DRN_LANE_RELIABLE_UNORDERED == message.lane || DRN_LANE_UNRELIABLE_SEQUENCED == message.lane )
-            return false;
-        if ( DRN_LANE_RELIABLE_ORDERED == message.lane && !m_transportIsReliable &&
-             DRNIsNewerSequence( message.laneSequence, m_lane0Expected ) && message.laneSequence - m_lane0Expected >= m_heldRingSize )
-            return false;
+        if ( restricted )
+        {
+            // the handshake: link messages without fragments on lane 0 or 3, within the slots held back before the
+            // link is operational
+            if ( DRN_MSGCLASS_LINK != message.msgClass || DRN_LINK_FRAGMENT == message.opcode )
+                return PACKET_REFUSED;
+            if ( DRN_LANE_RELIABLE_UNORDERED == message.lane || DRN_LANE_UNRELIABLE_SEQUENCED == message.lane )
+                return PACKET_REFUSED;
+            if ( DRN_LANE_RELIABLE_ORDERED == message.lane && !m_transportIsReliable &&
+                 DRNIsNewerSequence( message.laneSequence, m_lane0Expected ) && message.laneSequence - m_lane0Expected >= m_heldRingSize )
+                return PACKET_REFUSED;
 
-        // the link is operational once it takes a WELCOME, what follows it is for the operational link
-        if ( DRN_LINK_WELCOME == message.opcode && DRN_LANE_RELIABLE_ORDERED == message.lane && inOrder )
-            return true;
+            // the link is operational once it takes a WELCOME, what follows it is for the operational link
+            if ( DRN_LINK_WELCOME == message.opcode && DRN_LANE_RELIABLE_ORDERED == message.lane && inOrder )
+                restricted = false;
+            continue;
+        }
+
+        if ( m_transportIsReliable )
+            continue;
+
+        // the lane windows of the operational link (the lane 0 ring has that size from the WELCOME on)
+        if ( DRN_LANE_RELIABLE_ORDERED == message.lane &&
+             DRNIsNewerSequence( message.laneSequence, m_lane0Expected ) && message.laneSequence - m_lane0Expected >= HeldRingSize )
+            return PACKET_WINDOW_FULL;
+        if ( DRN_LANE_RELIABLE_UNORDERED == message.lane &&
+             !DRNIsNewerSequence( m_lane1Base, message.laneSequence ) && message.laneSequence - m_lane1Base >= DRN_RELIABLE_LANE_WINDOW )
+            return PACKET_WINDOW_FULL;
     }
-    return true;
+    return PACKET_ACCEPTED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1308,6 +1666,16 @@ CDRNLinkReliability::GetMaxPacketSize( void ) const
 UInt32
 CDRNLinkReliability::GetMaxUnfragmentedPayload( void ) const
 {GUCEF_TRACE;
+    if ( m_transportIsReliable )
+    {
+        // a stream channel carries every message whole, in a packet of the stream: the stream packet limit and the
+        // policy's largest message bound a message, no datagram does. Senders that want small messages (the
+        // replicator's message budget) cap this themselves
+        UInt32 streamLimit = DRN_MAX_STREAM_PACKET_SIZE - DRN_MAX_PACKET_HEADER_SIZE - DRN_MAX_MESSAGE_HEADER_SIZE;
+        if ( 0 != m_maxMessageSize && m_maxMessageSize < streamLimit )
+            streamLimit = m_maxMessageSize;
+        return streamLimit;
+    }
     UInt32 budget = GetBodyBudget();
     return budget > DRN_MAX_MESSAGE_HEADER_SIZE ? budget - DRN_MAX_MESSAGE_HEADER_SIZE : 0;
 }

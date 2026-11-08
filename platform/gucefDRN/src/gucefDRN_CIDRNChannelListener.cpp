@@ -65,6 +65,7 @@ CIDRNChannelListener::RegisterEvents( void )
 
 CIDRNChannelListener::CIDRNChannelListener( void )
     : CORE::CObservingNotifier()
+    , m_drivingPulseGenerator()
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -83,6 +84,24 @@ void
 CIDRNChannelListener::ApplySecurityPolicy( const CDRNSecurityPolicy& /* policy */ )
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIDRNChannelListener::SetDrivingPulseGenerator( CORE::PulseGeneratorPtr drivingPulseGenerator )
+{GUCEF_TRACE;
+
+    m_drivingPulseGenerator = drivingPulseGenerator;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::PulseGeneratorPtr
+CIDRNChannelListener::GetDrivingPulseGenerator( void ) const
+{GUCEF_TRACE;
+
+    return m_drivingPulseGenerator;
 }
 
 /*-------------------------------------------------------------------------*/

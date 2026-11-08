@@ -162,7 +162,7 @@ CDRNSession::RegisterEvents( void )
 /*-------------------------------------------------------------------------*/
 
 CDRNSession::CDRNSession( CDRNNode& node )
-    : CORE::CTSGNotifier( node.GetAppPulseGenerator(), true, true )
+    : CDRNApplicationNotifier( node )
     , m_node( &node )
     , m_observer()
     , m_settings()
@@ -215,6 +215,21 @@ CDRNSession::~CDRNSession()
     m_components[ DRN_MSGCLASS_REPL ] = GUCEF_NULL;
     m_components[ DRN_MSGCLASS_STREAM ] = GUCEF_NULL;
     m_components[ DRN_MSGCLASS_BULK ] = GUCEF_NULL;
+
+    // the components plugged in by others hear of it last; each is forgotten before it is told. Under the node lock:
+    // the session is destroyed without it (CDRNNode::DestroySession()), and a component works on the node's objects
+    // (the RPC session lets go of its transports and listeners, which other threads reach under the node lock). A
+    // component waits for no other thread in OnSessionDestroyed()
+    {
+        MT::CScopeMutex nodeLock( m_node->GetLock() );
+        for ( UInt32 i=0; i<DRN_MSGCLASS_COUNT; ++i )
+        {
+            CIDRNSessionComponent* component = m_components[ i ];
+            m_components[ i ] = GUCEF_NULL;
+            if ( GUCEF_NULL != component )
+                component->OnSessionDestroyed( *this );
+        }
+    }
     GUCEF_DELETE m_bulkTransfers;
     m_bulkTransfers = GUCEF_NULL;
     GUCEF_DELETE m_replicator;
@@ -227,10 +242,7 @@ void
 CDRNSession::Emit( const CORE::CEvent& eventid, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( m_node->IsRunningOwnThread() )
-        NotifyObserversFromThread( eventid, eventData );
-    else
-        NotifyObservers( eventid, eventData );
+    EmitToApplication( eventid, eventData );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -849,8 +861,18 @@ CDRNSession::OnLinkMessage( CDRNPeerLink* link, const CDRNLinkMessage& message )
     {
         CIDRNSessionComponent* component = m_components[ message.msgClass ];
         if ( GUCEF_NULL != component )
+        {
+            // a component takes only the packet kinds it can judge: AEAD unless it says otherwise
+            if ( DRN_PACKETKIND_AEAD != message.packetKind && !component->MayAcceptPacketKind( message ) )
+            {
+                link->RefuseDowngrade( message.msgClass, message.opcode, message.packetKind, "the session component takes sealed messages only" );
+                return;
+            }
             component->OnSessionMessage( *this, *link, link->GetSessionPeerId(), message );
+            return;
+        }
     }
+    m_node->OnUnhandledMessage( *link, message, "no component of the session takes the class" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1409,6 +1431,15 @@ CDRNSession::Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId )
 /*-------------------------------------------------------------------------*/
 
 bool
+CDRNSession::Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId, const CDRNSubscribeOptions& options )
+{GUCEF_TRACE;
+
+    return m_replicator->Subscribe( itemName, ownerPeerId, options );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDRNSession::Unsubscribe( const CORE::CString& itemName, UInt32 ownerPeerId )
 {GUCEF_TRACE;
 
@@ -1577,11 +1608,12 @@ CDRNSession::OnLinkTraffic( const CDRNPeerLink& link   ,
                             const void* part1          ,
                             UInt32 size1               ,
                             const void* part2          ,
-                            UInt32 size2               )
+                            UInt32 size2               ,
+                            UInt8 packetKind           )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_recorder )
-        m_recorder->OnTraffic( link, outgoing, lane, msgClass, opcode, part1, size1, part2, size2 );
+        m_recorder->OnTraffic( link, outgoing, lane, msgClass, opcode, part1, size1, part2, size2, packetKind );
 }
 
 /*-------------------------------------------------------------------------*/

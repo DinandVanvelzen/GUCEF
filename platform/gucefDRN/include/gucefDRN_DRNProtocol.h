@@ -52,8 +52,20 @@ static const UInt8 DRN_PROTOCOL_ID                  = 0xD1;
 static const UInt8 DRN_PROTOCOL_ID_PROTECTED_0      = 0xD4;
 static const UInt8 DRN_PROTOCOL_ID_PROTECTED_1      = 0xD5;
 
+/**
+ *  First byte of a packet whose body is clear and authenticated by the link's AEAD with an empty plaintext (the tag
+ *  covers header and body), one per key phase; and of a packet of PUBLIC lane 3 messages without any protection,
+ *  which has a sequence space of its own and never acknowledges anything
+ */
+static const UInt8 DRN_PROTOCOL_ID_MAC_0            = 0xD6;
+static const UInt8 DRN_PROTOCOL_ID_MAC_1            = 0xD7;
+static const UInt8 DRN_PROTOCOL_ID_PUBLIC_PLAIN     = 0xD8;
+
 static const UInt8 DRN_PROTOCOL_VERSION_MAJOR       = 2;
-static const UInt8 DRN_PROTOCOL_VERSION_MINOR       = 0;
+static const UInt8 DRN_PROTOCOL_VERSION_MINOR       = 1;   /**< 1: the RPC message class (DRN_MSGCLASS_RPC) */
+
+/** The first minor of protocol 2 whose nodes take DRN_MSGCLASS_RPC */
+static const UInt8 DRN_PROTOCOL_MINOR_RPC           = 1;
 
 /** Feature bits announced in HELLO, none are defined for protocol 2.0 */
 static const UInt32 DRN_FEATURE_NONE                = 0;
@@ -67,6 +79,14 @@ static const UInt32 DRN_HANDSHAKE_KEY_SIZE          = 32;
 
 /** Number of packet sequences remembered for detecting duplicates */
 static const UInt32 DRN_RECEIVE_WINDOW_SIZE         = 1024;
+
+/**
+ *  The window of a reliable lane on a datagram channel, a power of 2: a sender sends a message of the lane only while
+ *  its lane sequence is less than this beyond the oldest message of the lane not acknowledged yet, and a receiver
+ *  takes (holds back on lane 0, remembers on lane 1) every lane sequence less than this beyond the oldest one it has
+ *  not received yet. A packet with a message beyond that is not taken and not acknowledged.
+ */
+static const UInt32 DRN_RELIABLE_LANE_WINDOW        = DRN_RECEIVE_WINDOW_SIZE;
 
 /** Default budget of a packet on a datagram channel */
 static const UInt32 DRN_DEFAULT_DATAGRAM_SIZE       = 1200;
@@ -105,6 +125,19 @@ static const UInt32 DRN_PREAUTH_HOLD_SLOTS          = 8;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  How a packet is protected on a protected link, from strongest to weakest. A packet carries messages of one kind
+ *  only; a message received has the kind of its packet (of the weakest of its fragments)
+ */
+enum TDRNPacketKind
+{
+    DRN_PACKETKIND_AEAD     = 0,    /**< encrypted and authenticated (0xD4 / 0xD5) */
+    DRN_PACKETKIND_MAC      = 1,    /**< clear, authenticated (0xD6 / 0xD7) */
+    DRN_PACKETKIND_PLAIN    = 2,    /**< clear, not authenticated, lane 3 only (0xD8) */
+
+    DRN_PACKETKIND_COUNT    = 3
+};
+
 /** Delivery lanes of a link */
 enum TDRNLane
 {
@@ -130,6 +163,7 @@ enum TDRNMessageClass
     DRN_MSGCLASS_BULK       = 5,
     DRN_MSGCLASS_RELAY      = 6,
     DRN_MSGCLASS_APP        = 7,
+    DRN_MSGCLASS_RPC        = 8,    /**< frames of the GUCEF RPC protocol (CDRNRpcSessionComponent), protocol 2.1 */
 
     DRN_MSGCLASS_COUNT
 };
@@ -219,6 +253,22 @@ enum TDRNAppOpcode
 /** Flags of an APP message */
 static const UInt8 DRN_APP_FLAG_FORWARD = 0x01;   /**< the receiving sequencer passes the message on to its addressee(s) */
 static const UInt8 DRN_APP_FLAG_TO_ALL  = 0x02;   /**< sent to all members, routed to this one member through the sequencer */
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  RPC messages (DRN_MSGCLASS_RPC, lane 0, direct links only). The opcode names the RPC channel between the two
+ *  members: ( channel << 1 ) | DRN_RPC_OPCODE_FROM_ACCEPTOR, the channel number given by the member that opened it
+ *  (from 1). The payload is one RPC frame, unchanged; an empty payload closes the channel. Opcode DRN_RPC_OPCODE_OPEN
+ *  opens a channel: { varint channel }, sent by the member that opens it before its first frame; the receiver's
+ *  listener accepts it or closes it.
+ */
+static const UInt32 DRN_RPC_OPCODE_OPEN             = 0x00;   /**< { varint channel }: the sender opened the channel */
+static const UInt32 DRN_RPC_OPCODE_FROM_ACCEPTOR    = 0x01;   /**< sent by the member that did not open the channel */
+
+inline UInt32 DRNRpcOpcode( UInt32 channel, bool fromAcceptor ) { return ( channel << 1 ) | ( fromAcceptor ? DRN_RPC_OPCODE_FROM_ACCEPTOR : 0 ); }
+inline UInt32 DRNRpcChannel( UInt32 opcode ) { return opcode >> 1; }
+inline bool DRNRpcIsFromAcceptor( UInt32 opcode ) { return 0 != ( opcode & DRN_RPC_OPCODE_FROM_ACCEPTOR ); }
 
 /*-------------------------------------------------------------------------*/
 

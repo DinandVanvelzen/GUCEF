@@ -68,6 +68,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeSettings : public CORE::CIConfigurable
     public:
 
     static const CORE::CString ClassTypeName;
+    static const CORE::CString DefaultThreadPoolName;   /**< "gucef.drn" */
 
     CORE::CString nodeId;                   /**< identifies the node, a random id by default */
     CORE::CString serviceName;              /**< peers of another service are refused, default "drn" */
@@ -83,7 +84,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeSettings : public CORE::CIConfigurable
     UInt32 ackDelayMs;                      /**< default 5 */
     UInt32 pulseIntervalMs;                 /**< how often the node works, default 5 */
     bool ownThread;                         /**< run the node on a thread of its own, default false */
+    CORE::CString threadPoolName;           /**< with ownThread: the task manager pool the node's dedicated task is set up on, default "gucef.drn" */
     UInt32 firstSequence;                   /**< first packet sequence of every link, default 1 (for tests of the wrap) */
+    UInt8 protocolMinor;                    /**< the minor of protocol 2 the node announces, default DRN_PROTOCOL_VERSION_MINOR; a lower one makes it look like an older node to its peers (interoperation tests), not in the configuration */
     CDRNAuthSettings auth;                  /**< the authenticator, for accepting and by default for connecting */
     CDRNSecurityPolicy securityPolicy;      /**< the game's policy for the links: limits, channel types, authenticators, anomalies */
     CORE::CString staticPrivateKey;         /**< the node's static x25519 key in hex; empty: from staticKeyFile */

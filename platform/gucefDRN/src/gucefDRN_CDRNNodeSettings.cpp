@@ -55,6 +55,7 @@ namespace DRN {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString CDRNNodeSettings::ClassTypeName = "GUCEF::DRN::CDRNNodeSettings";
+const CORE::CString CDRNNodeSettings::DefaultThreadPoolName = "gucef.drn";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -78,7 +79,9 @@ CDRNNodeSettings::CDRNNodeSettings( void )
     , ackDelayMs( 5 )
     , pulseIntervalMs( 5 )
     , ownThread( false )
+    , threadPoolName( DefaultThreadPoolName )
     , firstSequence( 1 )
+    , protocolMinor( DRN_PROTOCOL_VERSION_MINOR )
     , auth()
     , securityPolicy()
     , staticPrivateKey()
@@ -105,7 +108,9 @@ CDRNNodeSettings::CDRNNodeSettings( const CDRNNodeSettings& src )
     , ackDelayMs( src.ackDelayMs )
     , pulseIntervalMs( src.pulseIntervalMs )
     , ownThread( src.ownThread )
+    , threadPoolName( src.threadPoolName )
     , firstSequence( src.firstSequence )
+    , protocolMinor( src.protocolMinor )
     , auth( src.auth )
     , securityPolicy( src.securityPolicy )
     , staticPrivateKey( src.staticPrivateKey )
@@ -144,7 +149,9 @@ CDRNNodeSettings::operator=( const CDRNNodeSettings& src )
         ackDelayMs = src.ackDelayMs;
         pulseIntervalMs = src.pulseIntervalMs;
         ownThread = src.ownThread;
+        threadPoolName = src.threadPoolName;
         firstSequence = src.firstSequence;
+        protocolMinor = src.protocolMinor;
         auth = src.auth;
         securityPolicy = src.securityPolicy;
         staticPrivateKey = src.staticPrivateKey;
@@ -188,6 +195,7 @@ CDRNNodeSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "ackDelayMs", ackDelayMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "pulseIntervalMs", pulseIntervalMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "ownThread", ownThread ) && totalSuccess;
+    totalSuccess = cfg.SetAttribute( "threadPoolName", threadPoolName ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "firstSequence", firstSequence ) && totalSuccess;
     if ( !staticPrivateKey.IsNULLOrEmpty() )
         totalSuccess = cfg.SetAttribute( "staticPrivateKey", staticPrivateKey ) && totalSuccess;
@@ -221,6 +229,9 @@ CDRNNodeSettings::LoadConfig( const CORE::CDataNode& cfg )
     ackDelayMs = cfg.GetAttributeValueOrChildValueByName( "ackDelayMs" ).AsUInt32( ackDelayMs, true );
     pulseIntervalMs = cfg.GetAttributeValueOrChildValueByName( "pulseIntervalMs" ).AsUInt32( pulseIntervalMs, true );
     ownThread = cfg.GetAttributeValueOrChildValueByName( "ownThread" ).AsBool( ownThread, true );
+    threadPoolName = cfg.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( threadPoolName, true );
+    if ( threadPoolName.IsNULLOrEmpty() )
+        threadPoolName = DefaultThreadPoolName;
     firstSequence = cfg.GetAttributeValueOrChildValueByName( "firstSequence" ).AsUInt32( firstSequence, true );
     if ( 0 == firstSequence )
         firstSequence = 1;

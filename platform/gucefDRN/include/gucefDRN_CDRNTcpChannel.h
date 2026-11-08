@@ -59,7 +59,8 @@ namespace DRN {
 /**
  *  The "tcp" channel: DRN packets framed on a TCP connection, see CDRNStreamFramer.
  *  Either a client connection it owns (Connect()) or a connection accepted by CDRNTcpChannelListener.
- *  Nagle's algorithm is switched off.
+ *  Nagle's algorithm is switched off. Packets sent while a read of the connection is delivered (answers, acks) leave
+ *  together in one write once the read is delivered, in the order they were sent.
  */
 class GUCEF_DRN_EXPORT_CPP CDRNTcpChannel : public CIDRNChannel
 {
@@ -108,6 +109,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNTcpChannel : public CIDRNChannel
     void OnData( const CORE::CDynamicBuffer& data );
     void OnConnectionLost( void );
     void DetachFromSocket( void );
+    bool WriteCoalesced( void );
 
     COMCORE::CTCPClientSocket* m_clientSocket;
     COMCORE::CTCPServerConnection* m_serverConnection;
@@ -118,8 +120,10 @@ class GUCEF_DRN_EXPORT_CPP CDRNTcpChannel : public CIDRNChannel
     CORE::CDynamicBuffer m_txBuffer;
     CORE::CDynamicBuffer m_rxView;
     CDRNPacketEventData m_rxEventData;
+    CORE::CDynamicBuffer m_coalesced;       /**< framed packets sent while a read is delivered */
     bool m_connected;
     bool m_closing;
+    bool m_receiving;                       /**< a read of the connection is being delivered */
 };
 
 /*-------------------------------------------------------------------------//

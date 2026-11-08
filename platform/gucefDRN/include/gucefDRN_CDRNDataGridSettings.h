@@ -111,6 +111,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGridSettings : public CORE::CIConfigurable
     TDRNNotifyMode notify;
     Float32 priority;                       /**< share of a short budget, relative to the other items */
     bool snapshotOnSubscribe;
+    TDRNProtectionClass protection;         /**< CONFIDENTIAL (default) or PUBLIC: readable by an observer of the link, see CDRNSecurityPolicy::allowPublicItems */
     CDRNVotePolicy votePolicy;
     CORE::TDataTableLogicalType keyType;    /**< metadata for a table over the grid (CDRNDataGridTable), never used by the grid or sent: DATATABLE_TYPE_UNSUPPORTED = not declared */
     CORE::TDataTableLogicalType valueType;  /**< same, for the values */

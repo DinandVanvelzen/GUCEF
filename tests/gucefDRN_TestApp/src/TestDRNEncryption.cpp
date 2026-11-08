@@ -273,7 +273,7 @@ LoadCodecPlugin( const CORE::CString& name )
 
 /** Seals and opens a datagram of 1200 bytes with an instance of the codec, microseconds per seal and open */
 static Float64
-TimeAeadProvider( CORE::CCodecRegistry::TICodecPtr codec, UInt32 nonceSize, UInt32 rounds, bool& allOpened )
+TimeAeadProvider( CORE::CCodecRegistry::TICodecPtr codec, UInt32 nonceSize, UInt32 rounds, bool& allOpened, UInt32 size = DRN::DRN_DEFAULT_DATAGRAM_SIZE, bool macOnly = false )
 {
     allOpened = false;
     UInt8 key[ 32 ];
@@ -298,10 +298,16 @@ TimeAeadProvider( CORE::CCodecRegistry::TICodecPtr codec, UInt32 nonceSize, UInt
     args.aad = aad;
     args.aadSize = sizeof( aad );
     CORE::CDynamicBuffer plain;
-    plain.SetDataSize( DRN::DRN_DEFAULT_DATAGRAM_SIZE );
+    plain.SetDataSize( size );
     memset( plain.GetBufferPtr(), 0x42, plain.GetDataSize() );
     CORE::CDynamicBuffer sealed;
     CORE::CDynamicBuffer opened;
+    if ( macOnly )
+    {
+        // a MAC packet: the whole packet is associated data, the plaintext is empty, the output is the tag alone
+        args.aad = plain.GetConstBufferPtr();
+        args.aadSize = plain.GetDataSize();
+    }
 
     bool ok = true;
     UInt64 start = DRN::CDRNClock::NowInMicroseconds();
@@ -312,9 +318,14 @@ TimeAeadProvider( CORE::CCodecRegistry::TICodecPtr codec, UInt32 nonceSize, UInt
         nonce[ nonceSize - 3 ] = (UInt8) ( i >> 16 );
         sealed.SetDataSize( 0 );
         opened.SetDataSize( 0 );
-        ok = sealer->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, plain.GetConstBufferPtr(), plain.GetDataSize(), &args, sealed ) &&
-             opener->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, sealed.GetConstBufferPtr(), sealed.GetDataSize(), &args, opened ) &&
-             opened.GetDataSize() == plain.GetDataSize() && ok;
+        if ( macOnly )
+            ok = sealer->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, GUCEF_NULL, 0, &args, sealed ) &&
+                 opener->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, sealed.GetConstBufferPtr(), sealed.GetDataSize(), &args, opened ) &&
+                 0 == opened.GetDataSize() && ok;
+        else
+            ok = sealer->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, plain.GetConstBufferPtr(), plain.GetDataSize(), &args, sealed ) &&
+                 opener->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, sealed.GetConstBufferPtr(), sealed.GetDataSize(), &args, opened ) &&
+                 opened.GetDataSize() == plain.GetDataSize() && ok;
     }
     UInt64 took = DRN::CDRNClock::NowInMicroseconds() - start;
     allOpened = ok;
@@ -854,6 +865,17 @@ PerformDRNEncryptionTests( void )
                 Float64 us = TimeAeadProvider( codecs[ i ], 0 == t ? 24 : 12, 20000, allOpened );
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Encryption: AEAD " << types[ t ] << " of " << provider << " (priority " << priority << "): " << us << " microseconds to seal and open " << DRN::DRN_DEFAULT_DATAGRAM_SIZE << " bytes" );
                 ASSERT_TRUE( allOpened );
+
+                // the MAC of a public packet (empty plaintext, the packet as associated data) against AEAD, at 1200 bytes and 16 KB
+                bool macOk = false;
+                bool bigOk = false;
+                bool bigMacOk = false;
+                Float64 macUs = TimeAeadProvider( codecs[ i ], 0 == t ? 24 : 12, 20000, macOk, DRN::DRN_DEFAULT_DATAGRAM_SIZE, true );
+                Float64 bigUs = TimeAeadProvider( codecs[ i ], 0 == t ? 24 : 12, 2000, bigOk, 16 * 1024, false );
+                Float64 bigMacUs = TimeAeadProvider( codecs[ i ], 0 == t ? 24 : 12, 2000, bigMacOk, 16 * 1024, true );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Encryption: MAC " << types[ t ] << " of " << provider << ": " << macUs << " microseconds to make and verify over " << DRN::DRN_DEFAULT_DATAGRAM_SIZE <<
+                           " bytes; at 16 KB AEAD " << bigUs << ", MAC " << bigMacUs << " microseconds" );
+                ASSERT_TRUE( macOk && bigOk && bigMacOk );
                 ++measured;
             }
         }
@@ -894,6 +916,25 @@ PerformDRNEncryptionTests( void )
         Float64 perPacketUs = (Float64) took / rounds;
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Encryption: " << cipher << " seals and opens a packet of " << DRN::DRN_DEFAULT_DATAGRAM_SIZE << " bytes in " << perPacketUs << " microseconds (with building the packet)" );
         ASSERT_TRUE( allOpened );
+
+        // the same packets as MAC packets (public items) and as PLAIN packets (no protection at all, building only)
+        bool allMacOpened = true;
+        UInt8 kind = 0;
+        start = DRN::CDRNClock::NowInMicroseconds();
+        for ( UInt32 i=1; i<=rounds; ++i )
+        {
+            MakePlainPacket( plain, rounds + i, DRN::DRN_DEFAULT_DATAGRAM_SIZE - 100 );
+            allMacOpened = sender.Protect( static_cast< const UInt8* >( plain.GetConstBufferPtr() ), plain.GetDataSize(), sealed, DRN::DRN_PACKETKIND_MAC ) &&
+                           receiver.Unprotect( static_cast< const UInt8* >( sealed.GetConstBufferPtr() ), sealed.GetDataSize(), opened, kind ) && DRN::DRN_PACKETKIND_MAC == kind && allMacOpened;
+        }
+        Float64 perMacPacketUs = (Float64) ( DRN::CDRNClock::NowInMicroseconds() - start ) / rounds;
+        start = DRN::CDRNClock::NowInMicroseconds();
+        for ( UInt32 i=1; i<=rounds; ++i )
+            MakePlainPacket( plain, i, DRN::DRN_DEFAULT_DATAGRAM_SIZE - 100 );
+        Float64 perPlainPacketUs = (Float64) ( DRN::CDRNClock::NowInMicroseconds() - start ) / rounds;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Encryption: per packet of " << DRN::DRN_DEFAULT_DATAGRAM_SIZE << " bytes with " << cipher << ": AEAD " << perPacketUs << ", MAC " << perMacPacketUs <<
+                   ", PLAIN " << perPlainPacketUs << " microseconds (building included)" );
+        ASSERT_TRUE( allMacOpened );
         ASSERT_TRUE( perPacketUs < 200.0 );
 
         // the round trip of a plain and of an encrypted link on loopback

@@ -67,6 +67,13 @@ class GUCEF_DRN_EXPORT_CPP CIDRNSessionComponent
     /** A message of the component's class from the member at the other end of the link */
     virtual void OnSessionMessage( CDRNSession& session, CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message ) = 0;
 
+    /**
+     *  Whether a message that arrived in a MAC or PLAIN packet (CDRNLinkMessage::packetKind) may be handed to this
+     *  component; a refused one is counted and reported by the link (DRN_ANOMALY_PROTECTION_DOWNGRADE).
+     *  Default: AEAD only. A component that takes more judges each message itself (per item, per method).
+     */
+    virtual bool MayAcceptPacketKind( const CDRNLinkMessage& message ) const;
+
     /** Flush what is due */
     virtual void OnSessionTick( CDRNSession& session, UInt64 nodeNow ) = 0;
 
@@ -75,6 +82,12 @@ class GUCEF_DRN_EXPORT_CPP CIDRNSessionComponent
     virtual void OnMemberLeft( CDRNSession& session, UInt32 peerId );
 
     virtual void OnSessionClosed( CDRNSession& session );
+
+    /**
+     *  The session is being destroyed: the last call the component gets from it, after OnSessionClosed(). The
+     *  session forgets the component before the call, so a component that owns itself may go away in it.
+     */
+    virtual void OnSessionDestroyed( CDRNSession& session );
 
     private:
 

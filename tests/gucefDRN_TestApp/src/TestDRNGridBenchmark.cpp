@@ -23,6 +23,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <algorithm>
+#include <time.h>
+
+#if defined( _WIN32 )
+  #include <windows.h>
+#endif
 
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
@@ -53,6 +58,14 @@ static const UInt32 BenchmarkOperationCount = 100000;
 /** Keys changed per round of the delta measurement, and rounds */
 static const UInt32 BenchmarkDeltaKeyCount = 20000;
 static const UInt32 BenchmarkDeltaRounds = 3;
+
+/**
+ *  Pulses of a delta round at the least. The two nodes pulse in the order of their addresses (the observers of a
+ *  notifier), so the replica has the keys after the first pulse or after the second, by chance of the heap: a round
+ *  that always takes this many pulses does the same work in either order, which keeps the CPU time of benchmarks
+ *  of separate members comparable
+ */
+static const UInt32 BenchmarkDeltaMinPulses = 4;
 
 /*-------------------------------------------------------------------------*/
 
@@ -100,6 +113,12 @@ CGridBenchmarkResult::CGridBenchmarkResult( void )
     , replicaGetValueByIndexNs( 0 )
     , deltaNsPerKey( 0 )
     , deltaWorkNsPerKey( 0 )
+    , setValueCpuNs( 0 )
+    , setValueByIndexCpuNs( 0 )
+    , getValueByIndexCpuNs( 0 )
+    , replicaGetValueByIndexCpuNs( 0 )
+    , deltaWorkCpuNsPerKey( 0 )
+    , deltaPulses( 0 )
 {
 
 }
@@ -109,9 +128,40 @@ CGridBenchmarkResult::CGridBenchmarkResult( void )
 CORE::CString
 CGridBenchmarkResult::ToString( void ) const
 {
-    return CORE::UInt32ToString( keyCount ) + " keys: SetValue " + CORE::UInt64ToString( setValueNs ) + " ns, SetValueByIndex " + CORE::UInt64ToString( setValueByIndexNs ) +
-           " ns, GetValueByIndex " + CORE::UInt64ToString( getValueByIndexNs ) + " ns, replica GetValueByIndex " + CORE::UInt64ToString( replicaGetValueByIndexNs ) +
-           " ns, delta " + CORE::UInt64ToString( deltaNsPerKey ) + " ns per changed key (" + CORE::UInt64ToString( deltaWorkNsPerKey ) + " ns of work)";
+    return CORE::UInt32ToString( keyCount ) + " keys: SetValue " + CORE::UInt64ToString( setValueNs ) + " ns (CPU " + CORE::UInt64ToString( setValueCpuNs ) +
+           "), SetValueByIndex " + CORE::UInt64ToString( setValueByIndexNs ) + " ns (CPU " + CORE::UInt64ToString( setValueByIndexCpuNs ) +
+           "), GetValueByIndex " + CORE::UInt64ToString( getValueByIndexNs ) + " ns (CPU " + CORE::UInt64ToString( getValueByIndexCpuNs ) +
+           "), replica GetValueByIndex " + CORE::UInt64ToString( replicaGetValueByIndexNs ) + " ns (CPU " + CORE::UInt64ToString( replicaGetValueByIndexCpuNs ) +
+           "), delta " + CORE::UInt64ToString( deltaNsPerKey ) + " ns per changed key (" + CORE::UInt64ToString( deltaWorkNsPerKey ) + " ns of work, CPU " +
+           CORE::UInt64ToString( deltaWorkCpuNsPerKey ) + ", " + CORE::UInt64ToString( deltaPulses ) + " pulses)";
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+ThreadCpuTimeNs( void )
+{
+    #if defined( _WIN32 )
+
+    FILETIME creationTime, exitTime, kernelTime, userTime;
+    if ( 0 == ::GetThreadTimes( ::GetCurrentThread(), &creationTime, &exitTime, &kernelTime, &userTime ) )
+        return 0;
+    const UInt64 kernel = ( (UInt64) kernelTime.dwHighDateTime << 32 ) | kernelTime.dwLowDateTime;
+    const UInt64 user = ( (UInt64) userTime.dwHighDateTime << 32 ) | userTime.dwLowDateTime;
+    return ( kernel + user ) * 100;
+
+    #elif defined( CLOCK_THREAD_CPUTIME_ID )
+
+    struct timespec now;
+    if ( 0 != clock_gettime( CLOCK_THREAD_CPUTIME_ID, &now ) )
+        return 0;
+    return (UInt64) now.tv_sec * 1000000000 + (UInt64) now.tv_nsec;
+
+    #else
+
+    return (UInt64) clock() * 1000000000 / CLOCKS_PER_SEC;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/
@@ -138,9 +188,10 @@ CGridBenchmark::~CGridBenchmark()
 /*-------------------------------------------------------------------------*/
 
 bool
-CGridBenchmark::Setup( UInt32 keyCount, const CORE::CString& name, bool declareTypes )
+CGridBenchmark::Setup( UInt32 keyCount, const CORE::CString& name, bool declareTypes, bool allowPublicItems )
 {
     m_group = GUCEF_NEW CGroup( DRN::DRN_TOPOLOGY_CLIENT_SERVER, name, "mem" );
+    m_group->nodeSettings.securityPolicy.allowPublicItems = allowPublicItems;
     if ( !m_group->Start( 2 ) )
         return false;
 
@@ -218,12 +269,13 @@ CGridBenchmark::GetReplicaGrid( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-UInt64
-CGridBenchmark::MeasureSetValue( bool byIndex )
+void
+CGridBenchmark::MeasureSetValue( bool byIndex, CSample& sample )
 {
     const UInt32 count = (UInt32) m_keys.size();
     const UInt32 operations = BenchmarkOperationCount;
     UInt64 start = DRN::CDRNClock::NowInMicroseconds();
+    UInt64 cpuStart = ThreadCpuTimeNs();
     for ( UInt32 i=0; i<operations; ++i )
     {
         const UInt32 slot = i % count;
@@ -233,27 +285,28 @@ CGridBenchmark::MeasureSetValue( bool byIndex )
         else
             m_publisherGrid->SetValue( m_keys[ slot ], value );
     }
-    UInt64 elapsed = DRN::CDRNClock::NowInMicroseconds() - start;
-    return elapsed * 1000 / operations;
+    sample.cpuNs = ( ThreadCpuTimeNs() - cpuStart ) / operations;
+    sample.wallNs = ( DRN::CDRNClock::NowInMicroseconds() - start ) * 1000 / operations;
 }
 
 /*-------------------------------------------------------------------------*/
 
-UInt64
-CGridBenchmark::MeasureGetValue( DRN::CDRNDataGrid& grid )
+void
+CGridBenchmark::MeasureGetValue( DRN::CDRNDataGrid& grid, CSample& sample )
 {
     const UInt32 count = (UInt32) m_indices.size();
     const UInt32 operations = BenchmarkOperationCount;
     CORE::CVariant value;
     UInt32 found = 0;
     UInt64 start = DRN::CDRNClock::NowInMicroseconds();
+    UInt64 cpuStart = ThreadCpuTimeNs();
     for ( UInt32 i=0; i<operations; ++i )
     {
         if ( grid.GetValueByIndex( m_indices[ i % count ], value ) )
             ++found;
     }
-    UInt64 elapsed = DRN::CDRNClock::NowInMicroseconds() - start;
-    return found > 0 ? elapsed * 1000 / operations : 0;
+    sample.cpuNs = found > 0 ? ( ThreadCpuTimeNs() - cpuStart ) / operations : 0;
+    sample.wallNs = found > 0 ? ( DRN::CDRNClock::NowInMicroseconds() - start ) * 1000 / operations : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -273,13 +326,15 @@ CGridBenchmark::SettleReplica( void )
 
 /*-------------------------------------------------------------------------*/
 
-UInt64
-CGridBenchmark::MeasureDelta( UInt64& workNsPerKey )
+bool
+CGridBenchmark::MeasureDelta( CSample& sample )
 {
     const UInt32 count = (UInt32) m_keys.size();
     const UInt32 changed = BenchmarkDeltaKeyCount < count ? BenchmarkDeltaKeyCount : count;
     GUCEF::vector< UInt64 > rounds;
     GUCEF::vector< UInt64 > works;
+    GUCEF::vector< UInt64 > cpuWorks;
+    GUCEF::vector< UInt64 > pulses;
     CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
     for ( UInt32 round=0; round<BenchmarkDeltaRounds; ++round )
     {
@@ -289,20 +344,92 @@ CGridBenchmark::MeasureDelta( UInt64& workNsPerKey )
         CReplicaConverged converged( *m_replicaGrid, m_keys[ changed-1 ], stamp );
         UInt64 start = DRN::CDRNClock::NowInMicroseconds();
         UInt64 inPulses = 0;
-        while ( !converged.IsMet() )
+        UInt64 cpuInPulses = 0;
+        UInt64 pulseCount = 0;
+        while ( !converged.IsMet() || pulseCount < BenchmarkDeltaMinPulses )
         {
             if ( DRN::CDRNClock::NowInMicroseconds() - start > 60000000 )
-                return 0;
+                return false;
             const UInt64 pulseStart = DRN::CDRNClock::NowInMicroseconds();
+            const UInt64 pulseCpuStart = ThreadCpuTimeNs();
             pulseGenerator->ForceDirectPulse();
+            cpuInPulses += ThreadCpuTimeNs() - pulseCpuStart;
             inPulses += DRN::CDRNClock::NowInMicroseconds() - pulseStart;
+            ++pulseCount;
             MT::ThreadDelay( 1 );
         }
         rounds.push_back( ( DRN::CDRNClock::NowInMicroseconds() - start ) * 1000 / changed );
         works.push_back( inPulses * 1000 / changed );
+        cpuWorks.push_back( cpuInPulses / changed );
+        pulses.push_back( pulseCount );
     }
-    workNsPerKey = Median( works );
-    return Median( rounds );
+    sample.deltaNs = Median( rounds );
+    sample.wallNs = Median( works );
+    sample.cpuNs = Median( cpuWorks );
+    sample.pulses = Median( pulses );
+    return 0 != sample.deltaNs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridBenchmark::MeasureOperation( TOperation operation, CGridBenchmarkLoad* load, CSample& sample )
+{
+    // the writes of the operations before are on their way to the replica: let them settle before it is read
+    if ( OPERATION_REPLICA_GETVALUE == operation && !SettleReplica() )
+        return false;
+
+    bool ok = true;
+    if ( GUCEF_NULL != load )
+        load->Begin();
+    switch ( operation )
+    {
+        case OPERATION_SETVALUE: { MeasureSetValue( false, sample ); break; }
+        case OPERATION_SETVALUE_BYINDEX: { MeasureSetValue( true, sample ); break; }
+        case OPERATION_GETVALUE: { MeasureGetValue( *m_publisherGrid, sample ); break; }
+        case OPERATION_REPLICA_GETVALUE: { MeasureGetValue( *m_replicaGrid, sample ); break; }
+        case OPERATION_DELTA: { ok = MeasureDelta( sample ); break; }
+        default: { ok = false; break; }
+    }
+    if ( GUCEF_NULL != load )
+        load->End();
+    return ok;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridBenchmark::SetMedians( TSampleVector* samples, CGridBenchmarkResult& result )
+{
+    GUCEF::vector< UInt64 > wall[ OPERATION_COUNT ];
+    GUCEF::vector< UInt64 > cpu[ OPERATION_COUNT ];
+    GUCEF::vector< UInt64 > delta;
+    GUCEF::vector< UInt64 > pulses;
+    for ( UInt32 o=0; o<OPERATION_COUNT; ++o )
+    {
+        for ( UInt32 r=0; r<samples[ o ].size(); ++r )
+        {
+            wall[ o ].push_back( samples[ o ][ r ].wallNs );
+            cpu[ o ].push_back( samples[ o ][ r ].cpuNs );
+            if ( OPERATION_DELTA == o )
+            {
+                delta.push_back( samples[ o ][ r ].deltaNs );
+                pulses.push_back( samples[ o ][ r ].pulses );
+            }
+        }
+    }
+    result.setValueNs = Median( wall[ OPERATION_SETVALUE ] );
+    result.setValueByIndexNs = Median( wall[ OPERATION_SETVALUE_BYINDEX ] );
+    result.getValueByIndexNs = Median( wall[ OPERATION_GETVALUE ] );
+    result.replicaGetValueByIndexNs = Median( wall[ OPERATION_REPLICA_GETVALUE ] );
+    result.deltaWorkNsPerKey = Median( wall[ OPERATION_DELTA ] );
+    result.setValueCpuNs = Median( cpu[ OPERATION_SETVALUE ] );
+    result.setValueByIndexCpuNs = Median( cpu[ OPERATION_SETVALUE_BYINDEX ] );
+    result.getValueByIndexCpuNs = Median( cpu[ OPERATION_GETVALUE ] );
+    result.replicaGetValueByIndexCpuNs = Median( cpu[ OPERATION_REPLICA_GETVALUE ] );
+    result.deltaWorkCpuNsPerKey = Median( cpu[ OPERATION_DELTA ] );
+    result.deltaNsPerKey = Median( delta );
+    result.deltaPulses = Median( pulses );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -312,43 +439,128 @@ CGridBenchmark::Measure( CGridBenchmarkLoad* load, UInt32 repetitions, CGridBenc
 {
     result = CGridBenchmarkResult();
     result.keyCount = (UInt32) m_keys.size();
-    GUCEF::vector< UInt64 > setValue, setValueByIndex, getValue, replicaGet, delta, deltaWork;
+    TSampleVector samples[ OPERATION_COUNT ];
     for ( UInt32 r=0; r<repetitions; ++r )
     {
-        if ( GUCEF_NULL != load ) load->Begin();
-        setValue.push_back( MeasureSetValue( false ) );
-        if ( GUCEF_NULL != load ) load->End();
-
-        if ( GUCEF_NULL != load ) load->Begin();
-        setValueByIndex.push_back( MeasureSetValue( true ) );
-        if ( GUCEF_NULL != load ) load->End();
-
-        if ( GUCEF_NULL != load ) load->Begin();
-        getValue.push_back( MeasureGetValue( *m_publisherGrid ) );
-        if ( GUCEF_NULL != load ) load->End();
-
-        // the writes above are on their way to the replica: let them settle, the replica is then read
-        if ( !SettleReplica() )
-            return false;
-        if ( GUCEF_NULL != load ) load->Begin();
-        replicaGet.push_back( MeasureGetValue( *m_replicaGrid ) );
-        if ( GUCEF_NULL != load ) load->End();
-
-        if ( GUCEF_NULL != load ) load->Begin();
-        UInt64 deltaWorkNs = 0;
-        UInt64 deltaNs = MeasureDelta( deltaWorkNs );
-        if ( GUCEF_NULL != load ) load->End();
-        if ( 0 == deltaNs )
-            return false;
-        delta.push_back( deltaNs );
-        deltaWork.push_back( deltaWorkNs );
+        for ( UInt32 o=0; o<OPERATION_COUNT; ++o )
+        {
+            CSample sample;
+            if ( !MeasureOperation( (TOperation) o, load, sample ) )
+                return false;
+            samples[ o ].push_back( sample );
+        }
     }
-    result.setValueNs = Median( setValue );
-    result.setValueByIndexNs = Median( setValueByIndex );
-    result.getValueByIndexNs = Median( getValue );
-    result.replicaGetValueByIndexNs = Median( replicaGet );
-    result.deltaNsPerKey = Median( delta );
-    result.deltaWorkNsPerKey = Median( deltaWork );
+    SetMedians( samples, result );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridBenchmark::MeasurePaired( CGridBenchmark& reference, CGridBenchmark& candidate, UInt32 rounds,
+                               CGridBenchmarkResult& referenceResult, CGridBenchmarkResult& candidateResult,
+                               UInt32& worstCpuPercent )
+{
+    return MeasurePairs( reference, GUCEF_NULL, candidate, GUCEF_NULL, rounds, referenceResult, candidateResult, worstCpuPercent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridBenchmark::MeasurePairedWithLoad( CGridBenchmarkLoad& load, UInt32 rounds, CGridBenchmarkResult& reference,
+                                       CGridBenchmarkResult& loaded, UInt32& worstCpuPercent )
+{
+    return MeasurePairs( *this, GUCEF_NULL, *this, &load, rounds, reference, loaded, worstCpuPercent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridBenchmark::MeasurePairs( CGridBenchmark& reference, CGridBenchmarkLoad* referenceLoad, CGridBenchmark& candidate,
+                              CGridBenchmarkLoad* candidateLoad, UInt32 rounds, CGridBenchmarkResult& referenceResult,
+                              CGridBenchmarkResult& candidateResult, UInt32& worstCpuPercent )
+{
+    referenceResult = CGridBenchmarkResult();
+    referenceResult.keyCount = (UInt32) reference.m_keys.size();
+    candidateResult = CGridBenchmarkResult();
+    candidateResult.keyCount = (UInt32) candidate.m_keys.size();
+    worstCpuPercent = 0;
+    TSampleVector referenceSamples[ OPERATION_COUNT ];
+    TSampleVector candidateSamples[ OPERATION_COUNT ];
+    GUCEF::vector< UInt64 > percents[ OPERATION_COUNT ];
+    for ( UInt32 r=0; r<rounds; ++r )
+    {
+        for ( UInt32 o=0; o<OPERATION_COUNT; ++o )
+        {
+            CSample referenceSample;
+            CSample candidateSample;
+            const bool referenceFirst = 0 == ( r % 2 );
+            CGridBenchmark& first = referenceFirst ? reference : candidate;
+            CGridBenchmark& second = referenceFirst ? candidate : reference;
+            CGridBenchmarkLoad* firstLoad = referenceFirst ? referenceLoad : candidateLoad;
+            CGridBenchmarkLoad* secondLoad = referenceFirst ? candidateLoad : referenceLoad;
+            CSample& firstSample = referenceFirst ? referenceSample : candidateSample;
+            CSample& secondSample = referenceFirst ? candidateSample : referenceSample;
+            if ( !first.MeasureOperation( (TOperation) o, firstLoad, firstSample ) || !second.MeasureOperation( (TOperation) o, secondLoad, secondSample ) )
+                return false;
+            referenceSamples[ o ].push_back( referenceSample );
+            candidateSamples[ o ].push_back( candidateSample );
+            percents[ o ].push_back( referenceSample.cpuNs > 0 ? candidateSample.cpuNs * 100 / referenceSample.cpuNs : 0 );
+        }
+    }
+    SetMedians( referenceSamples, referenceResult );
+    SetMedians( candidateSamples, candidateResult );
+    for ( UInt32 o=0; o<OPERATION_COUNT; ++o )
+    {
+        const UInt32 percent = (UInt32) Median( percents[ o ] );
+        if ( percent > worstCpuPercent )
+            worstCpuPercent = percent;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridBenchmark::MeasureAgainstReference( CGridBenchmarkLoad& load, UInt32 repetitions, CGridBenchmarkResult& reference,
+                                         CGridBenchmarkResult& loaded, UInt32& worstPercent, UInt32& busyPercent )
+{
+    reference = CGridBenchmarkResult();
+    reference.keyCount = (UInt32) m_keys.size();
+    loaded = reference;
+    worstPercent = 0;
+    busyPercent = 0;
+    TSampleVector referenceSamples[ OPERATION_COUNT ];
+    TSampleVector loadedSamples[ OPERATION_COUNT ];
+    GUCEF::vector< UInt64 > percents[ OPERATION_COUNT ];
+    GUCEF::vector< UInt64 > busy[ OPERATION_COUNT ];
+    for ( UInt32 r=0; r<repetitions; ++r )
+    {
+        for ( UInt32 o=0; o<OPERATION_COUNT; ++o )
+        {
+            CSample without;
+            CSample with;
+            if ( !MeasureOperation( (TOperation) o, GUCEF_NULL, without ) || !MeasureOperation( (TOperation) o, &load, with ) )
+                return false;
+            referenceSamples[ o ].push_back( without );
+            loadedSamples[ o ].push_back( with );
+            percents[ o ].push_back( without.wallNs > 0 ? with.wallNs * 100 / without.wallNs : 0 );
+            busy[ o ].push_back( without.cpuNs > 0 ? without.wallNs * 100 / without.cpuNs : 100 );
+        }
+    }
+    SetMedians( referenceSamples, reference );
+    SetMedians( loadedSamples, loaded );
+    for ( UInt32 o=0; o<OPERATION_COUNT; ++o )
+    {
+        const UInt32 percent = (UInt32) Median( percents[ o ] );
+        if ( percent > worstPercent )
+        {
+            worstPercent = percent;
+            busyPercent = (UInt32) Median( busy[ o ] );
+        }
+    }
+    if ( busyPercent < 100 )
+        busyPercent = 100;
     return true;
 }
 

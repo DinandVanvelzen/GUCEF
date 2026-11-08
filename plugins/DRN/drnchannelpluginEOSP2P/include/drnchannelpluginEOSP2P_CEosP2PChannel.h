@@ -50,6 +50,11 @@
 #define GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PENDPOINTINFO_H
 #endif /* GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PENDPOINTINFO_H ? */
 
+#ifndef GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PSOCKETEVENTQUEUE_H
+#include "drnchannelpluginEOSP2P_CEosP2PSocketEventQueue.h"
+#define GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PSOCKETEVENTQUEUE_H
+#endif /* GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PSOCKETEVENTQUEUE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -80,8 +85,12 @@ class CEosP2PChannelListener;
  *  ends with ChannelErrorEvent and ChannelDisconnectedEvent. An accepted channel (made by CEosP2PChannelListener) is
  *  the other end of such a connection, shared with the socket of the listener.
  *
- *  The channel runs on the pulse generator of the application, where the glue ticks the platform: a node on a
- *  thread of its own is not supported (Connect() refuses a pulse generator of another thread).
+ *  The glue ticks the platform on the pulse generator of the application, and the SDK is used on that thread only.
+ *  The channel runs on the pulse generator it is given (for a channel of a DRN node the node's own, which the
+ *  application's pulse generator pulses under the node lock): the events of the socket wait in a queue from the tick
+ *  of the platform until the next pulse of that pulse generator, so that the channel hands them on under the node lock
+ *  (gucefDRN design 9.1). A pulse generator that the application's does not drive, such as the one of a node with a
+ *  thread of its own, is refused: Connect() fails.
  */
 class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannel : public DRN::CIDRNChannel
 {
@@ -143,8 +152,9 @@ class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannel : public DRN::CIDRNChanne
     void Detach( void );
     bool OnPacket( const PLUGINGLUE::EOS::CEosP2PPacketEventData& packet );
     void OnConnectionEstablished( const PLUGINGLUE::EOS::CEosP2PConnectionEventData& data );
-    void OnConnectionClosed( const PLUGINGLUE::EOS::CEosP2PConnectionEventData& data );
-    void OnTick( void );
+    bool OnConnectionClosed( const PLUGINGLUE::EOS::CEosP2PConnectionEventData& data );
+    bool OnTick( void );
+    void RequestPulse( void );
 
     void OnSocketPacketReceived( CORE::CNotifier* notifier    ,
                                  const CORE::CEvent& eventId  ,
@@ -158,10 +168,11 @@ class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannel : public DRN::CIDRNChanne
                                    const CORE::CEvent& eventId  ,
                                    CORE::CICloneable* eventData );
 
-    void OnPlatformTick( CORE::CNotifier* notifier    ,
-                         const CORE::CEvent& eventId  ,
-                         CORE::CICloneable* eventData );
-    void End( const CORE::CString* error );
+    void OnPulse( CORE::CNotifier* notifier    ,
+                  const CORE::CEvent& eventId  ,
+                  CORE::CICloneable* eventData );
+
+    bool End( const CORE::CString* error );
     void OnListenerGone( void );
     bool IsOurs( const char* remoteUser ) const;
 
@@ -184,6 +195,7 @@ class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannel : public DRN::CIDRNChanne
     PLUGINGLUE::EOS::EEosNetworkType m_networkType;
     UInt32 m_sent;
     UInt32 m_received;
+    CEosP2PSocketEventQueue m_events;           /**< from the tick of the platform to the next pulse of m_pulseGenerator */
 };
 
 /*-------------------------------------------------------------------------*/

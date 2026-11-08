@@ -77,6 +77,7 @@ CDRNMessageView::CDRNMessageView( void )
     , laneSequence( 0 )
     , payload( GUCEF_NULL )
     , payloadSize( 0 )
+    , packetKind( DRN_PACKETKIND_AEAD )
 {GUCEF_TRACE;
 
 }

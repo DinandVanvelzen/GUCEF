@@ -275,6 +275,25 @@ CDRNPacketProtection::IsProtectedPacket( const UInt8* packet, UInt32 packetSize 
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNPacketProtection::IsMacPacket( const UInt8* packet, UInt32 packetSize )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != packet && packetSize > 0 &&
+           ( DRN_PROTOCOL_ID_MAC_0 == packet[ 0 ] || DRN_PROTOCOL_ID_MAC_1 == packet[ 0 ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNPacketProtection::IsPublicPlainPacket( const UInt8* packet, UInt32 packetSize )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != packet && packetSize > 0 && DRN_PROTOCOL_ID_PUBLIC_PLAIN == packet[ 0 ];
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CDRNPacketProtection::MeasureHeader( const UInt8* packet, UInt32 packetSize, UInt32& sequence )
 {GUCEF_TRACE;
@@ -309,7 +328,18 @@ bool
 CDRNPacketProtection::Protect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output )
 {GUCEF_TRACE;
 
+    return Protect( packet, packetSize, output, DRN_PACKETKIND_AEAD );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNPacketProtection::Protect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output, UInt8 packetKind )
+{GUCEF_TRACE;
+
     if ( !m_send.valid || m_send.instance.IsNULL() )
+        return false;
+    if ( DRN_PACKETKIND_AEAD != packetKind && DRN_PACKETKIND_MAC != packetKind )
         return false;
 
     UInt32 sequence = 0;
@@ -324,10 +354,6 @@ CDRNPacketProtection::Protect( const UInt8* packet, UInt32 packetSize, CORE::CDy
     m_sendLastSequence = sequence;
     UInt64 fullSequence = ( m_sendWraps << 32 ) | (UInt64) sequence;
 
-    UInt8 header[ DRN_MAX_PACKET_HEADER_SIZE ];
-    memcpy( header, packet, headerSize );
-    header[ 0 ] = 0 == m_send.phase ? DRN_PROTOCOL_ID_PROTECTED_0 : DRN_PROTOCOL_ID_PROTECTED_1;
-
     UInt8 nonce[ MaxNonceSize ];
     MakeNonce( m_sendDirection, fullSequence, nonce );
     CORE::SCodecCallArgs args;
@@ -335,15 +361,40 @@ CDRNPacketProtection::Protect( const UInt8* packet, UInt32 packetSize, CORE::CDy
     args.structSize = sizeof( args );
     args.nonce = nonce;
     args.nonceSize = m_nonceSize;
-    args.aad = header;
-    args.aadSize = headerSize;
 
-    output.SetDataSize( 0 );
-    output.CopyFrom( 0, headerSize, header );
-    if ( !m_send.instance->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, packet + headerSize, packetSize - headerSize, &args, output ) )
+    if ( DRN_PACKETKIND_MAC == packetKind )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNPacketProtection: Encrypting a packet failed: " << m_send.instance->GetLastErrorMessage() );
-        return false;
+        // the body stays clear: the tag of the AEAD with an empty plaintext over header and body. The header byte
+        // is part of what the tag covers, so a MAC packet never opens as an AEAD packet and the other way round
+        m_macScratch.SetDataSize( 0 );
+        m_macScratch.CopyFrom( 0, packetSize, packet );
+        static_cast< UInt8* >( m_macScratch.GetBufferPtr() )[ 0 ] = 0 == m_send.phase ? DRN_PROTOCOL_ID_MAC_0 : DRN_PROTOCOL_ID_MAC_1;
+        args.aad = m_macScratch.GetConstBufferPtr();
+        args.aadSize = packetSize;
+
+        output.SetDataSize( 0 );
+        output.CopyFrom( 0, packetSize, m_macScratch.GetConstBufferPtr() );
+        if ( !m_send.instance->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, GUCEF_NULL, 0, &args, output ) || output.GetDataSize() != packetSize + TagSize )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNPacketProtection: Authenticating a packet failed: " << m_send.instance->GetLastErrorMessage() );
+            return false;
+        }
+    }
+    else
+    {
+        UInt8 header[ DRN_MAX_PACKET_HEADER_SIZE ];
+        memcpy( header, packet, headerSize );
+        header[ 0 ] = 0 == m_send.phase ? DRN_PROTOCOL_ID_PROTECTED_0 : DRN_PROTOCOL_ID_PROTECTED_1;
+        args.aad = header;
+        args.aadSize = headerSize;
+
+        output.SetDataSize( 0 );
+        output.CopyFrom( 0, headerSize, header );
+        if ( !m_send.instance->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, packet + headerSize, packetSize - headerSize, &args, output ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNPacketProtection: Encrypting a packet failed: " << m_send.instance->GetLastErrorMessage() );
+            return false;
+        }
     }
 
     ++m_sendPackets;
@@ -400,11 +451,66 @@ CDRNPacketProtection::Open( CKeyState& state                   ,
 /*-------------------------------------------------------------------------*/
 
 bool
+CDRNPacketProtection::OpenMac( CKeyState& state                   ,
+                               const UInt8* packet                ,
+                               UInt32 headerSize                  ,
+                               UInt32 packetSize                  ,
+                               UInt64 fullSequence                ,
+                               CORE::CDynamicBuffer& output       )
+{GUCEF_TRACE;
+
+    // the tag over header and body (as received, header byte included): the input is the tag alone
+    UInt8 nonce[ MaxNonceSize ];
+    MakeNonce( (UInt8) ( m_sendDirection ^ 1 ), fullSequence, nonce );
+    CORE::SCodecCallArgs args;
+    memset( &args, 0, sizeof( args ) );
+    args.structSize = sizeof( args );
+    args.nonce = nonce;
+    args.nonceSize = m_nonceSize;
+    args.aad = packet;
+    args.aadSize = packetSize - TagSize;
+
+    output.SetDataSize( 0 );
+    output.CopyFrom( 0, packetSize - TagSize, packet );
+    static_cast< UInt8* >( output.GetBufferPtr() )[ 0 ] = DRN_PROTOCOL_ID;
+    if ( !state.instance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, packet + packetSize - TagSize, TagSize, &args, output ) )
+        return false;
+    return output.GetDataSize() == packetSize - TagSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNPacketProtection::OpenWithPhase( UInt8 phase, bool isMac, const UInt8* packet, UInt32 headerSize, UInt32 packetSize, UInt64 fullSequence, CORE::CDynamicBuffer& output )
+{GUCEF_TRACE;
+
+    if ( !m_previousReceive.valid || phase != m_previousReceive.phase )
+        return false;
+    if ( isMac )
+        return OpenMac( m_previousReceive, packet, headerSize, packetSize, fullSequence, output );
+    return Open( m_previousReceive, packet, headerSize, packet + headerSize, packetSize - headerSize, fullSequence, output );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDRNPacketProtection::Unprotect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output )
 {GUCEF_TRACE;
 
-    if ( !m_receive.valid || !IsProtectedPacket( packet, packetSize ) )
+    UInt8 packetKind = DRN_PACKETKIND_AEAD;
+    return Unprotect( packet, packetSize, output, packetKind );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNPacketProtection::Unprotect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output, UInt8& packetKind )
+{GUCEF_TRACE;
+
+    bool isMac = IsMacPacket( packet, packetSize );
+    if ( !m_receive.valid || ( !isMac && !IsProtectedPacket( packet, packetSize ) ) )
         return false;
+    packetKind = isMac ? DRN_PACKETKIND_MAC : DRN_PACKETKIND_AEAD;
 
     UInt32 sequence = 0;
     UInt32 headerSize = MeasureHeader( packet, packetSize, sequence );
@@ -426,16 +532,17 @@ CDRNPacketProtection::Unprotect( const UInt8* packet, UInt32 packetSize, CORE::C
             fullSequence -= (UInt64) 1 << 32;
     }
 
-    UInt8 phase = DRN_PROTOCOL_ID_PROTECTED_0 == packet[ 0 ] ? 0 : 1;
+    UInt8 phase = ( DRN_PROTOCOL_ID_PROTECTED_0 == packet[ 0 ] || DRN_PROTOCOL_ID_MAC_0 == packet[ 0 ] ) ? 0 : 1;
     const UInt8* body = packet + headerSize;
     UInt32 bodySize = packetSize - headerSize;
     bool opened = false;
     if ( phase == m_receive.phase )
     {
-        opened = Open( m_receive, packet, headerSize, body, bodySize, fullSequence, output );
+        opened = isMac ? OpenMac( m_receive, packet, headerSize, packetSize, fullSequence, output ) :
+                         Open( m_receive, packet, headerSize, body, bodySize, fullSequence, output );
     }
     else
-    if ( m_previousReceive.valid && phase == m_previousReceive.phase && Open( m_previousReceive, packet, headerSize, body, bodySize, fullSequence, output ) )
+    if ( OpenWithPhase( phase, isMac, packet, headerSize, packetSize, fullSequence, output ) )
     {
         opened = true;
     }
@@ -447,7 +554,9 @@ CDRNPacketProtection::Unprotect( const UInt8* packet, UInt32 packetSize, CORE::C
             ++m_failed;
             return false;
         }
-        if ( Open( m_nextReceive, packet, headerSize, body, bodySize, fullSequence, output ) )
+        bool openedNext = isMac ? OpenMac( m_nextReceive, packet, headerSize, packetSize, fullSequence, output ) :
+                                  Open( m_nextReceive, packet, headerSize, body, bodySize, fullSequence, output );
+        if ( openedNext )
         {
             m_previousReceive.Clear();
             memcpy( m_previousReceive.key, m_receive.key, KeySize );

@@ -82,6 +82,7 @@ namespace DRN {
 
 class CIDRNBanList;
 class CDRNSession;
+class CDRNPeerLinkTestAccess;
 
 /*-------------------------------------------------------------------------*/
 
@@ -114,6 +115,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkSettings
     UInt8 staticPublicKey[ DRN_HANDSHAKE_KEY_SIZE ];
     UInt64 rekeyPackets;                /**< packet protection rekeys after this many packets, 0 = 2^31 */
     UInt64 rekeyBytes;                  /**< ... or bytes, 0 = 64 GB */
+    bool allowPublicItems;              /**< of the node's security policy: MAC (and PLAIN) packets may be sent and are taken */
+    TDRNPublicItemProtection publicItemProtection;  /**< of the node's security policy */
+    UInt8 protocolMinor;                /**< the minor of protocol 2 announced in HELLO and CHALLENGE (CDRNNodeSettings::protocolMinor) */
 
     CDRNLinkSettings( void );
 };
@@ -144,6 +148,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkMessage
     UInt8 lane;
     UInt8 msgClass;
     UInt32 opcode;
+    UInt8 packetKind;                   /**< TDRNPacketKind of the packet it came in (the weakest of its fragments) */
     CORE::CDynamicBuffer payload;
 
     CDRNLinkMessage( void );
@@ -179,6 +184,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     static const CORE::CEvent PeerLimitExceededEvent;      /**< CDRNLinkAnomalyEventData: the peer went over a receive limit, what was over it was dropped or held back */
     static const CORE::CEvent ClockAnomalyEvent;           /**< CDRNLinkAnomalyEventData: the peer's clock runs faster or slower than ours */
     static const CORE::CEvent TrafficAnomalyEvent;         /**< CDRNLinkAnomalyEventData: silence then a burst, or a flood */
+    static const CORE::CEvent ProtectionAnomalyEvent;      /**< CDRNLinkAnomalyEventData (DRN_ANOMALY_PROTECTION_DOWNGRADE): something arrived with weaker protection than allowed and was refused; at most once per second */
 
     static void RegisterEvents( void );
 
@@ -212,13 +218,28 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
                       const CDRNLinkSettings& settings            ,
                       const CIDRNAuthenticatorPtr& authenticator  );
 
-    /** Queues a message, it goes out with the next flush */
-    bool Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* payload, UInt32 payloadSize );
+    /**
+     *  Queues a message, it goes out with the next flush.
+     *  @param packetKind TDRNPacketKind for a message of a PUBLIC item or method: MAC or PLAIN where the policy allows
+     *         it (allowPublicItems, publicItemProtection, PLAIN on lane 3 only), else AEAD. LINK, SESSION and APP
+     *         messages always go AEAD; on a link without packet protection everything is plain as ever.
+     */
+    bool Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* payload, UInt32 payloadSize, UInt8 packetKind = DRN_PACKETKIND_AEAD );
 
-    bool Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CORE::CDynamicBuffer& payload );
+    bool Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CORE::CDynamicBuffer& payload, UInt8 packetKind = DRN_PACKETKIND_AEAD );
 
     /** Queues a message whose payload is part1 followed by part2, without joining them first */
-    bool SendGather( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* part1, UInt32 size1, const void* part2, UInt32 size2 );
+    bool SendGather( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* part1, UInt32 size1, const void* part2, UInt32 size2, UInt8 packetKind = DRN_PACKETKIND_AEAD );
+
+    /** The packet kind a message of this lane and class with the asked kind goes in on this link (see Send) */
+    UInt8 ResolvePacketKind( UInt8 lane, UInt8 msgClass, UInt8 packetKind ) const;
+
+    /**
+     *  A message arrived in a packet of a weaker kind than its receiver allows: counted, reported with
+     *  ProtectionAnomalyEvent (at most once per second), and on a stream channel the link closes. Used by the link
+     *  itself and by the session components that judge per item or method.
+     */
+    void RefuseDowngrade( UInt8 msgClass, UInt32 opcode, UInt8 packetKind, const CORE::CString& why );
 
     /** Sends what is queued now */
     void Flush( void );
@@ -260,10 +281,16 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     /** Reliable messages sent and not yet acknowledged (datagram channels) */
     UInt32 GetUnackedCount( void ) const;
 
-    /** The largest message payload that goes out in one packet of the channel, without fragments */
+    /**
+     *  The largest message payload that goes out in one packet of the channel, without fragments: the datagram budget
+     *  on datagram channels, the stream limit on stream channels (CDRNLinkReliability::GetMaxUnfragmentedPayload)
+     */
     UInt32 GetMaxUnfragmentedPayload( void ) const;
 
     const CORE::CString& GetRemoteNodeId( void ) const;
+
+    /** The minor of protocol 2 the peer announced (HELLO on the accepting side, CHALLENGE on the connecting side) */
+    UInt8 GetRemoteProtocolMinor( void ) const;
 
     UInt32 GetLinkId( void ) const;
 
@@ -296,6 +323,12 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     /** Connecting side: the static key the acceptor proved in the handshake, NULL when it did not */
     const UInt8* GetPeerStaticKey( void ) const;
 
+    /**
+     *  Connecting side: whether the endpoint pinned the acceptor's static key ("key" parameter), so that the key the
+     *  acceptor proved is the one asked for. Without a pin the proved key and the node id are the acceptor's own word.
+     */
+    bool HasPinnedKey( void ) const;
+
     /** The hash over HELLO and CHALLENGE the keys and the AUTH proof are bound to */
     const UInt8* GetTranscriptHash( void ) const;
 
@@ -304,6 +337,12 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
 
     /** Plain packets dropped because the link is protected */
     UInt64 GetDroppedPlainPacketCount( void ) const;
+
+    /** Packets of a kind the policy does not allow on this link (0xD1, or MAC / PLAIN without public items), dropped */
+    UInt64 GetDowngradedPacketCount( void ) const;
+
+    /** Messages refused because of their packet kind (link, session components, replicator) */
+    UInt64 GetProtectionDowngradeCount( void ) const;
 
     /** The session this link belongs to and the peer id of the other end in it, set by CDRNSession */
     void SetSessionBinding( CDRNSession* session, UInt32 peerId );
@@ -322,6 +361,15 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
                            CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    /** The test seam of the receiver's enforcement (SendAsPacketKind), defined by the test application only */
+    friend class CDRNPeerLinkTestAccess;
+
+    /**
+     *  Queues a message in exactly the given packet kind, without the resolution Send() applies, on an operational
+     *  protected link: what a peer that does not follow the policy would send. Reached through the test seam only.
+     */
+    bool SendAsPacketKind( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* payload, UInt32 payloadSize, UInt8 packetKind );
 
     typedef CORE::CTEventHandlerFunctor< CDRNPeerLink > TEventCallback;
 
@@ -358,8 +406,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     void FlushImp( bool forceAck );
     UInt64 GetRetransmitTimeout( void ) const;
     void SendHello( void );
-    void ProcessReceivedPacket( const UInt8* data, UInt32 size, UInt64 now );
-    void DeferPacket( const UInt8* data, UInt32 size, bool wasProtected );
+    void ProcessReceivedPacket( const UInt8* data, UInt32 size, UInt64 now, UInt8 packetKind );
+    void RefuseDowngradedPacket( UInt8 packetKind, const CORE::CString& why );
+    void DeferPacket( const UInt8* data, UInt32 size, bool wasProtected, UInt8 packetKind );
     void ProcessDeferredPackets( UInt64 now );
     void ReportLimit( TDRNLinkAnomalyKind kind, Float64 measured, Float64 threshold, const CORE::CString& text, UInt64 now );
     void ReportAnomaly( const CORE::CEvent& eventid, const CDRNLinkAnomaly& anomaly );
@@ -391,6 +440,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     bool m_wasOperational;
 
     CORE::CString m_remoteNodeId;
+    UInt8 m_remoteProtocolMinor;
     UInt32 m_linkId;
     UInt8 m_nonce[ DRN_CHALLENGE_NONCE_SIZE ];
     CDRNAuthResult m_authResult;
@@ -403,6 +453,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     CORE::CDynamicBuffer m_cryptBuffer;
 
     CDRNLinkMonitor m_monitor;
+    CDRNLinkMonitor m_plainMonitor;                         /**< the receive limits of PLAIN packets, apart from the authenticated traffic */
+    UInt64 m_plainPacketsOverLimit;
     GUCEF::vector< CORE::CDynamicBuffer > m_deferred;      /**< stream channels: packets held back for the receive limits */
     UInt32 m_deferredHead;
     UInt64 m_deferredBytes;
@@ -423,6 +475,10 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
     bool m_havePeerStaticKey;
     CORE::CString::StringVector m_offeredCiphers;
     bool m_currentPacketProtected;
+    UInt8 m_currentPacketKind;
+    UInt64 m_downgradedPackets;
+    UInt64 m_protectionDowngrades;
+    UInt64 m_lastDowngradeReport;
     CORE::CDynamicBuffer m_protectBuffer;
     UInt64 m_authFailures;
     UInt64 m_droppedPlainPackets;

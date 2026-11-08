@@ -62,6 +62,23 @@ namespace DRN {
 /** Packets up to this size are sent with their frame header in one write, larger ones in two */
 static const UInt32 SingleWriteLimit = 64 * 1024;
 
+/** Packets sent while a read is delivered are written together, at the latest when this much is waiting */
+static const UInt32 CoalescedWriteLimit = 64 * 1024;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      UTILITIES                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** The connection of a channel: the client socket it owns, else the accepted connection */
+static inline COMCORE::CTCPConnection*
+ChannelConnection( COMCORE::CTCPClientSocket* clientSocket, COMCORE::CTCPServerConnection* serverConnection )
+{
+    return GUCEF_NULL != clientSocket ? static_cast< COMCORE::CTCPConnection* >( clientSocket )
+                                      : static_cast< COMCORE::CTCPConnection* >( serverConnection );
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -79,8 +96,10 @@ CDRNTcpChannel::CDRNTcpChannel( void )
     , m_txBuffer()
     , m_rxView()
     , m_rxEventData( &m_rxView )
+    , m_coalesced()
     , m_connected( false )
     , m_closing( false )
+    , m_receiving( false )
 {GUCEF_TRACE;
 
     m_capabilities.isReliable = true;
@@ -103,8 +122,10 @@ CDRNTcpChannel::CDRNTcpChannel( COMCORE::CTCPServerConnection* connection, CORE:
     , m_txBuffer()
     , m_rxView()
     , m_rxEventData( &m_rxView )
+    , m_coalesced()
     , m_connected( false )
     , m_closing( false )
+    , m_receiving( false )
 {GUCEF_TRACE;
 
     m_capabilities.isReliable = true;
@@ -206,6 +227,10 @@ void
 CDRNTcpChannel::Close( void )
 {GUCEF_TRACE;
 
+    // what was sent before the close leaves before it
+    m_receiving = false;
+    WriteCoalesced();
+
     m_closing = true;
     m_connected = false;
     if ( GUCEF_NULL != m_clientSocket )
@@ -239,13 +264,26 @@ CDRNTcpChannel::SendPacket( const void* data, UInt32 size )
     if ( !m_connected || size > DRN_MAX_STREAM_PACKET_SIZE )
         return false;
 
-    COMCORE::CTCPConnection* connection = GUCEF_NULL != m_clientSocket ? static_cast< COMCORE::CTCPConnection* >( m_clientSocket )
-                                                                       : static_cast< COMCORE::CTCPConnection* >( m_serverConnection );
+    COMCORE::CTCPConnection* connection = ChannelConnection( m_clientSocket, m_serverConnection );
     if ( GUCEF_NULL == connection )
         return false;
 
     UInt8 frameHeader[ CDRNStreamFramer::MaxFrameHeaderSize ];
     UInt32 headerSize = CDRNStreamFramer::WriteFrameHeader( size, frameHeader );
+
+    if ( m_receiving )
+    {
+        // sent in answer to what is being delivered: one write for all of it once the read is delivered, instead of
+        // a write (and the connection's notification of it) per packet
+        if ( size <= SingleWriteLimit )
+        {
+            m_coalesced.Append( frameHeader, headerSize );
+            m_coalesced.Append( data, size );
+            return m_coalesced.GetDataSize() < CoalescedWriteLimit || WriteCoalesced();
+        }
+        if ( !WriteCoalesced() )
+            return false;
+    }
 
     if ( size <= SingleWriteLimit )
     {
@@ -259,6 +297,22 @@ CDRNTcpChannel::SendPacket( const void* data, UInt32 size )
 
     // large packets: no copy of the packet
     return connection->Send( frameHeader, headerSize ) && connection->Send( data, size );
+}
+
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNTcpChannel::WriteCoalesced( void )
+{GUCEF_TRACE;
+
+    UInt32 size = m_coalesced.GetDataSize();
+    if ( 0 == size )
+        return true;
+    COMCORE::CTCPConnection* connection = ChannelConnection( m_clientSocket, m_serverConnection );
+    bool sent = GUCEF_NULL != connection && connection->Send( m_coalesced.GetConstBufferPtr(), size );
+    m_coalesced.SetDataSize( 0 );
+    return sent;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -314,6 +368,7 @@ CDRNTcpChannel::OnData( const CORE::CDynamicBuffer& data )
 {GUCEF_TRACE;
 
     m_framer.BeginChunk( data.GetConstBufferPtr(), data.GetDataSize() );
+    m_receiving = true;
     while ( true )
     {
         const UInt8* packet = GUCEF_NULL;
@@ -323,7 +378,7 @@ CDRNTcpChannel::OnData( const CORE::CDynamicBuffer& data )
         {
             m_rxView.LinkTo( packet, packetSize );
             if ( !NotifyObservers( PacketReceivedEvent, &m_rxEventData ) )
-                return;
+                return;     // the channel is gone, its destruction closed it
             if ( m_closing )
                 break;
         }
@@ -333,6 +388,8 @@ CDRNTcpChannel::OnData( const CORE::CDynamicBuffer& data )
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNTcpChannel: Invalid framing from " << m_remote.ToString() << ", closing the connection" );
             m_framer.Reset();
             CDRNChannelErrorEventData errorData( "invalid framing" );
+            m_receiving = false;
+            WriteCoalesced();
             if ( !NotifyObservers( ChannelErrorEvent, &errorData ) )
                 return;
             Close();
@@ -345,6 +402,8 @@ CDRNTcpChannel::OnData( const CORE::CDynamicBuffer& data )
         }
     }
     m_framer.EndChunk();
+    m_receiving = false;
+    WriteCoalesced();
 }
 
 /*-------------------------------------------------------------------------*/

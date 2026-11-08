@@ -94,6 +94,28 @@ typedef CORE::Float64 Float64;  /* 8 bytes, signed, decimal */
 
 typedef CORE::TBuildinDataType TBuildinDataType;
 
+/** The protection class of a replicated item or an RPC method (gucefDRN item protection) */
+enum TDRNProtectionClass
+{
+    DRN_PROTECTION_CONFIDENTIAL     = 0,    /**< sealed: every packet that carries it is encrypted and authenticated (default) */
+    DRN_PROTECTION_PUBLIC           = 1     /**< readable by an observer of the link; altering it is detected (mac) or not (none) */
+};
+
+/** How the messages of PUBLIC items travel on a protected link (CDRNSecurityPolicy::publicItemProtection) */
+enum TDRNPublicItemProtection
+{
+    DRN_PUBLICPROTECTION_MAC        = 0,    /**< in MAC packets: clear body, authenticated with the link's AEAD (default) */
+    DRN_PUBLICPROTECTION_NONE       = 1     /**< lane 3 messages in PLAIN packets without any protection, the rest in MAC packets */
+};
+
+/** Why a stream replica missed entries (CDRNStreamGapInfo) */
+enum TDRNStreamGapReason
+{
+    DRN_STREAMGAP_TRIMMED           = 1,    /**< entries arrived above the expected one: the serving side no longer had those between */
+    DRN_STREAMGAP_BEYOND_RETENTION  = 2,    /**< a (re)subscription started above the sequence asked for: the serving side trimmed them */
+    DRN_STREAMGAP_EPOCH_CHANGED     = 3     /**< the stream has another epoch than the one resumed from: the numbering restarted */
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

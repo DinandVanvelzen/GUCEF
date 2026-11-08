@@ -42,6 +42,9 @@
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestDRNTestUtils.h"
+#include "TestDRNAllocationCounter.h"
+#include "TestDRNGroup.h"
+#include "TestDRNMemoryChannel.h"
 #include "TestDRNLinks.h"
 
 /*-------------------------------------------------------------------------//
@@ -178,6 +181,123 @@ IsCompleteSet( const GUCEF::vector< UInt32 >& counters, UInt32 count )
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Answers every message of a link at once and flushes each answer on its own, as an RPC server answers requests while
+ *  it receives them; closes the link right after the answer to the last one
+ */
+class CEchoAtOnce : public CORE::CObserver
+{
+    public:
+
+    DRN::CDRNPeerLinkPtr link;
+    UInt32 closeAfter;      /**< closes the link once it answered this many, 0 for never */
+    UInt32 answered;
+
+    CEchoAtOnce( void ) : CORE::CObserver(), link(), closeAfter( 0 ), answered( 0 ) {}
+    virtual ~CEchoAtOnce() { UnsubscribeAllFromObserver(); }
+
+    void OnMessage( CORE::CNotifier* /* notifier */, const CORE::CEvent& /* eventId */, CORE::CICloneable* eventData )
+    {
+        if ( link.IsNULL() || GUCEF_NULL == eventData )
+            return;
+        const DRN::CDRNLinkMessage& message = static_cast< DRN::CDRNLinkMessageEventData* >( eventData )->GetData();
+        link->Send( DRN::DRN_LANE_RELIABLE_ORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, message.payload );
+        link->Flush();
+        ++answered;
+        if ( answered == closeAfter )
+            link->Close();
+    }
+};
+
+typedef CORE::CTEventHandlerFunctor< CEchoAtOnce > TEchoAtOnceCallback;
+
+/*-------------------------------------------------------------------------*/
+
+/** The counters of the messages a CDRNLinkReliability hands over, per reliable lane, in delivery order */
+class CReliabilitySink : public DRN::CIDRNLinkMessageSink
+{
+    public:
+
+    GUCEF::vector< UInt32 > lane0;
+    GUCEF::vector< UInt32 > lane1;
+
+    virtual bool OnLinkMessage( const DRN::CDRNMessageView& message ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( message.payloadSize < 4 )
+            return true;
+        UInt32 counter = ( (UInt32) message.payload[ 0 ] << 24 ) | ( (UInt32) message.payload[ 1 ] << 16 ) | ( (UInt32) message.payload[ 2 ] << 8 ) | message.payload[ 3 ];
+        if ( DRN::DRN_LANE_RELIABLE_ORDERED == message.lane )
+            lane0.push_back( counter );
+        else
+        if ( DRN::DRN_LANE_RELIABLE_UNORDERED == message.lane )
+            lane1.push_back( counter );
+        return true;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The messages of a lane in a packet built by a CDRNLinkReliability, with the highest lane sequence among them */
+static UInt32
+CountLaneMessages( const UInt8* packet, UInt32 size, UInt8 lane, UInt32& highestLaneSequence )
+{
+    DRN::CDRNWireReader reader( packet, size );
+    DRN::CDRNPacketHeader header;
+    if ( !DRN::CDRNPacketCodec::ReadHeader( reader, header ) )
+        return 0;
+    UInt32 count = 0;
+    while ( reader.GetRemaining() > 0 )
+    {
+        DRN::CDRNMessageView message;
+        if ( !DRN::CDRNPacketCodec::ReadMessage( reader, message ) )
+            break;
+        if ( message.lane != lane )
+            continue;
+        ++count;
+        if ( message.laneSequence > highestLaneSequence )
+            highestLaneSequence = message.laneSequence;
+    }
+    return count;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The ack fields of the next packet a CDRNLinkReliability builds, a header only one if it has nothing to send */
+static bool
+GetNextAck( DRN::CDRNLinkReliability& reliability, UInt64 now, UInt32& ackSequence, UInt32& ackBits )
+{
+    const UInt8* packet = GUCEF_NULL;
+    UInt32 packetSize = 0;
+    if ( !reliability.BuildPacket( now, true, packet, packetSize ) )
+        return false;
+    DRN::CDRNWireReader reader( packet, packetSize );
+    DRN::CDRNPacketHeader header;
+    if ( !DRN::CDRNPacketCodec::ReadHeader( reader, header ) )
+        return false;
+    ackSequence = header.ackSequence;
+    ackBits = header.ackBits;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A packet of one reliable message with the given lane sequence and a counted payload, as a peer's link would send it */
+static void
+MakeReliablePacket( CORE::CDynamicBuffer& packet, UInt32 sequence, UInt8 lane, UInt32 laneSequence, UInt32 counter )
+{
+    CORE::CDynamicBuffer payload;
+    MakeCountedPayload( payload, counter, 8 );
+    packet.SetDataSize( 0 );
+    DRN::CDRNWireWriter writer( packet );
+    DRN::CDRNPacketHeader header;
+    header.sequence = sequence;
+    header.sendTime = 1000 * sequence;
+    DRN::CDRNPacketCodec::WriteHeader( writer, header );
+    DRN::CDRNPacketCodec::WriteMessage( writer, DRN::DRN_MSGCLASS_APP, TestOpcode, lane, laneSequence, payload.GetConstBufferPtr(), payload.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
 static bool
 SetupPair( CLinkedPair& pair, const CORE::CString& channelType, const CORE::CString& params, const DRN::CDRNNodeSettings& settings )
 {
@@ -285,12 +405,65 @@ PerformDRNLinkTests( void )
         if ( channelType == "websocket" && !webSocketAvailable )
             continue;
 
-        const CORE::CString caseName2 = "Links: Large messages over " + channelType;
-        GUCEF_TESTFW_TESTCASE( caseName2.C_String() )
+        // a burst of packets arrives in few reads: the answers each flushed on their own while a read is delivered
+        // leave complete and in order, and the close that follows the last answer comes after it
+        const CORE::CString caseNameBurst = "Links: Answers flushed one by one while a burst is received arrive complete and in order, before the close, over " + channelType;
+        GUCEF_TESTFW_TESTCASE( caseNameBurst.C_String() )
         try
         {
             CLinkedPair pair;
             REQUIRE_TRUE( SetupPair( pair, channelType, CORE::CString::Empty, TestNodeSettings() ) );
+
+            const UInt32 count = 400;
+            CEchoAtOnce echo;
+            echo.link = pair.linkB;
+            echo.closeAfter = count;
+            TEchoAtOnceCallback onMessage( &echo, &CEchoAtOnce::OnMessage );
+            echo.SubscribeTo( pair.linkB.GetPointerAlways(), DRN::CDRNPeerLink::MessageReceivedEvent, onMessage );
+
+            CORE::CDynamicBuffer payload;
+            for ( UInt32 i=0; i<count; ++i )
+            {
+                MakeCountedPayload( payload, i, 16 + ( i * 13 ) % 64 );
+                ASSERT_TRUE( pair.linkA->Send( DRN::DRN_LANE_RELIABLE_ORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, payload ) );
+                pair.linkA->Flush();
+            }
+            CLaneCountCondition answers( pair.recorderA, DRN::DRN_LANE_RELIABLE_ORDERED, count );
+            ASSERT_TRUE( PumpUntil( answers, 30000 ) );
+            ASSERT_TRUE( count == echo.answered );
+            GUCEF::vector< UInt32 > counters;
+            GetLaneCounters( pair.recorderA, DRN::DRN_LANE_RELIABLE_ORDERED, counters );
+            ASSERT_TRUE( IsSequence( counters, count ) );
+
+            ASSERT_TRUE( PumpUntil( pair.recorderA.closedCount, 1, 12000 ) );
+            ASSERT_TRUE( DRN::DRN_LINKREASON_REMOTE_CLOSED == pair.recorderA.lastClosedReason || DRN::DRN_LINKREASON_CHANNEL_LOST == pair.recorderA.lastClosedReason );
+            echo.link.Unlink();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+        GUCEF_TESTFW_TESTCASE_END
+    }
+
+    for ( UInt32 t=0; t<ChannelTypeCount; ++t )
+    {
+        CORE::CString channelType = ChannelTypes[ t ];
+        if ( channelType == "websocket" && !webSocketAvailable )
+            continue;
+
+        const CORE::CString caseName2 = "Links: Large messages over " + channelType;
+        GUCEF_TESTFW_TESTCASE( caseName2.C_String() )
+        try
+        {
+            // both nodes run on this thread: while one seals and frames 10 MB the other hears nothing. Under a sanitizer
+            // that takes longer than the link timeout of the test settings (10 s), and the links time out before the
+            // message is through; they get the time it takes
+            DRN::CDRNNodeSettings settings = TestNodeSettings();
+            if ( IsSanitizerBuild() )
+                settings.linkTimeoutMs = 120000;
+            CLinkedPair pair;
+            REQUIRE_TRUE( SetupPair( pair, channelType, CORE::CString::Empty, settings ) );
 
             // 10 MB on the stream channels, the datagram channel fragments a smaller one
             UInt32 size = channelType == "udp" ? 300 * 1024 : 10 * 1024 * 1024;
@@ -302,7 +475,11 @@ PerformDRNLinkTests( void )
             ASSERT_TRUE( pair.linkA->Send( DRN::DRN_LANE_RELIABLE_ORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, small ) );
             pair.linkA->Flush();
 
-            ASSERT_TRUE( PumpUntil( pair.recorderB.messageCount, 2, 60000 ) );
+            // the whole size in every build: what is tested is a message that large; a sanitizer slows the sealing and
+            // the framing of it down many times
+            UInt64 startUs = DRN::CDRNClock::NowInMicroseconds();
+            ASSERT_TRUE( PumpUntil( pair.recorderB.messageCount, 2, IsSanitizerBuild() ? 300000 : 60000 ) );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Large message of " << size << " bytes over " << channelType << ": " << ( DRN::CDRNClock::NowInMicroseconds() - startUs ) / 1000 << " ms" );
             ASSERT_TRUE( 2 == pair.recorderB.messages.size() );
             if ( 2 == pair.recorderB.messages.size() )
             {
@@ -546,6 +723,185 @@ PerformDRNLinkTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Links: A burst on the reliable lanes three times the receive window, its first packet lost, arrives complete; the sender keeps no more than the window in flight per lane" )
+    try
+    {
+        DRN::CDRNLinkReliability sender;
+        DRN::CDRNLinkReliability receiver;
+        DRN::CDRNLinkReliability::TPacketResult result = DRN::CDRNLinkReliability::PACKET_ACCEPTED;
+        sender.Reset( false, DRN::DRN_DEFAULT_DATAGRAM_SIZE, 1 );
+        receiver.Reset( false, DRN::DRN_DEFAULT_DATAGRAM_SIZE, 1 );
+
+        const UInt32 count = 3 * DRN::DRN_RECEIVE_WINDOW_SIZE;
+        CORE::CDynamicBuffer payload;
+        for ( UInt32 i=0; i<count; ++i )
+        {
+            MakeCountedPayload( payload, i, 16 );
+            REQUIRE_TRUE( sender.QueueMessage( DRN::DRN_LANE_RELIABLE_ORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, payload.GetConstBufferPtr(), payload.GetDataSize(), GUCEF_NULL, 0 ) );
+            REQUIRE_TRUE( sender.QueueMessage( DRN::DRN_LANE_RELIABLE_UNORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, payload.GetConstBufferPtr(), payload.GetDataSize(), GUCEF_NULL, 0 ) );
+        }
+
+        // the rounds of a link: what the sender sends goes to the receiver (round 0 loses its first packet), every
+        // packet the receiver takes is acknowledged at once, and what is not acknowledged within the RTO goes again
+        CReliabilitySink delivered;
+        CReliabilitySink none;
+        UInt64 now = 1000000;
+        const UInt64 rto = 50000;
+        UInt32 firstRoundLane0 = 0, firstRoundLane1 = 0, highestLane0 = 0, highestLane1 = 0;
+        UInt32 refusedPackets = 0;
+        GUCEF::vector< CORE::CDynamicBuffer > packets;
+        UInt32 round = 0;
+        for ( ; round<200; ++round )
+        {
+            packets.clear();
+            const UInt8* packet = GUCEF_NULL;
+            UInt32 packetSize = 0;
+            while ( sender.BuildPacket( now, false, packet, packetSize ) )
+            {
+                packets.push_back( CORE::CDynamicBuffer() );
+                packets.back().CopyFrom( packetSize, packet );
+                if ( 0 == round )
+                {
+                    firstRoundLane0 += CountLaneMessages( packet, packetSize, DRN::DRN_LANE_RELIABLE_ORDERED, highestLane0 );
+                    firstRoundLane1 += CountLaneMessages( packet, packetSize, DRN::DRN_LANE_RELIABLE_UNORDERED, highestLane1 );
+                }
+            }
+            for ( UInt32 p=0; p<packets.size(); ++p )
+            {
+                if ( 0 == round && 0 == p )
+                    continue;
+                DRN::CDRNPacketHeader header;
+                UInt32 lostBefore = 0;
+                result = receiver.ProcessPacket( static_cast< const UInt8* >( packets[ p ].GetConstBufferPtr() ), packets[ p ].GetDataSize(), now, rto, delivered, header, lostBefore );
+                if ( DRN::CDRNLinkReliability::PACKET_ACCEPTED != result && DRN::CDRNLinkReliability::PACKET_DUPLICATE != result )
+                    ++refusedPackets;
+                if ( receiver.BuildPacket( now, true, packet, packetSize ) )
+                    sender.ProcessPacket( packet, packetSize, now, rto, none, header, lostBefore );
+            }
+            if ( delivered.lane0.size() >= count && delivered.lane1.size() >= count && 0 == sender.GetUnackedCount() )
+                break;
+            now += 2 * rto;
+            sender.CheckRetransmits( now, rto );
+        }
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Reliable burst of " << count << " per lane: " << round << " rounds, first round lane 0 " << firstRoundLane0 <<
+                   " (up to lane sequence " << highestLane0 << "), lane 1 " << firstRoundLane1 << " (up to " << highestLane1 << "), delivered " <<
+                   delivered.lane0.size() << " / " << delivered.lane1.size() << ", unacked " << sender.GetUnackedCount() << ", refused packets " << refusedPackets );
+
+        ASSERT_TRUE( IsSequence( delivered.lane0, count ) );
+        ASSERT_TRUE( IsCompleteSet( delivered.lane1, count ) );
+        ASSERT_TRUE( 0 == sender.GetUnackedCount() );
+
+        // a conforming receiver never has to refuse a packet of a conforming sender: the sender kept within the window
+        ASSERT_TRUE( 0 == refusedPackets );
+        ASSERT_TRUE( firstRoundLane0 <= DRN::DRN_RECEIVE_WINDOW_SIZE && highestLane0 < DRN::DRN_RECEIVE_WINDOW_SIZE );
+        ASSERT_TRUE( firstRoundLane1 <= DRN::DRN_RECEIVE_WINDOW_SIZE && highestLane1 < DRN::DRN_RECEIVE_WINDOW_SIZE );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Links: A packet with a reliable message beyond what the receiving lane holds is not taken and not acknowledged" )
+    try
+    {
+        for ( UInt8 lane=DRN::DRN_LANE_RELIABLE_ORDERED; lane<=DRN::DRN_LANE_RELIABLE_UNORDERED; ++lane )
+        {
+            DRN::CDRNLinkReliability receiver;
+            receiver.Reset( false, DRN::DRN_DEFAULT_DATAGRAM_SIZE, 1 );
+            CReliabilitySink delivered;
+            CORE::CDynamicBuffer packet;
+            DRN::CDRNPacketHeader header;
+            UInt32 lostBefore = 0;
+
+            // lane sequence 0 is the next one the lane expects: the window holds 0 to DRN_RECEIVE_WINDOW_SIZE - 1
+            MakeReliablePacket( packet, 1, lane, DRN::DRN_RECEIVE_WINDOW_SIZE + 5, 1 );
+            DRN::CDRNLinkReliability::TPacketResult result = receiver.ProcessPacket( static_cast< const UInt8* >( packet.GetConstBufferPtr() ), packet.GetDataSize(), 1000, 50000, delivered, header, lostBefore );
+            ASSERT_TRUE( DRN::CDRNLinkReliability::PACKET_WINDOW_FULL == result );
+            ASSERT_TRUE( 1 == receiver.GetStats().windowRefusedPackets );
+            UInt32 ackSequence = 0, ackBits = 0;
+            ASSERT_TRUE( GetNextAck( receiver, 2000, ackSequence, ackBits ) );
+            ASSERT_TRUE( 0 == ackSequence && 0 == ackBits );
+
+            // the last lane sequence of the window is taken (held back on lane 0), and so is its packet
+            MakeReliablePacket( packet, 2, lane, DRN::DRN_RECEIVE_WINDOW_SIZE - 1, 2 );
+            result = receiver.ProcessPacket( static_cast< const UInt8* >( packet.GetConstBufferPtr() ), packet.GetDataSize(), 3000, 50000, delivered, header, lostBefore );
+            ASSERT_TRUE( DRN::CDRNLinkReliability::PACKET_ACCEPTED == result );
+            MakeReliablePacket( packet, 3, lane, 0, 3 );
+            result = receiver.ProcessPacket( static_cast< const UInt8* >( packet.GetConstBufferPtr() ), packet.GetDataSize(), 4000, 50000, delivered, header, lostBefore );
+            ASSERT_TRUE( DRN::CDRNLinkReliability::PACKET_ACCEPTED == result );
+            ASSERT_TRUE( GetNextAck( receiver, 5000, ackSequence, ackBits ) );
+            ASSERT_TRUE( 3 == ackSequence );
+            ASSERT_TRUE( 0x1 == ( ackBits & 0x3 ) );    // 2 taken, 1 not
+
+            // the packet that was refused comes again once the window moved on: now it is taken
+            MakeReliablePacket( packet, 1, lane, DRN::DRN_RECEIVE_WINDOW_SIZE + 5, 1 );
+            result = receiver.ProcessPacket( static_cast< const UInt8* >( packet.GetConstBufferPtr() ), packet.GetDataSize(), 6000, 50000, delivered, header, lostBefore );
+            ASSERT_TRUE( DRN::CDRNLinkReliability::PACKET_WINDOW_FULL == result );
+            for ( UInt32 s=1; s<=6; ++s )
+            {
+                MakeReliablePacket( packet, 3 + s, lane, s, 100 + s );
+                ASSERT_TRUE( DRN::CDRNLinkReliability::PACKET_ACCEPTED == receiver.ProcessPacket( static_cast< const UInt8* >( packet.GetConstBufferPtr() ), packet.GetDataSize(), 7000, 50000, delivered, header, lostBefore ) );
+            }
+            MakeReliablePacket( packet, 1, lane, DRN::DRN_RECEIVE_WINDOW_SIZE + 5, 1 );
+            result = receiver.ProcessPacket( static_cast< const UInt8* >( packet.GetConstBufferPtr() ), packet.GetDataSize(), 8000, 50000, delivered, header, lostBefore );
+            ASSERT_TRUE( DRN::CDRNLinkReliability::PACKET_ACCEPTED == result );
+            if ( DRN::DRN_LANE_RELIABLE_ORDERED == lane )
+                ASSERT_TRUE( 7 == delivered.lane0.size() );     // 0 to 6, the rest is held back in order
+            else
+                ASSERT_TRUE( 9 == delivered.lane1.size() );     // every one, as it came
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Links: A burst of reliable messages far beyond the receive window arrives complete over lossy-udp, in order on lane 0" )
+    try
+    {
+        CLinkedPair pair;
+        REQUIRE_TRUE( SetupPair( pair, "lossy-udp", "?loss=0.05&reorder=0.05", TestNodeSettings() ) );
+
+        const UInt32 orderedCount = 6000;
+        const UInt32 unorderedCount = 3000;
+        CORE::CDynamicBuffer payload;
+        for ( UInt32 i=0; i<orderedCount; ++i )
+        {
+            MakeCountedPayload( payload, i, 16 + ( i % 40 ) );
+            ASSERT_TRUE( pair.linkA->Send( DRN::DRN_LANE_RELIABLE_ORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, payload ) );
+            if ( i < unorderedCount )
+                ASSERT_TRUE( pair.linkA->Send( DRN::DRN_LANE_RELIABLE_UNORDERED, DRN::DRN_MSGCLASS_APP, TestOpcode, payload ) );
+        }
+        pair.linkA->Flush();
+
+        CLaneCountCondition lane0( pair.recorderB, DRN::DRN_LANE_RELIABLE_ORDERED, orderedCount );
+        CLaneCountCondition lane1( pair.recorderB, DRN::DRN_LANE_RELIABLE_UNORDERED, unorderedCount );
+        ASSERT_TRUE( PumpUntil( lane0, 120000 ) );
+        ASSERT_TRUE( PumpUntil( lane1, 120000 ) );
+        PumpFor( 200 );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Reliable burst over lossy-udp: delivered " << lane0.Count() << " / " << lane1.Count() << ", resent " <<
+                   pair.linkA->GetStats().messagesResent << ", unacked " << pair.linkA->GetUnackedCount() << ", refused for the window " <<
+                   pair.linkB->GetStats().windowRefusedPackets );
+
+        GUCEF::vector< UInt32 > counters;
+        GetLaneCounters( pair.recorderB, DRN::DRN_LANE_RELIABLE_ORDERED, counters );
+        ASSERT_TRUE( IsSequence( counters, orderedCount ) );
+        GetLaneCounters( pair.recorderB, DRN::DRN_LANE_RELIABLE_UNORDERED, counters );
+        ASSERT_TRUE( IsCompleteSet( counters, unorderedCount ) );
+        ASSERT_TRUE( pair.linkA->GetStats().messagesResent > 0 );
+        ASSERT_TRUE( 0 == pair.linkB->GetStats().windowRefusedPackets );
+        ASSERT_TRUE( pair.linkA->IsOperational() && pair.linkB->IsOperational() );
+        PumpFor( 500 );
+        ASSERT_TRUE( 0 == pair.linkA->GetUnackedCount() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     for ( UInt32 t=0; t<ChannelTypeCount; ++t )
     {
         CORE::CString channelType = ChannelTypes[ t ];
@@ -670,6 +1026,94 @@ PerformDRNLinkTests( void )
         connector.Unlink();
         nodeA.Stop();
         nodeB.Stop();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Links: Nodes on threads of their own stopped one after the other: a channel let go of on the stopping thread while its peer's node still runs (TSan)" )
+    try
+    {
+        // the first node's links and channels go on the calling thread once its own thread ended (its channel reaper
+        // has no owner thread any more); the other end of each channel belongs to the node that still runs. Under
+        // ThreadSanitizer this finds what the two ends of a channel share without a lock
+        for ( UInt32 round=0; round<3; ++round )
+        {
+            CGroup group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "stop-order", "mem" );
+            group.nodeSettings.ownThread = true;
+            REQUIRE_TRUE( group.Start( 3 ) );
+            PumpFor( 50 );
+            group.nodes[ 0 ]->Stop();
+            PumpFor( 50 );
+            group.nodes[ 1 ]->Stop();
+            PumpFor( 20 );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Links: Channels connecting over mem to a node on a thread of its own while it pulses: accepting never waits for that thread" )
+    try
+    {
+        // the connecting thread accepts on behalf of the listener; the listener's thread looks for accepted channels
+        // on every pulse. Many connects in a row find the listener's thread in its pulse.
+        DRN::CDRNNodeSettings settings = TestNodeSettings();
+        settings.ownThread = true;
+        DRN::CDRNNode host;
+        REQUIRE_TRUE( host.SetSettings( settings ) && host.IsRunningOwnThread() );
+        DRN::CDRNEndpoint endpoint = LoopbackEndpoint( "mem", NextTestPort() );
+        REQUIRE_TRUE( host.Listen( endpoint ) );
+        GUCEF::vector< DRN::CIDRNChannelPtr > channels;
+        UInt32 connected = 0;
+        for ( UInt32 i=0; i<400; ++i )
+        {
+            DRN::CIDRNChannelPtr channel( GUCEF_NEW CDRNMemoryChannel() );
+            if ( channel->Connect( endpoint ) )
+                ++connected;
+            channels.push_back( channel );
+        }
+        ASSERT_TRUE( 400 == connected );
+        for ( UInt32 i=0; i<channels.size(); ++i )
+            channels[ i ]->Close();
+        channels.clear();
+        host.Stop();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Links: The unfragmented payload of a link: the datagram budget on udp, the stream limit on stream channels" )
+    try
+    {
+        for ( UInt32 t=0; t<ChannelTypeCount; ++t )
+        {
+            CORE::CString channelType = ChannelTypes[ t ];
+            if ( channelType == "websocket" && !webSocketAvailable )
+                continue;
+            CLinkedPair pair;
+            REQUIRE_TRUE( SetupPair( pair, channelType, CORE::CString::Empty, TestNodeSettings() ) );
+            UInt32 payloadA = pair.linkA->GetMaxUnfragmentedPayload();
+            UInt32 payloadB = pair.linkB->GetMaxUnfragmentedPayload();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unfragmented payload of a " << channelType << " link: " << payloadA );
+            ASSERT_TRUE( payloadA == payloadB );
+            if ( channelType == "udp" )
+            {
+                // a 1200 byte datagram less the tag of packet protection, the packet header and a message header
+                ASSERT_TRUE( DRN::DRN_DEFAULT_DATAGRAM_SIZE - DRN::DRN_PACKET_PROTECTION_OVERHEAD - DRN::DRN_MAX_PACKET_HEADER_SIZE - DRN::DRN_MAX_MESSAGE_HEADER_SIZE == payloadA );
+            }
+            else
+            {
+                // the stream limit: a stream packet, bounded by the policy's largest message (16 MB by default)
+                ASSERT_TRUE( DRN::DRN_MAX_STREAM_PACKET_SIZE - DRN::DRN_MAX_PACKET_HEADER_SIZE - DRN::DRN_MAX_MESSAGE_HEADER_SIZE == payloadA );
+            }
+        }
     }
     catch ( ... )
     {

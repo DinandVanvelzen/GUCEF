@@ -105,6 +105,13 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
      */
     bool Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId = 0 );
 
+    /**
+     *  As Subscribe( itemName, ownerPeerId ), with where a stream starts: the options are kept with the subscription
+     *  and applied to the first subscription of each matching item, also of one announced later. Subscribing again
+     *  with the same name and owner replaces the options.
+     */
+    bool Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId, const CDRNSubscribeOptions& options );
+
     bool Unsubscribe( const CORE::CString& itemName, UInt32 ownerPeerId = 0 );
 
     /** Subscribes the application to one announced item */
@@ -128,6 +135,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
 
     virtual UInt8 GetMessageClass( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnSessionMessage( CDRNSession& session, CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool MayAcceptPacketKind( const CDRNLinkMessage& message ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnSessionTick( CDRNSession& session, UInt64 nodeNow ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnMemberJoined( CDRNSession& session, UInt32 peerId ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnMemberLeft( CDRNSession& session, UInt32 peerId ) GUCEF_VIRTUAL_OVERRIDE;
@@ -148,7 +156,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
     /** The session time at the start of this tick */
     UInt64 GetTickSessionTime( void ) const;
 
-    /** The largest message to a member that fits in one datagram */
+    /** The largest grid or stream message to a member: what fits one datagram on a datagram channel, 16 KB on a stream channel */
     UInt32 GetMessageBudget( UInt32 peerId ) const;
 
     /** What is left of the byte budget of this tick for the link with a member */
@@ -167,6 +175,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
         CStreamComponent( void ) : CIDRNSessionComponent(), m_replicator( GUCEF_NULL ) {}
         virtual UInt8 GetMessageClass( void ) const GUCEF_VIRTUAL_OVERRIDE;
         virtual void OnSessionMessage( CDRNSession& session, CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message ) GUCEF_VIRTUAL_OVERRIDE;
+        virtual bool MayAcceptPacketKind( const CDRNLinkMessage& message ) const GUCEF_VIRTUAL_OVERRIDE;
         virtual void OnSessionTick( CDRNSession& session, UInt64 nodeNow ) GUCEF_VIRTUAL_OVERRIDE;
     };
 
@@ -175,6 +184,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
         public:
         CORE::CString name;
         UInt32 ownerPeerId;
+        CDRNSubscribeOptions options;
     };
 
     typedef GUCEF::vector< CDRNDataItem* > TItemVector;
@@ -186,6 +196,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
     CDRNReplicator& operator=( const CDRNReplicator& src );
 
     void HandleMessage( UInt32 fromPeerId, const CDRNLinkMessage& message );
+    bool IsAcceptedPublicData( UInt32 fromPeerId, const CDRNLinkMessage& message ) const;
+    void OnComponentMessage( CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message );
     void HandleAnnounce( UInt32 fromPeerId, UInt32 ownerPeerId, UInt32 itemId, CDRNWireReader& reader );
     void HandleItemRemoved( UInt32 fromPeerId, UInt32 ownerPeerId, UInt32 itemId );
     void HandleSubscribe( UInt32 fromPeerId, CDRNDataItem* item, CDRNWireReader& reader );
@@ -201,6 +213,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
     void SendSubscribe( CDRNDataItem& item, UInt32 flags );
     UInt32 ChooseUpstream( UInt32 ownerPeerId ) const;
     bool MatchesAppSubscription( const CDRNDataItem& item ) const;
+    const CAppSubscription* FindAppSubscription( const CDRNDataItem& item ) const;
+    void ApplySubscribeOptions( CDRNDataItem& item, const CDRNSubscribeOptions& options );
     void EmitItemEvent( const CORE::CEvent& eventid, const CDRNDataItem& item );
     void RemoveSubscriberEverywhere( UInt32 peerId );
     void RetireAll( void );

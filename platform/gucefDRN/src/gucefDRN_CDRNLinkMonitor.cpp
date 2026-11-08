@@ -84,6 +84,7 @@ CDRNLinkAnomaly::KindToString( TDRNLinkAnomalyKind kind )
         case DRN_ANOMALY_CLOCK_DRIFT:           return "clockDrift";
         case DRN_ANOMALY_BURST_AFTER_SILENCE:   return "burstAfterSilence";
         case DRN_ANOMALY_FLOOD:                 return "flood";
+        case DRN_ANOMALY_PROTECTION_DOWNGRADE:  return "protection downgrade";
         default:                                return "none";
     }
 }

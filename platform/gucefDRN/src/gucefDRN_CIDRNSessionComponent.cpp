@@ -58,6 +58,15 @@ CIDRNSessionComponent::~CIDRNSessionComponent()
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CIDRNSessionComponent::MayAcceptPacketKind( const CDRNLinkMessage& message ) const
+{GUCEF_TRACE;
+
+    return DRN_PACKETKIND_AEAD == message.packetKind;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CIDRNSessionComponent::OnMemberJoined( CDRNSession& /* session */, UInt32 /* peerId */ )
 {GUCEF_TRACE;
@@ -76,6 +85,14 @@ CIDRNSessionComponent::OnMemberLeft( CDRNSession& /* session */, UInt32 /* peerI
 
 void
 CIDRNSessionComponent::OnSessionClosed( CDRNSession& /* session */ )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIDRNSessionComponent::OnSessionDestroyed( CDRNSession& /* session */ )
 {GUCEF_TRACE;
 
 }

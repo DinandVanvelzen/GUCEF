@@ -47,6 +47,11 @@
 #define GUCEF_DRN_CDRNSESSION_H
 #endif /* GUCEF_DRN_CDRNSESSION_H ? */
 
+#ifndef GUCEF_DRN_CDRNCRYPTO_H
+#include "gucefDRN_CDRNCrypto.h"
+#define GUCEF_DRN_CDRNCRYPTO_H
+#endif /* GUCEF_DRN_CDRNCRYPTO_H ? */
+
 #ifndef GUCEF_DRN_CDRNREPLICATOR_H
 #include "gucefDRN_CDRNReplicator.h"
 #define GUCEF_DRN_CDRNREPLICATOR_H
@@ -70,6 +75,10 @@ namespace DRN {
 //-------------------------------------------------------------------------*/
 
 const CORE::CEvent CDRNDataStream::EntriesAvailableEvent = "GUCEF::DRN::CDRNDataStream::EntriesAvailableEvent";
+const CORE::CEvent CDRNDataStream::GapEvent = "GUCEF::DRN::CDRNDataStream::GapEvent";
+
+/** Bit 0 of the flags that follow the priority in the announcement: a PUBLIC stream */
+static const UInt8 StreamAnnounceFlagPublic = 0x01;
 
 /*-------------------------------------------------------------------------*/
 
@@ -78,6 +87,7 @@ CDRNDataStream::RegisterEvents( void )
 {GUCEF_TRACE;
 
     EntriesAvailableEvent.Initialize();
+    GapEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -99,12 +109,14 @@ CDRNDataStream::CDRNDataStream( CDRNReplicator& replicator, const CDRNDataStream
     , m_settings( settings )
     , m_ring()
     , m_ringStarted( false )
-    , m_firstSeq( 1 )
-    , m_nextSeq( 1 )
+    , m_firstSeq( 0 != settings.firstSeq ? settings.firstSeq : 1 )
+    , m_nextSeq( 0 != settings.firstSeq ? settings.firstSeq : 1 )
+    , m_epoch( 0 )
     , m_subscribers()
     , m_writeStream()
     , m_entriesSent( 0 )
     , m_queue()
+    , m_queueSeqs()
     , m_queueHead( 0 )
     , m_queueCount( 0 )
     , m_anyReceived( false )
@@ -112,16 +124,26 @@ CDRNDataStream::CDRNDataStream( CDRNReplicator& replicator, const CDRNDataStream
     , m_snapshotEndSeq( 0 )
     , m_snapshotKnown( false )
     , m_snapshotJustCompleted( false )
+    , m_awaitingSnapshotBegin( false )
     , m_lastCreditSent( 0 )
     , m_creditSent( false )
     , m_arrived( false )
     , m_entriesReceived( 0 )
+    , m_requestedFromSeq( 0 )
+    , m_resumeFromSeq( 0 )
+    , m_expectedEpoch( 0 )
+    , m_optionsApplied( false )
+    , m_gapCount( 0 )
+    , m_missedEntryCount( 0 )
+    , m_pendingGaps()
 {GUCEF_TRACE;
 
     RegisterEvents();
     m_name = settings.name;
     if ( m_settings.backlogLimit < 1 )
         m_settings.backlogLimit = 1;
+    if ( 0 == m_settings.firstSeq )
+        m_settings.firstSeq = 1;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -171,6 +193,47 @@ CDRNDataStream::SetNotifyMode( TDRNNotifyMode mode )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNDataStream::InitPublisher( void )
+{GUCEF_TRACE;
+
+    if ( 0 != m_settings.epoch )
+    {
+        m_epoch = m_settings.epoch;
+        return true;
+    }
+    // a random epoch, so that a subscriber resuming across a restart of the publisher notices the new numbering
+    UInt64 epoch = 0;
+    while ( 0 == epoch )
+    {
+        if ( !CDRNCrypto::RandomBytes( &epoch, sizeof( epoch ) ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNDataStream(" << m_name << "): No randomness for the stream epoch" );
+            return false;
+        }
+    }
+    m_epoch = epoch;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNDataStream::ApplySubscribeOptions( const CDRNSubscribeOptions& options )
+{GUCEF_TRACE;
+
+    if ( m_optionsApplied || m_isOrigin )
+        return;
+    m_optionsApplied = true;
+    if ( 0 != options.fromSeq && !m_anyReceived )
+    {
+        m_resumeFromSeq = options.fromSeq;
+        m_expectedEpoch = options.expectedEpoch;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CDRNDataStream::GetRingSize( void ) const
 {GUCEF_TRACE;
@@ -190,16 +253,27 @@ CDRNDataStream::FindSubscriber( UInt32 peerId ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt64
+CDRNDataStream::GetSendFrom( const CSubscriber& subscriber ) const
+{GUCEF_TRACE;
+    // a ring that restarted above what a subscriber was sent (the receive of a serving replica jumped) has
+    // nothing below m_firstSeq: the subscriber continues there
+    return subscriber.nextSendSeq < m_firstSeq ? m_firstSeq : subscriber.nextSendSeq;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDRNDataStream::TrimRing( void )
 {GUCEF_TRACE;
     // keep what a subscriber still has to get and the retained history
-    UInt32 keepFrom = m_nextSeq - m_firstSeq > m_settings.retainedHistory ? m_nextSeq - m_settings.retainedHistory : m_firstSeq;
+    UInt64 keepFrom = m_nextSeq - m_firstSeq > m_settings.retainedHistory ? m_nextSeq - m_settings.retainedHistory : m_firstSeq;
     for ( UInt32 i=0; i<m_subscribers.size(); ++i )
     {
         const CSubscriber& subscriber = *m_subscribers[ i ];
-        if ( subscriber.started && subscriber.nextSendSeq < keepFrom )
-            keepFrom = subscriber.nextSendSeq;
+        UInt64 from = GetSendFrom( subscriber );
+        if ( subscriber.started && from < keepFrom )
+            keepFrom = from;
     }
     if ( keepFrom > m_firstSeq )
         m_firstSeq = keepFrom;
@@ -220,7 +294,7 @@ CDRNDataStream::PushToRing( const void* data, UInt32 dataSize )
         if ( m_nextSeq - m_firstSeq >= ringSize )
             return false;
     }
-    CORE::CDynamicBuffer*& slot = m_ring[ m_nextSeq % ringSize ];
+    CORE::CDynamicBuffer*& slot = m_ring[ (UInt32) ( m_nextSeq % ringSize ) ];
     if ( GUCEF_NULL == slot )
         slot = GUCEF_NEW CORE::CDynamicBuffer();
     slot->SetDataSize( 0 );
@@ -236,15 +310,15 @@ CDRNDataStream::GetBacklog( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
-    UInt32 backlog = 0;
+    UInt64 backlog = 0;
     for ( UInt32 i=0; i<m_subscribers.size(); ++i )
     {
         const CSubscriber& subscriber = *m_subscribers[ i ];
-        UInt32 from = subscriber.started ? subscriber.nextSendSeq : m_nextSeq;
+        UInt64 from = subscriber.started ? GetSendFrom( subscriber ) : m_nextSeq;
         if ( m_nextSeq - from > backlog )
             backlog = m_nextSeq - from;
     }
-    return backlog;
+    return backlog > GUCEF_UINT32MAX ? GUCEF_UINT32MAX : (UInt32) backlog;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -259,7 +333,7 @@ CDRNDataStream::CanAppend( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CDRNDataStream::AppendEntry( const void* data, UInt32 dataSize )
+CDRNDataStream::AppendEntry( const void* data, UInt32 dataSize, UInt64& seq )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
@@ -267,10 +341,31 @@ CDRNDataStream::AppendEntry( const void* data, UInt32 dataSize )
         return false;
     if ( !CanAppend() )
         return false;
+    UInt64 entrySeq = m_nextSeq;
     if ( !PushToRing( data, dataSize ) )
         return false;
     TrimRing();
+    seq = entrySeq;
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::AppendEntry( const void* data, UInt32 dataSize )
+{GUCEF_TRACE;
+
+    UInt64 seq = 0;
+    return AppendEntry( data, dataSize, seq );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::AppendEntry( const CORE::CVariantStream& segment, UInt64& seq )
+{GUCEF_TRACE;
+
+    return AppendEntry( segment.GetBuffer().GetConstBufferPtr(), segment.GetDataSize(), seq );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -279,7 +374,8 @@ bool
 CDRNDataStream::AppendEntry( const CORE::CVariantStream& segment )
 {GUCEF_TRACE;
 
-    return AppendEntry( segment.GetBuffer().GetConstBufferPtr(), segment.GetDataSize() );
+    UInt64 seq = 0;
+    return AppendEntry( segment.GetBuffer().GetConstBufferPtr(), segment.GetDataSize(), seq );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -294,10 +390,10 @@ CDRNDataStream::GetWriteStream( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CDRNDataStream::CommitEntry( void )
+CDRNDataStream::CommitEntry( UInt64& seq )
 {GUCEF_TRACE;
 
-    if ( !AppendEntry( m_writeStream ) )
+    if ( !AppendEntry( m_writeStream, seq ) )
         return false;
     m_writeStream.Clear();
     return true;
@@ -305,8 +401,48 @@ CDRNDataStream::CommitEntry( void )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNDataStream::CommitEntry( void )
+{GUCEF_TRACE;
+
+    UInt64 seq = 0;
+    return CommitEntry( seq );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNDataStream::GetFirstRetainedSeq( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    return m_isOrigin || m_ringStarted ? m_firstSeq : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNDataStream::GetNextSeq( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    return m_isOrigin || m_ringStarted ? m_nextSeq : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNDataStream::GetStreamEpoch( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    return m_epoch;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
-CDRNDataStream::PushToQueue( const UInt8* data, UInt32 dataSize )
+CDRNDataStream::PushToQueue( const UInt8* data, UInt32 dataSize, UInt64 seq )
 {GUCEF_TRACE;
     if ( m_queueCount >= m_queue.size() )
     {
@@ -317,17 +453,24 @@ CDRNDataStream::PushToQueue( const UInt8* data, UInt32 dataSize )
         if ( newSize < 4 )
             newSize = 4;
         TBufferVector grown( newSize, GUCEF_NULL );
+        TSeqVector grownSeqs( newSize, 0 );
         UInt32 oldSize = (UInt32) m_queue.size();
         for ( UInt32 i=0; i<oldSize; ++i )
+        {
             grown[ i ] = m_queue[ ( m_queueHead + i ) % oldSize ];
+            grownSeqs[ i ] = m_queueSeqs[ ( m_queueHead + i ) % oldSize ];
+        }
         m_queue.swap( grown );
+        m_queueSeqs.swap( grownSeqs );
         m_queueHead = 0;
     }
-    CORE::CDynamicBuffer*& slot = m_queue[ ( m_queueHead + m_queueCount ) % m_queue.size() ];
+    UInt32 index = ( m_queueHead + m_queueCount ) % (UInt32) m_queue.size();
+    CORE::CDynamicBuffer*& slot = m_queue[ index ];
     if ( GUCEF_NULL == slot )
         slot = GUCEF_NEW CORE::CDynamicBuffer();
     slot->SetDataSize( 0 );
     slot->CopyFrom( dataSize, data );
+    m_queueSeqs[ index ] = seq;
     ++m_queueCount;
 }
 
@@ -354,13 +497,42 @@ CDRNDataStream::ToVariantStream( const CORE::CDynamicBuffer& entry, CORE::CVaria
 /*-------------------------------------------------------------------------*/
 
 bool
-CDRNDataStream::ReadNextEntry( CORE::CVariantStream& segment )
+CDRNDataStream::ReadNextEntry( CORE::CVariantStream& segment, UInt64& seq )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
     if ( 0 == m_queueCount )
         return false;
     ToVariantStream( *m_queue[ m_queueHead ], segment );
+    seq = m_queueSeqs[ m_queueHead ];
+    m_queueHead = ( m_queueHead + 1 ) % (UInt32) m_queue.size();
+    --m_queueCount;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::ReadNextEntry( CORE::CVariantStream& segment )
+{GUCEF_TRACE;
+
+    UInt64 seq = 0;
+    return ReadNextEntry( segment, seq );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::ReadNextEntry( CORE::CDynamicBuffer& entry, UInt64& seq )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    if ( 0 == m_queueCount )
+        return false;
+    const CORE::CDynamicBuffer& queued = *m_queue[ m_queueHead ];
+    entry.SetDataSize( 0 );
+    entry.CopyFrom( queued.GetDataSize(), queued.GetConstBufferPtr() );
+    seq = m_queueSeqs[ m_queueHead ];
     m_queueHead = ( m_queueHead + 1 ) % (UInt32) m_queue.size();
     --m_queueCount;
     return true;
@@ -372,14 +544,22 @@ bool
 CDRNDataStream::ReadNextEntry( CORE::CDynamicBuffer& entry )
 {GUCEF_TRACE;
 
+    UInt64 seq = 0;
+    return ReadNextEntry( entry, seq );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::PeekEntry( UInt32 index, CORE::CVariantStream& segment, UInt64& seq ) const
+{GUCEF_TRACE;
+
     MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
-    if ( 0 == m_queueCount )
+    if ( index >= m_queueCount )
         return false;
-    const CORE::CDynamicBuffer& queued = *m_queue[ m_queueHead ];
-    entry.SetDataSize( 0 );
-    entry.CopyFrom( queued.GetDataSize(), queued.GetConstBufferPtr() );
-    m_queueHead = ( m_queueHead + 1 ) % (UInt32) m_queue.size();
-    --m_queueCount;
+    UInt32 queueIndex = ( m_queueHead + index ) % (UInt32) m_queue.size();
+    ToVariantStream( *m_queue[ queueIndex ], segment );
+    seq = m_queueSeqs[ queueIndex ];
     return true;
 }
 
@@ -389,11 +569,8 @@ bool
 CDRNDataStream::PeekEntry( UInt32 index, CORE::CVariantStream& segment ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
-    if ( index >= m_queueCount )
-        return false;
-    ToVariantStream( *m_queue[ ( m_queueHead + index ) % m_queue.size() ], segment );
-    return true;
+    UInt64 seq = 0;
+    return PeekEntry( index, segment, seq );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -411,6 +588,88 @@ CDRNDataStream::DiscardEntries( UInt32 count )
         m_queueCount -= count;
     }
     return count;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNDataStream::GetNextExpectedSeq( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    return m_anyReceived ? m_nextExpected : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNDataStream::SetResumeFromSeq( UInt64 seq )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    if ( m_isOrigin || m_removed )
+        return;
+    m_optionsApplied = true;
+    m_resumeFromSeq = seq;
+    m_expectedEpoch = 0;
+    if ( m_subscribeSent )
+    {
+        // what is queued belongs to the old position; the replica asks again from the new one
+        m_queueHead = 0;
+        m_queueCount = 0;
+        m_pendingGaps.clear();
+        m_anyReceived = false;
+        GetReplicator().Resubscribe( *this );
+    }
+    else
+    {
+        m_anyReceived = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNDataStream::GetGapCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    return m_gapCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNDataStream::GetMissedEntryCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( GetSession().GetNode().GetLock() );
+    return m_missedEntryCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNDataStream::ReportGap( UInt64 fromSeq, UInt64 toSeq, TDRNStreamGapReason reason )
+{GUCEF_TRACE;
+
+    ++m_gapCount;
+    if ( 0 != toSeq && toSeq >= fromSeq )
+        m_missedEntryCount += toSeq - fromSeq + 1;
+    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DRNDataStream(" << m_name << "): Entries " << fromSeq << " to " << toSeq << " will not arrive (" << CDRNStreamGapInfo::ReasonToString( reason ) << ")" );
+
+    // the event is for the application (raised at the end of the tick while it subscribed); a replica that only
+    // serves others counts
+    m_pendingGaps.push_back( CDRNStreamGapInfo( fromSeq, toSeq, reason ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::IsOtherEpoch( UInt64 epoch ) const
+{GUCEF_TRACE;
+
+    return 0 != m_expectedEpoch && 0 != epoch && epoch != m_expectedEpoch;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -442,6 +701,8 @@ CDRNDataStream::WriteAnnounceSettings( CDRNWireWriter& writer ) const
     writer.WriteVarUInt32( m_settings.backlogLimit );
     writer.WriteVarUInt32( m_settings.retainedHistory );
     writer.WriteFloat32( m_settings.priority );
+    writer.WriteUInt8( DRN_PROTECTION_PUBLIC == m_protectionClass ? StreamAnnounceFlagPublic : 0 );
+    writer.WriteVarUInt64( m_epoch );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -459,17 +720,25 @@ CDRNDataStream::ReadAnnounceSettings( CDRNWireReader& reader )
     m_settings.backlogLimit = backlogLimit < 1 ? 1 : ( backlogLimit > 65536 ? 65536 : backlogLimit );
     m_settings.retainedHistory = retainedHistory > 65536 ? 65536 : retainedHistory;
     m_settings.priority = priority;
+
+    // trailing fields of later versions; a publisher that sends none has flags 0 and no epoch
+    UInt8 flags = 0;
+    UInt64 epoch = 0;
+    if ( reader.ReadUInt8( flags ) && reader.ReadVarUInt64( epoch ) )
+        m_epoch = epoch;
+    SetProtectionClass( 0 != ( flags & StreamAnnounceFlagPublic ) ? DRN_PROTECTION_PUBLIC : DRN_PROTECTION_CONFIDENTIAL );
+    m_settings.protection = m_protectionClass;
 }
 
 /*-------------------------------------------------------------------------*/
 
-UInt32
+UInt64
 CDRNDataStream::GetCreditSeq( void ) const
 {GUCEF_TRACE;
     // the receiver holds the sender back by what the application has not read and what the subscribers here
     // have not been sent yet
     bool limited = false;
-    UInt32 credit = 0;
+    UInt64 credit = 0;
     if ( m_appSubscribed )
     {
         credit = ( m_nextExpected - m_queueCount ) + m_settings.backlogLimit;
@@ -478,8 +747,8 @@ CDRNDataStream::GetCreditSeq( void ) const
     for ( UInt32 i=0; i<m_subscribers.size(); ++i )
     {
         const CSubscriber& subscriber = *m_subscribers[ i ];
-        UInt32 from = subscriber.started ? subscriber.nextSendSeq : m_nextExpected;
-        UInt32 limit = from + m_settings.backlogLimit;
+        UInt64 from = subscriber.started ? GetSendFrom( subscriber ) : m_nextExpected;
+        UInt64 limit = from + m_settings.backlogLimit;
         if ( !limited || limit < credit )
             credit = limit;
         limited = true;
@@ -495,10 +764,44 @@ void
 CDRNDataStream::WriteSubscribeParams( CDRNWireWriter& writer )
 {GUCEF_TRACE;
 
-    UInt32 fromSeq = m_anyReceived ? m_nextExpected : 0;
-    UInt32 window = m_anyReceived ? GetCreditSeq() - m_nextExpected : m_settings.backlogLimit;
-    writer.WriteVarUInt32( fromSeq );
-    writer.WriteVarUInt32( window );
+    UInt64 fromSeq = 0;
+    if ( !m_anyReceived && 0 != m_resumeFromSeq )
+    {
+        // the application resumes: it knows the epoch from the announcement already
+        if ( IsOtherEpoch( m_epoch ) )
+        {
+            ReportGap( m_resumeFromSeq, 0, DRN_STREAMGAP_EPOCH_CHANGED );
+            m_resumeFromSeq = 0;
+            m_expectedEpoch = 0;
+        }
+        else
+        {
+            fromSeq = m_resumeFromSeq;
+        }
+    }
+    else
+    if ( m_anyReceived )
+    {
+        fromSeq = m_nextExpected;
+    }
+    UInt64 window = m_anyReceived ? GetCreditSeq() - m_nextExpected : m_settings.backlogLimit;
+    m_requestedFromSeq = fromSeq;
+    writer.WriteVarUInt64( fromSeq );
+    writer.WriteVarUInt64( window );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataStream::IsExpectedPublicData( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CDRNWireReader& /* body */ ) const
+{GUCEF_TRACE;
+
+    // snapshot boundaries and entries go on lane 0 only
+    if ( DRN_LANE_RELIABLE_ORDERED != lane )
+        return false;
+    if ( DRN_MSGCLASS_REPL == msgClass )
+        return DRN_REPL_SNAPSHOT_BEGIN == opcode || DRN_REPL_SNAPSHOT_END == opcode;
+    return DRN_MSGCLASS_STREAM == msgClass && DRN_STREAM_ENTRIES == opcode;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -511,6 +814,7 @@ CDRNDataStream::OnResubscribe( void )
     m_snapshotKnown = false;
     m_snapshotJustCompleted = false;
     m_creditSent = false;
+    m_awaitingSnapshotBegin = true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -545,10 +849,10 @@ void
 CDRNDataStream::OnSubscriberAdded( UInt32 peerId, UInt32 /* flags */, CDRNWireReader& params )
 {GUCEF_TRACE;
 
-    UInt32 fromSeq = 0;
-    UInt32 window = m_settings.backlogLimit;
-    params.ReadVarUInt32( fromSeq );
-    params.ReadVarUInt32( window );
+    UInt64 fromSeq = 0;
+    UInt64 window = m_settings.backlogLimit;
+    params.ReadVarUInt64( fromSeq );
+    params.ReadVarUInt64( window );
 
     CSubscriber* subscriber = FindSubscriber( peerId );
     if ( GUCEF_NULL == subscriber )
@@ -587,8 +891,8 @@ void
 CDRNDataStream::StartSubscriber( CSubscriber& subscriber )
 {GUCEF_TRACE;
 
-    UInt32 kept = m_nextSeq - m_firstSeq;
-    UInt32 start = 0;
+    UInt64 kept = m_nextSeq - m_firstSeq;
+    UInt64 start = 0;
     if ( 0 == subscriber.fromSeq )
         start = m_nextSeq - ( kept < m_settings.retainedHistory ? kept : m_settings.retainedHistory );
     else
@@ -605,10 +909,11 @@ CDRNDataStream::StartSubscriber( CSubscriber& subscriber )
     subscriber.started = true;
 
     CDRNWireWriter& writer = BeginMessage();
-    writer.WriteVarUInt32( start );
+    writer.WriteVarUInt64( start );
+    writer.WriteVarUInt64( m_epoch );
     SendMessage( subscriber.peerId, DRN_LANE_RELIABLE_ORDERED, DRN_MSGCLASS_REPL, DRN_REPL_SNAPSHOT_BEGIN );
     CDRNWireWriter& endWriter = BeginMessage();
-    endWriter.WriteVarUInt32( m_nextSeq );
+    endWriter.WriteVarUInt64( m_nextSeq );
     SendMessage( subscriber.peerId, DRN_LANE_RELIABLE_ORDERED, DRN_MSGCLASS_REPL, DRN_REPL_SNAPSHOT_END );
 }
 
@@ -617,7 +922,17 @@ CDRNDataStream::StartSubscriber( CSubscriber& subscriber )
 bool
 CDRNDataStream::SendEntries( CSubscriber& subscriber )
 {GUCEF_TRACE;
-    UInt32 limit = subscriber.creditSeq < m_nextSeq ? subscriber.creditSeq : m_nextSeq;
+    if ( subscriber.nextSendSeq < m_firstSeq )
+    {
+        // the ring restarted above what this subscriber was sent (the receive of this serving replica jumped):
+        // the ring slots below m_firstSeq hold no current entry. The subscriber continues at m_firstSeq and sees
+        // the jump; its window is not used up by entries it never gets
+        UInt64 skipped = m_firstSeq - subscriber.nextSendSeq;
+        subscriber.nextSendSeq = m_firstSeq;
+        subscriber.creditSeq += skipped;
+    }
+
+    UInt64 limit = subscriber.creditSeq < m_nextSeq ? subscriber.creditSeq : m_nextSeq;
     if ( subscriber.nextSendSeq >= limit )
         return true;
 
@@ -626,15 +941,15 @@ CDRNDataStream::SendEntries( CSubscriber& subscriber )
     UInt32 budget = GetReplicator().GetLinkBudget( subscriber.peerId );
     while ( subscriber.nextSendSeq < limit && budget > 0 )
     {
-        UInt32 seq = subscriber.nextSendSeq;
+        UInt64 seq = subscriber.nextSendSeq;
         CDRNWireWriter& writer = BeginMessage();
-        writer.WriteVarUInt32( seq );
+        writer.WriteVarUInt64( seq );
         UInt32 countOffset = writer.GetOffset();
         writer.WriteUInt16( 0 );
         UInt32 count = 0;
         while ( seq < limit && count < 0xFFFF )
         {
-            const CORE::CDynamicBuffer& entry = *m_ring[ seq % ringSize ];
+            const CORE::CDynamicBuffer& entry = *m_ring[ (UInt32) ( seq % ringSize ) ];
             UInt32 before = writer.GetOffset();
             writer.WriteSizedBytes( entry.GetConstBufferPtr(), entry.GetDataSize() );
             if ( count > 0 && ( writer.GetOffset() > messageBudget || writer.GetOffset() > budget ) )
@@ -674,7 +989,13 @@ CDRNDataStream::OnSendTick( UInt64 /* nodeNow */ )
     {
         CSubscriber& subscriber = *m_subscribers[ i ];
         if ( !subscriber.started )
+        {
+            // a serving replica answers once its own snapshot arrived, so that the start it gives a subscriber
+            // is that of its upstream's current state (and a gap there is reported as such)
+            if ( !m_isOrigin && !m_snapshotComplete )
+                continue;
             StartSubscriber( subscriber );
+        }
         if ( !SendEntries( subscriber ) )
             allSent = false;
     }
@@ -687,9 +1008,9 @@ CDRNDataStream::OnSendTick( UInt64 /* nodeNow */ )
 void
 CDRNDataStream::OnEntries( CDRNWireReader& reader )
 {GUCEF_TRACE;
-    UInt32 seq = 0;
+    UInt64 seq = 0;
     UInt16 count = 0;
-    if ( !reader.ReadVarUInt32( seq ) || !reader.ReadUInt16( count ) )
+    if ( m_awaitingSnapshotBegin || !reader.ReadVarUInt64( seq ) || !reader.ReadUInt16( count ) )
         return;
 
     for ( UInt32 n=0; n<count; ++n, ++seq )
@@ -703,7 +1024,7 @@ CDRNDataStream::OnEntries( CDRNWireReader& reader )
         if ( !m_anyReceived || seq > m_nextExpected )
         {
             if ( m_anyReceived )
-                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DRNDataStream(" << m_name << "): Entries " << m_nextExpected << " to " << seq - 1 << " are no longer kept by the publisher" );
+                ReportGap( m_nextExpected, seq - 1, DRN_STREAMGAP_TRIMMED );
             m_nextExpected = seq;
             m_firstSeq = m_nextSeq = seq;
             m_anyReceived = true;
@@ -717,7 +1038,7 @@ CDRNDataStream::OnEntries( CDRNWireReader& reader )
         if ( !PushToRing( data, dataSize ) )
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNDataStream(" << m_name << "): No room for an entry for the subscribers" );
         if ( m_appSubscribed )
-            PushToQueue( data, dataSize );
+            PushToQueue( data, dataSize, seq );
         ++m_nextExpected;
         ++m_entriesReceived;
         m_arrived = true;
@@ -728,6 +1049,52 @@ CDRNDataStream::OnEntries( CDRNWireReader& reader )
         m_snapshotComplete = true;
         m_snapshotJustCompleted = true;
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNDataStream::OnSnapshotBegin( CDRNWireReader& reader )
+{GUCEF_TRACE;
+
+    UInt64 start = 0;
+    if ( !reader.ReadVarUInt64( start ) )
+        return;
+    UInt64 epoch = 0;
+    reader.ReadVarUInt64( epoch );      // absent from publishers that announce no epoch
+    m_awaitingSnapshotBegin = false;
+
+    if ( 0 != epoch )
+    {
+        if ( IsOtherEpoch( epoch ) )
+            ReportGap( m_requestedFromSeq, 0, DRN_STREAMGAP_EPOCH_CHANGED );
+        else
+        if ( m_requestedFromSeq >= 1 && start > m_requestedFromSeq )
+            ReportGap( m_requestedFromSeq, start - 1, DRN_STREAMGAP_BEYOND_RETENTION );
+        else
+        if ( m_anyReceived && start > m_nextExpected )
+            ReportGap( m_nextExpected, start - 1, DRN_STREAMGAP_BEYOND_RETENTION );
+        m_epoch = epoch;
+    }
+    else
+    {
+        if ( m_requestedFromSeq >= 1 && start > m_requestedFromSeq )
+            ReportGap( m_requestedFromSeq, start - 1, DRN_STREAMGAP_BEYOND_RETENTION );
+        else
+        if ( m_anyReceived && start > m_nextExpected )
+            ReportGap( m_nextExpected, start - 1, DRN_STREAMGAP_BEYOND_RETENTION );
+    }
+    m_requestedFromSeq = 0;
+    m_resumeFromSeq = 0;
+    m_expectedEpoch = 0;
+
+    if ( !m_anyReceived || start > m_nextExpected )
+    {
+        m_nextExpected = start;
+        m_firstSeq = m_nextSeq = start;
+        m_anyReceived = true;
+    }
+    m_ringStarted = true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -746,9 +1113,9 @@ CDRNDataStream::OnItemMessage( UInt32 fromPeerId, UInt8 msgClass, UInt32 opcode,
         else
         if ( DRN_STREAM_CREDIT == opcode )
         {
-            UInt32 creditSeq = 0;
+            UInt64 creditSeq = 0;
             CSubscriber* subscriber = FindSubscriber( fromPeerId );
-            if ( GUCEF_NULL != subscriber && subscriber->started && reader.ReadVarUInt32( creditSeq ) && DRNIsNewerSequence( creditSeq, subscriber->creditSeq ) )
+            if ( GUCEF_NULL != subscriber && subscriber->started && reader.ReadVarUInt64( creditSeq ) && creditSeq > subscriber->creditSeq )
                 subscriber->creditSeq = creditSeq;
         }
         return;
@@ -756,22 +1123,16 @@ CDRNDataStream::OnItemMessage( UInt32 fromPeerId, UInt8 msgClass, UInt32 opcode,
 
     if ( !fromUpstream )
         return;
-    UInt32 seq = 0;
-    if ( !reader.ReadVarUInt32( seq ) )
-        return;
     if ( DRN_REPL_SNAPSHOT_BEGIN == opcode )
     {
-        if ( !m_anyReceived || seq > m_nextExpected )
-        {
-            m_nextExpected = seq;
-            m_firstSeq = m_nextSeq = seq;
-            m_anyReceived = true;
-        }
-        m_ringStarted = true;
+        OnSnapshotBegin( reader );
     }
     else
     if ( DRN_REPL_SNAPSHOT_END == opcode )
     {
+        UInt64 seq = 0;
+        if ( !reader.ReadVarUInt64( seq ) )
+            return;
         m_snapshotEndSeq = seq;
         m_snapshotKnown = true;
         if ( !m_snapshotComplete && m_nextExpected >= m_snapshotEndSeq )
@@ -787,6 +1148,17 @@ CDRNDataStream::OnItemMessage( UInt32 fromPeerId, UInt8 msgClass, UInt32 opcode,
 void
 CDRNDataStream::OnEndOfTick( UInt64 /* nodeNow */ )
 {GUCEF_TRACE;
+    if ( !m_pendingGaps.empty() )
+    {
+        // before the entries of the same tick: the event says a gap happened, the entry sequences say where
+        for ( UInt32 i=0; i<m_pendingGaps.size() && m_appSubscribed; ++i )
+        {
+            CDRNStreamGapEventData eventData( m_pendingGaps[ i ] );
+            Emit( GapEvent, &eventData );
+        }
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DRNDataStream(" << m_name << "): " << m_pendingGaps.size() << " gaps at the end of the tick, application subscribed: " << m_appSubscribed );
+        m_pendingGaps.clear();
+    }
     if ( m_arrived )
     {
         m_arrived = false;
@@ -804,13 +1176,13 @@ CDRNDataStream::OnEndOfTick( UInt64 /* nodeNow */ )
 
     if ( !m_isOrigin && m_subscribeSent && m_anyReceived )
     {
-        UInt32 creditSeq = GetCreditSeq();
-        if ( !m_creditSent || DRNIsNewerSequence( creditSeq, m_lastCreditSent ) )
+        UInt64 creditSeq = GetCreditSeq();
+        if ( !m_creditSent || creditSeq > m_lastCreditSent )
         {
             m_creditSent = true;
             m_lastCreditSent = creditSeq;
             CDRNWireWriter& writer = BeginMessage();
-            writer.WriteVarUInt32( creditSeq );
+            writer.WriteVarUInt64( creditSeq );
             SendMessage( m_upstreamPeerId, DRN_LANE_RELIABLE_ORDERED, DRN_MSGCLASS_STREAM, DRN_STREAM_CREDIT );
         }
     }
@@ -837,9 +1209,9 @@ CDRNDataStream::Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSe
     if ( m_isOrigin )
     {
         UInt32 ringSize = GetRingSize();
-        for ( UInt32 seq=m_firstSeq; seq<m_nextSeq; ++seq )
+        for ( UInt64 seq=m_firstSeq; seq<m_nextSeq; ++seq )
         {
-            const CORE::CDynamicBuffer* entry = m_ring[ seq % ringSize ];
+            const CORE::CDynamicBuffer* entry = m_ring[ (UInt32) ( seq % ringSize ) ];
             CORE::CVariant value;
             value.Set( entry->GetConstBufferPtr(), entry->GetDataSize(), GUCEF_DATATYPE_BINARY_BLOB );
             CORE::CDataNode* entryNode = entriesNode->AddChildWithValue( "entry", value );
@@ -850,10 +1222,12 @@ CDRNDataStream::Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSe
     {
         for ( UInt32 i=0; i<m_queueCount; ++i )
         {
-            const CORE::CDynamicBuffer* entry = m_queue[ ( m_queueHead + i ) % m_queue.size() ];
+            UInt32 queueIndex = ( m_queueHead + i ) % (UInt32) m_queue.size();
+            const CORE::CDynamicBuffer* entry = m_queue[ queueIndex ];
             CORE::CVariant value;
             value.Set( entry->GetConstBufferPtr(), entry->GetDataSize(), GUCEF_DATATYPE_BINARY_BLOB );
-            entriesNode->AddChildWithValue( "entry", value );
+            CORE::CDataNode* entryNode = entriesNode->AddChildWithValue( "entry", value );
+            entryNode->SetAttribute( "seq", m_queueSeqs[ queueIndex ] );
         }
     }
     return true;

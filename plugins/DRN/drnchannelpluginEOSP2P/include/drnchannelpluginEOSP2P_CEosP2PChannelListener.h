@@ -50,6 +50,11 @@
 #define GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PENDPOINTINFO_H
 #endif /* GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PENDPOINTINFO_H ? */
 
+#ifndef GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PSOCKETEVENTQUEUE_H
+#include "drnchannelpluginEOSP2P_CEosP2PSocketEventQueue.h"
+#define GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PSOCKETEVENTQUEUE_H
+#endif /* GUCEF_DRNPLUGIN_EOSP2P_CEOSP2PSOCKETEVENTQUEUE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -75,6 +80,11 @@ class CEosP2PChannel;
  *  only they can reach it, and the connection limit of the socket bounds how many do. The first packet of a peer that
  *  was let in makes the channel, which is announced with ChannelAcceptedEvent; the DRN protocol, its handshake and its
  *  authentication run over it as over any channel.
+ *
+ *  As the channel, the listener runs on the pulse generator it is given, which the application's pulse generator has
+ *  to drive (Listen() refuses another, such as the one of a node with a thread of its own): the events of the socket
+ *  come from the tick of the platform and wait for the next pulse, in which the listener accepts channels and hands
+ *  the accepted ones their packets (for a node's pulse generator under the node lock, gucefDRN design 9.1).
  */
 class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannelListener : public DRN::CIDRNChannelListener
 {
@@ -116,8 +126,11 @@ class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannelListener : public DRN::CID
 
     void OnChannelClosed( CEosP2PChannel* channel );
     Int32 FindChannel( const char* remoteUser ) const;
-    void OnPacket( const PLUGINGLUE::EOS::CEosP2PPacketEventData& packet );
-    void AcceptChannel( const PLUGINGLUE::EOS::CEosP2PPacketEventData& packet );
+    bool OnPacket( const PLUGINGLUE::EOS::CEosP2PPacketEventData& packet );
+    bool AcceptChannel( const PLUGINGLUE::EOS::CEosP2PPacketEventData& packet );
+    void OnConnectionEstablished( const PLUGINGLUE::EOS::CEosP2PConnectionEventData& data );
+    void OnConnectionClosed( const PLUGINGLUE::EOS::CEosP2PConnectionEventData& data );
+    void RequestPulse( void );
     void Release( void );
 
     void OnSocketPacketReceived( CORE::CNotifier* notifier    ,
@@ -131,6 +144,10 @@ class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannelListener : public DRN::CID
     void OnSocketConnectionClosed( CORE::CNotifier* notifier    ,
                                    const CORE::CEvent& eventId  ,
                                    CORE::CICloneable* eventData );
+
+    void OnPulse( CORE::CNotifier* notifier    ,
+                  const CORE::CEvent& eventId  ,
+                  CORE::CICloneable* eventData );
 
     private:
 
@@ -151,6 +168,7 @@ class GUCEF_DRNPLUGIN_EOSP2P_EXPORT_CPP CEosP2PChannelListener : public DRN::CID
     CORE::PulseGeneratorPtr m_pulseGenerator;
     TEntryVector m_channels;
     bool m_listening;
+    CEosP2PSocketEventQueue m_events;           /**< from the tick of the platform to the next pulse of m_pulseGenerator */
 };
 
 /*-------------------------------------------------------------------------*/

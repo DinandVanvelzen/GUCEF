@@ -103,10 +103,27 @@ class GUCEF_DRN_EXPORT_CPP CDRNPacketProtection
     /** Protects a whole plain packet (header and body) into output */
     bool Protect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output );
 
-    /** Opens a protected packet into output, a plain packet again; false if it does not authenticate */
+    /**
+     *  Protects a whole plain packet into output as the given kind: DRN_PACKETKIND_AEAD encrypts the body,
+     *  DRN_PACKETKIND_MAC keeps the body clear and appends the tag of the AEAD over header and body (empty
+     *  plaintext). Both take the link's packet sequence and count towards the rekey limits. PLAIN is not protected.
+     */
+    bool Protect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output, UInt8 packetKind );
+
+    /** Opens an AEAD or a MAC packet into output, a plain packet again; false if it does not authenticate */
     bool Unprotect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output );
 
+    /** As Unprotect(), and which kind the packet was (DRN_PACKETKIND_AEAD or DRN_PACKETKIND_MAC) */
+    bool Unprotect( const UInt8* packet, UInt32 packetSize, CORE::CDynamicBuffer& output, UInt8& packetKind );
+
+    /** An AEAD packet (0xD4 / 0xD5) */
     static bool IsProtectedPacket( const UInt8* packet, UInt32 packetSize );
+
+    /** A MAC packet (0xD6 / 0xD7) */
+    static bool IsMacPacket( const UInt8* packet, UInt32 packetSize );
+
+    /** A PLAIN packet of public lane 3 messages (0xD8) */
+    static bool IsPublicPlainPacket( const UInt8* packet, UInt32 packetSize );
 
     /** The size of the header of a packet, plain or protected, and its sequence; 0 if it is malformed */
     static UInt32 MeasureHeader( const UInt8* packet, UInt32 packetSize, UInt32& sequence );
@@ -135,8 +152,11 @@ class GUCEF_DRN_EXPORT_CPP CDRNPacketProtection
     bool DeriveNext( const CKeyState& from, CKeyState& next );
     void MakeNonce( UInt8 direction, UInt64 fullSequence, UInt8* nonce ) const;
     bool Open( CKeyState& state, const UInt8* header, UInt32 headerSize, const UInt8* body, UInt32 bodySize, UInt64 fullSequence, CORE::CDynamicBuffer& output );
+    bool OpenMac( CKeyState& state, const UInt8* packet, UInt32 headerSize, UInt32 packetSize, UInt64 fullSequence, CORE::CDynamicBuffer& output );
+    bool OpenWithPhase( UInt8 phase, bool isMac, const UInt8* packet, UInt32 headerSize, UInt32 packetSize, UInt64 fullSequence, CORE::CDynamicBuffer& output );
 
     CORE::CString m_cipher;
+    CORE::CDynamicBuffer m_macScratch;      /**< header and body of a MAC packet being made, the associated data */
     UInt32 m_nonceSize;
     UInt8 m_sendDirection;
     bool m_sendEnabled;

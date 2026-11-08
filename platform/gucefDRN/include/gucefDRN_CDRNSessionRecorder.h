@@ -62,6 +62,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNRecordedMessage
 
     UInt64 timeUs;              /**< microseconds since the recording started */
     bool outgoing;              /**< sent by the recording node, else received */
+    UInt8 packetKind;           /**< TDRNPacketKind of the packet it travelled in (record flag bits 1 and 2) */
     UInt32 peerId;              /**< the session peer id of the other end of the link, 0 before it is known */
     UInt32 linkId;
     UInt8 lane;
@@ -124,7 +125,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNSessionRecorder
 
     /** Called by the session for every message of its links */
     void OnTraffic( const CDRNPeerLink& link, bool outgoing, UInt8 lane, UInt8 msgClass, UInt32 opcode,
-                    const void* part1, UInt32 size1, const void* part2, UInt32 size2 );
+                    const void* part1, UInt32 size1, const void* part2, UInt32 size2, UInt8 packetKind = DRN_PACKETKIND_AEAD );
 
     /** The session goes away */
     void OnSessionGone( void );

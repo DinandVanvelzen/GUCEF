@@ -24,6 +24,8 @@
 
 #include <exception>
 
+#include <time.h>
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -66,12 +68,23 @@ static const UInt32 BenchmarkKeyCount = 100000;
 /** Repetitions of every measurement, the median is kept */
 static const UInt32 BenchmarkRepetitions = 5;
 
+/** Pairs of every measurement of two grids against each other, the median of the pairs is kept (odd: a middle pair) */
+static const UInt32 BenchmarkPairedRounds = 9;
+
 /**
- *  The bounds of the guard, in percent of the slower of two runs without a table. A table scanning the whole grid
- *  without a pause competes for the lock of the node with the operations measured: they measured at most about 240
- *  percent in the runs the bound was set from (the reads of the publisher, which take the lock themselves, are the
- *  worst; the delta encoding stays within about 110 percent). Tables that are attached and idle measured the same as
- *  no table (97 to 100 percent), the bound only leaves room for the noise of the machine.
+ *  The bounds of the guard.
+ *  A table scanning the whole grid without a pause competes for the lock of the node with the operations measured:
+ *  that is wall time, the operations wait for the lock. They measured at most about 240 percent of the same
+ *  operations without the scan in the runs the bound was set from (the reads of the publisher, which take the lock
+ *  themselves, are the worst; the work of the delta stays within about 110 percent). The runs with and without the scan
+ *  are measured in pairs right after each other, so both see the same machine; on a machine busy with other work the
+ *  scanning thread is also put aside while it holds the lock, which the operations then wait out: the bound grows with
+ *  how much the machine stretched the wall time of the runs without the scan beyond their CPU time.
+ *  Tables that are attached and idle, and a policy that allows public items while no item is public, cost nothing:
+ *  CPU time of the measuring thread (the operations, and the delta's work inside a fixed number of pulses, see
+ *  BenchmarkDeltaMinPulses), against runs without measured in pairs with them, the median of the pairs
+ *  (CGridBenchmark::MeasurePaired(), MeasurePairedWithLoad()); 97 to 103 percent measured, also on a machine busy with
+ *  a parallel build, the bound leaves room for the noise of the caches. The wall times are logged; other processes stretch them by any amount.
  */
 static const UInt32 ScanningBoundPercent = 300;
 static const UInt32 IdleBoundPercent = 130;
@@ -81,7 +94,7 @@ static const UInt32 ScanAllocationBound = 400;
 
 /*-------------------------------------------------------------------------*/
 
-/** Percent of the numbers of a result compared to a reference, the worst of the operations */
+/** Percent of the wall times of a result compared to a reference, the worst of the operations, for the log */
 static UInt32
 WorstPercent( const CGridBenchmarkResult& result, const CGridBenchmarkResult& reference )
 {
@@ -97,6 +110,59 @@ WorstPercent( const CGridBenchmarkResult& result, const CGridBenchmarkResult& re
     }
     return worst;
 }
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Tables attached to both grids of a benchmark and idle (nobody scans, nobody listens) for the measured loop: made
+ *  before it, let go of after it, so that runs with and without them are measured in pairs
+ */
+class CIdleTablesLoad : public CGridBenchmarkLoad
+{
+    public:
+
+    CIdleTablesLoad( CGridBenchmark& benchmark, const DRN::CDRNDataGridTableSettings& replicaSettings )
+        : CGridBenchmarkLoad()
+        , observedByGrid( 0 )
+        , m_benchmark( benchmark )
+        , m_replicaSettings( replicaSettings )
+        , m_publisherTable( GUCEF_NULL )
+        , m_replicaTable( GUCEF_NULL )
+    {}
+
+    virtual ~CIdleTablesLoad()
+    {
+        End();
+    }
+
+    virtual void Begin( void ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_publisherTable = GUCEF_NEW DRN::CDRNDataGridTable( m_benchmark.GetPublisherSession(), *m_benchmark.GetPublisherGrid() );
+        m_replicaTable = GUCEF_NEW DRN::CDRNDataGridTable( m_benchmark.GetReplicaSession(), *m_benchmark.GetReplicaGrid(), m_replicaSettings );
+    }
+
+    virtual void End( void ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        // an idle table has nothing at the grid
+        if ( GUCEF_NULL != m_publisherTable )
+            observedByGrid += m_benchmark.GetPublisherGrid()->GetSubscriptionCountForObserver( &m_publisherTable->AsObserver() );
+        if ( GUCEF_NULL != m_replicaTable )
+            observedByGrid += m_benchmark.GetReplicaGrid()->GetSubscriptionCountForObserver( &m_replicaTable->AsObserver() );
+        GUCEF_DELETE m_publisherTable;
+        m_publisherTable = GUCEF_NULL;
+        GUCEF_DELETE m_replicaTable;
+        m_replicaTable = GUCEF_NULL;
+    }
+
+    UInt32 observedByGrid;          /**< subscriptions of the tables at their grids, over all runs: 0 */
+
+    private:
+
+    CGridBenchmark& m_benchmark;
+    DRN::CDRNDataGridTableSettings m_replicaSettings;
+    DRN::CDRNDataGridTable* m_publisherTable;
+    DRN::CDRNDataGridTable* m_replicaTable;
+};
 
 /*-------------------------------------------------------------------------*/
 
@@ -124,9 +190,10 @@ HotGrid( const CORE::CString& name, bool declareTypes )
  *  grid on both members when asked to. The tables are idle: nobody listens to them.
  */
 static bool
-HotPathAllocations( bool withTables, UInt32& allocations, UInt32& updates, UInt32& subscriptionsAtGrid )
+HotPathAllocations( bool withTables, UInt32& allocations, UInt32& updates, UInt32& subscriptionsAtGrid, bool allowPublicItems = false )
 {
     CGroup group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, withTables ? "no-alloc-table" : "no-alloc-plain", "mem" );
+    group.nodeSettings.securityPolicy.allowPublicItems = allowPublicItems;
     if ( !group.Start( 2 ) )
         return false;
 
@@ -301,6 +368,168 @@ PerformDRNDataTablePerformanceTests( void )
     GUCEF_TESTFW_SKIP_IF( !IsAllocationCountingAvailable(), GetAllocationCountingUnavailableReason() );
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Performance: A reliable 20,000 key grid snapshotted to a subscriber over tcp: messages, packets, bytes and time" )
+    try
+    {
+        // the message budget of the replicator on a stream channel decides how many messages a snapshot takes
+        static const UInt32 KeyCount = 20000;
+        CGroup group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "tcp-snapshot", "tcp" );
+        REQUIRE_TRUE( group.Start( 2 ) );
+        DRN::CDRNDataGridSettings settings;
+        settings.name = "pages";
+        settings.reliable = true;
+        settings.snapshotOnSubscribe = true;
+        DRN::CDRNDataGrid* grid = group[ 0 ].CreateGrid( settings );
+        REQUIRE_TRUE( GUCEF_NULL != grid );
+        CORE::CString value60( "0123456789012345678901234567890123456789012345678901234567" );    // 58 characters, a 60 byte value
+        for ( UInt32 k=0; k<KeyCount; ++k )
+            grid->SetValue( CORE::CVariant( k ), CORE::CVariant( value60 ) );
+
+        DRN::CDRNPeerLinkPtr link = group[ 0 ].GetLinkToMember( group[ 1 ].GetLocalPeerId() );
+        REQUIRE_TRUE( !link.IsNULL() );
+        DRN::CDRNLinkStats before = link->GetStats();
+        UInt64 start = DRN::CDRNClock::NowInMicroseconds();
+        group[ 1 ].Subscribe( "pages" );
+        CGridCondition arrived;
+        arrived.Expect( group[ 1 ], "pages", 1, CORE::CVariant( (UInt32) ( KeyCount - 1 ) ), CORE::CVariant( value60 ) );
+        REQUIRE_TRUE( PumpUntil( arrived, 60000 ) );
+        UInt64 elapsedUs = DRN::CDRNClock::NowInMicroseconds() - start;
+        DRN::CDRNLinkStats after = link->GetStats();
+        DRN::CDRNDataGrid* replica = group[ 1 ].FindGrid( "pages" );
+        REQUIRE_TRUE( GUCEF_NULL != replica );
+        ASSERT_TRUE( KeyCount == replica->GetKeyCount() );
+
+        UInt64 messages = after.messagesSent - before.messagesSent;
+        UInt64 packets = after.packetsSent - before.packetsSent;
+        UInt64 bytes = after.bytesSent - before.bytesSent;
+        UInt32 messageBudget = group[ 0 ].GetReplicator().GetMessageBudget( group[ 1 ].GetLocalPeerId() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Snapshot of " << KeyCount << " keys of 60 bytes over tcp: " << messages << " messages, " << packets << " packets, " << bytes << " bytes, "
+                   << ( elapsedUs / 1000 ) << " ms, message budget " << messageBudget << " bytes" );
+
+        // on a stream channel the replicator's cap of 16 KB holds, not a datagram budget: a few hundred keys per message
+        ASSERT_TRUE( 16 * 1024 == messageBudget );
+        ASSERT_TRUE( messages <= KeyCount / 100 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Performance: A policy that allows public items costs nothing while no item is public: the grid benchmark and the allocation free hot path" )
+    try
+    {
+        // both grids exist side by side and every operation is measured on both in pairs, right after each other: the
+        // pairs see the same machine, a machine busy with other work slows both runs of a pair alike, and the median of
+        // the pairs leaves out the pairs that a burst of other work fell in. The grids are idle while the other one is
+        // measured: their pulses on the shared pulse generator are a small, equal part of the work of both
+        CGridBenchmarkResult sealed;
+        CGridBenchmarkResult allowing;
+        UInt32 percent = 0;
+        {
+            CGridBenchmark sealedBenchmark;
+            REQUIRE_TRUE( sealedBenchmark.Setup( BenchmarkKeyCount, "bench-sealed" ) );
+            CGridBenchmark allowingBenchmark;
+            REQUIRE_TRUE( allowingBenchmark.Setup( BenchmarkKeyCount, "bench-public-allowed", false, true ) );
+            REQUIRE_TRUE( CGridBenchmark::MeasurePaired( sealedBenchmark, allowingBenchmark, BenchmarkPairedRounds, sealed, allowing, percent ) );
+        }
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, allowPublicItems false: " << sealed.ToString() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, allowPublicItems true:  " << allowing.ToString() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Worst operation with public items allowed against the sealed run of the same pairs: " << percent << "% of CPU time, median of "
+                   << BenchmarkPairedRounds << " pairs (bound " << IdleBoundPercent << "%), " << WorstPercent( allowing, sealed ) << "% of wall time of the medians" );
+        if ( !IsSanitizerBuild() )
+            ASSERT_TRUE( percent <= IdleBoundPercent );
+
+        UInt32 allocations = 0;
+        UInt32 updates = 0;
+        UInt32 subscriptions = 0;
+        REQUIRE_TRUE( HotPathAllocations( false, allocations, updates, subscriptions, true ) );
+        ASSERT_TRUE( updates > 100 );
+        if ( IsAllocationCountingAvailable() )
+        {
+            ASSERT_TRUE( 0 == allocations );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid hot path allocations in 200 frames with public items allowed: " << allocations );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Performance: A reliable 100,000 key grid of 60 byte values snapshotted to four subscribers: CPU and packets per MB, CONFIDENTIAL against PUBLIC mac and none, udp and tcp" )
+    try
+    {
+        // a sanitizer build is many times slower: a fifth of the keys there, the figures of such a run say nothing anyway
+        const UInt32 KeyCount = IsSanitizerBuild() ? 20000 : 100000;
+        const char* channels[] = { "mem", "tcp" };
+        const char* modeNames[] = { "CONFIDENTIAL", "PUBLIC mac", "PUBLIC none" };
+        CORE::CString value60( "0123456789012345678901234567890123456789012345678901234567" );
+        for ( UInt32 c=0; c<2; ++c )
+        {
+            for ( UInt32 mode=0; mode<3; ++mode )
+            {
+                CGroup group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "public-snapshot", channels[ c ] );
+                group.nodeSettings.securityPolicy.allowPublicItems = 0 != mode;
+                group.nodeSettings.securityPolicy.publicItemProtection = 2 == mode ? DRN::DRN_PUBLICPROTECTION_NONE : DRN::DRN_PUBLICPROTECTION_MAC;
+                REQUIRE_TRUE( group.Start( 5 ) );
+                DRN::CDRNDataGridSettings settings;
+                settings.name = "quotes";
+                settings.reliable = true;
+                settings.capacity = KeyCount;
+                settings.protection = 0 != mode ? DRN::DRN_PROTECTION_PUBLIC : DRN::DRN_PROTECTION_CONFIDENTIAL;
+                DRN::CDRNDataGrid* grid = group[ 0 ].CreateGrid( settings );
+                REQUIRE_TRUE( GUCEF_NULL != grid );
+                for ( UInt32 k=0; k<KeyCount; ++k )
+                    grid->SetValue( CORE::CVariant( k ), CORE::CVariant( value60 ) );
+
+                UInt64 packetsBefore = 0;
+                UInt64 bytesBefore = 0;
+                for ( UInt32 m=1; m<5; ++m )
+                {
+                    DRN::CDRNPeerLinkPtr link = group[ 0 ].GetLinkToMember( group[ m ].GetLocalPeerId() );
+                    REQUIRE_TRUE( !link.IsNULL() );
+                    packetsBefore += link->GetStats().packetsSent;
+                    bytesBefore += link->GetStats().bytesSent;
+                }
+                clock_t cpuStart = clock();
+                UInt64 start = DRN::CDRNClock::NowInMicroseconds();
+                CGridCondition arrived;
+                for ( UInt32 m=1; m<5; ++m )
+                {
+                    group[ m ].Subscribe( "quotes" );
+                    arrived.Expect( group[ m ], "quotes", group[ 0 ].GetLocalPeerId(), CORE::CVariant( (UInt32) ( KeyCount - 1 ) ), CORE::CVariant( value60 ) );
+                }
+                REQUIRE_TRUE( PumpUntil( arrived, 120000 ) );
+                UInt64 elapsedUs = DRN::CDRNClock::NowInMicroseconds() - start;
+                Float64 cpuMs = (Float64) ( clock() - cpuStart ) * 1000.0 / CLOCKS_PER_SEC;
+                UInt64 packets = 0;
+                UInt64 bytes = 0;
+                for ( UInt32 m=1; m<5; ++m )
+                {
+                    DRN::CDRNPeerLinkPtr link = group[ 0 ].GetLinkToMember( group[ m ].GetLocalPeerId() );
+                    packets += link->GetStats().packetsSent;
+                    bytes += link->GetStats().bytesSent;
+                }
+                packets -= packetsBefore;
+                bytes -= bytesBefore;
+                Float64 megabytes = (Float64) bytes / ( 1024.0 * 1024.0 );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Public snapshot over " << channels[ c ] << ", " << modeNames[ mode ] << ": " << bytes << " bytes, " << packets << " packets, " << ( elapsedUs / 1000 ) <<
+                           " ms, process CPU " << cpuMs << " ms, " << ( megabytes > 0 ? cpuMs / megabytes : 0.0 ) << " ms CPU per MB, " << ( megabytes > 0 ? packets / megabytes : 0.0 ) << " packets per MB" );
+                for ( UInt32 m=1; m<5; ++m )
+                {
+                    DRN::CDRNDataGrid* replica = group[ m ].FindGrid( "quotes" );
+                    ASSERT_TRUE( GUCEF_NULL != replica && KeyCount == replica->GetKeyCount() && settings.protection == replica->GetProtectionClass() );
+                }
+            }
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Performance: Declared types change nothing of what the grid sends" )
     try
     {
@@ -344,55 +573,51 @@ PerformDRNDataTablePerformanceTests( void )
         replicaSettings.valueType = CORE::DATATABLE_TYPE_UINT32;
         CGridBenchmarkResult none;
         CGridBenchmarkResult idle;
+        CGridBenchmarkResult scanReference;
         CGridBenchmarkResult scanning;
-        CGridBenchmarkResult noneAgain;
+        UInt32 idlePercent = 0;
+        UInt32 scanningPercent = 0;
+        UInt32 busyPercent = 100;
 
-        // no table: the run the others are held to
-        REQUIRE_TRUE( benchmark.Measure( GUCEF_NULL, BenchmarkRepetitions, none ) );
+        // tables attached and idle (nobody scans, nobody listens) against no table, every operation in pairs right after
+        // each other: a machine busy with other work slows both runs of a pair alike, the median of the pairs is kept
+        {
+            CIdleTablesLoad idleTables( benchmark, replicaSettings );
+            REQUIRE_TRUE( benchmark.MeasurePairedWithLoad( idleTables, BenchmarkPairedRounds, none, idle, idlePercent ) );
+            ASSERT_TRUE( 0 == idleTables.observedByGrid );
+        }
 
         {
-            // tables attached and idle: nobody scans, nobody listens
             DRN::CDRNDataGridTable publisherTable( benchmark.GetPublisherSession(), *benchmark.GetPublisherGrid() );
             DRN::CDRNDataGridTable replicaTable( benchmark.GetReplicaSession(), *benchmark.GetReplicaGrid(), replicaSettings );
-            REQUIRE_TRUE( benchmark.Measure( GUCEF_NULL, BenchmarkRepetitions, idle ) );
-            ASSERT_TRUE( 0 == benchmark.GetPublisherGrid()->GetSubscriptionCountForObserver( &publisherTable.AsObserver() ) );
-            ASSERT_TRUE( 0 == benchmark.GetReplicaGrid()->GetSubscriptionCountForObserver( &replicaTable.AsObserver() ) );
 
-            // a thread scans both tables over and over next to the measured loops
+            // a thread scans both tables over and over next to the measured loops, each run paired with one without
             CTableScanThread scanner( false );
             scanner.AddTable( &publisherTable );
             scanner.AddTable( &replicaTable );
-            REQUIRE_TRUE( benchmark.Measure( &scanner, BenchmarkRepetitions, scanning ) );
+            REQUIRE_TRUE( benchmark.MeasureAgainstReference( scanner, BenchmarkRepetitions, scanReference, scanning, scanningPercent, busyPercent ) );
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "The background scans: " << scanner.scans.Load() << " scans, " << scanner.rowsSeen.Load() << " rows, " << scanner.failures.Load() << " failed" );
             ASSERT_TRUE( 0 == scanner.failures.Load() );
             ASSERT_TRUE( scanner.scans.Load() > 0 );
         }
 
-        // the run without a table once more, to see how far the machine drifted between the runs
-        REQUIRE_TRUE( benchmark.Measure( GUCEF_NULL, BenchmarkRepetitions, noneAgain ) );
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, no table:                " << none.ToString() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, no table, paired:        " << none.ToString() );
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, tables attached, idle:   " << idle.ToString() );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, tables scanning:         " << scanning.ToString() );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, no table, once more:     " << noneAgain.ToString() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, tables idle, paired:     " << scanReference.ToString() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Grid benchmark, tables scanning, paired: " << scanning.ToString() );
 
-        // the reference is the slower of the two runs without a table
-        CGridBenchmarkResult reference = none;
-        if ( noneAgain.setValueNs > reference.setValueNs ) reference.setValueNs = noneAgain.setValueNs;
-        if ( noneAgain.setValueByIndexNs > reference.setValueByIndexNs ) reference.setValueByIndexNs = noneAgain.setValueByIndexNs;
-        if ( noneAgain.getValueByIndexNs > reference.getValueByIndexNs ) reference.getValueByIndexNs = noneAgain.getValueByIndexNs;
-        if ( noneAgain.replicaGetValueByIndexNs > reference.replicaGetValueByIndexNs ) reference.replicaGetValueByIndexNs = noneAgain.replicaGetValueByIndexNs;
-        if ( noneAgain.deltaNsPerKey > reference.deltaNsPerKey ) reference.deltaNsPerKey = noneAgain.deltaNsPerKey;
-        if ( noneAgain.deltaWorkNsPerKey > reference.deltaWorkNsPerKey ) reference.deltaWorkNsPerKey = noneAgain.deltaWorkNsPerKey;
-        const UInt32 idlePercent = WorstPercent( idle, reference );
-        const UInt32 scanningPercent = WorstPercent( scanning, reference );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Worst operation against the slower run without a table: " << idlePercent << "% with idle tables (bound " << IdleBoundPercent << "%), " << scanningPercent << "% while scanning (bound " << ScanningBoundPercent << "%)" );
+        // idle tables against the runs without a table they were paired with, in CPU time; the scan against the runs it
+        // was paired with, in wall time, its bound as far beyond the recorded one as the machine was busy
+        const UInt32 scanningBound = (UInt32) ( (UInt64) ScanningBoundPercent * busyPercent / 100 );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Worst operation against the paired runs without a table: " << idlePercent << "% of CPU time with idle tables, median of " <<
+                   BenchmarkPairedRounds << " pairs (bound " << IdleBoundPercent << "%, " << WorstPercent( idle, none ) << "% of wall time of the medians); " << scanningPercent << "% of wall time while scanning against the paired runs (bound " <<
+                   scanningBound << "%: " << ScanningBoundPercent << "% at " << busyPercent << "% wall of CPU time)" );
 
         // the numbers of a build with a sanitizer say nothing about the code
         if ( !IsSanitizerBuild() )
         {
             ASSERT_TRUE( idlePercent <= IdleBoundPercent );
-            ASSERT_TRUE( scanningPercent <= ScanningBoundPercent );
+            ASSERT_TRUE( scanningPercent <= scanningBound );
         }
     }
     catch ( ... )

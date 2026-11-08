@@ -163,12 +163,24 @@ class GUCEF_DRN_EXPORT_CPP CIDRNChannel : public CORE::CObservingNotifier
 
     virtual CORE::PulseGeneratorPtr GetPulseGenerator( void ) const = 0;
 
+    /**
+     *  The pulse generator of the thread that pulses the one of SetPulseGenerator(), to be set before Connect(): for one of
+     *  a node that is CDRNNode::GetPulseGenerator(), the application's pulse generator or, on a node with a thread of
+     *  its own, the node's own. For channels whose transport may be used on one thread only (that of the application's
+     *  pulse generator); NULL (the default) means that the pulse generator of SetPulseGenerator() is pulsed directly.
+     */
+    virtual void SetDrivingPulseGenerator( CORE::PulseGeneratorPtr drivingPulseGenerator );
+
+    virtual CORE::PulseGeneratorPtr GetDrivingPulseGenerator( void ) const;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
     CIDRNChannel( const CIDRNChannel& src );
     CIDRNChannel& operator=( const CIDRNChannel& src );
+
+    CORE::PulseGeneratorPtr m_drivingPulseGenerator;
 };
 
 /*-------------------------------------------------------------------------*/

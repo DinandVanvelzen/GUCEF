@@ -57,11 +57,16 @@
 #include "TestDRNHandshake.h"
 #include "TestDRNSessions.h"
 #include "TestDRNReplication.h"
+#include "TestDRNStreamResume.h"
+#include "TestDRNItemProtection.h"
+#include "TestDRNTablePublisher.h"
 #include "TestDRNRelay.h"
 #include "TestDRNSecurity.h"
 #include "TestDRNEncryption.h"
 #include "TestDRNDataTables.h"
 #include "TestDRNDataTablePerformance.h"
+#include "TestDRNRpcTransport.h"
+#include "TestDRNLockOrder.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -117,9 +122,9 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefDRN_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( DRNTestEventCallback, GUCEF_NULL );
 
-        // the suites to run can be named on the command line: wire, links, handshake, sessions, replication, relay, security, encryption, tables, tableperf (default all)
+        // the suites to run can be named on the command line: wire, links, handshake, sessions, replication, relay, security, encryption, protection, tables, tableperf, rpc, rpcperf, rpcthreads, lockorder (default all)
         bool runAll = argc < 2;
-        bool runWire = runAll, runLinks = runAll, runHandshake = runAll, runSessions = runAll, runReplication = runAll, runRelay = runAll, runSecurity = runAll, runEncryption = runAll, runTables = runAll, runTablePerformance = runAll;
+        bool runWire = runAll, runLinks = runAll, runHandshake = runAll, runSessions = runAll, runReplication = runAll, runRelay = runAll, runSecurity = runAll, runEncryption = runAll, runProtection = runAll, runTables = runAll, runTablePerformance = runAll, runRpc = runAll, runRpcPerf = runAll, runRpcThreads = runAll, runLockOrder = runAll;
         for ( int i=1; i<argc; ++i )
         {
             CORE::CString arg = argv[ i ];
@@ -131,8 +136,13 @@ GUCEF_OSMAIN_BEGIN
             runRelay = runRelay || arg == "relay";
             runSecurity = runSecurity || arg == "security";
             runEncryption = runEncryption || arg == "encryption";
+            runProtection = runProtection || arg == "protection";
             runTables = runTables || arg == "tables";
             runTablePerformance = runTablePerformance || arg == "tableperf";
+            runRpc = runRpc || arg == "rpc";
+            runRpcPerf = runRpcPerf || arg == "rpcperf";
+            runRpcThreads = runRpcThreads || arg == "rpcthreads";
+            runLockOrder = runLockOrder || arg == "lockorder";
         }
 
         if ( runWire )
@@ -144,17 +154,33 @@ GUCEF_OSMAIN_BEGIN
         if ( runSessions )
             PerformDRNSessionTests();
         if ( runReplication )
+        {
             PerformDRNReplicationTests();
+            PerformDRNStreamResumeTests();
+        }
         if ( runRelay )
             PerformDRNRelayTests();
         if ( runSecurity )
             PerformDRNSecurityTests();
         if ( runEncryption )
             PerformDRNEncryptionTests();
+        if ( runProtection )
+            PerformDRNItemProtectionTests();
         if ( runTables )
+        {
             PerformDRNDataTableTests();
+            PerformDRNTablePublisherTests();
+        }
         if ( runTablePerformance )
             PerformDRNDataTablePerformanceTests();
+        if ( runRpc )
+            PerformDRNRpcTransportTests();
+        if ( runRpcPerf && !runRpc )
+            PerformDRNRpcTransportPerformanceTests();
+        if ( runRpcThreads && !runRpc )
+            PerformDRNRpcTransportThreadingTests();
+        if ( runLockOrder )
+            PerformDRNLockOrderTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

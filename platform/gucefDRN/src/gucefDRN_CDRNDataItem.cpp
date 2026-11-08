@@ -86,7 +86,7 @@ CDRNItemInfo::CDRNItemInfo( void )
 /*-------------------------------------------------------------------------*/
 
 CDRNDataItem::CDRNDataItem( CDRNReplicator& replicator, TItemKind kind )
-    : CORE::CTSGNotifier( replicator.GetSession().GetNode().GetAppPulseGenerator(), true, true )
+    : CDRNApplicationNotifier( replicator.GetSession().GetNode() )
     , CORE::CIDataNodeSerializable()
     , m_replicator( &replicator )
     , m_kind( kind )
@@ -102,11 +102,54 @@ CDRNDataItem::CDRNDataItem( CDRNReplicator& replicator, TItemKind kind )
     , m_removed( false )
     , m_priorityAccumulator( 0 )
     , m_subscriberCount( 0 )
+    , m_protectionClass( DRN_PROTECTION_CONFIDENTIAL )
     , m_txBuffer()
     , m_txWriter( m_txBuffer )
 {GUCEF_TRACE;
 
     RegisterEvents();
+    for ( UInt32 i=0; i<DRN_LANE_COUNT; ++i )
+        m_laneKinds[ i ] = DRN_PACKETKIND_AEAD;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TDRNProtectionClass
+CDRNDataItem::GetProtectionClass( void ) const
+{GUCEF_TRACE;
+
+    return m_protectionClass;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNDataItem::SetProtectionClass( TDRNProtectionClass protectionClass )
+{GUCEF_TRACE;
+
+    // the links read the node's policy; the items do the same, so that both agree on every member
+    const CDRNSecurityPolicy& policy = m_replicator->GetSession().GetNode().GetSettings().securityPolicy;
+    if ( DRN_PROTECTION_PUBLIC == protectionClass && !policy.allowPublicItems )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DRNDataItem(" << m_name << "): Declared public, but the security policy does not allow public items: it is sealed" );
+        protectionClass = DRN_PROTECTION_CONFIDENTIAL;
+    }
+    m_protectionClass = protectionClass;
+    for ( UInt32 i=0; i<DRN_LANE_COUNT; ++i )
+        m_laneKinds[ i ] = (UInt8) policy.ResolvePacketKind( protectionClass, (UInt8) i );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNDataItem::IsPublicDataMessage( UInt8 msgClass, UInt32 opcode )
+{GUCEF_TRACE;
+
+    if ( DRN_MSGCLASS_STREAM == msgClass )
+        return DRN_STREAM_ENTRIES == opcode;
+    if ( DRN_MSGCLASS_REPL == msgClass )
+        return DRN_REPL_SNAPSHOT_BEGIN == opcode || DRN_REPL_SNAPSHOT_END == opcode || DRN_REPL_KEY_DEFINE == opcode || DRN_REPL_GRID_DELTA == opcode;
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -244,6 +287,15 @@ CDRNDataItem::OnResubscribe( void )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNDataItem::IsExpectedPublicData( UInt8 /* lane */, UInt8 /* msgClass */, UInt32 /* opcode */, const CDRNWireReader& /* body */ ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDRNDataItem::OnRemoved( void )
 {GUCEF_TRACE;
@@ -257,10 +309,7 @@ void
 CDRNDataItem::Emit( const CORE::CEvent& eventid, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( m_replicator->GetSession().GetNode().IsRunningOwnThread() )
-        NotifyObserversFromThread( eventid, eventData );
-    else
-        NotifyObservers( eventid, eventData );
+    EmitToApplication( eventid, eventData );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -283,7 +332,8 @@ CDRNDataItem::SendMessage( UInt32 peerId, UInt8 lane, UInt8 msgClass, UInt32 opc
     CDRNPeerLink* link = m_replicator->GetLinkToPeer( peerId );
     if ( GUCEF_NULL == link )
         return false;
-    return link->Send( lane, msgClass, opcode, m_txBuffer.GetConstBufferPtr(), m_txWriter.GetOffset() );
+    UInt8 packetKind = DRN_PROTECTION_PUBLIC == m_protectionClass && lane < DRN_LANE_COUNT && IsPublicDataMessage( msgClass, opcode ) ? m_laneKinds[ lane ] : (UInt8) DRN_PACKETKIND_AEAD;
+    return link->Send( lane, msgClass, opcode, m_txBuffer.GetConstBufferPtr(), m_txWriter.GetOffset(), packetKind );
 }
 
 /*-------------------------------------------------------------------------//

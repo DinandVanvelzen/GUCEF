@@ -85,10 +85,19 @@ CDRNReplicator::CStreamComponent::GetMessageClass( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNReplicator::CStreamComponent::OnSessionMessage( CDRNSession& /* session */, CDRNPeerLink& /* link */, UInt32 fromPeerId, const CDRNLinkMessage& message )
+CDRNReplicator::CStreamComponent::OnSessionMessage( CDRNSession& /* session */, CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message )
 {GUCEF_TRACE;
 
-    m_replicator->HandleMessage( fromPeerId, message );
+    m_replicator->OnComponentMessage( link, fromPeerId, message );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNReplicator::CStreamComponent::MayAcceptPacketKind( const CDRNLinkMessage& /* message */ ) const
+{GUCEF_TRACE;
+
+    return true;    // judged per item
 }
 
 /*-------------------------------------------------------------------------*/
@@ -486,6 +495,8 @@ CDRNReplicator::CreateGrid( const CDRNDataGridSettings& settings )
     grid->m_itemId = m_nextItemId++;
     grid->m_isOrigin = true;
     grid->m_snapshotComplete = true;
+    grid->SetProtectionClass( settings.protection );
+    grid->m_settings.protection = grid->m_protectionClass;
     if ( !AddItem( grid ) )
     {
         GUCEF_DELETE grid;
@@ -532,7 +543,9 @@ CDRNReplicator::CreateStream( const CDRNDataStreamSettings& settings )
     stream->m_isOrigin = true;
     stream->m_snapshotComplete = true;
     stream->m_ringStarted = true;
-    if ( !AddItem( stream ) )
+    stream->SetProtectionClass( settings.protection );
+    stream->m_settings.protection = stream->m_protectionClass;
+    if ( !stream->InitPublisher() || !AddItem( stream ) )
     {
         GUCEF_DELETE stream;
         return GUCEF_NULL;
@@ -591,8 +604,47 @@ CDRNReplicator::MatchesAppSubscription( const CDRNDataItem& item ) const
 
 /*-------------------------------------------------------------------------*/
 
+const CDRNReplicator::CAppSubscription*
+CDRNReplicator::FindAppSubscription( const CDRNDataItem& item ) const
+{GUCEF_TRACE;
+    // the subscription for this owner first, then the one for every owner
+    const CAppSubscription* anyOwner = GUCEF_NULL;
+    for ( UInt32 i=0; i<m_appSubscriptions.size(); ++i )
+    {
+        const CAppSubscription& subscription = m_appSubscriptions[ i ];
+        if ( subscription.name != item.m_name )
+            continue;
+        if ( subscription.ownerPeerId == item.m_ownerPeerId )
+            return &subscription;
+        if ( 0 == subscription.ownerPeerId )
+            anyOwner = &subscription;
+    }
+    return anyOwner;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNReplicator::ApplySubscribeOptions( CDRNDataItem& item, const CDRNSubscribeOptions& options )
+{GUCEF_TRACE;
+
+    if ( CDRNDataItem::ITEMKIND_STREAM == item.m_kind )
+        static_cast< CDRNDataStream& >( item ).ApplySubscribeOptions( options );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CDRNReplicator::Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId )
+{GUCEF_TRACE;
+
+    return Subscribe( itemName, ownerPeerId, CDRNSubscribeOptions() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNReplicator::Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId, const CDRNSubscribeOptions& options )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_session->GetNode().GetLock() );
@@ -601,13 +653,19 @@ CDRNReplicator::Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId )
 
     bool known = false;
     for ( UInt32 i=0; i<m_appSubscriptions.size(); ++i )
+    {
         if ( m_appSubscriptions[ i ].name == itemName && m_appSubscriptions[ i ].ownerPeerId == ownerPeerId )
+        {
+            m_appSubscriptions[ i ].options = options;
             known = true;
+        }
+    }
     if ( !known )
     {
         CAppSubscription subscription;
         subscription.name = itemName;
         subscription.ownerPeerId = ownerPeerId;
+        subscription.options = options;
         m_appSubscriptions.push_back( subscription );
     }
 
@@ -616,6 +674,7 @@ CDRNReplicator::Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId )
         CDRNDataItem* item = m_itemList[ i ];
         if ( item->m_isOrigin || item->m_removed || item->m_name != itemName || ( 0 != ownerPeerId && item->m_ownerPeerId != ownerPeerId ) )
             continue;
+        ApplySubscribeOptions( *item, options );
         item->m_appSubscribed = true;
         UpdateUpstream( *item );
     }
@@ -783,10 +842,56 @@ CDRNReplicator::MarkRemoved( CDRNDataItem& item )
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNReplicator::OnSessionMessage( CDRNSession& /* session */, CDRNPeerLink& /* link */, UInt32 fromPeerId, const CDRNLinkMessage& message )
+CDRNReplicator::OnSessionMessage( CDRNSession& /* session */, CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message )
 {GUCEF_TRACE;
 
+    OnComponentMessage( link, fromPeerId, message );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNReplicator::MayAcceptPacketKind( const CDRNLinkMessage& /* message */ ) const
+{GUCEF_TRACE;
+
+    return true;    // judged per item
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNReplicator::OnComponentMessage( CDRNPeerLink& link, UInt32 fromPeerId, const CDRNLinkMessage& message )
+{GUCEF_TRACE;
+
+    if ( DRN_PACKETKIND_AEAD != message.packetKind && !IsAcceptedPublicData( fromPeerId, message ) )
+    {
+        link.RefuseDowngrade( message.msgClass, message.opcode, message.packetKind, "not the public data of a public item from its upstream" );
+        return;
+    }
     HandleMessage( fromPeerId, message );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNReplicator::IsAcceptedPublicData( UInt32 fromPeerId, const CDRNLinkMessage& message ) const
+{GUCEF_TRACE;
+
+    // a message of a MAC or PLAIN packet: only data flowing down from the upstream of an item announced PUBLIC, of an
+    // opcode on the lane and in the packet kind that the item sends it with
+    if ( !CDRNDataItem::IsPublicDataMessage( message.msgClass, message.opcode ) || message.lane >= DRN_LANE_COUNT )
+        return false;
+    CDRNWireReader reader( message.payload );
+    UInt32 ownerPeerId = 0;
+    UInt32 itemId = 0;
+    if ( !reader.ReadVarUInt32( ownerPeerId ) || !reader.ReadVarUInt32( itemId ) )
+        return false;
+    const CDRNDataItem* item = GetItem( ownerPeerId, itemId );
+    if ( GUCEF_NULL == item || item->m_removed )
+        return true;    // nothing takes it: what is still in flight for an item that went away
+    if ( item->m_isOrigin || DRN_PROTECTION_PUBLIC != item->m_protectionClass || fromPeerId != item->m_upstreamPeerId )
+        return false;
+    return item->m_laneKinds[ message.lane ] == message.packetKind && item->IsExpectedPublicData( message.lane, message.msgClass, message.opcode, reader );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -892,8 +997,10 @@ CDRNReplicator::HandleAnnounce( UInt32 fromPeerId, UInt32 ownerPeerId, UInt32 it
 
     EmitItemEvent( CDRNSession::ItemAnnouncedEvent, *item );
 
-    if ( MatchesAppSubscription( *item ) )
+    const CAppSubscription* subscription = FindAppSubscription( *item );
+    if ( GUCEF_NULL != subscription )
     {
+        ApplySubscribeOptions( *item, subscription->options );
         item->m_appSubscribed = true;
         UpdateUpstream( *item );
     }

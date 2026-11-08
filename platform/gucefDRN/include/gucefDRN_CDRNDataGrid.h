@@ -230,6 +230,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGrid : public CDRNDataItem
     virtual void WriteSubscribeParams( CDRNWireWriter& writer ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnResubscribe( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnRemoved( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsExpectedPublicData( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CDRNWireReader& body ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool IsDue( UInt64 nodeNow ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual Float32 GetPriority( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

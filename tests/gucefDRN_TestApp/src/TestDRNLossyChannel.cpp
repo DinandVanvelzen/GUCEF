@@ -53,6 +53,9 @@ static const CORE::CString LossyPrefix = "lossy-";
 /** The first protected packet of a channel with recordAuth */
 static CORE::CDynamicBuffer g_recordedAuthPacket;
 
+/** What the channels with capture sent */
+static CDRNLossyChannel::TPacketVector g_capturedPackets;
+
 static Float64
 RandomUnit( void )
 {
@@ -123,6 +126,8 @@ CDRNLossySettings::CDRNLossySettings( void )
     , downgrade( false )
     , recordAuth( false )
     , injectAuth( false )
+    , tamperMacRate( 0 )
+    , capture( false )
 {
 
 }
@@ -144,6 +149,8 @@ CDRNLossySettings::FromParams( const CORE::CValueList& params )
     downgrade = 0 != params.GetValueAlways( "downgrade", CORE::CVariant( (UInt32) 0 ) ).AsUInt32( 0 );
     recordAuth = 0 != params.GetValueAlways( "recordAuth", CORE::CVariant( (UInt32) 0 ) ).AsUInt32( 0 );
     injectAuth = 0 != params.GetValueAlways( "injectAuth", CORE::CVariant( (UInt32) 0 ) ).AsUInt32( 0 );
+    tamperMacRate = params.GetValueAlways( "tamperMac", CORE::CVariant( 0.0 ) ).AsFloat64( 0.0 );
+    capture = 0 != params.GetValueAlways( "capture", CORE::CVariant( (UInt32) 0 ) ).AsUInt32( 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -263,6 +270,7 @@ CDRNLossyChannel::Connect( const DRN::CDRNEndpoint& remote )
     if ( m_pulseGenerator.IsNULL() )
         m_pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
     m_inner->SetPulseGenerator( m_pulseGenerator );
+    m_inner->SetDrivingPulseGenerator( GetDrivingPulseGenerator() );
     SubscribeTo( m_inner.GetPointerAlways() );
     SubscribeTo( m_pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
     UpdateCapabilities();
@@ -407,6 +415,21 @@ CDRNLossyChannel::SendPacket( const void* data, UInt32 size )
         static_cast< UInt8* >( m_tamperBuffer.GetBufferPtr() )[ size - 1 ] ^= 0x01;
         data = m_tamperBuffer.GetConstBufferPtr();
         ++m_tampered;
+    }
+    if ( m_settings.tamperMacRate > 0 && DRN::CDRNPacketProtection::IsMacPacket( static_cast< const UInt8* >( data ), size ) && size > 40 &&
+         RandomUnit() < m_settings.tamperMacRate )
+    {
+        // a value of the clear body changed on the way, as an observer that can write would do
+        m_tamperBuffer.SetDataSize( 0 );
+        m_tamperBuffer.CopyFrom( 0, size, data );
+        static_cast< UInt8* >( m_tamperBuffer.GetBufferPtr() )[ size - DRN::CDRNPacketProtection::TagSize - 1 ] ^= 0x01;
+        data = m_tamperBuffer.GetConstBufferPtr();
+        ++m_tampered;
+    }
+    if ( m_settings.capture )
+    {
+        g_capturedPackets.push_back( CORE::CDynamicBuffer() );
+        g_capturedPackets.back().CopyFrom( 0, size, data );
     }
     if ( size > m_maxSentSize )
         m_maxSentSize = size;
@@ -569,6 +592,22 @@ CDRNLossyChannel::GetTamperedCount( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const CDRNLossyChannel::TPacketVector&
+CDRNLossyChannel::GetCapturedPackets( void )
+{
+    return g_capturedPackets;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNLossyChannel::ClearCapturedPackets( void )
+{
+    g_capturedPackets.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CDRNLossyChannel::GetMaxSentPacketSize( void ) const
 {
@@ -649,6 +688,7 @@ CDRNLossyChannelListener::Listen( const DRN::CDRNEndpoint& local )
         if ( m_inner.IsNULL() )
             return false;
         m_inner->SetPulseGenerator( m_pulseGenerator );
+        m_inner->SetDrivingPulseGenerator( GetDrivingPulseGenerator() );
         SubscribeTo( m_inner.GetPointerAlways() );
     }
     return m_inner->Listen( DRN::CDRNEndpoint( m_innerType, local.GetAddress() ) );

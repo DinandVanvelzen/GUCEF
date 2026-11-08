@@ -47,7 +47,8 @@ namespace DRN {
 
 /**
  *  "shared-secret": the LAN password.
- *  proof = HMAC-SHA256( secret, nonce | service name | initiator node id | acceptor node id )
+ *  proof = HMAC-SHA256( secret, nonce | transcript hash | service name | initiator node id | acceptor node id ),
+ *  the transcript hash binding the proof to this handshake (HELLO and CHALLENGE)
  *  Setting: "secret".
  */
 class GUCEF_DRN_EXPORT_CPP CDRNSharedSecretAuthenticator : public CIDRNAuthenticator

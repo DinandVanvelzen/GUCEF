@@ -84,6 +84,7 @@ const CORE::CEvent CDRNPeerLink::LatencyUpdateEvent = "GUCEF::DRN::CDRNPeerLink:
 const CORE::CEvent CDRNPeerLink::PeerLimitExceededEvent = "GUCEF::DRN::CDRNPeerLink::PeerLimitExceededEvent";
 const CORE::CEvent CDRNPeerLink::ClockAnomalyEvent = "GUCEF::DRN::CDRNPeerLink::ClockAnomalyEvent";
 const CORE::CEvent CDRNPeerLink::TrafficAnomalyEvent = "GUCEF::DRN::CDRNPeerLink::TrafficAnomalyEvent";
+const CORE::CEvent CDRNPeerLink::ProtectionAnomalyEvent = "GUCEF::DRN::CDRNPeerLink::ProtectionAnomalyEvent";
 
 /** RTO before the first RTT sample */
 static const UInt64 InitialRetransmitTimeoutUs = 200000;
@@ -119,6 +120,9 @@ CDRNLinkSettings::CDRNLinkSettings( void )
     , haveStaticKey( false )
     , rekeyPackets( 0 )
     , rekeyBytes( 0 )
+    , allowPublicItems( false )
+    , publicItemProtection( DRN_PUBLICPROTECTION_MAC )
+    , protocolMinor( DRN_PROTOCOL_VERSION_MINOR )
 {GUCEF_TRACE;
 
     memset( policyHash, 0, sizeof( policyHash ) );
@@ -142,6 +146,7 @@ CDRNLinkMessage::CDRNLinkMessage( void )
     : lane( 0 )
     , msgClass( 0 )
     , opcode( 0 )
+    , packetKind( DRN_PACKETKIND_AEAD )
     , payload()
 {GUCEF_TRACE;
 
@@ -161,6 +166,7 @@ CDRNPeerLink::RegisterEvents( void )
     PeerLimitExceededEvent.Initialize();
     ClockAnomalyEvent.Initialize();
     TrafficAnomalyEvent.Initialize();
+    ProtectionAnomalyEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -190,6 +196,7 @@ CDRNPeerLink::CDRNPeerLink( void )
     , m_closeText()
     , m_wasOperational( false )
     , m_remoteNodeId()
+    , m_remoteProtocolMinor( 0 )
     , m_linkId( 0 )
     , m_authResult()
     , m_session( GUCEF_NULL )
@@ -198,6 +205,8 @@ CDRNPeerLink::CDRNPeerLink( void )
     , m_txScratch()
     , m_cryptBuffer()
     , m_monitor()
+    , m_plainMonitor()
+    , m_plainPacketsOverLimit( 0 )
     , m_deferred()
     , m_deferredHead( 0 )
     , m_deferredBytes( 0 )
@@ -211,6 +220,10 @@ CDRNPeerLink::CDRNPeerLink( void )
     , m_havePeerStaticKey( false )
     , m_offeredCiphers()
     , m_currentPacketProtected( false )
+    , m_currentPacketKind( DRN_PACKETKIND_AEAD )
+    , m_downgradedPackets( 0 )
+    , m_protectionDowngrades( 0 )
+    , m_lastDowngradeReport( 0 )
     , m_protectBuffer()
     , m_authFailures( 0 )
     , m_droppedPlainPackets( 0 )
@@ -293,6 +306,8 @@ CDRNPeerLink::Start( const CIDRNChannelPtr& channel, const CDRNLinkSettings& set
     m_lastLatencyEventTime = now;
     m_stateDeadline = now + (UInt64) m_settings.handshakeTimeoutMs * 1000;
     m_monitor.Reset( m_settings.limits, m_settings.anomalies, now );
+    m_plainMonitor.Reset( m_settings.limits, m_settings.anomalies, now );
+    m_plainPacketsOverLimit = 0;
     m_deferred.clear();
     m_deferredProtected.clear();
     m_deferredHead = 0;
@@ -414,7 +429,7 @@ CDRNPeerLink::SendHello( void )
     m_helloPayload.SetDataSize( 0 );
     CDRNWireWriter writer( m_helloPayload );
     writer.WriteUInt8( DRN_PROTOCOL_VERSION_MAJOR );
-    writer.WriteUInt8( DRN_PROTOCOL_VERSION_MINOR );
+    writer.WriteUInt8( m_settings.protocolMinor );
     writer.WriteVarUInt32( DRN_FEATURE_NONE );
     writer.WriteString( m_settings.nodeId );
     writer.WriteString( m_settings.serviceName );
@@ -521,25 +536,53 @@ CDRNPeerLink::OnChannelConnected( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CDRNPeerLink::Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* payload, UInt32 payloadSize )
+CDRNPeerLink::Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* payload, UInt32 payloadSize, UInt8 packetKind )
 {GUCEF_TRACE;
 
-    return SendGather( lane, msgClass, opcode, payload, payloadSize, GUCEF_NULL, 0 );
+    return SendGather( lane, msgClass, opcode, payload, payloadSize, GUCEF_NULL, 0, packetKind );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CDRNPeerLink::Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CORE::CDynamicBuffer& payload )
+CDRNPeerLink::Send( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CORE::CDynamicBuffer& payload, UInt8 packetKind )
 {GUCEF_TRACE;
 
-    return SendGather( lane, msgClass, opcode, payload.GetConstBufferPtr(), payload.GetDataSize(), GUCEF_NULL, 0 );
+    return SendGather( lane, msgClass, opcode, payload.GetConstBufferPtr(), payload.GetDataSize(), GUCEF_NULL, 0, packetKind );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CDRNPeerLink::SendGather( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* part1, UInt32 size1, const void* part2, UInt32 size2 )
+CDRNPeerLink::SendAsPacketKind( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* payload, UInt32 payloadSize, UInt8 packetKind )
+{GUCEF_TRACE;
+
+    if ( LINKSTATE_OPERATIONAL != m_state || !m_protection.IsSendEnabled() || DRN_MSGCLASS_LINK == msgClass || packetKind >= DRN_PACKETKIND_COUNT )
+        return false;
+    return m_reliability.QueueMessage( lane, msgClass, opcode, payload, payloadSize, GUCEF_NULL, 0, packetKind );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt8
+CDRNPeerLink::ResolvePacketKind( UInt8 lane, UInt8 msgClass, UInt8 packetKind ) const
+{GUCEF_TRACE;
+
+    // only the classes the receiver takes in MAC packets (REPL, STREAM, RPC) and in PLAIN packets (REPL and STREAM on
+    // lane 3) go in them; everything else is sealed, and nothing is anything but plain on a link without protection
+    if ( DRN_PACKETKIND_AEAD == packetKind || !m_settings.allowPublicItems || !m_protection.IsSendEnabled() )
+        return DRN_PACKETKIND_AEAD;
+    if ( DRN_MSGCLASS_REPL != msgClass && DRN_MSGCLASS_STREAM != msgClass && DRN_MSGCLASS_RPC != msgClass )
+        return DRN_PACKETKIND_AEAD;
+    if ( DRN_PACKETKIND_PLAIN == packetKind && ( DRN_PUBLICPROTECTION_NONE != m_settings.publicItemProtection || DRN_LANE_UNRELIABLE != lane || DRN_MSGCLASS_RPC == msgClass ) )
+        return DRN_PACKETKIND_MAC;
+    return packetKind < DRN_PACKETKIND_COUNT ? packetKind : (UInt8) DRN_PACKETKIND_AEAD;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNPeerLink::SendGather( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* part1, UInt32 size1, const void* part2, UInt32 size2, UInt8 packetKind )
 {GUCEF_TRACE;
 
     if ( LINKSTATE_OPERATIONAL != m_state )
@@ -552,10 +595,11 @@ CDRNPeerLink::SendGather( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void*
             " bytes is larger than the security policy allows (" << m_settings.limits.maxMessageSize << ")" );
         return false;
     }
-    if ( !m_reliability.QueueMessage( lane, msgClass, opcode, part1, size1, part2, size2 ) )
+    UInt8 kind = ResolvePacketKind( lane, msgClass, packetKind );
+    if ( !m_reliability.QueueMessage( lane, msgClass, opcode, part1, size1, part2, size2, kind ) )
         return false;
     if ( GUCEF_NULL != m_session )
-        m_session->OnLinkTraffic( *this, true, lane, msgClass, opcode, part1, size1, part2, size2 );
+        m_session->OnLinkTraffic( *this, true, lane, msgClass, opcode, part1, size1, part2, size2, kind );
     return true;
 }
 
@@ -582,16 +626,19 @@ CDRNPeerLink::FlushImp( bool forceAck )
     bool force = forceAck;
     const UInt8* packet = GUCEF_NULL;
     UInt32 packetSize = 0;
-    while ( m_reliability.BuildPacket( linkNow, force, packet, packetSize ) )
+    UInt8 packetKind = DRN_PACKETKIND_AEAD;
+    while ( m_reliability.BuildPacket( linkNow, force, packet, packetSize, packetKind ) )
     {
         force = false;
-        m_meter->OnPacketSent( m_reliability.GetNextSequence() - 1, linkNow, packetSize );
+        if ( DRN_PACKETKIND_PLAIN != packetKind )
+            m_meter->OnPacketSent( m_reliability.GetNextSequence() - 1, linkNow, packetSize );
 
+        // AEAD and MAC packets take the link's keys, a PLAIN packet goes as it is
         const void* toSend = packet;
         UInt32 toSendSize = packetSize;
-        if ( m_protection.IsSendEnabled() )
+        if ( DRN_PACKETKIND_PLAIN != packetKind && m_protection.IsSendEnabled() )
         {
-            if ( !m_protection.Protect( packet, packetSize, m_protectBuffer ) )
+            if ( !m_protection.Protect( packet, packetSize, m_protectBuffer, packetKind ) )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNPeerLink(" << CORE::PointerToString( this ) << "): Failed to protect a packet" );
                 continue;
@@ -796,9 +843,27 @@ CDRNPeerLink::OnPacket( const CORE::CDynamicBuffer& packetBuffer )
     const UInt8* data = static_cast< const UInt8* >( packetBuffer.GetConstBufferPtr() );
     UInt32 size = packetBuffer.GetDataSize();
     bool wasProtected = false;
-    if ( CDRNPacketProtection::IsProtectedPacket( data, size ) )
+    UInt8 packetKind = DRN_PACKETKIND_AEAD;
+    bool isMac = CDRNPacketProtection::IsMacPacket( data, size );
+    if ( isMac && ( !m_settings.allowPublicItems || !m_protection.IsReady() || LINKSTATE_OPERATIONAL != m_state ) )
     {
-        if ( !m_protection.IsReady() || !m_protection.Unprotect( data, size, m_cryptBuffer ) )
+        // MAC packets only on an operational protected link whose policy allows public items
+        RefuseDowngradedPacket( DRN_PACKETKIND_MAC, "MAC packets are not allowed on this link" );
+        return;
+    }
+    if ( CDRNPacketProtection::IsPublicPlainPacket( data, size ) )
+    {
+        if ( !m_settings.allowPublicItems || DRN_PUBLICPROTECTION_NONE != m_settings.publicItemProtection || !m_protection.IsReady() || LINKSTATE_OPERATIONAL != m_state )
+        {
+            RefuseDowngradedPacket( DRN_PACKETKIND_PLAIN, "PLAIN packets are not allowed on this link" );
+            return;
+        }
+        packetKind = DRN_PACKETKIND_PLAIN;
+    }
+    else
+    if ( isMac || CDRNPacketProtection::IsProtectedPacket( data, size ) )
+    {
+        if ( !m_protection.IsReady() || !m_protection.Unprotect( data, size, m_cryptBuffer, packetKind ) )
         {
             // forged, changed or of another connection: dropped; a stream that carries one is broken
             ++m_authFailures;
@@ -819,10 +884,29 @@ CDRNPeerLink::OnPacket( const CORE::CDynamicBuffer& packetBuffer )
     {
         // once protected, a plain packet can only be forged
         ++m_droppedPlainPackets;
+        RefuseDowngradedPacket( DRN_PACKETKIND_PLAIN, "a plain packet on a protected link" );
         return;
     }
 
     UInt64 now = CDRNClock::NowInMicroseconds();
+    if ( DRN_PACKETKIND_PLAIN == packetKind )
+    {
+        // no integrity: it does not show that the peer is alive, it is not part of the traffic statistics and it takes
+        // nothing of the receive limits of the authenticated traffic. It has limits of its own and is dropped, never
+        // held back, above them.
+        TDRNLinkAnomalyKind exceeded = DRN_ANOMALY_NONE;
+        if ( !m_plainMonitor.MayReceive( now, exceeded ) )
+        {
+            ++m_plainPacketsOverLimit;
+            m_plainMonitor.OnPacketDropped();
+            return;
+        }
+        m_currentPacketProtected = false;
+        m_currentPacketKind = DRN_PACKETKIND_PLAIN;
+        ProcessReceivedPacket( data, size, now, DRN_PACKETKIND_PLAIN );
+        m_currentPacketKind = DRN_PACKETKIND_AEAD;
+        return;
+    }
     m_lastReceiveTime = now;
 
     CDRNLinkAnomaly traffic;
@@ -836,7 +920,7 @@ CDRNPeerLink::OnPacket( const CORE::CDynamicBuffer& packetBuffer )
     // packets held back for the receive limits go first, in the order they came
     if ( m_deferredHead < m_deferred.size() )
     {
-        DeferPacket( data, size, wasProtected );
+        DeferPacket( data, size, wasProtected, packetKind );
         return;
     }
 
@@ -852,7 +936,7 @@ CDRNPeerLink::OnPacket( const CORE::CDynamicBuffer& packetBuffer )
             return;
         if ( m_reliability.IsTransportReliable() )
         {
-            DeferPacket( data, size, wasProtected );
+            DeferPacket( data, size, wasProtected, packetKind );
         }
         else
         {
@@ -862,14 +946,54 @@ CDRNPeerLink::OnPacket( const CORE::CDynamicBuffer& packetBuffer )
     }
 
     m_currentPacketProtected = wasProtected;
-    ProcessReceivedPacket( data, size, now );
+    m_currentPacketKind = packetKind;
+    ProcessReceivedPacket( data, size, now, packetKind );
     m_currentPacketProtected = false;
+    m_currentPacketKind = DRN_PACKETKIND_AEAD;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNPeerLink::DeferPacket( const UInt8* data, UInt32 size, bool wasProtected )
+CDRNPeerLink::RefuseDowngradedPacket( UInt8 packetKind, const CORE::CString& why )
+{GUCEF_TRACE;
+
+    ++m_downgradedPackets;
+    RefuseDowngrade( 0, 0, packetKind, why );
+
+    // a peer with the same policy never sends it: on a stream it is an attack or a broken peer
+    if ( LINKSTATE_CLOSED != m_state && m_reliability.IsTransportReliable() )
+        CloseNow( DRN_LINKREASON_PROTOCOL_ERROR, why );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::RefuseDowngrade( UInt8 msgClass, UInt32 opcode, UInt8 packetKind, const CORE::CString& why )
+{GUCEF_TRACE;
+
+    ++m_protectionDowngrades;
+    UInt64 now = CDRNClock::NowInMicroseconds();
+    if ( 0 != m_lastDowngradeReport && now - m_lastDowngradeReport < 1000000 )
+        return;
+    m_lastDowngradeReport = now;
+
+    // the class and opcode, never the payload
+    static const char* kindNames[] = { "AEAD", "MAC", "PLAIN" };
+    CDRNLinkAnomaly anomaly;
+    anomaly.kind = DRN_ANOMALY_PROTECTION_DOWNGRADE;
+    anomaly.measured = (Float64) packetKind;
+    anomaly.threshold = 0;
+    anomaly.nodeTime = now;
+    anomaly.text = CORE::CString( "protection downgrade: class " ) + CORE::ToString( (UInt32) msgClass ) + " opcode " + CORE::ToString( opcode ) + " in a " +
+                   ( packetKind < DRN_PACKETKIND_COUNT ? kindNames[ packetKind ] : "unknown" ) + " packet, " + why;
+    ReportAnomaly( ProtectionAnomalyEvent, anomaly );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::DeferPacket( const UInt8* data, UInt32 size, bool wasProtected, UInt8 packetKind )
 {GUCEF_TRACE;
 
     // at most a second's worth, and at least room for the largest message
@@ -894,7 +1018,7 @@ CDRNPeerLink::DeferPacket( const UInt8* data, UInt32 size, bool wasProtected )
     }
     m_deferred.push_back( CORE::CDynamicBuffer() );
     m_deferred.back().CopyFrom( 0, size, data );
-    m_deferredProtected.push_back( wasProtected ? 1 : 0 );
+    m_deferredProtected.push_back( wasProtected ? (UInt8) ( 1 + packetKind ) : ( DRN_PACKETKIND_PLAIN == packetKind ? (UInt8) 0x80 : (UInt8) 0 ) );
     m_deferredBytes += size;
 }
 
@@ -911,11 +1035,14 @@ CDRNPeerLink::ProcessDeferredPackets( UInt64 now )
             return;
 
         m_deferredScratch.Swap( m_deferred[ m_deferredHead ] );
-        m_currentPacketProtected = m_deferredHead < m_deferredProtected.size() && 0 != m_deferredProtected[ m_deferredHead ];
+        UInt8 deferredFlags = m_deferredHead < m_deferredProtected.size() ? m_deferredProtected[ m_deferredHead ] : (UInt8) 0;
+        m_currentPacketProtected = 0 != deferredFlags && 0x80 != deferredFlags;
+        m_currentPacketKind = 0x80 == deferredFlags ? (UInt8) DRN_PACKETKIND_PLAIN : ( m_currentPacketProtected ? (UInt8) ( deferredFlags - 1 ) : (UInt8) DRN_PACKETKIND_AEAD );
         ++m_deferredHead;
         m_deferredBytes -= m_deferredScratch.GetDataSize();
-        ProcessReceivedPacket( static_cast< const UInt8* >( m_deferredScratch.GetConstBufferPtr() ), m_deferredScratch.GetDataSize(), now );
+        ProcessReceivedPacket( static_cast< const UInt8* >( m_deferredScratch.GetConstBufferPtr() ), m_deferredScratch.GetDataSize(), now, m_currentPacketKind );
         m_currentPacketProtected = false;
+        m_currentPacketKind = DRN_PACKETKIND_AEAD;
     }
     if ( m_deferredHead >= m_deferred.size() )
     {
@@ -929,10 +1056,28 @@ CDRNPeerLink::ProcessDeferredPackets( UInt64 now )
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNPeerLink::ProcessReceivedPacket( const UInt8* data, UInt32 size, UInt64 now )
+CDRNPeerLink::ProcessReceivedPacket( const UInt8* data, UInt32 size, UInt64 now, UInt8 packetKind )
 {GUCEF_TRACE;
 
     UInt64 linkNow = now - m_linkEpoch;
+
+    if ( DRN_PACKETKIND_PLAIN == packetKind )
+    {
+        // its own sequence space: nothing of it acknowledges, measures or advances the link's state
+        UInt32 refused = 0;
+        UInt64 plainMessagesBefore = m_reliability.GetStats().messagesReceived;
+        CDRNLinkReliability::TPacketResult plainResult = m_reliability.ProcessPlainPacket( data, size, *this, refused );
+        if ( LINKSTATE_CLOSED == m_state )
+            return;
+        m_plainMonitor.OnReceived( size, (UInt32) ( m_reliability.GetStats().messagesReceived - plainMessagesBefore ) );
+        if ( refused > 0 )
+            RefuseDowngrade( 0, 0, DRN_PACKETKIND_PLAIN, "a PLAIN packet carried messages that are not public lane 3 messages" );
+        if ( CDRNLinkReliability::PACKET_TOO_FAR_AHEAD == plainResult )
+            RefuseDowngrade( 0, 0, DRN_PACKETKIND_PLAIN, "a PLAIN packet with a sequence far ahead of the newest one" );
+        if ( CDRNLinkReliability::PACKET_MALFORMED == plainResult && m_reliability.IsTransportReliable() )
+            CloseNow( DRN_LINKREASON_PROTOCOL_ERROR, "malformed packet" );
+        return;
+    }
 
     CDRNLatencyInfo info;
     m_meter->GetLatencyInfo( info );
@@ -941,7 +1086,7 @@ CDRNPeerLink::ProcessReceivedPacket( const UInt8* data, UInt32 size, UInt64 now 
     CDRNPacketHeader header;
     UInt32 lostBefore = 0;
     UInt64 messagesBefore = m_reliability.GetStats().messagesReceived;
-    CDRNLinkReliability::TPacketResult result = m_reliability.ProcessPacket( data, size, linkNow, lossDelay, *this, header, lostBefore );
+    CDRNLinkReliability::TPacketResult result = m_reliability.ProcessPacket( data, size, linkNow, lossDelay, *this, header, lostBefore, packetKind );
     if ( LINKSTATE_CLOSED == m_state )
         return;
     m_monitor.OnReceived( size, (UInt32) ( m_reliability.GetStats().messagesReceived - messagesBefore ) );
@@ -967,6 +1112,12 @@ CDRNPeerLink::ProcessReceivedPacket( const UInt8* data, UInt32 size, UInt64 now 
                 return;
             }
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DRNPeerLink(" << CORE::PointerToString( this ) << "): Dropped a packet with more than the handshake before the link is operational" );
+            return;
+        }
+        case CDRNLinkReliability::PACKET_WINDOW_FULL:
+        {
+            // a datagram channel only: dropped unacknowledged, its messages come again once the lane's window moved
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DRNPeerLink(" << CORE::PointerToString( this ) << "): Dropped a packet with a reliable message beyond the window of its lane" );
             return;
         }
         case CDRNLinkReliability::PACKET_LIMIT_EXCEEDED:
@@ -1046,6 +1197,21 @@ bool
 CDRNPeerLink::OnLinkMessage( const CDRNMessageView& message )
 {GUCEF_TRACE;
 
+    // what a MAC or PLAIN packet may carry: public item data (and RPC frames in MAC packets); the rest is refused
+    if ( DRN_PACKETKIND_AEAD != message.packetKind )
+    {
+        bool allowed = false;
+        if ( DRN_PACKETKIND_MAC == message.packetKind )
+            allowed = DRN_MSGCLASS_REPL == message.msgClass || DRN_MSGCLASS_STREAM == message.msgClass || DRN_MSGCLASS_RPC == message.msgClass;
+        else
+            allowed = ( DRN_MSGCLASS_REPL == message.msgClass || DRN_MSGCLASS_STREAM == message.msgClass ) && DRN_LANE_UNRELIABLE == message.lane;
+        if ( !allowed || LINKSTATE_OPERATIONAL != m_state )
+        {
+            RefuseDowngrade( message.msgClass, message.opcode, message.packetKind, "the message class may not travel in this packet kind" );
+            return LINKSTATE_CLOSED != m_state;
+        }
+    }
+
     if ( DRN_MSGCLASS_LINK == message.msgClass )
         return HandleLinkMessage( message );
 
@@ -1053,12 +1219,13 @@ CDRNPeerLink::OnLinkMessage( const CDRNMessageView& message )
         return LINKSTATE_CLOSED != m_state;
 
     if ( GUCEF_NULL != m_session )
-        m_session->OnLinkTraffic( *this, false, message.lane, message.msgClass, message.opcode, message.payload, message.payloadSize, GUCEF_NULL, 0 );
+        m_session->OnLinkTraffic( *this, false, message.lane, message.msgClass, message.opcode, message.payload, message.payloadSize, GUCEF_NULL, 0, message.packetKind );
 
     CDRNLinkMessage& rx = m_rxMessage.GetData();
     rx.lane = message.lane;
     rx.msgClass = message.msgClass;
     rx.opcode = message.opcode;
+    rx.packetKind = message.packetKind;
     rx.payload.LinkTo( message.payload, message.payloadSize );
     NotifyObservers( MessageReceivedEvent, &m_rxMessage );
     return LINKSTATE_CLOSED != m_state;
@@ -1096,6 +1263,7 @@ CDRNPeerLink::HandleLinkMessage( const CDRNMessageView& message )
                 Refuse( DRN_LINKREASON_PROTOCOL_VERSION, "protocol version " + CORE::UInt32ToString( major ) + " is not supported" );
                 return false;
             }
+            m_remoteProtocolMinor = minor;
             if ( !reader.ReadString( m_remoteNodeId ) || !reader.ReadString( service ) || !reader.ReadVarUInt64( m_remoteLinkEpoch ) ||
                  !reader.ReadSizedBytes( policyHash, policyHashSize ) || !reader.ReadSizedBytes( peerEphemeral, peerEphemeralSize ) ||
                  !reader.ReadVarUInt32( offerCount ) || offerCount > 32 )
@@ -1167,7 +1335,7 @@ CDRNPeerLink::HandleLinkMessage( const CDRNMessageView& message )
             CDRNWireWriter writer( m_challengePayload );
             writer.WriteSizedBytes( m_nonce, DRN_CHALLENGE_NONCE_SIZE );
             writer.WriteString( m_settings.nodeId );
-            writer.WriteUInt8( DRN_PROTOCOL_VERSION_MINOR );
+            writer.WriteUInt8( m_settings.protocolMinor );
             writer.WriteString( method );
             writer.WriteSizedBytes( m_settings.policyHash, DRN_HANDSHAKE_HASH_SIZE );
             writer.WriteSizedBytes( m_ephemeralPublic, m_haveEphemeral ? DRN_HANDSHAKE_KEY_SIZE : 0 );
@@ -1224,6 +1392,7 @@ CDRNPeerLink::HandleLinkMessage( const CDRNMessageView& message )
                 CloseNow( DRN_LINKREASON_PROTOCOL_ERROR, "malformed CHALLENGE" );
                 return false;
             }
+            m_remoteProtocolMinor = minor;
             memcpy( m_nonce, nonce, DRN_CHALLENGE_NONCE_SIZE );
             if ( DRN_HANDSHAKE_HASH_SIZE != policyHashSize || !CDRNCrypto::ConstantTimeEquals( policyHash, m_settings.policyHash, DRN_HANDSHAKE_HASH_SIZE ) )
             {
@@ -1667,6 +1836,15 @@ CDRNPeerLink::GetRemoteNodeId( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt8
+CDRNPeerLink::GetRemoteProtocolMinor( void ) const
+{GUCEF_TRACE;
+
+    return m_remoteProtocolMinor;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CDRNPeerLink::GetLinkId( void ) const
 {GUCEF_TRACE;
@@ -1728,6 +1906,9 @@ CDRNPeerLink::GetTelemetry( CORE::CDataNode& telemetry ) const
     telemetry.SetAttribute( "messagesResent", stats.messagesResent );
     telemetry.SetAttribute( "preAuthRefusedPackets", stats.preAuthRefusedPackets );
     telemetry.SetAttribute( "rateLimitedPackets", stats.rateLimitedPackets );
+    telemetry.SetAttribute( "windowRefusedPackets", stats.windowRefusedPackets );
+    telemetry.SetAttribute( "plainTooFarPackets", stats.plainTooFarPackets );
+    telemetry.SetAttribute( "plainPacketsOverLimit", m_plainPacketsOverLimit );
     telemetry.SetAttribute( "openFragmentGroups", m_reliability.GetOpenFragmentGroups() );
     telemetry.SetAttribute( "openFragmentBytes", m_reliability.GetOpenFragmentBytes() );
     telemetry.SetAttribute( "deferredPackets", (UInt32) ( m_deferred.size() - m_deferredHead ) );
@@ -1742,6 +1923,9 @@ CDRNPeerLink::GetTelemetry( CORE::CDataNode& telemetry ) const
     telemetry.SetAttribute( "clockOffsetUs", info.clockOffset );
 
     m_monitor.GetTelemetry( telemetry );
+    CORE::CDataNode* limitHits = telemetry.FindOrAddChild( "limitHits" );
+    if ( GUCEF_NULL != limitHits )
+        limitHits->SetAttribute( "protectionDowngrade", m_protectionDowngrades );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1791,6 +1975,15 @@ CDRNPeerLink::GetProtection( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDRNPeerLink::HasPinnedKey( void ) const
+{GUCEF_TRACE;
+
+    return m_havePinnedKey;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const UInt8*
 CDRNPeerLink::GetPeerStaticKey( void ) const
 {GUCEF_TRACE;
@@ -1823,6 +2016,24 @@ CDRNPeerLink::GetDroppedPlainPacketCount( void ) const
 {GUCEF_TRACE;
 
     return m_droppedPlainPackets;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNPeerLink::GetDowngradedPacketCount( void ) const
+{GUCEF_TRACE;
+
+    return m_downgradedPackets;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CDRNPeerLink::GetProtectionDowngradeCount( void ) const
+{GUCEF_TRACE;
+
+    return m_protectionDowngrades;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -80,7 +80,7 @@ class CDRNMemoryChannel : public GUCEF::DRN::CIDRNChannel
     CDRNMemoryChannel* m_peer;
     bool m_connected;
     bool m_announceConnected;
-    bool m_announceDisconnected;
+    bool m_announceDisconnected;          /**< set by the other end when it goes, on its thread: read and written under the lock of the channels */
     GUCEF::MT::CMutex m_queueLock;
     TBufferVector m_queue;
     GUCEF::UInt32 m_queueHead;

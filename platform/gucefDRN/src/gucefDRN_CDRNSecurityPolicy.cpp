@@ -71,6 +71,9 @@ const CORE::CString CDRNSecurityPolicy::ClassTypeName = "GUCEF::DRN::CDRNSecurit
 /** Version of the canonical encoding, part of what is hashed */
 static const UInt8 PolicyEncodingVersion = 2;
 
+/** The encoding version of a policy with allowPublicItems: version 2 and two bytes after the anomaly thresholds */
+static const UInt8 PolicyEncodingVersionPublicItems = 3;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -278,6 +281,8 @@ CDRNSecurityPolicy::CDRNSecurityPolicy( void )
     , relayOnly( false )
     , allowedAuthenticators()
     , statelessCookies( true )
+    , allowPublicItems( false )
+    , publicItemProtection( DRN_PUBLICPROTECTION_MAC )
     , limits()
     , anomalies()
 {GUCEF_TRACE;
@@ -299,6 +304,8 @@ CDRNSecurityPolicy::CDRNSecurityPolicy( const CDRNSecurityPolicy& src )
     , relayOnly( src.relayOnly )
     , allowedAuthenticators( src.allowedAuthenticators )
     , statelessCookies( src.statelessCookies )
+    , allowPublicItems( src.allowPublicItems )
+    , publicItemProtection( src.publicItemProtection )
     , limits( src.limits )
     , anomalies( src.anomalies )
 {GUCEF_TRACE;
@@ -329,6 +336,8 @@ CDRNSecurityPolicy::operator=( const CDRNSecurityPolicy& src )
         relayOnly = src.relayOnly;
         allowedAuthenticators = src.allowedAuthenticators;
         statelessCookies = src.statelessCookies;
+        allowPublicItems = src.allowPublicItems;
+        publicItemProtection = src.publicItemProtection;
         limits = src.limits;
         anomalies = src.anomalies;
     }
@@ -410,6 +419,16 @@ CDRNSecurityPolicy::IsWeakerThan( const CDRNSecurityPolicy& minimum, CORE::CStri
     if ( !IsNameSubset( allowedAuthenticators, minimum.allowedAuthenticators, extra ) )
     {
         why = "it allows the authenticator " + extra;
+        return true;
+    }
+    if ( allowPublicItems && !minimum.allowPublicItems )
+    {
+        why = "it allows public items";
+        return true;
+    }
+    if ( allowPublicItems && DRN_PUBLICPROTECTION_NONE == publicItemProtection && DRN_PUBLICPROTECTION_MAC == minimum.publicItemProtection )
+    {
+        why = "public items travel without protection";
         return true;
     }
     const CDRNPolicyLimits& minimumLimits = minimum.limits;
@@ -496,6 +515,42 @@ CDRNSecurityPolicy::CanBeHonoured( CORE::CString& whyNot ) const
 
 /*-------------------------------------------------------------------------*/
 
+TDRNPacketKind
+CDRNSecurityPolicy::ResolvePacketKind( TDRNProtectionClass protectionClass, UInt8 lane ) const
+{GUCEF_TRACE;
+
+    if ( DRN_PROTECTION_PUBLIC != protectionClass || !allowPublicItems )
+        return DRN_PACKETKIND_AEAD;
+    if ( DRN_PUBLICPROTECTION_NONE == publicItemProtection && DRN_LANE_UNRELIABLE == lane )
+        return DRN_PACKETKIND_PLAIN;
+    return DRN_PACKETKIND_MAC;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CDRNSecurityPolicy::ProtectionClassToString( TDRNProtectionClass protectionClass )
+{GUCEF_TRACE;
+
+    return DRN_PROTECTION_PUBLIC == protectionClass ? "public" : "confidential";
+}
+
+/*-------------------------------------------------------------------------*/
+
+TDRNProtectionClass
+CDRNSecurityPolicy::StringToProtectionClass( const CORE::CString& text, TDRNProtectionClass defaultClass )
+{GUCEF_TRACE;
+
+    CORE::CString lowered = text.Lowercase().Trim( true ).Trim( false );
+    if ( lowered == "public" )
+        return DRN_PROTECTION_PUBLIC;
+    if ( lowered == "confidential" )
+        return DRN_PROTECTION_CONFIDENTIAL;
+    return defaultClass;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDRNSecurityPolicy::GetCanonicalEncoding( CORE::CDynamicBuffer& encoding ) const
 {GUCEF_TRACE;
@@ -503,7 +558,7 @@ CDRNSecurityPolicy::GetCanonicalEncoding( CORE::CDynamicBuffer& encoding ) const
     encoding.SetDataSize( 0 );
     CDRNWireWriter writer( encoding );
     writer.WriteString( "DRNSecurityPolicy" );
-    writer.WriteUInt8( PolicyEncodingVersion );
+    writer.WriteUInt8( allowPublicItems ? PolicyEncodingVersionPublicItems : PolicyEncodingVersion );
     writer.WriteUInt8( requireEncryption ? 1 : 0 );
     writer.WriteUInt8( requireSignedTokens ? 1 : 0 );
     writer.WriteUInt8( requireTokenPolicyHash ? 1 : 0 );
@@ -557,6 +612,13 @@ CDRNSecurityPolicy::GetCanonicalEncoding( CORE::CDynamicBuffer& encoding ) const
     writer.WriteVarUInt32( anomalies.burstPackets );
     writer.WriteVarUInt32( anomalies.burstWindowMs );
     writer.WriteVarUInt32( anomalies.floodPacketsPerSecond );
+
+    // version 3: public items. Without them the encoding (and every hash and token made of it) is that of version 2
+    if ( allowPublicItems )
+    {
+        writer.WriteUInt8( 1 );
+        writer.WriteUInt8( (UInt8) publicItemProtection );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -604,6 +666,10 @@ CDRNSecurityPolicy::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "relayOnly", relayOnly ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "allowedAuthenticators", CORE::CString::Empty.Combine( allowedAuthenticators, ',' ) ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "statelessCookies", statelessCookies ) && totalSuccess;
+    if ( allowPublicItems )
+        totalSuccess = cfg.SetAttribute( "allowPublicItems", allowPublicItems ) && totalSuccess;
+    if ( DRN_PUBLICPROTECTION_MAC != publicItemProtection )
+        totalSuccess = cfg.SetAttribute( "publicItemProtection", "none" ) && totalSuccess;
 
     CORE::CDataNode* limitsNode = cfg.FindOrAddChild( "Limits" );
     if ( GUCEF_NULL == limitsNode )
@@ -651,6 +717,9 @@ CDRNSecurityPolicy::LoadConfig( const CORE::CDataNode& cfg )
     if ( authenticatorsValue.IsInitialized() )
         allowedAuthenticators = ParseNameSet( authenticatorsValue.AsString( CORE::CString::Empty, true ) );
     statelessCookies = cfg.GetAttributeValueOrChildValueByName( "statelessCookies" ).AsBool( statelessCookies, true );
+    allowPublicItems = cfg.GetAttributeValueOrChildValueByName( "allowPublicItems" ).AsBool( allowPublicItems, true );
+    CORE::CString publicProtection = cfg.GetAttributeValueOrChildValueByName( "publicItemProtection" ).AsString( DRN_PUBLICPROTECTION_MAC == publicItemProtection ? "mac" : "none", true ).Lowercase();
+    publicItemProtection = publicProtection == "none" ? DRN_PUBLICPROTECTION_NONE : DRN_PUBLICPROTECTION_MAC;
 
     const CORE::CDataNode* limitsNode = cfg.FindChild( "Limits" );
     if ( GUCEF_NULL != limitsNode )

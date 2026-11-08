@@ -75,6 +75,9 @@ enum TDRNLinkAnomalyKind
     DRN_ANOMALY_BURST_AFTER_SILENCE     = 30,   /**< silence and then a burst of packets: a lag switch */
     DRN_ANOMALY_FLOOD                   = 31,   /**< more packets in a second than floodPacketsPerSecond */
 
+    // ProtectionAnomalyEvent (CDRNPeerLink)
+    DRN_ANOMALY_PROTECTION_DOWNGRADE    = 40,   /**< a packet or message with weaker protection than allowed; measured = the TDRNPacketKind */
+
     DRN_LINK_LIMIT_KIND_COUNT           = 7     /**< the limit kinds are 1 to 6 */
 };
 

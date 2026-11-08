@@ -265,7 +265,7 @@ CDRNHashTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
 /*-------------------------------------------------------------------------*/
 
 CDRNBulkTransfer::CDRNBulkTransfer( CDRNBulkTransferManager& manager )
-    : CORE::CTSGNotifier( manager.GetSession().GetNode().GetAppPulseGenerator(), true, true )
+    : CDRNApplicationNotifier( manager.GetSession().GetNode() )
     , m_manager( &manager )
     , m_info()
     , m_state( TRANSFERSTATE_OFFERED )
@@ -310,10 +310,7 @@ void
 CDRNBulkTransfer::Emit( const CORE::CEvent& eventid, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( m_manager->GetSession().GetNode().IsRunningOwnThread() )
-        NotifyObserversFromThread( eventid, eventData );
-    else
-        NotifyObservers( eventid, eventData );
+    EmitToApplication( eventid, eventData );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -767,10 +764,11 @@ CDRNBulkTransfer::Tick( UInt64 /* nodeNow */ )
 /*-------------------------------------------------------------------------*/
 
 CDRNBulkTransferManager::CDRNBulkTransferManager( CDRNSession& session )
-    : CORE::CTSGNotifier( session.GetNode().GetAppPulseGenerator(), true, true )
+    : CDRNApplicationNotifier( session.GetNode() )
     , CIDRNSessionComponent()
     , m_session( &session )
     , m_transfers()
+    , m_retired()
     , m_nextTransferId( 1 )
     , m_txBuffer()
 {GUCEF_TRACE;
@@ -787,6 +785,9 @@ CDRNBulkTransferManager::~CDRNBulkTransferManager()
     for ( UInt32 i=0; i<m_transfers.size(); ++i )
         GUCEF_DELETE m_transfers[ i ];
     m_transfers.clear();
+    for ( UInt32 i=0; i<m_retired.size(); ++i )
+        GUCEF_DELETE m_retired[ i ];
+    m_retired.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -823,10 +824,7 @@ void
 CDRNBulkTransferManager::Emit( const CORE::CEvent& eventid, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( m_session->GetNode().IsRunningOwnThread() )
-        NotifyObserversFromThread( eventid, eventData );
-    else
-        NotifyObservers( eventid, eventData );
+    EmitToApplication( eventid, eventData );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -835,8 +833,10 @@ void
 CDRNBulkTransferManager::Reset( void )
 {GUCEF_TRACE;
 
-    for ( UInt32 i=0; i<m_transfers.size(); ++i )
-        GUCEF_DELETE m_transfers[ i ];
+    // under the node lock: the transfers go with the manager, as the grids and streams of an earlier membership go with
+    // the replicator. A transfer that goes lets go of its mail, which waits for a delivery under way on the thread of
+    // the application's pulse generator, whose handlers may take the node lock (CDRNApplicationNotifier)
+    m_retired.insert( m_retired.end(), m_transfers.begin(), m_transfers.end() );
     m_transfers.clear();
     m_nextTransferId = 1;
 }
@@ -931,19 +931,26 @@ bool
 CDRNBulkTransferManager::Release( CDRNBulkTransfer* transfer )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_session->GetNode().GetLock() );
-    for ( UInt32 i=0; i<m_transfers.size(); ++i )
+    bool released = false;
     {
-        if ( m_transfers[ i ] == transfer )
+        MT::CScopeMutex lock( m_session->GetNode().GetLock() );
+        for ( UInt32 i=0; i<m_transfers.size(); ++i )
         {
-            if ( CDRNBulkTransfer::TRANSFERSTATE_COMPLETED != transfer->m_state && CDRNBulkTransfer::TRANSFERSTATE_FAILED != transfer->m_state )
-                return false;
-            m_transfers.erase( m_transfers.begin() + i );
-            GUCEF_DELETE transfer;
-            return true;
+            if ( m_transfers[ i ] == transfer )
+            {
+                if ( CDRNBulkTransfer::TRANSFERSTATE_COMPLETED != transfer->m_state && CDRNBulkTransfer::TRANSFERSTATE_FAILED != transfer->m_state )
+                    return false;
+                m_transfers.erase( m_transfers.begin() + i );
+                released = true;
+                break;
+            }
         }
     }
-    return false;
+
+    // without the node lock: the transfer lets go of its mail (CDRNApplicationNotifier)
+    if ( released )
+        GUCEF_DELETE transfer;
+    return released;
 }
 
 /*-------------------------------------------------------------------------*/

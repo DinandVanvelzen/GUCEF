@@ -144,6 +144,11 @@
 #define GUCEF_DRN_CDRNDATABASECLIENT_H
 #endif /* GUCEF_DRN_CDRNDATABASECLIENT_H ? */
 
+#ifndef GUCEF_DRN_CDRNRPCTRANSPORTLISTENER_H
+#include "gucefDRN_CDRNRpcTransportListener.h"
+#define GUCEF_DRN_CDRNRPCTRANSPORTLISTENER_H
+#endif /* GUCEF_DRN_CDRNRPCTRANSPORTLISTENER_H ? */
+
 #ifndef GUCEF_CORE_CTASKMANAGER_H
 #include "gucefCORE_CTaskManager.h"
 #define GUCEF_CORE_CTASKMANAGER_H
@@ -190,6 +195,8 @@ static TSharedSecretAuthenticatorFactory g_sharedSecretAuthenticatorFactory;
 static TTokenAuthenticatorFactory g_tokenAuthenticatorFactory;
 static CORE::CTFactory< CORE::CTaskConsumer, CDRNHashTaskConsumer, MT::CMutex > g_hashTaskConsumerFactory;
 static TDRNDatabaseClientFactory g_databaseClientFactory;
+static CORE::CTFactory< COMCORE::CIRpcTransport, CDRNRpcTransport, MT::CMutex > g_rpcTransportFactory;
+static CORE::CTFactory< COMCORE::CIRpcTransportListener, CDRNRpcTransportListener, MT::CMutex > g_rpcTransportListenerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -254,6 +261,10 @@ CDRNGlobal::Initialize( void )
     // the grids of a session as the tables of a database
     COMCORE::CComCoreGlobal::Instance()->GetDatabaseClientFactory().RegisterConcreteFactory( CDRNDatabaseClient::BackendName, &g_databaseClientFactory );
 
+    // the members of a session as RPC peers: transport and listener "drn"
+    COMCORE::CComCoreGlobal::Instance()->GetRpcTransportFactory().RegisterConcreteFactory( CDRNRpcTransport::TransportType, &g_rpcTransportFactory );
+    COMCORE::CComCoreGlobal::Instance()->GetRpcTransportListenerFactory().RegisterConcreteFactory( CDRNRpcTransport::TransportType, &g_rpcTransportListenerFactory );
+
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefDRN" );
 }
 
@@ -270,6 +281,10 @@ CDRNGlobal::~CDRNGlobal()
     COMCORE::CComCoreGlobal* comCoreGlobal = COMCORE::CComCoreGlobal::Instance();
     if ( GUCEF_NULL != comCoreGlobal && comCoreGlobal->GetDatabaseClientFactory().IsConstructible( CDRNDatabaseClient::BackendName ) )
         comCoreGlobal->GetDatabaseClientFactory().UnregisterConcreteFactory( CDRNDatabaseClient::BackendName );
+    if ( GUCEF_NULL != comCoreGlobal && comCoreGlobal->GetRpcTransportFactory().IsConstructible( CDRNRpcTransport::TransportType ) )
+        comCoreGlobal->GetRpcTransportFactory().UnregisterConcreteFactory( CDRNRpcTransport::TransportType );
+    if ( GUCEF_NULL != comCoreGlobal && comCoreGlobal->GetRpcTransportListenerFactory().IsConstructible( CDRNRpcTransport::TransportType ) )
+        comCoreGlobal->GetRpcTransportListenerFactory().UnregisterConcreteFactory( CDRNRpcTransport::TransportType );
 
     GUCEF_DELETE m_sessionRegistry;
     m_sessionRegistry = GUCEF_NULL;

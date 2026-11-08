@@ -79,6 +79,16 @@ class GUCEF_DRN_EXPORT_CPP CIDRNChannelListener : public CORE::CObservingNotifie
 
     virtual CORE::PulseGeneratorPtr GetPulseGenerator( void ) const = 0;
 
+    /**
+     *  The pulse generator of the thread that pulses the one of SetPulseGenerator(), to be set before Listen(): for one of
+     *  a node that is CDRNNode::GetPulseGenerator(), the application's pulse generator or, on a node with a thread of
+     *  its own, the node's own. For listeners whose transport may be used on one thread only (that of the application's
+     *  pulse generator); NULL (the default) means that the pulse generator of SetPulseGenerator() is pulsed directly.
+     */
+    virtual void SetDrivingPulseGenerator( CORE::PulseGeneratorPtr drivingPulseGenerator );
+
+    virtual CORE::PulseGeneratorPtr GetDrivingPulseGenerator( void ) const;
+
     /** What the listener needs of the node's security policy, to be set before Listen(); the default takes nothing */
     virtual void ApplySecurityPolicy( const CDRNSecurityPolicy& policy );
 
@@ -88,6 +98,8 @@ class GUCEF_DRN_EXPORT_CPP CIDRNChannelListener : public CORE::CObservingNotifie
 
     CIDRNChannelListener( const CIDRNChannelListener& src );
     CIDRNChannelListener& operator=( const CIDRNChannelListener& src );
+
+    CORE::PulseGeneratorPtr m_drivingPulseGenerator;
 };
 
 /*-------------------------------------------------------------------------*/

@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CTSGNOTIFIER_H
 #endif /* GUCEF_CORE_CTSGNOTIFIER_H ? */
 
+#ifndef GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#include "gucefDRN_CDRNApplicationNotifier.h"
+#define GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#endif /* GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H ? */
+
 #ifndef GUCEF_CORE_CIDATANODESERIALIZABLE_H
 #include "gucefCORE_CIDataNodeSerializable.h"
 #define GUCEF_CORE_CIDATANODESERIALIZABLE_H
@@ -72,7 +77,7 @@ class CDRNSession;
  *  Items are created and owned by their session; events reach the application as the session's events do.
  *  An item can be dumped to a CDataNode (Serialize) for debugging; it is bound to its session and cannot be cloned.
  */
-class GUCEF_DRN_EXPORT_CPP CDRNDataItem : public CORE::CTSGNotifier          ,
+class GUCEF_DRN_EXPORT_CPP CDRNDataItem : public CDRNApplicationNotifier       ,
                                           public CORE::CIDataNodeSerializable
 {
     public:
@@ -101,6 +106,12 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataItem : public CORE::CTSGNotifier          ,
 
     /** The publisher removed the item or left */
     bool IsRemoved( void ) const;
+
+    /** CONFIDENTIAL, or PUBLIC when declared so and the security policy allows public items; fixed for the item's life */
+    TDRNProtectionClass GetProtectionClass( void ) const;
+
+    /** The data that flows from the publisher (or a serving replica) to a subscriber: what a PUBLIC item sends public */
+    static bool IsPublicDataMessage( UInt8 msgClass, UInt32 opcode );
 
     /** Members the item is sent to from here */
     UInt32 GetSubscriberCount( void ) const;
@@ -142,6 +153,13 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataItem : public CORE::CTSGNotifier          ,
     /** The upstream changed or must be asked again: the replica starts over */
     virtual void OnResubscribe( void );
 
+    /**
+     *  Whether this item sends a public data message (IsPublicDataMessage) of this class and opcode on this lane, with
+     *  what the body says about itself (a delta's flags): the receiving replica refuses a message of a MAC or PLAIN
+     *  packet that the item does not send that way. The body reader starts after the item reference.
+     */
+    virtual bool IsExpectedPublicData( UInt8 lane, UInt8 msgClass, UInt32 opcode, const CDRNWireReader& body ) const;
+
     /** The item went away at the publisher */
     virtual void OnRemoved( void );
 
@@ -149,6 +167,13 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataItem : public CORE::CTSGNotifier          ,
     virtual Float32 GetPriority( void ) const = 0;
 
     void Emit( const CORE::CEvent& eventid, CORE::CICloneable* eventData = GUCEF_NULL );
+
+    /**
+     *  Sets the protection class and resolves the packet kind of each lane from the node's security policy. A PUBLIC
+     *  class under a policy without allowPublicItems becomes CONFIDENTIAL with a warning (fail safe)
+     */
+    void SetProtectionClass( TDRNProtectionClass protectionClass );
+
 
     /** Starts a message to a member: the item reference is written, the rest follows */
     CDRNWireWriter& BeginMessage( void );
@@ -172,6 +197,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataItem : public CORE::CTSGNotifier          ,
     bool m_removed;
     Float32 m_priorityAccumulator;
     UInt32 m_subscriberCount;
+    TDRNProtectionClass m_protectionClass;
+    UInt8 m_laneKinds[ DRN_LANE_COUNT ];    /**< TDRNPacketKind of the public data per lane */
     CORE::CDynamicBuffer m_txBuffer;
     CDRNWireWriter m_txWriter;
 

@@ -68,6 +68,11 @@
 #define GUCEF_DRN_CDRNDATAGRIDTABLE_H
 #endif /* GUCEF_DRN_CDRNDATAGRIDTABLE_H ? */
 
+#ifndef GUCEF_DRN_CDRNPUBLISHEDTABLE_H
+#include "gucefDRN_CDRNPublishedTable.h"
+#define GUCEF_DRN_CDRNPUBLISHEDTABLE_H
+#endif /* GUCEF_DRN_CDRNPUBLISHEDTABLE_H ? */
+
 #include "gucefDRN_CDRNDatabaseClient.h"
 
 /*-------------------------------------------------------------------------//
@@ -104,6 +109,34 @@ IsSnapshotWaitOver( CDRNSession& session, const CDRNDataGrid& grid, bool& remove
     MT::CScopeMutex lock( session.GetNode().GetLock() );
     removed = grid.IsRemoved();
     return removed || grid.IsSnapshotComplete();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Backend option "<table>.format = published": the grid carries a table of a CDRNTablePublisher */
+static bool
+IsPublishedFormat( const CORE::CValueList& options, const CORE::CString& tableName )
+{
+    CORE::CString key = tableName + ".format";
+    return options.HasKey( key ) && options.GetValueAlways( key ).AsString().Equals( "published", false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The settings of a published table from the backend options */
+static CDRNPublishedTableSettings
+GetPublishedTableSettings( const CORE::CValueList& options )
+{
+    CDRNPublishedTableSettings settings;
+    if ( options.HasKey( "scanChunkKeys" ) )
+        settings.scanChunkKeyCount = options.GetValueAlways( "scanChunkKeys" ).AsUInt32( settings.scanChunkKeyCount );
+    if ( options.HasKey( "snapshotCacheMs" ) )
+        settings.snapshotCacheMs = options.GetValueAlways( "snapshotCacheMs" ).AsUInt32( settings.snapshotCacheMs );
+    if ( options.HasKey( "deferUntilConsistent" ) )
+        settings.deferUntilConsistent = options.GetValueAlways( "deferUntilConsistent" ).AsBool( settings.deferUntilConsistent );
+    if ( options.HasKey( "maxDeferMs" ) )
+        settings.maxDeferMs = options.GetValueAlways( "maxDeferMs" ).AsUInt32( settings.maxDeferMs );
+    return settings;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -439,6 +472,15 @@ CDRNDatabaseClient::GetTableDefinition( const CORE::CString& tableName, CORE::CD
     if ( GUCEF_NULL == grid )
         return Fail( CORE::DATATABLE_STATUS_NOT_FOUND, "The session has no grid \"" + tableName + "\"" );
 
+    const CORE::CValueList& options = GetSettings().backendOptions;
+    if ( IsPublishedFormat( options, tableName ) )
+    {
+        CDRNPublishedTable table( *grid, GetPublishedTableSettings( options ), GetSettings().pulseGenerator );
+        if ( !table.IsValid() )
+            return Fail( CORE::DATATABLE_STATUS_NOT_FOUND, "The grid \"" + tableName + "\" carries no published table (no #schema yet)" );
+        definition = table.GetDefinition();
+        return Succeed();
+    }
     CDRNDataGridTable table( *session, *grid, GetTableSettings( tableName ), GetSettings().pulseGenerator );
     definition = table.GetDefinition();
     return Succeed();
@@ -486,6 +528,19 @@ CDRNDatabaseClient::OpenTable( const CORE::CString& tableName, CORE::CIDataTable
             MT::ThreadDelay( 1 );
     }
 
+    // a page of a CDRNTablePublisher, typed by its #schema, or the grid's own key / value table
+    const CORE::CValueList& options = GetSettings().backendOptions;
+    if ( IsPublishedFormat( options, tableName ) )
+    {
+        CDRNPublishedTable* published = GUCEF_NEW CDRNPublishedTable( *grid, GetPublishedTableSettings( options ), GetSettings().pulseGenerator );
+        table = CORE::CIDataTablePtr( published );
+        if ( !published->IsValid() )
+        {
+            table.Unlink();
+            return Fail( CORE::DATATABLE_STATUS_NOT_FOUND, "The grid \"" + tableName + "\" carries no published table (no #schema yet)" );
+        }
+        return Succeed();
+    }
     table = CORE::CIDataTablePtr( GUCEF_NEW CDRNDataGridTable( *session, *grid, GetTableSettings( tableName ), GetSettings().pulseGenerator ) );
     return Succeed();
 }

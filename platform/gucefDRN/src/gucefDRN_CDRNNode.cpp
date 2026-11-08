@@ -24,11 +24,6 @@
 
 #include <string.h>
 
-#ifndef GUCEF_MT_CACTIVEOBJECT_H
-#include "gucefMT_CActiveObject.h"
-#define GUCEF_MT_CACTIVEOBJECT_H
-#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
-
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -59,6 +54,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 #ifndef GUCEF_DRN_CDRNCLOCK_H
 #include "gucefDRN_CDRNClock.h"
 #define GUCEF_DRN_CDRNCLOCK_H
@@ -73,6 +73,11 @@
 #include "gucefDRN_CIDRNAccessPolicy.h"
 #define GUCEF_DRN_CIDRNACCESSPOLICY_H
 #endif /* GUCEF_DRN_CIDRNACCESSPOLICY_H ? */
+
+#ifndef GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#include "gucefDRN_CDRNApplicationNotifier.h"
+#define GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#endif /* GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H ? */
 
 #ifndef GUCEF_DRN_CDRNSESSION_H
 #include "gucefDRN_CDRNSession.h"
@@ -135,6 +140,7 @@ const CORE::CEvent CDRNNode::RelayBindingLostEvent = "GUCEF::DRN::CDRNNode::Rela
 const CORE::CEvent CDRNNode::PeerLimitExceededEvent = "GUCEF::DRN::CDRNNode::PeerLimitExceededEvent";
 const CORE::CEvent CDRNNode::ClockAnomalyEvent = "GUCEF::DRN::CDRNNode::ClockAnomalyEvent";
 const CORE::CEvent CDRNNode::TrafficAnomalyEvent = "GUCEF::DRN::CDRNNode::TrafficAnomalyEvent";
+const CORE::CEvent CDRNNode::ProtectionAnomalyEvent = "GUCEF::DRN::CDRNNode::ProtectionAnomalyEvent";
 
 /** The window of the handshakes per address */
 static const UInt64 HandshakeWindowUs = 60000000;
@@ -142,72 +148,11 @@ static const UInt64 HandshakeWindowUs = 60000000;
 /** At most this many addresses are tracked for the handshake rate */
 static const UInt32 MaxTrackedAddresses = 65536;
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      CLASSES                                                            //
-//                                                                         //
-//-------------------------------------------------------------------------*/
+/** How long starting the node's own thread may take */
+static const UInt32 OwnThreadStartTimeoutMs = 10000;
 
-/**
- *  The thread of a node that runs on a thread of its own: pulses the node's pulse generator under the node lock
- */
-class CDRNNodeThread : public MT::CActiveObject
-{
-    public:
-
-    explicit CDRNNodeThread( CDRNNode* node )
-        : MT::CActiveObject()
-        , m_node( node )
-        , m_lock()
-    {GUCEF_TRACE;
-    }
-
-    virtual ~CDRNNodeThread()
-    {GUCEF_TRACE;
-    }
-
-    protected:
-
-    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE
-    {GUCEF_TRACE;
-
-        return this;
-    }
-
-    protected:
-
-    virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE
-    {GUCEF_TRACE;
-
-        return m_lock.Lock( lockWaitTimeoutInMs );
-    }
-
-    virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE
-    {GUCEF_TRACE;
-
-        return m_lock.Unlock();
-    }
-
-    virtual bool OnThreadStart( void* /* taskdata */ ) GUCEF_VIRTUAL_OVERRIDE
-    {GUCEF_TRACE;
-
-        m_node->m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
-        m_node->m_channelReaper->SetOwnerThreadId( MT::GetCurrentTaskID() );
-        return true;
-    }
-
-    virtual bool OnThreadCycle( void* /* taskdata */ ) GUCEF_VIRTUAL_OVERRIDE
-    {GUCEF_TRACE;
-
-        m_node->RunThreadCycle();
-        return false;
-    }
-
-    private:
-
-    CDRNNode* m_node;
-    MT::CMutex m_lock;
-};
+/** How long stopping waits for the node's own thread before it reports it (and waits again where it has to) */
+static const UInt32 OwnThreadStopTimeoutMs = 10000;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -237,6 +182,16 @@ CDRNNode::CInternalObserver::OnNotify( CORE::CNotifier* notifier, const CORE::CE
 /*-------------------------------------------------------------------------*/
 
 void
+CDRNNode::CAppPulseObserver::OnNotify( CORE::CNotifier* /* notifier */, const CORE::CEvent& eventid, CORE::CICloneable* /* eventdata */ )
+{GUCEF_TRACE;
+
+    if ( CORE::CPulseGenerator::PulseEvent == eventid && GUCEF_NULL != m_node )
+        m_node->OnAppPulse();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CDRNNode::RegisterEvents( void )
 {GUCEF_TRACE;
 
@@ -249,6 +204,7 @@ CDRNNode::RegisterEvents( void )
     PeerLimitExceededEvent.Initialize();
     ClockAnomalyEvent.Initialize();
     TrafficAnomalyEvent.Initialize();
+    ProtectionAnomalyEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -260,12 +216,14 @@ CDRNNode::CDRNNode( void )
     , m_authenticator()
     , m_channelReaper( CDRNChannelReaper::CreateSharedObj() )
     , m_appPulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() )
-    , m_pulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() )
-    , m_thread( GUCEF_NULL )
+    , m_pulseGenerator()
+    , m_nodePulseDriver( GUCEF_NULL )
+    , m_task()
     , m_relayClient( GUCEF_NULL )
     , m_relayService( GUCEF_NULL )
     , m_advertisedEndpoints()
     , m_observer()
+    , m_appPulseObserver()
     , m_listeners()
     , m_links()
     , m_closedLinks()
@@ -283,7 +241,12 @@ CDRNNode::CDRNNode( void )
     , m_refusedForBan( 0 )
     , m_refusedForPending( 0 )
     , m_refusedForRate( 0 )
+    , m_unhandledMessages( 0 )
+    , m_lastUnhandledLog( 0 )
     , m_nodeLock()
+    , m_threadWake( 0 )
+    , m_threadWakePending( 0 )
+    , m_workingThreadId( 0 )
 {GUCEF_TRACE;
 
     Construct();
@@ -298,12 +261,14 @@ CDRNNode::CDRNNode( const CORE::PulseGeneratorPtr& appPulseGenerator )
     , m_authenticator()
     , m_channelReaper( CDRNChannelReaper::CreateSharedObj() )
     , m_appPulseGenerator( appPulseGenerator )
-    , m_pulseGenerator( appPulseGenerator )
-    , m_thread( GUCEF_NULL )
+    , m_pulseGenerator()
+    , m_nodePulseDriver( GUCEF_NULL )
+    , m_task()
     , m_relayClient( GUCEF_NULL )
     , m_relayService( GUCEF_NULL )
     , m_advertisedEndpoints()
     , m_observer()
+    , m_appPulseObserver()
     , m_listeners()
     , m_links()
     , m_closedLinks()
@@ -321,7 +286,12 @@ CDRNNode::CDRNNode( const CORE::PulseGeneratorPtr& appPulseGenerator )
     , m_refusedForBan( 0 )
     , m_refusedForPending( 0 )
     , m_refusedForRate( 0 )
+    , m_unhandledMessages( 0 )
+    , m_lastUnhandledLog( 0 )
     , m_nodeLock()
+    , m_threadWake( 0 )
+    , m_threadWakePending( 0 )
+    , m_workingThreadId( 0 )
 {GUCEF_TRACE;
 
     Construct();
@@ -338,6 +308,16 @@ CDRNNode::Construct( void )
     memset( m_staticPrivateKey, 0, sizeof( m_staticPrivateKey ) );
     memset( m_staticPublicKey, 0, sizeof( m_staticPublicKey ) );
     m_observer.m_node = this;
+    m_appPulseObserver.m_node = this;
+
+    // The node works on a pulse generator of its own, which it pulses under the node lock (RunThreadCycle()) when the
+    // application's pulse generator pulses, or its own thread cycles: the channels, listeners and connectors of the
+    // node are pulsed under the node lock only (gucefDRN design 9). What they ask of their pulse generator goes to its
+    // driver: the application's pulse generator through CDRNNodePulseDriver, or the node's task while it runs.
+    m_nodePulseDriver = GUCEF_NEW CDRNNodePulseDriver( m_appPulseGenerator );
+    m_pulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
+    m_pulseGenerator->SetPulseGeneratorDriver( m_nodePulseDriver );
+
     m_defaultAccessPolicy = GUCEF_NEW CDRNDefaultAccessPolicy();
     m_accessPolicy = m_defaultAccessPolicy;
     m_authenticator = m_settings.auth.CreateAuthenticator();
@@ -347,6 +327,7 @@ CDRNNode::Construct( void )
         m_relayService = GUCEF_NEW CDRNRelayService( *this );
     m_observer.SubscribeTo( m_pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
     m_pulseGenerator->RequestPeriodicPulses( this, m_settings.pulseIntervalMs );
+    m_appPulseObserver.SubscribeTo( m_appPulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -356,12 +337,24 @@ CDRNNode::~CDRNNode()
 
     Stop();
 
-    MT::CScopeMutex lock( m_nodeLock );
+    // the node's thread works on this node: it goes only after that thread is done with it
+    while ( !StopOwnThread() ) {}
+
+    // no pulse of the application reaches the node any more: the unsubscription waits for one under way
+    m_appPulseObserver.UnsubscribeAllFromObserver();
+    m_appPulseObserver.m_node = GUCEF_NULL;
+
+    // the sessions go without the node lock: a session lets go of its mail, which waits for a delivery under way on
+    // the thread of the application's pulse generator, whose handlers may take the node lock
     TSessionVector sessions;
-    sessions.swap( m_sessions );
+    {
+        MT::CScopeMutex lock( m_nodeLock );
+        sessions.swap( m_sessions );
+    }
     for ( UInt32 i=0; i<sessions.size(); ++i )
         GUCEF_DELETE sessions[ i ];
 
+    MT::CScopeMutex lock( m_nodeLock );
     m_observer.m_node = GUCEF_NULL;
     m_observer.UnsubscribeAllFromObserver();
     if ( !m_pulseGenerator.IsNULL() )
@@ -376,6 +369,14 @@ CDRNNode::~CDRNNode()
     m_relayClient = GUCEF_NULL;
     memset( m_staticPrivateKey, 0, sizeof( m_staticPrivateKey ) );
     memset( m_linkSettings.staticPrivateKey, 0, sizeof( m_linkSettings.staticPrivateKey ) );
+    lock.EarlyUnlock();
+
+    // what is left of the node's pulse generator (a reference somewhere) no longer reaches the application's
+    if ( !m_pulseGenerator.IsNULL() )
+        m_pulseGenerator->SetPulseGeneratorDriver( GUCEF_NULL );
+    m_pulseGenerator.Unlink();
+    GUCEF_DELETE m_nodePulseDriver;
+    m_nodePulseDriver = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -392,6 +393,7 @@ CDRNNode::UpdateLinkSettings( void )
     m_linkSettings.latencyUpdateIntervalMs = m_settings.latencyUpdateIntervalMs;
     m_linkSettings.ackDelayMs = m_settings.ackDelayMs;
     m_linkSettings.firstSequence = 0 != m_settings.firstSequence ? m_settings.firstSequence : 1;
+    m_linkSettings.protocolMinor = m_settings.protocolMinor;
     m_linkSettings.limits = m_settings.securityPolicy.limits;
     m_linkSettings.anomalies = m_settings.securityPolicy.anomalies;
     m_linkSettings.banList = m_banList;
@@ -399,6 +401,8 @@ CDRNNode::UpdateLinkSettings( void )
     m_linkSettings.requireEncryption = m_settings.securityPolicy.requireEncryption;
     m_linkSettings.requireTokenPolicyHash = m_settings.securityPolicy.requireTokenPolicyHash;
     m_linkSettings.ciphers = m_settings.securityPolicy.ciphers;
+    m_linkSettings.allowPublicItems = m_settings.securityPolicy.allowPublicItems;
+    m_linkSettings.publicItemProtection = m_settings.securityPolicy.publicItemProtection;
 
     // the static key, when there is key agreement; it may have come with a plugin since the last call
     EnsureStaticKey();
@@ -550,8 +554,8 @@ CDRNNode::SetSettings( const CDRNNodeSettings& settings )
         }
     }
 
-    if ( threadingChange && !settings.ownThread )
-        StopOwnThread();
+    if ( threadingChange && !settings.ownThread && !StopOwnThread() )
+        return false;
 
     {
         MT::CScopeMutex lock( m_nodeLock );
@@ -608,52 +612,78 @@ bool
 CDRNNode::StartOwnThread( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_thread )
+    if ( !m_task.IsNULL() )
         return true;
 
+    // the thread of the node is a dedicated task of the task manager, so that every thread of the process is known there
+    CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_settings.threadPoolName );
+    if ( threadPool.IsNULL() )
     {
-        MT::CScopeMutex lock( m_nodeLock );
-        if ( !m_pulseGenerator.IsNULL() )
-        {
-            m_pulseGenerator->RequestStopOfPeriodicUpdates( this );
-            m_observer.UnsubscribeFrom( *m_pulseGenerator.GetPointerAlways() );
-        }
-        m_pulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
-        m_observer.SubscribeTo( m_pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
-    }
-
-    m_thread = GUCEF_NEW CDRNNodeThread( this );
-    if ( !m_thread->Activate( GUCEF_NULL, 1, 1 ) )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNNode: Failed to start the thread of the node" );
-        GUCEF_DELETE m_thread;
-        m_thread = GUCEF_NULL;
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNNode: No thread pool \"" << m_settings.threadPoolName << "\" for the thread of the node" );
         return false;
     }
-    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DRNNode: Running on a thread of its own" );
+
+    // from now on the application's pulses no longer have the node work: its own thread does. Without the node lock:
+    // the unsubscription waits for a pulse under way, which takes the node lock
+    m_appPulseObserver.UnsubscribeAllFromObserver();
+    m_nodePulseDriver->Shutdown();
+
+    CDRNNodeTaskPtr task( GUCEF_NEW CDRNNodeTask( *this ) );
+    m_task = task;
+    CORE::CFutureResult started = threadPool->StartTaskWithConsumer( task );
+    if ( started.HasNoFuture() || !task->WaitUntilStarted( OwnThreadStartTimeoutMs ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNNode: Failed to start the thread of the node on the thread pool \"" << m_settings.threadPoolName << "\"" );
+        if ( !started.HasNoFuture() )
+            task->RequestTaskToStop( true );
+        m_task.Unlink();
+        m_appPulseObserver.SubscribeTo( m_appPulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+        m_pulseGenerator->RequestPeriodicPulses( this, m_settings.pulseIntervalMs );
+        return false;
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DRNNode: Running on a dedicated task of the thread pool \"" << m_settings.threadPoolName << "\"" );
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
+CDRNNode::OnOwnThreadStarted( void )
+{GUCEF_TRACE;
+
+    // called on the node's own thread when it starts, which drives the node's pulse generator from now on
+    MT::CScopeMutex lock( m_nodeLock );
+    m_channelReaper->SetOwnerThreadId( MT::GetCurrentTaskID() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDRNNode::StopOwnThread( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_thread )
-        return;
+    if ( m_task.IsNULL() )
+        return true;
 
-    m_thread->Deactivate( false, true );
-    GUCEF_DELETE m_thread;
-    m_thread = GUCEF_NULL;
+    // waits until the task's thread is done with the node: it takes the node lock in its cycles. A thread that does not
+    // end in time keeps its task (and so the node's knowledge of it): it is never left running on a node that goes
+    m_task->RequestTaskToStop( false );
+    if ( !m_task->WaitUntilEnded( OwnThreadStopTimeoutMs ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "DRNNode: The thread of the node did not end within " << OwnThreadStopTimeoutMs <<
+                         " ms (is the node lock held while stopping it?); the node keeps it until it ended" );
+        return false;
+    }
+    m_task.Unlink();
 
     // the channels let go of on other threads are destroyed now, from now on wherever they are let go of
     m_channelReaper->SetOwnerThreadId( 0 );
     m_channelReaper->Reap();
 
-    // from now on the node works on the calling thread
-    if ( !m_pulseGenerator.IsNULL() )
-        m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentTaskID() );
+    // from now on the application's pulses have the node work again (the task gave the node's pulse generator back to
+    // its driver, CDRNNodePulseDriver, which asks the application's for the pulses again)
+    m_appPulseObserver.SubscribeTo( m_appPulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -662,8 +692,89 @@ void
 CDRNNode::RunThreadCycle( void )
 {GUCEF_TRACE;
 
+    // every pulse of the node's pulse generator happens here, under the node lock: the node lock is the first lock the
+    // thread that works on the node takes for it (gucefDRN design 9, lock order)
     MT::CScopeMutex lock( m_nodeLock );
-    m_pulseGenerator->ForceDirectPulse();
+    const UInt32 previousWorkingThreadId = m_workingThreadId.Load();
+    m_workingThreadId.Store( MT::GetCurrentTaskID() );
+    if ( !m_pulseGenerator.IsNULL() )
+        m_pulseGenerator->ForceDirectPulse();
+    m_workingThreadId.Store( previousWorkingThreadId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::OnAppPulse( void )
+{GUCEF_TRACE;
+
+    // without a thread of its own the node works when the application's pulse generator pulses
+    RunThreadCycle();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDRNNode::IsWorkingOnThisThread( void ) const
+{GUCEF_TRACE;
+
+    return m_workingThreadId.Load() == MT::GetCurrentTaskID();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::PostApplicationEvent( CDRNApplicationNotifier& source, const CORE::CEvent& eventid, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // into the mail of the node, which the application's pulse generator delivers (OnPumpedNotify()): the mailbox lock
+    // is a leaf, it may be taken under the node lock
+    static_cast< CORE::CPumpedObserver& >( AsObserver() ).AddEventToMailbox( &source, eventid, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::DiscardApplicationEvents( CDRNApplicationNotifier& source )
+{GUCEF_TRACE;
+
+    static_cast< CORE::CPumpedObserver& >( AsObserver() ).DiscardMailOf( &source );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::OnPumpedNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventdata )
+{GUCEF_TRACE;
+
+    // the mail of the node carries the node's own events, which do not come here, and those of its objects, which
+    // PostApplicationEvent() put there: the node observes no other notifier through its mailbox
+    if ( GUCEF_NULL != notifier )
+        static_cast< CDRNApplicationNotifier* >( notifier )->DeliverApplicationEvent( eventid, eventdata );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::WakeOwnThread( void )
+{GUCEF_TRACE;
+
+    // one post covers every wake until the thread took it: a cycle always follows the wait that takes it
+    UInt32 expected = 0;
+    if ( m_threadWakePending.CompareExchangeStrong( expected, 1 ) )
+        m_threadWake.Post();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::WaitForThreadWork( UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    // returns at once when a wake is pending; the flag is cleared after the post is taken, so that a wake that comes
+    // later posts again, and one that comes in between is served by the cycle that follows this wait
+    if ( 0 == m_threadWake.WaitOrTimeout( timeoutInMs ) )
+        m_threadWakePending.Store( 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -679,7 +790,7 @@ CDRNNode::Start( void )
         return false;
     }
 
-    if ( m_settings.ownThread && GUCEF_NULL == m_thread )
+    if ( m_settings.ownThread && m_task.IsNULL() )
     {
         if ( !StartOwnThread() )
             return false;
@@ -772,6 +883,7 @@ CDRNNode::Listen( const CDRNEndpoint& local )
         return false;
     }
     listener->SetPulseGenerator( m_pulseGenerator );
+    listener->SetDrivingPulseGenerator( GetPulseGenerator() );
     listener->ApplySecurityPolicy( m_settings.securityPolicy );
     m_observer.SubscribeTo( listener.GetPointerAlways(), CIDRNChannelListener::ChannelAcceptedEvent );
     if ( !listener->Listen( local ) )
@@ -908,17 +1020,25 @@ void
 CDRNNode::DestroySession( CDRNSession* session )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_nodeLock );
-    for ( UInt32 i=0; i<m_sessions.size(); ++i )
+    bool found = false;
     {
-        if ( m_sessions[ i ] == session )
+        MT::CScopeMutex lock( m_nodeLock );
+        for ( UInt32 i=0; i<m_sessions.size(); ++i )
         {
-            m_sessions.erase( m_sessions.begin() + i );
-            session->Shutdown();
-            GUCEF_DELETE session;
-            return;
+            if ( m_sessions[ i ] == session )
+            {
+                m_sessions.erase( m_sessions.begin() + i );
+                session->Shutdown();
+                found = true;
+                break;
+            }
         }
     }
+
+    // without the node lock: the session lets go of its mail, which waits for a delivery under way on the thread of the
+    // application's pulse generator, whose handlers may take the node lock
+    if ( found )
+        GUCEF_DELETE session;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -987,6 +1107,33 @@ CDRNNode::GetBanList( void ) const
 /*-------------------------------------------------------------------------*/
 
 UInt32
+CDRNNode::GetUnhandledMessageCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_nodeLock );
+    return m_unhandledMessages;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::OnUnhandledMessage( const CDRNPeerLink& link, const CDRNLinkMessage& message, const char* why )
+{GUCEF_TRACE;
+
+    // a newer peer may use a class this node does not know: counted, logged at most once per second, never the payload
+    ++m_unhandledMessages;
+    UInt64 now = CDRNClock::NowInMicroseconds();
+    if ( 0 != m_lastUnhandledLog && now - m_lastUnhandledLog < 1000000 )
+        return;
+    m_lastUnhandledLog = now;
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DRNNode: Dropped a message of class " << (UInt32) message.msgClass << " opcode " << message.opcode <<
+                       " from node \"" << link.GetRemoteNodeId() << "\" (protocol 2." << (UInt32) link.GetRemoteProtocolMinor() << "): " << why <<
+                       "; " << m_unhandledMessages << " so far" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
 CDRNNode::GetPendingHandshakeCount( void ) const
 {GUCEF_TRACE;
 
@@ -1027,6 +1174,7 @@ CDRNNode::GetTelemetry( CORE::CDataNode& telemetry ) const
     telemetry.SetAttribute( "refusedForBan", m_refusedForBan );
     telemetry.SetAttribute( "refusedForPendingHandshakes", m_refusedForPending );
     telemetry.SetAttribute( "refusedForHandshakeRate", m_refusedForRate );
+    telemetry.SetAttribute( "unhandledMessages", m_unhandledMessages );
     for ( UInt32 i=0; i<m_links.size(); ++i )
     {
         CORE::CDataNode* linkNode = telemetry.AddChild( "Link" );
@@ -1140,6 +1288,18 @@ CORE::PulseGeneratorPtr
 CDRNNode::GetPulseGenerator( void ) const
 {GUCEF_TRACE;
 
+    // the node's own pulse generator is driven by the application's, or by the node's task
+    if ( IsRunningOwnThread() )
+        return m_pulseGenerator;
+    return m_appPulseGenerator;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::PulseGeneratorPtr
+CDRNNode::GetWorkPulseGenerator( void ) const
+{GUCEF_TRACE;
+
     return m_pulseGenerator;
 }
 
@@ -1158,7 +1318,7 @@ bool
 CDRNNode::IsRunningOwnThread( void ) const
 {GUCEF_TRACE;
 
-    return GUCEF_NULL != m_thread;
+    return !m_task.IsNULL();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1226,6 +1386,7 @@ CDRNNode::OnLinkMessage( CDRNPeerLink* link, const CDRNLinkMessage& message )
         case DRN_MSGCLASS_REPL:
         case DRN_MSGCLASS_STREAM:
         case DRN_MSGCLASS_BULK:
+        case DRN_MSGCLASS_RPC:
         {
             CDRNSession* session = link->GetSession();
             if ( GUCEF_NULL != session )
@@ -1252,7 +1413,9 @@ CDRNNode::OnLinkMessage( CDRNPeerLink* link, const CDRNLinkMessage& message )
                 writer.WriteString( "no session \"" + sessionName + "\" here" );
                 link->Send( DRN_LANE_RELIABLE_ORDERED, DRN_MSGCLASS_SESSION, DRN_SESSION_JOINED, reply );
                 link->Flush();
+                return;
             }
+            OnUnhandledMessage( *link, message, "the link belongs to no session" );
             return;
         }
         case DRN_MSGCLASS_RELAY:
@@ -1274,6 +1437,7 @@ CDRNNode::OnLinkMessage( CDRNPeerLink* link, const CDRNLinkMessage& message )
         }
         default:
         {
+            OnUnhandledMessage( *link, message, "unknown message class" );
             return;
         }
     }
@@ -1472,6 +1636,13 @@ CDRNNode::OnInternalNotify( CORE::CNotifier* notifier, const CORE::CEvent& event
         return;
     }
 
+    // The standard events of the notifiers the node observes come under the lock of the notifier, also when the node
+    // subscribes or unsubscribes (the subscribe event), which it does under the node lock. They need nothing of the node,
+    // and taking the node lock for them would make that lock wait under the notifier's lock (gucefDRN design 9)
+    if ( CORE::CNotifier::SubscribeEvent == eventid || CORE::CNotifier::UnsubscribeEvent == eventid ||
+         CORE::CNotifier::ModifyEvent == eventid || CORE::CNotifier::DestructionEvent == eventid )
+        return;
+
     MT::CScopeMutex lock( m_nodeLock );
 
     if ( CDRNPeerLink::MessageReceivedEvent == eventid )
@@ -1533,6 +1704,11 @@ CDRNNode::OnInternalNotify( CORE::CNotifier* notifier, const CORE::CEvent& event
     if ( CDRNPeerLink::TrafficAnomalyEvent == eventid )
     {
         ForwardLinkEvent( TrafficAnomalyEvent, static_cast< CDRNPeerLink* >( notifier ), eventdata );
+    }
+    else
+    if ( CDRNPeerLink::ProtectionAnomalyEvent == eventid )
+    {
+        ForwardLinkEvent( ProtectionAnomalyEvent, static_cast< CDRNPeerLink* >( notifier ), eventdata );
     }
     else
     if ( CIDRNChannelListener::ChannelAcceptedEvent == eventid )

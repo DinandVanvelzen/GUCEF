@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CTSGNOTIFIER_H
 #endif /* GUCEF_CORE_CTSGNOTIFIER_H ? */
 
+#ifndef GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#include "gucefDRN_CDRNApplicationNotifier.h"
+#define GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H
+#endif /* GUCEF_DRN_CDRNAPPLICATIONNOTIFIER_H ? */
+
 #ifndef GUCEF_CORE_COBSERVER_H
 #include "CObserver.h"
 #define GUCEF_CORE_COBSERVER_H
@@ -49,6 +54,11 @@
 #include "gucefDRN_CIDRNSessionComponent.h"
 #define GUCEF_DRN_CIDRNSESSIONCOMPONENT_H
 #endif /* GUCEF_DRN_CIDRNSESSIONCOMPONENT_H ? */
+
+#ifndef GUCEF_DRN_CDRNSUBSCRIBEOPTIONS_H
+#include "gucefDRN_CDRNSubscribeOptions.h"
+#define GUCEF_DRN_CDRNSUBSCRIBEOPTIONS_H
+#endif /* GUCEF_DRN_CDRNSUBSCRIBEOPTIONS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -127,7 +137,7 @@ typedef CORE::CTCloneableObj< CDRNAppMessage > CDRNAppMessageEventData;
  *
  *  Events are delivered on the application's pulse generator (see CDRNNode). Created by CDRNNode::CreateSession().
  */
-class GUCEF_DRN_EXPORT_CPP CDRNSession : public CORE::CTSGNotifier
+class GUCEF_DRN_EXPORT_CPP CDRNSession : public CDRNApplicationNotifier
 {
     public:
 
@@ -199,6 +209,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNSession : public CORE::CTSGNotifier
 
     /** The application wants the items of this name, of one owner or (0) of every owner */
     bool Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId = 0 );
+
+    /** As Subscribe( itemName, ownerPeerId ), a stream starting where the options say (CDRNReplicator::Subscribe) */
+    bool Subscribe( const CORE::CString& itemName, UInt32 ownerPeerId, const CDRNSubscribeOptions& options );
 
     bool Unsubscribe( const CORE::CString& itemName, UInt32 ownerPeerId = 0 );
 
@@ -322,7 +335,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNSession : public CORE::CTSGNotifier
 
     /** Every message sent or received over a link of the session, for the recorder */
     void OnLinkTraffic( const CDRNPeerLink& link, bool outgoing, UInt8 lane, UInt8 msgClass, UInt32 opcode,
-                        const void* part1, UInt32 size1, const void* part2, UInt32 size2 );
+                        const void* part1, UInt32 size1, const void* part2, UInt32 size2, UInt8 packetKind );
     CDRNPeerLink* GetSequencerLink( void ) const;
     void PublishLatency( UInt64 nodeNow );
 

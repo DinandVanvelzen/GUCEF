@@ -340,13 +340,9 @@ CDRNReachabilityManager::Start( const CDRNReachabilitySettings& settings )
 
     Stop();
 
-    MT::CScopeMutex lock( m_node->GetLock() );
-    m_settings = settings;
-    m_deadline = CDRNClock::NowInMicroseconds() + (UInt64) settings.timeoutMs * 1000;
-    m_complete = false;
-    m_lastList.Clear();
-
-    // the port mappers, for every UDP and TCP listener
+    // The port mappers are made before the node lock is taken: a factory runs code of others, and a mapper subscribes
+    // its socket to the pulse generator of the application, whose pulses take the node lock (gucefDRN design 9.1)
+    TMapperVector mappers;
     for ( UInt32 m=0; m<settings.portMappers.size(); ++m )
     {
         const CDRNReachabilitySettings::CPortMapperConfig& mapperConfig = settings.portMappers[ m ];
@@ -358,7 +354,22 @@ CDRNReachabilityManager::Start( const CDRNReachabilitySettings& settings )
         }
         if ( mapperConfig.config.GetAttCount() > 0 || mapperConfig.config.GetNrOfChildNodes() > 0 )
             mapper->LoadConfig( mapperConfig.config );
-        m_mappers.push_back( mapper );
+        mappers.push_back( mapper );
+    }
+
+    MT::CScopeMutex lock( m_node->GetLock() );
+    m_settings = settings;
+    m_deadline = CDRNClock::NowInMicroseconds() + (UInt64) settings.timeoutMs * 1000;
+    m_complete = false;
+    m_lastList.Clear();
+
+    // the port mappers, for every UDP and TCP listener. Taken over without a copy: a copy of a shared pointer takes its
+    // shared lock, under which the last reference destroys the mapper (it unsubscribes from the pulse generator of the
+    // application), so no shared lock of a mapper is taken under the node lock
+    m_mappers.swap( mappers );
+    for ( UInt32 m=0; m<m_mappers.size(); ++m )
+    {
+        COMCORE::CIPortMapperPtr& mapper = m_mappers[ m ];
 
         for ( UInt32 i=0; i<m_node->m_listeners.size(); ++i )
         {
@@ -390,7 +401,7 @@ CDRNReachabilityManager::Start( const CDRNReachabilitySettings& settings )
             COMCORE::CUDPSocket* socket = static_cast< const CDRNUdpChannelListener* >( listener.GetPointerAlways() )->GetSocket();
             if ( GUCEF_NULL == socket )
                 continue;
-            COM::CStunClient* stun = GUCEF_NEW COM::CStunClient( *socket, m_node->GetPulseGenerator() );
+            COM::CStunClient* stun = GUCEF_NEW COM::CStunClient( *socket, m_node->GetWorkPulseGenerator() );
             m_stunClients.push_back( stun );
             m_stunListeners.push_back( listener );
             for ( UInt32 s=0; s<settings.stunServers.size(); ++s )
@@ -408,7 +419,7 @@ CDRNReachabilityManager::Start( const CDRNReachabilitySettings& settings )
     for ( UInt32 i=0; i<settings.relays.GetCount(); ++i )
         m_node->BindAtRelay( settings.relays.Get( i ), settings.relayRealm );
 
-    m_observer.SubscribeTo( m_node->GetPulseGenerator().GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+    m_observer.SubscribeTo( m_node->GetWorkPulseGenerator().GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
     m_started = true;
     return true;
 }
@@ -419,6 +430,9 @@ void
 CDRNReachabilityManager::Stop( void )
 {GUCEF_TRACE;
 
+    // the port mappers go once the node lock is given up: a mapper unsubscribes its socket from the pulse generator of
+    // the application, whose pulses take the node lock (gucefDRN design 9.1)
+    TMapperVector mappers;
     MT::CScopeMutex lock( m_node->GetLock() );
     m_observer.UnsubscribeAllFromObserver();
     m_questions.clear();
@@ -426,12 +440,14 @@ CDRNReachabilityManager::Stop( void )
         GUCEF_DELETE m_stunClients[ i ];
     m_stunClients.clear();
     m_stunListeners.clear();
-    m_mappers.clear();
+    mappers.swap( m_mappers );
     m_mapped.Clear();
     m_reflexive.Clear();
     if ( m_started )
         m_node->SetAdvertisedEndpoints( CDRNEndpointList() );
     m_started = false;
+    lock.EarlyUnlock();
+    mappers.clear();
 }
 
 /*-------------------------------------------------------------------------*/

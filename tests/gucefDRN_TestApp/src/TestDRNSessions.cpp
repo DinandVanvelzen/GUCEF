@@ -31,6 +31,11 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 #ifndef GUCEF_DRN_H
 #include "gucefDRN.h"
 #define GUCEF_DRN_H
@@ -59,6 +64,36 @@ using namespace DRNTEST;
 #define REQUIRE_TRUE(t)  do { if ( !(t) ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( #t, __FILE__, __LINE__ ); throw std::exception(); } } while ( 0 )
 
 typedef GUCEF::vector< CORE::CString > TStringVector;
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Counts the pulses of a pulse generator and remembers the threads they came on
+ */
+class CPulseThreadRecorder : public CORE::CObserver
+{
+    public:
+
+    MT::CTAtomic< UInt32 > pulses;
+    MT::CTAtomic< UInt32 > pulseThread;
+    MT::CTAtomic< UInt32 > otherThreadPulses;
+
+    CPulseThreadRecorder( void ) : CORE::CObserver(), pulses( 0 ), pulseThread( 0 ), otherThreadPulses( 0 ) {}
+    virtual ~CPulseThreadRecorder() { SignalUpcomingObserverDestruction(); }
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( CORE::CPulseGenerator::PulseEvent != eventid )
+            return;
+        UInt32 thread = MT::GetCurrentTaskID();
+        UInt32 expected = 0;
+        if ( !pulseThread.CompareExchangeStrong( expected, thread ) && expected != thread )
+            ++otherThreadPulses;
+        ++pulses;
+    }
+};
 
 /*-------------------------------------------------------------------------*/
 
@@ -544,6 +579,115 @@ PerformDRNSessionTests( void )
         nodeA.Stop();
         nodeB.Stop();
         ASSERT_FALSE( nodeA.IsRunningOwnThread() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Sessions: A node on a thread of its own runs as a dedicated task of the task manager, pulsed under the node lock" )
+    try
+    {
+        CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
+        DRN::CDRNNodeSettings defaults;
+        ASSERT_TRUE( defaults.threadPoolName == "gucef.drn" );
+
+        // a pool of its own for the test, so that the counts are the node's alone
+        CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "drntest.nodetask" );
+        ASSERT_FALSE( pool.IsNULL() );
+        UInt32 dedicatedBefore = pool->GetActiveNrOfDedicatedThreads();
+
+        DRN::CDRNNodeSettings settings;
+        settings.ownThread = true;
+        settings.threadPoolName = "drntest.nodetask";
+        DRN::CDRNNode node;
+        ASSERT_TRUE( node.SetSettings( settings ) );
+        ASSERT_TRUE( node.IsRunningOwnThread() );
+        ASSERT_TRUE( dedicatedBefore + 1 == pool->GetActiveNrOfDedicatedThreads() );
+
+        // the node works on the pulse generator of that task's thread, and only there
+        CORE::PulseGeneratorPtr nodePulse = node.GetPulseGenerator();
+        ASSERT_FALSE( nodePulse.IsNULL() );
+        ASSERT_TRUE( nodePulse != node.GetAppPulseGenerator() );
+        CPulseThreadRecorder recorder;
+        recorder.SubscribeTo( nodePulse.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+        for ( UInt32 i=0; i<200 && recorder.pulses.Load() < 20; ++i )
+            MT::ThreadDelay( 5 );
+        ASSERT_TRUE( recorder.pulses.Load() >= 20 );
+        UInt32 nodeThread = recorder.pulseThread.Load();
+        ASSERT_TRUE( 0 != nodeThread && MT::GetCurrentTaskID() != nodeThread );
+
+        // an immediate pulse asked for from another thread is made on the node's thread, not on the asking one
+        nodePulse->RequestImmediatePulse();
+        MT::ThreadDelay( 20 );
+        ASSERT_TRUE( 0 == recorder.otherThreadPulses.Load() );
+
+        // the node pulses only while it holds its lock: holding the lock here holds the pulses
+        {
+            MT::CScopeMutex lock( node.GetLock() );
+            UInt32 before = recorder.pulses.Load();
+            MT::ThreadDelay( 50 );
+            nodePulse->RequestImmediatePulse();
+            MT::ThreadDelay( 50 );
+            ASSERT_TRUE( before == recorder.pulses.Load() );
+        }
+        UInt32 afterLock = recorder.pulses.Load();
+        for ( UInt32 i=0; i<200 && recorder.pulses.Load() == afterLock; ++i )
+            MT::ThreadDelay( 5 );
+        ASSERT_TRUE( recorder.pulses.Load() > afterLock );
+
+        // stopping ends the task: the thread is gone from the pool
+        recorder.UnsubscribeAllFromObserver();
+        node.Stop();
+        ASSERT_FALSE( node.IsRunningOwnThread() );
+        bool released = false;
+        for ( UInt32 i=0; i<400 && !released; ++i )
+        {
+            released = dedicatedBefore == pool->GetActiveNrOfDedicatedThreads();
+            if ( !released )
+                PumpFor( 5 );   // the pool learns of the thread's end through its pulse generator
+        }
+        ASSERT_TRUE( released );
+
+        // a node with the default settings uses the pool "gucef.drn"
+        settings.threadPoolName = defaults.threadPoolName;
+        DRN::CDRNNode namedNode;
+        ASSERT_TRUE( namedNode.SetSettings( settings ) );
+        CORE::ThreadPoolPtr drnPool = taskManager.GetThreadPool( "gucef.drn" );
+        ASSERT_FALSE( drnPool.IsNULL() );
+        ASSERT_TRUE( drnPool->GetActiveNrOfDedicatedThreads() >= 1 );
+        namedNode.Stop();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Sessions: A node whose thread does not end within the stop timeout keeps its task until the thread ended; the node is never left to a running task" )
+    try
+    {
+        DRN::CDRNNodeSettings settings;
+        settings.ownThread = true;
+        settings.threadPoolName = "drntest.nodestop";
+        DRN::CDRNNode* node = GUCEF_NEW DRN::CDRNNode();
+        REQUIRE_TRUE( node->SetSettings( settings ) && node->IsRunningOwnThread() );
+        {
+            // holding the node lock holds the node's thread in its next cycle: it cannot end while this thread stops it
+            MT::CScopeMutex lock( node->GetLock() );
+            MT::ThreadDelay( 50 );
+            UInt64 start = DRN::CDRNClock::NowInMicroseconds();
+            node->Stop();
+            UInt64 tookMs = ( DRN::CDRNClock::NowInMicroseconds() - start ) / 1000;
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Sessions: stopping a node whose thread is held took " << tookMs << " ms" );
+            ASSERT_TRUE( node->IsRunningOwnThread() );
+        }
+
+        // once the thread got the lock it ends, the next stop finds it ended and lets go of it
+        node->Stop();
+        ASSERT_FALSE( node->IsRunningOwnThread() );
+        GUCEF_DELETE node;
     }
     catch ( ... )
     {

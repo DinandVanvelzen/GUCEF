@@ -88,8 +88,10 @@ class CDRNSession;
  *  Backend options of the settings (defaults for the tables opened): "openTimeoutMs" (wait of OpenTable for a
  *  snapshot, default 10000, 0 waits without end), "scanChunkKeys", "includeRemoved", "snapshotCacheMs", "writeTimeoutMs".
  *  The declared types of a replicated grid are not sent by the publisher: SetTableSettings() or the options
- *  "<table>.keyType" and "<table>.valueType" name them. Capabilities: write (unless opened read only), async and
- *  predicate push down; no partitions.
+ *  "<table>.keyType" and "<table>.valueType" name them. The option "<table>.format" = "published" opens the grid as
+ *  the typed, read only table of a CDRNTablePublisher (CDRNPublishedTable; options "scanChunkKeys", "snapshotCacheMs",
+ *  "deferUntilConsistent", "maxDeferMs"). Capabilities: write (unless opened read only), async and predicate push
+ *  down; no partitions.
  */
 class GUCEF_DRN_EXPORT_CPP CDRNDatabaseClient : public COMCORE::CDatabaseClientBase
 {

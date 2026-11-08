@@ -264,6 +264,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGridTable : public CORE::CIDataTable
     CORE::TDataTableStatus ProposeDeleteRows( const CORE::CDataTableQuery& predicates, CDRNDataGridPendingWritePtr& pending );
     CORE::CFutureResult EnqueueWrite( const CDRNDataGridPendingWritePtr& pending );
     void StartPendingWrites( void );
+    void EnsureWriteTimer( void );
     void EndPendingWrites( const CORE::CString& statusText );
     void OnProposeResult( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventData );
     void OnWriteTimer( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventData );
@@ -307,7 +308,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGridTable : public CORE::CIDataTable
     MT::CMutex m_writeLock;                             /**< serializes the synchronous changes */
     MT::CMutex m_pendingLock;                           /**< guards the pending writes, never held while calling the grid */
     TPendingWriteVector m_pendingWrites;
-    CORE::CTimer* m_writeTimer;
+    CORE::CTimer* m_writeTimer;                         /**< made by the first write, enabled from then on (EnsureWriteTimer()) */
+    bool m_makingWriteTimer;                            /**< guarded by m_pendingLock */
 };
 
 /*-------------------------------------------------------------------------*/

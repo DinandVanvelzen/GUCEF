@@ -81,6 +81,7 @@ CEosP2PChannel::CEosP2PChannel( void )
     , m_networkType( PLUGINGLUE::EOS::EOSNETWORK_NONE )
     , m_sent( 0 )
     , m_received( 0 )
+    , m_events()
 {GUCEF_TRACE;
 
     m_capabilities.isReliable = false;
@@ -114,6 +115,7 @@ CEosP2PChannel::CEosP2PChannel( CEosP2PChannelListener* listener       ,
     , m_networkType( PLUGINGLUE::EOS::EOSNETWORK_NONE )
     , m_sent( 0 )
     , m_received( 0 )
+    , m_events()
 {GUCEF_TRACE;
 
     m_capabilities.isReliable = false;
@@ -159,14 +161,17 @@ CEosP2PChannel::Attach( PLUGINGLUE::EOS::CEosPlatform* platform, PLUGINGLUE::EOS
 
     m_platform = platform;
     m_socket = socket;
+
+    // the socket tells on the thread that ticks the platform: its events wait for the pulse the channel runs on, which
+    // also keeps the connect deadline
     TEventCallback packetCallback( this, &CEosP2PChannel::OnSocketPacketReceived );
     TEventCallback establishedCallback( this, &CEosP2PChannel::OnSocketConnectionEstablished );
     TEventCallback closedCallback( this, &CEosP2PChannel::OnSocketConnectionClosed );
-    TEventCallback tickCallback( this, &CEosP2PChannel::OnPlatformTick );
+    TEventCallback pulseCallback( this, &CEosP2PChannel::OnPulse );
     SubscribeTo( m_socket, PLUGINGLUE::EOS::CEosP2PSocket::PacketReceivedEvent, packetCallback );
     SubscribeTo( m_socket, PLUGINGLUE::EOS::CEosP2PSocket::ConnectionEstablishedEvent, establishedCallback );
     SubscribeTo( m_socket, PLUGINGLUE::EOS::CEosP2PSocket::ConnectionClosedEvent, closedCallback );
-    SubscribeTo( m_platform, PLUGINGLUE::EOS::CEosPlatform::TickEvent, tickCallback );
+    SubscribeTo( m_pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, pulseCallback );
 
     // The platform is ticked at the pace of the packets for as long as the channel is open
     m_tickDemand = m_platform->AddTickDemand( m_info.tickIntervalInMs );
@@ -183,6 +188,7 @@ CEosP2PChannel::Detach( void )
         return;
 
     UnsubscribeAllFromObserver();
+    m_events.Clear();
     if ( 0 != m_tickDemand )
         m_platform->RemoveTickDemand( m_tickDemand );
     m_tickDemand = 0;
@@ -211,10 +217,16 @@ CEosP2PChannel::Connect( const DRN::CDRNEndpoint& remote )
         return false;
     }
 
-    // The platform is ticked from the pulse generator of the application: that is where the channel has to run
-    if ( !m_pulseGenerator.IsNULL() && m_pulseGenerator.GetPointerAlways() != CORE::CCoreGlobal::Instance()->GetPulseGenerator().GetPointerAlways() )
+    // The glue ticks the platform on the pulse generator of the application, and the SDK is used on that thread only:
+    // the pulse generator the channel runs on has to be pulsed by that one (the node's, without a thread of its own)
+    CORE::PulseGeneratorPtr appPulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+    if ( m_pulseGenerator.IsNULL() )
+        m_pulseGenerator = appPulseGenerator;
+    CORE::PulseGeneratorPtr drivingPulseGenerator = GetDrivingPulseGenerator().IsNULL() ? m_pulseGenerator : GetDrivingPulseGenerator();
+    if ( drivingPulseGenerator.GetPointerAlways() != appPulseGenerator.GetPointerAlways() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "EosP2PChannel: The channel runs on the pulse generator of the application, a node on a thread of its own cannot use it" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "EosP2PChannel: Cannot connect to " << remote.ToString() << ": the platform of Epic Online Services is " <<
+                         "ticked on the pulse generator of the application, and the channel would run on another thread (a node with a thread of its own)" );
         return false;
     }
 
@@ -435,12 +447,12 @@ CEosP2PChannel::OnConnectionEstablished( const PLUGINGLUE::EOS::CEosP2PConnectio
 
 /*-------------------------------------------------------------------------*/
 
-void
+bool
 CEosP2PChannel::OnConnectionClosed( const PLUGINGLUE::EOS::CEosP2PConnectionEventData& data )
 {GUCEF_TRACE;
 
     if ( !m_connected )
-        return;
+        return true;
 
     switch ( data.closeReason )
     {
@@ -453,36 +465,35 @@ CEosP2PChannel::OnConnectionClosed( const PLUGINGLUE::EOS::CEosP2PConnectionEven
         case PLUGINGLUE::EOS::EOSCLOSE_INVALID_DATA :
         {
             CORE::CString error = "The EOS P2P connection to the peer was closed by the SDK";
-            End( &error );
-            break;
+            return End( &error );
         }
         default :
-            End( GUCEF_NULL );
-            break;
+            return End( GUCEF_NULL );
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
-void
+bool
 CEosP2PChannel::OnTick( void )
 {GUCEF_TRACE;
 
     if ( m_connected && !m_established && 0 != m_deadlineInMs && PLUGINGLUE::EOS::CEosPlatform::GetMonotonicTimeInMs() >= m_deadlineInMs )
     {
         CORE::CString error = "The EOS P2P connection to the peer was not established in time";
-        End( &error );
+        return End( &error );
     }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
-void
+bool
 CEosP2PChannel::End( const CORE::CString* error )
 {GUCEF_TRACE;
 
     if ( !m_connected )
-        return;
+        return true;
     m_connected = false;
 
     // Nothing is touched after the events: whoever hears them may let go of the channel
@@ -492,9 +503,21 @@ CEosP2PChannel::End( const CORE::CString* error )
     {
         DRN::CDRNChannelErrorEventData errorData( *error );
         if ( !NotifyObservers( ChannelErrorEvent, &errorData ) )
-            return;
+            return false;
     }
-    NotifyObservers( ChannelDisconnectedEvent );
+    return NotifyObservers( ChannelDisconnectedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CEosP2PChannel::RequestPulse( void )
+{GUCEF_TRACE;
+
+    // on the thread that ticks the platform, without the node lock: never a pulse on this thread, a request to the
+    // driver of the pulse generator (for a node's: the application's pulse generator)
+    if ( !m_pulseGenerator.IsNULL() )
+        m_pulseGenerator->RequestImmediatePulseThroughDriver();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -505,12 +528,13 @@ CEosP2PChannel::OnSocketPacketReceived( CORE::CNotifier* notifier    ,
                                         CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != m_socket || GUCEF_NULL == eventData )
+    // the thread that ticks the platform: the packet waits for the pulse the channel runs on
+    if ( GUCEF_NULL == eventData )
         return;
 
     const PLUGINGLUE::EOS::CEosP2PPacketEventData* packet = static_cast< const PLUGINGLUE::EOS::CEosP2PPacketEventData* >( eventData );
-    if ( IsOurs( packet->remoteUser ) )
-        OnPacket( *packet );
+    if ( IsOurs( packet->remoteUser ) && m_events.AddPacket( *packet ) )
+        RequestPulse();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -521,12 +545,12 @@ CEosP2PChannel::OnSocketConnectionEstablished( CORE::CNotifier* notifier    ,
                                                CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != m_socket || GUCEF_NULL == eventData )
+    if ( GUCEF_NULL == eventData )
         return;
 
     const PLUGINGLUE::EOS::CEosP2PConnectionEventData* data = static_cast< const PLUGINGLUE::EOS::CEosP2PConnectionEventData* >( eventData );
-    if ( IsOurs( data->remoteUser ) )
-        OnConnectionEstablished( *data );
+    if ( IsOurs( data->remoteUser ) && m_events.AddConnectionEvent( CEosP2PSocketEventQueue::EVENTTYPE_CONNECTION_ESTABLISHED, *data ) )
+        RequestPulse();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -537,22 +561,50 @@ CEosP2PChannel::OnSocketConnectionClosed( CORE::CNotifier* notifier    ,
                                           CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != m_socket || GUCEF_NULL == eventData )
+    if ( GUCEF_NULL == eventData )
         return;
 
     const PLUGINGLUE::EOS::CEosP2PConnectionEventData* data = static_cast< const PLUGINGLUE::EOS::CEosP2PConnectionEventData* >( eventData );
-    if ( IsOurs( data->remoteUser ) )
-        OnConnectionClosed( *data );
+    if ( IsOurs( data->remoteUser ) && m_events.AddConnectionEvent( CEosP2PSocketEventQueue::EVENTTYPE_CONNECTION_CLOSED, *data ) )
+        RequestPulse();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CEosP2PChannel::OnPlatformTick( CORE::CNotifier* notifier    ,
-                                const CORE::CEvent& eventId  ,
-                                CORE::CICloneable* eventData )
+CEosP2PChannel::OnPulse( CORE::CNotifier* notifier    ,
+                         const CORE::CEvent& eventId  ,
+                         CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    // a pulse of the pulse generator the channel runs on, for a node's under the node lock: the events of the socket
+    // in the order the platform gave them. Nothing is touched once an observer let go of the channel
+    UInt32 count = 0;
+    const CEosP2PSocketEventQueue::TQueuedEventVector& events = m_events.TakeAll( count );
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        const CEosP2PSocketEventQueue::CQueuedEvent& queued = *events[ i ];
+        switch ( queued.type )
+        {
+            case CEosP2PSocketEventQueue::EVENTTYPE_PACKET :
+            {
+                if ( !OnPacket( queued.packet ) )
+                    return;
+                break;
+            }
+            case CEosP2PSocketEventQueue::EVENTTYPE_CONNECTION_ESTABLISHED :
+            {
+                OnConnectionEstablished( queued.connection );
+                break;
+            }
+            case CEosP2PSocketEventQueue::EVENTTYPE_CONNECTION_CLOSED :
+            {
+                if ( !OnConnectionClosed( queued.connection ) )
+                    return;
+                break;
+            }
+        }
+    }
     OnTick();
 }
 

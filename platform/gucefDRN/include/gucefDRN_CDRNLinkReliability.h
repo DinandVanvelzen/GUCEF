@@ -111,6 +111,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkStats
     UInt64 fragmentedMessages;      /**< reliable messages that were split into fragments */
     UInt64 preAuthRefusedPackets;   /**< received before the link was operational with more than the handshake, dropped */
     UInt64 rateLimitedPackets;      /**< received while the peer was over a receive limit, dropped or deferred */
+    UInt64 windowRefusedPackets;    /**< received with a reliable message beyond what its lane holds, dropped unacknowledged */
+    UInt64 plainTooFarPackets;      /**< PLAIN packets whose sequence lies too far ahead of the newest one, dropped */
 
     CDRNLinkStats( void );
     void Clear( void );
@@ -163,7 +165,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
                        const void* part1         ,
                        UInt32 size1              ,
                        const void* part2         ,
-                       UInt32 size2              );
+                       UInt32 size2              ,
+                       UInt8 packetKind = DRN_PACKETKIND_AEAD );
 
     bool HasQueuedOutput( void ) const;
 
@@ -179,10 +182,17 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
      */
     bool BuildPacket( UInt64 now, bool force, const UInt8*& packet, UInt32& packetSize );
 
+    /**
+     *  As BuildPacket(), a packet of messages of one packet kind (a packet never mixes kinds): AEAD first, then MAC,
+     *  then PLAIN; on stream channels one packet per run of equal kind, in the order of the stream. A PLAIN packet
+     *  starts with DRN_PROTOCOL_ID_PUBLIC_PLAIN and has a sequence of its own; the others start with DRN_PROTOCOL_ID.
+     */
+    bool BuildPacket( UInt64 now, bool force, const UInt8*& packet, UInt32& packetSize, UInt8& packetKind );
+
     /** Marks reliable messages that have not been acknowledged within rto for sending again */
     void CheckRetransmits( UInt64 now, UInt64 rto );
 
-    /** Reliable messages sent but not yet acknowledged */
+    /** Reliable messages queued and not yet acknowledged: sent, or waiting for the lane window (DRN_RELIABLE_LANE_WINDOW) */
     UInt32 GetUnackedCount( void ) const;
 
     enum TPacketResult
@@ -192,7 +202,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
         PACKET_TOO_OLD          ,
         PACKET_MALFORMED        ,
         PACKET_REFUSED          ,   /**< restricted: the packet carries more than the handshake, nothing of it was taken */
-        PACKET_LIMIT_EXCEEDED       /**< a message or the fragments went over a receive limit, see GetLimitViolation() */
+        PACKET_LIMIT_EXCEEDED   ,   /**< a message or the fragments went over a receive limit, see GetLimitViolation() */
+        PACKET_WINDOW_FULL      ,   /**< a reliable message lies beyond what its lane holds: nothing of it was taken or acknowledged */
+        PACKET_TOO_FAR_AHEAD        /**< PLAIN: the sequence lies more than MaxPlainSequenceLead ahead of the newest one, not taken */
     };
 
     enum TLimitViolation
@@ -229,7 +241,10 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
     void NoteRateLimitedPacket( void );
 
     /**
-     *  Takes a received packet apart and hands its messages to the sink in delivery order
+     *  Takes a received packet apart and hands its messages to the sink in delivery order.
+     *  A packet is acknowledged only when all of it was taken: on a datagram channel a packet with a reliable message
+     *  beyond the window of its lane (DRN_RELIABLE_LANE_WINDOW) is refused whole (PACKET_WINDOW_FULL), as is a
+     *  malformed one, before any of it is kept, so that the sender sends its messages again.
      *  @param lossDelay how long a packet that is not acknowledged while a later one is, counts as lost
      */
     TPacketResult ProcessPacket( const UInt8* data            ,
@@ -238,7 +253,21 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
                                  UInt64 lossDelay             ,
                                  CIDRNLinkMessageSink& sink   ,
                                  CDRNPacketHeader& header     ,
-                                 UInt32& lostBefore           );
+                                 UInt32& lostBefore           ,
+                                 UInt8 packetKind = DRN_PACKETKIND_AEAD );
+
+    /** How far ahead of the newest PLAIN sequence a PLAIN packet may be (the first one: of 0) */
+    static const UInt32 MaxPlainSequenceLead = 65536;
+
+    /**
+     *  A PLAIN packet (DRN_PROTOCOL_ID_PUBLIC_PLAIN): its own sequence space with a window that only drops duplicates;
+     *  its ack and echo fields are not read, it acknowledges and measures nothing. Only lane 3 messages are taken,
+     *  every other message is refused and counted (refused).
+     *  A PLAIN sequence has no integrity: a sequence more than MaxPlainSequenceLead ahead of the newest one is not
+     *  taken (PACKET_TOO_FAR_AHEAD), and one behind the window is delivered without the duplicate check, so that forged
+     *  jumps of the window never shut out the genuine PLAIN packets.
+     */
+    TPacketResult ProcessPlainPacket( const UInt8* data, UInt32 size, CIDRNLinkMessageSink& sink, UInt32& refused );
 
     const CDRNLinkStats& GetStats( void ) const;
 
@@ -248,7 +277,10 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
 
     UInt32 GetMaxPacketSize( void ) const;
 
-    /** The largest payload of a message that goes out in one packet, without fragments */
+    /**
+     *  The largest payload of a message that goes out in one packet, without fragments: on a datagram channel what
+     *  fits the datagram, on a stream channel the stream limit (stream packet size and the policy's maxMessageSize)
+     */
     UInt32 GetMaxUnfragmentedPayload( void ) const;
 
     private:
@@ -262,6 +294,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
         bool needsSend;
         UInt64 lastSendTime;
         UInt32 sendCount;
+        UInt8 packetKind;
+        UInt8 lane;
+        UInt32 laneSequence;
         CORE::CDynamicBuffer encoded;
 
         CPendingMessage( void );
@@ -287,6 +322,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
         UInt32 laneSequence;
         UInt8 msgClass;
         UInt32 opcode;
+        UInt8 packetKind;
         CORE::CDynamicBuffer payload;
 
         CHeldMessage( void );
@@ -300,11 +336,33 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
         UInt8 lane;
         UInt32 totalSize;
         UInt32 count;
+        UInt8 packetKind;           /**< the weakest of the fragments so far */
         UInt32 received;
         GUCEF::vector< UInt8 > got;
         CORE::CDynamicBuffer data;
 
         CFragmentAssembly( void );
+    };
+
+    /** Encoded unreliable messages of one packet kind, datagram channels */
+    class CUnreliableQueue
+    {
+        public:
+        CORE::CDynamicBuffer queue;
+        GUCEF::vector< UInt32 > sizes;
+        UInt32 readIndex;
+        UInt32 readOffset;
+        CUnreliableQueue( void );
+        bool HasMessages( void ) const;
+        void Clear( void );
+    };
+
+    /** The end of a run of messages of one kind in the stream queue */
+    class CStreamRun
+    {
+        public:
+        UInt32 end;
+        UInt8 packetKind;
     };
 
     typedef GUCEF::vector< CPendingMessage > TPendingVector;
@@ -318,19 +376,23 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
     UInt32 GetBodyBudget( void ) const;
     void EncodeMessage( CDRNWireWriter& writer, UInt8 lane, UInt8 msgClass, UInt32 opcode, UInt32 laneSequence,
                         const void* part1, UInt32 size1, const void* part2, UInt32 size2 );
-    CPendingMessage& AddPending( void );
+    CPendingMessage& AddPending( UInt8 packetKind, UInt8 lane, UInt32 laneSequence );
+    UInt32 GetLaneFloor( UInt8 lane );
+    void ReleaseWithinLaneWindows( void );
+    UInt8 ChooseDatagramKind( void ) const;
     void GrowPending( void );
-    bool QueueReliableDatagram( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* part1, UInt32 size1, const void* part2, UInt32 size2 );
-    void FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UInt64 now, const UInt8*& packet, UInt32& packetSize );
+    bool QueueReliableDatagram( UInt8 lane, UInt8 msgClass, UInt32 opcode, const void* part1, UInt32 size1, const void* part2, UInt32 size2, UInt8 packetKind );
+    void FinishPacket( CDRNWireWriter& writer, UInt32 bodyStart, UInt64 now, const UInt8*& packet, UInt32& packetSize, UInt8 packetKind );
     void AckSentPacket( UInt32 sequence );
     void AckPending( UInt32 id );
     void MarkForResend( UInt32 id );
     void ProcessAcks( const CDRNPacketHeader& header, UInt64 now, UInt64 lossDelay );
     bool Deliver( const CDRNMessageView& message, CIDRNLinkMessageSink& sink );
     bool DeliverLaneOrdered( const CDRNMessageView& message, CIDRNLinkMessageSink& sink );
+    bool DeliverLaneUnordered( const CDRNMessageView& message, CIDRNLinkMessageSink& sink );
     bool HandleFragment( const CDRNMessageView& message, CIDRNLinkMessageSink& sink );
     void ClearFragments( void );
-    bool IsAllowedBeforeOperational( const CDRNWireReader& reader ) const;
+    TPacketResult CheckBeforeTaking( const CDRNWireReader& reader ) const;
     void ResizeHeldRing( UInt32 newSize );
 
     bool m_transportIsReliable;
@@ -342,13 +404,17 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
     UInt32 m_nextFragmentGroup;
     CORE::CDynamicBuffer m_streamQueue;         /**< stream channels: everything queued, after room for the header */
     UInt32 m_streamQueueEnd;
-    CORE::CDynamicBuffer m_unreliableQueue;     /**< datagram channels: encoded unreliable messages */
-    GUCEF::vector< UInt32 > m_unreliableSizes;
-    UInt32 m_unreliableReadIndex;
-    UInt32 m_unreliableReadOffset;
+    UInt32 m_streamBodyStart;                   /**< stream channels: where the part not sent yet starts */
+    GUCEF::vector< CStreamRun > m_streamRuns;   /**< stream channels: the runs of equal kind, only while a non AEAD message is queued */
+    UInt32 m_streamRunsHead;
+    CUnreliableQueue m_unreliable[ DRN_PACKETKIND_COUNT ];  /**< datagram channels: encoded unreliable messages per packet kind */
+    UInt32 m_needsSendMacCount;                 /**< of m_needsSendCount, the MAC messages */
+    UInt32 m_nextPlainSequence;                 /**< sequence of the next PLAIN packet */
     TPendingVector m_pending;                   /**< ring of reliable messages kept until acked, indexed by id */
     UInt32 m_pendingHead;                       /**< id of the oldest message kept */
     UInt32 m_pendingNext;                       /**< id of the next message */
+    UInt32 m_releaseNext;                       /**< id of the first message still waiting for its lane window, every one before it may be sent */
+    UInt32 m_laneFloorId[ 2 ];                  /**< per reliable lane: no message of the lane before this id is unacknowledged */
     UInt32 m_needsSendCount;
     TSentVector m_sent;                         /**< ring of the packets sent, indexed by sequence */
     GUCEF::vector< UInt32 > m_packetIds;
@@ -357,6 +423,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
 
     // receiving
     CDRNSequenceWindow m_receiveWindow;
+    CDRNSequenceWindow m_plainReceiveWindow;    /**< PLAIN packets, duplicates only */
     UInt64 m_highestReceivedSendTime;
     UInt64 m_highestReceivedLocalTime;
     bool m_ackOwed;
@@ -367,7 +434,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNLinkReliability
     THeldVector m_held;
     UInt32 m_heldCount;
     UInt32 m_heldRingSize;
-    CDRNSequenceWindow m_lane1Window;
+    UInt32 m_lane1Base;                         /**< lane 1: the oldest lane sequence not received yet */
+    UInt32 m_lane1Received[ DRN_RELIABLE_LANE_WINDOW / 32 ];   /**< lane 1: received lane sequences from m_lane1Base on */
     TFragmentMap m_fragments;
     UInt32 m_fragmentBytes;
     UInt32 m_currentPacketSequence;

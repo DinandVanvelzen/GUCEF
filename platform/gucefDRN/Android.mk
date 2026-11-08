@@ -24,6 +24,7 @@ LOCAL_MODULE_FILENAME := libgucefDRN
 LOCAL_SRC_FILES := \
   src/gucefDRN.cpp \
   src/gucefDRN_CDRNAnonymousAuthenticator.cpp \
+  src/gucefDRN_CDRNApplicationNotifier.cpp \
   src/gucefDRN_CDRNBanList.cpp \
   src/gucefDRN_CDRNBulkTransfer.cpp \
   src/gucefDRN_CDRNClock.cpp \
@@ -47,13 +48,24 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNLinkReliability.cpp \
   src/gucefDRN_CDRNNode.cpp \
   src/gucefDRN_CDRNNodeSettings.cpp \
+  src/gucefDRN_CDRNNodeTask.cpp \
+  src/gucefDRN_CDRNNodePulseDriver.cpp \
   src/gucefDRN_CDRNPacketCodec.cpp \
   src/gucefDRN_CDRNPacketProtection.cpp \
   src/gucefDRN_CDRNPeerLink.cpp \
+  src/gucefDRN_CDRNPublishedColumn.cpp \
+  src/gucefDRN_CDRNPublishedTable.cpp \
+  src/gucefDRN_CDRNPublishedTableMeta.cpp \
+  src/gucefDRN_CDRNPublishedTableSchema.cpp \
+  src/gucefDRN_CDRNPublishedTableSettings.cpp \
   src/gucefDRN_CDRNReachabilityManager.cpp \
   src/gucefDRN_CDRNRelayChannel.cpp \
   src/gucefDRN_CDRNRelayService.cpp \
   src/gucefDRN_CDRNReplicator.cpp \
+  src/gucefDRN_CDRNRpcSessionComponent.cpp \
+  src/gucefDRN_CDRNRpcTransport.cpp \
+  src/gucefDRN_CDRNRpcTransportListener.cpp \
+  src/gucefDRN_CDRNRpcTransportSettings.cpp \
   src/gucefDRN_CDRNSecurityPolicy.cpp \
   src/gucefDRN_CDRNSession.cpp \
   src/gucefDRN_CDRNSessionRecorder.cpp \
@@ -61,6 +73,11 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNSessionSettings.cpp \
   src/gucefDRN_CDRNSharedSecretAuthenticator.cpp \
   src/gucefDRN_CDRNStreamFramer.cpp \
+  src/gucefDRN_CDRNStreamGapInfo.cpp \
+  src/gucefDRN_CDRNSubscribeOptions.cpp \
+  src/gucefDRN_CDRNTablePublisher.cpp \
+  src/gucefDRN_CDRNTablePublisherSettings.cpp \
+  src/gucefDRN_CDRNTablePublisherUpdateScope.cpp \
   src/gucefDRN_CDRNTcpChannel.cpp \
   src/gucefDRN_CDRNTcpChannelListener.cpp \
   src/gucefDRN_CDRNTokenAuthenticator.cpp \

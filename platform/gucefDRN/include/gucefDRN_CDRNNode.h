@@ -35,6 +35,11 @@
 #define GUCEF_CORE_COBSERVER_H
 #endif /* GUCEF_CORE_COBSERVER_H ? */
 
+#ifndef GUCEF_MT_CSEMAPHORE_H
+#include "gucefMT_CSemaphore.h"
+#define GUCEF_MT_CSEMAPHORE_H
+#endif /* GUCEF_MT_CSEMAPHORE_H ? */
+
 #ifndef GUCEF_DRN_CDRNNODESETTINGS_H
 #include "gucefDRN_CDRNNodeSettings.h"
 #define GUCEF_DRN_CDRNNODESETTINGS_H
@@ -55,6 +60,16 @@
 #define GUCEF_DRN_CDRNCONNECTOR_H
 #endif /* GUCEF_DRN_CDRNCONNECTOR_H ? */
 
+#ifndef GUCEF_DRN_CDRNNODETASK_H
+#include "gucefDRN_CDRNNodeTask.h"
+#define GUCEF_DRN_CDRNNODETASK_H
+#endif /* GUCEF_DRN_CDRNNODETASK_H ? */
+
+#ifndef GUCEF_DRN_CDRNNODEPULSEDRIVER_H
+#include "gucefDRN_CDRNNodePulseDriver.h"
+#define GUCEF_DRN_CDRNNODEPULSEDRIVER_H
+#endif /* GUCEF_DRN_CDRNNODEPULSEDRIVER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -71,9 +86,10 @@ namespace DRN {
 //-------------------------------------------------------------------------*/
 
 class CDRNSession;
+class CDRNApplicationNotifier;
 class CIDRNAccessPolicy;
 class CIDRNBanList;
-class CDRNNodeThread;
+class CDRNNodeTask;
 class CDRNRelayClient;
 class CDRNRelayService;
 
@@ -87,7 +103,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeLinkInfo
     CDRNPeerLinkPtr link;
     CDRNLinkClosedInfo closedInfo;      /**< LinkClosedEvent, LinkRefusedEvent, ConnectFailedEvent */
     CDRNLatencyInfo latencyInfo;        /**< LatencyUpdateEvent */
-    CDRNLinkAnomaly anomaly;            /**< PeerLimitExceededEvent, ClockAnomalyEvent, TrafficAnomalyEvent */
+    CDRNLinkAnomaly anomaly;            /**< PeerLimitExceededEvent, ClockAnomalyEvent, TrafficAnomalyEvent, ProtectionAnomalyEvent */
 
     CDRNNodeLinkInfo( void );
 };
@@ -99,8 +115,10 @@ typedef CORE::CTCloneableObj< CDRNNodeLinkInfo > CDRNNodeLinkEventData;
 /**
  *  A DRN node: owns the channel listeners, the links, the connectors and the sessions.
  *
- *  Everything runs on the pulse generator of the node: the global one by default, or with
- *  CDRNNodeSettings::ownThread a pulse generator of its own driven by a thread of its own. The node's events
+ *  Everything runs on the pulse generator of the node, which is only ever pulsed under the node lock: by default a
+ *  pulse generator of the node's own that the node pulses when the application's pulse generator (the global one by
+ *  default) pulses it, or with CDRNNodeSettings::ownThread the pulse generator of a dedicated task the node sets up
+ *  through the task manager on the pool CDRNNodeSettings::threadPoolName (CDRNNodeTask). The node's events
  *  (and those of its sessions) reach the application on the application's pulse generator in both cases: with
  *  a thread of its own they are mailed over, as CORE::CTSGNotifier does. The node's own objects (links,
  *  channels, connectors) send their events from the node's thread; with ownThread observe the node and the
@@ -120,6 +138,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     static const CORE::CEvent PeerLimitExceededEvent;      /**< CDRNNodeLinkEventData: see CDRNPeerLink */
     static const CORE::CEvent ClockAnomalyEvent;           /**< CDRNNodeLinkEventData: see CDRNPeerLink */
     static const CORE::CEvent TrafficAnomalyEvent;         /**< CDRNNodeLinkEventData: see CDRNPeerLink */
+    static const CORE::CEvent ProtectionAnomalyEvent;      /**< CDRNNodeLinkEventData: see CDRNPeerLink */
 
     static void RegisterEvents( void );
 
@@ -232,8 +251,25 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     /** Accepted links that did not finish their handshake yet */
     UInt32 GetPendingHandshakeCount( void ) const;
 
-    /** The pulse generator the node works on */
+    /**
+     *  Messages that arrived over a link and had no receiver: a message class this node does not know, or a known
+     *  class without a component in the session (telemetry "unhandledMessages")
+     */
+    UInt32 GetUnhandledMessageCount( void ) const;
+
+    /**
+     *  The pulse generator of the thread that drives the node: the application's without a thread of its own (its pulses
+     *  have the node work), the node's own with one (GetWorkPulseGenerator(), its task drives it). Code that runs next to
+     *  the node runs on it, such as an RPC endpoint over the node (its protocol thread).
+     */
     CORE::PulseGeneratorPtr GetPulseGenerator( void ) const;
+
+    /**
+     *  The pulse generator of the node's own, which the objects of the node run on (channels, listeners, connectors):
+     *  pulsed only under the node lock (RunThreadCycle()), by the node's task with a thread of its own, else when the
+     *  application's pulse generator pulses. Its driver passes on what they ask of it (CDRNNodePulseDriver, CDRNNodeTask).
+     */
+    CORE::PulseGeneratorPtr GetWorkPulseGenerator( void ) const;
 
     /** The pulse generator the application receives the events on */
     CORE::PulseGeneratorPtr GetAppPulseGenerator( void ) const;
@@ -242,6 +278,21 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
 
     /** The node lock, held by the node's thread while it works */
     MT::CMutex& GetLock( void ) const;
+
+    /**
+     *  Whether the calling thread works on the node right now: it pulses the node's pulse generator under the node lock
+     *  (the node's own thread in a cycle, or the thread of the application's pulse generator while it pulses the node).
+     *  Code of the node that would take the node lock under a lock of its own may only do so then (the node lock is held
+     *  already); elsewhere it leaves the work for the node's next cycle.
+     */
+    bool IsWorkingOnThisThread( void ) const;
+
+    /**
+     *  Has the node's own thread (CDRNNodeSettings::ownThread) work now instead of at its next millisecond, for work
+     *  that another thread left for the node without taking the node lock. Any thread may call it, the call does not
+     *  wait. Without an own thread it only makes the next cycle of an own thread started later begin at once
+     */
+    void WakeOwnThread( void );
 
     /** CDRNClock time in microseconds */
     UInt64 GetNodeTime( void ) const;
@@ -255,7 +306,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
 
     private:
 
-    friend class CDRNNodeThread;
+    friend class CDRNNodeTask;
+    friend class CDRNApplicationNotifier;
     friend class CDRNSession;
     friend class CDRNRelayClient;
     friend class CDRNReachabilityManager;
@@ -270,6 +322,18 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
         virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
     };
     friend class CInternalObserver;
+
+    /** Has the node work when the application's pulse generator pulses, without a thread of its own */
+    class CAppPulseObserver : public CORE::CObserver
+    {
+        public:
+        CDRNNode* m_node;
+        CAppPulseObserver( void ) : CORE::CObserver(), m_node( GUCEF_NULL ) {}
+        virtual ~CAppPulseObserver() { SignalUpcomingObserverDestruction(); }
+        protected:
+        virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+    };
+    friend class CAppPulseObserver;
 
     typedef GUCEF::vector< CIDRNChannelListenerPtr > TListenerVector;
     typedef GUCEF::vector< CDRNConnectorPtr > TConnectorVector;
@@ -291,6 +355,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     void OnPulse( void );
     void OnChannelAccepted( const CIDRNChannelPtr& channel );
     void OnLinkMessage( CDRNPeerLink* link, const CDRNLinkMessage& message );
+    void OnUnhandledMessage( const CDRNPeerLink& link, const CDRNLinkMessage& message, const char* why );
     void OnLinkClosed( CDRNPeerLink* link, const CDRNLinkClosedInfo& info );
     void OnRelayBindingChanged( const CDRNEndpoint& endpoint, bool bound, const CORE::CString& reason );
     bool MayAccept( const CIDRNChannelPtr& channel, UInt64 nodeNow );
@@ -302,20 +367,38 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     CDRNConnectorPtr ConnectToService( const CDRNEndpointList& remote, const UInt8* servicePolicyHash );
     bool EnsureStaticKey( void );
     bool StartOwnThread( void );
-    void StopOwnThread( void );
+    bool StopOwnThread( void );
     void RunThreadCycle( void );
+    void WaitForThreadWork( UInt32 timeoutInMs );
+    void OnOwnThreadStarted( void );
+    void OnAppPulse( void );
+
+    /** Mails an event of an object of the node to the application (CDRNApplicationNotifier), the data is copied */
+    void PostApplicationEvent( CDRNApplicationNotifier& source, const CORE::CEvent& eventid, CORE::CICloneable* eventData );
+
+    /** Lets go of the undelivered mail of an object of the node that goes */
+    void DiscardApplicationEvents( CDRNApplicationNotifier& source );
+
+    protected:
+
+    /** Mail of the objects of the node (PostApplicationEvent()), on the thread of the application's pulse generator */
+    virtual void OnPumpedNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+
+    private:
 
     CDRNNodeSettings m_settings;
     CDRNLinkSettings m_linkSettings;
     CIDRNAuthenticatorPtr m_authenticator;
     CDRNChannelReaperPtr m_channelReaper;
     CORE::PulseGeneratorPtr m_appPulseGenerator;
-    CORE::PulseGeneratorPtr m_pulseGenerator;
-    CDRNNodeThread* m_thread;
+    CORE::PulseGeneratorPtr m_pulseGenerator;           /**< the node's own, pulsed only under the node lock */
+    CDRNNodePulseDriver* m_nodePulseDriver;              /**< drives m_pulseGenerator through the application's without a thread of its own */
+    CDRNNodeTaskPtr m_task;
     CDRNRelayClient* m_relayClient;
     CDRNRelayService* m_relayService;
     CDRNEndpointList m_advertisedEndpoints;
     CInternalObserver m_observer;
+    CAppPulseObserver m_appPulseObserver;
     TListenerVector m_listeners;
     TDRNPeerLinkVector m_links;
     TDRNPeerLinkVector m_closedLinks;
@@ -335,7 +418,12 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     UInt32 m_refusedForBan;
     UInt32 m_refusedForPending;
     UInt32 m_refusedForRate;
+    UInt32 m_unhandledMessages;
+    UInt64 m_lastUnhandledLog;
     mutable MT::CMutex m_nodeLock;
+    MT::CSemaphore m_threadWake;                    /**< posted by WakeOwnThread() for the own thread's wait */
+    MT::CTAtomic< UInt32 > m_threadWakePending;     /**< a post that the own thread did not take yet */
+    MT::CTAtomic< UInt32 > m_workingThreadId;       /**< the thread in RunThreadCycle(), 0 for none */
 };
 
 /*-------------------------------------------------------------------------//

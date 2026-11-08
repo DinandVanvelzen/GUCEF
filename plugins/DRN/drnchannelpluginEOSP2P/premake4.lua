@@ -44,6 +44,7 @@ files( {
   "include/drnchannelpluginEOSP2P_CEosP2PChannel.h",
   "include/drnchannelpluginEOSP2P_CEosP2PChannelListener.h",
   "include/drnchannelpluginEOSP2P_CEosP2PEndpointInfo.h",
+  "include/drnchannelpluginEOSP2P_CEosP2PSocketEventQueue.h",
   "include/drnchannelpluginEOSP2P_config.h",
   "include/drnchannelpluginEOSP2P_macros.h"
  } )
@@ -56,7 +57,8 @@ files( {
   "src/drnchannelpluginEOSP2P.cpp",
   "src/drnchannelpluginEOSP2P_CEosP2PChannel.cpp",
   "src/drnchannelpluginEOSP2P_CEosP2PChannelListener.cpp",
-  "src/drnchannelpluginEOSP2P_CEosP2PEndpointInfo.cpp"
+  "src/drnchannelpluginEOSP2P_CEosP2PEndpointInfo.cpp",
+  "src/drnchannelpluginEOSP2P_CEosP2PSocketEventQueue.cpp"
  } )
 
 

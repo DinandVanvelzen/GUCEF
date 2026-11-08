@@ -14,6 +14,7 @@
 set( HEADER_FILES 
   include/gucefDRN.h
   include/gucefDRN_CDRNAnonymousAuthenticator.h
+  include/gucefDRN_CDRNApplicationNotifier.h
   include/gucefDRN_CDRNBanList.h
   include/gucefDRN_CDRNBulkTransfer.h
   include/gucefDRN_CDRNClock.h
@@ -37,13 +38,24 @@ set( HEADER_FILES
   include/gucefDRN_CDRNLinkReliability.h
   include/gucefDRN_CDRNNode.h
   include/gucefDRN_CDRNNodeSettings.h
+  include/gucefDRN_CDRNNodeTask.h
+  include/gucefDRN_CDRNNodePulseDriver.h
   include/gucefDRN_CDRNPacketCodec.h
   include/gucefDRN_CDRNPacketProtection.h
   include/gucefDRN_CDRNPeerLink.h
+  include/gucefDRN_CDRNPublishedColumn.h
+  include/gucefDRN_CDRNPublishedTable.h
+  include/gucefDRN_CDRNPublishedTableMeta.h
+  include/gucefDRN_CDRNPublishedTableSchema.h
+  include/gucefDRN_CDRNPublishedTableSettings.h
   include/gucefDRN_CDRNReachabilityManager.h
   include/gucefDRN_CDRNRelayChannel.h
   include/gucefDRN_CDRNRelayService.h
   include/gucefDRN_CDRNReplicator.h
+  include/gucefDRN_CDRNRpcSessionComponent.h
+  include/gucefDRN_CDRNRpcTransport.h
+  include/gucefDRN_CDRNRpcTransportListener.h
+  include/gucefDRN_CDRNRpcTransportSettings.h
   include/gucefDRN_CDRNSecurityPolicy.h
   include/gucefDRN_CDRNSession.h
   include/gucefDRN_CDRNSessionRecorder.h
@@ -51,6 +63,11 @@ set( HEADER_FILES
   include/gucefDRN_CDRNSessionSettings.h
   include/gucefDRN_CDRNSharedSecretAuthenticator.h
   include/gucefDRN_CDRNStreamFramer.h
+  include/gucefDRN_CDRNStreamGapInfo.h
+  include/gucefDRN_CDRNSubscribeOptions.h
+  include/gucefDRN_CDRNTablePublisher.h
+  include/gucefDRN_CDRNTablePublisherSettings.h
+  include/gucefDRN_CDRNTablePublisherUpdateScope.h
   include/gucefDRN_CDRNTcpChannel.h
   include/gucefDRN_CDRNTcpChannelListener.h
   include/gucefDRN_CDRNTokenAuthenticator.h
@@ -80,6 +97,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/gucefDRN.cpp
   src/gucefDRN_CDRNAnonymousAuthenticator.cpp
+  src/gucefDRN_CDRNApplicationNotifier.cpp
   src/gucefDRN_CDRNBanList.cpp
   src/gucefDRN_CDRNBulkTransfer.cpp
   src/gucefDRN_CDRNClock.cpp
@@ -103,13 +121,24 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNLinkReliability.cpp
   src/gucefDRN_CDRNNode.cpp
   src/gucefDRN_CDRNNodeSettings.cpp
+  src/gucefDRN_CDRNNodeTask.cpp
+  src/gucefDRN_CDRNNodePulseDriver.cpp
   src/gucefDRN_CDRNPacketCodec.cpp
   src/gucefDRN_CDRNPacketProtection.cpp
   src/gucefDRN_CDRNPeerLink.cpp
+  src/gucefDRN_CDRNPublishedColumn.cpp
+  src/gucefDRN_CDRNPublishedTable.cpp
+  src/gucefDRN_CDRNPublishedTableMeta.cpp
+  src/gucefDRN_CDRNPublishedTableSchema.cpp
+  src/gucefDRN_CDRNPublishedTableSettings.cpp
   src/gucefDRN_CDRNReachabilityManager.cpp
   src/gucefDRN_CDRNRelayChannel.cpp
   src/gucefDRN_CDRNRelayService.cpp
   src/gucefDRN_CDRNReplicator.cpp
+  src/gucefDRN_CDRNRpcSessionComponent.cpp
+  src/gucefDRN_CDRNRpcTransport.cpp
+  src/gucefDRN_CDRNRpcTransportListener.cpp
+  src/gucefDRN_CDRNRpcTransportSettings.cpp
   src/gucefDRN_CDRNSecurityPolicy.cpp
   src/gucefDRN_CDRNSession.cpp
   src/gucefDRN_CDRNSessionRecorder.cpp
@@ -117,6 +146,11 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNSessionSettings.cpp
   src/gucefDRN_CDRNSharedSecretAuthenticator.cpp
   src/gucefDRN_CDRNStreamFramer.cpp
+  src/gucefDRN_CDRNStreamGapInfo.cpp
+  src/gucefDRN_CDRNSubscribeOptions.cpp
+  src/gucefDRN_CDRNTablePublisher.cpp
+  src/gucefDRN_CDRNTablePublisherSettings.cpp
+  src/gucefDRN_CDRNTablePublisherUpdateScope.cpp
   src/gucefDRN_CDRNTcpChannel.cpp
   src/gucefDRN_CDRNTcpChannelListener.cpp
   src/gucefDRN_CDRNTokenAuthenticator.cpp

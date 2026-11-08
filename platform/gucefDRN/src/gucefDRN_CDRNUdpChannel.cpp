@@ -372,7 +372,8 @@ CDRNUdpChannel::OnNotify( CORE::CNotifier* notifier                 ,
                 OnHelloRetry( bytes, data.GetDataSize() );
                 continue;
             }
-            if ( !m_answered && data.GetDataSize() > 0 && ( DRN_PROTOCOL_ID == bytes[ 0 ] || DRN_PROTOCOL_ID_PROTECTED_0 == bytes[ 0 ] || DRN_PROTOCOL_ID_PROTECTED_1 == bytes[ 0 ] ) )
+            if ( !m_answered && data.GetDataSize() > 0 && ( DRN_PROTOCOL_ID == bytes[ 0 ] || DRN_PROTOCOL_ID_PROTECTED_0 == bytes[ 0 ] || DRN_PROTOCOL_ID_PROTECTED_1 == bytes[ 0 ] ||
+                                                         DRN_PROTOCOL_ID_MAC_0 == bytes[ 0 ] || DRN_PROTOCOL_ID_MAC_1 == bytes[ 0 ] || DRN_PROTOCOL_ID_PUBLIC_PLAIN == bytes[ 0 ] ) )
             {
                 m_answered = true;
                 m_lastUnanswered.Clear();

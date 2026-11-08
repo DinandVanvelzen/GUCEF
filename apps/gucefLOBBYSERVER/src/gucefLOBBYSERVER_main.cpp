@@ -117,15 +117,20 @@ ParseParams( const int argc, char* argv[], CORE::CValueList& keyValueList )
 
 static void
 LobbyServerSignalHandler( int signal )
-{GUCEF_TRACE;
-
-    CORE::CCoreGlobal::Instance()->GetApplication().Stop();
+{
+    // signal context: only the async-signal-safe stop request, the application stops at its next pulse
+    ::GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( signal );
 }
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_OSMAIN_BEGIN
 {GUCEF_TRACE;
+
+    // a server that runs as a service or in a container: a stop signal during the start (while the config loads) is
+    // kept and handed to the stop handler once it is installed, instead of ending the process at once (or being
+    // ignored, for process 1 of a container)
+    GUCEF_OSMAIN_DEFER_STOP_SIGNALS;
 
     CORE::CCoreGlobal::Instance();
     MULTIPLAY::CMultiplayGlobal::Instance();

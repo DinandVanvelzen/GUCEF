@@ -219,7 +219,8 @@ CDRNConnector::TryNext( void )
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DRNConnector: " << m_lastText );
             continue;
         }
-        channel->SetPulseGenerator( m_node->GetPulseGenerator() );
+        channel->SetPulseGenerator( m_node->GetWorkPulseGenerator() );
+        channel->SetDrivingPulseGenerator( m_node->GetPulseGenerator() );
 
         m_candidate = m_node->CreateLink();
         SubscribeTo( m_candidate.GetPointerAlways() );

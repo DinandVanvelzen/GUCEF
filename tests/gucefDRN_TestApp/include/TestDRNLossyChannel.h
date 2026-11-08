@@ -43,7 +43,9 @@
  *  switch that holds every packet from holdAfter after connecting for holdFor and then lets them go at once),
  *  tamper (0..1: share of protected packets with a byte of the tag changed), downgrade (1: HELLO offers only its
  *  last cipher, as a man in the middle would make it), recordAuth (1: keeps the first protected packet it sends, the
- *  one with AUTH, for all channels) and injectAuth (1: sends that kept packet instead of its own first protected one)
+ *  one with AUTH, for all channels) and injectAuth (1: sends that kept packet instead of its own first protected one);
+ *  for the item protection tests: tamperMac (0..1: share of MAC packets with a byte of the clear body changed) and
+ *  capture (1: keeps a copy of every packet it sends, as an observer of the link sees it, for all channels)
  */
 class CDRNLossySettings
 {
@@ -61,6 +63,8 @@ class CDRNLossySettings
     bool downgrade;
     bool recordAuth;
     bool injectAuth;
+    GUCEF::Float64 tamperMacRate;
+    bool capture;
 
     CDRNLossySettings( void );
 
@@ -104,6 +108,12 @@ class CDRNLossyChannel : public GUCEF::DRN::CIDRNChannel
     GUCEF::UInt32 GetDuplicatedCount( void ) const;
     GUCEF::UInt32 GetTamperedCount( void ) const;
     GUCEF::UInt32 GetMaxSentPacketSize( void ) const;
+
+    typedef GUCEF::vector< GUCEF::CORE::CDynamicBuffer > TPacketVector;
+
+    /** The packets the channels with capture sent, in order */
+    static const TPacketVector& GetCapturedPackets( void );
+    static void ClearCapturedPackets( void );
 
     /** The packet recordAuth kept, empty when none */
     static const GUCEF::CORE::CDynamicBuffer& GetRecordedAuthPacket( void );

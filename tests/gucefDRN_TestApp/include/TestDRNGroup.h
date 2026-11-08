@@ -126,7 +126,9 @@ class CGroup
             UInt32 count = m_group.GetSize();
             for ( UInt32 i=0; i<count; ++i )
             {
+                // the state is the node's: read under its lock, the node may work on a thread of its own
                 DRN::CDRNSession& session = *m_group.sessions[ i ];
+                MT::CScopeMutex lock( session.GetNode().GetLock() );
                 if ( !session.IsActive() || session.GetMemberCount() != count )
                     return false;
                 if ( DRN::DRN_TOPOLOGY_PEER_TO_PEER == m_group.sessionSettings.topology && session.GetDirectLinkCount() != count-1 )
