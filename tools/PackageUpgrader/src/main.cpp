@@ -27,6 +27,11 @@
 #define GUCEF_CORE_CGUCEFAPPLICATION_H
 #endif /* GUCEF_CORE_CGUCEFAPPLICATION_H ? */
 
+#ifndef GUCEF_CORE_PROCESSARGUMENTS_H
+#include "gucefCORE_ProcessArguments.h"
+#define GUCEF_CORE_PROCESSARGUMENTS_H
+#endif /* GUCEF_CORE_PROCESSARGUMENTS_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -148,31 +153,20 @@ ParseParams( const int argc                 ,
              CORE::CValueList& keyValueList )
 {GUCEF_TRACE;
 
-    GUCEF::CORE::CString argString;
-    if ( argc > 0 )
-    {
-        argString = *argv;
-
-        // Combine the argument strings back into a single string because we don't want to use
-        // a space as the seperator
-        for ( int i=1; i<argc; ++i )
-        {
-            argString += ' ' + CORE::CString( argv[ i ] );
-        }
-
-        // Parse the param list based on the ' symbol
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Application parameters: " + argString );
-        keyValueList.SetMultiple( argString, '*' );
-    }
+    CORE::ParseApplicationArguments( argc, argv, keyValueList, '*' );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Application parameters: " << CORE::ToString( keyValueList ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
 GucefAppSignalHandler( int signal )
-{GUCEF_TRACE;
+{GUCEF_TRACE; 
+
+    GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "GucefAppSignalHandler: Received signal " << signal );
     
-    ::GUCEF::CORE::CCoreGlobal::Instance()->GetApplication().Stop();
+    // signal context: only the async-signal-safe stop request, the application stops at its next pulse
+    ::GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( signal );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -183,6 +177,10 @@ GucefAppSignalHandler( int signal )
 GUCEF_OSMAIN_BEGIN
 //GUCEF_OSSERVICEMAIN_BEGIN( "PackageUpgrader" )
 {GUCEF_TRACE;
+
+    // a micro-service: a stop signal during the start (while the config loads) is kept and handed to the stop handler
+    // once it is installed, instead of ending the process at once (or being ignored, for process 1 of a container)
+    GUCEF_OSMAIN_DEFER_STOP_SIGNALS;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "This tool was compiled on: " __DATE__ " @ " __TIME__ );
 
@@ -229,7 +227,7 @@ GUCEF_OSMAIN_BEGIN
         CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
     CORE::CCoreGlobal::Instance()->GetLogManager().FlushBootstrapLogEntriesToLogs();
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Flushed to log @ " + logFilename );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Flushed to log @ " << logFilename );
 
     GUCEF_OSMAIN_SIGNAL_HANDLER( GucefAppSignalHandler );
 

@@ -127,8 +127,24 @@ ParseParams( const int argc                 ,
 
 /*-------------------------------------------------------------------------*/
 
+static void
+GucefAppSignalHandler( int signal )
+{GUCEF_TRACE; 
+
+    GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "GucefAppSignalHandler: Received signal " << signal );
+    
+    // signal context: only the async-signal-safe stop request, the application stops at its next pulse
+    ::GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( signal );
+}
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_OSMAIN_BEGIN
 {GUCEF_TRACE;
+
+    // a service: a stop signal during the start is kept and handed to the stop handler once it is installed, instead
+    // of ending the process at once (or being ignored, for process 1 of a container)
+    GUCEF_OSMAIN_DEFER_STOP_SIGNALS;
 
     // Initialize modules we depend on
     CORE::CCoreGlobal::Instance();
@@ -188,7 +204,7 @@ GUCEF_OSMAIN_BEGIN
     if ( keyValueList.TryGetValue( "port", value ) )
     {
         serverListnenPort = value.AsUInt16( serverListnenPort );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogServiceApp: Changing server port from default " + CORE::UInt16ToString( defaultListnenPort ) + " to " + CORE::UInt16ToString( serverListnenPort ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogServiceApp: Changing server port from default " << defaultListnenPort << " to " << serverListnenPort );
     }
 
     // Get the desired output path for the log files
@@ -201,7 +217,7 @@ GUCEF_OSMAIN_BEGIN
     {
         logFilesOutputDir = CORE::RelativePath( "$MODULEDIR$" );
     }
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogServiceApp: Setting server output dir for log files to " + logFilesOutputDir );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogServiceApp: Setting server output dir for log files to " << logFilesOutputDir );
 
     int appRetValue = 0;
     LOGSERVICELIB::CLogSvcServerFileLogger fileLogger( logFilesOutputDir );
@@ -210,8 +226,9 @@ GUCEF_OSMAIN_BEGIN
 
     if ( logServiceServer.ListenOnPort( serverListnenPort ) )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogServiceApp: Server set to listnen on port " + CORE::UInt16ToString( serverListnenPort ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLogServiceApp: Server set to listnen on port " << serverListnenPort );
 
+        GUCEF_OSMAIN_SIGNAL_HANDLER( GucefAppSignalHandler );
         appRetValue = CORE::CCoreGlobal::Instance()->GetApplication().main( argc, argv, true );
     }
 
