@@ -106,8 +106,9 @@ program_packages() {
         local name="$1" project="$2"; shift 2
         echo "Building ${name} (${arch})"
         # relocatable: the installed copy finds its libraries next to itself
+        # the generated CMake files of GUCEF ask for CMake 2.6; CMake 4 refuses that without a policy minimum
         as_builder cmake -S "${TARGETS_DIR}/${project}" -B "${build_root}/${name}" -G Ninja "${cmake_args[@]}" \
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
             > "${LOG_DIR}/build-${name}-${arch}.log" 2>&1 &&
         local targets=()
         [ $# -gt 0 ] && targets=(--target "$@")
@@ -122,7 +123,7 @@ program_packages() {
     run_test() {
         local name="$1" program="$2"; shift 2
         echo "Testing ${name} (${arch})"
-        if ! ( cd "${build_root}/${name}/bin" && as_builder env "$@" "./${program}" > "${LOG_DIR}/test-${name}-${arch}.log" 2>&1 ); then
+        if ! ( cd "${build_root}/${name}/bin" && as_builder env GUCEF_CONSOLE_LOGGER=none "$@" "./${program}" > "${LOG_DIR}/test-${name}-${arch}.log" 2>&1 ); then
             python3 - "${build_root}/${name}/bin/${program}_Results.xml" <<'PYEOF' 2>/dev/null
 import sys, xml.etree.ElementTree as ET
 for case in ET.parse(sys.argv[1]).getroot().iter("testcase"):

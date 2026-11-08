@@ -164,8 +164,9 @@ else
     install -d -m 755 -o "${BUILD_USER}" "${BUILD_DIR}"
     echo "Building gucefLabLink from ${GUCEF_ROOT}"
     # relocatable: the installed copy finds its libraries next to itself, never in the build tree
+    # the generated CMake files of GUCEF ask for CMake 2.6; CMake 4 refuses that without a policy minimum
     as_builder cmake -S "${GUCEF_ROOT}/projects/CMake/targets/GUCEF_exe_gucefLabLink_TestApp" -B "${BUILD_DIR}" -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
         > "${STATE_DIR}/logs/build.log" 2>&1 &&
     as_builder cmake --build "${BUILD_DIR}" --target gucefLabLink gucefLabLink_TestApp codecspluginMONOCYPHER >> "${STATE_DIR}/logs/build.log" 2>&1
     if [ $? -ne 0 ]; then
@@ -186,7 +187,7 @@ if [ "${VERSION}" = "${CURRENT_VERSION}" ]; then
 else
     if [ "${SKIP_TESTS}" != "true" ]; then
         echo "Testing version ${VERSION}"
-        if ! ( cd "${BUILD_DIR}/bin" && as_builder ./gucefLabLink_TestApp > "${STATE_DIR}/logs/test.log" 2>&1 ); then
+        if ! ( cd "${BUILD_DIR}/bin" && as_builder env GUCEF_CONSOLE_LOGGER=none ./gucefLabLink_TestApp > "${STATE_DIR}/logs/test.log" 2>&1 ); then
             python3 - "${BUILD_DIR}/bin/gucefLabLink_TestApp_Results.xml" <<'PYEOF' 2>/dev/null
 import sys, xml.etree.ElementTree as ET
 for case in ET.parse(sys.argv[1]).getroot().iter("testcase"):

@@ -35,6 +35,12 @@ if [ -n "${SERVICE_USER}" ]; then
         sudo -u "${SERVICE_USER}" -H "${CLAUDE_BIN}" mcp remove local-llm --scope user > /dev/null 2>&1 && \
             echo "Removed local-llm from Claude Code of ${SERVICE_USER}."
     fi
+    # the claude command install.sh made for a user whose Claude Code is an editor extension
+    CLAUDE_WRAPPER="$(getent passwd "${SERVICE_USER}" | cut -d: -f6)/.local/bin/claude"
+    if [ -f "${CLAUDE_WRAPPER}" ] && grep -q '^# gucef-mcp: claude command' "${CLAUDE_WRAPPER}"; then
+        rm -f "${CLAUDE_WRAPPER}"
+        echo "Removed ${CLAUDE_WRAPPER}."
+    fi
 fi
 
 if [ "${PURGE}" = "true" ]; then

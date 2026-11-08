@@ -22,8 +22,10 @@
 #     is there only the local listener runs; the service starts HTTPS once it is
 #   - LLM servers: /var/lib/gucef-mcp/endpoints, kept up to date by the same
 #     DaemonSet; the server reads it again when it changes
-#   - Claude Code of the user: the local server is registered as local-llm
-#     (--scope user) when the claude command is there
+#   - Claude Code of the user: the coding agent and the registration need a
+#     claude command. When the user has Claude Code only as an editor extension
+#     (VS Code and forks), a wrapper ~/.local/bin/claude runs the newest one.
+#     The local server is registered as local-llm (--scope user)
 #
 # Without a checkout around this script, as in the package gucef-k3s-scripts,
 # it installs the built files of the package gucef-mcp (/usr/lib/gucef-mcp)
@@ -109,6 +111,41 @@ MCP_MODEL="${MCP_MODEL:-}"
 MCP_REGISTER_CLAUDE="${MCP_REGISTER_CLAUDE:-true}"
 MCP_CLAUDE_NAME="${MCP_CLAUDE_NAME:-local-llm}"
 
+# ---------------------------------------------------------------------------
+# The claude command of the user. The coding agent (local-agent.sh) runs it,
+# and the registration below needs it. A user who has Claude Code only as an
+# editor extension (VS Code and its forks keep a native binary inside the
+# extension folder) has no such command, so a small wrapper in ~/.local/bin,
+# which is on the PATH of the service, runs the newest one of those. A claude
+# command that exists already is left alone.
+# ---------------------------------------------------------------------------
+CLAUDE_WRAPPER="${SERVICE_HOME}/.local/bin/claude"
+CLAUDE_WRAPPER_MARK="# gucef-mcp: claude command"
+if ! as_user bash -lc 'command -v claude' > /dev/null 2>&1 && [ ! -e "${CLAUDE_WRAPPER}" ]; then
+    if compgen -G "${SERVICE_HOME}/.vscode*/extensions/anthropic.claude-code-*/resources/native-binary/claude" > /dev/null \
+            || compgen -G "${SERVICE_HOME}/.cursor*/extensions/anthropic.claude-code-*/resources/native-binary/claude" > /dev/null \
+            || compgen -G "${SERVICE_HOME}/.windsurf*/extensions/anthropic.claude-code-*/resources/native-binary/claude" > /dev/null; then
+        install -d -m 755 -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" "${SERVICE_HOME}/.local" "${SERVICE_HOME}/.local/bin"
+        cat > "${CLAUDE_WRAPPER}" <<'WRAPPEREOF'
+#!/bin/bash
+# gucef-mcp: claude command
+# Runs the Claude Code binary of the newest editor extension installed for this user, so that
+# tools that need a "claude" command (the coding agent of the service gucef-mcp) find one.
+# Written by llm/mcp/install.sh; delete this file if you install Claude Code another way.
+BIN="$(ls -d "${HOME}"/.vscode*/extensions/anthropic.claude-code-*/resources/native-binary/claude \
+              "${HOME}"/.cursor*/extensions/anthropic.claude-code-*/resources/native-binary/claude \
+              "${HOME}"/.windsurf*/extensions/anthropic.claude-code-*/resources/native-binary/claude 2>/dev/null \
+        | awk -F/ '{ v = $0; sub(/.*anthropic\.claude-code-/, "", v); sub(/\/.*/, "", v); print v "\t" $0 }' \
+        | sort -V | tail -n 1 | cut -f2)"
+[ -x "${BIN}" ] || { echo "ERROR: no Claude Code binary found in the editor extensions of ${HOME}" >&2; exit 127; }
+exec "${BIN}" "$@"
+WRAPPEREOF
+        chown "${SERVICE_USER}:${SERVICE_GROUP}" "${CLAUDE_WRAPPER}"
+        chmod 755 "${CLAUDE_WRAPPER}"
+        echo "Created ${CLAUDE_WRAPPER}: Claude Code of ${SERVICE_USER} is an editor extension, this runs it as 'claude'."
+    fi
+fi
+
 install -d -m 750 -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" "${STATE_DIR}" "${STATE_DIR}/logs"
 install -d -m 755 "${INSTALL_ROOT}" "${CONFIG_DIR}"
 STAGE="$(mktemp -d "${INSTALL_ROOT}/.stage.XXXXXX")"
@@ -145,8 +182,9 @@ else
     install -d -m 755 -o "${SERVICE_USER}" -g "${SERVICE_GROUP}" "${BUILD_DIR}"
     echo "Building gucefMcpLocalLlm from ${GUCEF_ROOT}"
     # relocatable: the installed copy finds its libraries next to itself, never in the build tree
+    # the generated CMake files of GUCEF ask for CMake 2.6; CMake 4 refuses that without a policy minimum
     as_user cmake -S "${GUCEF_ROOT}/projects/CMake/targets/GUCEF_exe_gucefMcpLocalLlm_TestApp" -B "${BUILD_DIR}" -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
         > "${STATE_DIR}/logs/build.log" 2>&1 &&
     as_user cmake --build "${BUILD_DIR}" >> "${STATE_DIR}/logs/build.log" 2>&1
     if [ $? -ne 0 ]; then
@@ -170,7 +208,8 @@ if [ "${VERSION}" = "${CURRENT_VERSION}" ]; then
 else
     if [ "${SKIP_TESTS}" != "true" ]; then
         echo "Testing version ${VERSION}"
-        TEST_ENV=(LOCAL_AGENT_SCRIPT="${GUCEF_ROOT}/projects/k3s/llm/clients/local-agent.sh"
+        # no console logger: without it the test application opens a terminal window of the desktop
+        TEST_ENV=(GUCEF_CONSOLE_LOGGER=none LOCAL_AGENT_SCRIPT="${GUCEF_ROOT}/projects/k3s/llm/clients/local-agent.sh"
                   PATH="${SERVICE_HOME}/.local/bin:${SERVICE_HOME}/.opencode/bin:${SERVICE_HOME}/bin:${PATH}")
         FIRST_ENDPOINT="$(grep -v '^#' "${STATE_DIR}/endpoints" 2>/dev/null | sed 's/^ephemeral //' | awk 'NF {print $1; exit}')"
         [ -n "${FIRST_ENDPOINT}" ] && TEST_ENV+=(LOCAL_LLM_URL="${FIRST_ENDPOINT}")

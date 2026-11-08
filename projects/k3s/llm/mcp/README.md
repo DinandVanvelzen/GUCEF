@@ -40,6 +40,12 @@ test keeps the installed version. Restarting ends work that runs on the service 
 `config.env` next to the script, or `/etc/gucef-mcp/settings.env` without a checkout ([config.env.example](config.env.example)): ports, the commands `run_and_digest` may
 run, the preferred model, the Claude Code registration.
 
+The coding agent behind `delegate_to_local_llm` runs a `claude` command, and the registration needs one too. Both
+look for it on the `PATH` of the service user, which includes `~/.local/bin`. A user who has Claude Code only as an
+editor extension (VS Code, Cursor, Windsurf) has none, so `install.sh` writes a small wrapper `~/.local/bin/claude`
+that runs the newest `anthropic.claude-code-*` binary of those extensions; it is marked `# gucef-mcp: claude command`
+and `uninstall.sh` removes it. A `claude` command that exists already is never replaced.
+
 ## What the cluster gives each node
 
 `cluster.sh` keeps in namespace `gucef-mcp`, and DaemonSet `gucef-mcp-sync` copies to `/var/lib/gucef-mcp` of each
