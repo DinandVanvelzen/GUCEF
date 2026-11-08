@@ -54,6 +54,16 @@
 #define GUCEF_COMCORE_SOCKETUTILS_H
 #endif /* GUCEF_COMCORE_SOCKETUTILS_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #include "TestCode_Pump.h"
 
 #include "TestCode_ClientServer.h"
@@ -70,8 +80,6 @@
 
 using namespace GUCEF;
 using namespace GUCEF::COMCORE;
-
-static const UInt16 TestServerPort = 47610;
 
 #ifdef GUCEF_COMCORE_TEST_POSIX_SOCKETS
 
@@ -151,10 +159,11 @@ class CTestTCPClientServer : public CORE::CObserver
         return classTypeName;
     }
 
+    /** listens on the port, 0 for one the system picks, and connects the client to it */
     bool Start( UInt16 port )
     {GUCEF_TRACE;
 
-        return m_serverSock.ListenOnPort( port ) && m_clientSock.ConnectTo( "127.0.0.1", port );
+        return m_serverSock.ListenOnPort( port ) && m_clientSock.ConnectTo( "127.0.0.1", m_serverSock.GetBoundPort() );
     }
 
     CTCPClientSocket& Client( void ) { return m_clientSock; }
@@ -567,6 +576,121 @@ IsRefused( CTCPServerSocket& server, CAcceptCounter& counter, const CORE::CStrin
     return ended && attempt.m_failed && !attempt.m_connected && counter.m_accepted == acceptedBefore;
 }
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A server that greets every client it accepts and closes the connection when asked, and an observer of a client
+ *  socket that has the socket deleted from within one of its events, the supported way: ScheduleForDestruction()
+ */
+class CClientDestroyedInEvent : public CORE::CObserver
+{
+    public:
+
+    enum TEventToDestroyIn
+    {
+        DESTROY_IN_CONNECTED    = 0,
+        DESTROY_IN_DATA         = 1,
+        DESTROY_IN_DISCONNECTED = 2
+    };
+
+    explicit CClientDestroyedInEvent( TEventToDestroyIn destroyIn )
+        : CORE::CObserver()
+        , m_server( false )
+        , m_serverConnection( GUCEF_NULL )
+        , m_client( GUCEF_NULL )
+        , m_destroyIn( destroyIn )
+        , m_destroyed( false )
+        , m_sawData( false )
+    {GUCEF_TRACE;
+
+        SubscribeTo( &m_server );
+    }
+
+    virtual ~CClientDestroyedInEvent()
+    {GUCEF_TRACE;
+
+        UnsubscribeAllFromObserver();
+        if ( GUCEF_NULL != m_client )
+        {
+            m_client->Close();
+            GUCEF_DELETE m_client;
+            m_client = GUCEF_NULL;
+        }
+        m_server.Close();
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CClientDestroyedInEvent";
+        return classTypeName;
+    }
+
+    bool Start( void )
+    {GUCEF_TRACE;
+
+        if ( !m_server.ListenOnPort( 0 ) )
+            return false;
+        m_client = GUCEF_NEW CTCPClientSocket( false );
+        SubscribeTo( m_client );
+        return m_client->ConnectTo( "127.0.0.1", m_server.GetBoundPort() );
+    }
+
+    /** the server ends the connection: the client hears of it */
+    void CloseFromServer( void )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL != m_serverConnection )
+            m_serverConnection->Close();
+    }
+
+    bool m_destroyed;
+    bool m_sawData;
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier           ,
+                           const CORE::CEvent& eventid         ,
+                           CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        if ( notifier == &m_server )
+        {
+            if ( CTCPServerSocket::ClientConnectedEvent == eventid )
+            {
+                CTCPServerSocket::TClientConnectedEventData* data = static_cast< CTCPServerSocket::TClientConnectedEventData* >( eventdata );
+                m_serverConnection = data->GetData().connection;
+                m_serverConnection->Send( "hello", 5 );
+            }
+            else
+            if ( CTCPServerSocket::ClientDisconnectedEvent == eventid )
+                m_serverConnection = GUCEF_NULL;
+            return;
+        }
+
+        if ( notifier != m_client || GUCEF_NULL == m_client )
+            return;
+
+        if ( CTCPClientSocket::DataRecievedEvent == eventid )
+            m_sawData = true;
+
+        if ( ( DESTROY_IN_CONNECTED == m_destroyIn && CTCPClientSocket::ConnectedEvent == eventid )       ||
+             ( DESTROY_IN_DATA == m_destroyIn && CTCPClientSocket::DataRecievedEvent == eventid )         ||
+             ( DESTROY_IN_DISCONNECTED == m_destroyIn && CTCPClientSocket::DisconnectedEvent == eventid ) )
+        {
+            m_client->ScheduleForDestruction();
+            m_client = GUCEF_NULL;
+            m_destroyed = true;
+        }
+    }
+
+    private:
+
+    CTCPServerSocket m_server;
+    CTCPServerConnection* m_serverConnection;
+    CTCPClientSocket* m_client;
+    TEventToDestroyIn m_destroyIn;
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -583,7 +707,7 @@ PerformClientServerTests( void )
         try
         {
             CTestTCPClientServer test( "pong" );
-            ASSERT_TRUE( test.Start( TestServerPort ) );
+            ASSERT_TRUE( test.Start( 0 ) );
 
             ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientConnected && test.m_serverSawClient; }, 5000 ) );
 
@@ -618,8 +742,8 @@ PerformClientServerTests( void )
             } observer( &errorOrClosed );
             observer.SubscribeTo( &client );
 
-            // the port is not used by any test
-            client.ConnectTo( "127.0.0.1", TestServerPort + 50 );
+            // a port that was free when it was looked up, nothing is started on it
+            client.ConnectTo( "127.0.0.1", TESTFW::FindFreeTcpPort() );
             ASSERT_TRUE( PumpUntil( [&errorOrClosed]() { return errorOrClosed; }, 5000 ) );
         }
         catch ( ... )
@@ -634,8 +758,8 @@ PerformClientServerTests( void )
             for ( int serverFirst=0; serverFirst<2; ++serverFirst )
             {
                 CGreetingServerAndClient test( 0 != serverFirst );
-                UInt16 port = (UInt16)( TestServerPort + 2 + serverFirst );
-                ASSERT_TRUE( test.Server()->ListenOnPort( port ) );
+                ASSERT_TRUE( test.Server()->ListenOnPort( 0 ) );
+                UInt16 port = test.Server()->GetBoundPort();
                 ASSERT_TRUE( test.Client()->ConnectTo( "127.0.0.1", port ) );
 
                 ASSERT_TRUE( PumpUntilTrue( test.m_dataSeen, 5000 ) );
@@ -657,13 +781,15 @@ PerformClientServerTests( void )
             CUDPSocket receiver( false );
             CUdpReceiveRecorder recorder;
             recorder.SubscribeTo( &receiver );
-            ASSERT_TRUE( receiver.Open( "127.0.0.1", (UInt16)( TestServerPort + 4 ) ) );
+            // a given port, so it can be seen that it is the one opened
+            const UInt16 receiverPort = TESTFW::FindFreeUdpPort();
+            ASSERT_TRUE( receiver.Open( "127.0.0.1", receiverPort ) );
             ASSERT_TRUE( receiver.IsActive() );
-            ASSERT_TRUE( TestServerPort + 4 == receiver.GetPort() );
+            ASSERT_TRUE( receiverPort == receiver.GetPort() );
 
             CUDPSocket sender( false );
             ASSERT_TRUE( sender.Open( (UInt16) 0 ) );
-            ASSERT_TRUE( 5 == sender.SendPacketTo( CIPv4Address( "127.0.0.1", (UInt16)( TestServerPort + 4 ) ), "hello", 5 ) );
+            ASSERT_TRUE( 5 == sender.SendPacketTo( CIPv4Address( "127.0.0.1", receiverPort ), "hello", 5 ) );
             ASSERT_TRUE( PumpUntilTrue( recorder.m_receivedSomething, 5000 ) );
             ASSERT_TRUE( recorder.m_received == "hello" );
 
@@ -673,7 +799,7 @@ PerformClientServerTests( void )
 
             // A local address that is not there cannot be opened
             CUDPSocket nowhere( false );
-            ASSERT_FALSE( nowhere.Open( "no.such.host.invalid", (UInt16)( TestServerPort + 5 ) ) );
+            ASSERT_FALSE( nowhere.Open( "no.such.host.invalid", TESTFW::FindFreeUdpPort() ) );
 
             sender.Close();
             receiver.Close();
@@ -695,7 +821,7 @@ PerformClientServerTests( void )
             ASSERT_TRUE( receiver.SetNrOfReceiveBuffers( 16, 64 ) );
             ASSERT_TRUE( receiver.SetNrOfReceiveBuffers( 40, 9216 ) );
             ASSERT_TRUE( receiver.SetNrOfReceiveBuffers( 3, 9216 ) );
-            ASSERT_TRUE( receiver.Open( "127.0.0.1", (UInt16)( TestServerPort + 10 ) ) );
+            ASSERT_TRUE( receiver.Open( "127.0.0.1", (UInt16) 0 ) );
 
             char packet[ 9000 ];
             for ( UInt32 i=0; i<sizeof( packet ); ++i )
@@ -704,7 +830,7 @@ PerformClientServerTests( void )
 
             CUDPSocket sender( false );
             ASSERT_TRUE( sender.Open( (UInt16) 0 ) );
-            ASSERT_TRUE( sizeof( packet ) == sender.SendPacketTo( CIPv4Address( "127.0.0.1", (UInt16)( TestServerPort + 10 ) ), packet, sizeof( packet ) ) );
+            ASSERT_TRUE( sizeof( packet ) == sender.SendPacketTo( CIPv4Address( "127.0.0.1", receiver.GetPort() ), packet, sizeof( packet ) ) );
             ASSERT_TRUE( PumpUntilTrue( recorder.m_receivedSomething, 2000 ) );
             ASSERT_TRUE( recorder.m_received == CORE::CString( packet ) );
 
@@ -729,14 +855,14 @@ PerformClientServerTests( void )
             CUDPSocket receiver( false );
             CUdpReceiveRecorder recorder;
             recorder.SubscribeTo( &receiver );
-            ASSERT_TRUE( receiver.Open( "127.0.0.1", (UInt16)( TestServerPort + 6 ) ) );
+            ASSERT_TRUE( receiver.Open( "127.0.0.1", (UInt16) 0 ) );
 
             first.Close();
             ASSERT_TRUE( receiver.IsActive() );
 
             CUDPSocket sender( false );
             ASSERT_TRUE( sender.Open( (UInt16) 0 ) );
-            ASSERT_TRUE( 5 == sender.SendPacketTo( CIPv4Address( "127.0.0.1", (UInt16)( TestServerPort + 6 ) ), "again", 5 ) );
+            ASSERT_TRUE( 5 == sender.SendPacketTo( CIPv4Address( "127.0.0.1", receiver.GetPort() ), "again", 5 ) );
             ASSERT_TRUE( PumpUntilTrue( recorder.m_receivedSomething, 2000 ) );
             ASSERT_TRUE( recorder.m_received == "again" );
 
@@ -780,13 +906,13 @@ PerformClientServerTests( void )
         try
         {
             CTestTCPClientServer test( "reply" );
-            ASSERT_TRUE( test.Start( (UInt16)( TestServerPort + 7 ) ) );
+            ASSERT_TRUE( test.Start( 0 ) );
             ASSERT_TRUE( PumpUntilTrue( test.m_serverSawClient, 5000 ) );
             CTCPServerConnection* connection = test.ServerConnection();
             ASSERT_TRUE( GUCEF_NULL != connection );
             if ( GUCEF_NULL != connection )
             {
-                int descriptor = FindConnectedDescriptor( (UInt16)( TestServerPort + 7 ), connection->GetRemoteTCPPort() );
+                int descriptor = FindConnectedDescriptor( test.Server().GetBoundPort(), connection->GetRemoteTCPPort() );
                 ASSERT_TRUE( descriptor >= 0 );
                 int flags = descriptor >= 0 ? fcntl( descriptor, F_GETFL ) : -1;
                 ASSERT_TRUE( flags >= 0 && 0 != ( flags & O_NONBLOCK ) );
@@ -818,7 +944,7 @@ PerformClientServerTests( void )
             // The server writes to a client that is gone; no pulses in between, so the server does not know yet
             {
                 CTestTCPClientServer test( "reply" );
-                ASSERT_TRUE( test.Start( (UInt16)( TestServerPort + 8 ) ) );
+                ASSERT_TRUE( test.Start( 0 ) );
                 ASSERT_TRUE( PumpUntilTrue( test.m_serverSawClient, 5000 ) && PumpUntilTrue( test.m_clientConnected, 5000 ) );
                 CTCPServerConnection* connection = test.ServerConnection();
                 ASSERT_TRUE( GUCEF_NULL != connection );
@@ -836,7 +962,7 @@ PerformClientServerTests( void )
             // The client writes to a server connection that is gone
             {
                 CTestTCPClientServer test( "reply" );
-                ASSERT_TRUE( test.Start( (UInt16)( TestServerPort + 9 ) ) );
+                ASSERT_TRUE( test.Start( 0 ) );
                 ASSERT_TRUE( PumpUntilTrue( test.m_serverSawClient, 5000 ) && PumpUntilTrue( test.m_clientConnected, 5000 ) );
                 CTCPServerConnection* connection = test.ServerConnection();
                 ASSERT_TRUE( GUCEF_NULL != connection );
@@ -991,7 +1117,7 @@ PerformClientServerTests( void )
             ASSERT_TRUE( 0 == server.GetBoundPort() );
 
             // a given port is the bound port
-            const UInt16 port = (UInt16)( TestServerPort + 32 );
+            const UInt16 port = TESTFW::FindFreeTcpPort();
             ASSERT_TRUE( server.ListenOnPort( port ) );
             ASSERT_TRUE( port == server.GetBoundPort() && port == server.GetPort() );
             server.Close();
@@ -1005,7 +1131,7 @@ PerformClientServerTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: A bind address that is not a dotted IPv4 address is refused and the server does not listen, not even on every NIC" )
         try
         {
-            const UInt16 port = (UInt16)( TestServerPort + 31 );
+            const UInt16 port = TESTFW::FindFreeTcpPort();
             const char* invalid[] = { "localhost", "256.1.1.1", "1.2.3", "1.2.3.4.5", "::1", "abc", " 127.0.0.1", "127.0.0.1 ", "127.0.0.1:80", "-1.0.0.1", "127.0.0.", "http://127.0.0.1", "0x7f.0.0.1" };
             for ( UInt32 i=0; i<sizeof( invalid ) / sizeof( invalid[ 0 ] ); ++i )
             {
@@ -1038,6 +1164,129 @@ PerformClientServerTests( void )
                 ASSERT_FALSE( server.ListenOnPort( port ) );
                 ASSERT_FALSE( server.IsActive() );
             }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A TCP client socket scheduled for destruction from within its connect, data or disconnect event goes, and sockets made after it work" )
+        try
+        {
+            // the socket holds no lock of its own any more when it is deleted: a mutex that is destroyed while it is locked
+            // is undefined behaviour, the thread sanitizer reports it and its deadlock detector loses track of its locks
+            for ( int destroyIn=0; destroyIn<3; ++destroyIn )
+            {
+                CClientDestroyedInEvent check( (CClientDestroyedInEvent::TEventToDestroyIn) destroyIn );
+                ASSERT_TRUE( check.Start() );
+                if ( CClientDestroyedInEvent::DESTROY_IN_DISCONNECTED == destroyIn )
+                {
+                    ASSERT_TRUE( PumpUntilTrue( check.m_sawData, 10000 ) );
+                    check.CloseFromServer();
+                }
+                ASSERT_TRUE( PumpUntilTrue( check.m_destroyed, 10000 ) );
+                PumpFor( 20 );
+            }
+
+            // new sockets and their locks after it
+            CTestTCPClientServer test( "pong" );
+            ASSERT_TRUE( test.Start( 0 ) );
+            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientConnected && test.m_serverSawClient; }, 5000 ) );
+            ASSERT_TRUE( test.Client().Send( "ping", 4 ) );
+            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientReceived == "pong"; }, 5000 ) );
+            test.Client().Close();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The test helper hands out free ports, each once, and from GUCEF_TEST_PORT_BASE upward when that is set" )
+        try
+        {
+            const CORE::CString baseBefore = CORE::GetEnv( "GUCEF_TEST_PORT_BASE" );
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", "" );
+
+            // from the system: free, and not the same twice
+            const UInt16 first = TESTFW::FindFreeTcpPort();
+            const UInt16 second = TESTFW::FindFreeTcpPort();
+            ASSERT_TRUE( 0 != first && 0 != second && first != second );
+            {
+                CTCPServerSocket server( false );
+                ASSERT_TRUE( server.ListenOnPort( first ) );
+                server.Close();
+            }
+
+            // from the base: that base and the ports above it, still only free ones and each once
+            const UInt16 base = TESTFW::FindFreeTcpPort();
+            ASSERT_TRUE( 0 != base && base < 65000 );
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", CORE::ToString( base ) );
+            ASSERT_TRUE( base == TESTFW::TestPortBase() );
+            const UInt16 fromBase = TESTFW::FindFreeTcpPort();
+            const UInt16 nextFromBase = TESTFW::FindFreeUdpPort();
+            ASSERT_TRUE( fromBase >= base && fromBase < base + 64 );
+            ASSERT_TRUE( nextFromBase > fromBase && nextFromBase < base + 128 );
+            {
+                CTCPServerSocket server( false );
+                ASSERT_TRUE( server.ListenOnPort( fromBase ) );
+                server.Close();
+            }
+
+            // what is not a port is not a base
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", "70000" );
+            ASSERT_TRUE( 0 == TESTFW::TestPortBase() );
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", "12a" );
+            ASSERT_TRUE( 0 == TESTFW::TestPortBase() );
+
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", baseBefore );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The test helper hands out ports free for TCP and UDP both, and passes over a port that only TCP has free" )
+        try
+        {
+            const CORE::CString baseBefore = CORE::GetEnv( "GUCEF_TEST_PORT_BASE" );
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", "" );
+
+            // from the system: both protocols can have it
+            const UInt16 both = TESTFW::FindFreeTcpAndUdpPort();
+            ASSERT_TRUE( 0 != both );
+            {
+                CTCPServerSocket server( false );
+                CUDPSocket udp( false );
+                ASSERT_TRUE( server.ListenOnPort( both ) );
+                ASSERT_TRUE( udp.Open( both ) );
+                udp.Close();
+                server.Close();
+            }
+
+            // a port that is taken for UDP only is not handed out for both: the base is that port, the next one comes
+            const UInt16 udpTaken = TESTFW::FindFreeUdpPort();
+            ASSERT_TRUE( 0 != udpTaken && udpTaken < 65000 );
+            CUDPSocket holder( false );
+            ASSERT_TRUE( holder.Open( udpTaken ) );
+            ASSERT_TRUE( 0 != TESTFW::TryBindTestPort( false, udpTaken ) );     // TCP has it free
+            ASSERT_TRUE( 0 == TESTFW::TryBindTestPort( true, udpTaken ) );      // UDP does not
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", CORE::ToString( udpTaken ) );
+            const UInt16 next = TESTFW::FindFreeTcpAndUdpPort();
+            ASSERT_TRUE( next > udpTaken && next < udpTaken + 64 );
+            holder.Close();
+            {
+                CTCPServerSocket server( false );
+                CUDPSocket udp( false );
+                ASSERT_TRUE( server.ListenOnPort( next ) );
+                ASSERT_TRUE( udp.Open( next ) );
+                udp.Close();
+                server.Close();
+            }
+
+            CORE::SetEnv( "GUCEF_TEST_PORT_BASE", baseBefore );
         }
         catch ( ... )
         {

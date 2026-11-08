@@ -57,7 +57,22 @@ files( {
   "include/TestCode_TlsOpenSsl.h",
   "include/TestDatabaseClient.h",
   "include/TestDatabaseClientFake.h",
-  "include/TestNoTlsProvider.h"
+  "include/TestNoTlsProvider.h",
+  "include/TestRpcAllocationCounter.h",
+  "include/TestRpcCodec.h",
+  "include/TestRpcConformance.h",
+  "include/TestRpcContract.h",
+  "include/TestRpcEndpoint.h",
+  "include/TestRpcEndpointFixture.h",
+  "include/TestRpcLifecycle.h",
+  "include/TestRpcLossyTransport.h",
+  "include/TestRpcNotesService.h",
+  "include/TestRpcPerf.h",
+  "include/TestRpcSession.h",
+  "include/TestSocketReadiness.h",
+  "include/TestTcpSocketThreads.h",
+  "include/TestRpcSupport.h",
+  "include/TestRpcTransportSuite.h"
  } )
 
 
@@ -72,6 +87,14 @@ files( {
   "src/TestCode_SimpleTCPClient.cpp",
   "src/TestCode_TlsLayer.cpp",
   "src/TestCode_TlsOpenSsl.cpp",
+  "src/TestRpcCodec.cpp",
+  "src/TestRpcContract.cpp",
+  "src/TestRpcEndpoint.cpp",
+  "src/TestRpcLifecycle.cpp",
+  "src/TestRpcPerf.cpp",
+  "src/TestRpcSession.cpp",
+  "src/TestSocketReadiness.cpp",
+  "src/TestTcpSocketThreads.cpp",
   "src/gucefCOMCORE_TestApp.cpp",
   "src/TestDatabaseClient.cpp",
   "src/TestDatabaseClientFake.cpp"

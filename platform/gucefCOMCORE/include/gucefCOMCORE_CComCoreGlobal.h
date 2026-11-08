@@ -65,6 +65,16 @@
 #define GUCEF_COMCORE_CDATABASECLIENTFACTORY_H
 #endif /* GUCEF_COMCORE_CDATABASECLIENTFACTORY_H ? */
 
+#ifndef GUCEF_COMCORE_CIRPCTRANSPORTLISTENER_H
+#include "gucefCOMCORE_CIRpcTransportListener.h"
+#define GUCEF_COMCORE_CIRPCTRANSPORTLISTENER_H
+#endif /* GUCEF_COMCORE_CIRPCTRANSPORTLISTENER_H ? */
+
+#ifndef GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#include "gucefCOMCORE_CSocketReadinessWaiter.h"
+#define GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#endif /* GUCEF_COMCORE_CSOCKETREADINESSWAITER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -84,6 +94,7 @@ class CCom;
 class CDnsCache;
 class CDiscoveryManager;
 class CGeoLocationLookupService;
+class CRpcContractRegistry;
 
 /*-------------------------------------------------------------------------*/
 
@@ -111,6 +122,15 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     /** Creates database clients by backend name, for example "vfstables". Backends register from their plugins */
     CDatabaseClientFactory& GetDatabaseClientFactory( void );
 
+    /** Creates RPC transports by type name: "loopback" built in, "tcp" from gucefCOM, "drn" from gucefDRN */
+    CRpcTransportFactory& GetRpcTransportFactory( void );
+
+    /** Creates RPC transport listeners by type name, as GetRpcTransportFactory() */
+    CRpcTransportListenerFactory& GetRpcTransportListenerFactory( void );
+
+    /** The RPC contracts the process knows: built in, from files, the disk cache and peers */
+    CRpcContractRegistry& GetRpcContractRegistry( void );
+
     CGeoLocationLookupService& GetGeoLocationLookupService( void );
 
     /**
@@ -118,6 +138,12 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
      *  The system provider is registered but loads nothing until TLS is first used, see CTlsProviderRegistry
      */
     CTlsProviderRegistry& GetTlsProviderRegistry( void );
+
+    /**
+     *  Wakes the owners of sockets that asked for it when their sockets become ready (SetUseReadinessWake()).
+     *  Its task starts at the first registration
+     */
+    CSocketReadinessWaiterPtr GetSocketReadinessWaiter( void );
 
     private:
     friend class CModule;
@@ -142,8 +168,12 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     CRttProbeFactory* m_rttProbeFactory;
     CPortMapperFactory* m_portMapperFactory;
     CDatabaseClientFactory* m_databaseClientFactory;
+    CRpcTransportFactory* m_rpcTransportFactory;
+    CRpcTransportListenerFactory* m_rpcTransportListenerFactory;
+    CRpcContractRegistry* m_rpcContractRegistry;
     CGeoLocationLookupService* m_geoLocationLookupService;
     CTlsProviderRegistry* m_tlsProviderRegistry;
+    CSocketReadinessWaiterPtr m_socketReadinessWaiter;
 
     static MT::CMutex g_dataLock;
     static CComCoreGlobal* g_instance;

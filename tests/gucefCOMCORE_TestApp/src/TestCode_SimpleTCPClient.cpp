@@ -56,8 +56,6 @@
 using namespace GUCEF;
 using namespace GUCEF::COMCORE;
 
-static const UInt16 TestServerPort = 47611;
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -167,6 +165,9 @@ class CAnswerOnceServer : public CORE::CObserver
 
     bool Start( UInt16 port ) { return m_socket.ListenOnPort( port ); }
 
+    /** the port the server listens on, also when it was told to listen on port 0 */
+    UInt16 GetPort( void ) const { return m_socket.GetBoundPort(); }
+
     CORE::CString m_request;
 
     protected:
@@ -213,9 +214,9 @@ PerformSimpleTCPClientTests( void )
         try
         {
             CAnswerOnceServer server( "HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\nok" );
-            ASSERT_TRUE( server.Start( TestServerPort ) );
+            ASSERT_TRUE( server.Start( 0 ) );
 
-            CSimpleTCPClient client( "127.0.0.1", TestServerPort, "GET /\r\n" );
+            CSimpleTCPClient client( "127.0.0.1", server.GetPort(), "GET /\r\n" );
             ASSERT_TRUE( client.Start() );
 
             ASSERT_TRUE( PumpUntil( [&client]() { return client.m_received.Length() >= 40; }, 5000 ) );

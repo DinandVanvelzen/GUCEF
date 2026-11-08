@@ -117,6 +117,41 @@
 #define GUCEF_COMCORE_CDATABASECLIENTOPERATION_H
 #endif /* GUCEF_COMCORE_CDATABASECLIENTOPERATION_H ? */
 
+#ifndef GUCEF_COMCORE_CRPCCONTRACTREGISTRY_H
+#include "gucefCOMCORE_CRpcContractRegistry.h"
+#define GUCEF_COMCORE_CRPCCONTRACTREGISTRY_H
+#endif /* GUCEF_COMCORE_CRPCCONTRACTREGISTRY_H ? */
+
+#ifndef GUCEF_COMCORE_CRPCLOOPBACKTRANSPORT_H
+#include "gucefCOMCORE_CRpcLoopbackTransport.h"
+#define GUCEF_COMCORE_CRPCLOOPBACKTRANSPORT_H
+#endif /* GUCEF_COMCORE_CRPCLOOPBACKTRANSPORT_H ? */
+
+#ifndef GUCEF_COMCORE_CRPCLOOPBACKTRANSPORTLISTENER_H
+#include "gucefCOMCORE_CRpcLoopbackTransportListener.h"
+#define GUCEF_COMCORE_CRPCLOOPBACKTRANSPORTLISTENER_H
+#endif /* GUCEF_COMCORE_CRPCLOOPBACKTRANSPORTLISTENER_H ? */
+
+#ifndef GUCEF_COMCORE_CRPCCALLTASK_H
+#include "gucefCOMCORE_CRpcCallTask.h"
+#define GUCEF_COMCORE_CRPCCALLTASK_H
+#endif /* GUCEF_COMCORE_CRPCCALLTASK_H ? */
+
+#ifndef GUCEF_COMCORE_CRPCENDPOINT_H
+#include "gucefCOMCORE_CRpcEndpoint.h"
+#define GUCEF_COMCORE_CRPCENDPOINT_H
+#endif /* GUCEF_COMCORE_CRPCENDPOINT_H ? */
+
+#ifndef GUCEF_COMCORE_CRPCHOST_H
+#include "gucefCOMCORE_CRpcHost.h"
+#define GUCEF_COMCORE_CRPCHOST_H
+#endif /* GUCEF_COMCORE_CRPCHOST_H ? */
+
+#ifndef GUCEF_COMCORE_CRPCBUILTINCONTRACTS_H
+#include "gucefCOMCORE_CRpcBuiltInContracts.h"
+#define GUCEF_COMCORE_CRPCBUILTINCONTRACTS_H
+#endif /* GUCEF_COMCORE_CRPCBUILTINCONTRACTS_H ? */
+
 #include "gucefCOMCORE_CComCoreGlobal.h"  /* definition of the class implemented here */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -153,6 +188,9 @@ CComCoreGlobal* CComCoreGlobal::g_instance = GUCEF_NULL;
 TPingTaskConsumerFactory g_pingTaskConsumerFactory;
 TDnsCacheRefreshTaskConsumerFactory g_dnsCacheRefreshTaskConsumerFactory;
 TDatabaseClientOperationTaskFactory g_databaseClientOperationTaskFactory;
+CORE::CTFactory< CORE::CTaskConsumer, CRpcCallTaskConsumer, MT::CMutex > g_rpcCallTaskConsumerFactory;
+CORE::CTFactory< CIRpcTransport, CRpcLoopbackTransport, MT::CMutex > g_rpcLoopbackTransportFactory;
+CORE::CTFactory< CIRpcTransportListener, CRpcLoopbackTransportListener, MT::CMutex > g_rpcLoopbackTransportListenerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -168,8 +206,12 @@ CComCoreGlobal::CComCoreGlobal( void )
     , m_rttProbeFactory( GUCEF_NULL )
     , m_portMapperFactory( GUCEF_NULL )
     , m_databaseClientFactory( GUCEF_NULL )
+    , m_rpcTransportFactory( GUCEF_NULL )
+    , m_rpcTransportListenerFactory( GUCEF_NULL )
+    , m_rpcContractRegistry( GUCEF_NULL )
     , m_geoLocationLookupService( GUCEF_NULL )
     , m_tlsProviderRegistry( GUCEF_NULL )
+    , m_socketReadinessWaiter()
 {GUCEF_TRACE;
 
 }
@@ -205,6 +247,13 @@ CComCoreGlobal::Initialize( void )
     CIPortMapper::RegisterEvents();
     CIDatabaseClient::RegisterEvents();
     CTlsClientConnection::RegisterEvents();
+    CIRpcTransport::RegisterEvents();
+    CIRpcTransportListener::RegisterEvents();
+    CRpcContractRegistry::RegisterEvents();
+    CRpcEndpoint::RegisterEvents();
+    CRpcServerCall::RegisterEvents();
+    CIRpcStream::RegisterEvents();
+    CRpcHost::RegisterEvents();
     
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
 
@@ -217,12 +266,21 @@ CComCoreGlobal::Initialize( void )
     // Make the task manager capable of carrying out the async calls of database clients
     taskManager.RegisterTaskConsumerFactory( CDatabaseClientOperation::TaskType, &g_databaseClientOperationTaskFactory );
 
+    // RPC handlers in the RPC_EXECUTION_THREAD_POOL mode run as these tasks
+    taskManager.RegisterTaskConsumerFactory( CRpcCallTaskConsumer::TaskType, &g_rpcCallTaskConsumerFactory );
+
     m_com = GUCEF_NEW CCom();
+    m_socketReadinessWaiter = CSocketReadinessWaiter::CreateSharedObj();
     m_dnsCache = ( GUCEF_NEW CGlobalDnsCache() )->CreateSharedPtr();
     m_discoveryClientFactory = GUCEF_NEW CDiscoveryClientFactory();
     m_rttProbeFactory = GUCEF_NEW CRttProbeFactory();
     m_portMapperFactory = GUCEF_NEW CPortMapperFactory();
     m_databaseClientFactory = GUCEF_NEW CDatabaseClientFactory();
+    m_rpcTransportFactory = GUCEF_NEW CRpcTransportFactory();
+    m_rpcTransportListenerFactory = GUCEF_NEW CRpcTransportListenerFactory();
+    m_rpcTransportFactory->RegisterConcreteFactory( CRpcLoopbackTransport::TransportType, &g_rpcLoopbackTransportFactory );
+    m_rpcTransportListenerFactory->RegisterConcreteFactory( CRpcLoopbackTransport::TransportType, &g_rpcLoopbackTransportListenerFactory );
+    m_rpcContractRegistry = GUCEF_NEW CRpcContractRegistry();
     m_discoveryManager = GUCEF_NEW CDiscoveryManager();
     m_geoLocationLookupService = GUCEF_NEW CGeoLocationLookupService();
 
@@ -249,10 +307,16 @@ CComCoreGlobal::Shutdown( void )
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefCOMCORE Global systems shutting down" );
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefCOMCORE" );
 
+    // sockets that still hold the waiter find it shut down: their unregistrations do nothing
+    if ( !m_socketReadinessWaiter.IsNULL() )
+        m_socketReadinessWaiter->Shutdown();
+    m_socketReadinessWaiter.Unlink();
+
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
     taskManager.UnregisterTaskConsumerFactory( CPingTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CDnsCacheRefreshTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CDatabaseClientOperation::TaskType );
+    taskManager.UnregisterTaskConsumerFactory( CRpcCallTaskConsumer::TaskType );
     
     GUCEF_DELETE m_tlsProviderRegistry;
     m_tlsProviderRegistry = GUCEF_NULL;
@@ -262,6 +326,16 @@ CComCoreGlobal::Shutdown( void )
     m_discoveryManager = GUCEF_NULL;
     GUCEF_DELETE m_databaseClientFactory;
     m_databaseClientFactory = GUCEF_NULL;
+    GUCEF_DELETE m_rpcContractRegistry;
+    m_rpcContractRegistry = GUCEF_NULL;
+    if ( GUCEF_NULL != m_rpcTransportFactory )
+        m_rpcTransportFactory->UnregisterConcreteFactory( CRpcLoopbackTransport::TransportType );
+    if ( GUCEF_NULL != m_rpcTransportListenerFactory )
+        m_rpcTransportListenerFactory->UnregisterConcreteFactory( CRpcLoopbackTransport::TransportType );
+    GUCEF_DELETE m_rpcTransportFactory;
+    m_rpcTransportFactory = GUCEF_NULL;
+    GUCEF_DELETE m_rpcTransportListenerFactory;
+    m_rpcTransportListenerFactory = GUCEF_NULL;
     GUCEF_DELETE m_portMapperFactory;
     m_portMapperFactory = GUCEF_NULL;
     GUCEF_DELETE m_rttProbeFactory;
@@ -328,6 +402,15 @@ CComCoreGlobal::GetCom( void )
 
 /*-------------------------------------------------------------------------*/
 
+CSocketReadinessWaiterPtr
+CComCoreGlobal::GetSocketReadinessWaiter( void )
+{GUCEF_TRACE;
+
+    return m_socketReadinessWaiter;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDnsCache&
 CComCoreGlobal::GetDnsCache( void )
 {GUCEF_TRACE;
@@ -378,6 +461,33 @@ CComCoreGlobal::GetDatabaseClientFactory( void )
 {GUCEF_TRACE;
 
     return *m_databaseClientFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcTransportFactory&
+CComCoreGlobal::GetRpcTransportFactory( void )
+{GUCEF_TRACE;
+
+    return *m_rpcTransportFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcTransportListenerFactory&
+CComCoreGlobal::GetRpcTransportListenerFactory( void )
+{GUCEF_TRACE;
+
+    return *m_rpcTransportListenerFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcContractRegistry&
+CComCoreGlobal::GetRpcContractRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_rpcContractRegistry;
 }
 
 /*-------------------------------------------------------------------------*/

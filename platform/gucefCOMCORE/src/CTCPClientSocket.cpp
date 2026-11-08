@@ -70,6 +70,11 @@
 #define GUCEF_COMCORE_SOCKETUTILS_H
 #endif /* GUCEF_COMCORE_SOCKETUTILS_H ? */
 
+#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#include "gucefCOMCORE_CComCoreGlobal.h"
+#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+
 #include "CTCPClientSocket.h"           /* Header with class for these utils */
 
 #ifdef ACTIVATE_MEMORY_MANAGER
@@ -135,6 +140,7 @@ CTCPClientSocket::CTCPClientSocket( CORE::PulseGeneratorPtr pulseGenerator ,
     , _active( false )
     , datalock()
     , m_readbuffer()
+    , m_receivedBuffer()
     , m_sendBuffer()
     , m_sendOpBuffer()
     , m_maxreadbytes( 0 )
@@ -154,6 +160,9 @@ CTCPClientSocket::CTCPClientSocket( CORE::PulseGeneratorPtr pulseGenerator ,
     , m_maxKeepAliveProbeFails( 3 )
     , m_bytesReceived( 0 )
     , m_bytesTransmitted( 0 )
+    , m_useReadinessWake( false )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -176,6 +185,7 @@ CTCPClientSocket::CTCPClientSocket( bool blocking )
     , _active( false )
     , datalock()
     , m_readbuffer()
+    , m_receivedBuffer()
     , m_sendBuffer()
     , m_sendOpBuffer()
     , m_maxreadbytes( 0 )
@@ -194,6 +204,9 @@ CTCPClientSocket::CTCPClientSocket( bool blocking )
     , m_maxKeepAliveProbeFails( 3 )
     , m_bytesReceived( 0 )
     , m_bytesTransmitted( 0 )
+    , m_useReadinessWake( false )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -493,6 +506,10 @@ CTCPClientSocket::Connect( bool blocking )
 
             m_isConnecting = true;
 
+            // the end of the connect makes the socket writable: that wakes the owner
+            RegisterForReadinessWake();
+            ArmReadinessWake();
+
             Unlock();
 
             NotifyObservers( ConnectingEvent );
@@ -598,16 +615,15 @@ CTCPClientSocket::CheckRecieveBuffer( void )
                 m_lastConnFailed = true;
                 GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Socket error occured: " + CORE::Int32ToString( errorcode ) );
 
+                // Observers run without the lock of this socket: one of them may delete it
+                Unlock();
+
                 // Notify our users of the error
                 TSocketErrorEventData eData( errorcode );
                 if ( !NotifyObservers( SocketErrorEvent, &eData ) ) return false;
 
                 // After a socket error you must always close the connection.
-                if ( !CloseImp() )
-                    return false;
-
-                Unlock();
-                return true;
+                return CloseImp();
             }
             else
             if ( bytesrecv == 0 )
@@ -618,12 +634,9 @@ CTCPClientSocket::CheckRecieveBuffer( void )
 
                 GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): The server has closed the connection" );
 
-                // The connection has been closed on us
-                if ( !CloseImp() )
-                    return false;
-
+                // The connection has been closed on us. Observers hear of that without the lock of this socket
                 Unlock();
-                return true;
+                return CloseImp();
             }
 
             // Increase the logical data size delimiter by the amount we just copied into the buffer
@@ -648,13 +661,19 @@ CTCPClientSocket::CheckRecieveBuffer( void )
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Received " << m_readbuffer.GetDataSize() << " bytes" );
 
+            // Observers hear of the data without the lock of this socket: one of them may delete it. The data moves to the
+            // buffer only this thread uses, so a close or connect from another thread meanwhile leaves it alone. The two
+            // buffers trade places every time, both keep the memory they have for the next reads
+            m_receivedBuffer.Swap( m_readbuffer );
+            Unlock();
+
             CORE::CDynamicBuffer linkedBuffer;
-            linkedBuffer.LinkTo( m_readbuffer.GetConstBufferPtr(), m_readbuffer.GetDataSize() );
+            linkedBuffer.LinkTo( m_receivedBuffer.GetConstBufferPtr(), m_receivedBuffer.GetDataSize() );
             TDataRecievedEventData cData( &linkedBuffer );
             if ( !NotifyObservers( DataRecievedEvent, &cData ) ) return false;
         }
-
-        Unlock();
+        else
+            Unlock();
     }
 
     return true;
@@ -747,9 +766,11 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
 
                 GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Socket is now connected to the server, TCP channel established" );
 
-                // We are now connected
+                // We are now connected. Observers hear of it without the lock of this socket: one of them may delete it
                 m_isConnecting = false;
+                Unlock();
                 if ( !NotifyObservers( ConnectedEvent ) ) return;
+                Lock();
 
                 // An observer may have closed the connection again
                 if ( !_active )
@@ -762,9 +783,19 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
             if ( FD_ISSET( _data->sockid, &readfds ) )
             {
                 /* data can be read from the socket */
+                // CheckRecieveBuffer() takes the lock itself and gives it up before observers hear of the data.
                 // false means this object was deleted by one of the observers, we must not touch it anymore
+                Unlock();
                 if ( !CheckRecieveBuffer() )
                     return;
+                Lock();
+
+                // closed meanwhile, by an observer or because the connection ended
+                if ( !_active )
+                {
+                    Unlock();
+                    return;
+                }
             }
         }
         else
@@ -822,6 +853,8 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
 
                             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Unable to delayed send queued data at this time" );
 
+                            // writable again ends the wait
+                            ArmReadinessWake();
                             Unlock();
                             return;
                         }
@@ -843,6 +876,7 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
             }
         }
 
+        ArmReadinessWake();
         Unlock();
     }
 }
@@ -872,6 +906,9 @@ CTCPClientSocket::CloseImp( void )
     if ( IsActive() )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Closing active socket" );
+
+        // the waiter must not wait on a descriptor number the system may hand to the next socket
+        UnregisterFromReadinessWake();
 
         /* prevent any further sends on the socket */
         shutdown( _data->sockid ,
@@ -972,13 +1009,13 @@ CTCPClientSocket::Send( const void* data ,
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Sending data of length " << length << " with timeout " << timeout );
 
-        Lock();
-
-        // notify observers that we are sending data
+        // notify observers that we are sending data, without the lock of this socket: one of them may delete it
         CORE::CDynamicBuffer linkedBuffer;
         linkedBuffer.LinkTo( data, length );
         TDataRecievedEventData cData( &linkedBuffer );
         if ( !NotifyObservers( DataSentEvent, &cData ) ) return false;
+
+        Lock();
 
         // Check if we still have data queued to be sent,..
         // TCP has to be in-order so we will have to queue the new data behind the already queued data
@@ -986,6 +1023,7 @@ CTCPClientSocket::Send( const void* data ,
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Delaying sending of data because there is still data queued to be send from the previous send" );
             m_sendBuffer.Write( data, 1, length );
+            ArmReadinessWake();
             Unlock();
             return true;
         }
@@ -1022,6 +1060,7 @@ CTCPClientSocket::Send( const void* data ,
 
                     // The remainder is queued, it will be sent when the socket can take more data.
                     // Without leaving the loop the same remainder would be queued again on every iteration
+                    ArmReadinessWake();
                     break;
                 }
                 else
@@ -1193,6 +1232,70 @@ CTCPClientSocket::GetAutoReconnectOnError( void ) const
 {GUCEF_TRACE;
 
     return m_autoReconnectOnError;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPClientSocket::SetUseReadinessWake( bool useReadinessWake )
+{GUCEF_TRACE;
+
+    m_useReadinessWake = useReadinessWake;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPClientSocket::GetUseReadinessWake( void ) const
+{GUCEF_TRACE;
+
+    return m_useReadinessWake;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPClientSocket::RegisterForReadinessWake( void )
+{GUCEF_TRACE;
+
+    UnregisterFromReadinessWake();
+    if ( _blocking || m_pulseGenerator.IsNULL() )
+        return;
+    if ( m_readinessWaiter.IsNULL() )
+        m_readinessWaiter = CComCoreGlobal::Instance()->GetSocketReadinessWaiter();
+    if ( m_readinessWaiter.IsNULL() )
+        return;
+
+    // asked for by this socket's owner, or by the owner of the pulse generator for every socket on it
+    if ( !m_useReadinessWake && !m_readinessWaiter->IsEnabledForPulseGenerator( m_pulseGenerator ) )
+        return;
+    m_readinessId = m_readinessWaiter->Register( (UInt64) _data->sockid, m_pulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPClientSocket::ArmReadinessWake( void )
+{GUCEF_TRACE;
+
+    if ( 0 == m_readinessId || !_active )
+        return;
+    UInt32 interest = CSocketReadinessWaiter::ReadinessRead;
+    if ( m_isConnecting || m_sendBuffer.HasBufferedData() )
+        interest |= CSocketReadinessWaiter::ReadinessWrite;
+    m_readinessWaiter->Arm( m_readinessId, interest );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPClientSocket::UnregisterFromReadinessWake( void )
+{GUCEF_TRACE;
+
+    if ( 0 == m_readinessId )
+        return;
+    m_readinessWaiter->Unregister( m_readinessId );
+    m_readinessId = 0;
 }
 
 /*-------------------------------------------------------------------------*/

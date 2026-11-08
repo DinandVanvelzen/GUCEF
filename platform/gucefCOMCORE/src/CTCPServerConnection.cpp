@@ -101,6 +101,14 @@ CTCPServerConnection::CTCPServerConnection( CTCPServerSocket *tcp_serversock ,
     , m_bytesTransmitted( 0 )
     , m_disconnectIfIdle( false )
     , m_idleTimer( tcp_serversock->m_pulseGenerator, 600000 )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
+    , m_closeToComplete( false )
+    , m_closeToCompleteByUser( false )
+    , m_closeToCompleteUpdateLists( false )
+    , m_closeToCompleteNotify( false )
+    , m_closeBeingTold( false )
+    , m_lockDepth( 0 )
 {GUCEF_TRACE;
 
     _data = GUCEF_NEW TTCPServerConData;
@@ -177,7 +185,10 @@ MT::TLockStatus
 CTCPServerConnection::Lock( UInt32 lockWaitTimeoutInMs ) const
 {GUCEF_TRACE;
 
-    return _datalock.Lock( lockWaitTimeoutInMs );
+    MT::TLockStatus lockStatus = _datalock.Lock( lockWaitTimeoutInMs );
+    if ( MT::LOCKSTATUS_OPERATION_SUCCESS == lockStatus )
+        ++m_lockDepth;
+    return lockStatus;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -186,6 +197,8 @@ MT::TLockStatus
 CTCPServerConnection::Unlock( void ) const
 {GUCEF_TRACE;
 
+    if ( m_lockDepth > 0 )
+        --m_lockDepth;
     return _datalock.Unlock();
 }
 
@@ -201,28 +214,42 @@ CTCPServerConnection::Close( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CTCPServerConnection::CloseImp( bool byUser            , 
-                                bool lock              , 
-                                bool updateActiveLists ,
-                                bool notify            )
+CTCPServerConnection::CloseImp( bool byUser                ,
+                                bool lock                  ,
+                                bool updateActiveLists     ,
+                                bool notify                ,
+                                bool onlyWhenOpenOrPending )
 {GUCEF_TRACE;
 
     if ( lock )
         Lock();
 
+    // Nothing to close and nothing to tell: the close was told already, or another thread is telling it
+    if ( onlyWhenOpenOrPending && !_active && !m_closeToComplete && !m_closeToCompleteNotify )
+    {
+        if ( lock )
+            Unlock();
+        return;
+    }
+
+    // A thread that held the lock before this call (an observer of an event of this connection, a sender that closes
+    // under the lock) still holds it once this call gives it up: the server socket must not hear of the close under it.
+    // Not when the server socket closes all of its connections, it holds its own lock already and moves them itself
+    const bool callerHoldsLock = !lock || ( updateActiveLists && m_lockDepth > 1 );
+
+    bool closed = false;
     if ( _active )
     {
+        // the waiter must not wait on a descriptor number the system may hand to the next socket
+        UnregisterFromReadinessWake();
+
         int errorCode = 0;
         if ( 0 == dvsocket_closesocket( _data->sockid, &errorCode ) )
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "TCPServerConnection(" + CORE::PointerToString( this ) + "): Closed socket for connection " + GetRemoteIP().AddressAndPortAsString() );
         
             _active = false;
-
-            m_parentsock->OnClientConnectionClosed( this              ,
-                                                    m_connectionidx   ,
-                                                    byUser            ,
-                                                    updateActiveLists );
+            closed = true;
 
 		    m_readbuffer.Clear( false );
 		    m_sendBuffer.Clear( false );
@@ -234,11 +261,99 @@ CTCPServerConnection::CloseImp( bool byUser            ,
         }
     }
 
-    if ( lock )
-        Unlock();
+    if ( callerHoldsLock )
+    {
+        // The caller holds the lock: the server socket and the observers hear of the close once it gave the lock up,
+        // see UnlockAndCompleteClose(), or on the next pulse of the server socket (Update()). Until then this object
+        // stays among the active connections of the server socket, so it is not handed to a later client
+        if ( closed )
+        {
+            m_closeToComplete = true;
+            m_closeToCompleteByUser = byUser;
+            m_closeToCompleteUpdateLists = updateActiveLists;
+        }
+        m_closeToCompleteNotify = m_closeToCompleteNotify || notify;
+        if ( lock )
+            Unlock();
+        return;
+    }
 
-    if ( notify )
-        NotifyObservers( DisconnectedEvent );
+    // A close that waited for the lock to be given up is completed by this one
+    if ( m_closeToComplete )
+    {
+        closed = true;
+        byUser = m_closeToCompleteByUser;
+    }
+    notify = notify || m_closeToCompleteNotify;
+    m_closeToComplete = false;
+    m_closeToCompleteByUser = false;
+    m_closeToCompleteUpdateLists = false;
+    m_closeToCompleteNotify = false;
+
+    // Until the server socket heard of the close this object is not handed to a later client, also not by a server
+    // socket that closed and listens again meanwhile
+    if ( closed )
+        m_closeBeingTold.Store( true );
+
+    // Lock order: the server socket raises its events and sends to its connections under its own lock, which comes
+    // before the lock of a connection. The server socket hears of the close after this lock is given up
+    Unlock();
+
+    // The observers first: once the server socket heard of the close it may hand this object to a later client, whose
+    // observers must not get the end of this one. False means this object was deleted by one of the observers
+    if ( notify && !NotifyObservers( DisconnectedEvent ) )
+        return;
+
+    if ( closed )
+    {
+        m_parentsock->OnClientConnectionClosed( this              ,
+                                                m_connectionidx   ,
+                                                byUser            ,
+                                                updateActiveLists );
+        m_closeBeingTold.Store( false );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::UnlockAndCompleteClose( void )
+{GUCEF_TRACE;
+
+    // The thread holds the lock more than once, for example an observer of an event of this connection closed it from
+    // a thread that had the lock already: the close stays pending for the outermost hold or the next pulse
+    if ( m_lockDepth > 1 )
+    {
+        Unlock();
+        return true;
+    }
+
+    const bool closeToComplete = m_closeToComplete;
+    const bool byUser = m_closeToCompleteByUser;
+    const bool updateActiveLists = m_closeToCompleteUpdateLists;
+    const bool notify = m_closeToCompleteNotify;
+    m_closeToComplete = false;
+    m_closeToCompleteByUser = false;
+    m_closeToCompleteUpdateLists = false;
+    m_closeToCompleteNotify = false;
+    if ( closeToComplete )
+        m_closeBeingTold.Store( true );
+    Unlock();
+
+    // The observers first, as in CloseImp(): the server socket may hand this object to a later client once it heard of
+    // the close. False means this object was deleted by one of the observers
+    if ( notify && !NotifyObservers( DisconnectedEvent ) )
+        return false;
+
+    if ( closeToComplete )
+    {
+        m_parentsock->OnClientConnectionClosed( this              ,
+                                                m_connectionidx   ,
+                                                byUser            ,
+                                                updateActiveLists );
+        m_closeBeingTold.Store( false );
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -263,6 +378,14 @@ CTCPServerConnection::Send( const void* dataSource ,
 
         Lock();
 
+        // Closed while this waited for the lock: the descriptor number of the closed socket may belong to a new socket by
+        // now, of another client or of anything else in the process
+        if ( !_active )
+        {
+            Unlock();
+            return false;
+        }
+
         // notify observers that we are sending data
         CORE::CDynamicBuffer linkedBuffer;
         linkedBuffer.LinkTo( dataSource, length );
@@ -275,6 +398,7 @@ CTCPServerConnection::Send( const void* dataSource ,
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data because there is still data queued to be send from the previous send" );
             m_sendBuffer.Write( dataSource, 1, length );
+            ArmReadinessWake();
             Unlock();
             return true;
         }
@@ -311,6 +435,7 @@ CTCPServerConnection::Send( const void* dataSource ,
 
                     // The remainder is queued, it will be sent when the socket can take more data.
                     // Without leaving the loop the same remainder would be queued again on every iteration
+                    ArmReadinessWake();
                     break;
                 }
                 else
@@ -552,8 +677,26 @@ CTCPServerConnection::GetMaxIdleDurationInMs( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CTCPServerConnection::CompletePendingClose( void )
+{GUCEF_TRACE;
+
+    Lock();
+    if ( m_closeToComplete || m_closeToCompleteNotify )
+        return UnlockAndCompleteClose();
+    Unlock();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
 {GUCEF_TRACE;
+
+    // a close made by a thread that held the lock of this connection is told to the server socket here, once that
+    // thread gave the lock up
+    if ( !_active )
+        return CompletePendingClose();
 
     if ( !_blocking && _active )
     {
@@ -586,9 +729,8 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
                 if ( !NotifyObservers( SocketErrorEvent, &eData ) ) return false;
 
                 CloseImp( true, false, true, false );
-                
-                Unlock();
-                return true;
+
+                return UnlockAndCompleteClose();
             }
             else
             if ( FD_ISSET( _data->sockid, &readfds ) )
@@ -651,6 +793,8 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
 
                             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Unable to delayed send queued data at this time" );
 
+                            // writable again ends the wait
+                            ArmReadinessWake();
                             Unlock();
                             return true;
                         }
@@ -669,10 +813,49 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
             }
         }
 
-        Unlock();
+        ArmReadinessWake();
+        return UnlockAndCompleteClose();
     }
 
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPServerConnection::RegisterForReadinessWake( const CSocketReadinessWaiterPtr& waiter )
+{GUCEF_TRACE;
+
+    UnregisterFromReadinessWake();
+    m_readinessWaiter = waiter;
+    if ( !m_readinessWaiter.IsNULL() && !_blocking )
+        m_readinessId = m_readinessWaiter->Register( (UInt64) _data->sockid, m_parentsock->m_pulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPServerConnection::ArmReadinessWake( void )
+{GUCEF_TRACE;
+
+    if ( 0 == m_readinessId || !_active )
+        return;
+    UInt32 interest = CSocketReadinessWaiter::ReadinessRead;
+    if ( m_sendBuffer.HasBufferedData() )
+        interest |= CSocketReadinessWaiter::ReadinessWrite;
+    m_readinessWaiter->Arm( m_readinessId, interest );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPServerConnection::UnregisterFromReadinessWake( void )
+{GUCEF_TRACE;
+
+    if ( 0 == m_readinessId )
+        return;
+    m_readinessWaiter->Unregister( m_readinessId );
+    m_readinessId = 0;
 }
 
 /*-------------------------------------------------------------------------*/

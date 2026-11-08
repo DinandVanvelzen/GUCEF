@@ -24,6 +24,8 @@
 
 #define GUCEF_TESTFW_IMPL
 
+#include <string.h>
+
 #ifndef GUCEF_MACROS_H
 #include "gucef_macros.h"
 #define GUCEF_MACROS_H
@@ -49,6 +51,11 @@
 #define GUCEF_COMCORE_H
 #endif /* GUCEF_COMCORE_H ? */
 
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #include "TestCode_PingTest.h"
 #include "TestCode_ClientServer.h"
 #include "TestCode_SimpleTCPClient.h"
@@ -57,12 +64,43 @@
 #include "TestCode_TlsLayer.h"
 #include "TestCode_TlsOpenSsl.h"
 #include "TestDatabaseClient.h"
+#include "TestRpcContract.h"
+#include "TestRpcCodec.h"
+#include "TestRpcEndpoint.h"
+#include "TestRpcSession.h"
+#include "TestRpcPerf.h"
+#include "TestRpcLifecycle.h"
+#include "TestSocketReadiness.h"
+#include "TestTcpSocketThreads.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  Suite filter, to repeat a part of the application quickly (for example in a loop under a sanitizer): when the
+ *  environment variable GUCEF_TEST_ONLY_SUITES holds a comma separated list, only the Perform...Tests() functions
+ *  whose name contains one of the entries (case insensitive) are run. Without the variable, or empty, everything runs.
+ *      GUCEF_TEST_ONLY_SUITES=RpcLifecycle,RpcEndpoint ./gucefCOMCORE_TestApp
+ */
+static bool
+IsSuiteEnabled( const char* suiteFunctionName )
+{
+    static const GUCEF::CORE::CString filter = GUCEF::CORE::GetEnv( "GUCEF_TEST_ONLY_SUITES" ).Uppercase();
+    if ( filter.IsNULLOrEmpty() )
+        return true;
+
+    const GUCEF::CORE::CString name = GUCEF::CORE::CString( suiteFunctionName ).Uppercase();
+    GUCEF::CORE::CString::StringVector entries = filter.ParseElements( ',', false );
+    for ( size_t i=0; i<entries.size(); ++i )
+        if ( !entries[ i ].IsNULLOrEmpty() && name.HasSubstr( entries[ i ] ) >= 0 )
+            return true;
+    return false;
+}
+
+#define RUN_SUITE( suiteFunction )  if ( IsSuiteEnabled( #suiteFunction ) ) suiteFunction()
 
 /*
  *      Application entry point
@@ -74,6 +112,10 @@ GUCEF_OSMAIN_BEGIN
 
     try
     {
+        // started by a test as a process of its own, see TestRpcEndpoint.h
+        if ( argc > 2 && 0 == strcmp( argv[ 1 ], GUCEF_COMCORE_TESTAPP_RPC_FRESH_PROCESS_ARG ) )
+            return RunRpcThreadPoolHandlerInFreshProcess( argv[ 2 ] );
+
         CORE::CString logFilename = CORE::RelativePath( "$CURWORKDIR$" );
         CORE::AppendToPath( logFilename, "gucefCOMCORE_TestApp_Log.txt" );
         CORE::CFileAccess logFileAccess( logFilename, "w" );
@@ -90,15 +132,23 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefCOMCORE_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
-        PerformDNSTests();
-        PerformClientServerTests();
-        PerformSimpleTCPClientTests();
-        PerformPingTests();
-        PerformDiscoveryTests();
-        PerformTlsLayerTests();
-        PerformTlsOpenSslTests();
-        PerformNetworkServiceInterfaceTests();
-        PerformDatabaseClientTests();
+        RUN_SUITE( PerformDNSTests );
+        RUN_SUITE( PerformClientServerTests );
+        RUN_SUITE( PerformSimpleTCPClientTests );
+        RUN_SUITE( PerformPingTests );
+        RUN_SUITE( PerformDiscoveryTests );
+        RUN_SUITE( PerformTlsLayerTests );
+        RUN_SUITE( PerformTlsOpenSslTests );
+        RUN_SUITE( PerformNetworkServiceInterfaceTests );
+        RUN_SUITE( PerformDatabaseClientTests );
+        RUN_SUITE( PerformRpcCodecTests );
+        RUN_SUITE( PerformRpcContractTests );
+        RUN_SUITE( PerformRpcEndpointTests );
+        RUN_SUITE( PerformRpcSessionTests );
+        RUN_SUITE( PerformRpcPerfTests );
+        RUN_SUITE( PerformRpcLifecycleTests );
+        RUN_SUITE( PerformSocketReadinessTests );
+        RUN_SUITE( PerformTcpSocketThreadsTests );
 
         CORE::CLogStreamScope::FlushLogs();
 

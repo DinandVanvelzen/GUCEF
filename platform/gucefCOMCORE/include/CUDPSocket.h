@@ -50,6 +50,11 @@
 #define GUCEF_COMCORE_CSOCKET_H
 #endif /* GUCEF_COMCORE_CSOCKET_H ? */
 
+#ifndef GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#include "gucefCOMCORE_CSocketReadinessWaiter.h"
+#define GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#endif /* GUCEF_COMCORE_CSOCKETREADINESSWAITER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -414,6 +419,15 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
 
     bool GetAutoReOpenOnError( void ) const;
 
+    /**
+     *  Whether the socket's pulse generator is asked for an immediate pulse as soon as a datagram arrives, see
+     *  CSocketReadinessWaiter. Without it the socket is serviced at its periodic pulses only. Takes effect at the
+     *  next open. Default false. Only for a pulse generator driven by a task delegator (a dedicated task's).
+     */
+    void SetUseReadinessWake( bool useReadinessWake );
+
+    bool GetUseReadinessWake( void ) const;
+
     void SetAllowMulticastLoopback( bool allowLoopback );
 
     bool GetAllowMulticastLoopback( void ) const;
@@ -460,6 +474,15 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
 
     void RegisterEventHandlers( void );
 
+    /** Registers the open socket for readiness wakes when asked for */
+    void RegisterForReadinessWake( void );
+
+    /** Asks for the next readiness wake when the socket is done being serviced */
+    void ArmReadinessWake( void );
+
+    /** Before the descriptor is closed */
+    void UnregisterFromReadinessWake( void );
+
     /**
      *  Links the logical receive buffers and their packet entries to slices of the underlying receive buffer
      *  The underlying receive buffer must already hold at least nrOfReceiveBuffers * bufferSize bytes
@@ -492,6 +515,9 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
     mutable UInt32 m_bytesTransmitted;
     mutable UInt32 m_nrOfDataReceivedEvents;
     mutable UInt32 m_nrOfDataSentEvents;
+    bool m_useReadinessWake;
+    CSocketReadinessWaiterPtr m_readinessWaiter;
+    CSocketReadinessWaiter::TRegistrationId m_readinessId;
 };
 
 /*-------------------------------------------------------------------------//

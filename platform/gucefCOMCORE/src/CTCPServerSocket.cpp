@@ -58,6 +58,11 @@
 #define GUCEF_COMCORE_CIPV4ADDRESS_H
 #endif /* GUCEF_COMCORE_CIPV4ADDRESS_H ? */
 
+#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#include "gucefCOMCORE_CComCoreGlobal.h"
+#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+
 #include "CTCPServerSocket.h"           /* this file's header */
 
 /*-------------------------------------------------------------------------//
@@ -139,6 +144,9 @@ CTCPServerSocket::CTCPServerSocket( const CORE::PulseGeneratorPtr& pulseGenerato
     , m_lastListenFailed( false )
     , m_disconnectClientsIfIdle( false )
     , m_maxClientConnectionIdleTime( 600000 )
+    , m_useReadinessWake( false )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
 {GUCEF_TRACE;
 
     _data = GUCEF_NEW TTCPServerSockData;
@@ -177,6 +185,9 @@ CTCPServerSocket::CTCPServerSocket( bool blocking         ,
     , m_lastListenFailed( false )
     , m_disconnectClientsIfIdle( false )
     , m_maxClientConnectionIdleTime( 600000 )
+    , m_useReadinessWake( false )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
 {GUCEF_TRACE;
 
     _data = GUCEF_NEW TTCPServerSockData;
@@ -294,13 +305,11 @@ CTCPServerSocket::OnPulse( CORE::CNotifier* notifier                 ,
             }
             
             // If the update caused connnections to become (in)active in some way we deal with those here
-            while ( !m_almostInactiveConnections.empty() )
-            {
-                CTCPServerConnection* connection = m_almostInactiveConnections.front();
-                m_activeConnections.erase( connection );
-                m_inactiveConnections.insert( connection );
-                m_almostInactiveConnections.pop();
-            }
+            // Under the lock: a connection closed on another thread queues itself under it (OnClientConnectionClosed()),
+            // and SendToAllClients() walks the active connections under it. The accepted ones first: a connection that
+            // was accepted and closed since the last pulse (closed from within its ClientConnectedEvent, or by another
+            // thread) is in both queues and ends among the inactive ones, where its place is free again
+            Lock();
             while ( !m_almostActiveConnections.empty() )
             {
                 CTCPServerConnection* connection = m_almostActiveConnections.front();
@@ -308,7 +317,25 @@ CTCPServerSocket::OnPulse( CORE::CNotifier* notifier                 ,
                 m_activeConnections.insert( connection );
                 m_almostActiveConnections.pop();
             }
+            while ( !m_almostInactiveConnections.empty() )
+            {
+                // A connection that is active again was handed to a later client after this socket closed and listened
+                // again (Close() moved it among the inactive ones already): the entry is of the close before that
+                CTCPServerConnection* connection = m_almostInactiveConnections.front();
+                if ( !connection->IsActive() )
+                {
+                    m_activeConnections.erase( connection );
+                    m_inactiveConnections.insert( connection );
+                }
+                m_almostInactiveConnections.pop();
+            }
+            Unlock();
         }
+
+        // the next connection waiting to be accepted wakes the pulse generator. Not while no more can be accepted:
+        // a waiting connection would wake it at every pulse, the periodic pulses look at it again
+        if ( _active && 0 != m_readinessId && (UInt32) m_activeConnections.size() < _data->maxcon )
+            m_readinessWaiter->Arm( m_readinessId, CSocketReadinessWaiter::ReadinessRead );
     }
 }
 
@@ -378,6 +405,24 @@ CTCPServerSocket::GetAutoReOpenOnError( void ) const
 {GUCEF_TRACE;
 
     return m_autoReopenOnError;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPServerSocket::SetUseReadinessWake( bool useReadinessWake )
+{GUCEF_TRACE;
+
+    m_useReadinessWake = useReadinessWake;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerSocket::GetUseReadinessWake( void ) const
+{GUCEF_TRACE;
+
+    return m_useReadinessWake;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -460,11 +505,12 @@ CTCPServerSocket::AcceptClient( void )
                 return false;
             }
                 
+            // Not one whose close is still being told: its observers would get the end of the one before
             TConnectionSet::iterator i = m_inactiveConnections.begin();
-            if ( i != m_inactiveConnections.end() )
+            while ( i != m_inactiveConnections.end() )
             {
                 CTCPServerConnection* clientcon = (*i);
-                if ( !clientcon->IsActive() )
+                if ( !clientcon->IsActive() && !clientcon->m_closeBeingTold.Load() )
                 {
                     int error = 0;
                     int aint = sizeof( struct sockaddr );
@@ -511,8 +557,19 @@ CTCPServerSocket::AcceptClient( void )
                     }
 
                     clientcon->_active = true;
+                    if ( 0 != m_readinessId )
+                    {
+                        clientcon->Lock();
+                        clientcon->RegisterForReadinessWake( m_readinessWaiter );
+                        clientcon->ArmReadinessWake();
+                        clientcon->Unlock();
+                    }
                     clientcon->SetMaxIdleDurationInMs( m_maxClientConnectionIdleTime );
                     clientcon->SetDisconnectIfIdle( m_disconnectClientsIfIdle );
+
+                    // no longer among the ones that take the next client: closed before this socket made it active (by
+                    // another thread, or from within the event below) it is not inactive again before its close was told
+                    m_inactiveConnections.erase( clientcon );
                     m_almostActiveConnections.push( clientcon );
 
                     /*
@@ -712,12 +769,29 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
 	}
 	_active = true;
     m_lastListenFailed = false;
+
+    if ( 0 != m_readinessId )
+        m_readinessWaiter->Unregister( m_readinessId );
+    m_readinessId = 0;
+    if ( !_blocking && !m_pulseGenerator.IsNULL() )
+    {
+        if ( m_readinessWaiter.IsNULL() )
+            m_readinessWaiter = CComCoreGlobal::Instance()->GetSocketReadinessWaiter();
+
+        // asked for by this socket's owner, or by the owner of the pulse generator for every socket on it
+        if ( !m_readinessWaiter.IsNULL() && ( m_useReadinessWake || m_readinessWaiter->IsEnabledForPulseGenerator( m_pulseGenerator ) ) )
+            m_readinessId = m_readinessWaiter->Register( (UInt64) _data->sockid, m_pulseGenerator );
+    }
+
     NotifyObservers( ServerSocketOpenedEvent );
 
 	/*
 	 *      Accept new connections if there are any.
 	 */
     AcceptClients();
+
+    if ( 0 != m_readinessId )
+        m_readinessWaiter->Arm( m_readinessId, CSocketReadinessWaiter::ReadinessRead );
 
     m_pulseGenerator->RequestPeriodicPulses( this, 10 );
 
@@ -738,12 +812,22 @@ CTCPServerSocket::SetMaxConnections( UInt32 maxConnections, bool dropConnections
         Lock();
         if ( dropConnections )
         {
-            Int32 nrToDrop = (Int32) m_activeConnections.size() - (Int32) maxConnections;
-            for ( Int32 i=0; i<nrToDrop; ++i )
+            // A closed connection stays among the active ones until the next pulse: the open ones are counted and closed
+            UInt32 open = 0;
+            TConnectionSet::iterator i = m_activeConnections.begin();
+            for ( ; i != m_activeConnections.end(); ++i )
+                if ( (*i)->IsActive() )
+                    ++open;
+            i = m_activeConnections.begin();
+            while ( open > maxConnections && i != m_activeConnections.end() )
             {
-                CTCPServerConnection* connection = *(m_activeConnections.begin());
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "TCPServerSocket: Closing connection " + CORE::UInt32ToString( connection->GetSocketID() ) + " due to lowered max allowed connection");
+                CTCPServerConnection* connection = (*i);
+                ++i;
+                if ( !connection->IsActive() )
+                    continue;
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "TCPServerSocket: Closing connection " << connection->GetSocketID() << " due to lowered max allowed connection" );
                 connection->Close();
+                --open;
             }
         }
         Unlock();
@@ -831,19 +915,37 @@ CTCPServerSocket::Close( void )
 
     if ( IsActive() )
     {
+        // the waiter must not wait on a descriptor number the system may hand to the next socket
+        if ( 0 != m_readinessId )
+            m_readinessWaiter->Unregister( m_readinessId );
+        m_readinessId = 0;
+
         int errorCode = 0;
         dvsocket_closesocket( _data->sockid, &errorCode );
 
         NotifyObservers( ServerSocketClosedEvent );
 
+        // The connections that are open are closed and told: the active ones and those accepted since the last pulse.
+        // One whose close was told already, or is being told by another thread, is not told again
         TConnectionSet::iterator i = m_activeConnections.begin();
         while ( i != m_activeConnections.end() )
         {
-            (*i)->CloseImp( false, true, false, true );
-            m_inactiveConnections.insert( (*i) );
+            (*i)->CloseImp( false, true, false, true, true );
             ++i;
         }
+        while ( !m_almostActiveConnections.empty() )
+        {
+            m_almostActiveConnections.front()->CloseImp( false, true, false, true, true );
+            m_almostActiveConnections.pop();
+        }
+
+        // What the next pulse would have moved is done: every connection object waits for a client of the next listen
+        while ( !m_almostInactiveConnections.empty() )
+            m_almostInactiveConnections.pop();
         m_activeConnections.clear();
+        for ( size_t n=0; n<_connections.size(); ++n )
+            if ( GUCEF_NULL != _connections[ n ] )
+                m_inactiveConnections.insert( _connections[ n ] );
         _active = false;
     }
     _datalock.Unlock();
@@ -970,11 +1072,15 @@ CTCPServerSocket::OnClientConnectionClosed( CTCPServerConnection* connection ,
     eData.connectionInfo.connectionIndex = connectionid;
     eData.closedByClient = closedByClient;
 
+    // The connection calls this without its own lock, see CTCPServerConnection::UnlockAndCompleteClose(): this lock
+    // comes first, a connection may be closed on a thread other than the one that pulses this socket
+    Lock();
     if ( updateActiveLists )
     {
         m_almostInactiveConnections.push( connection );
     }
     NotifyObservers( ClientDisconnectedEvent, &cloneableEventData );
+    Unlock();
 }
 
 /*-------------------------------------------------------------------------*/

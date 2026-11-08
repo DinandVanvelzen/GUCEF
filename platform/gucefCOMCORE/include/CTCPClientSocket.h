@@ -30,6 +30,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
 #include "gucefCORE_CTEventHandlerFunctor.h"
 #define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
@@ -49,6 +54,11 @@
 #include "CTCPConnection.h"                     /* TCP connection base class */
 #define GUCEF_COMCORE_CTCPCONNECTION_H
 #endif /* GUCEF_COMCORE_CTCPCONNECTION_H ? */
+
+#ifndef GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#include "gucefCOMCORE_CSocketReadinessWaiter.h"
+#define GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#endif /* GUCEF_COMCORE_CSOCKETREADINESSWAITER_H ? */
 
 #ifndef GUCEF_COMCORE_MACROS_H
 #include "gucefCOMCORE_macros.h"  /* GUCEF COMCORE specific macros and build defs */
@@ -192,6 +202,17 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPClientSocket : public CTCPConnection
     bool GetAutoReconnectOnError( void ) const;
 
     /**
+     *  Whether the socket's pulse generator is asked for an immediate pulse as soon as the socket becomes readable
+     *  (or writable while connecting or while data is queued), see CSocketReadinessWaiter. Without it the socket is
+     *  serviced at its periodic pulses only. Takes effect at the next connect. Default false.
+     *  Only for a pulse generator driven by a task delegator (a dedicated task's): the request comes from the
+     *  waiter's thread.
+     */
+    void SetUseReadinessWake( bool useReadinessWake );
+
+    bool GetUseReadinessWake( void ) const;
+
+    /**
      *  sets the max number of updates to perform on the socket for a given update cycle
      *  This setting applies to running a socket in non-blocking event driven mode.
      *  If you have a very busy socket you don't want the socket to get 'stuck' reading from the socket for example
@@ -239,15 +260,25 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPClientSocket : public CTCPConnection
      *  @return false if this object was deleted as a result of notifying observers of the disconnect, if so it must not be touched anymore
      */
     bool CloseImp( void );
+
+    /** Registers the socket for readiness wakes when asked for, under the lock, once the descriptor exists */
+    void RegisterForReadinessWake( void );
+
+    /** Asks for the next readiness wake, under the lock, when the socket is done being serviced */
+    void ArmReadinessWake( void );
+
+    /** Under the lock, before the descriptor is closed */
+    void UnregisterFromReadinessWake( void );
     
     private:
             
     struct STCPClientSockData* _data;
     bool _blocking;
     bool m_isConnecting;
-    bool _active;
+    MT::CTAtomic< bool > _active;           /**< written under the lock, read without it by IsActive() and the pulse */
     MT::CMutex datalock;
     CORE::CDynamicBuffer m_readbuffer;
+    CORE::CDynamicBuffer m_receivedBuffer;  /**< the data observers hear of, used only by the thread that pulses the socket */
     CORE::CCyclicDynamicBuffer m_sendBuffer;
     CORE::CDynamicBuffer m_sendOpBuffer;
     UInt32 m_maxreadbytes;                  /**< max number of bytes to receive before processing it */ 
@@ -257,11 +288,14 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPClientSocket : public CTCPConnection
     bool m_coaleseDataSends;
     UInt32 m_maxUpdatesPerCycle;            /**< setting aimed at preventing a busy socket from hogging all the processing */
     bool m_autoReconnectOnError;            /**< flag for feature to auto reconnect after a socket error occurred */
-    bool m_lastConnFailed;
+    MT::CTAtomic< bool > m_lastConnFailed;  /**< written by Close() on any thread and by the pulse, read by both */
     bool m_useTcpKeepAlive;
     UInt8 m_maxKeepAliveProbeFails;
     UInt32 m_bytesReceived;
     UInt32 m_bytesTransmitted;
+    bool m_useReadinessWake;
+    CSocketReadinessWaiterPtr m_readinessWaiter;
+    CSocketReadinessWaiter::TRegistrationId m_readinessId;
 };
 
 /*-------------------------------------------------------------------------//

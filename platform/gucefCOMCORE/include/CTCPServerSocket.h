@@ -67,7 +67,21 @@ struct STCPServerSockData;
 //-------------------------------------------------------------------------*/
 
 /**
- *      Server socket class for TCP 
+ *  Server socket class for TCP
+ *
+ *  Threads: the thread that pulses the pulse generator of the socket accepts the clients, updates the connections and
+ *  raises the events; it uses the lists of connections and the listening descriptor without the lock of the socket.
+ *  So ListenOnPort(), Listen(), Close(), SetPort(), SetBindAddress() and SetMaxConnections() are called on that thread
+ *  (also from within an event of the socket), or while nothing pulses it: before its pulses start, after they stopped,
+ *  or under a lock that its pulses take (a DRN node pulses its pulse generator under the node lock). Close() is not
+ *  called from within an event of one of its connections: a connection raises its events under its own lock, and the
+ *  lock of the socket comes before the lock of a connection. A connection may be closed on any thread, and
+ *  SendToAllClients(), SendToConnection() and CloseClientConnection() may be called on any thread.
+ *
+ *  Close() closes and tells the connections that are open, the active ones and those accepted since the last pulse;
+ *  a connection whose close was told already, or is being told by another thread, is not told again. A connection
+ *  object goes to a later client only once its close was told (DisconnectedEvent, then ClientDisconnectedEvent), also
+ *  after a Close() and a new listen.
  */
 class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
 {
@@ -220,6 +234,16 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     void SetClientConnectionMaxIdleDurationInMs( UInt32 maxIdleTimeInMs );
 
     UInt32 GeClientConnectiontMaxIdleDurationInMs( void ) const;    
+
+    /**
+     *  Whether the pulse generator is asked for an immediate pulse as soon as the listening socket or one of its
+     *  connections becomes ready (a connection waiting to be accepted, data, writable while data is queued), see
+     *  CSocketReadinessWaiter. Without it the sockets are serviced at their periodic pulses only. Takes effect at the
+     *  next listen. Default false. Only for a pulse generator driven by a task delegator (a dedicated task's).
+     */
+    void SetUseReadinessWake( bool useReadinessWake );
+
+    bool GetUseReadinessWake( void ) const;
     
     virtual ~CTCPServerSocket(); 
     
@@ -283,6 +307,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     bool m_lastListenFailed;
     bool m_disconnectClientsIfIdle;
     UInt32 m_maxClientConnectionIdleTime;
+    bool m_useReadinessWake;
+    CSocketReadinessWaiterPtr m_readinessWaiter;
+    CSocketReadinessWaiter::TRegistrationId m_readinessId;  /**< of the listening socket */
 };
 
 /*-------------------------------------------------------------------------//
