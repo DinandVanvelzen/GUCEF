@@ -94,6 +94,8 @@ MakeChangedSettings( void )
     AUDIO::CAudioSettings settings;
     settings.SetDriverName( "alsa" );
     settings.SetDeviceId( "hw:1,0" );
+    settings.SetCaptureDeviceId( "hw:2,0" );
+    settings.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
     settings.SetSampleRate( 44100 );
     settings.SetBufferSizeInFrames( 256 );
     settings.SetChannelLayout( AUDIO::CAudioFormat::GetDefaultChannelLayout( 6 ) );
@@ -111,6 +113,7 @@ bool
 SameSettings( const AUDIO::CAudioSettings& a, const AUDIO::CAudioSettings& b )
 {
     if ( a.GetDriverName() != b.GetDriverName() || a.GetDeviceId() != b.GetDeviceId() ||
+         a.GetCaptureDeviceId() != b.GetCaptureDeviceId() || a.GetLatencyProfile() != b.GetLatencyProfile() ||
          a.GetSampleRate() != b.GetSampleRate() || a.GetBufferSizeInFrames() != b.GetBufferSizeInFrames() ||
          a.GetChannelLayout() != b.GetChannelLayout() || a.HasLimiterMode() != b.HasLimiterMode() ||
          ( a.HasLimiterMode() && a.GetLimiterMode() != b.GetLimiterMode() ) ||
@@ -153,6 +156,7 @@ PerformAudioSettingsTests( void )
         ASSERT_TRUE( settings.GetDriverName().IsNULLOrEmpty() && settings.GetDeviceId().IsNULLOrEmpty() );
         ASSERT_TRUE( 0 == settings.GetSampleRate() && 0 == settings.GetBufferSizeInFrames() && 0 == settings.GetChannelLayout() );
         ASSERT_FALSE( settings.HasLimiterMode() );
+        ASSERT_TRUE( settings.GetCaptureDeviceId().IsNULLOrEmpty() && AUDIO::AUDIOLATENCYPROFILE_DEFAULT == settings.GetLatencyProfile() );
         ASSERT_TRUE( Near( 0.0f, settings.GetMasterVolumeInDecibels() ) && !settings.IsMasterMuted() );
         ASSERT_TRUE( settings.GetAllBusSettings().empty() );
         ASSERT_TRUE( "AudioSettings" == AUDIO::CAudioSettings::ConfigSectionName );
@@ -387,6 +391,15 @@ PerformAudioSettingsTests( void )
         changed.SetDeviceId( "hw:2,0" );
         ASSERT_TRUE( changed.RequiresDeviceReopen( applied ) );
         changed = applied;
+        changed.SetCaptureDeviceId( "hw:3,0" );
+        ASSERT_TRUE( changed.RequiresDeviceReopen( applied ) );
+        changed = applied;
+        changed.SetCaptureDeviceId( CORE::CString::Empty );
+        ASSERT_TRUE( changed.RequiresDeviceReopen( applied ) );
+        changed = applied;
+        changed.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_DEFAULT );
+        ASSERT_TRUE( changed.RequiresDeviceReopen( applied ) );
+        changed = applied;
         changed.SetSampleRate( 48000 );
         ASSERT_TRUE( changed.RequiresDeviceReopen( applied ) );
         changed = applied;
@@ -417,6 +430,13 @@ PerformAudioSettingsTests( void )
         ASSERT_FALSE( a.RequiresDeviceReopen( b ) );
         a.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD );
         b.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD );
+        ASSERT_FALSE( a.RequiresDeviceReopen( b ) );
+
+        // the same capture device and latency profile are the same
+        a.SetCaptureDeviceId( "hw:2,0" );
+        b.SetCaptureDeviceId( "hw:2,0" );
+        a.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+        b.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
         ASSERT_FALSE( a.RequiresDeviceReopen( b ) );
     }
     catch ( ... )
@@ -588,6 +608,288 @@ PerformAudioSettingsTests( void )
             ASSERT_TRUE( latencies[ i ] == engine.GetMixLatencyInFrames() );
             engine.Shutdown();
         }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "LatencyProfile: The low profile writes 5 ms periods, 3 periods, priority 70 and the instant limiter for both devices" )
+    try
+    {
+        AUDIO::CAudioEngineParams params;
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == params.GetLimiterMode() );
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+
+        const AUDIO::CAudioDeviceParams* devices[ 2 ] = { &params.GetDeviceParams(), &params.GetCaptureDeviceParams() };
+        for ( UInt32 i=0; i<2; ++i )
+        {
+            ASSERT_TRUE( 240 == devices[ i ]->GetBufferSizeInFrames() );
+            ASSERT_TRUE( 3 == devices[ i ]->GetOptions().GetValueAlways( "periods" ).AsUInt32( 0 ) );
+            ASSERT_TRUE( 70 == devices[ i ]->GetOptions().GetValueAlways( "realtimePriority" ).AsUInt32( 0 ) );
+        }
+        ASSERT_TRUE( AUDIO::AUDIODIRECTION_CAPTURE == params.GetCaptureDeviceParams().GetDirection() );
+        ASSERT_TRUE( params.GetLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_INSTANT == params.GetLimiterMode() );
+
+        // the period follows the rate, to the nearest whole frame
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW, 16000 );
+        ASSERT_TRUE( 80 == params.GetDeviceParams().GetBufferSizeInFrames() && 80 == params.GetCaptureDeviceParams().GetBufferSizeInFrames() );
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW, 44100 );
+        ASSERT_TRUE( 221 == params.GetDeviceParams().GetBufferSizeInFrames() );
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW, 8000 );
+        ASSERT_TRUE( 40 == params.GetDeviceParams().GetBufferSizeInFrames() );
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW, 0 );
+        ASSERT_TRUE( 240 == params.GetDeviceParams().GetBufferSizeInFrames() );
+        ASSERT_TRUE( "periods" == AUDIO::CAudioEngineParams::PeriodsOptionName );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "LatencyProfile: The default profile gives the driver its choice back, nothing else is touched" )
+    try
+    {
+        AUDIO::CAudioEngineParams params;
+        params.GetDeviceParams().SetDeviceId( "keepdevice" );
+        params.GetDeviceParams().SetPreferredFormat( AUDIO::CAudioFormat( 32000, 1, AUDIO::SAMPLETYPE_FLOAT32 ) );
+        params.GetDeviceParams().GetOptions().Set( "keepOption", "keep" );
+        params.GetCaptureDeviceParams().SetDeviceId( "keepcapture" );
+        params.SetMaxBlockFrames( 2048 );
+        params.SetCommandQueueSize( 77 );
+        params.SetCaptureCommandQueueSize( 33 );
+        params.SetMaxVoices( 17 );
+
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+        ASSERT_TRUE( "keepdevice" == params.GetDeviceParams().GetDeviceId() && "keepcapture" == params.GetCaptureDeviceParams().GetDeviceId() );
+        ASSERT_TRUE( AUDIO::CAudioFormat( 32000, 1, AUDIO::SAMPLETYPE_FLOAT32 ) == params.GetDeviceParams().GetPreferredFormat() );
+        ASSERT_TRUE( "keep" == params.GetDeviceParams().GetOptions().GetValueAlways( "keepOption" ).AsString( CORE::CString::Empty ) );
+        ASSERT_TRUE( 2048 == params.GetMaxBlockFrames() && 77 == params.GetCommandQueueSize() && 33 == params.GetCaptureCommandQueueSize() && 17 == params.GetMaxVoices() );
+
+        params.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_DEFAULT );
+        const AUDIO::CAudioDeviceParams* devices[ 2 ] = { &params.GetDeviceParams(), &params.GetCaptureDeviceParams() };
+        for ( UInt32 i=0; i<2; ++i )
+        {
+            ASSERT_TRUE( 0 == devices[ i ]->GetBufferSizeInFrames() );
+            ASSERT_FALSE( devices[ i ]->GetOptions().HasKey( "periods" ) );
+            ASSERT_TRUE( 0 == devices[ i ]->GetOptions().GetValueAlways( "realtimePriority" ).AsUInt32( 99 ) );
+        }
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == params.GetLimiterMode() );
+        ASSERT_TRUE( "keep" == params.GetDeviceParams().GetOptions().GetValueAlways( "keepOption" ).AsString( CORE::CString::Empty ) );
+        ASSERT_TRUE( "keepdevice" == params.GetDeviceParams().GetDeviceId() && 2048 == params.GetMaxBlockFrames() && 17 == params.GetMaxVoices() );
+
+        // a limiter that is off stays off, only the mode it has when on changes
+        AUDIO::CAudioEngineParams quiet;
+        quiet.SetLimiterEnabled( false );
+        quiet.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+        ASSERT_FALSE( quiet.GetLimiterEnabled() );
+        quiet.SetLimiterEnabled( true );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == quiet.GetLimiterMode() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "LatencyProfile: The names go both ways, a profile survives a save and load of the engine parameters" )
+    try
+    {
+        ASSERT_TRUE( "default" == CORE::CString( AUDIO::CAudioEngineParams::LatencyProfileToString( AUDIO::AUDIOLATENCYPROFILE_DEFAULT ) ) );
+        ASSERT_TRUE( "low" == CORE::CString( AUDIO::CAudioEngineParams::LatencyProfileToString( AUDIO::AUDIOLATENCYPROFILE_LOW ) ) );
+        AUDIO::TAudioLatencyProfile profile = AUDIO::AUDIOLATENCYPROFILE_DEFAULT;
+        ASSERT_TRUE( AUDIO::CAudioEngineParams::StringToLatencyProfile( "LOW", profile ) && AUDIO::AUDIOLATENCYPROFILE_LOW == profile );
+        ASSERT_TRUE( AUDIO::CAudioEngineParams::StringToLatencyProfile( "Default", profile ) && AUDIO::AUDIOLATENCYPROFILE_DEFAULT == profile );
+        profile = AUDIO::AUDIOLATENCYPROFILE_LOW;
+        ASSERT_FALSE( AUDIO::CAudioEngineParams::StringToLatencyProfile( "ultra", profile ) );
+        ASSERT_TRUE( AUDIO::AUDIOLATENCYPROFILE_LOW == profile );
+
+        // the values are explicit in the saved configuration, so loading needs no knowledge of the profile
+        AUDIO::CAudioEngineParams original;
+        original.ApplyLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW, 16000 );
+        CORE::CDataNode config( "Config" );
+        ASSERT_TRUE( original.SaveConfig( config ) );
+        const CORE::CDataNode* section = config.FindChild( AUDIO::CAudioEngineParams::ConfigSectionName );
+        ASSERT_TRUE( GUCEF_NULL != section );
+        ASSERT_TRUE( GUCEF_NULL != section->FindChild( AUDIO::CAudioEngineParams::CaptureDeviceSectionName ) );
+
+        AUDIO::CAudioEngineParams loaded;
+        ASSERT_TRUE( loaded.LoadConfig( config ) );
+        const AUDIO::CAudioDeviceParams* devices[ 2 ] = { &loaded.GetDeviceParams(), &loaded.GetCaptureDeviceParams() };
+        for ( UInt32 i=0; i<2; ++i )
+        {
+            ASSERT_TRUE( 80 == devices[ i ]->GetBufferSizeInFrames() );
+            ASSERT_TRUE( 3 == devices[ i ]->GetOptions().GetValueAlways( "periods" ).AsUInt32( 0 ) );
+            ASSERT_TRUE( 70 == devices[ i ]->GetOptions().GetValueAlways( "realtimePriority" ).AsUInt32( 0 ) );
+        }
+        ASSERT_TRUE( loaded.GetLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_INSTANT == loaded.GetLimiterMode() );
+
+        // and an edited value stays edited
+        loaded.GetDeviceParams().GetOptions().Delete( "periods" );
+        loaded.GetDeviceParams().GetOptions().Set( "periods", "2" );
+        CORE::CDataNode edited( "Config" );
+        ASSERT_TRUE( loaded.SaveConfig( edited ) );
+        AUDIO::CAudioEngineParams reloaded;
+        ASSERT_TRUE( reloaded.LoadConfig( edited ) );
+        ASSERT_TRUE( 2 == reloaded.GetDeviceParams().GetOptions().GetValueAlways( "periods" ).AsUInt32( 0 ) );
+        ASSERT_TRUE( 3 == reloaded.GetCaptureDeviceParams().GetOptions().GetValueAlways( "periods" ).AsUInt32( 0 ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "LatencyProfile: The settings keep the capture device and the profile by name through a save and load" )
+    try
+    {
+        AUDIO::CAudioSettings original = MakeChangedSettings();
+        CORE::CDataNode config( "Config" );
+        ASSERT_TRUE( original.SaveConfig( config ) );
+        const CORE::CDataNode* section = config.FindChild( AUDIO::CAudioSettings::ConfigSectionName );
+        ASSERT_TRUE( GUCEF_NULL != section );
+        ASSERT_TRUE( "low" == section->GetAttributeValueOrChildValueByName( "latencyProfile" ).AsString( CORE::CString::Empty ) );
+        ASSERT_TRUE( "hw:2,0" == section->GetAttributeValueOrChildValueByName( "captureDevice" ).AsString( CORE::CString::Empty ) );
+
+        AUDIO::CAudioSettings loaded;
+        ASSERT_TRUE( loaded.LoadConfig( config ) );
+        ASSERT_TRUE( SameSettings( original, loaded ) );
+        ASSERT_TRUE( "hw:2,0" == loaded.GetCaptureDeviceId() && AUDIO::AUDIOLATENCYPROFILE_LOW == loaded.GetLatencyProfile() );
+
+        // the default profile is written too; it loads over another profile, as the names of the other settings do
+        AUDIO::CAudioSettings plain;
+        CORE::CDataNode plainConfig( "Config" );
+        ASSERT_TRUE( plain.SaveConfig( plainConfig ) );
+        const CORE::CDataNode* plainSection = plainConfig.FindChild( AUDIO::CAudioSettings::ConfigSectionName );
+        ASSERT_TRUE( GUCEF_NULL != plainSection );
+        ASSERT_TRUE( "default" == plainSection->GetAttributeValueOrChildValueByName( "latencyProfile" ).AsString( CORE::CString::Empty ) );
+        AUDIO::CAudioSettings back = original;
+        ASSERT_TRUE( back.LoadConfig( plainConfig ) );
+        ASSERT_TRUE( AUDIO::AUDIOLATENCYPROFILE_DEFAULT == back.GetLatencyProfile() );
+        AUDIO::CAudioSettings fresh;
+        ASSERT_TRUE( fresh.LoadConfig( plainConfig ) );
+        ASSERT_TRUE( fresh.GetCaptureDeviceId().IsNULLOrEmpty() && AUDIO::AUDIOLATENCYPROFILE_DEFAULT == fresh.GetLatencyProfile() );
+
+        // a section without them keeps them, a profile name that is not one is ignored
+        CORE::CDataNode partial( AUDIO::CAudioSettings::ConfigSectionName );
+        partial.SetAttribute( "sampleRate", (UInt32) 16000 );
+        AUDIO::CAudioSettings kept = original;
+        ASSERT_TRUE( kept.LoadConfig( partial ) );
+        ASSERT_TRUE( "hw:2,0" == kept.GetCaptureDeviceId() && AUDIO::AUDIOLATENCYPROFILE_LOW == kept.GetLatencyProfile() && 16000 == kept.GetSampleRate() );
+        CORE::CDataNode unknown( AUDIO::CAudioSettings::ConfigSectionName );
+        unknown.SetAttribute( "latencyProfile", "ultra" );
+        ASSERT_TRUE( kept.LoadConfig( unknown ) );
+        ASSERT_TRUE( AUDIO::AUDIOLATENCYPROFILE_LOW == kept.GetLatencyProfile() );
+
+        // through JSON, as an application config file has it, when the JSON codec is there
+        CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec;
+        if ( CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryLookup( "json", codec, false ) )
+        {
+            CORE::CDynamicBuffer buffer;
+            CORE::CDynamicBufferAccess output( buffer );
+            ASSERT_TRUE( codec->StoreDataTree( &config, &output ) );
+            CORE::CDynamicBufferAccess input( buffer );
+            CORE::CDataNode parsed;
+            ASSERT_TRUE( codec->BuildDataTree( &parsed, &input ) );
+            AUDIO::CAudioSettings fromJson;
+            ASSERT_TRUE( fromJson.LoadConfig( parsed ) );
+            ASSERT_TRUE( SameSettings( original, fromJson ) );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "LatencyProfile: The settings map the profile and the capture device onto the engine parameters" )
+    try
+    {
+        AUDIO::CAudioEngineParams params;
+        params.GetDeviceParams().SetBufferSizeInFrames( 1024 );
+        params.GetDeviceParams().SetPreferredFormat( AUDIO::CAudioFormat( 16000, 1, AUDIO::SAMPLETYPE_FLOAT32 ) );
+        params.GetDeviceParams().GetOptions().Set( "periods", "6" );
+        params.GetCaptureDeviceParams().SetDeviceId( "keepcapture" );
+
+        // the default profile and an empty capture device change nothing
+        AUDIO::CAudioSettings none;
+        none.ApplyToEngineParams( params );
+        ASSERT_TRUE( 1024 == params.GetDeviceParams().GetBufferSizeInFrames() && "keepcapture" == params.GetCaptureDeviceParams().GetDeviceId() );
+        ASSERT_TRUE( 6 == params.GetDeviceParams().GetOptions().GetValueAlways( "periods" ).AsUInt32( 0 ) );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == params.GetLimiterMode() );
+
+        // the capture device alone
+        AUDIO::CAudioSettings captureOnly;
+        captureOnly.SetCaptureDeviceId( "hw:2,0" );
+        captureOnly.ApplyToEngineParams( params );
+        ASSERT_TRUE( "hw:2,0" == params.GetCaptureDeviceParams().GetDeviceId() && AUDIO::AUDIODIRECTION_CAPTURE == params.GetCaptureDeviceParams().GetDirection() );
+        ASSERT_TRUE( 1024 == params.GetDeviceParams().GetBufferSizeInFrames() );
+
+        // the low profile at the rate the engine parameters prefer
+        AUDIO::CAudioSettings low;
+        low.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+        low.ApplyToEngineParams( params );
+        ASSERT_TRUE( 80 == params.GetDeviceParams().GetBufferSizeInFrames() && 80 == params.GetCaptureDeviceParams().GetBufferSizeInFrames() );
+        ASSERT_TRUE( 3 == params.GetDeviceParams().GetOptions().GetValueAlways( "periods" ).AsUInt32( 0 ) );
+        ASSERT_TRUE( 70 == params.GetCaptureDeviceParams().GetOptions().GetValueAlways( "realtimePriority" ).AsUInt32( 0 ) );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == params.GetLimiterMode() );
+        ASSERT_TRUE( "hw:2,0" == params.GetCaptureDeviceParams().GetDeviceId() );
+
+        // the sample rate of the settings decides the period
+        low.SetSampleRate( 48000 );
+        low.ApplyToEngineParams( params );
+        ASSERT_TRUE( 240 == params.GetDeviceParams().GetBufferSizeInFrames() && 240 == params.GetCaptureDeviceParams().GetBufferSizeInFrames() );
+        ASSERT_TRUE( 48000 == params.GetDeviceParams().GetPreferredFormat().GetSampleRate() );
+
+        // no rate anywhere: 48 kHz
+        AUDIO::CAudioEngineParams bare;
+        AUDIO::CAudioSettings lowOnly;
+        lowOnly.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+        lowOnly.ApplyToEngineParams( bare );
+        ASSERT_TRUE( 240 == bare.GetDeviceParams().GetBufferSizeInFrames() );
+
+        // the buffer size and the limiter mode of the settings win over the values of the profile
+        AUDIO::CAudioSettings explicitValues;
+        explicitValues.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+        explicitValues.SetBufferSizeInFrames( 512 );
+        explicitValues.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD );
+        AUDIO::CAudioEngineParams wins;
+        explicitValues.ApplyToEngineParams( wins );
+        ASSERT_TRUE( 512 == wins.GetDeviceParams().GetBufferSizeInFrames() && 240 == wins.GetCaptureDeviceParams().GetBufferSizeInFrames() );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == wins.GetLimiterMode() );
+        ASSERT_TRUE( 70 == wins.GetDeviceParams().GetOptions().GetValueAlways( "realtimePriority" ).AsUInt32( 0 ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "LatencyProfile: An engine opened with the low profile on the null driver runs with the instant limiter and the 5 ms period" )
+    try
+    {
+        AUDIO::CAudioSettings settings;
+        settings.SetDriverName( "null" );
+        settings.SetSampleRate( 48000 );
+        settings.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_LOW );
+
+        AUDIO::CAudioEngineParams params;
+        params.SetThreadingMode( AUDIO::AUDIOTHREADING_COOPERATIVE );
+        settings.ApplyToEngineParams( params );
+
+        AUDIO::CAudioEngine engine;
+        ASSERT_TRUE( engine.Initialize( params ) );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == engine.GetParams().GetLimiterMode() && 0 == engine.GetMixLatencyInFrames() );
+        ASSERT_TRUE( 240 == engine.GetParams().GetDeviceParams().GetBufferSizeInFrames() );
+        ASSERT_TRUE( 70 == engine.GetParams().GetDeviceParams().GetOptions().GetValueAlways( "realtimePriority" ).AsUInt32( 0 ) );
+        engine.Shutdown();
+
+        // a change of profile is a change of the device
+        AUDIO::CAudioSettings other( settings );
+        other.SetLatencyProfile( AUDIO::AUDIOLATENCYPROFILE_DEFAULT );
+        ASSERT_TRUE( other.RequiresDeviceReopen( settings ) );
     }
     catch ( ... )
     {

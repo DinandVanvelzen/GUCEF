@@ -335,6 +335,16 @@ CAudioEffect::GetConstructionOptions( CORE::CValueList& ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CAudioEffect::ResolveReferences( CAudioEngine& )
+{GUCEF_TRACE;
+
+    // most effects refer to nothing outside themselves
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CAudioEffect::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 

@@ -158,7 +158,7 @@ CAudioLevelMeter::Update( const Float32* interleaved, UInt32 frames )
 
 UInt32
 CAudioLevelMeter::GetChannelCount( void ) const
-{GUCEF_TRACE;
+{
 
     return m_channels.Load( MT::MEMORDER_RELAXED );
 }
@@ -167,7 +167,7 @@ CAudioLevelMeter::GetChannelCount( void ) const
 
 Float32
 CAudioLevelMeter::GetPeak( UInt32 channel ) const
-{GUCEF_TRACE;
+{
 
     return channel < (UInt32) MaxChannels ? m_peak[ channel ].Load() : 0.0f;
 }
@@ -176,7 +176,7 @@ CAudioLevelMeter::GetPeak( UInt32 channel ) const
 
 Float32
 CAudioLevelMeter::GetRms( UInt32 channel ) const
-{GUCEF_TRACE;
+{
 
     return channel < (UInt32) MaxChannels ? m_rms[ channel ].Load() : 0.0f;
 }

@@ -777,7 +777,7 @@ PerformReleaseTests( void )
         ASSERT_TRUE( ended.IsReady() );
         ASSERT_TRUE( destroyedBefore + 2 == CTestAudioEffect::DestroyedCount().Load() );
         ASSERT_TRUE( 0 != CTestAudioEffect::LastDestructorThread().Load() );
-        ASSERT_TRUE( MT::GetCurrentTaskID() != CTestAudioEffect::LastDestructorThread().Load() );   // not on the audio thread
+        ASSERT_TRUE( MT::GetCurrentThreadID() != CTestAudioEffect::LastDestructorThread().Load() );   // not on the audio thread
         ASSERT_TRUE( 0 == voice->GetEffectCount() && voice->GetEffect( 0 ).IsNULL() );
         engine.Shutdown();
     }

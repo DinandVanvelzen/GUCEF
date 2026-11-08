@@ -727,7 +727,7 @@ PerformEngineEffectTests( void )
         }
         ASSERT_TRUE( cycles == completed );
         ASSERT_TRUE( 0 != CTestAudioEffect::LastDestructorThread().Load() );
-        ASSERT_TRUE( MT::GetCurrentTaskID() != CTestAudioEffect::LastDestructorThread().Load() );   // not on the audio thread
+        ASSERT_TRUE( MT::GetCurrentThreadID() != CTestAudioEffect::LastDestructorThread().Load() );   // not on the audio thread
         ASSERT_TRUE( 0 == engine.GetDroppedEventCount() );
         engine.Shutdown();
     }

@@ -74,7 +74,22 @@
 #define GUCEF_AUDIO_CAUDIOBUSROUTING_H
 #endif /* GUCEF_AUDIO_CAUDIOBUSROUTING_H ? */
 
+#ifndef GUCEF_AUDIO_CAUDIOPUSHDEVICE_H
+#include "gucefAUDIO_CAudioPushDevice.h"
+#define GUCEF_AUDIO_CAUDIOPUSHDEVICE_H
+#endif /* GUCEF_AUDIO_CAUDIOPUSHDEVICE_H ? */
+
 #include "gucefAUDIO_CAudioEngine.h"
+
+#ifndef GUCEF_AUDIO_CHALFDUPLEXCONTROLLER_H
+#include "gucefAUDIO_CHalfDuplexController.h"
+#define GUCEF_AUDIO_CHALFDUPLEXCONTROLLER_H
+#endif /* GUCEF_AUDIO_CHALFDUPLEXCONTROLLER_H ? */
+
+#ifndef GUCEF_AUDIO_CACOUSTICECHOCANCELLER_H
+#include "gucefAUDIO_CAcousticEchoCanceller.h"
+#define GUCEF_AUDIO_CACOUSTICECHOCANCELLER_H
+#endif /* GUCEF_AUDIO_CACOUSTICECHOCANCELLER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -93,6 +108,7 @@ namespace AUDIO {
 
 const CORE::CEvent CAudioEngine::VoiceEndedEvent = "GUCEF::AUDIO::CAudioEngine::VoiceEndedEvent";
 const CORE::CEvent CAudioEngine::DeviceLostEvent = "GUCEF::AUDIO::CAudioEngine::DeviceLostEvent";
+const CORE::CEvent CAudioEngine::CaptureDeviceLostEvent = "GUCEF::AUDIO::CAudioEngine::CaptureDeviceLostEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -293,6 +309,49 @@ typedef CORE::CTSharedPtr< CAudioEngineReopenRequest, MT::CMutex > TAudioEngineR
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  What the capture device calls. The engine is the callback of the playback device; the capture device has this one, so
+ *  that the loss of the one is not taken for the loss of the other. Its calls come from the capture thread (the loss from
+ *  any thread) and only hand over to the engine
+ */
+class CAudioEngineCaptureCallback : public IAudioDeviceCallback
+{
+    public:
+
+    explicit CAudioEngineCaptureCallback( CAudioEngine* engine )
+        : IAudioDeviceCallback(), m_engine( engine )
+    {GUCEF_TRACE;
+    }
+
+    virtual ~CAudioEngineCaptureCallback() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+    }
+
+    virtual void OnRenderAudio( void*, UInt32 ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        // a capture device renders nothing
+    }
+
+    virtual void OnCaptureAudio( const void* buffer, UInt32 frameCount ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_engine->OnCaptureAudio( buffer, frameCount );
+    }
+
+    virtual void OnDeviceLost( void ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_engine->OnCaptureDeviceLost();
+    }
+
+    private:
+
+    CAudioEngineCaptureCallback( const CAudioEngineCaptureCallback& src );              /**< not implemented */
+    CAudioEngineCaptureCallback& operator=( const CAudioEngineCaptureCallback& src );   /**< not implemented */
+
+    CAudioEngine* m_engine;
+};
+
+/*-------------------------------------------------------------------------*/
+
 /** One-shot task of the engine's thread pool that opens the device of a reopen request */
 class CAudioEngineReopenTask : public CORE::CTaskConsumer
 {
@@ -346,6 +405,7 @@ CAudioEngine::RegisterEvents( void )
 
     VoiceEndedEvent.Initialize();
     DeviceLostEvent.Initialize();
+    CaptureDeviceLostEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -380,13 +440,33 @@ CAudioEngine::CAudioEngine( void )
     , m_orderTables()
     , m_freeOrderTables()
     , m_audioOrderTable( GUCEF_NULL )
+    , m_echoReference( GUCEF_NULL )
     , m_deviceRunWanted( false )
     , m_reopenPending( false )
     , m_reopenOnOwner( false )
     , m_reopenRequest()
     , m_reopenSource()
+    , m_capturePath()
+    , m_captureCallback( GUCEF_NULL )
+    , m_captureDevice()
+    , m_capturePushDevice( GUCEF_NULL )
+    , m_captureAvailable( false )
+    , m_captureRunning( false )
+    , m_captureDeviceLost( false )
+    , m_captureEffects()
+    , m_captureSlots()
+    , m_captureConsumers()
+    , m_captureConsumersLeaving()
+    , m_captureHalfDuplex( GUCEF_NULL )
+    , m_captureHalfDuplexLeaving()
+    , m_capturePending()
+    , m_echoCanceller( GUCEF_NULL )
+    , m_echoCancellersLeaving()
+    , m_playbackSchedulingReported( false )
+    , m_captureSchedulingReported( false )
 {GUCEF_TRACE;
 
+    m_captureCallback = GUCEF_NEW CAudioEngineCaptureCallback( this );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -395,6 +475,8 @@ CAudioEngine::~CAudioEngine()
 {GUCEF_TRACE;
 
     Shutdown();
+    GUCEF_DELETE m_captureCallback;
+    m_captureCallback = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -454,9 +536,13 @@ CAudioEngine::Initialize( const CAudioEngineParams& params )
     masterEntry.sendPreFader.assign( m_mixer->GetMaxSendsPerBus(), 0 );
     m_layoutApplies.clear();
     m_audioOrderTable = GUCEF_NULL;
+    m_echoReference = GUCEF_NULL;
     m_lastToken = 0;
     m_reopenPending = false;
     m_initialized = true;
+
+    // capture, when asked for: next to the playback device, and the engine plays whether it opens or not
+    OpenCaptureDevice();
 
     // Threaded: a dedicated task keeps the futures and events moving
     m_threaded = false;
@@ -483,8 +569,12 @@ CAudioEngine::Initialize( const CAudioEngineParams& params )
                       ( m_threaded ? ", threaded" : ", cooperative" ) );
 
     m_deviceRunWanted = m_params.GetStartDevice();
+    m_playbackSchedulingReported = false;
     if ( m_deviceRunWanted )
+    {
         m_device->Start();
+        StartCaptureDevice();
+    }
     return true;
 }
 
@@ -529,7 +619,9 @@ CAudioEngine::Shutdown( void )
         return;                 // somebody else did it while the lock was open
     m_initialized = false;
 
-    // When Stop() returns the audio thread is no longer calling us
+    // When Stop() returns the audio thread is no longer calling us. The capture device goes first: once it is stopped no
+    // capture consumer is called any more
+    StopCaptureDevice();
     if ( !m_device.IsNULL() )
     {
         m_device->Stop();
@@ -544,10 +636,12 @@ CAudioEngine::Shutdown( void )
     m_voices.clear();
     m_voiceEffects.clear();
     m_effects.clear();
+    ReleaseCapture();
     m_busEntries.clear();
     m_buses.clear();
     m_mixer->SetBusOrder( GUCEF_NULL, 0 );
     m_audioOrderTable = GUCEF_NULL;
+    m_echoReference = GUCEF_NULL;
     FreeOrderTables();
     GUCEF_DELETE m_routing;     m_routing = GUCEF_NULL;
 
@@ -582,6 +676,10 @@ CAudioEngine::CompleteAllPending( void )
         if ( !m_layoutApplies[ i ].source.IsNULL() )
             m_layoutApplies[ i ].source->Cancel();
     m_layoutApplies.clear();
+    for ( TPendingMap::iterator i=m_capturePending.begin(); i!=m_capturePending.end(); ++i )
+        if ( !(*i).second.IsNULL() )
+            (*i).second->Cancel();
+    m_capturePending.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -664,6 +762,8 @@ CAudioEngine::StartDevice( void )
     if ( !m_initialized || !m_device->Start() )
         return false;
     m_deviceRunWanted = true;
+    m_playbackSchedulingReported = false;
+    StartCaptureDevice();
     return true;
 }
 
@@ -677,6 +777,7 @@ CAudioEngine::StopDevice( void )
     if ( !m_initialized )
         return false;
     m_deviceRunWanted = false;
+    StopCaptureDevice();
     return m_device->Stop();
 }
 
@@ -1101,8 +1202,13 @@ CAudioEngine::InsertEffect( CAudioBus* bus, UInt32 slot, const TAudioEffectPtr& 
         return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
 
     CAudioEffect* raw = RawEffect( effect );
-    if ( m_effects.find( raw ) != m_effects.end() || m_voiceEffects.find( raw ) != m_voiceEffects.end() || !raw->IsPreparedFor( m_mixer->GetMixFormat(), m_maxBlock ) )
+    if ( IsEffectInUse( raw ) || !raw->IsPreparedFor( m_mixer->GetMixFormat(), m_maxBlock ) )
         return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( !raw->ResolveReferences( *this ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: an effect of type \"" << raw->GetEffectTypeName() << "\" could not resolve what it refers to, it is not inserted" );
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    }
     if ( !HasRoomForRequest() )
         return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
@@ -2017,6 +2123,12 @@ CAudioEngine::PrepareForMixFormat( const CAudioFormat& mixFormat )
     m_mixer->SetMixFormat( mixFormat );
     const CAudioFormat& newMix = m_mixer->GetMixFormat();
 
+    // the render tap of the echo canceller: the one in use and the ones the render thread may still feed
+    if ( GUCEF_NULL != m_echoCanceller && !m_echoCanceller->PrepareReference( newMix.GetSampleRate(), newMix.GetChannelCount(), m_maxBlock ) )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the echo canceller cannot take its reference in " << newMix.ToString() );
+    for ( size_t i=0; i<m_echoCancellersLeaving.size(); ++i )
+        m_echoCancellersLeaving[ i ]->PrepareReference( newMix.GetSampleRate(), newMix.GetChannelCount(), m_maxBlock );
+
     // buses whose attach command is still on its way are prepared as well: they will be mixed in this format
     for ( size_t b=0; b<m_buses.size(); ++b )
         m_mixer->PrepareBus( m_buses[ b ].GetPointerAlways() );
@@ -2110,9 +2222,12 @@ CAudioEngine::SwapDevice( TAudioDevicePtr& newDevice, const CString& usedDriverN
          params.GetThreadPoolName() != m_params.GetThreadPoolName() || params.GetMaxEffectsPerBus() != m_params.GetMaxEffectsPerBus() ||
          params.GetMaxSendsPerBus() != m_params.GetMaxSendsPerBus() || params.GetCommandQueueSize() != m_params.GetCommandQueueSize() ||
          params.GetEventQueueSize() != m_params.GetEventQueueSize() || params.GetMaxVoiceEffects() != m_params.GetMaxVoiceEffects() ||
-         params.GetMaxVoiceSends() != m_params.GetMaxVoiceSends() )
+         params.GetMaxVoiceSends() != m_params.GetMaxVoiceSends() || params.GetCaptureEnabled() != m_params.GetCaptureEnabled() ||
+         params.GetCaptureProcessingRate() != m_params.GetCaptureProcessingRate() || params.GetCaptureChannel() != m_params.GetCaptureChannel() ||
+         params.GetMaxCaptureConsumers() != m_params.GetMaxCaptureConsumers() || params.GetMaxCaptureEffects() != m_params.GetMaxCaptureEffects() ||
+         params.GetCaptureCommandQueueSize() != m_params.GetCaptureCommandQueueSize() )
     {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a device reopen keeps the capacities, block size, queues and threading the engine was initialized with; the different values asked for are ignored" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a device reopen keeps the capacities, block size, queues, threading and capture the engine was initialized with; the different values asked for are ignored" );
     }
 
     TAudioDevicePtr oldDevice = m_device;
@@ -2130,6 +2245,7 @@ CAudioEngine::SwapDevice( TAudioDevicePtr& newDevice, const CString& usedDriverN
 
     // the old device is closed last, when nothing refers to it any more
     oldDevice.Unlink();
+    m_playbackSchedulingReported = false;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: device reopened with driver \"" << m_usedDriverName << "\", device format " << m_deviceFormat.ToString() );
     return true;
@@ -2296,6 +2412,746 @@ CAudioEngine::GetDroppedEventCount( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CAudioEngine::IsEffectInUse( CAudioEffect* effect ) const
+{GUCEF_TRACE;
+
+    // an effect has one owner at a time: a bus slot, a capture slot or a voice
+    return m_effects.find( effect ) != m_effects.end() ||
+           m_voiceEffects.find( effect ) != m_voiceEffects.end() ||
+           m_captureEffects.find( effect ) != m_captureEffects.end();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::OpenCaptureDevice( void )
+{GUCEF_TRACE;
+
+    m_captureAvailable = false;
+    m_captureRunning = false;
+    m_captureDeviceLost.Store( false );
+    m_capturePushDevice = GUCEF_NULL;
+    m_captureSchedulingReported = false;
+    if ( !m_params.GetCaptureEnabled() )
+        return;
+
+    const UInt32 processingRate = m_params.GetCaptureProcessingRate();
+    if ( 0 != processingRate && ( processingRate < 8000 || processingRate > 48000 ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the capture processing rate " << processingRate << " is not 0 or 8000 to 48000, the engine plays without capture" );
+        return;
+    }
+
+    // the capture device comes from the driver of the playback device, always in the capture direction
+    m_params.GetCaptureDeviceParams().SetDirection( AUDIODIRECTION_CAPTURE );
+    CString usedDriverName;
+    if ( !CAudioGlobal::Instance()->GetAudioDriverRegistry().OpenDevice( m_usedDriverName, m_params.GetCaptureDeviceParams(), m_captureCallback, m_captureDevice, usedDriverName ) || m_captureDevice.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: no capture device \"" << m_params.GetCaptureDeviceParams().GetDeviceId() << "\" could be opened with driver \"" << m_usedDriverName << "\", the engine plays without capture" );
+        m_captureDevice.Unlink();
+        return;
+    }
+
+    const CAudioFormat captureFormat = m_captureDevice->GetFormat();
+    m_capturePath.SetVoiceActivitySettings( m_params.GetVoiceActivitySettings() );
+    if ( AUDIODIRECTION_CAPTURE != m_captureDevice->GetDirection() ||
+         !m_capturePath.Prepare( captureFormat, processingRate, m_params.GetCaptureChannel(), m_maxBlock, m_params.GetMaxCaptureConsumers(), m_params.GetMaxCaptureEffects(), m_params.GetCaptureCommandQueueSize() ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the capture device with format " << captureFormat.ToString() << " cannot be used with capture channel " <<
+                         m_params.GetCaptureChannel() << " and processing rate " << processingRate << ", the engine plays without capture" );
+        m_captureDevice.Unlink();
+        m_capturePath.Release();
+        return;
+    }
+
+    m_capturePushDevice = m_captureDevice->AsPushDevice();
+    m_captureSlots.assign( (size_t) AUDIOCAPTURESTAGE_COUNT * m_capturePath.GetMaxEffectsPerStage(), GUCEF_NULL );
+    m_captureConsumers.clear();
+    m_captureConsumersLeaving.clear();
+    m_captureHalfDuplex = GUCEF_NULL;
+    m_captureHalfDuplexLeaving.clear();
+    m_captureAvailable = true;
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: capture device opened with format " << captureFormat.ToString() << ", processing format " << m_capturePath.GetProcessingFormat().ToString() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::StartCaptureDevice( void )
+{GUCEF_TRACE;
+
+    if ( !m_captureAvailable || m_captureRunning )
+        return;
+
+    // the owner side stops carrying out capture commands before the capture thread can start doing so: both happen under
+    // the engine lock, and starting the device thread orders everything done here before it
+    m_captureRunning = true;
+    m_captureSchedulingReported = false;
+    if ( !m_captureDevice->Start() )
+    {
+        m_captureRunning = false;
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the capture device could not be started, the engine plays without recording" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::StopCaptureDevice( void )
+{GUCEF_TRACE;
+
+    if ( !m_captureAvailable || m_captureDevice.IsNULL() )
+        return;
+
+    // when Stop() returns the capture thread does not use the path any more: the owner side takes over its commands
+    m_captureDevice->Stop();
+    m_captureRunning = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ReleaseCapture( void )
+{GUCEF_TRACE;
+
+    // the capture device is stopped: nothing on the capture thread uses the effects or the consumers any more
+    m_captureRunning = false;
+    m_captureAvailable = false;
+    m_capturePushDevice = GUCEF_NULL;
+    m_captureDevice.Unlink();
+    m_capturePath.Release();
+    m_captureEffects.clear();
+    m_captureSlots.clear();
+    m_captureConsumers.clear();
+    m_captureConsumersLeaving.clear();
+    m_captureHalfDuplex = GUCEF_NULL;
+    m_captureHalfDuplexLeaving.clear();
+    m_echoCanceller = GUCEF_NULL;
+    m_echoCancellersLeaving.clear();
+    m_captureDeviceLost.Store( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::IsCaptureAvailable( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_initialized && m_captureAvailable;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioDevicePtr
+CAudioEngine::GetCaptureDevice( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_captureDevice;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioFormat
+CAudioEngine::GetCaptureProcessingFormat( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return ( m_initialized && m_captureAvailable ) ? m_capturePath.GetProcessingFormat() : CAudioFormat();
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioEffectPtr
+CAudioEngine::CreateCaptureEffect( const CString& typeName, const CORE::CValueList& options )
+{GUCEF_TRACE;
+
+    CAudioFormat processingFormat;
+    UInt32 maxBlock = 0;
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( !m_initialized || !m_captureAvailable )
+            return TAudioEffectPtr();
+        processingFormat = m_capturePath.GetProcessingFormat();
+        maxBlock = m_capturePath.GetMaxBlockFrames();
+    }
+
+    // made and prepared without the engine lock, as CreateEffect() does
+    TAudioEffectPtr effect = CAudioGlobal::Instance()->GetAudioEffectRegistry().CreateEffect( typeName, options );
+    if ( effect.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: no capture effect of type \"" << typeName << "\" could be made" );
+        return TAudioEffectPtr();
+    }
+    if ( !effect->Prepare( processingFormat, maxBlock ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the capture effect of type \"" << typeName << "\" could not be prepared for " << processingFormat.ToString() );
+        return TAudioEffectPtr();
+    }
+    return effect;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::PushCaptureRequest( CAudioCapturePath::SCommand& command )
+{GUCEF_TRACE;
+
+    // every command makes one event that must not be lost: no more on their way than the queues hold
+    if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    command.token = NextToken();
+    if ( !m_capturePath.PushCommand( command ) )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    TSourcePtr source( GUCEF_NEW CORE::CFutureResultSource() );
+    m_capturePending[ command.token ] = source;
+    return source->GetFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::InsertCaptureEffect( TAudioCaptureStage stage, UInt32 slot, const TAudioEffectPtr& effect )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || !m_captureAvailable || effect.IsNULL() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    const UInt32 maxEffects = m_capturePath.GetMaxEffectsPerStage();
+    if ( ( AUDIOCAPTURESTAGE_PRE_ECHO != stage && AUDIOCAPTURESTAGE_POST_ECHO != stage ) || slot >= maxEffects )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    const size_t index = (size_t) stage * maxEffects + slot;
+    if ( GUCEF_NULL != m_captureSlots[ index ] )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    CAudioEffect* raw = RawEffect( effect );
+    if ( IsEffectInUse( raw ) || !raw->IsPreparedFor( m_capturePath.GetProcessingFormat(), m_capturePath.GetMaxBlockFrames() ) )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( !raw->ResolveReferences( *this ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a capture effect of type \"" << raw->GetEffectTypeName() << "\" could not resolve what it refers to, it is not inserted" );
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    }
+
+    CAudioCapturePath::SCommand command;
+    command.type = CAudioCapturePath::SCommand::COMMAND_INSERT_EFFECT;
+    command.stage = stage;
+    command.slot = slot;
+    command.effect = raw;
+    CORE::CFutureResult future = PushCaptureRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+
+    m_captureSlots[ index ] = raw;
+    SCaptureEffectEntry& entry = m_captureEffects[ raw ];
+    entry.effect = effect;
+    entry.stage = stage;
+    entry.slot = slot;
+    entry.removing = false;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::RemoveCaptureEffect( const TAudioEffectPtr& effect )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || !m_captureAvailable || effect.IsNULL() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    TCaptureEffectMap::iterator e = m_captureEffects.find( RawEffect( effect ) );
+    if ( e == m_captureEffects.end() || (*e).second.removing )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    SCaptureEffectEntry& entry = (*e).second;
+    CAudioCapturePath::SCommand command;
+    command.type = CAudioCapturePath::SCommand::COMMAND_REMOVE_EFFECT;
+    command.stage = entry.stage;
+    command.slot = entry.slot;
+    command.effect = (*e).first;
+    CORE::CFutureResult future = PushCaptureRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+
+    // the slot is free for a new effect at once: commands are carried out in order. The reference stays until the
+    // capture thread reports it let go of the effect
+    entry.removing = true;
+    m_captureSlots[ (size_t) entry.stage * m_capturePath.GetMaxEffectsPerStage() + entry.slot ] = GUCEF_NULL;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::SetCaptureEffectEnabled( TAudioCaptureStage stage, UInt32 slot, bool enabled )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( m_initialized && m_captureAvailable )
+        m_capturePath.SetEffectEnabled( stage, slot, enabled );
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioEffectPtr
+CAudioEngine::GetCaptureEffect( TAudioCaptureStage stage, UInt32 slot ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    const UInt32 maxEffects = m_capturePath.GetMaxEffectsPerStage();
+    if ( !m_initialized || !m_captureAvailable || ( AUDIOCAPTURESTAGE_PRE_ECHO != stage && AUDIOCAPTURESTAGE_POST_ECHO != stage ) || slot >= maxEffects )
+        return TAudioEffectPtr();
+    CAudioEffect* raw = m_captureSlots[ (size_t) stage * maxEffects + slot ];
+    TCaptureEffectMap::const_iterator e = m_captureEffects.find( raw );
+    return ( GUCEF_NULL == raw || e == m_captureEffects.end() ) ? TAudioEffectPtr() : (*e).second.effect;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::AddCaptureConsumer( IAudioCaptureConsumer* consumer )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || !m_captureAvailable || GUCEF_NULL == consumer )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    // a consumer that is registered, or whose removal has not reached the capture thread yet, may still be called there:
+    // it is not prepared again
+    for ( size_t i=0; i<m_captureConsumers.size(); ++i )
+        if ( m_captureConsumers[ i ] == consumer )
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    for ( size_t i=0; i<m_captureConsumersLeaving.size(); ++i )
+        if ( m_captureConsumersLeaving[ i ] == consumer )
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( m_captureConsumers.size() >= m_capturePath.GetMaxConsumers() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    if ( !consumer->PrepareForCapture( m_capturePath.GetProcessingFormat(), m_capturePath.GetMaxBlockFrames() ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a capture consumer could not prepare for " << m_capturePath.GetProcessingFormat().ToString() << ", it is not added" );
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    }
+
+    CAudioCapturePath::SCommand command;
+    command.type = CAudioCapturePath::SCommand::COMMAND_ADD_CONSUMER;
+    command.consumer = consumer;
+    CORE::CFutureResult future = PushCaptureRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+    m_captureConsumers.push_back( consumer );
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::RemoveCaptureConsumer( IAudioCaptureConsumer* consumer )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || !m_captureAvailable || GUCEF_NULL == consumer )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    size_t index = m_captureConsumers.size();
+    for ( size_t i=0; i<m_captureConsumers.size(); ++i )
+        if ( m_captureConsumers[ i ] == consumer )
+            index = i;
+    if ( index == m_captureConsumers.size() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    CAudioCapturePath::SCommand command;
+    command.type = CAudioCapturePath::SCommand::COMMAND_REMOVE_CONSUMER;
+    command.consumer = consumer;
+    CORE::CFutureResult future = PushCaptureRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+
+    // its place in the table is free for another consumer at once: commands are carried out in order
+    m_captureConsumers.erase( m_captureConsumers.begin() + index );
+    m_captureConsumersLeaving.push_back( consumer );
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::SetCaptureHalfDuplexController( CHalfDuplexController* controller )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || !m_captureAvailable )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( controller == m_captureHalfDuplex )
+        return MakeReadyFuture();
+
+    // a controller the capture thread may still be using is not prepared again
+    for ( size_t i=0; GUCEF_NULL != controller && i<m_captureHalfDuplexLeaving.size(); ++i )
+        if ( m_captureHalfDuplexLeaving[ i ] == controller )
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    if ( GUCEF_NULL != controller )
+    {
+        if ( !controller->ResolveReferences( *this ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the half-duplex controller could not resolve its far-end bus, it is not set" );
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        }
+        if ( !controller->Prepare( m_capturePath.GetProcessingFormat().GetSampleRate() ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the half-duplex controller could not prepare for " << m_capturePath.GetProcessingFormat().ToString() << ", it is not set" );
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        }
+    }
+
+    CAudioCapturePath::SCommand command;
+    command.type = CAudioCapturePath::SCommand::COMMAND_SET_HALF_DUPLEX;
+    command.halfDuplex = controller;
+    CORE::CFutureResult future = PushCaptureRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+
+    // the one before stays in use until the capture thread reports that it let go of it
+    if ( GUCEF_NULL != m_captureHalfDuplex )
+        m_captureHalfDuplexLeaving.push_back( m_captureHalfDuplex );
+    m_captureHalfDuplex = controller;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CHalfDuplexController*
+CAudioEngine::GetCaptureHalfDuplexController( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_captureHalfDuplex;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::SetEchoCanceller( CAcousticEchoCanceller* canceller )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || !m_captureAvailable )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( canceller == m_echoCanceller )
+        return MakeReadyFuture();
+
+    // a canceller that either thread may still be using is not prepared again
+    for ( size_t i=0; GUCEF_NULL != canceller && i<m_echoCancellersLeaving.size(); ++i )
+        if ( m_echoCancellersLeaving[ i ] == canceller )
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    // one command for each thread: there must be room for both before either is given
+    if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() || !HasRoomForRequest() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    if ( GUCEF_NULL != canceller )
+    {
+        const CAudioFormat processing = m_capturePath.GetProcessingFormat();
+        const CAudioFormat& mix = m_mixer->GetMixFormat();
+        if ( !canceller->Prepare( processing.GetSampleRate(), m_capturePath.GetMaxBlockFrames(), mix.GetSampleRate(), mix.GetChannelCount(), m_maxBlock ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the echo canceller could not prepare for " << processing.ToString() << " with a reference in " << mix.ToString() << ", it is not set" );
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        }
+    }
+
+    SCommand renderCommand;
+    renderCommand.type = SCommand::COMMAND_SET_ECHO_REFERENCE;
+    renderCommand.echoCanceller = canceller;
+    CORE::CFutureResult renderPart = PushRequest( renderCommand );
+    if ( renderPart.HasNoFuture() )
+        return renderPart;
+
+    CAudioCapturePath::SCommand captureCommand;
+    captureCommand.type = CAudioCapturePath::SCommand::COMMAND_SET_ECHO_CANCELLER;
+    captureCommand.echoCanceller = canceller;
+    CORE::CFutureResult capturePart = PushCaptureRequest( captureCommand );
+    if ( capturePart.HasNoFuture() )
+    {
+        // never expected (the room was checked): the render thread gets the canceller, the capture thread does not, so
+        // the render thread is told to let go of it again
+        SCommand undo;
+        undo.type = SCommand::COMMAND_SET_ECHO_REFERENCE;
+        undo.echoCanceller = m_echoCanceller;
+        PushRequest( undo );
+        if ( GUCEF_NULL != canceller )
+            m_echoCancellersLeaving.push_back( canceller );
+        return capturePart;
+    }
+
+    // the one before stays in use until both threads reported that they let go of it
+    if ( GUCEF_NULL != m_echoCanceller )
+    {
+        m_echoCancellersLeaving.push_back( m_echoCanceller );
+        m_echoCancellersLeaving.push_back( m_echoCanceller );
+    }
+    m_echoCanceller = canceller;
+
+    SLayoutApply apply;
+    apply.source = TSourcePtr( GUCEF_NEW CORE::CFutureResultSource() );
+    apply.parts.push_back( renderPart );
+    apply.parts.push_back( capturePart );
+    m_layoutApplies.push_back( apply );
+    return apply.source->GetFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAcousticEchoCanceller*
+CAudioEngine::GetEchoCanceller( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_echoCanceller;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ReleaseLeavingEchoCanceller( CAcousticEchoCanceller* canceller )
+{GUCEF_TRACE;
+
+    // one thread let go of it
+    for ( size_t i=0; i<m_echoCancellersLeaving.size(); ++i )
+    {
+        if ( m_echoCancellersLeaving[ i ] == canceller )
+        {
+            m_echoCancellersLeaving.erase( m_echoCancellersLeaving.begin() + i );
+            return;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::SetCaptureMuted( bool muted )
+{GUCEF_TRACE;
+
+    m_capturePath.SetMuted( muted );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::IsCaptureMuted( void ) const
+{GUCEF_TRACE;
+
+    return m_capturePath.IsMuted();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CAudioLevelMeter&
+CAudioEngine::GetCaptureMeter( void ) const
+{GUCEF_TRACE;
+
+    return m_capturePath.GetMeter();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::IsCaptureVoiceActive( void ) const
+{GUCEF_TRACE;
+
+    return m_capturePath.IsVoiceActive();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CAudioEngine::GetCaptureOverrunCount( void ) const
+{GUCEF_TRACE;
+
+    return m_capturePath.GetOverrunCount();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::CompletePendingIn( TPendingMap& pending, UInt32 token, bool success )
+{GUCEF_TRACE;
+
+    TPendingMap::iterator i = pending.find( token );
+    if ( i == pending.end() )
+        return;
+    TSourcePtr source = (*i).second;
+    pending.erase( i );
+    if ( source.IsNULL() )
+        return;
+    if ( success )
+        source->Complete();
+    else
+        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the capture thread could not carry out the command" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::HandleCaptureEvent( const CAudioCapturePath::SEvent& event )
+{GUCEF_TRACE;
+
+    switch ( event.type )
+    {
+        case CAudioCapturePath::SEvent::EVENT_COMMAND_DONE :
+        {
+            // a half-duplex controller or echo canceller that was replaced is not used any more by the capture thread
+            if ( GUCEF_NULL != event.echoCanceller )
+                ReleaseLeavingEchoCanceller( event.echoCanceller );
+            for ( size_t i=0; GUCEF_NULL != event.halfDuplex && i<m_captureHalfDuplexLeaving.size(); ++i )
+            {
+                if ( m_captureHalfDuplexLeaving[ i ] == event.halfDuplex )
+                {
+                    m_captureHalfDuplexLeaving.erase( m_captureHalfDuplexLeaving.begin() + i );
+                    break;
+                }
+            }
+            CompletePendingIn( m_capturePending, event.token, true );
+            break;
+        }
+        case CAudioCapturePath::SEvent::EVENT_COMMAND_FAILED :
+        {
+            // what did not get its place is not used by the capture thread: the engine lets go of it
+            TCaptureEffectMap::iterator e = m_captureEffects.find( event.effect );
+            if ( GUCEF_NULL != event.effect && e != m_captureEffects.end() )
+            {
+                const size_t index = (size_t) (*e).second.stage * m_capturePath.GetMaxEffectsPerStage() + (*e).second.slot;
+                if ( index < m_captureSlots.size() && m_captureSlots[ index ] == event.effect )
+                    m_captureSlots[ index ] = GUCEF_NULL;
+                m_captureEffects.erase( e );
+            }
+            for ( size_t i=0; GUCEF_NULL != event.consumer && i<m_captureConsumers.size(); ++i )
+            {
+                if ( m_captureConsumers[ i ] == event.consumer )
+                {
+                    m_captureConsumers.erase( m_captureConsumers.begin() + i );
+                    break;
+                }
+            }
+            CompletePendingIn( m_capturePending, event.token, false );
+            break;
+        }
+        case CAudioCapturePath::SEvent::EVENT_EFFECT_RELEASED :
+        {
+            // the last use by the capture thread is over: the engine's reference goes, here on the owner side
+            TAudioEffectPtr effect;
+            TCaptureEffectMap::iterator e = m_captureEffects.find( event.effect );
+            if ( e != m_captureEffects.end() )
+            {
+                effect = (*e).second.effect;
+                m_captureEffects.erase( e );
+            }
+            CompletePendingIn( m_capturePending, event.token, true );
+            effect.Unlink();
+            break;
+        }
+        case CAudioCapturePath::SEvent::EVENT_CONSUMER_RELEASED :
+        {
+            for ( size_t i=0; i<m_captureConsumersLeaving.size(); ++i )
+            {
+                if ( m_captureConsumersLeaving[ i ] == event.consumer )
+                {
+                    m_captureConsumersLeaving.erase( m_captureConsumersLeaving.begin() + i );
+                    break;
+                }
+            }
+            CompletePendingIn( m_capturePending, event.token, true );
+            break;
+        }
+        default :
+            break;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::UpdateCapture( UInt32& handled )
+{GUCEF_TRACE;
+
+    if ( !m_captureAvailable )
+        return;
+
+    // a lost capture device calls no more; once it is stopped the owner side carries out the capture commands, so the
+    // futures of removals still complete
+    bool lost = false;
+    if ( m_captureDeviceLost.Exchange( false ) )
+    {
+        m_captureDevice->Stop();
+        m_captureRunning = false;
+        lost = true;
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the capture device is lost, the engine plays on without recording" );
+    }
+    if ( !m_captureRunning )
+        m_capturePath.ProcessCommands();
+
+    CAudioCapturePath::SEvent event;
+    while ( m_capturePath.PopEvent( event ) )
+    {
+        HandleCaptureEvent( event );
+        ++handled;
+    }
+
+    if ( m_captureRunning )
+        ReportRealtimeScheduling( m_captureDevice, "capture", m_captureSchedulingReported );
+
+    if ( lost )
+    {
+        ++handled;
+        NotifyObserversFromThread( CaptureDeviceLostEvent );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ReportRealtimeScheduling( const TAudioDevicePtr& device, const char* what, bool& reported )
+{GUCEF_TRACE;
+
+    // a device thread that asked for real-time scheduling knows whether it got it once its first callback ran; it never
+    // logs itself, the engine does it once per start of the device
+    if ( reported || device.IsNULL() )
+        return;
+    TAudioDevicePtr deviceCopy( device );
+    CAudioPushDevice* pushDevice = deviceCopy->AsPushDevice();
+    if ( GUCEF_NULL == pushDevice || 0 == pushDevice->GetRealtimePriority() )
+    {
+        reported = true;
+        return;
+    }
+    if ( pushDevice->IsRealtimeSchedulingActive() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the " << what << " device thread runs with real-time scheduling, priority " << pushDevice->GetRealtimePriority() );
+        reported = true;
+    }
+    else
+    if ( 0 != pushDevice->GetRealtimeSchedulingError() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the " << what << " device thread did not get real-time scheduling (error " << pushDevice->GetRealtimeSchedulingError() <<
+                           "), it runs at normal priority. On Linux the user needs rtprio in /etc/security/limits.d or LimitRTPRIO in the service unit" );
+        reported = true;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CAudioEngine::Update( void )
 {GUCEF_TRACE;
@@ -2332,6 +3188,15 @@ CAudioEngine::Update( void )
 
     // a device reopen whose new device is open is finished here, on the owner side
     FinishReopenWhenOpened();
+
+    // the capture thread's events, the loss of the capture device
+    UpdateCapture( handled );
+
+    // requests with a part on each thread (the echo canceller) may have completed with the capture events
+    CompleteLayoutApplies();
+
+    if ( m_deviceRunWanted )
+        ReportRealtimeScheduling( m_device, "playback", m_playbackSchedulingReported );
 
     if ( m_deviceLost.Exchange( false ) )
     {
@@ -2370,6 +3235,8 @@ CAudioEngine::HandleCommandEvent( const SEvent& event )
     {
         case SEvent::EVENT_COMMAND_DONE :
         {
+            if ( GUCEF_NULL != event.echoCanceller )
+                ReleaseLeavingEchoCanceller( event.echoCanceller );
             CompletePending( event.token, true );
             break;
         }
@@ -2434,8 +3301,7 @@ CAudioEngine::CheckVoiceRouting( CAudioVoice* voice ) const
     // an effect has one owner at a time: one bus slot or one voice
     for ( UInt32 e=0; e<voice->GetEffectCount(); ++e )
     {
-        CAudioEffect* effect = voice->GetEffectPointer( e );
-        if ( m_effects.find( effect ) != m_effects.end() || m_voiceEffects.find( effect ) != m_voiceEffects.end() )
+        if ( IsEffectInUse( voice->GetEffectPointer( e ) ) )
             return false;
     }
     return true;
@@ -2588,6 +3454,17 @@ CAudioEngine::ProcessCommands( void )
                 ApplyBusOrder( command.order, command.token );
                 break;
             }
+            case SCommand::COMMAND_SET_ECHO_REFERENCE :
+            {
+                // the event carries the canceller the tap no longer feeds
+                SEvent event;
+                event.type = SEvent::EVENT_COMMAND_DONE;
+                event.echoCanceller = m_echoReference;
+                event.token = command.token;
+                m_echoReference = command.echoCanceller;
+                PostEvent( event );
+                break;
+            }
             default :
                 break;
         }
@@ -2649,10 +3526,17 @@ CAudioEngine::OnRenderAudio( void* buffer, UInt32 frameCount ) GUCEF_AUDIO_REALT
     {
         const UInt32 block = ( frameCount < m_maxBlock ) ? frameCount : m_maxBlock;
         if ( m_directFloat )
+        {
             m_mixer->Mix( reinterpret_cast< Float32* >( out ), block );
+            if ( GUCEF_NULL != m_echoReference )
+                m_echoReference->WriteReference( reinterpret_cast< const Float32* >( out ), block );
+        }
         else
         {
             m_mixer->Mix( &m_scratch[ 0 ], block );
+            // the render tap: what is played, after the limiter, for the echo canceller
+            if ( GUCEF_NULL != m_echoReference )
+                m_echoReference->WriteReference( &m_scratch[ 0 ], block );
             CAudioConverter::ConvertFromFloat32( &m_scratch[ 0 ], out, m_deviceFormat.GetSampleType(), (UInt64) block * channels );
         }
         out += (size_t) block * frameBytes;
@@ -2663,9 +3547,26 @@ CAudioEngine::OnRenderAudio( void* buffer, UInt32 frameCount ) GUCEF_AUDIO_REALT
 /*-------------------------------------------------------------------------*/
 
 void
-CAudioEngine::OnCaptureAudio( const void*, UInt32 )
+CAudioEngine::OnCaptureAudio( const void* buffer, UInt32 frameCount ) GUCEF_AUDIO_REALTIME_CONTEXT
 {
-    // the engine only plays
+    // the capture thread, through CAudioEngineCaptureCallback. The clock is read first: the block info carries the time the
+    // callback started. Denormals are flushed for the duration, as for a render
+    const UInt64 tickCount = MT::PrecisionTickCount();
+    CORE::CDenormalFlushScope denormalFlushScope;
+
+    // the overrun count goes up before the block after the gap is delivered (CAudioPushDevice), so it belongs to this block
+    const UInt64 overruns = ( GUCEF_NULL != m_capturePushDevice ) ? m_capturePushDevice->GetOverrunCount() : 0;
+    m_capturePath.ProcessCommands();
+    m_capturePath.Process( buffer, frameCount, overruns, tickCount );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::OnCaptureDeviceLost( void )
+{
+    // may come from any thread: only noted here, Update() makes something of it
+    m_captureDeviceLost.Store( true );
 }
 
 /*-------------------------------------------------------------------------*/

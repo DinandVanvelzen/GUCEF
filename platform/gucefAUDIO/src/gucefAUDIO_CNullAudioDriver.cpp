@@ -24,6 +24,11 @@
 
 #include <string.h>
 
+#ifndef GUCEF_AUDIO_CAUDIOCONVERTER_H
+#include "gucefAUDIO_CAudioConverter.h"
+#define GUCEF_AUDIO_CAUDIOCONVERTER_H
+#endif /* GUCEF_AUDIO_CAUDIOCONVERTER_H ? */
+
 #include "gucefAUDIO_CNullAudioDriver.h"
 
 /*-------------------------------------------------------------------------//
@@ -50,6 +55,19 @@ CNullAudioDevice::CNullAudioDevice( const CAudioDeviceInfo& info, IAudioDeviceCa
     , m_totalFrames( 0 )
     , m_rendered( format )
     , m_scratch( format, periodSizeInFrames )
+    , m_captureSource()
+    , m_captureSourceRaw( GUCEF_NULL )
+    , m_captureConverts( false )
+    , m_captureRemixes( false )
+    , m_captureResamples( false )
+    , m_captureRead()
+    , m_captureFloat()
+    , m_capturePending()
+    , m_capturePendingOffset( 0 )
+    , m_capturePendingFrames( 0 )
+    , m_captureOut()
+    , m_captureMatrix()
+    , m_captureResampler()
 {GUCEF_TRACE;
 
 }
@@ -145,13 +163,164 @@ CNullAudioDevice::Render( UInt64 frameCount )
         }
         else
         {
-            m_scratch.FillSilence();
+            if ( GUCEF_NULL == m_captureSourceRaw )
+                m_scratch.FillSilence();
+            else
+                ReadCaptureSource( piece );
             callback->OnCaptureAudio( m_scratch.GetDataPtr(), piece );
         }
         done += piece;
     }
     m_totalFrames += done;
     return done;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CNullAudioDevice::SetCaptureSource( const TAudioSourcePtr& source )
+{GUCEF_TRACE;
+
+    if ( AUDIODIRECTION_CAPTURE != GetDirection() )
+        return false;
+
+    if ( source.IsNULL() )
+    {
+        m_captureSourceRaw = GUCEF_NULL;
+        m_captureSource.Unlink();
+        m_capturePendingOffset = 0;
+        m_capturePendingFrames = 0;
+        return true;
+    }
+
+    const CAudioFormat& sourceFormat = source->GetFormat();
+    if ( !sourceFormat.IsValid() || !m_format.IsValid() )
+        return false;
+
+    const UInt32 sourceChannels = sourceFormat.GetChannelCount();
+    const UInt32 deviceChannels = m_format.GetChannelCount();
+    const bool remixes = ( sourceChannels != deviceChannels ) || ( sourceFormat.GetChannelLayout() != m_format.GetChannelLayout() );
+    const bool resamples = sourceFormat.GetSampleRate() != m_format.GetSampleRate();
+
+    GUCEF::vector< Float32 > matrix;
+    if ( remixes && !CAudioConverter::BuildChannelMatrix( sourceFormat, m_format, matrix ) )
+        return false;
+    if ( resamples && !m_captureResampler.Configure( deviceChannels, (Float64) sourceFormat.GetSampleRate(), (Float64) m_format.GetSampleRate() ) )
+        return false;
+    m_captureResampler.Reset();
+
+    // everything Render() needs is made now: one period of the source at a time
+    m_captureMatrix = matrix;
+    m_captureRemixes = remixes;
+    m_captureResamples = resamples;
+    m_captureConverts = remixes || resamples || ( sourceFormat.GetSampleType() != m_format.GetSampleType() );
+    if ( m_captureConverts )
+    {
+        m_captureRead = CAudioBuffer( sourceFormat, m_periodSize );
+        m_captureFloat.assign( remixes ? (size_t) m_periodSize * sourceChannels : 0, 0.0f );
+        m_capturePending.assign( (size_t) m_periodSize * deviceChannels, 0.0f );
+        m_captureOut.assign( (size_t) m_periodSize * deviceChannels, 0.0f );
+    }
+    else
+    {
+        m_captureRead = CAudioBuffer();
+        m_captureFloat.clear();
+        m_capturePending.clear();
+        m_captureOut.clear();
+    }
+    m_capturePendingOffset = 0;
+    m_capturePendingFrames = 0;
+    m_captureSource = source;
+    m_captureSourceRaw = m_captureSource.GetPointerAlways();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const TAudioSourcePtr&
+CNullAudioDevice::GetCaptureSource( void ) const
+{GUCEF_TRACE;
+
+    return m_captureSource;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNullAudioDevice::ReadCaptureSource( UInt32 frameCount ) GUCEF_AUDIO_REALTIME_CONTEXT
+{
+    // no trace macro: this runs where a real device records, on the thread that drives the device
+
+    IAudioSource* source = m_captureSourceRaw;
+    UInt32 produced = 0;
+
+    if ( !m_captureConverts )
+    {
+        // the source has the format of the device: straight in, bit for bit
+        while ( produced < frameCount )
+        {
+            const UInt32 got = source->ReadFrames( m_scratch.GetDataPtr( produced ), frameCount - produced );
+            if ( 0 == got )
+                break;
+            produced += got;
+        }
+    }
+    else
+    {
+        const CAudioFormat& sourceFormat = source->GetFormat();
+        const UInt32 sourceChannels = sourceFormat.GetChannelCount();
+        const UInt32 deviceChannels = m_format.GetChannelCount();
+        Float32* pendingBase = &m_capturePending[ 0 ];
+        Float32* out = &m_captureOut[ 0 ];
+
+        while ( produced < frameCount )
+        {
+            if ( 0 == m_capturePendingFrames )
+            {
+                const UInt32 got = source->ReadFrames( m_captureRead.GetDataPtr(), m_periodSize );
+                if ( 0 == got )
+                    break;
+                if ( m_captureRemixes )
+                {
+                    CAudioConverter::ConvertToFloat32( m_captureRead.GetDataPtr(), sourceFormat.GetSampleType(), &m_captureFloat[ 0 ], (UInt64) got * sourceChannels );
+                    CAudioConverter::RemixChannels( &m_captureFloat[ 0 ], sourceChannels, pendingBase, deviceChannels, got, m_captureMatrix );
+                }
+                else
+                {
+                    CAudioConverter::ConvertToFloat32( m_captureRead.GetDataPtr(), sourceFormat.GetSampleType(), pendingBase, (UInt64) got * sourceChannels );
+                }
+                m_capturePendingOffset = 0;
+                m_capturePendingFrames = got;
+            }
+
+            const Float32* pending = pendingBase + (size_t) m_capturePendingOffset * deviceChannels;
+            if ( m_captureResamples )
+            {
+                UInt32 consumed = 0;
+                UInt32 made = 0;
+                m_captureResampler.Process( pending, m_capturePendingFrames, consumed, out + (size_t) produced * deviceChannels, frameCount - produced, made );
+                m_capturePendingOffset += consumed;
+                m_capturePendingFrames -= consumed;
+                produced += made;
+                if ( 0 == consumed && 0 == made )
+                    break;      // a resampler that neither takes nor gives would loop forever
+            }
+            else
+            {
+                const UInt32 take = ( m_capturePendingFrames < frameCount - produced ) ? m_capturePendingFrames : frameCount - produced;
+                memcpy( out + (size_t) produced * deviceChannels, pending, (size_t) take * deviceChannels * sizeof( Float32 ) );
+                m_capturePendingOffset += take;
+                m_capturePendingFrames -= take;
+                produced += take;
+            }
+        }
+
+        CAudioConverter::ConvertFromFloat32( out, m_scratch.GetDataPtr(), m_format.GetSampleType(), (UInt64) produced * deviceChannels );
+    }
+
+    // after the end of the source, or while it has nothing, the device records silence
+    if ( produced < frameCount )
+        m_scratch.FillSilence( produced, frameCount - produced );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -36,8 +36,26 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_AUDIO_CDUCKEREFFECT_H
+#include "gucefAUDIO_CDuckerEffect.h"
+#define GUCEF_AUDIO_CDUCKEREFFECT_H
+#endif /* GUCEF_AUDIO_CDUCKEREFFECT_H ? */
+
+#ifndef GUCEF_AUDIO_CFILTEREFFECT_H
+#include "gucefAUDIO_CFilterEffect.h"
+#define GUCEF_AUDIO_CFILTEREFFECT_H
+#endif /* GUCEF_AUDIO_CFILTEREFFECT_H ? */
+
+#ifndef GUCEF_AUDIO_CNOISESUPPRESSOREFFECT_H
+#include "gucefAUDIO_CNoiseSuppressorEffect.h"
+#define GUCEF_AUDIO_CNOISESUPPRESSOREFFECT_H
+#endif /* GUCEF_AUDIO_CNOISESUPPRESSOREFFECT_H ? */
+
 #include "TestAudioCodecSupport.h"
 #include "TestAudioCodecMp3Support.h"
+#include "TestAudioVoiceCodecSupport.h"
+#include "TestAudioIntercomScenario.h"
+#include "TestAudioEchoSimulation.h"
 #include "TestAudioBenchmark.h"
 
 /*-------------------------------------------------------------------------//
@@ -254,7 +272,7 @@ MixBenchmark( const char* what, UInt32 voices, bool limiterOn, UInt32 clipRate, 
 /*-------------------------------------------------------------------------*/
 
 bool
-EffectBenchmark( AUDIO::CAudioEngine& engine, const char* type, const CORE::CValueList& options, UInt32 channels, const char* what, Float64 budgetUs, const char* parameterNames[], Float32 parameterValues[] )
+EffectBenchmark( AUDIO::CAudioEngine& engine, const char* type, const CORE::CValueList& options, UInt32 channels, const char* what, Float64 budgetUs, const char* parameterNames[], Float32 parameterValues[], bool duckerManualKey = false )
 {
     AUDIO::TAudioEffectPtr effect = engine.CreateEffect( type, options );
     if ( effect.IsNULL() || !effect->IsPrepared() )
@@ -266,6 +284,8 @@ EffectBenchmark( AUDIO::CAudioEngine& engine, const char* type, const CORE::CVal
             return false;
         effect->SetParameter( id, parameterValues[ p ] );
     }
+    if ( duckerManualKey )
+        effect.StaticCast< AUDIO::CDuckerEffect >()->SetManualKey( true );
 
     const UInt32 samples = BlockFrames * channels;
     TSamples input( samples );
@@ -334,6 +354,415 @@ ApplyAndWait( AUDIO::CAudioEngine& engine, const AUDIO::CAudioBusLayout& layout,
     }
     totalUs = Microseconds( MT::PrecisionTickCount() - start );
     return applied.IsReady() && !applied.HasNoFuture();
+}
+
+
+/** Time per 10 ms of mono audio for a resampler at the given rates, in batches of 100 blocks */
+bool
+ResamplerBenchmark( AUDIO::IAudioResampler& resampler, Float64 inputRate, Float64 outputRate, SStats& stats )
+{
+    if ( !resampler.Configure( 1, inputRate, outputRate ) )
+        return false;
+    const UInt32 inFrames = (UInt32) ( inputRate / 100.0 );
+    const UInt32 outCapacity = (UInt32) ( 2.0 * outputRate / 100.0 ) + 64;
+    TSamples input( inFrames );
+    CRandom random( 11 );
+    for ( UInt32 i=0; i<inFrames; ++i )
+        input[ i ] = 0.5f * random.NextFloat();
+    TSamples output( outCapacity );
+
+    UInt32 used = 0;
+    UInt32 made = 0;
+    for ( UInt32 i=0; i<100; ++i )
+        resampler.Process( &input[ 0 ], inFrames, used, &output[ 0 ], outCapacity, made );
+
+    TTimes times;
+    for ( UInt32 b=0; b<50; ++b )
+    {
+        const UInt64 start = MT::PrecisionTickCount();
+        for ( UInt32 i=0; i<100; ++i )
+            resampler.Process( &input[ 0 ], inFrames, used, &output[ 0 ], outCapacity, made );
+        times.push_back( Microseconds( MT::PrecisionTickCount() - start ) / 100.0 );
+    }
+    stats = Summarize( times );
+    return made > 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Deterministic mono music-like noise at the unit rate, endless: the music bus under the intercom voices */
+class CMusicNoiseSource : public AUDIO::IAudioSource
+{
+    public:
+
+    explicit CMusicNoiseSource( UInt32 sampleRate ) : m_format( sampleRate, 1, AUDIO::SAMPLETYPE_FLOAT32 ), m_state( 0x2545F491 ), m_position( 0 ), m_low( 0.0f ) {}
+
+    virtual const AUDIO::CAudioFormat& GetFormat( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_format; }
+
+    virtual UInt32 ReadFrames( void* destination, UInt32 frameCapacity ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Float32* out = static_cast< Float32* >( destination );
+        for ( UInt32 i=0; i<frameCapacity; ++i )
+        {
+            m_state ^= m_state << 13;
+            m_state ^= m_state >> 17;
+            m_state ^= m_state << 5;
+            const Float32 white = (Float32) ( m_state & 0xFFFF ) / 32768.0f - 1.0f;
+            m_low += 0.1f * ( white - m_low );
+            out[ i ] = 0.5f * m_low;
+        }
+        m_position += frameCapacity;
+        return frameCapacity;
+    }
+
+    virtual bool IsEndOfStream( void ) const GUCEF_VIRTUAL_OVERRIDE { return false; }
+    virtual bool IsRealtimeSafe( void ) const GUCEF_VIRTUAL_OVERRIDE { return true; }
+    virtual UInt64 GetPositionInFrames( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_position; }
+
+    private:
+
+    AUDIO::CAudioFormat m_format;
+    UInt32 m_state;
+    UInt64 m_position;
+    Float32 m_low;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Times per 10 ms of audio in microseconds, one entry per 10 ms, of the parts of the unit chain */
+struct SChainTimes
+{
+    TTimes capturePath;         /**< capture conversion, high pass, gate, AGC, VAD, meter, microphone gain (no sender) */
+    TTimes sender;              /**< the sender as capture consumer: accumulate, encode, frame */
+    TTimes packetize;           /**< RTP packets of the frames, to every link */
+    TTimes receive;             /**< packets read, frames pushed into the receivers */
+    TTimes decode;              /**< the decoder alone, one per incoming stream */
+    TTimes playoutTotal;        /**< playback render with the receivers: jitter buffer, playout, resampler, decode, mix, ducker */
+    TTimes mixBaseline;         /**< playback render with the music bus and the ducker, no receiver */
+    TTimes totalUnit;           /**< capture step, sender, packets and playback render of one 10 ms, as measured together */
+    Float64 ratioPpm;           /**< |playout ratio - 1| at the end, parts per million */
+    UInt64 concealed;
+    UInt64 underruns;
+    UInt64 decoded;
+
+    SChainTimes( void ) : ratioPpm( 0.0 ), concealed( 0 ), underruns( 0 ), decoded( 0 ) {}
+};
+
+AUDIO::CVoiceSenderConfig
+MakeChainSenderConfig( const AUDIO::CVoiceCodecConfig& codec )
+{
+    AUDIO::CVoiceSenderConfig config;
+    config.SetCodecConfig( codec );
+    config.SetStreamId( 0x0A0A0A0A );
+    config.SetFirstSequenceNumber( 100 );
+    config.SetFirstTimestamp( 0 );
+    config.SetTransmitMode( AUDIO::VOICETRANSMITMODE_CONTINUOUS );
+    config.SetOutboundQueueFrames( 64 );
+    return config;
+}
+
+/** Sums consecutive pairs of 5 ms step times: the cost of 10 ms */
+TTimes
+PairSums( const TTimes& steps )
+{
+    TTimes result;
+    for ( size_t i=0; i+1<steps.size(); i+=2 )
+        result.push_back( steps[ i ] + steps[ i + 1 ] );
+    return result;
+}
+
+/** The mean: parts that run every second or fourth step (a frame of 20 ms) would show as zero or as double in a median of 10 ms sums */
+Float64
+Mean( const TTimes& values )
+{
+    Float64 sum = 0.0;
+    for ( size_t i=0; i<values.size(); ++i )
+        sum += values[ i ];
+    return values.empty() ? 0.0 : sum / (Float64) values.size();
+}
+
+/**
+ *  The whole intercom unit per 10 ms of audio in simulated time, on null devices in cooperative mode: unit A takes the
+ *  microphone (speech-like), runs high pass, gate, AGC and VAD, and sends with the given codec; unit B plays a music bus
+ *  with a ducker keyed on the bus of the receivers, whose crystal runs 'driftPpm' fast so the playout resamples.
+ *  Phase 1 measures the capture path alone and the playback of the music and the ducker alone, phase 2 adds the sender
+ *  and 'receiverCount' receivers (each with a link of its own, wired model) and measures everything.
+ */
+bool
+RunUnitChain( const AUDIO::CVoiceCodecConfig& codec, UInt32 receiverCount, Float64 driftPpm, SChainTimes& times )
+{
+    const UInt32 rate = 48000;
+    const UInt32 period = 240;
+    const Float64 stepUs = 1000000.0 * period / rate;
+
+    VoiceLinkTest::CTestIntercomScenario scenario( period, rate );
+    VoiceLinkTest::SUnitConfig unitConfigA;
+    unitConfigA.keepOutput = false;
+    VoiceLinkTest::SUnitConfig unitConfigB;
+    unitConfigB.capture = false;
+    unitConfigB.keepOutput = false;
+    unitConfigB.driftPpm = driftPpm;
+    VoiceLinkTest::CTestIntercomUnit* a = scenario.AddUnit( unitConfigA );
+    VoiceLinkTest::CTestIntercomUnit* b = scenario.AddUnit( unitConfigB );
+    if ( GUCEF_NULL == a || GUCEF_NULL == b )
+        return false;
+
+    // the capture chain of the design: high pass before the echo stage, gate and AGC after it
+    AUDIO::CAudioEngine& captureEngine = *a->engine;
+    AUDIO::TAudioEffectPtr highPass = captureEngine.CreateCaptureEffect( "filter" );
+    AUDIO::TAudioEffectPtr gate = captureEngine.CreateCaptureEffect( "noiseGate" );
+    AUDIO::TAudioEffectPtr agc = captureEngine.CreateCaptureEffect( "automaticGain" );
+    if ( highPass.IsNULL() || gate.IsNULL() || agc.IsNULL() )
+        return false;
+    highPass.StaticCast< AUDIO::CFilterEffect >()->SetFilterType( AUDIO::FILTERBANDTYPE_HIGHPASS );
+    highPass.StaticCast< AUDIO::CFilterEffect >()->SetFrequency( 100.0f );
+    highPass.StaticCast< AUDIO::CFilterEffect >()->SetSlopeInDecibelsPerOctave( 24 );
+    if ( captureEngine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 0, highPass ).HasNoFuture() ||
+         captureEngine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 0, gate ).HasNoFuture() ||
+         captureEngine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, agc ).HasNoFuture() )
+        return false;
+
+    const VoiceCodecTest::TSamples speech = VoiceCodecTest::MakeSpeechLike( rate * 14, rate, 0.4f );
+    VoiceLinkTest::CBufferSignal signal( speech );
+    a->SetSignal( &signal );
+
+    // the playback side: a bus for the received voices, a music bus ducked by it
+    AUDIO::CAudioEngine& playEngine = *b->engine;
+    AUDIO::CAudioBus* voiceBus = playEngine.CreateBus( "voices" );
+    AUDIO::CAudioBus* musicBus = playEngine.CreateBus( "music" );
+    if ( GUCEF_NULL == voiceBus || GUCEF_NULL == musicBus )
+        return false;
+    CORE::CValueList duckerOptions;
+    duckerOptions.Set( "keyBus", "voices" );
+    AUDIO::TAudioEffectPtr ducker = playEngine.CreateEffect( "ducker", duckerOptions );
+    if ( ducker.IsNULL() || playEngine.InsertEffect( musicBus, 0, ducker ).HasNoFuture() )
+        return false;
+    AUDIO::TAudioVoicePtr music = playEngine.CreateVoice( AUDIO::TAudioSourcePtr( GUCEF_NEW CMusicNoiseSource( rate ) ), musicBus );
+    if ( music.IsNULL() || playEngine.Start( music ).HasNoFuture() )
+        return false;
+
+    // phase 1: a short warm up, then the capture path alone and the music with the ducker alone
+    const UInt32 warmSteps = (UInt32) ( 2.0 * rate / period );
+    const UInt32 measureSteps = (UInt32) ( 6.0 * rate / period );
+    Float64 nowUs = 0.0;
+    TTimes captureSteps, mixSteps;
+    for ( UInt32 s=0; s<warmSteps + measureSteps; ++s )
+    {
+        const UInt64 t0 = MT::PrecisionTickCount();
+        a->Capture( period );
+        const UInt64 t1 = MT::PrecisionTickCount();
+        nowUs += stepUs;
+        a->SetTime( nowUs );
+        b->SetTime( nowUs );
+        a->Play( period );
+        a->engine->Update();
+        const UInt64 t2 = MT::PrecisionTickCount();
+        b->Play( period );
+        const UInt64 t3 = MT::PrecisionTickCount();
+        b->engine->Update();
+        if ( s >= warmSteps )
+        {
+            captureSteps.push_back( Microseconds( t1 - t0 ) );
+            mixSteps.push_back( Microseconds( t3 - t2 ) );
+        }
+    }
+    times.capturePath = PairSums( captureSteps );
+    times.mixBaseline = PairSums( mixSteps );
+
+    // phase 2: the sender, the links and the receivers
+    if ( !a->AttachSender( MakeChainSenderConfig( codec ) ) )
+        return false;
+    GUCEF::vector< VoiceLinkTest::CTestSimulatedVoiceLink* > links;
+    GUCEF::vector< AUDIO::CVoiceReceiver* > receivers;
+    for ( UInt32 r=0; r<receiverCount; ++r )
+    {
+        AUDIO::CVoiceReceiverConfig receiverConfig;
+        receiverConfig.SetCodecConfig( codec );
+        receiverConfig.SetPlayoutProfile( AUDIO::VOICEPLAYOUTPROFILE_WIRED );
+        receiverConfig.SetInboundQueueFrames( 64 );
+        AUDIO::CVoiceReceiver* receiver = b->AddReceiver( receiverConfig, voiceBus );
+        if ( GUCEF_NULL == receiver )
+            return false;
+        receivers.push_back( receiver );
+        VoiceLinkTest::CTestSimulatedVoiceLink* link = scenario.Connect( a, b, receiver, VoiceLinkTest::SLinkModel::Wired( 0x2468ACE1 + r ) );
+        links.push_back( link );
+    }
+    GUCEF::vector< AUDIO::TVoiceDecoderPtr > decoders;
+    for ( UInt32 r=0; r<receiverCount; ++r )
+    {
+        AUDIO::TVoiceDecoderPtr decoder;
+        if ( !AUDIO::CAudioGlobal::Instance()->GetVoiceCodecRegistry().CreateDecoder( codec, decoder ) )
+            return false;
+        decoders.push_back( decoder );
+    }
+    const UInt32 frameSize = codec.GetFrameSizeInFrames();
+    VoiceCodecTest::TSamples decoded( frameSize + 64, 0.0f );
+
+    TTimes sendSteps, packetSteps, receiveSteps, decodeSteps, playSteps, totalSteps;
+    VoiceLinkTest::TSentFrames sent;
+    for ( UInt32 s=0; s<warmSteps + measureSteps; ++s )
+    {
+        const UInt64 t0 = MT::PrecisionTickCount();
+        a->Capture( period );
+        const UInt64 t1 = MT::PrecisionTickCount();
+        sent.clear();
+        a->PopFrames( sent );
+        UInt64 decodeTicks = 0;
+        const UInt64 t2 = MT::PrecisionTickCount();
+        for ( size_t f=0; f<sent.size(); ++f )
+            for ( size_t l=0; l<links.size(); ++l )
+                links[ l ]->Send( sent[ f ].frame, sent[ f ].sendTimeInUs );
+        const UInt64 t3 = MT::PrecisionTickCount();
+        nowUs += stepUs;
+        a->SetTime( nowUs );
+        b->SetTime( nowUs );
+        for ( size_t l=0; l<links.size(); ++l )
+            links[ l ]->Deliver( nowUs, *receivers[ l ], b->LocalScale(), b->LocalOffsetUs() );
+        const UInt64 t4 = MT::PrecisionTickCount();
+        b->Play( period );
+        b->engine->Update();
+        const UInt64 t5 = MT::PrecisionTickCount();
+        a->Play( period );
+        a->engine->Update();
+
+        // the decoder alone, outside the measured chain: what one decode per stream and frame costs
+        for ( size_t f=0; f<sent.size(); ++f )
+            for ( size_t d=0; d<decoders.size(); ++d )
+            {
+                const UInt64 d0 = MT::PrecisionTickCount();
+                decoders[ d ]->Decode( sent[ f ].frame.GetPayload(), sent[ f ].frame.GetPayloadSize(), &decoded[ 0 ], frameSize );
+                decodeTicks += MT::PrecisionTickCount() - d0;
+            }
+        if ( s >= warmSteps )
+        {
+            sendSteps.push_back( Microseconds( t1 - t0 ) );
+            packetSteps.push_back( Microseconds( t3 - t2 ) );
+            receiveSteps.push_back( Microseconds( t4 - t3 ) );
+            playSteps.push_back( Microseconds( t5 - t4 ) );
+            decodeSteps.push_back( Microseconds( decodeTicks ) );
+            totalSteps.push_back( Microseconds( t1 - t0 ) + Microseconds( t5 - t2 ) );
+        }
+    }
+    times.sender = PairSums( sendSteps );              // still holds the capture path: the caller subtracts its median
+    times.packetize = PairSums( packetSteps );
+    times.receive = PairSums( receiveSteps );
+    times.decode = PairSums( decodeSteps );
+    times.playoutTotal = PairSums( playSteps );
+    times.totalUnit = PairSums( totalSteps );
+
+    AUDIO::CVoiceReceiverStats stats;
+    receivers[ 0 ]->GetStats( stats );
+    times.ratioPpm = stats.ratioInPpm < 0.0 ? -stats.ratioInPpm : stats.ratioInPpm;
+    times.concealed = stats.framesConcealed;
+    times.underruns = stats.underruns;
+    times.decoded = stats.framesDecoded;
+    a->DetachSender();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** What an echo canceller cost per 10 ms of audio at 16 kHz */
+struct SEchoCost
+{
+    Float64 meanUs;             /**< render tap and capture side together */
+    Float64 renderUs;           /**< the render tap alone (WriteReference()) */
+    Float64 p95Us;
+    Float64 transformsPerSecond;
+    Float64 erleDb;
+    SEchoCost( void ) : meanUs( 0.0 ), renderUs( 0.0 ), p95Us( 0.0 ), transformsPerSecond( 0.0 ), erleDb( 0.0 ) {}
+};
+
+/**
+ *  Times a canceller over 'seconds' of audio, 10 ms at a time (two periods of 5 ms: the render tap, then the capture side),
+ *  after the first 2 s. 'far': the far end talks (else it is silent: the canceller idles); 'near': the near end talks
+ *  over it all the time (double talk). The reference comes at 'referenceRate' (48000: three times the frames of 16 kHz,
+ *  the canceller decimates); the echo path is a room of 20 ms bulk delay, -15 dB, with early reflections
+ */
+bool
+TimeEchoCanceller( const AUDIO::CEchoCancellerSettings& settings, bool far, bool near, UInt32 referenceRate, Float64 seconds, SEchoCost& cost )
+{
+    const UInt32 rate = 16000;
+    const UInt32 period = 80;
+    const UInt32 factor = referenceRate / rate;
+    EchoTest::SEchoRigConfig rig;
+    const EchoTest::TSamples talker = far ? EchoTest::MakeFarTalker( rate, seconds, 5, -20.0 ) : EchoTest::TSamples( (size_t) ( seconds * rate ), 0.0f );
+    EchoTest::TSamples mic = EchoTest::Convolve( EchoTest::Played( talker, rig, talker.size() ), EchoTest::MakeEarlyReflections( rate, 20.0, -15.0, 3 ) );
+    const EchoTest::TSamples echo = mic;
+    TestVoiceSignals::MixInto( mic, TestVoiceSignals::MakeWhiteNoise( mic.size(), pow( 10.0, -65.0 / 20.0 ), 9 ) );
+    if ( near )
+        TestVoiceSignals::MixInto( mic, EchoTest::MakeFarTalker( rate, seconds, 77, -26.0, 0.0, 0.3 ) );
+    // the reference at its rate: each frame repeated (the decimator does the same work on any content)
+    EchoTest::TSamples reference( talker.size() * factor, 0.0f );
+    for ( size_t i=0; i<reference.size(); ++i )
+        reference[ i ] = talker[ i / factor ];
+
+    AUDIO::CAcousticEchoCanceller canceller( settings );
+    if ( !canceller.Prepare( rate, 4096, referenceRate, 1, 4096 ) )
+        return false;
+    EchoTest::TSamples out = mic;
+    TTimes times;
+    Float64 renderTotal = 0.0;
+    UInt64 transformsAtStart = 0;
+    const size_t warmUp = 2 * rate;
+    size_t at = 0;
+    while ( at + 2 * period <= mic.size() )
+    {
+        const UInt64 t0 = MT::PrecisionTickCount();
+        UInt64 renderTicks = 0;
+        for ( UInt32 p=0; p<2; ++p )
+        {
+            const UInt64 r0 = MT::PrecisionTickCount();
+            canceller.WriteReference( &reference[ ( at + p * period ) * factor ], period * factor );
+            renderTicks += MT::PrecisionTickCount() - r0;
+            canceller.Process( &out[ at + p * period ], period, at + p * period );
+        }
+        const UInt64 t1 = MT::PrecisionTickCount();
+        if ( at == warmUp )
+            transformsAtStart = canceller.GetTransformCount();
+        if ( at >= warmUp )
+        {
+            times.push_back( Microseconds( t1 - t0 ) );
+            renderTotal += Microseconds( renderTicks );
+        }
+        at += 2 * period;
+    }
+    if ( times.empty() )
+        return false;
+    cost.meanUs = Mean( times );
+    cost.renderUs = renderTotal / (Float64) times.size();
+    const SStats stats = Summarize( times );
+    cost.p95Us = stats.p95Us;
+    cost.transformsPerSecond = (Float64) ( canceller.GetTransformCount() - transformsAtStart ) / ( (Float64) times.size() / 100.0 );
+    // the linear filter's echo return loss enhancement over the second half (without the residual suppressor the output lines up)
+    if ( !settings.GetResidualSuppression() )
+        cost.erleDb = EchoTest::ErleDb( echo, EchoTest::Difference( out, EchoTest::Difference( mic, echo ) ), mic.size() / 2, mic.size() );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The noise suppressor per 10 ms at 16 kHz on speech in noise, after the first second */
+Float64
+TimeNoiseSuppressor( Float64 seconds, Float32 amount, UInt64& transforms )
+{
+    const UInt32 rate = 16000;
+    EchoTest::TSamples x = EchoTest::MakeFarTalker( rate, seconds, 13, -26.0 );
+    TestVoiceSignals::MixInto( x, TestVoiceSignals::MakeWhiteNoise( x.size(), 0.003, 5 ) );
+    AUDIO::CNoiseSuppressorEffect suppressor;
+    suppressor.SetAmountInDecibels( amount );
+    suppressor.Prepare( AUDIO::CAudioFormat( rate, 1, AUDIO::SAMPLETYPE_FLOAT32 ), 4096 );
+    TTimes times;
+    for ( size_t at=0; at + 160 <= x.size(); at += 160 )
+    {
+        const UInt64 t0 = MT::PrecisionTickCount();
+        suppressor.Process( &x[ at ], 160 );
+        const UInt64 t1 = MT::PrecisionTickCount();
+        if ( at >= rate )
+            times.push_back( Microseconds( t1 - t0 ) );
+    }
+    transforms = suppressor.GetTransformedFrameCount();
+    return Mean( times );
 }
 
 }
@@ -539,6 +968,13 @@ PerformAudioBenchmarkTests( void )
         ASSERT_TRUE( EffectBenchmark( stereo, "limiter", none, 2, "limiter, lookahead mode, stereo", 15.0, GUCEF_NULL, GUCEF_NULL ) );
         ASSERT_TRUE( EffectBenchmark( stereo, "limiter", none, 2, "limiter, instant mode, stereo", 15.0, limiterInstant, instantValue ) );
         ASSERT_TRUE( EffectBenchmark( stereo, "compressor", none, 2, "compressor, stereo", 15.0, GUCEF_NULL, GUCEF_NULL ) );
+        ASSERT_TRUE( EffectBenchmark( stereo, "ducker", none, 2, "ducker, not ducking (no key), stereo", 5.0, GUCEF_NULL, GUCEF_NULL ) );
+        ASSERT_TRUE( EffectBenchmark( stereo, "ducker", none, 2, "ducker, ducking (manual key), stereo", 10.0, GUCEF_NULL, GUCEF_NULL, true ) );
+        const char* gateLevel[] = { "detector", GUCEF_NULL };
+        Float32 gateLevelValue[] = { 0.0f };
+        ASSERT_TRUE( EffectBenchmark( stereo, "noiseGate", none, 2, "noise gate, voice detector (default), stereo", 30.0, GUCEF_NULL, GUCEF_NULL ) );
+        ASSERT_TRUE( EffectBenchmark( stereo, "noiseGate", none, 2, "noise gate, level detector (RMS), stereo", 5.0, gateLevel, gateLevelValue ) );
+        ASSERT_TRUE( EffectBenchmark( stereo, "automaticGain", none, 2, "automatic gain (voice detector, ceiling stage), stereo", 30.0, GUCEF_NULL, GUCEF_NULL ) );
 
         CORE::CValueList bands;
         bands.Set( "bands", (Int32) 8 );
@@ -564,6 +1000,39 @@ PerformAudioBenchmarkTests( void )
         ASSERT_TRUE( EffectBenchmark( surround, "limiter", none, 8, "limiter, lookahead mode, 7.1 (8 channels)", 30.0, GUCEF_NULL, GUCEF_NULL ) );
         ASSERT_TRUE( EffectBenchmark( surround, "compressor", none, 8, "compressor, 7.1 (8 channels)", 30.0, GUCEF_NULL, GUCEF_NULL ) );
         ASSERT_TRUE( EffectBenchmark( surround, "reverb", none, 8, "reverb, normal quality, 7.1 (8 channels)", 80.0, GUCEF_NULL, GUCEF_NULL ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioBenchmark: Sinc resampler against the linear resampler, per 10 ms of mono audio (report only, opt in)" )
+    SKIP_UNLESS_BENCH();
+    try
+    {
+        struct SCase { const char* name; Float64 inputRate; Float64 outputRate; };
+        const SCase cases[] = {
+            { "48 kHz to 16 kHz (capture)", 48000.0, 16000.0 },
+            { "16 kHz to 48 kHz", 16000.0, 48000.0 },
+            { "44.1 kHz to 48 kHz", 44100.0, 48000.0 },
+            { "48 kHz drift correction, ratio 1.0003", 48014.4, 48000.0 },
+            { "16 kHz drift correction, ratio 1.0003", 16004.8, 16000.0 } };
+        for ( UInt32 i=0; i<5; ++i )
+        {
+            AUDIO::CLinearResampler linear;
+            AUDIO::CSincResampler sinc;
+            SStats linearStats;
+            SStats sincStats;
+            ASSERT_TRUE( ResamplerBenchmark( linear, cases[ i ].inputRate, cases[ i ].outputRate, linearStats ) );
+            ASSERT_TRUE( ResamplerBenchmark( sinc, cases[ i ].inputRate, cases[ i ].outputRate, sincStats ) );
+            const CORE::CString linearName = CORE::CString( "linear resampler, " ) + cases[ i ].name;
+            const CORE::CString sincName = CORE::CString( "sinc resampler, " ) + cases[ i ].name;
+            Report( linearName.C_String(), linearStats, 10000.0, "10 ms of audio" );
+            Report( sincName.C_String(), sincStats, 10000.0, "10 ms of audio" );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: " << cases[ i ].name << ": sinc costs " << Round( sincStats.medianUs / ( linearStats.medianUs > 0.01 ? linearStats.medianUs : 0.01 ) ) <<
+                                              " times the linear resampler" );
+        }
     }
     catch ( ... )
     {
@@ -616,6 +1085,239 @@ PerformAudioBenchmarkTests( void )
         }
         Report( "ApplyBusLayout changing volumes, parameters, one effect type and a send level, the call", Summarize( changeCall ), PeriodInUs, "the period of 5333 us" );
         Report( "ApplyBusLayout changing the same, until the audio thread has taken the commands", Summarize( changeTotal ), PeriodInUs, "the period of 5333 us" );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioBenchmark: Voice codecs per 10 ms of mono audio at 48 kHz: Opus encode, decode and concealment in both profiles at complexity 0, 5 and 10, and the pcm codec (report only, opt in)" )
+    SKIP_UNLESS_BENCH();
+    try
+    {
+        const bool hasOpus = VoiceCodecTest::LoadVoiceCodecPlugin( "audiovoicecodecOPUS", "audiobenchvoiceopus", "opus" );
+        const VoiceCodecTest::TSamples input = VoiceCodecTest::MakeSpeechLike( 48000 * 4, 48000, 0.4f );
+
+        // codec, profile, frame duration in us, complexity, description
+        const char* codecs[] = { "pcm", "opus", "opus", "opus", "opus", "opus", "opus" };
+        const AUDIO::TVoiceCodecProfile profiles[] = { AUDIO::VOICECODECPROFILE_LOWDELAY, AUDIO::VOICECODECPROFILE_LOWDELAY, AUDIO::VOICECODECPROFILE_LOWDELAY, AUDIO::VOICECODECPROFILE_LOWDELAY,
+                                                       AUDIO::VOICECODECPROFILE_ROBUST, AUDIO::VOICECODECPROFILE_ROBUST, AUDIO::VOICECODECPROFILE_ROBUST };
+        const UInt32 durations[] = { 10000, 10000, 10000, 10000, 20000, 20000, 20000 };
+        const UInt32 complexities[] = { 0, 0, 5, 10, 0, 5, 10 };
+        const char* names[] = { "pcm", "opus low delay, complexity 0", "opus low delay, complexity 5", "opus low delay, complexity 10",
+                                "opus robust, complexity 0", "opus robust, complexity 5", "opus robust, complexity 10" };
+
+        for ( UInt32 v=0; v<7; ++v )
+        {
+            if ( 0 != ::strcmp( codecs[ v ], "pcm" ) && !hasOpus )
+                continue;
+
+            AUDIO::CVoiceCodecConfig config = VoiceCodecTest::MakeConfig( codecs[ v ], 48000, durations[ v ] );
+            config.SetProfile( profiles[ v ] );
+            config.SetComplexity( complexities[ v ] );
+            config.SetBitrate( AUDIO::VOICECODECPROFILE_ROBUST == profiles[ v ] ? 32000 : 48000 );
+            config.SetInbandFec( AUDIO::VOICECODECPROFILE_ROBUST == profiles[ v ] );
+            config.SetExpectedLossPercentage( AUDIO::VOICECODECPROFILE_ROBUST == profiles[ v ] ? 10 : 0 );
+            AUDIO::TVoiceEncoderPtr encoder;
+            AUDIO::TVoiceDecoderPtr decoder;
+            ASSERT_TRUE( AUDIO::CAudioGlobal::Instance()->GetVoiceCodecRegistry().CreateEncoder( config, encoder ) );
+            ASSERT_TRUE( AUDIO::CAudioGlobal::Instance()->GetVoiceCodecRegistry().CreateDecoder( config, decoder ) );
+
+            const UInt32 frameSize = encoder->GetFrameSizeInFrames();
+            const UInt32 frames = (UInt32) ( input.size() / frameSize );
+            const Float64 per10Ms = 10000.0 / durations[ v ];           // the cost of a frame as the cost of 10 ms
+            GUCEF::vector< GUCEF::vector< UInt8 > > packets;
+            UInt8 payload[ 2048 ];
+            VoiceCodecTest::TSamples out( frameSize, 0.0f );
+            const UInt32 batch = 10;
+            TTimes encodeTimes, decodeTimes, concealTimes;
+
+            // encoding, in batches of frames: the clock has a resolution of one microsecond
+            for ( UInt32 f=0; f+batch<=frames; f+=batch )
+            {
+                const UInt64 start = MT::PrecisionTickCount();
+                for ( UInt32 b=0; b<batch; ++b )
+                {
+                    const Int32 size = encoder->Encode( &input[ (size_t) ( f + b ) * frameSize ], payload, sizeof( payload ) );
+                    if ( size <= 0 )
+                        break;
+                    packets.push_back( GUCEF::vector< UInt8 >( payload, payload + size ) );
+                }
+                encodeTimes.push_back( Microseconds( MT::PrecisionTickCount() - start ) / batch * per10Ms );
+            }
+            ASSERT_TRUE( packets.size() + batch > frames );
+
+            for ( UInt32 f=0; f+batch<=(UInt32) packets.size(); f+=batch )
+            {
+                const UInt64 start = MT::PrecisionTickCount();
+                for ( UInt32 b=0; b<batch; ++b )
+                    decoder->Decode( &packets[ f + b ][ 0 ], (UInt32) packets[ f + b ].size(), &out[ 0 ], frameSize );
+                decodeTimes.push_back( Microseconds( MT::PrecisionTickCount() - start ) / batch * per10Ms );
+            }
+
+            for ( UInt32 f=0; f+batch<=(UInt32) packets.size(); f+=batch )
+            {
+                for ( UInt32 b=0; b<batch; ++b )
+                    decoder->Decode( &packets[ f + b ][ 0 ], (UInt32) packets[ f + b ].size(), &out[ 0 ], frameSize );
+                const UInt64 start = MT::PrecisionTickCount();
+                decoder->Conceal( &out[ 0 ], frameSize );
+                concealTimes.push_back( Microseconds( MT::PrecisionTickCount() - start ) * per10Ms );
+            }
+
+            const CORE::CString name = CORE::CString( "voice codec " ) + names[ v ];
+            Report( ( name + ", encode" ).C_String(), Summarize( encodeTimes ), 10000.0, "10 ms of audio (one core)" );
+            Report( ( name + ", decode" ).C_String(), Summarize( decodeTimes ), 10000.0, "10 ms of audio (one core)" );
+            Report( ( name + ", conceal one lost frame" ).C_String(), Summarize( concealTimes ), 10000.0, "10 ms of audio (one core)" );
+        }
+        CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "audiobenchvoiceopus" );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioBenchmark: The whole intercom unit per 10 ms of audio: capture path, sender, packets, receivers with jitter buffer, playout, sinc resampler and decode, mix with the ducker; as a percentage of one core, projected for a Pi 4 and a Pi Zero 2 W (report only, opt in)" )
+    SKIP_UNLESS_BENCH();
+    try
+    {
+        const bool hasOpus = VoiceCodecTest::LoadVoiceCodecPlugin( "audiovoicecodecOPUS", "audiobenchunitopus", "opus" );
+
+        // Scale factors against this machine. The design (section 7) gives the Pi Zero 2 W about 3.2 times the Pi 4 for each of its rows
+        // and no factor between a workstation and a Pi 4; the factor 4 for the Pi 4 is an assumption (clock ratio about 3, lower work per clock),
+        // so the Pi Zero 2 W is 4 * 3.2. The projections are indications, not measurements
+        const Float64 pi4Factor = 4.0;
+        const Float64 piZeroFactor = 4.0 * 3.2;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: unit chain scale factors against this machine: Pi 4 " << Round( pi4Factor ) << ", Pi Zero 2 W " << Round( piZeroFactor ) <<
+                                          " (assumed: section 7 of the design gives only the ratio of about 3.2 between the two)" );
+
+        AUDIO::CVoiceCodecConfig opusLowDelay = VoiceCodecTest::MakeConfig( "opus", 48000, 10000 );
+        opusLowDelay.SetProfileDefaults( AUDIO::VOICECODECPROFILE_LOWDELAY );
+        AUDIO::CVoiceCodecConfig opusRobust = VoiceCodecTest::MakeConfig( "opus", 48000, 10000 );
+        opusRobust.SetProfileDefaults( AUDIO::VOICECODECPROFILE_ROBUST );
+        const AUDIO::CVoiceCodecConfig codecs[] = { VoiceStreamTest::PcmConfig( 48000, 10000 ), opusLowDelay, opusRobust };
+        const char* names[] = { "pcm", "opus low delay", "opus robust" };
+        const UInt32 streamCounts[] = { 1, 4 };
+
+        for ( UInt32 c=0; c<3; ++c )
+        {
+            if ( c > 0 && !hasOpus )
+                continue;
+            for ( UInt32 n=0; n<2; ++n )
+            {
+                SChainTimes times;
+                ASSERT_TRUE( RunUnitChain( codecs[ c ], streamCounts[ n ], 200.0, times ) );
+                ASSERT_TRUE( times.totalUnit.size() > 100 );
+
+                const SStats total = Summarize( times.totalUnit );
+
+                // the parts as means over the 10 ms windows; the sender and the playout path contain others, which are taken out
+                const Float64 captureUs = Mean( times.capturePath );
+                const Float64 senderUs = Mean( times.sender ) > captureUs ? Mean( times.sender ) - captureUs : 0.0;
+                Float64 jitterAndPlayout = Mean( times.playoutTotal ) - Mean( times.decode ) - Mean( times.mixBaseline );
+                if ( jitterAndPlayout < 0.0 )
+                    jitterAndPlayout = 0.0;
+
+                const CORE::CString label = CORE::CString( "unit chain, " ) + names[ c ] + ", " + CORE::UInt32ToString( streamCounts[ n ] ) + " incoming stream" + ( 1 == streamCounts[ n ] ? "" : "s" );
+                const struct { const char* what; Float64 us; } parts[] = {
+                    { "capture path (high pass, gate, AGC, VAD, meter)", captureUs },
+                    { "sender (encode, frame)", senderUs },
+                    { "packetize", Mean( times.packetize ) },
+                    { "receive (packet read, push)", Mean( times.receive ) },
+                    { "jitter buffer, playout and sinc resampler", jitterAndPlayout },
+                    { "decode", Mean( times.decode ) },
+                    { "mix, music bus and ducker", Mean( times.mixBaseline ) } };
+                for ( UInt32 p=0; p<7; ++p )
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: " << label << ", " << parts[ p ].what << ": mean " << Round( parts[ p ].us ) << " us per 10 ms, " << Round( 100.0 * parts[ p ].us / 10000.0 ) << " % of one core" );
+
+                const Float64 meanUs = Mean( times.totalUnit );
+                const Float64 percent = 100.0 * meanUs / 10000.0;
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: " << label << ", total (capture step, sender, packets, playback render): mean " << Round( meanUs ) << " us per 10 ms, median " << Round( total.medianUs ) << " us, min " << Round( total.minUs ) <<
+                                                  " us, 95th percentile " << Round( total.p95Us ) << " us, max " << Round( total.maxUs ) << " us; " << Round( percent ) << " % of one core here, projected " <<
+                                                  Round( percent * pi4Factor ) << " % on a Pi 4, " << Round( percent * piZeroFactor ) << " % on a Pi Zero 2 W; playout ratio " << Round( times.ratioPpm ) <<
+                                                  " ppm from 1, decoded " << times.decoded << ", concealed " << times.concealed << ", underruns " << times.underruns );
+            }
+        }
+        CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "audiobenchunitopus" );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioBenchmark: Noise suppressor and echo canceller per 10 ms of mono audio at 16 kHz: settings, idle, double talk and the render tap; against the budget of 0.30 % of one core for both, projected for a Pi 4 and a Pi Zero 2 W (report only, opt in)" )
+    SKIP_UNLESS_BENCH();
+    try
+    {
+        const Float64 pi4Factor = 4.0;
+        const Float64 piZeroFactor = 4.0 * 3.2;
+        const Float64 seconds = 32.0;
+
+        UInt64 transforms = 0;
+        const Float64 nsUs = TimeNoiseSuppressor( seconds, -15.0f, transforms );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: noise suppressor, 16 kHz, speech in noise: mean " << Round( nsUs ) << " us per 10 ms, " << Round( nsUs / 100.0 ) << " % of one core here, " <<
+                   Round( nsUs / 100.0 * pi4Factor ) << " % on a Pi 4, " << Round( nsUs / 100.0 * piZeroFactor ) << " % on a Pi Zero 2 W; " << Round( (Float64) transforms * 2.0 / seconds ) << " FFTs per second" );
+        const Float64 nsOffUs = TimeNoiseSuppressor( seconds, 0.0f, transforms );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: noise suppressor, amount 0 dB (only the delay): mean " << Round( nsOffUs ) << " us per 10 ms, " << transforms << " transforms" );
+
+        struct SVariant
+        {
+            const char* what;
+            UInt32 block;
+            Float32 filterMs;
+            UInt32 adaptEvery;
+            bool residual;
+            bool suppressNoise;
+            bool far;
+            bool near;
+            UInt32 referenceRate;
+        };
+        const SVariant variants[] = {
+            { "default (block 128, 128 ms, residual suppressor), far end talks, 16 kHz reference", 0, 128.0f, 1, true, false, true, false, 16000 },
+            { "default, far end talks, 48 kHz reference (render tap decimates)", 0, 128.0f, 1, true, false, true, false, 48000 },
+            { "default, far end silent (idle), 48 kHz reference", 0, 128.0f, 1, true, false, false, false, 48000 },
+            { "default, double talk, 16 kHz reference", 0, 128.0f, 1, true, false, true, true, 16000 },
+            { "without residual suppressor", 0, 128.0f, 1, false, false, true, false, 16000 },
+            { "residual suppressor also suppressing noise (instead of the effect)", 0, 128.0f, 1, true, true, true, false, 16000 },
+            { "block 64 (4 ms)", 64, 128.0f, 1, false, false, true, false, 16000 },
+            { "block 256 (16 ms)", 256, 128.0f, 1, false, false, true, false, 16000 },
+            { "filter 64 ms", 0, 64.0f, 1, false, false, true, false, 16000 },
+            { "filter 96 ms", 0, 96.0f, 1, false, false, true, false, 16000 },
+            { "filter 256 ms", 0, 256.0f, 1, false, false, true, false, 16000 },
+            { "adapting in every second block", 0, 128.0f, 2, false, false, true, false, 16000 },
+            { "block 256, filter 96 ms, adapting in every second block", 256, 96.0f, 2, false, false, true, false, 16000 }
+        };
+        Float64 defaultUs = 0.0, defaultRenderUs = 0.0;
+        for ( UInt32 v=0; v<sizeof( variants ) / sizeof( variants[ 0 ] ); ++v )
+        {
+            AUDIO::CEchoCancellerSettings settings;
+            settings.SetBlockFrames( variants[ v ].block );
+            settings.SetFilterLengthInMs( variants[ v ].filterMs );
+            settings.SetAdaptEveryBlocks( variants[ v ].adaptEvery );
+            settings.SetResidualSuppression( variants[ v ].residual );
+            settings.SetSuppressNoise( variants[ v ].suppressNoise );
+            SEchoCost cost;
+            ASSERT_TRUE( TimeEchoCanceller( settings, variants[ v ].far, variants[ v ].near, variants[ v ].referenceRate, seconds, cost ) );
+            if ( 1 == v )
+            {
+                defaultUs = cost.meanUs;
+                defaultRenderUs = cost.renderUs;
+            }
+            const Float64 percent = cost.meanUs / 100.0;
+            CORE::CString erle;
+            if ( !variants[ v ].residual )
+                erle = CORE::CString( "; ERLE of the second half " ) + Round( cost.erleDb ) + " dB";
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: echo canceller, " << variants[ v ].what << ": mean " << Round( cost.meanUs ) << " us per 10 ms (render tap " << Round( cost.renderUs ) <<
+                       " us), 95th percentile " << Round( cost.p95Us ) << " us; " << Round( percent ) << " % of one core here, " << Round( percent * pi4Factor ) << " % on a Pi 4, " <<
+                       Round( percent * piZeroFactor ) << " % on a Pi Zero 2 W; " << Round( cost.transformsPerSecond ) << " FFTs per second" << erle );
+        }
+        const Float64 totalUs = nsUs + defaultUs;
+        const Float64 totalPercent = totalUs / 100.0;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioBenchmark: noise suppressor and echo canceller (default, 48 kHz mix, render tap included) together: " << Round( totalUs ) << " us per 10 ms (render tap " <<
+                   Round( defaultRenderUs ) << " us), " << Round( totalPercent ) << " % of one core here against the budget of 0.30 %, " << Round( totalPercent * pi4Factor ) << " % on a Pi 4, " <<
+                   Round( totalPercent * piZeroFactor ) << " % on a Pi Zero 2 W (factors 4 and 12.8 assumed, as for the unit chain)" );
     }
     catch ( ... )
     {

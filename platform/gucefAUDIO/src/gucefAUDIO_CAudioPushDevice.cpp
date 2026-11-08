@@ -27,6 +27,11 @@
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
+#ifndef GUCEF_MT_CREALTIMESCHEDULINGSCOPE_H
+#include "gucefMT_CRealtimeSchedulingScope.h"
+#define GUCEF_MT_CREALTIMESCHEDULINGSCOPE_H
+#endif /* GUCEF_MT_CREALTIMESCHEDULINGSCOPE_H ? */
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -113,6 +118,7 @@ class CAudioPushDeviceTask : public CORE::CTaskConsumer
 //-------------------------------------------------------------------------*/
 
 const CString CAudioPushDevice::DefaultThreadPoolName = "AudioDevice";
+const CString CAudioPushDevice::RealtimePriorityOptionName = "realtimePriority";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -135,7 +141,11 @@ CAudioPushDevice::CAudioPushDevice( const CAudioDeviceInfo& info     ,
     , m_stopRequested( false )
     , m_loopRunning( false )
     , m_underruns( 0 )
+    , m_overruns( 0 )
     , m_totalFrames( 0 )
+    , m_realtimePriority( 0 )
+    , m_realtimeActive( false )
+    , m_realtimeError( 0 )
 {GUCEF_TRACE;
 
 }
@@ -170,7 +180,9 @@ CAudioPushDevice::Start( void )
 
     if ( m_started )
         return true;
-    if ( AUDIODIRECTION_PLAYBACK != GetDirection() || GUCEF_NULL == GetCallback() )
+    if ( GUCEF_NULL == GetCallback() )
+        return false;
+    if ( AUDIODIRECTION_PLAYBACK != GetDirection() && !( AUDIODIRECTION_CAPTURE == GetDirection() && SupportsCapture() ) )
         return false;
 
     if ( !OnPushStart() )
@@ -272,10 +284,69 @@ CAudioPushDevice::GetUnderrunCount( void ) const
 /*-------------------------------------------------------------------------*/
 
 UInt64
+CAudioPushDevice::GetOverrunCount( void ) const
+{
+    // no trace macro: the capture callback reads it on the device thread
+    return m_overruns.Load( MT::MEMORDER_ACQUIRE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
 CAudioPushDevice::GetTotalFramesPushed( void ) const
 {GUCEF_TRACE;
 
     return m_totalFrames.Load( MT::MEMORDER_RELAXED );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioPushDevice::SetRealtimePriority( UInt32 priority )
+{GUCEF_TRACE;
+
+    m_realtimePriority.Store( priority, MT::MEMORDER_RELEASE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAudioPushDevice::GetRealtimePriority( void ) const
+{GUCEF_TRACE;
+
+    return m_realtimePriority.Load( MT::MEMORDER_ACQUIRE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioPushDevice::ApplyDeviceOptions( const CAudioDeviceParams& params )
+{GUCEF_TRACE;
+
+    const CORE::CValueList& options = params.GetOptions();
+    if ( options.HasKey( RealtimePriorityOptionName ) )
+    {
+        const Int32 priority = options.GetValueAlways( RealtimePriorityOptionName ).AsInt32( 0 );
+        SetRealtimePriority( priority > 0 ? (UInt32) priority : 0 );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioPushDevice::IsRealtimeSchedulingActive( void ) const
+{GUCEF_TRACE;
+
+    return m_realtimeActive.Load( MT::MEMORDER_ACQUIRE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CAudioPushDevice::GetRealtimeSchedulingError( void ) const
+{GUCEF_TRACE;
+
+    return m_realtimeError.Load( MT::MEMORDER_ACQUIRE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -285,6 +356,24 @@ CAudioPushDevice::GetThreadPoolName( void ) const
 {GUCEF_TRACE;
 
     return m_threadPoolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioPushDevice::SupportsCapture( void ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioPushDevice::TPushResult
+CAudioPushDevice::PullFrames( void* frames, UInt32 frameCount )
+{GUCEF_TRACE;
+
+    return PUSHRESULT_DEVICE_LOST;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -319,7 +408,6 @@ CAudioPushDevice::RunPushLoop( void )
 {GUCEF_TRACE;
 
     IAudioDeviceCallback* callback = GetCallback();
-    void* frames = m_periodBuffer.GetDataPtr();
 
     if ( !OnDeviceThreadStart() )
     {
@@ -328,6 +416,46 @@ CAudioPushDevice::RunPushLoop( void )
         return;
     }
 
+    const UInt32 realtimePriority = m_realtimePriority.Load( MT::MEMORDER_ACQUIRE );
+    if ( realtimePriority > 0 )
+    {
+        // Real-time scheduling for the loop only: the scope restores the thread before it goes back to its pool.
+        // A refusal is no failure, the loop then runs at normal priority and the owner can see why
+        MT::CRealtimeSchedulingScope realtime( realtimePriority );
+        m_realtimeError.Store( realtime.GetErrorCode(), MT::MEMORDER_RELEASE );
+        m_realtimeActive.Store( realtime.IsActive(), MT::MEMORDER_RELEASE );
+
+        if ( AUDIODIRECTION_CAPTURE == GetDirection() )
+            RunCaptureLoop( callback );
+        else
+            RunPlaybackLoop( callback );
+
+        m_realtimeActive.Store( false, MT::MEMORDER_RELEASE );
+    }
+    else
+    {
+        m_realtimeError.Store( 0, MT::MEMORDER_RELEASE );
+        m_realtimeActive.Store( false, MT::MEMORDER_RELEASE );
+
+        if ( AUDIODIRECTION_CAPTURE == GetDirection() )
+            RunCaptureLoop( callback );
+        else
+            RunPlaybackLoop( callback );
+    }
+
+    OnDeviceThreadEnd();
+
+    // the last thing the device thread does with the device
+    m_loopRunning.Store( false, MT::MEMORDER_RELEASE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioPushDevice::RunPlaybackLoop( IAudioDeviceCallback* callback )
+{
+
+    void* frames = m_periodBuffer.GetDataPtr();
     while ( !m_stopRequested.Load( MT::MEMORDER_ACQUIRE ) )
     {
         // whatever the callback does not write is heard as it is, so the period starts as silence
@@ -344,11 +472,31 @@ CAudioPushDevice::RunPushLoop( void )
             m_underruns.FetchAdd( 1, MT::MEMORDER_RELAXED );
         m_totalFrames.FetchAdd( m_periodSize, MT::MEMORDER_RELAXED );
     }
+}
 
-    OnDeviceThreadEnd();
+/*-------------------------------------------------------------------------*/
 
-    // the last thing the device thread does with the device
-    m_loopRunning.Store( false, MT::MEMORDER_RELEASE );
+void
+CAudioPushDevice::RunCaptureLoop( IAudioDeviceCallback* callback )
+{
+
+    void* frames = m_periodBuffer.GetDataPtr();
+    while ( !m_stopRequested.Load( MT::MEMORDER_ACQUIRE ) )
+    {
+        const TPushResult result = PullFrames( frames, m_periodSize );
+        if ( PUSHRESULT_DEVICE_LOST == result )
+        {
+            callback->OnDeviceLost();
+            break;
+        }
+
+        // the count goes up before the block that follows the gap is delivered, so the callback can mark the discontinuity
+        if ( PUSHRESULT_UNDERRUN_RECOVERED == result )
+            m_overruns.FetchAdd( 1, MT::MEMORDER_RELEASE );
+        m_totalFrames.FetchAdd( m_periodSize, MT::MEMORDER_RELAXED );
+
+        callback->OnCaptureAudio( frames, m_periodSize );
+    }
 }
 
 /*-------------------------------------------------------------------------//

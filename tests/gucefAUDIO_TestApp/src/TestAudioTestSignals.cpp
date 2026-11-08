@@ -133,6 +133,173 @@ Within( UInt32 value, UInt32 expected, UInt32 margin )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+static void
+PerformDecayAndChimeTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "AudioTestSignals: A segment decays as exp( -t / decay ) from the end of its fade in, within 1e-4, with the fades at both edges" )
+    try
+    {
+        const UInt32 rate = 48000;
+        AUDIO::CToneSequenceSource::SSegment segment( AUDIO::CToneSequenceSource::WAVEFORM_SINE, 997.0, 500, 0.8f );
+        ASSERT_TRUE( 0 == segment.decayInMs );
+        segment.decayInMs = 100;
+        AUDIO::CToneSequenceSource::SSegment square( AUDIO::CToneSequenceSource::WAVEFORM_SQUARE, 750.0, 500, 0.8f );
+        square.decayInMs = 100;
+        square.fadeMs = 20;
+
+        AUDIO::CToneSequenceSource::TSegmentVector segments;
+        segments.push_back( segment );
+        segments.push_back( square );
+        AUDIO::CToneSequenceSource source( rate, 1, segments );
+        const TSamples samples = ReadSource( source );
+        ASSERT_TRUE( 2 * 24000 == samples.size() );
+
+        for ( UInt32 s=0; s<2; ++s )
+        {
+            const UInt64 length = 24000;
+            const UInt64 fade = ( (UInt64) ( 0 == s ? 5 : 20 ) * rate ) / 1000;
+            for ( UInt64 f=0; f<length; ++f )
+            {
+                Float64 envelope = 1.0;
+                if ( f < fade )
+                    envelope = 0.5 - 0.5 * cos( 3.14159265358979323846 * (Float64) f / (Float64) fade );
+                else
+                if ( f >= length - fade )
+                    envelope = 0.5 - 0.5 * cos( 3.14159265358979323846 * (Float64) ( length - 1 - f ) / (Float64) fade );
+                if ( f > fade )
+                    envelope *= exp( -( (Float64) ( f - fade ) / rate ) / 0.1 );
+                const Float32 sample = samples[ (size_t) ( s * length + f ) ];
+                if ( 0 == s )
+                {
+                    const Float64 expected = 0.8 * envelope * sin( 2.0 * 3.14159265358979323846 * 997.0 * (Float64) f / rate );
+                    ASSERT_TRUE( fabs( (Float64) sample - expected ) < 1.0e-4 );
+                }
+                else
+                {
+                    ASSERT_TRUE( fabs( fabs( (Float64) sample ) - 0.8 * envelope ) < 1.0e-4 );
+                }
+            }
+        }
+
+        // the envelope really falls: 100 ms after the fade in the level is 1/e of the start
+        const Float32 early = Peak( samples, 1, 0, 240, 480 );
+        const Float32 later = Peak( samples, 1, 0, 240 + 4800, 480 + 4800 );
+        ASSERT_TRUE( fabs( (Float64) later / (Float64) early - exp( -1.0 ) ) < 0.03 );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioTestSignals: A segment without decay is unchanged: the same frames as the formula of a flat segment, for every waveform" )
+    try
+    {
+        const AUDIO::CToneSequenceSource::TWaveform waveforms[] = {
+            AUDIO::CToneSequenceSource::WAVEFORM_SINE, AUDIO::CToneSequenceSource::WAVEFORM_SQUARE, AUDIO::CToneSequenceSource::WAVEFORM_TRIANGLE,
+            AUDIO::CToneSequenceSource::WAVEFORM_SAWTOOTH, AUDIO::CToneSequenceSource::WAVEFORM_SWEEP, AUDIO::CToneSequenceSource::WAVEFORM_WHITE_NOISE };
+        for ( UInt32 w=0; w<6; ++w )
+        {
+            AUDIO::CToneSequenceSource::SSegment plain( waveforms[ w ], 440.0, 120, 0.6f );
+            plain.endFrequency = 4000.0;
+            AUDIO::CToneSequenceSource::SSegment explicitZero = plain;
+            explicitZero.decayInMs = 0;
+            ASSERT_TRUE( 0 == plain.decayInMs );
+
+            AUDIO::CToneSequenceSource::TSegmentVector a;
+            a.push_back( plain );
+            AUDIO::CToneSequenceSource::TSegmentVector b;
+            b.push_back( explicitZero );
+            AUDIO::CToneSequenceSource first( 48000, 2, a );
+            AUDIO::CToneSequenceSource second( 48000, 2, b );
+            const TSamples x = ReadSource( first );
+            const TSamples y = ReadSource( second );
+            ASSERT_TRUE( 2 * 5760 == x.size() );
+            ASSERT_TRUE( x == y );
+        }
+
+        // a flat sine segment equals the formula of the sine with its raised cosine fades, bit for bit
+        AUDIO::CToneSequenceSource::TSegmentVector flat;
+        flat.push_back( AUDIO::CToneSequenceSource::SSegment( AUDIO::CToneSequenceSource::WAVEFORM_SINE, 440.0, 120, 0.6f ) );
+        AUDIO::CToneSequenceSource source( 48000, 1, flat );
+        const TSamples samples = ReadSource( source );
+        const UInt64 length = 5760;
+        const UInt64 fade = 240;
+        for ( UInt64 f=0; f<length; ++f )
+        {
+            Float64 envelope = 1.0;
+            if ( f < fade )
+                envelope = 0.5 - 0.5 * cos( 3.14159265358979323846 * (Float64) f / (Float64) fade );
+            else
+            if ( f >= length - fade )
+                envelope = 0.5 - 0.5 * cos( 3.14159265358979323846 * (Float64) ( length - 1 - f ) / (Float64) fade );
+            const Float64 cycles = 440.0 * ( (Float64) f / 48000.0 );
+            const Float64 value = sin( 2.0 * 3.14159265358979323846 * ( cycles - floor( cycles ) ) );
+            ASSERT_TRUE( samples[ (size_t) f ] == (Float32) ( value * envelope * 0.6f ) );
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioTestSignals: MakeChime is two decaying tones, 784 Hz and 659 Hz, 350 ms each: length, format, levels, pitch, same on every channel" )
+    try
+    {
+        AUDIO::IAudioSource::TAudioSourcePtr chime = AUDIO::CToneSequenceSource::MakeChime( 48000, 2 );
+        ASSERT_TRUE( chime->GetFormat() == AUDIO::CAudioFormat( 48000, 2, AUDIO::SAMPLETYPE_FLOAT32 ) );
+        ASSERT_TRUE( 33600 == chime->GetLengthInFrames() );
+        const TSamples samples = ReadSource( *chime );
+        ASSERT_TRUE( 2 * 33600 == samples.size() );
+        ASSERT_TRUE( chime->IsEndOfStream() );
+        for ( size_t f=0; f<33600; ++f )
+            ASSERT_TRUE( samples[ 2 * f ] == samples[ 2 * f + 1 ] );
+
+        // pitch of each note
+        ASSERT_TRUE( Within( RisingCrossings( samples, 2, 0, 0, 16800 ), 274, 2 ) );
+        ASSERT_TRUE( Within( RisingCrossings( samples, 2, 0, 16800, 33600 ), 231, 2 ) );
+
+        // level: the first note starts at the amplitude and has decayed by exp( -t / 250 ms) 300 ms in; the second starts again
+        const Float32 start = Peak( samples, 2, 0, 240, 240 + 120 );
+        ASSERT_TRUE( start > 0.38f && start <= 0.4f );
+        const Float32 decayed = Peak( samples, 2, 0, 14400, 14400 + 120 );
+        ASSERT_TRUE( fabs( (Float64) decayed - 0.4 * exp( -( 14400.0 - 240.0 ) / 48000.0 / 0.25 ) ) < 0.01 );
+        const Float32 second = Peak( samples, 2, 0, 16800 + 240, 16800 + 240 + 120 );
+        ASSERT_TRUE( second > 0.38f && second <= 0.4f );
+
+        // silent at the start and the end, and no click on the way: no step larger than the steepest slope of the louder tone
+        ASSERT_TRUE( 0.0f == samples[ 0 ] && 0.0f == samples[ 2 * 33599 ] );
+        Float32 largestStep = 0.0f;
+        for ( size_t f=1; f<33600; ++f )
+            if ( fabsf( samples[ 2 * f ] - samples[ 2 * ( f - 1 ) ] ) > largestStep )
+                largestStep = fabsf( samples[ 2 * f ] - samples[ 2 * ( f - 1 ) ] );
+        ASSERT_TRUE( largestStep < 0.4f * 2.0f * 3.14159265f * 784.0f / 48000.0f * 1.02f );
+        ASSERT_TRUE( fabsf( samples[ 2 * 16800 ] ) < 0.005f && fabsf( samples[ 2 * 16799 ] ) < 0.005f );     // the join of the notes
+
+        // other rates and channel counts
+        AUDIO::IAudioSource::TAudioSourcePtr mono = AUDIO::CToneSequenceSource::MakeChime( 16000, 1 );
+        ASSERT_TRUE( mono->GetFormat() == AUDIO::CAudioFormat( 16000, 1, AUDIO::SAMPLETYPE_FLOAT32 ) );
+        ASSERT_TRUE( 11200 == mono->GetLengthInFrames() );
+        ASSERT_TRUE( 11200 == ReadSource( *mono ).size() );
+
+        // seeking gives the same frames as reading straight on; the same chime is made every time
+        AUDIO::IAudioSource::TAudioSourcePtr other = AUDIO::CToneSequenceSource::MakeChime( 48000, 2 );
+        ASSERT_TRUE( other->SeekToFrame( 20000 ) );
+        TSamples tail( 2 * 100 );
+        ASSERT_TRUE( 100 == other->ReadFrames( &tail[ 0 ], 100 ) );
+        ASSERT_TRUE( tail == TSamples( samples.begin() + 2 * 20000, samples.begin() + 2 * 20100 ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformAudioTestSignalTests( void )
 {GUCEF_TRACE;
@@ -252,6 +419,8 @@ PerformAudioTestSignalTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    PerformDecayAndChimeTests();
 }
 
 /*-------------------------------------------------------------------------*/

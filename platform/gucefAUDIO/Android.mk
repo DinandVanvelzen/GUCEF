@@ -24,10 +24,12 @@ LOCAL_MODULE_FILENAME := libgucefAUDIO
 LOCAL_SRC_FILES := \
   src/CGUCEFAUDIOModule.cpp \
   src/gucefAUDIO.cpp \
+  src/gucefAUDIO_CAcousticEchoCanceller.cpp \
   src/gucefAUDIO_CAudioBuffer.cpp \
   src/gucefAUDIO_CAudioBus.cpp \
   src/gucefAUDIO_CAudioBusLayout.cpp \
   src/gucefAUDIO_CAudioBusRouting.cpp \
+  src/gucefAUDIO_CAudioCapturePath.cpp \
   src/gucefAUDIO_CAudioClip.cpp \
   src/gucefAUDIO_CAudioCodecCPlugin.cpp \
   src/gucefAUDIO_CAudioCodecCPluginCodec.cpp \
@@ -47,6 +49,7 @@ LOCAL_SRC_FILES := \
   src/gucefAUDIO_CAudioEngine.cpp \
   src/gucefAUDIO_CAudioEngineParams.cpp \
   src/gucefAUDIO_CAudioFormat.cpp \
+  src/gucefAUDIO_CAudioFrameRing.cpp \
   src/gucefAUDIO_CAudioGlobal.cpp \
   src/gucefAUDIO_CAudioLevelMeter.cpp \
   src/gucefAUDIO_CAudioMixer.cpp \
@@ -56,24 +59,61 @@ LOCAL_SRC_FILES := \
   src/gucefAUDIO_CAudioSettings.cpp \
   src/gucefAUDIO_CAudioStream.cpp \
   src/gucefAUDIO_CAudioVoice.cpp \
+  src/gucefAUDIO_CAutomaticGainEffect.cpp \
   src/gucefAUDIO_CBiquadDesign.cpp \
   src/gucefAUDIO_CCompressorEffect.cpp \
   src/gucefAUDIO_CDelayEffect.cpp \
   src/gucefAUDIO_CDelayLine.cpp \
+  src/gucefAUDIO_CDuckerEffect.cpp \
+  src/gucefAUDIO_CEchoCancellerSettings.cpp \
+  src/gucefAUDIO_CEchoDelayEstimator.cpp \
   src/gucefAUDIO_CEnvelopeFollower.cpp \
   src/gucefAUDIO_CEqualizerEffect.cpp \
   src/gucefAUDIO_CFilterBand.cpp \
   src/gucefAUDIO_CFilterEffect.cpp \
+  src/gucefAUDIO_CFirDecimator.cpp \
+  src/gucefAUDIO_CHalfDuplexController.cpp \
+  src/gucefAUDIO_CHalfDuplexSettings.cpp \
   src/gucefAUDIO_CIAudioCodec.cpp \
   src/gucefAUDIO_CLimiterEffect.cpp \
   src/gucefAUDIO_CLinearResampler.cpp \
+  src/gucefAUDIO_CNoiseGateEffect.cpp \
+  src/gucefAUDIO_CNoiseSuppressorEffect.cpp \
   src/gucefAUDIO_CNullAudioDriver.cpp \
+  src/gucefAUDIO_CPacketLossConcealer.cpp \
   src/gucefAUDIO_CPcmStreamSource.cpp \
+  src/gucefAUDIO_CPcmVoiceCodecFactory.cpp \
+  src/gucefAUDIO_CPcmVoiceDecoder.cpp \
+  src/gucefAUDIO_CPcmVoiceEncoder.cpp \
   src/gucefAUDIO_CRawAudioCodec.cpp \
+  src/gucefAUDIO_CRealFft.cpp \
   src/gucefAUDIO_CReverbEffect.cpp \
+  src/gucefAUDIO_CRtpHeader.cpp \
+  src/gucefAUDIO_CRtpVoicePacketCodec.cpp \
+  src/gucefAUDIO_CSincResampler.cpp \
   src/gucefAUDIO_CSlidingMinimum.cpp \
+  src/gucefAUDIO_CSlidingQuantile.cpp \
+  src/gucefAUDIO_CSpectralSuppressor.cpp \
   src/gucefAUDIO_CSvfFilter.cpp \
   src/gucefAUDIO_CToneSequenceSource.cpp \
+  src/gucefAUDIO_CVoiceActivityDetector.cpp \
+  src/gucefAUDIO_CVoiceActivitySettings.cpp \
+  src/gucefAUDIO_CVoiceClock.cpp \
+  src/gucefAUDIO_CVoiceCodecConfig.cpp \
+  src/gucefAUDIO_CVoiceCodecFactory.cpp \
+  src/gucefAUDIO_CVoiceCodecRegistry.cpp \
+  src/gucefAUDIO_CVoiceDecoder.cpp \
+  src/gucefAUDIO_CVoiceEncoder.cpp \
+  src/gucefAUDIO_CVoiceFrame.cpp \
+  src/gucefAUDIO_CVoiceJitterBuffer.cpp \
+  src/gucefAUDIO_CVoicePlayoutController.cpp \
+  src/gucefAUDIO_CVoicePlayoutSource.cpp \
+  src/gucefAUDIO_CVoiceReceiver.cpp \
+  src/gucefAUDIO_CVoiceReceiverConfig.cpp \
+  src/gucefAUDIO_CVoiceReceiverStats.cpp \
+  src/gucefAUDIO_CVoiceSender.cpp \
+  src/gucefAUDIO_CVoiceSenderConfig.cpp \
+  src/gucefAUDIO_CVoiceSenderStats.cpp \
   src/gucefAUDIO_CWavAudioCodec.cpp \
   src/gucefAUDIO_IAudioSource.cpp
 

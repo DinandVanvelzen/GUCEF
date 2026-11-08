@@ -135,27 +135,27 @@ class CScriptedPushDevice : public AUDIO::CAudioPushDevice
     UInt32 lostAtPush;
     MT::CTAtomic< UInt32 > pushes;
     MT::CTAtomic< UInt32 > framesPushed;
-    MT::CTAtomic< UInt32 > pushThreadId;
+    MT::CTAtomic< TThreadId > pushThreadId;
     UInt32 starts;
     UInt32 stops;
     bool threadStartFails;
     MT::CTAtomic< UInt32 > threadStarts;
     MT::CTAtomic< UInt32 > threadEnds;
-    MT::CTAtomic< UInt32 > threadStartThreadId;
-    MT::CTAtomic< UInt32 > threadEndThreadId;
+    MT::CTAtomic< TThreadId > threadStartThreadId;
+    MT::CTAtomic< TThreadId > threadEndThreadId;
 
     protected:
 
     virtual bool OnDeviceThreadStart( void ) GUCEF_VIRTUAL_OVERRIDE
     {
-        threadStartThreadId.Store( MT::GetCurrentTaskID() );
+        threadStartThreadId.Store( MT::GetCurrentThreadID() );
         threadStarts.FetchAdd( 1 );
         return !threadStartFails;
     }
 
     virtual void OnDeviceThreadEnd( void ) GUCEF_VIRTUAL_OVERRIDE
     {
-        threadEndThreadId.Store( MT::GetCurrentTaskID() );
+        threadEndThreadId.Store( MT::GetCurrentThreadID() );
         threadEnds.FetchAdd( 1 );
     }
 
@@ -167,7 +167,7 @@ class CScriptedPushDevice : public AUDIO::CAudioPushDevice
 
     virtual TPushResult PushFrames( const void*, UInt32 frameCount ) GUCEF_VIRTUAL_OVERRIDE
     {
-        pushThreadId.Store( MT::GetCurrentTaskID() );
+        pushThreadId.Store( MT::GetCurrentThreadID() );
         const UInt32 push = pushes.FetchAdd( 1 ) + 1;
         MT::PrecisionDelay( 1 );
         if ( push == lostAtPush )
@@ -475,7 +475,7 @@ PerformPushDeviceTests( void )
         CORE::ThreadPoolPtr pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool( AUDIO::CAudioPushDevice::DefaultThreadPoolName );
         ASSERT_FALSE( pool.IsNULL() );
         ASSERT_TRUE( !pool.IsNULL() && pool->GetActiveNrOfDedicatedThreads() >= 1 );
-        ASSERT_TRUE( device.pushThreadId.Load() != MT::GetCurrentTaskID() );
+        ASSERT_TRUE( device.pushThreadId.Load() != MT::GetCurrentThreadID() );
 
         ASSERT_TRUE( device.Stop() );
         ASSERT_FALSE( device.IsStarted() );
@@ -560,7 +560,7 @@ PerformPushDeviceTests( void )
         ASSERT_TRUE( WaitForPushes( device, 3, 5000 ) );
         ASSERT_TRUE( 1 == device.threadStarts.Load() && 0 == device.threadEnds.Load() );
         ASSERT_TRUE( device.threadStartThreadId.Load() == device.pushThreadId.Load() );
-        ASSERT_TRUE( device.threadStartThreadId.Load() != MT::GetCurrentTaskID() );
+        ASSERT_TRUE( device.threadStartThreadId.Load() != MT::GetCurrentThreadID() );
         ASSERT_TRUE( device.Stop() );
         ASSERT_TRUE( 1 == device.threadEnds.Load() );
         ASSERT_TRUE( device.threadEndThreadId.Load() == device.pushThreadId.Load() );

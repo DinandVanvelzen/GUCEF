@@ -83,6 +83,7 @@ namespace AUDIO {
 //-------------------------------------------------------------------------*/
 
 class CAudioEffectFactory;
+class CAudioEngine;
 
 /*-------------------------------------------------------------------------*/
 
@@ -173,6 +174,15 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEffect : public CORE::CIConfigurable
      *  the longest delay of a delay). Effects without such options add nothing, which is the default.
      */
     virtual void GetConstructionOptions( CORE::CValueList& options ) const;
+
+    /**
+     *  Owner thread: binds what the construction options or settings of the effect name in an engine, for instance a bus by
+     *  its name (CAudioEngine::FindBus()), before the effect is handed to the audio thread. CAudioEngine::InsertEffect() and
+     *  CAudioEngine::InsertCaptureEffect() call it, with the engine locked, before the command is given; false refuses the
+     *  insert (TASKSTATUS_SETUP_FAILED). Bus layouts insert through InsertEffect(), so it applies to them as well. Nothing to
+     *  bind and true by default
+     */
+    virtual bool ResolveReferences( CAudioEngine& engine );
 
     /**
      *  Writes attribute "type", a child "Options" with the construction options when the effect has any

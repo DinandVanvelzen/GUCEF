@@ -35,6 +35,16 @@
 #define GUCEF_AUDIO_CAUDIOBUFFER_H
 #endif /* GUCEF_AUDIO_CAUDIOBUFFER_H ? */
 
+#ifndef GUCEF_AUDIO_IAUDIOSOURCE_H
+#include "gucefAUDIO_IAudioSource.h"
+#define GUCEF_AUDIO_IAUDIOSOURCE_H
+#endif /* GUCEF_AUDIO_IAUDIOSOURCE_H ? */
+
+#ifndef GUCEF_AUDIO_CLINEARRESAMPLER_H
+#include "gucefAUDIO_CLinearResampler.h"
+#define GUCEF_AUDIO_CLINEARRESAMPLER_H
+#endif /* GUCEF_AUDIO_CLINEARRESAMPLER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -56,6 +66,9 @@ namespace AUDIO {
  *  is produced exactly when Render() is called: deterministic and as fast as the machine can go.
  *
  *  Options for OpenDevice(): "keepOutput" (default false) keeps what the callback rendered so a test can look at it.
+ *
+ *  A capture device records silence, or what a source gives once one is set with SetCaptureSource(), so that a test
+ *  or a program can feed it the audio a microphone would.
  */
 class GUCEF_AUDIO_PUBLIC_CPP CNullAudioDevice : public CAudioDevice
 {
@@ -78,10 +91,22 @@ class GUCEF_AUDIO_PUBLIC_CPP CNullAudioDevice : public CAudioDevice
     virtual CNullAudioDevice* AsNullDevice( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Plays 'frameCount' frames: asks the callback for audio (or hands it silence to record) as a real device would,
-     *  in pieces of the period size. Does nothing when the device is not started. Returns the number of frames made.
+     *  Plays 'frameCount' frames: asks the callback for audio (or hands it the recorded audio: silence, or what the
+     *  capture source gives) as a real device would, in pieces of the period size. Does nothing when the device is not
+     *  started. Returns the number of frames made.
      */
     UInt64 Render( UInt64 frameCount );
+
+    /**
+     *  Capture devices only: what Render() records from now on. The source is read on the thread that calls Render(),
+     *  converted to the format of the device (sample type, channels and, through a linear resampler, rate); once it
+     *  has nothing more the device records silence. An empty pointer goes back to recording silence. Call it when no
+     *  Render() runs: everything the conversion needs is made here, Render() does not allocate. False, and the source
+     *  that was set before stays, for a playback device or a format that cannot be converted to the device format
+     */
+    bool SetCaptureSource( const TAudioSourcePtr& source );
+
+    const TAudioSourcePtr& GetCaptureSource( void ) const;
 
     /** Everything rendered so far, when 'keepOutput' was set */
     const CAudioBuffer& GetRenderedAudio( void ) const;
@@ -95,6 +120,14 @@ class GUCEF_AUDIO_PUBLIC_CPP CNullAudioDevice : public CAudioDevice
 
     private:
 
+    /** Fills the first 'frameCount' frames of m_scratch from the capture source, silence after its end */
+    void ReadCaptureSource( UInt32 frameCount );
+
+    CNullAudioDevice( const CNullAudioDevice& src );            /**< not implemented */
+    CNullAudioDevice& operator=( const CNullAudioDevice& src ); /**< not implemented */
+
+    private:
+
     CAudioFormat m_format;
     UInt32 m_periodSize;
     bool m_keepOutput;
@@ -102,6 +135,20 @@ class GUCEF_AUDIO_PUBLIC_CPP CNullAudioDevice : public CAudioDevice
     UInt64 m_totalFrames;
     CAudioBuffer m_rendered;
     CAudioBuffer m_scratch;
+
+    TAudioSourcePtr m_captureSource;
+    IAudioSource* m_captureSourceRaw;           /**< m_captureSource without the shared pointer, for Render() */
+    bool m_captureConverts;                     /**< the source format differs from the device format */
+    bool m_captureRemixes;                      /**< the channels differ: m_captureMatrix applies */
+    bool m_captureResamples;                    /**< the rates differ: m_captureResampler applies */
+    CAudioBuffer m_captureRead;                 /**< a period of the source in its own format */
+    GUCEF::vector< Float32 > m_captureFloat;    /**< a period of the source as floats in its own channels */
+    GUCEF::vector< Float32 > m_capturePending;  /**< source frames as floats in the device channels, not yet delivered */
+    UInt32 m_capturePendingOffset;
+    UInt32 m_capturePendingFrames;
+    GUCEF::vector< Float32 > m_captureOut;      /**< a period in the device format as floats */
+    GUCEF::vector< Float32 > m_captureMatrix;
+    CLinearResampler m_captureResampler;
 };
 
 /*-------------------------------------------------------------------------*/

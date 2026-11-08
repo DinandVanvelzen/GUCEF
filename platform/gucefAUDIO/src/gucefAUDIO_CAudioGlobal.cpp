@@ -112,10 +112,40 @@
 #define GUCEF_AUDIO_CDELAYEFFECT_H
 #endif /* GUCEF_AUDIO_CDELAYEFFECT_H ? */
 
+#ifndef GUCEF_AUDIO_CDUCKEREFFECT_H
+#include "gucefAUDIO_CDuckerEffect.h"
+#define GUCEF_AUDIO_CDUCKEREFFECT_H
+#endif /* GUCEF_AUDIO_CDUCKEREFFECT_H ? */
+
+#ifndef GUCEF_AUDIO_CNOISEGATEEFFECT_H
+#include "gucefAUDIO_CNoiseGateEffect.h"
+#define GUCEF_AUDIO_CNOISEGATEEFFECT_H
+#endif /* GUCEF_AUDIO_CNOISEGATEEFFECT_H ? */
+
+#ifndef GUCEF_AUDIO_CNOISESUPPRESSOREFFECT_H
+#include "gucefAUDIO_CNoiseSuppressorEffect.h"
+#define GUCEF_AUDIO_CNOISESUPPRESSOREFFECT_H
+#endif /* GUCEF_AUDIO_CNOISESUPPRESSOREFFECT_H ? */
+
+#ifndef GUCEF_AUDIO_CAUTOMATICGAINEFFECT_H
+#include "gucefAUDIO_CAutomaticGainEffect.h"
+#define GUCEF_AUDIO_CAUTOMATICGAINEFFECT_H
+#endif /* GUCEF_AUDIO_CAUTOMATICGAINEFFECT_H ? */
+
 #ifndef GUCEF_AUDIO_CREVERBEFFECT_H
 #include "gucefAUDIO_CReverbEffect.h"
 #define GUCEF_AUDIO_CREVERBEFFECT_H
 #endif /* GUCEF_AUDIO_CREVERBEFFECT_H ? */
+
+#ifndef GUCEF_AUDIO_CVOICECODECREGISTRY_H
+#include "gucefAUDIO_CVoiceCodecRegistry.h"
+#define GUCEF_AUDIO_CVOICECODECREGISTRY_H
+#endif /* GUCEF_AUDIO_CVOICECODECREGISTRY_H ? */
+
+#ifndef GUCEF_AUDIO_CPCMVOICECODECFACTORY_H
+#include "gucefAUDIO_CPcmVoiceCodecFactory.h"
+#define GUCEF_AUDIO_CPCMVOICECODECFACTORY_H
+#endif /* GUCEF_AUDIO_CPCMVOICECODECFACTORY_H ? */
 
 #include "gucefAUDIO_CAudioGlobal.h"
 
@@ -171,6 +201,7 @@ CAudioGlobal::CAudioGlobal( void )
     , m_audioDriverRegistry( GUCEF_NULL )
     , m_audioCodecPluginManager( GUCEF_NULL )
     , m_audioEffectRegistry( GUCEF_NULL )
+    , m_voiceCodecRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -189,6 +220,9 @@ CAudioGlobal::~CAudioGlobal()
         m_audioCodecPluginManager->UnlinkAll();
     GUCEF_DELETE m_audioCodecPluginManager;
     m_audioCodecPluginManager = GUCEF_NULL;
+
+    GUCEF_DELETE m_voiceCodecRegistry;
+    m_voiceCodecRegistry = GUCEF_NULL;
 
     GUCEF_DELETE m_audioDriverRegistry;
     m_audioDriverRegistry = GUCEF_NULL;
@@ -238,6 +272,15 @@ CAudioGlobal::GetAudioEffectRegistry( void )
 
 /*-------------------------------------------------------------------------*/
 
+CVoiceCodecRegistry&
+CAudioGlobal::GetVoiceCodecRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_voiceCodecRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CAudioGlobal::Initialize( void )
 {GUCEF_TRACE;
@@ -253,6 +296,7 @@ CAudioGlobal::Initialize( void )
     m_audioDriverRegistry = GUCEF_NEW CAudioDriverRegistry();
     m_audioCodecPluginManager = GUCEF_NEW CAudioCodecPluginManager();
     m_audioEffectRegistry = GUCEF_NEW CAudioEffectRegistry();
+    m_voiceCodecRegistry = GUCEF_NEW CVoiceCodecRegistry();
 
     // The driver that needs no hardware and no plugin
     m_audioDriverRegistry->TryRegister( "null", TAudioDriverPtr( GUCEF_NEW CNullAudioDriver() ) );
@@ -267,7 +311,14 @@ CAudioGlobal::Initialize( void )
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CEqualizerEffect >() ) );
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CFilterEffect >() ) );
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CDelayEffect >() ) );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CDuckerEffect >() ) );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseGateEffect >() ) );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CAutomaticGainEffect >() ) );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseSuppressorEffect >() ) );
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CReverbEffect >() ) );
+
+    // The voice codecs that need nothing but the library itself
+    m_voiceCodecRegistry->RegisterFactory( TVoiceCodecFactoryPtr( GUCEF_NEW CPcmVoiceCodecFactory() ) );
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefAUDIO Global systems initialized" );
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefAUDIO" );

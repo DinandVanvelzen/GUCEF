@@ -76,6 +76,7 @@ CToneSequenceSource::SSegment::SSegment( void )
     , durationInMs( 0 )
     , channelMask( AllChannels )
     , fadeMs( DefaultFadeInMs )
+    , decayInMs( 0 )
 {GUCEF_TRACE;
 
 }
@@ -90,6 +91,7 @@ CToneSequenceSource::SSegment::SSegment( TWaveform waveform_, Float64 frequency_
     , durationInMs( durationInMs_ )
     , channelMask( channelMask_ )
     , fadeMs( DefaultFadeInMs )
+    , decayInMs( 0 )
 {GUCEF_TRACE;
 
 }
@@ -215,6 +217,10 @@ CToneSequenceSource::SampleAt( const SSegment& segment, UInt64 segmentLength, UI
             envelope = 0.5 - 0.5 * cos( Pi * (Float64) ( segmentLength - 1 - frameInSegment ) / (Float64) fadeFrames );
     }
 
+    // exponential decay from the end of the fade in: no step where the fade in ends, the fade out at the end still applies
+    if ( segment.decayInMs > 0 && frameInSegment > fadeFrames )
+        envelope *= exp( -( (Float64) ( frameInSegment - fadeFrames ) / rate ) / ( (Float64) segment.decayInMs * 0.001 ) );
+
     return (Float32) ( value * envelope * segment.amplitude );
 }
 
@@ -325,6 +331,23 @@ CToneSequenceSource::GetSegments( void ) const
 {GUCEF_TRACE;
 
     return m_segments;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CToneSequenceSource::TAudioSourcePtr
+CToneSequenceSource::MakeChime( UInt32 sampleRate, UInt32 channels )
+{GUCEF_TRACE;
+
+    TSegmentVector segments;
+    static const Float64 notes[ 2 ] = { 784.0, 659.0 };
+    for ( UInt32 i=0; i<2; ++i )
+    {
+        SSegment note( WAVEFORM_SINE, notes[ i ], 350, 0.4f );
+        note.decayInMs = 250;
+        segments.push_back( note );
+    }
+    return TAudioSourcePtr( GUCEF_NEW CToneSequenceSource( sampleRate, channels, segments ) );
 }
 
 /*-------------------------------------------------------------------------*/

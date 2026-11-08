@@ -74,7 +74,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioLevelMeter
     /** Audio thread: measures a block of interleaved float audio */
     void Update( const Float32* interleaved, UInt32 frames );
 
-    /** Any thread */
+    /** Any thread; the channel count, peak and RMS are real time safe (atomics, no trace): audio threads read them for keys */
     UInt32 GetChannelCount( void ) const;
     Float32 GetPeak( UInt32 channel ) const;
     Float32 GetRms( UInt32 channel ) const;

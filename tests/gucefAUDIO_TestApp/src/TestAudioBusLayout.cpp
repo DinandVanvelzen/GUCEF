@@ -488,7 +488,16 @@ PerformEngineParamsTests( void )
         ASSERT_TRUE( changedAgain.SaveConfig( config ) );
         ASSERT_TRUE( 1 == config.GetNrOfDirectChildNodes() );
         const CORE::CDataNode* again = config.FindChild( "AudioEngine" );
-        ASSERT_TRUE( GUCEF_NULL != again && 5 == again->GetAttributeValue( "maxVoices" ).AsUInt32() && 1 == again->GetNrOfDirectChildNodes() );
+        ASSERT_TRUE( GUCEF_NULL != again && 5 == again->GetAttributeValue( "maxVoices" ).AsUInt32() );
+        // the children by name: the engine configuration gains a child whenever a part of the engine has settings of its own, and each is there once
+        ASSERT_TRUE( GUCEF_NULL != again->FindChild( "AudioDevice" ) && GUCEF_NULL != again->FindChild( "CaptureDevice" ) );
+        UInt32 audioDeviceChildren = 0, captureDeviceChildren = 0;
+        for ( CORE::CDataNode::const_iterator c = again->ConstBegin(); c != again->ConstEnd(); ++c )
+        {
+            if ( "AudioDevice" == (*c)->GetName() ) ++audioDeviceChildren;
+            if ( "CaptureDevice" == (*c)->GetName() ) ++captureDeviceChildren;
+        }
+        ASSERT_TRUE( 1 == audioDeviceChildren && 1 == captureDeviceChildren );
         ASSERT_TRUE( GUCEF_NULL == again->FindChild( "AudioDevice" )->FindChild( "Options" ) );
 
         // the defaults survive as well

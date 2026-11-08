@@ -40,6 +40,11 @@
 #define GUCEF_AUDIO_CAUDIOVOICE_H
 #endif /* GUCEF_AUDIO_CAUDIOVOICE_H ? */
 
+#ifndef GUCEF_AUDIO_CVOICEACTIVITYSETTINGS_H
+#include "gucefAUDIO_CVoiceActivitySettings.h"
+#define GUCEF_AUDIO_CVOICEACTIVITYSETTINGS_H
+#endif /* GUCEF_AUDIO_CVOICEACTIVITYSETTINGS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -70,13 +75,15 @@ typedef enum EAudioThreadingMode TAudioThreadingMode;
  *
  *  The parameters can be saved to and loaded from a configuration tree (CORE::CIConfigurable), the section "AudioEngine"
  *  of an application's settings: every parameter has an attribute, the device parameters are the child "AudioDevice"
- *  (CAudioDeviceParams). Enumerations are written by name.
+ *  (CAudioDeviceParams), the capture device parameters the child "CaptureDevice". Enumerations are written by name.
  */
 class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
 {
     public:
 
     static const CString ConfigSectionName;         /**< "AudioEngine" */
+    static const CString CaptureDeviceSectionName;  /**< "CaptureDevice", the child with the capture device parameters */
+    static const CString PeriodsOptionName;         /**< "periods", the device option with the number of periods in the device buffer (ALSA) */
 
     CAudioEngineParams( void );
 
@@ -173,6 +180,64 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
     UInt32 GetMaxVoiceSends( void ) const;
     void SetMaxVoiceSends( UInt32 count );
 
+    /**
+     *  Whether the engine opens and starts a capture device next to the playback device (default false). A capture device
+     *  that cannot be opened is logged and leaves capture unavailable; the engine still plays
+     */
+    bool GetCaptureEnabled( void ) const;
+    void SetCaptureEnabled( bool enabled );
+
+    /**
+     *  What is asked of the capture device: the default device unless an id is set. It is opened with the driver of the
+     *  playback device, always in the capture direction whatever the direction says
+     */
+    const CAudioDeviceParams& GetCaptureDeviceParams( void ) const;
+    CAudioDeviceParams& GetCaptureDeviceParams( void );
+
+    /** Sample rate of the capture path: 0 (default) for the rate of the capture device, otherwise 8000 to 48000 */
+    UInt32 GetCaptureProcessingRate( void ) const;
+    void SetCaptureProcessingRate( UInt32 sampleRate );
+
+    /** The channel of the capture device the capture path takes, from 0; -1 (default) for the mean of all channels */
+    Int32 GetCaptureChannel( void ) const;
+    void SetCaptureChannel( Int32 channel );
+
+    /** Room for capture consumers (default 4). Fixed for the life of the engine */
+    UInt32 GetMaxCaptureConsumers( void ) const;
+    void SetMaxCaptureConsumers( UInt32 count );
+
+    /** Effect slots per capture stage (default 8). Fixed for the life of the engine */
+    UInt32 GetMaxCaptureEffects( void ) const;
+    void SetMaxCaptureEffects( UInt32 count );
+
+    /** Room for commands on their way to the capture thread, and for their events (default 64) */
+    UInt32 GetCaptureCommandQueueSize( void ) const;
+    void SetCaptureCommandQueueSize( UInt32 size );
+
+    /** The settings of the voice activity detection of the capture path (the child "VoiceActivity" of the configuration), applied when the capture device is opened */
+    const CVoiceActivitySettings& GetVoiceActivitySettings( void ) const;
+    CVoiceActivitySettings& GetVoiceActivitySettings( void );
+
+    /**
+     *  Writes the values of a latency profile into the parameters, so a saved configuration has them explicitly and
+     *  they can be edited afterwards. It sets, for the playback device and in the same way for the capture device:
+     *   - AUDIOLATENCYPROFILE_LOW: the device period (CAudioDeviceParams::SetBufferSizeInFrames()) to 5 ms at 'sampleRate'
+     *     (240 frames at 48 kHz, 80 at 16 kHz), the option "periods" to 3, the option "realtimePriority" to 70 (the
+     *     default of MT::CRealtimeSchedulingScope); and for the engine the limiter mode to instant, which adds no latency.
+     *   - AUDIOLATENCYPROFILE_DEFAULT: the device period to 0 and the option "periods" removed (the driver chooses), the
+     *     option "realtimePriority" to 0, and the limiter mode to lookahead.
+     *  A limiter that is switched off stays off, only the mode it has when it is on changes. Nothing else is touched:
+     *  other options, the device id, the preferred format, block sizes and queue sizes keep their values. 'sampleRate'
+     *  0 means 48000.
+     */
+    void ApplyLatencyProfile( TAudioLatencyProfile profile, UInt32 sampleRate = 48000 );
+
+    /** "default" or "low" */
+    static const char* LatencyProfileToString( TAudioLatencyProfile profile );
+
+    /** The reverse of LatencyProfileToString() without regard for case. False, and 'profile' as it was, for text that is not a profile */
+    static bool StringToLatencyProfile( const CString& text, TAudioLatencyProfile& profile );
+
     /** "auto", "threaded" or "cooperative" */
     static const char* ThreadingModeToString( TAudioThreadingMode mode );
 
@@ -189,8 +254,10 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
      *  Writes the section "AudioEngine" (kept when it is there): attributes driver, maxVoices, maxBuses, maxBlockFrames,
      *  commandQueueSize, eventQueueSize, threadingMode, updateIntervalMs, threadPool, startDevice, panLaw, limiterEnabled,
      *  limiterMode (the mode the limiter works in when it is on: instant or lookahead), limiterCeilingDb, limiterLookaheadMs,
-     *  limiterReleaseMs, maxEffectsPerBus, maxSendsPerBus, maxVoiceEffects and maxVoiceSends; and the child "AudioDevice"
-     *  with the device parameters
+     *  limiterReleaseMs, maxEffectsPerBus, maxSendsPerBus, maxVoiceEffects, maxVoiceSends, captureEnabled,
+     *  captureProcessingRate, captureChannel, maxCaptureConsumers, maxCaptureEffects and captureCommandQueueSize; the child
+     *  "AudioDevice" with the device parameters, and the child "CaptureDevice" with the capture device parameters (as its
+     *  own child "AudioDevice"), and the child "VoiceActivity" with the settings of the voice activity detection (only when they are not the defaults)
      */
     virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -226,6 +293,14 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
     UInt32 m_maxSendsPerBus;
     UInt32 m_maxVoiceEffects;
     UInt32 m_maxVoiceSends;
+    bool m_captureEnabled;
+    CAudioDeviceParams m_captureDeviceParams;
+    UInt32 m_captureProcessingRate;
+    Int32 m_captureChannel;
+    UInt32 m_maxCaptureConsumers;
+    UInt32 m_maxCaptureEffects;
+    UInt32 m_captureCommandQueueSize;
+    CVoiceActivitySettings m_voiceActivitySettings;
 };
 
 /*-------------------------------------------------------------------------//

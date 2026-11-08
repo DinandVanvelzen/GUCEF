@@ -50,6 +50,7 @@ class CAudioCodecRegistry;
 class CAudioDriverRegistry;
 class CAudioCodecPluginManager;
 class CAudioEffectRegistry;
+class CVoiceCodecRegistry;
 
 /*-------------------------------------------------------------------------*/
 
@@ -75,6 +76,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioGlobal
     /** All audio effect types by type name. Built-in effects are registered when the module starts, effect plugins add theirs */
     CAudioEffectRegistry& GetAudioEffectRegistry( void );
 
+    /** All voice codec types by codec name. The pcm codec is registered when the module starts, voice codec plugins add theirs */
+    CVoiceCodecRegistry& GetVoiceCodecRegistry( void );
+
     private:
     friend class CGUCEFAUDIOModule;
 
@@ -97,6 +101,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioGlobal
     CAudioDriverRegistry* m_audioDriverRegistry;
     CAudioCodecPluginManager* m_audioCodecPluginManager;
     CAudioEffectRegistry* m_audioEffectRegistry;
+    CVoiceCodecRegistry* m_voiceCodecRegistry;
 
     static CAudioGlobal* g_instance;
 };

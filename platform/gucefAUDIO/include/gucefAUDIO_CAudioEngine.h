@@ -85,6 +85,11 @@
 #define GUCEF_AUDIO_CAUDIOBUSLAYOUT_H
 #endif /* GUCEF_AUDIO_CAUDIOBUSLAYOUT_H ? */
 
+#ifndef GUCEF_AUDIO_CAUDIOCAPTUREPATH_H
+#include "gucefAUDIO_CAudioCapturePath.h"
+#define GUCEF_AUDIO_CAUDIOCAPTUREPATH_H
+#endif /* GUCEF_AUDIO_CAUDIOCAPTUREPATH_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -102,6 +107,9 @@ namespace AUDIO {
 
 class CAudioEngineUpdateTask;
 class CAudioEngineReopenRequest;
+class CAudioEngineCaptureCallback;
+class CHalfDuplexController;
+class CAcousticEchoCanceller;
 
 /*-------------------------------------------------------------------------*/
 
@@ -110,12 +118,20 @@ class CAudioEngineReopenRequest;
  *  thread of the application and the real time audio thread apart.
  *
  *  Calls are of three kinds, named by how they work:
- *   - inline: done when the call returns (CreateVoice(), CreateBus(), CreateEffect(), the settings of voices, buses and
- *     effect slots)
+ *   - inline: done when the call returns (CreateVoice(), CreateBus(), CreateEffect(), CreateCaptureEffect(), the settings
+ *     of voices, buses, effect slots and the capture path)
  *   - commands for the audio thread, which return a CFutureResult that is ready when the audio thread has
  *     carried the command out: Start(), Stop(), Pause(), Resume(), InsertEffect(), RemoveEffect(), AddSend(), RemoveSend(),
- *     ApplyBusLayout()
- *   - events, raised as notifier events when something happens in the audio thread: VoiceEndedEvent, DeviceLostEvent
+ *     ApplyBusLayout(); and for the capture thread: InsertCaptureEffect(), RemoveCaptureEffect(), AddCaptureConsumer(),
+ *     RemoveCaptureConsumer()
+ *   - events, raised as notifier events when something happens in the audio thread: VoiceEndedEvent, DeviceLostEvent,
+ *     CaptureDeviceLostEvent
+ *
+ *  With captureEnabled in the parameters the engine also records: a capture device opened next to the playback device
+ *  (with the same driver) feeds a CAudioCapturePath on its own thread, the capture thread, which converts, resamples,
+ *  runs the capture effect stages, mutes and meters the audio and hands it to the capture consumers. The capture thread
+ *  follows the rules of the audio thread and has its own command and event queues. A capture device that cannot be opened
+ *  does not stop the engine: it plays as it would without capture, and IsCaptureAvailable() is false.
  *
  *  The audio thread never waits for the application, never allocates, never locks and never touches a reference count:
  *  commands carry plain pointers, and what the audio thread lets go of (an effect taken out of a slot, a bus order table
@@ -139,6 +155,12 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
 
     /** Raised when the device is gone (unplugged, driver failure). The engine stays as it is, a new engine can be started for another device */
     static const CORE::CEvent DeviceLostEvent;
+
+    /**
+     *  Raised when the capture device is gone. Playback goes on; the consumers get no more audio. The commands of the capture
+     *  path are carried out on the owner side from then on, so removing a consumer or an effect still completes
+     */
+    static const CORE::CEvent CaptureDeviceLostEvent;
 
     typedef CORE::CTCloneableObj< TAudioVoicePtr > TVoiceEventData;
 
@@ -176,6 +198,10 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
 
     bool IsThreaded( void ) const;
 
+    /**
+     *  Start and stop the device, and the capture device when there is one. The result is that of the playback device: a
+     *  capture device that does not start is logged and leaves the capture thread idle, the engine plays on
+     */
     bool StartDevice( void );
     bool StopDevice( void );
 
@@ -381,8 +407,116 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
     /** Events from the audio thread that were dropped because the event queue was full. Should be 0, a non zero count is a sign the queue sizes are too small */
     UInt64 GetDroppedEventCount( void ) const;
 
+    /** True while the engine runs with a capture device that was opened (captureEnabled in the parameters) */
+    bool IsCaptureAvailable( void ) const;
+
+    /** The capture device, null without capture */
+    TAudioDevicePtr GetCaptureDevice( void ) const;
+
+    /**
+     *  The format of the capture path: mono, Float32, at the processing rate (captureProcessingRate, or the rate of the
+     *  capture device). Invalid without capture. A copy, so it can be called from any thread
+     */
+    CAudioFormat GetCaptureProcessingFormat( void ) const;
+
+    /**
+     *  Makes an effect of a registered type and prepares it for the capture processing format, ready for
+     *  InsertCaptureEffect(). Inline. Null for an unknown type, options it does not accept, or no capture
+     */
+    TAudioEffectPtr CreateCaptureEffect( const CString& typeName, const CORE::CValueList& options = CORE::CValueList() );
+
+    /**
+     *  Places an effect in a slot of a stage of the capture path. The engine keeps the effect alive while the capture thread
+     *  may use it. The effect's ResolveReferences() is called first. The future is ready when the capture thread has placed
+     *  it. Errors, at once:
+     *   - TASKSTATUS_SETUP_FAILED without capture, for an unknown stage or slot, an occupied slot, an effect that is not
+     *     prepared for the capture processing format and block size (CreateCaptureEffect() does that), an effect that is in
+     *     a slot already (of the capture path or a bus) or on a voice, or one whose ResolveReferences() refused
+     *   - TASKSTATUS_QUEUEING_FAILED when the command queue to the capture thread is full
+     *  Capture effects are not part of bus layouts (GetBusLayout(), ApplyBusLayout())
+     */
+    CORE::CFutureResult InsertCaptureEffect( TAudioCaptureStage stage, UInt32 slot, const TAudioEffectPtr& effect );
+
+    /**
+     *  Takes an effect out of its capture slot. The future is ready when the capture thread let go of it and the engine
+     *  released its reference on the owner side (the engine thread, or Update()). The slot can be used again at once.
+     *  Errors as for InsertCaptureEffect(); TASKSTATUS_SETUP_FAILED also for an effect that is not in a capture slot
+     */
+    CORE::CFutureResult RemoveCaptureEffect( const TAudioEffectPtr& effect );
+
+    /** Any thread: switches a capture effect slot on or off, crossfaded */
+    void SetCaptureEffectEnabled( TAudioCaptureStage stage, UInt32 slot, bool enabled );
+
+    /** The effect in a capture slot as the owner side sees it (the commands on their way included). Null for an empty slot */
+    TAudioEffectPtr GetCaptureEffect( TAudioCaptureStage stage, UInt32 slot ) const;
+
+    /**
+     *  Registers a consumer of the processed capture audio. Its PrepareForCapture() is called here, with the engine locked.
+     *  The future is ready when the capture thread has it in its table. Errors, at once:
+     *   - TASKSTATUS_SETUP_FAILED without capture, for a null consumer, one that is registered already, a full table
+     *     (maxCaptureConsumers), or when PrepareForCapture() refused
+     *   - TASKSTATUS_QUEUEING_FAILED when the command queue to the capture thread is full
+     *  The engine keeps the plain pointer: the consumer must live until the future of RemoveCaptureConsumer() is ready, or
+     *  until Shutdown() returned
+     */
+    CORE::CFutureResult AddCaptureConsumer( IAudioCaptureConsumer* consumer );
+
+    /**
+     *  Unregisters a consumer. The future is ready when the capture thread has let go of it: from then on it is not called
+     *  again and may be destroyed. Errors as for AddCaptureConsumer(); TASKSTATUS_SETUP_FAILED also for a consumer that is
+     *  not registered
+     */
+    CORE::CFutureResult RemoveCaptureConsumer( IAudioCaptureConsumer* consumer );
+
+    /** Any thread: mutes the microphone (the consumers get silence), ramped over 10 ms. Kept over Shutdown() and Initialize() */
+    void SetCaptureMuted( bool muted );
+    bool IsCaptureMuted( void ) const;
+
+    /** Any thread: the levels of the processed capture audio. Valid for the life of the engine */
+    const CAudioLevelMeter& GetCaptureMeter( void ) const;
+
+    /** Any thread: the latest decision of the voice activity detection of the capture path (no voice until it has a detector) */
+    bool IsCaptureVoiceActive( void ) const;
+
+    /** Any thread: overruns of the capture device (audio lost) since the engine was initialized */
+    UInt64 GetCaptureOverrunCount( void ) const;
+
+    /**
+     *  Sets the half-duplex controller of the capture path (null: none): it runs on the capture thread before the
+     *  microphone gain, which follows the gain it asks for within the ramp of the mute switch. Here, with the engine
+     *  locked, its references are resolved (the far-end bus by the name of its settings, the master bus by default,
+     *  when no far-end meter was set) and it is prepared for the capture processing rate. The engine keeps the plain
+     *  pointer: the controller must live until it is replaced or removed and that future is ready, or the engine shut
+     *  down. Future: ready when the capture thread uses it and let go of the one before; TASKSTATUS_SETUP_FAILED
+     *  without capture, for a controller that is leaving, that cannot resolve its references or be prepared;
+     *  TASKSTATUS_QUEUEING_FAILED when the capture queue is full. The controller in use already gives a ready future
+     */
+    CORE::CFutureResult SetCaptureHalfDuplexController( CHalfDuplexController* controller );
+
+    /** Owner: the half-duplex controller set last (null for none) */
+    CHalfDuplexController* GetCaptureHalfDuplexController( void ) const;
+
+    /**
+     *  Sets the echo canceller of the capture path (null: none): its echo stage between the effect stages
+     *  AUDIOCAPTURESTAGE_PRE_ECHO and AUDIOCAPTURESTAGE_POST_ECHO, with the render tap as its reference: after every mix
+     *  block the render thread hands the master output (after the limiter) to the canceller. Here, with the engine locked,
+     *  the canceller is prepared for the capture processing rate and the mix format. The half-duplex controller of the
+     *  capture path, when there is one, hands over to it while it is converged (CHalfDuplexController). The engine keeps the
+     *  plain pointer: the canceller must live until it is replaced or removed and that future is ready, or the engine shut
+     *  down. Future: ready when both the capture thread and the render thread use it and let go of the one before (the
+     *  render thread does so at its next mix: a stopped playback device keeps the future waiting);
+     *  TASKSTATUS_SETUP_FAILED without capture, for a canceller that is still leaving or that cannot be prepared;
+     *  TASKSTATUS_QUEUEING_FAILED when a queue is full. The canceller in use already gives a ready future. Switching it off
+     *  (CAcousticEchoCanceller::SetEnabled()) needs no command: both threads then pass and compute nothing
+     */
+    CORE::CFutureResult SetEchoCanceller( CAcousticEchoCanceller* canceller );
+
+    /** Owner: the echo canceller set last (null for none) */
+    CAcousticEchoCanceller* GetEchoCanceller( void ) const;
+
     private:
     friend class CAudioEngineUpdateTask;
+    friend class CAudioEngineCaptureCallback;
 
     CAudioEngine( const CAudioEngine& src );            /**< not implemented */
     CAudioEngine& operator=( const CAudioEngine& src ); /**< not implemented */
@@ -400,17 +534,18 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
     /** What the audio thread is asked to do. Plain pointers only: copying a command never locks or allocates */
     struct SCommand
     {
-        enum EType { COMMAND_NONE = 0, COMMAND_START_VOICE, COMMAND_ATTACH_BUS, COMMAND_INSERT_EFFECT, COMMAND_REMOVE_EFFECT, COMMAND_SET_SEND };
+        enum EType { COMMAND_NONE = 0, COMMAND_START_VOICE, COMMAND_ATTACH_BUS, COMMAND_INSERT_EFFECT, COMMAND_REMOVE_EFFECT, COMMAND_SET_SEND, COMMAND_SET_ECHO_REFERENCE };
         EType type;
         CAudioVoice* voice;
         CAudioBus* bus;
         CAudioBus* target;          /**< send target, null to free the send slot */
         CAudioEffect* effect;
         SOrderTable* order;         /**< new bus order that comes with a bus or a send */
+        CAcousticEchoCanceller* echoCanceller;  /**< COMMAND_SET_ECHO_REFERENCE: the canceller the render tap feeds from now on */
         UInt32 index;               /**< effect slot or send slot */
         UInt32 token;               /**< the request on the owner side that waits for this command, 0 for none */
         bool preFader;
-        SCommand( void ) : type( COMMAND_NONE ), voice( GUCEF_NULL ), bus( GUCEF_NULL ), target( GUCEF_NULL ), effect( GUCEF_NULL ), order( GUCEF_NULL ), index( 0 ), token( 0 ), preFader( false ) {}
+        SCommand( void ) : type( COMMAND_NONE ), voice( GUCEF_NULL ), bus( GUCEF_NULL ), target( GUCEF_NULL ), effect( GUCEF_NULL ), order( GUCEF_NULL ), echoCanceller( GUCEF_NULL ), index( 0 ), token( 0 ), preFader( false ) {}
     };
 
     struct SEvent
@@ -420,8 +555,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
         CAudioVoice* voice;
         CAudioEffect* effect;       /**< an effect the audio thread no longer uses */
         SOrderTable* order;         /**< a bus order the audio thread no longer uses */
+        CAcousticEchoCanceller* echoCanceller;  /**< an echo canceller the render tap no longer feeds */
         UInt32 token;
-        SEvent( void ) : type( EVENT_NONE ), voice( GUCEF_NULL ), effect( GUCEF_NULL ), order( GUCEF_NULL ), token( 0 ) {}
+        SEvent( void ) : type( EVENT_NONE ), voice( GUCEF_NULL ), effect( GUCEF_NULL ), order( GUCEF_NULL ), echoCanceller( GUCEF_NULL ), token( 0 ) {}
     };
 
     struct SVoiceEntry
@@ -464,7 +600,18 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
 
     struct SLayoutPlan;
 
+    /** An effect in a slot of the capture path, kept alive here while the capture thread may use it */
+    struct SCaptureEffectEntry
+    {
+        TAudioEffectPtr effect;
+        TAudioCaptureStage stage;
+        UInt32 slot;
+        bool removing;
+        SCaptureEffectEntry( void ) : effect(), stage( AUDIOCAPTURESTAGE_PRE_ECHO ), slot( 0 ), removing( false ) {}
+    };
+
     typedef GUCEF::map< CAudioEffect*, SEffectEntry > TEffectMap;
+    typedef GUCEF::map< CAudioEffect*, SCaptureEffectEntry > TCaptureEffectMap;
     typedef GUCEF::map< CAudioBus*, SBusEntry > TBusEntryMap;
     typedef GUCEF::map< UInt32, TSourcePtr > TPendingMap;
     typedef GUCEF::map< CAudioVoice*, SVoiceEntry > TVoiceMap;
@@ -477,6 +624,21 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
 
     // IAudioMixerListener: also the audio thread
     virtual void OnVoiceEnded( CAudioVoice* voice, TAudioVoiceEndReason reason ) GUCEF_VIRTUAL_OVERRIDE;
+
+    // the capture device, through CAudioEngineCaptureCallback: the capture thread
+    void OnCaptureDeviceLost( void );
+
+    void OpenCaptureDevice( void );
+    void StartCaptureDevice( void );
+    void StopCaptureDevice( void );
+    void ReleaseCapture( void );
+    void UpdateCapture( UInt32& handled );
+    void HandleCaptureEvent( const CAudioCapturePath::SEvent& event );
+    void CompletePendingIn( TPendingMap& pending, UInt32 token, bool success );
+    bool IsEffectInUse( CAudioEffect* effect ) const;
+    CORE::CFutureResult PushCaptureRequest( CAudioCapturePath::SCommand& command );
+    void ReportRealtimeScheduling( const TAudioDevicePtr& device, const char* what, bool& reported );
+    void ReleaseLeavingEchoCanceller( CAcousticEchoCanceller* canceller );
 
     void ProcessCommands( void );
     void PostEvent( SEvent::EType type, CAudioVoice* voice );
@@ -544,6 +706,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
 
     // audio thread side
     SOrderTable* m_audioOrderTable;             /**< the bus order the mixer uses now */
+    CAcousticEchoCanceller* m_echoReference;    /**< the canceller the render tap feeds */
 
     // device reopen
     bool m_deviceRunWanted;                     /**< the device should play: started by Initialize() or StartDevice(), not stopped by StopDevice() */
@@ -551,6 +714,26 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
     bool m_reopenOnOwner;                       /**< no task could open the new device: Update() does it */
     CORE::CTSharedPtr< CAudioEngineReopenRequest, MT::CMutex > m_reopenRequest;
     TSourcePtr m_reopenSource;
+
+    // capture
+    CAudioCapturePath m_capturePath;
+    CAudioEngineCaptureCallback* m_captureCallback; /**< what the capture device calls: tells its loss apart from that of the playback device */
+    TAudioDevicePtr m_captureDevice;
+    CAudioPushDevice* m_capturePushDevice;      /**< m_captureDevice when it is a push device (it counts overruns), else null */
+    bool m_captureAvailable;
+    bool m_captureRunning;                      /**< the capture device runs: the capture thread carries out the capture commands, otherwise Update() does */
+    MT::CTAtomic< bool > m_captureDeviceLost;
+    TCaptureEffectMap m_captureEffects;
+    GUCEF::vector< CAudioEffect* > m_captureSlots;              /**< owner side picture of the capture slots, stage by stage */
+    GUCEF::vector< IAudioCaptureConsumer* > m_captureConsumers; /**< owner side picture of the consumer table */
+    GUCEF::vector< IAudioCaptureConsumer* > m_captureConsumersLeaving;  /**< consumers whose removal is on its way to the capture thread */
+    CHalfDuplexController* m_captureHalfDuplex;                 /**< owner side picture of the half-duplex controller */
+    GUCEF::vector< CHalfDuplexController* > m_captureHalfDuplexLeaving;   /**< controllers the capture thread may still use */
+    TPendingMap m_capturePending;               /**< capture requests waiting for the capture thread, by token */
+    CAcousticEchoCanceller* m_echoCanceller;    /**< owner side picture of the echo canceller */
+    GUCEF::vector< CAcousticEchoCanceller* > m_echoCancellersLeaving;   /**< once per thread (render, capture) that may still use it */
+    bool m_playbackSchedulingReported;          /**< whether real-time scheduling of the device thread was logged since the device started */
+    bool m_captureSchedulingReported;
 };
 
 /*-------------------------------------------------------------------------//

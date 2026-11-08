@@ -22,8 +22,10 @@ LOCAL_MODULE := gucefAUDIO_TestApp
 
 LOCAL_SRC_FILES := \
   src/TestAudioAlsa.cpp \
+  src/TestAudioAutomaticGain.cpp \
   src/TestAudioBenchmark.cpp \
   src/TestAudioBusLayout.cpp \
+  src/TestAudioCapture.cpp \
   src/TestAudioCodecFlac.cpp \
   src/TestAudioCodecMp3.cpp \
   src/TestAudioCodecOgg.cpp \
@@ -32,6 +34,8 @@ LOCAL_SRC_FILES := \
   src/TestAudioConversion.cpp \
   src/TestAudioDevices.cpp \
   src/TestAudioDsp.cpp \
+  src/TestAudioDucker.cpp \
+  src/TestAudioEchoCanceller.cpp \
   src/TestAudioEffects.cpp \
   src/TestAudioBuiltinEffects.cpp \
   src/TestAudioCompressor.cpp \
@@ -41,15 +45,29 @@ LOCAL_SRC_FILES := \
   src/TestAudioEngine.cpp \
   src/TestAudioEngineReopen.cpp \
   src/TestAudioFormat.cpp \
+  src/TestAudioHalfDuplex.cpp \
+  src/TestAudioIntercomHardware.cpp \
   src/TestAudioMixer.cpp \
+  src/TestAudioNoiseGate.cpp \
+  src/TestAudioNoiseSuppressor.cpp \
+  src/TestAudioRealFft.cpp \
   src/TestAudioRealtime.cpp \
   src/TestAudioReverb.cpp \
   src/TestAudioRouting.cpp \
   src/TestAudioSettings.cpp \
+  src/TestAudioSincResampler.cpp \
   src/TestAudioStream.cpp \
   src/TestAudioStreaming.cpp \
   src/TestAudioTestSignals.cpp \
+  src/TestAudioVoiceActivity.cpp \
+  src/TestAudioVoiceCodec.cpp \
+  src/TestAudioVoiceCodecOpus.cpp \
   src/TestAudioVoiceEffects.cpp \
+  src/TestAudioVoiceJitter.cpp \
+  src/TestAudioVoiceLink.cpp \
+  src/TestAudioVoicePacket.cpp \
+  src/TestAudioVoiceReceiver.cpp \
+  src/TestAudioVoiceSender.cpp \
   src/TestAudioWebAudio.cpp \
   src/gucefAUDIO_TestApp.cpp
 

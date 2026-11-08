@@ -67,8 +67,8 @@ class CAudioEngineParams;
  *  and applications without a user interface (tools, servers) use it as it is.
  *
  *  Two kinds of values:
- *   - device level: driver, device, sample rate, buffer size, speaker layout and limiter mode. They take effect when the
- *     device is opened (ApplyToEngineParams() before CAudioEngine::Initialize()) or reopened. Empty and zero values
+ *   - device level: driver, device, capture device, sample rate, buffer size, speaker layout, limiter mode and latency
+ *     profile. They take effect when the device is opened (ApplyToEngineParams() before CAudioEngine::Initialize()) or reopened. Empty and zero values
  *     mean 'the engine decides', and are left out of the engine parameters.
  *   - live: volume and mute. They take effect at once on an engine that runs (ApplyLive()).
  *
@@ -119,6 +119,10 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioSettings : public CORE::CIConfigurable
     void SetDeviceId( const CString& deviceId );
     const CString& GetDeviceId( void ) const;
 
+    /** The capture device as its driver knows it (CAudioDeviceInfo::GetId()); empty for the default capture device of the driver */
+    void SetCaptureDeviceId( const CString& deviceId );
+    const CString& GetCaptureDeviceId( void ) const;
+
     /** The sample rate in Hz; 0 for the one the device prefers */
     void SetSampleRate( UInt32 sampleRate );
     UInt32 GetSampleRate( void ) const;
@@ -136,6 +140,15 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioSettings : public CORE::CIConfigurable
     TAudioLimiterMode GetLimiterMode( void ) const;
     void ClearLimiterMode( void );
     bool HasLimiterMode( void ) const;
+
+    /**
+     *  The latency profile (CAudioEngineParams::ApplyLatencyProfile()). AUDIOLATENCYPROFILE_DEFAULT, the default, is
+     *  'the engine decides': ApplyToEngineParams() leaves the parameters as they are, it does not take them back to the
+     *  default values of the profile. The profile is applied before the buffer size and the limiter mode of these
+     *  settings, so those two win when both are set
+     */
+    void SetLatencyProfile( TAudioLatencyProfile profile );
+    TAudioLatencyProfile GetLatencyProfile( void ) const;
 
     /*
      *  Live: take effect at once on a running engine
@@ -166,8 +179,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioSettings : public CORE::CIConfigurable
     bool RequiresDeviceReopen( const CAudioSettings& applied ) const;
 
     /**
-     *  Writes the device level values that are set into 'params': driver name, device, sample rate, buffer size, speaker
-     *  layout and limiter mode. What is not set is left as it is in 'params'. The limiter mode goes to
+     *  Writes the device level values that are set into 'params': driver name, device, capture device, latency profile
+     *  (with the sample rate of these settings, or else the preferred sample rate of 'params', or else 48000), sample rate,
+     *  buffer size, speaker layout and limiter mode. What is not set is left as it is in 'params'. The limiter mode goes to
      *  CAudioEngineParams::SetLimiterMode(): off switches the limiter off and keeps the mode it has when on.
      */
     void ApplyToEngineParams( CAudioEngineParams& params ) const;
@@ -213,11 +227,13 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioSettings : public CORE::CIConfigurable
 
     CString m_driverName;
     CString m_deviceId;
+    CString m_captureDeviceId;
     UInt32 m_sampleRate;
     UInt32 m_bufferSizeInFrames;
     UInt32 m_channelLayout;
     TAudioLimiterMode m_limiterMode;
     bool m_hasLimiterMode;
+    TAudioLatencyProfile m_latencyProfile;
     SBusSettings m_master;
     TBusSettingsMap m_buses;
 };

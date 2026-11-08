@@ -98,9 +98,9 @@ class CTestAudioEffect : public GUCEF::AUDIO::CAudioEffect
     }
 
     /** Thread id of the destructor of the most recently destroyed test effect */
-    static GUCEF::MT::CTAtomic< GUCEF::UInt32 >& LastDestructorThread( void )
+    static GUCEF::MT::CTAtomic< GUCEF::TThreadId >& LastDestructorThread( void )
     {
-        static GUCEF::MT::CTAtomic< GUCEF::UInt32 > threadId( 0 );
+        static GUCEF::MT::CTAtomic< GUCEF::TThreadId > threadId( 0 );
         return threadId;
     }
 
@@ -128,7 +128,7 @@ class CTestAudioEffect : public GUCEF::AUDIO::CAudioEffect
 
     virtual ~CTestAudioEffect()
     {
-        LastDestructorThread().Store( GUCEF::MT::GetCurrentTaskID() );
+        LastDestructorThread().Store( GUCEF::MT::GetCurrentThreadID() );
         DestroyedCount().FetchAdd( 1 );
     }
 

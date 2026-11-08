@@ -95,11 +95,13 @@ CAudioSettings::CAudioSettings( void )
     : CORE::CIConfigurable()
     , m_driverName()
     , m_deviceId()
+    , m_captureDeviceId()
     , m_sampleRate( 0 )
     , m_bufferSizeInFrames( 0 )
     , m_channelLayout( 0 )
     , m_limiterMode( AUDIOLIMITERMODE_INSTANT )
     , m_hasLimiterMode( false )
+    , m_latencyProfile( AUDIOLATENCYPROFILE_DEFAULT )
     , m_master()
     , m_buses()
 {GUCEF_TRACE;
@@ -112,11 +114,13 @@ CAudioSettings::CAudioSettings( const CAudioSettings& src )
     : CORE::CIConfigurable()
     , m_driverName( src.m_driverName )
     , m_deviceId( src.m_deviceId )
+    , m_captureDeviceId( src.m_captureDeviceId )
     , m_sampleRate( src.m_sampleRate )
     , m_bufferSizeInFrames( src.m_bufferSizeInFrames )
     , m_channelLayout( src.m_channelLayout )
     , m_limiterMode( src.m_limiterMode )
     , m_hasLimiterMode( src.m_hasLimiterMode )
+    , m_latencyProfile( src.m_latencyProfile )
     , m_master( src.m_master )
     , m_buses( src.m_buses )
 {GUCEF_TRACE;
@@ -140,11 +144,13 @@ CAudioSettings::operator=( const CAudioSettings& src )
     {
         m_driverName = src.m_driverName;
         m_deviceId = src.m_deviceId;
+        m_captureDeviceId = src.m_captureDeviceId;
         m_sampleRate = src.m_sampleRate;
         m_bufferSizeInFrames = src.m_bufferSizeInFrames;
         m_channelLayout = src.m_channelLayout;
         m_limiterMode = src.m_limiterMode;
         m_hasLimiterMode = src.m_hasLimiterMode;
+        m_latencyProfile = src.m_latencyProfile;
         m_master = src.m_master;
         m_buses = src.m_buses;
     }
@@ -185,6 +191,24 @@ CAudioSettings::GetDeviceId( void ) const
 {GUCEF_TRACE;
 
     return m_deviceId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioSettings::SetCaptureDeviceId( const CString& deviceId )
+{GUCEF_TRACE;
+
+    m_captureDeviceId = deviceId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CAudioSettings::GetCaptureDeviceId( void ) const
+{GUCEF_TRACE;
+
+    return m_captureDeviceId;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,6 +301,24 @@ CAudioSettings::HasLimiterMode( void ) const
 {GUCEF_TRACE;
 
     return m_hasLimiterMode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioSettings::SetLatencyProfile( TAudioLatencyProfile profile )
+{GUCEF_TRACE;
+
+    m_latencyProfile = profile;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioLatencyProfile
+CAudioSettings::GetLatencyProfile( void ) const
+{GUCEF_TRACE;
+
+    return m_latencyProfile;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -388,6 +430,8 @@ CAudioSettings::RequiresDeviceReopen( const CAudioSettings& applied ) const
 
     if ( m_driverName != applied.m_driverName ||
          m_deviceId != applied.m_deviceId ||
+         m_captureDeviceId != applied.m_captureDeviceId ||
+         m_latencyProfile != applied.m_latencyProfile ||
          m_sampleRate != applied.m_sampleRate ||
          m_bufferSizeInFrames != applied.m_bufferSizeInFrames ||
          m_channelLayout != applied.m_channelLayout ||
@@ -411,6 +455,9 @@ CAudioSettings::ApplyToEngineParams( CAudioEngineParams& params ) const
     if ( !m_deviceId.IsNULLOrEmpty() )
         deviceParams.SetDeviceId( m_deviceId );
 
+    if ( !m_captureDeviceId.IsNULLOrEmpty() )
+        params.GetCaptureDeviceParams().SetDeviceId( m_captureDeviceId );
+
     if ( m_sampleRate > 0 || m_channelLayout != 0 )
     {
         CAudioFormat format( deviceParams.GetPreferredFormat() );
@@ -419,6 +466,15 @@ CAudioSettings::ApplyToEngineParams( CAudioEngineParams& params ) const
         if ( m_channelLayout != 0 )
             format.SetChannelLayout( m_channelLayout );
         deviceParams.SetPreferredFormat( format );
+    }
+
+    // the profile first: the explicit buffer size and limiter mode of the settings win over its values
+    if ( AUDIOLATENCYPROFILE_DEFAULT != m_latencyProfile )
+    {
+        UInt32 rate = m_sampleRate;
+        if ( 0 == rate )
+            rate = deviceParams.GetPreferredFormat().GetSampleRate();
+        params.ApplyLatencyProfile( m_latencyProfile, 0 == rate ? 48000 : rate );
     }
 
     if ( m_bufferSizeInFrames > 0 )
@@ -606,11 +662,13 @@ CAudioSettings::SaveConfig( CORE::CDataNode& tree ) const
 
     section->SetAttribute( "driver", m_driverName );
     section->SetAttribute( "device", m_deviceId );
+    section->SetAttribute( "captureDevice", m_captureDeviceId );
     section->SetAttribute( "sampleRate", m_sampleRate );
     section->SetAttribute( "bufferFrames", m_bufferSizeInFrames );
     section->SetAttribute( "speakerLayout", ChannelLayoutToString( m_channelLayout ) );
     if ( m_hasLimiterMode )
         section->SetAttribute( "limiterMode", CString( LimiterModeToString( m_limiterMode ) ) );
+    section->SetAttribute( "latencyProfile", CString( CAudioEngineParams::LatencyProfileToString( m_latencyProfile ) ) );
 
     CORE::CDataNode* master = section->AddChild( "Master" );
     if ( GUCEF_NULL != master )
@@ -648,6 +706,7 @@ CAudioSettings::LoadConfig( const CORE::CDataNode& treeroot )
 
     m_driverName = section->GetAttributeValueOrChildValueByName( "driver" ).AsString( m_driverName, true );
     m_deviceId = section->GetAttributeValueOrChildValueByName( "device" ).AsString( m_deviceId, true );
+    m_captureDeviceId = section->GetAttributeValueOrChildValueByName( "captureDevice" ).AsString( m_captureDeviceId, true );
     m_sampleRate = section->GetAttributeValueOrChildValueByName( "sampleRate" ).AsUInt32( m_sampleRate, true );
     m_bufferSizeInFrames = section->GetAttributeValueOrChildValueByName( "bufferFrames" ).AsUInt32( m_bufferSizeInFrames, true );
 
@@ -677,6 +736,20 @@ CAudioSettings::LoadConfig( const CORE::CDataNode& treeroot )
         else
         {
             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "AudioSettings: Ignoring the unknown limiter mode \"" << limiter << "\"" );
+        }
+    }
+
+    CString profile = section->GetAttributeValueOrChildValueByName( "latencyProfile" ).AsString( CString::Empty, true );
+    if ( !profile.IsNULLOrEmpty() )
+    {
+        TAudioLatencyProfile parsed = m_latencyProfile;
+        if ( CAudioEngineParams::StringToLatencyProfile( profile, parsed ) )
+        {
+            m_latencyProfile = parsed;
+        }
+        else
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "AudioSettings: Ignoring the unknown latency profile \"" << profile << "\"" );
         }
     }
 

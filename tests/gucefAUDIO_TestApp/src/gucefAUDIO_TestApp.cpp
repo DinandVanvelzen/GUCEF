@@ -69,6 +69,7 @@
 #include "TestAudioWebAudio.h"
 #include "TestAudioStream.h"
 #include "TestAudioDevices.h"
+#include "TestAudioCapture.h"
 #include "TestAudioMixer.h"
 #include "TestAudioDsp.h"
 #include "TestAudioEngine.h"
@@ -77,14 +78,31 @@
 #include "TestAudioCompressor.h"
 #include "TestAudioEqualizer.h"
 #include "TestAudioDelay.h"
+#include "TestAudioDucker.h"
+#include "TestAudioNoiseGate.h"
+#include "TestAudioAutomaticGain.h"
 #include "TestAudioReverb.h"
 #include "TestAudioBuiltinEffects.h"
 #include "TestAudioRouting.h"
 #include "TestAudioEngineReopen.h"
 #include "TestAudioSettings.h"
 #include "TestAudioBusLayout.h"
+#include "TestAudioSincResampler.h"
+#include "TestAudioRealFft.h"
 #include "TestAudioRealtime.h"
 #include "TestAudioVoiceEffects.h"
+#include "TestAudioVoiceActivity.h"
+#include "TestAudioVoiceCodec.h"
+#include "TestAudioVoicePacket.h"
+#include "TestAudioVoiceJitter.h"
+#include "TestAudioVoiceSender.h"
+#include "TestAudioVoiceReceiver.h"
+#include "TestAudioVoiceCodecOpus.h"
+#include "TestAudioVoiceLink.h"
+#include "TestAudioHalfDuplex.h"
+#include "TestAudioNoiseSuppressor.h"
+#include "TestAudioEchoCanceller.h"
+#include "TestAudioIntercomHardware.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -123,6 +141,7 @@ GUCEF_OSMAIN_BEGIN
         PerformAudioConversionTests();
         PerformAudioCodecTests();
         PerformAudioDeviceTests();
+        PerformAudioCaptureTests();
         PerformAudioMixerTests();
         PerformAudioDspTests();
         PerformAudioEngineTests();
@@ -131,17 +150,34 @@ GUCEF_OSMAIN_BEGIN
         PerformAudioCompressorTests();
         PerformAudioEqualizerTests();
         PerformAudioDelayTests();
+        PerformAudioDuckerTests();
         PerformAudioReverbTests();
         PerformAudioBuiltinEffectTests();
         PerformAudioRoutingTests();
         PerformAudioVoiceEffectsTests();
+        PerformAudioVoiceActivityTests();
+        PerformAudioNoiseGateTests();
+        PerformAudioAutomaticGainTests();
+        PerformAudioVoiceCodecTests();
+        PerformAudioVoicePacketTests();
+        PerformAudioVoiceJitterTests();
+        PerformAudioVoiceSenderTests();
+        PerformAudioVoiceReceiverTests();
+        PerformAudioVoiceCodecOpusTests();
+        PerformAudioVoiceLinkTests();
+        PerformAudioHalfDuplexTests();
+        PerformAudioNoiseSuppressorTests();
+        PerformAudioEchoCancellerTests();
         PerformAudioEngineReopenTests();
         PerformAudioRealtimeTests();
         PerformAudioSettingsTests();
         PerformAudioBusLayoutTests();
+        PerformAudioSincResamplerTests();
+        PerformAudioRealFftTests();
         PerformAudioStreamTests();
         PerformAudioTestSignalTests();
         PerformAudioAlsaTests();
+        PerformAudioIntercomHardwareTests();
         PerformAudioCodecPluginTests();
         PerformAudioCodecFlacTests();
         PerformAudioCodecMp3Tests();

@@ -22,6 +22,7 @@
             <RuntimeDependency Name="audiocodecpluginFLAC" />
             <RuntimeDependency Name="audiocodecpluginMP3" />
             <RuntimeDependency Name="audiocodecpluginOGG" />
+            <RuntimeDependency Name="audiovoicecodecOPUS" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="emscripten" >

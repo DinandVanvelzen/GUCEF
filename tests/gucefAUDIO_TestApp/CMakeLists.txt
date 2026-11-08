@@ -13,8 +13,10 @@
 
 set( HEADER_FILES 
   include/TestAudioAlsa.h
+  include/TestAudioAutomaticGain.h
   include/TestAudioBenchmark.h
   include/TestAudioBusLayout.h
+  include/TestAudioCapture.h
   include/TestAudioCodecFlac.h
   include/TestAudioCodecMp3.h
   include/TestAudioCodecMp3Support.h
@@ -25,6 +27,9 @@ set( HEADER_FILES
   include/TestAudioConversion.h
   include/TestAudioDevices.h
   include/TestAudioDsp.h
+  include/TestAudioDucker.h
+  include/TestAudioEchoCanceller.h
+  include/TestAudioEchoSimulation.h
   include/TestAudioEffects.h
   include/TestAudioBuiltinEffects.h
   include/TestAudioCompressor.h
@@ -35,24 +40,46 @@ set( HEADER_FILES
   include/TestAudioEngine.h
   include/TestAudioEngineReopen.h
   include/TestAudioFormat.h
+  include/TestAudioHalfDuplex.h
+  include/TestAudioIntercomHardware.h
+  include/TestAudioIntercomScenario.h
+  include/TestAudioIntercomUnit.h
   include/TestAudioMixer.h
+  include/TestAudioNoiseGate.h
+  include/TestAudioNoiseSuppressor.h
+  include/TestAudioRealFft.h
   include/TestAudioRealtime.h
   include/TestAudioReferenceScenarios.h
   include/TestAudioReverb.h
   include/TestAudioRouting.h
   include/TestAudioSettings.h
+  include/TestAudioSimulatedVoiceLink.h
+  include/TestAudioSincResampler.h
   include/TestAudioStream.h
   include/TestAudioStreaming.h
   include/TestAudioTestEffect.h
   include/TestAudioTestSignals.h
+  include/TestAudioVoiceActivity.h
+  include/TestAudioVoiceCodec.h
+  include/TestAudioVoiceCodecOpus.h
+  include/TestAudioVoiceCodecSupport.h
   include/TestAudioVoiceEffects.h
+  include/TestAudioVoiceJitter.h
+  include/TestAudioVoiceLink.h
+  include/TestAudioVoicePacket.h
+  include/TestAudioVoiceReceiver.h
+  include/TestAudioVoiceSender.h
+  include/TestAudioVoiceSignals.h
+  include/TestAudioVoiceStreamSupport.h
   include/TestAudioWebAudio.h
 )
 
 set( SOURCE_FILES 
   src/TestAudioAlsa.cpp
+  src/TestAudioAutomaticGain.cpp
   src/TestAudioBenchmark.cpp
   src/TestAudioBusLayout.cpp
+  src/TestAudioCapture.cpp
   src/TestAudioCodecFlac.cpp
   src/TestAudioCodecMp3.cpp
   src/TestAudioCodecOgg.cpp
@@ -61,6 +88,8 @@ set( SOURCE_FILES
   src/TestAudioConversion.cpp
   src/TestAudioDevices.cpp
   src/TestAudioDsp.cpp
+  src/TestAudioDucker.cpp
+  src/TestAudioEchoCanceller.cpp
   src/TestAudioEffects.cpp
   src/TestAudioBuiltinEffects.cpp
   src/TestAudioCompressor.cpp
@@ -70,15 +99,29 @@ set( SOURCE_FILES
   src/TestAudioEngine.cpp
   src/TestAudioEngineReopen.cpp
   src/TestAudioFormat.cpp
+  src/TestAudioHalfDuplex.cpp
+  src/TestAudioIntercomHardware.cpp
   src/TestAudioMixer.cpp
+  src/TestAudioNoiseGate.cpp
+  src/TestAudioNoiseSuppressor.cpp
+  src/TestAudioRealFft.cpp
   src/TestAudioRealtime.cpp
   src/TestAudioReverb.cpp
   src/TestAudioRouting.cpp
   src/TestAudioSettings.cpp
+  src/TestAudioSincResampler.cpp
   src/TestAudioStream.cpp
   src/TestAudioStreaming.cpp
   src/TestAudioTestSignals.cpp
+  src/TestAudioVoiceActivity.cpp
+  src/TestAudioVoiceCodec.cpp
+  src/TestAudioVoiceCodecOpus.cpp
   src/TestAudioVoiceEffects.cpp
+  src/TestAudioVoiceJitter.cpp
+  src/TestAudioVoiceLink.cpp
+  src/TestAudioVoicePacket.cpp
+  src/TestAudioVoiceReceiver.cpp
+  src/TestAudioVoiceSender.cpp
   src/TestAudioWebAudio.cpp
   src/gucefAUDIO_TestApp.cpp
 )

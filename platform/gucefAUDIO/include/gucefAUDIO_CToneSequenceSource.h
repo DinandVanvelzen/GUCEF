@@ -50,6 +50,7 @@ namespace AUDIO {
  *  Meant for checking that sound comes out, out of the right speaker and at the right pitch ("test my audio"),
  *  and as a known signal for tests. Every frame is computed from its position, so the source is seekable and the
  *  same frame always has the same value. Segments fade in and out over a few milliseconds so they do not click.
+ *  A segment can also decay exponentially, which turns a sine into a bell like tone (see MakeChime()).
  *  See CAudioTestSignals for ready made sequences.
  */
 class GUCEF_AUDIO_PUBLIC_CPP CToneSequenceSource : public IAudioSource
@@ -80,6 +81,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CToneSequenceSource : public IAudioSource
         UInt32 durationInMs;
         UInt32 channelMask;         /**< bit n set: channel n sounds, the others are silent. AllChannels for all */
         UInt32 fadeMs;              /**< ramps at the start and end of the segment against clicks */
+        UInt32 decayInMs;           /**< time constant of an exponential decay exp( -t / decay ) that starts at the end of the fade in. 0 is flat (no decay) */
 
         SSegment( void );
         SSegment( TWaveform waveform, Float64 frequency, UInt32 durationInMs, Float32 amplitude = 0.5f, UInt32 channelMask = AllChannels );
@@ -123,6 +125,13 @@ class GUCEF_AUDIO_PUBLIC_CPP CToneSequenceSource : public IAudioSource
     bool GetSegmentAt( UInt64 frameInSequence, UInt32& segmentIndex, UInt64& frameInSegment ) const;
 
     const TSegmentVector& GetSegments( void ) const;
+
+    /**
+     *  The default two tone chime that announces something: 784 Hz (G5) and then 659 Hz (E5), 350 ms each, a sine
+     *  with a decay time constant of 250 ms at amplitude 0.4, on all channels, played once. 700 ms long.
+     *  Float32 at the given rate and channel count, so it plays without conversion on a device with that format.
+     */
+    static TAudioSourcePtr MakeChime( UInt32 sampleRate, UInt32 channels );
 
     private:
 
