@@ -82,6 +82,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_CHILD_PROCESS_H
+#include "gucef_test_child_process.h"
+#define GUCEF_TEST_CHILD_PROCESS_H
+#endif /* GUCEF_TEST_CHILD_PROCESS_H ? */
+
 #include "TestPump.h"
 #include "TestFiles.h"
 #include "TestSigner.h"
@@ -942,6 +947,7 @@ PerformLinkStoreTests( void )
             environment[ "GUCEF_AUTH_TEST_PREFIX" ] = "child";
             environment[ "GUCEF_AUTH_TEST_COUNT" ] = CORE::ToString( AccountCount );
             environment[ "GUCEF_CONSOLE_LOGGER" ] = "none";
+            TESTFW::KeepChildExitCodeUnderSanitizers( environment );     // the exit code is the child's own, its sanitizer reports go to a log
             REQUIRE_TRUE( child.Launch( exePath, CORE::CProcess::TStringVector(), CORE::CString::Empty, environment ) );
             ASSERT_TRUE( WaitForFile( CORE::CombinePath( syncDir, "ready-child" ), 60000 ) );
             CORE::CString go = "go";

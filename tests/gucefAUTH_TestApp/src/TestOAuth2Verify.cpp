@@ -38,6 +38,11 @@
 #define GUCEF_MT_CACTIVEOBJECT_H
 #endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
@@ -106,8 +111,14 @@ class CVerifyThread : public MT::CActiveObject
     {
     }
 
-    UInt32 GetSucceeded( void ) const { return m_succeeded; }
-    bool IsDone( void ) const { return m_done; }
+    virtual ~CVerifyThread()
+    {
+        // the thread uses members of this class: it ends before they go, also when the test gave up waiting for it
+        Deactivate( false, true );
+    }
+
+    UInt32 GetSucceeded( void ) const { return m_succeeded.Load(); }
+    bool IsDone( void ) const { return m_done.Load(); }
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
 
@@ -121,9 +132,9 @@ class CVerifyThread : public MT::CActiveObject
         {
             AUTH::CAuthResult result;
             if ( m_provider->Verify( m_proof, result ) && "google:sub-1000" == result.accountRef.ToString() )
-                ++m_succeeded;
+                m_succeeded.FetchAdd( 1 );
         }
-        m_done = true;
+        m_done.Store( true );
         return true;
     }
 
@@ -132,8 +143,8 @@ class CVerifyThread : public MT::CActiveObject
     AUTH::CIAuthProvider* m_provider;
     AUTH::CAuthProof m_proof;
     UInt32 m_rounds;
-    UInt32 m_succeeded;
-    volatile bool m_done;
+    MT::CTAtomic< UInt32 > m_succeeded;    /**< read by the test thread while this thread verifies */
+    MT::CTAtomic< bool > m_done;
 };
 
 /*-------------------------------------------------------------------------*/

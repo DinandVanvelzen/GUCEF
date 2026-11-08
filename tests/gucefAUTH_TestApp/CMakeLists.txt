@@ -19,6 +19,7 @@ set( HEADER_FILES
   include/TestAuthTypes.h
   include/TestBrowser.h
   include/TestCredentialStore.h
+  include/TestCredentialStoreKeyFile.h
   include/TestDescriptors.h
   include/TestFakeOidc.h
   include/TestFakeProvider.h
@@ -54,6 +55,7 @@ set( SOURCE_FILES
   src/TestAuthTypes.cpp
   src/TestBrowser.cpp
   src/TestCredentialStore.cpp
+  src/TestCredentialStoreKeyFile.cpp
   src/TestDescriptors.cpp
   src/TestFakeOidc.cpp
   src/TestFakeProvider.cpp

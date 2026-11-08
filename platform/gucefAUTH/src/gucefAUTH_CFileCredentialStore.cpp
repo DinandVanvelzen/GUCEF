@@ -103,6 +103,8 @@ static const UInt32 MaxSlotCount = 1024;
 static const UInt32 MaxNameSize = 1024;
 static const UInt32 MaxSecretSize = 65536;
 static const char KeyInfo[] = "gucefAUTH credentials v1";
+static const char KeyFileTrustOwnerOnlyText[] = "owner-only";
+static const char KeyFileTrustMountedSecretText[] = "mounted-secret";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -138,6 +140,74 @@ AppendUInt64( CORE::CDynamicBuffer& buffer, UInt64 value )
     for ( UInt32 i=0; i<8; ++i )
         bytes[ i ] = (UInt8) ( value >> ( 8 * i ) );
     buffer.Append( bytes, 8 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static int
+HexDigitValue( UInt8 c )
+{GUCEF_TRACE;
+
+    if ( c >= '0' && c <= '9' )
+        return c - '0';
+    if ( c >= 'a' && c <= 'f' )
+        return c - 'a' + 10;
+    if ( c >= 'A' && c <= 'F' )
+        return c - 'A' + 10;
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The 32 key bytes of the content of an external key file: the 32 bytes themselves, or 64 hexadecimal characters
+ *  with an optional "\n" or "\r\n" at the end. False for anything else
+ */
+static bool
+DecodeExternalKey( const CORE::CDynamicBuffer& content, UInt8* key )
+{GUCEF_TRACE;
+
+    const UInt8* bytes = static_cast< const UInt8* >( content.GetConstBufferPtr() );
+    UInt32 size = content.GetDataSize();
+    if ( CAuthCrypto::KeySize == size )
+    {
+        memcpy( key, bytes, CAuthCrypto::KeySize );
+        return true;
+    }
+    if ( size == 2 * CAuthCrypto::KeySize + 1 && '\n' == bytes[ size - 1 ] )
+        size -= 1;
+    else
+    if ( size == 2 * CAuthCrypto::KeySize + 2 && '\r' == bytes[ size - 2 ] && '\n' == bytes[ size - 1 ] )
+        size -= 2;
+    if ( 2 * CAuthCrypto::KeySize != size )
+        return false;
+    for ( UInt32 i=0; i<CAuthCrypto::KeySize; ++i )
+    {
+        const int high = HexDigitValue( bytes[ 2 * i ] );
+        const int low = HexDigitValue( bytes[ 2 * i + 1 ] );
+        if ( high < 0 || low < 0 )
+        {
+            CAuthCrypto::Wipe( key, CAuthCrypto::KeySize );
+            return false;
+        }
+        key[ i ] = (UInt8) ( ( high << 4 ) | low );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static const char*
+KeyStateText( CFileCredentialStore::EKeyState state )
+{GUCEF_TRACE;
+
+    switch ( state )
+    {
+        case CFileCredentialStore::KEYSTATE_OK: return "usable";
+        case CFileCredentialStore::KEYSTATE_MISSING: return "missing";
+        case CFileCredentialStore::KEYSTATE_UNTRUSTED: return "refused by its trust check";
+        default: return "not a key";
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -208,7 +278,11 @@ struct CFileCredentialStore::SFileImage
     bool hasData;
     bool hasKey;
     CORE::CDynamicBuffer data;
-    CORE::CDynamicBuffer key;               /**< the key material as it is in the key file, wiped when the image goes */
+    CORE::CDynamicBuffer key;               /**< the key material (of an external key: decoded to 32 bytes), wiped when the image goes */
+    bool externalKey;                       /**< the key is the external key file */
+    EKeyState keyState;
+    CORE::CString keyPath;
+    CORE::CString keyProblem;
     UInt8 digest[ CORE::CSha256::DigestSize ];
 
     SFileImage( void )
@@ -216,6 +290,10 @@ struct CFileCredentialStore::SFileImage
         , hasKey( false )
         , data()
         , key()
+        , externalKey( false )
+        , keyState( KEYSTATE_MISSING )
+        , keyPath()
+        , keyProblem()
     {GUCEF_TRACE;
 
         memset( digest, 0, sizeof( digest ) );
@@ -235,6 +313,9 @@ struct CFileCredentialStore::SFileImage
         CORE::CSha256 sha;
         AddToDigest( sha, hasData, data );
         AddToDigest( sha, hasKey, key );
+        // a key that becomes trusted or usable without a change of its bytes is a change too
+        const UInt8 keyFacts[ 2 ] = { (UInt8) ( externalKey ? 1 : 0 ), (UInt8) keyState };
+        sha.Update( keyFacts, sizeof( keyFacts ) );
         sha.Final( digest );
     }
 
@@ -263,10 +344,19 @@ CFileCredentialStore::CFileCredentialStore( void )
     , m_appName( "GUCEF" )
     , m_directory()
     , m_lockTimeoutInMs( DefaultLockTimeoutInMs )
+    , m_keyFile()
+    , m_keyFileTrust( KEYFILETRUST_OWNER_ONLY )
+    , m_assumeReadOnlyKeyMountForTesting( false )
     , m_slots()
     , m_loaded( false )
     , m_tamperDetected( false )
     , m_newerVersion( false )
+    , m_keyRefused( false )
+    , m_keyState( KEYSTATE_MISSING )
+    , m_keyProblem()
+    , m_keyStateLogged( false )
+    , m_loggedKeyState( KEYSTATE_OK )
+    , m_strayKeyWarned( false )
 {GUCEF_TRACE;
 
     memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
@@ -281,10 +371,19 @@ CFileCredentialStore::CFileCredentialStore( const CORE::CString& directory )
     , m_appName( "GUCEF" )
     , m_directory( directory )
     , m_lockTimeoutInMs( DefaultLockTimeoutInMs )
+    , m_keyFile()
+    , m_keyFileTrust( KEYFILETRUST_OWNER_ONLY )
+    , m_assumeReadOnlyKeyMountForTesting( false )
     , m_slots()
     , m_loaded( false )
     , m_tamperDetected( false )
     , m_newerVersion( false )
+    , m_keyRefused( false )
+    , m_keyState( KEYSTATE_MISSING )
+    , m_keyProblem()
+    , m_keyStateLogged( false )
+    , m_loggedKeyState( KEYSTATE_OK )
+    , m_strayKeyWarned( false )
 {GUCEF_TRACE;
 
     memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
@@ -308,6 +407,9 @@ CFileCredentialStore::ForgetView( void ) const
     m_loaded = false;
     m_tamperDetected = false;
     m_newerVersion = false;
+    m_keyRefused = false;
+    m_keyState = KEYSTATE_MISSING;
+    m_keyProblem.Clear();
     memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
 }
 
@@ -368,6 +470,150 @@ CFileCredentialStore::IsTamperDetected( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CFileCredentialStore::SetKeyFile( const CORE::CString& keyFile )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_keyFile = keyFile;
+    m_strayKeyWarned = false;
+    ForgetView();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CFileCredentialStore::GetKeyFile( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( m_keyFile.IsNULLOrEmpty() )
+        return CORE::CombinePath( GetDirectory(), KeyFileName );
+    return CORE::RelativePath( m_keyFile );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::HasExternalKeyFileWhileLocked( void ) const
+{GUCEF_TRACE;
+
+    return !m_keyFile.IsNULLOrEmpty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::HasExternalKeyFile( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return HasExternalKeyFileWhileLocked();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::SetKeyFileTrust( EKeyFileTrust trust )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_keyFileTrust = trust;
+    ForgetView();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CFileCredentialStore::EKeyFileTrust
+CFileCredentialStore::GetKeyFileTrust( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_keyFileTrust;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::SetAssumeReadOnlyKeyMountForTesting( bool assumeReadOnly )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_assumeReadOnlyKeyMountForTesting = assumeReadOnly;
+    ForgetView();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CFileCredentialStore::EKeyState
+CFileCredentialStore::GetKeyState( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    RefreshView();
+    return m_keyState;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CFileCredentialStore::GetKeyProblem( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_keyProblem;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CFileCredentialStore::KeyFileTrustToString( EKeyFileTrust trust )
+{GUCEF_TRACE;
+
+    static const CORE::CString ownerOnly( KeyFileTrustOwnerOnlyText );
+    static const CORE::CString mountedSecret( KeyFileTrustMountedSecretText );
+    return KEYFILETRUST_MOUNTED_SECRET == trust ? mountedSecret : ownerOnly;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::KeyFileTrustFromString( const CORE::CString& text, EKeyFileTrust& trust )
+{GUCEF_TRACE;
+
+    if ( KeyFileTrustOwnerOnlyText == text )
+    {
+        trust = KEYFILETRUST_OWNER_ONLY;
+        return true;
+    }
+    if ( KeyFileTrustMountedSecretText == text )
+    {
+        trust = KEYFILETRUST_MOUNTED_SECRET;
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::MakeKeyFile( const CORE::CString& path, CORE::CString& problem )
+{GUCEF_TRACE;
+
+    problem.Clear();
+    UInt8 keyMaterial[ CAuthCrypto::KeySize ];
+    if ( !CAuthCrypto::RandomBytes( keyMaterial, sizeof( keyMaterial ) ) )
+    {
+        problem = "no random bytes could be had";
+        return false;
+    }
+    bool made = CORE::CreateOwnerOnlyFile( CORE::RelativePath( path ), keyMaterial, sizeof( keyMaterial ), problem );
+    CAuthCrypto::Wipe( keyMaterial, sizeof( keyMaterial ) );
+    return made;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CFileCredentialStore::IsAvailable( void )
 {GUCEF_TRACE;
@@ -401,14 +647,101 @@ CFileCredentialStore::ReadFiles( const CORE::CString& directory, SFileImage& ima
     // The lock of the store file is held by the caller. A file that is there but cannot be read is there with no
     // content: the data file is then not a credential file, the key file is not a key
     CORE::CString dataPath = CORE::CombinePath( directory, DataFileName );
-    CORE::CString keyPath = CORE::CombinePath( directory, KeyFileName );
     image.hasData = CORE::FileExists( dataPath );
     if ( image.hasData && !image.data.LoadContentFromFile( dataPath ) )
         image.data.Clear();
-    image.hasKey = CORE::FileExists( keyPath );
-    if ( image.hasKey && !image.key.LoadContentFromFile( keyPath ) )
-        image.key.Clear();
+    ReadKey( directory, image );
     image.ComputeDigest();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::ReadKey( const CORE::CString& directory, SFileImage& image ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller
+    const CORE::CString localKeyPath = CORE::CombinePath( directory, KeyFileName );
+    if ( !HasExternalKeyFileWhileLocked() )
+    {
+        image.externalKey = false;
+        image.keyPath = localKeyPath;
+        image.hasKey = CORE::FileExists( localKeyPath );
+        if ( image.hasKey && !image.key.LoadContentFromFile( localKeyPath ) )
+            image.key.Clear();
+        image.keyState = !image.hasKey ? KEYSTATE_MISSING : ( CAuthCrypto::KeySize == image.key.GetDataSize() ? KEYSTATE_OK : KEYSTATE_INVALID );
+        return;
+    }
+
+    // The external key: provisioned by someone else, read only through its trust check, never the local file
+    image.externalKey = true;
+    image.keyPath = CORE::RelativePath( m_keyFile );
+    if ( !m_strayKeyWarned && CORE::FileExists( localKeyPath ) )
+    {
+        m_strayKeyWarned = true;
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << localKeyPath << " is not used, the external key " <<
+            image.keyPath << " is: remove it" );
+    }
+
+    CORE::CDynamicBuffer content;
+    CORE::CString problem;
+    bool isMissing = false;
+    bool read = false;
+    if ( KEYFILETRUST_MOUNTED_SECRET == m_keyFileTrust )
+        read = CORE::ReadMountedSecretFile( image.keyPath, content, problem, &isMissing, m_assumeReadOnlyKeyMountForTesting );
+    else
+        read = CORE::ReadOwnerOnlyFile( image.keyPath, content, problem, &isMissing );
+
+    image.hasKey = false;
+    image.key.Clear();
+    if ( !read )
+    {
+        image.keyState = isMissing ? KEYSTATE_MISSING : KEYSTATE_UNTRUSTED;
+        image.keyProblem = problem;
+    }
+    else
+    {
+        UInt8 key[ CAuthCrypto::KeySize ];
+        if ( DecodeExternalKey( content, key ) )
+        {
+            image.key.Append( key, sizeof( key ) );
+            image.hasKey = true;
+            image.keyState = KEYSTATE_OK;
+        }
+        else
+        {
+            image.keyState = KEYSTATE_INVALID;
+            image.keyProblem = "the file holds neither 32 bytes nor 64 hexadecimal characters";
+        }
+        CAuthCrypto::Wipe( key, sizeof( key ) );
+    }
+    if ( content.GetDataSize() > 0 )
+        CAuthCrypto::Wipe( content.GetBufferPtr(), content.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::NoteKeyState( const SFileImage& image ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller. An external key's state is logged once per change, with the path and the
+    // reason of the check, never the content
+    m_keyState = image.keyState;
+    m_keyProblem = image.keyProblem;
+    if ( !image.externalKey || ( m_keyStateLogged && m_loggedKeyState == image.keyState ) )
+        return;
+    m_keyStateLogged = true;
+    m_loggedKeyState = image.keyState;
+    if ( KEYSTATE_OK == image.keyState )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The external key " << image.keyPath << " is usable" );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The external key " << image.keyPath << " is " << KeyStateText( image.keyState ) <<
+            ( image.keyProblem.IsNULLOrEmpty() ? CORE::CString() : CORE::CString( ": " ) + image.keyProblem ) << "; the store reads nothing and changes nothing until it is" );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -433,8 +766,18 @@ CFileCredentialStore::ParseImage( const SFileImage& image ) const
     m_slots.clear();
     m_tamperDetected = false;
     m_newerVersion = false;
+    m_keyRefused = false;
     m_loaded = true;
     memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
+    NoteKeyState( image );
+
+    // An external key that is missing, refused or not a key is a fault of the deployment, not tampering: nothing is
+    // read and nothing is written, with or without a data file
+    if ( image.externalKey && KEYSTATE_OK != image.keyState )
+    {
+        m_keyRefused = true;
+        return;
+    }
 
     CORE::CString dataPath = CORE::CombinePath( GetDirectory(), DataFileName );
     if ( !image.hasData )
@@ -526,6 +869,14 @@ CFileCredentialStore::RefreshView( void ) const
 
     // The lock is held by the caller. Nothing is made for a read: without the files there is nothing to lock
     CORE::CString dir = GetDirectory();
+    if ( HasExternalKeyFileWhileLocked() && !CORE::FileExists( CORE::CombinePath( dir, DataFileName ) ) )
+    {
+        // no data: what is to know is the state of the external key, which is read without touching the directory
+        SFileImage keyOnly;
+        ReadFiles( dir, keyOnly );
+        UpdateView( keyOnly );
+        return true;
+    }
     if ( !CORE::FileExists( CORE::CombinePath( dir, DataFileName ) ) && !CORE::FileExists( CORE::CombinePath( dir, KeyFileName ) ) )
     {
         SFileImage none;
@@ -557,6 +908,11 @@ CFileCredentialStore::WriteSlots( const CORE::CString& directory, const TSlotVec
 
     // The exclusive lock of the store file is held by the caller, 'image' is what was read under it
     CORE::CString keyPath = CORE::CombinePath( directory, KeyFileName );
+    if ( image.externalKey && ( !image.hasKey || CAuthCrypto::KeySize != image.key.GetDataSize() ) )
+    {
+        // never made here: an external key is provisioned by someone else, nothing is sealed with a made-up key
+        return false;
+    }
     if ( !image.hasKey || CAuthCrypto::KeySize != image.key.GetDataSize() )
     {
         // Only without a data file: a data file without a usable key is tamper detected and never written
@@ -657,6 +1013,19 @@ CFileCredentialStore::Change( TChangeKind kind                     ,
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::AeadCipher << "\" codec, nothing is changed in the store in " << dir );
         return false;
     }
+    if ( HasExternalKeyFileWhileLocked() )
+    {
+        // without a usable external key nothing is made, not even the directory or the lock file
+        SFileImage keyProbe;
+        ReadKey( dir, keyProbe );
+        if ( KEYSTATE_OK != keyProbe.keyState )
+        {
+            NoteKeyState( keyProbe );
+            m_keyRefused = true;
+            m_loaded = false;
+            return false;
+        }
+    }
     if ( !PrepareDirectory() )
         return false;
 
@@ -679,6 +1048,11 @@ CFileCredentialStore::Change( TChangeKind kind                     ,
     SFileImage image;
     ReadFiles( dir, image );
     UpdateView( image );
+    if ( m_keyRefused )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The external key of the store in " << dir << " is " << KeyStateText( m_keyState ) << ", nothing is changed" );
+        return false;
+    }
     if ( m_tamperDetected )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The store in " << dir << " failed its integrity check, nothing is written to it until it is wiped" );
@@ -855,6 +1229,12 @@ CFileCredentialStore::Wipe( void )
     CORE::CString keyPath = CORE::CombinePath( dir, KeyFileName );
     if ( CORE::FileExists( dataPath ) )
         wiped = CORE::DeleteFile( dataPath ) && wiped;
+    if ( HasExternalKeyFileWhileLocked() )
+    {
+        // the external key belongs to whoever provisioned it, as does a local key file that it replaced
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Wiped the data of the store in " << dir << ", the external key " << CORE::RelativePath( m_keyFile ) << " stays" );
+        return wiped;
+    }
     if ( CORE::FileExists( keyPath ) )
         wiped = CORE::DeleteFile( keyPath ) && wiped;
     return wiped;
@@ -870,6 +1250,10 @@ CFileCredentialStore::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "directory", m_directory );
     config.SetAttribute( "appName", m_appName );
     config.SetAttribute( "lockTimeoutInMs", m_lockTimeoutInMs );
+    if ( !m_keyFile.IsNULLOrEmpty() )
+        config.SetAttribute( "keyFile", m_keyFile );
+    if ( KEYFILETRUST_OWNER_ONLY != m_keyFileTrust )
+        config.SetAttribute( "keyFileTrust", KeyFileTrustToString( m_keyFileTrust ) );
     return true;
 }
 
@@ -882,10 +1266,23 @@ CFileCredentialStore::LoadConfig( const CORE::CDataNode& config )
     CORE::CString appName = config.GetAttributeValueOrChildValueByName( "appName" ).AsString( m_appName, true );
     CORE::CString directory = config.GetAttributeValueOrChildValueByName( "directory" ).AsString( m_directory, false );
     UInt32 lockTimeoutInMs = config.GetAttributeValueOrChildValueByName( "lockTimeoutInMs" ).AsUInt32( m_lockTimeoutInMs, true );
+    CORE::CString keyFile = config.GetAttributeValueOrChildValueByName( "keyFile" ).AsString( CORE::CString::Empty, false );
+    CORE::CString keyFileTrustText = config.GetAttributeValueOrChildValueByName( "keyFileTrust" ).AsString( CORE::CString::Empty, true );
+    EKeyFileTrust keyFileTrust = KEYFILETRUST_OWNER_ONLY;
+    if ( !keyFileTrustText.IsNULLOrEmpty() && !KeyFileTrustFromString( keyFileTrustText, keyFileTrust ) )
+    {
+        // the strict check is the safe one
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Unknown keyFileTrust \"" << keyFileTrustText << "\", \"" <<
+            KeyFileTrustOwnerOnlyText << "\" is used" );
+        keyFileTrust = KEYFILETRUST_OWNER_ONLY;
+    }
     MT::CScopeMutex lock( m_lock );
     m_appName = appName;
     m_directory = directory;
     m_lockTimeoutInMs = lockTimeoutInMs;
+    m_keyFile = keyFile;
+    m_keyFileTrust = keyFileTrust;
+    m_strayKeyWarned = false;
     ForgetView();
     return true;
 }

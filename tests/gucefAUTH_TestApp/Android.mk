@@ -28,6 +28,7 @@ LOCAL_SRC_FILES := \
   src/TestAuthTypes.cpp \
   src/TestBrowser.cpp \
   src/TestCredentialStore.cpp \
+  src/TestCredentialStoreKeyFile.cpp \
   src/TestDescriptors.cpp \
   src/TestFakeOidc.cpp \
   src/TestFakeProvider.cpp \

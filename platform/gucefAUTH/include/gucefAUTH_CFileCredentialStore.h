@@ -60,6 +60,10 @@ namespace AUTH {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CFileCredentialStoreTestAccess;
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  The secrets of the module in an authenticated and encrypted file: all slots in credentials.bin, sealed with
  *  XChaCha20-Poly1305 (the "xchacha20-poly1305" codec) under a key derived (HKDF-SHA256) from the 32 random bytes of
@@ -86,7 +90,19 @@ namespace AUTH {
  *  The key file protects against a file that travels alone (a backup or a copy of the data file, a log); it does not
  *  protect against other code that runs as the same user. Stores of the operating system are the answer to that.
  *
- *  Config: directory (empty: $APPDATADIR$/<appName>/Auth), appName, lockTimeoutInMs
+ *  External key file (SetKeyFile(), config keyFile): the key is kept apart from the data, for example in a Kubernetes
+ *  Secret mounted read only, so the data volume, its backups and its copies never hold it. The store treats it as
+ *  provisioned by someone else: it never makes, writes, restricts or deletes it (Wipe() deletes the data file only).
+ *  It is read under the store lock through a trust check (SetKeyFileTrust()): owner-only (CORE::ReadOwnerOnlyFile())
+ *  or mounted-secret (CORE::ReadMountedSecretFile(): links only within its directory, read only file system, owner
+ *  root or the user, no write for group or others, no read for others). Its content is 32 bytes, or 64 hexadecimal
+ *  characters with an optional line break (a Secret made from text). A key that is missing, refused by the trust
+ *  check or not a key is a deployment fault, not tampering: GetKeyState() says which, IsTamperDetected() stays false,
+ *  nothing is read and every change is refused, and the data file is left byte for byte, so the right key makes the
+ *  store readable at the next operation. A credentials.key in the directory is never read then; a warning names it.
+ *
+ *  Config: directory (empty: $APPDATADIR$/<appName>/Auth), appName, lockTimeoutInMs, keyFile (empty: credentials.key
+ *  in the directory), keyFileTrust ("owner-only" or "mounted-secret"); the key settings are saved when not the default
  */
 class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
                                                    public CORE::CIConfigurable
@@ -97,6 +113,22 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     static const CORE::CString KeyFileName;         /**< "credentials.key" */
     static const CORE::CString LockFileName;        /**< "credentials.lock" */
     static const UInt32 DefaultLockTimeoutInMs;     /**< 10000 */
+
+    /** How an external key file is checked before it is read */
+    enum EKeyFileTrust
+    {
+        KEYFILETRUST_OWNER_ONLY     ,   /**< "owner-only": CORE::ReadOwnerOnlyFile(), the default */
+        KEYFILETRUST_MOUNTED_SECRET     /**< "mounted-secret": CORE::ReadMountedSecretFile(), POSIX only */
+    };
+
+    /** What the key of the store is like, as last read */
+    enum EKeyState
+    {
+        KEYSTATE_OK         ,   /**< a usable key */
+        KEYSTATE_MISSING    ,   /**< there is no key file */
+        KEYSTATE_UNTRUSTED  ,   /**< the trust check refused the external key file: owner, permissions, link, file type, mount */
+        KEYSTATE_INVALID        /**< the key file is not a key: size or format */
+    };
 
     CFileCredentialStore( void );
 
@@ -140,6 +172,46 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
 
     UInt32 GetLockTimeoutInMs( void ) const;
 
+    /**
+     *  An external key file, see the class comment; empty is credentials.key in the directory. Path variables are
+     *  resolved. Forgets what was read
+     */
+    void SetKeyFile( const CORE::CString& keyFile );
+
+    /** The key file in use with its path variables resolved: the external one, or credentials.key in the directory */
+    CORE::CString GetKeyFile( void ) const;
+
+    /** Whether an external key file is set */
+    bool HasExternalKeyFile( void ) const;
+
+    /** How an external key file is checked; forgets what was read */
+    void SetKeyFileTrust( EKeyFileTrust trust );
+
+    EKeyFileTrust GetKeyFileTrust( void ) const;
+
+    /**
+     *  The state of the key as the files are now: reads them first when the instance has not read them yet or they
+     *  changed since, like IsTamperDetected()
+     */
+    EKeyState GetKeyState( void ) const;
+
+    /** Why the key is not OK, for a log line or a status page; empty when it is */
+    CORE::CString GetKeyProblem( void ) const;
+
+    /** "owner-only" or "mounted-secret" */
+    static const CORE::CString& KeyFileTrustToString( EKeyFileTrust trust );
+
+    /** False for a text that is neither of the two */
+    static bool KeyFileTrustFromString( const CORE::CString& text, EKeyFileTrust& trust );
+
+    /**
+     *  Makes a new key file of 32 random bytes that only the user of the process can read (CORE::CreateOwnerOnlyFile():
+     *  refuses anything that exists at the path, a link included). For an operator tool that provisions an external
+     *  key, and for tests. Fails closed when there is no random source.
+     *  @param problem  why it failed, for a log line
+     */
+    static bool MakeKeyFile( const CORE::CString& path, CORE::CString& problem );
+
     /** Whether the AEAD codec the store needs is there */
     static bool IsAvailable( void );
 
@@ -150,6 +222,15 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    /** The test seam of the store, defined by the tests only */
+    friend class CFileCredentialStoreTestAccess;
+
+    /**
+     *  For tests that cannot mount a file system read only: the mounted-secret check takes that rule as met. Only
+     *  reachable through CFileCredentialStoreTestAccess, so production code cannot turn the rule off
+     */
+    void SetAssumeReadOnlyKeyMountForTesting( bool assumeReadOnly );
 
     struct SSlot
     {
@@ -176,6 +257,9 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
 
     void ForgetView( void ) const;
     void ReadFiles( const CORE::CString& directory, SFileImage& image ) const;
+    void ReadKey( const CORE::CString& directory, SFileImage& image ) const;
+    void NoteKeyState( const SFileImage& image ) const;
+    bool HasExternalKeyFileWhileLocked( void ) const;
     void UpdateView( const SFileImage& image ) const;
     void ParseImage( const SFileImage& image ) const;
     bool RefreshView( void ) const;
@@ -190,12 +274,21 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     CORE::CString m_appName;
     CORE::CString m_directory;
     UInt32 m_lockTimeoutInMs;
+    CORE::CString m_keyFile;
+    EKeyFileTrust m_keyFileTrust;
+    bool m_assumeReadOnlyKeyMountForTesting;
 
     // the view of the files: what the instance last read or wrote, refreshed by every operation
     mutable TSlotVector m_slots;
     mutable bool m_loaded;
     mutable bool m_tamperDetected;
     mutable bool m_newerVersion;
+    mutable bool m_keyRefused;              /**< an external key that is not OK: nothing is read, every change is refused */
+    mutable EKeyState m_keyState;
+    mutable CORE::CString m_keyProblem;
+    mutable bool m_keyStateLogged;
+    mutable EKeyState m_loggedKeyState;
+    mutable bool m_strayKeyWarned;
     mutable UInt8 m_fileDigest[ CORE::CSha256::DigestSize ];
 };
 

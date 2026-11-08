@@ -278,28 +278,51 @@ bool
 CEosAuthProvider::EnsurePlatform( CORE::CString& reason )
 {GUCEF_TRACE;
 
-    if ( !IsSdkAvailable() )
+    // Called without the lock of the provider, which is taken for the members only: the platform is made, and its
+    // ticks are subscribed to, outside it. A platform subscribes its timer to the pulse generator of the application,
+    // the pulses of which take the lock of the provider (OnTimer()), and the platform raises TickEvent under its own lock
+    PLUGINGLUE::EOS::CEosPlatformSettings platformSettings;
+    PLUGINGLUE::EOS::SEosPlatformShim platformShim;
     {
-        reason = "The Epic Online Services SDK is not part of this build";
-        return false;
+        MT::CScopeMutex lock( m_lock );
+        if ( !IsSdkAvailable() )
+        {
+            reason = "The Epic Online Services SDK is not part of this build";
+            return false;
+        }
+        if ( !m_settings.IsConfigured() )
+        {
+            reason = "The settings clientId, clientSecret, productId, sandboxId and deploymentId are needed";
+            return false;
+        }
+        if ( GUCEF_NULL != m_platform )
+            return true;
+        platformSettings = m_settings.GetPlatformSettings();
+        platformShim = m_shim;
     }
-    if ( !m_settings.IsConfigured() )
-    {
-        reason = "The settings clientId, clientSecret, productId, sandboxId and deploymentId are needed";
-        return false;
-    }
-    if ( GUCEF_NULL != m_platform )
-        return true;
 
     // The platform is the one of the glue, shared with the other EOS plugins: it is made by the first holder
-    PLUGINGLUE::EOS::CEosPlatformSettings platformSettings = m_settings.GetPlatformSettings();
-    const PLUGINGLUE::EOS::SEosPlatformShim* platformShim = &m_shim;
-    PLUGINGLUE::EOS::CEosPlatform* platform = PLUGINGLUE::EOS::CEosGlue::Instance()->AcquirePlatform( platformShim, &platformSettings, reason );
+    PLUGINGLUE::EOS::CEosGlue* glue = PLUGINGLUE::EOS::CEosGlue::Instance();
+    PLUGINGLUE::EOS::CEosPlatform* platform = glue->AcquirePlatform( &platformShim, &platformSettings, reason );
     if ( GUCEF_NULL == platform )
         return false;
 
-    m_platform = platform;
-    m_pump.SubscribeTo( m_platform, PLUGINGLUE::EOS::CEosPlatform::TickEvent );
+    bool kept = false;
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( GUCEF_NULL == m_platform )
+        {
+            m_platform = platform;
+            kept = true;
+        }
+    }
+    if ( !kept )
+    {
+        // another thread of the application got it first
+        glue->ReleasePlatform( platform );
+        return true;
+    }
+    m_pump.SubscribeTo( platform, PLUGINGLUE::EOS::CEosPlatform::TickEvent );
     return true;
 }
 
@@ -335,10 +358,10 @@ bool
 CEosAuthProvider::Start( EEosLoginType type, bool interactive, UInt32 timeoutInMs, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-
     CORE::CString reason;
     bool ready = EnsurePlatform( reason );
+
+    MT::CScopeMutex lock( m_lock );
     if ( ready && GUCEF_NULL == m_shim.authLogin )
     {
         reason = "The Epic Online Services SDK cannot log in";
