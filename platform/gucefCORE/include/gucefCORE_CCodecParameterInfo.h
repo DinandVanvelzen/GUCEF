@@ -65,6 +65,15 @@ class GUCEF_CORE_PUBLIC_CPP CCodecParameterInfo
                          const CVariant& defaultValue ,
                          const CString& description   );
 
+    /** A binary parameter of a size or a range of sizes: a key, a nonce */
+    CCodecParameterInfo( const CString& name          ,
+                         UInt8 typeId                 ,
+                         bool isRequired              ,
+                         const CVariant& defaultValue ,
+                         const CString& description   ,
+                         UInt32 minSize               ,
+                         UInt32 maxSize               );
+
     CCodecParameterInfo( const CCodecParameterInfo& src );
 
     ~CCodecParameterInfo();
@@ -93,6 +102,22 @@ class GUCEF_CORE_PUBLIC_CPP CCodecParameterInfo
 
     const CString& GetDescription( void ) const;
 
+    /**
+     *  The sizes in bytes a GUCEF_DATATYPE_BINARY_BLOB parameter may have: from min to max, both included.
+     *  0 and 0 when the codec does not state them
+     */
+    void SetSizeRange( UInt32 minSize, UInt32 maxSize );
+
+    UInt32 GetMinSize( void ) const;
+
+    UInt32 GetMaxSize( void ) const;
+
+    /** Whether the codec states the sizes */
+    bool HasSizeRange( void ) const;
+
+    /** Whether a value of the size is accepted: in the range, or any size when no range is stated */
+    bool AcceptsSize( UInt32 size ) const;
+
     private:
 
     CString m_name;
@@ -100,6 +125,8 @@ class GUCEF_CORE_PUBLIC_CPP CCodecParameterInfo
     bool m_isRequired;
     CVariant m_defaultValue;
     CString m_description;
+    UInt32 m_minSize;
+    UInt32 m_maxSize;
 };
 
 /*-------------------------------------------------------------------------*/

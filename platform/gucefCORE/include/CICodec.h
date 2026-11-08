@@ -133,6 +133,9 @@ class GUCEF_CORE_PUBLIC_CPP CICodec : public CICloneable ,
     /** What the codec can do: GUCEF_CODEC_CAPABILITY_*. The default: encode and decode */
     virtual UInt32 GetCapabilities( void ) const;
 
+    /** The bytes encoding adds to a message, such as the tag of an AEAD cipher. 0 when none or not fixed (the default) */
+    virtual UInt32 GetOverhead( void ) const;
+
     virtual CString GetType( void ) const = 0;
 
     virtual CString GetFamilyName( void ) const = 0;

@@ -337,6 +337,49 @@ class CTaggedTestCodec : public CORE::CICodec
 
 /*-------------------------------------------------------------------------*/
 
+/** A test codec with the capabilities it is given */
+class CCapableTestCodec : public CTaggedTestCodec
+{
+    public:
+
+    CCapableTestCodec( const CORE::CString& family, const CORE::CString& type, UInt32 capabilities )
+        : CTaggedTestCodec( family, type, type ), m_capabilities( capabilities ), m_family( family ), m_type( type )
+    {GUCEF_TRACE;
+    }
+
+    virtual UInt32 GetCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE { return m_capabilities; }
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW CCapableTestCodec( m_family, m_type, m_capabilities ); }
+
+    private:
+
+    UInt32 m_capabilities;
+    CORE::CString m_family;
+    CORE::CString m_type;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The parameter of the codec by name, false when it has none */
+static bool
+FindParameterInfo( const TICodecPtr& codec, const char* name, CORE::CCodecParameterInfo& info )
+{GUCEF_TRACE;
+
+    CORE::CCodecParameterInfoList params;
+    codec->GetParameterInfo( params );
+    for ( UInt32 i=0; i<(UInt32) params.size(); ++i )
+    {
+        if ( params[ i ].GetName() == name )
+        {
+            info = params[ i ];
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static CORE::CString
 EncodeToText( TICodecPtr codec )
 {GUCEF_TRACE;
@@ -935,6 +978,105 @@ PerformAeadProviderTests( void )
 /*-------------------------------------------------------------------------*/
 
 /** Runs messages through an instance with a buffer that has its working size, counting heap allocations */
+static void
+PerformAeadCapabilityTests( void )
+{GUCEF_TRACE;
+
+    CORE::CCodecRegistry& registry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
+
+    GUCEF_TESTFW_TESTCASE( "Test: Every AEAD provider says it is authenticated, its tag and the sizes of its key and nonce" )
+    {
+        struct SAeadSizes { const char* type; UInt32 nonceSize; };
+        static const SAeadSizes aeads[] = { { "chacha20-poly1305", 12 }, { "xchacha20-poly1305", 24 }, { "aes-256-gcm", 12 } };
+        UInt32 providerCount = 0;
+        for ( UInt32 a=0; a<3; ++a )
+        {
+            TICodecPtrVector providers;
+            registry.GetCodecs( CORE::CoreCodecTypes::EncryptionCodec, aeads[ a ].type, providers );
+            providerCount += (UInt32) providers.size();
+        }
+        GUCEF_TESTFW_SKIP_IF( 0 == providerCount, "No AEAD codec is registered: no OS facility here and no crypto plugin loaded" );
+
+        try
+        {
+            for ( UInt32 a=0; a<3; ++a )
+            {
+                TICodecPtrVector providers;
+                registry.GetCodecs( CORE::CoreCodecTypes::EncryptionCodec, aeads[ a ].type, providers );
+                for ( UInt32 p=0; p<(UInt32) providers.size(); ++p )
+                {
+                    const TICodecPtr& codec = providers[ p ];
+                    const UInt32 required = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_AUTHENTICATED;
+                    ASSERT_TRUE( required == ( codec->GetCapabilities() & required ) );
+                    ASSERT_TRUE( 16 == codec->GetOverhead() );
+
+                    CORE::CCodecParameterInfo key, nonce;
+                    ASSERT_TRUE( FindParameterInfo( codec, "key", key ) && 32 == key.GetMinSize() && 32 == key.GetMaxSize() );
+                    ASSERT_TRUE( FindParameterInfo( codec, "nonce", nonce ) && aeads[ a ].nonceSize == nonce.GetMinSize() && aeads[ a ].nonceSize == nonce.GetMaxSize() );
+                    ASSERT_TRUE( nonce.AcceptsSize( aeads[ a ].nonceSize ) && !nonce.AcceptsSize( aeads[ a ].nonceSize + 1 ) );
+                    if ( !nonce.AcceptsSize( aeads[ a ].nonceSize ) )
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AEAD provider " << ProviderName( codec ) << " of " << aeads[ a ].type << " states nonce sizes " << nonce.GetMinSize() << " to " << nonce.GetMaxSize() );
+                }
+            }
+
+            // hashes are not authenticated encryption
+            TICodecPtrVector hashes;
+            registry.GetCodecs( CORE::CoreCodecTypes::CryptographicHashCodec, "sha256", hashes );
+            for ( UInt32 p=0; p<(UInt32) hashes.size(); ++p )
+                ASSERT_TRUE( 0 == ( hashes[ p ]->GetCapabilities() & GUCEF_CODEC_CAPABILITY_AUTHENTICATED ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: FindCodecs gives the providers of a family that have the capabilities, highest priority first, then by type name" )
+        try
+        {
+            const UInt32 sealing = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_AUTHENTICATED;
+            TICodecPtr plain( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCapableTestCodec( "CapabilityTestCodec", "d", GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE ) ) );
+            TICodecPtr sealedB( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCapableTestCodec( "CapabilityTestCodec", "b", sealing ) ) );
+            TICodecPtr sealedA( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCapableTestCodec( "CapabilityTestCodec", "a", sealing ) ) );
+            TICodecPtr sealedHigh( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCapableTestCodec( "CapabilityTestCodec", "c", sealing ) ) );
+            TICodecPtr otherFamily( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CCapableTestCodec( "OtherCapabilityTestCodec", "e", sealing ) ) );
+            ASSERT_TRUE( registry.RegisterCodec( plain, 99 ) );
+            ASSERT_TRUE( registry.RegisterCodec( sealedB, 50 ) );
+            ASSERT_TRUE( registry.RegisterCodec( sealedA, 50 ) );
+            ASSERT_TRUE( registry.RegisterCodec( sealedHigh, 90 ) );
+            ASSERT_TRUE( registry.RegisterCodec( otherFamily, 95 ) );
+
+            CORE::CCodecRegistry::TCodecProviderVector providers;
+            ASSERT_TRUE( registry.FindCodecs( "capabilitytestcodec", sealing, providers ) );    // no regard to case
+            ASSERT_TRUE( 3 == providers.size() );
+            if ( 3 == providers.size() )
+            {
+                ASSERT_TRUE( providers[ 0 ].codec == sealedHigh && "c" == providers[ 0 ].codecType && 90 == providers[ 0 ].priority );
+                ASSERT_TRUE( providers[ 1 ].codec == sealedA && providers[ 2 ].codec == sealedB );
+            }
+
+            ASSERT_TRUE( registry.FindCodecs( "CapabilityTestCodec", 0, providers ) && 4 == providers.size() );
+            if ( 4 == providers.size() )
+                ASSERT_TRUE( providers[ 0 ].codec == plain && providers[ 1 ].codec == sealedHigh );
+
+            ASSERT_FALSE( registry.FindCodecs( "CapabilityTestCodec", GUCEF_CODEC_CAPABILITY_INSTANCES, providers ) );
+            ASSERT_TRUE( providers.empty() );
+            ASSERT_FALSE( registry.FindCodecs( "NoSuchCodecFamily", 0, providers ) );
+
+            ASSERT_TRUE( registry.UnregisterCodec( plain ) && registry.UnregisterCodec( sealedB ) && registry.UnregisterCodec( sealedA ) );
+            ASSERT_TRUE( registry.UnregisterCodec( sealedHigh ) && registry.UnregisterCodec( otherFamily ) );
+            ASSERT_FALSE( registry.FindCodecs( "CapabilityTestCodec", 0, providers ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 static UInt32
 CountAllocationsOfProcess( CORE::CICodecInstancePtr& instance, UInt32 flags, const CORE::CDynamicBuffer& input, const CORE::SCodecCallArgs* args, bool& allSucceeded )
 {GUCEF_TRACE;
@@ -2259,6 +2401,7 @@ PerformCryptoCodecTests( void )
     PerformSoftwareCryptoPrimitiveTests();
     PerformHashProviderTests();
     PerformAeadProviderTests();
+    PerformAeadCapabilityTests();
     PerformKeyAgreementAndSignatureTests();
     PerformPluginHashAndKdfTests();
     PerformInstanceAllocationTests();

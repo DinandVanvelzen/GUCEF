@@ -83,6 +83,15 @@ class GUCEF_CORE_PUBLIC_CPP CCodecRegistry : public CTONRegistry< CTONRegistry< 
     typedef TCodecFamilyRegistry::TRegisteredObjTypedPtr         TICodecTypedPtr;
     typedef TCodecFamilyRegistry::TRegisteredObjPtrVector        TICodecPtrVector;
 
+    /** A registered provider of a codec, as FindCodecs() lists it */
+    struct SCodecProvider
+    {
+        CString codecType;
+        TICodecPtr codec;
+        Int32 priority;
+    };
+    typedef GUCEF::vector< SCodecProvider > TCodecProviderVector;
+
     static const Int32 SoftwareCodecPriority;   /**< built in portable code: 25, the fallback that is always there */
     static const Int32 PluginCodecPriority;     /**< plugins: 50 unless the plugin or its configuration says otherwise */
     static const Int32 OsCodecPriority;         /**< the operating system: 100 */
@@ -117,6 +126,15 @@ class GUCEF_CORE_PUBLIC_CPP CCodecRegistry : public CTONRegistry< CTONRegistry< 
     bool GetCodecs( const CString& codecFamily ,
                     const CString& codecType   ,
                     TICodecPtrVector& codecs   ) const;
+
+    /**
+     *  The providers of every type of the family that have all the capabilities asked for (GUCEF_CODEC_CAPABILITY_*,
+     *  0 for any), of the registrations through RegisterCodec(): highest priority first, equal priorities by type
+     *  name and then in the order of registration. False when there is none.
+     */
+    bool FindCodecs( const CString& codecFamily         ,
+                     UInt32 requiredCapabilities        ,
+                     TCodecProviderVector& providers    ) const;
 
     /** The priority the codec object is registered with under the family and type, false when it is not */
     bool TryGetCodecPriority( const CString& codecFamily ,

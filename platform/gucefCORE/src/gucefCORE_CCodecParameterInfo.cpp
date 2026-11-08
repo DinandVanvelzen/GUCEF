@@ -45,6 +45,8 @@ CCodecParameterInfo::CCodecParameterInfo( void )
     , m_isRequired( false )
     , m_defaultValue()
     , m_description()
+    , m_minSize( 0 )
+    , m_maxSize( 0 )
 {GUCEF_TRACE;
 
 }
@@ -61,6 +63,28 @@ CCodecParameterInfo::CCodecParameterInfo( const CString& name          ,
     , m_isRequired( isRequired )
     , m_defaultValue( defaultValue )
     , m_description( description )
+    , m_minSize( 0 )
+    , m_maxSize( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CCodecParameterInfo::CCodecParameterInfo( const CString& name          ,
+                                          UInt8 typeId                 ,
+                                          bool isRequired              ,
+                                          const CVariant& defaultValue ,
+                                          const CString& description   ,
+                                          UInt32 minSize               ,
+                                          UInt32 maxSize               )
+    : m_name( name )
+    , m_typeId( typeId )
+    , m_isRequired( isRequired )
+    , m_defaultValue( defaultValue )
+    , m_description( description )
+    , m_minSize( minSize )
+    , m_maxSize( maxSize )
 {GUCEF_TRACE;
 
 }
@@ -73,6 +97,8 @@ CCodecParameterInfo::CCodecParameterInfo( const CCodecParameterInfo& src )
     , m_isRequired( src.m_isRequired )
     , m_defaultValue( src.m_defaultValue )
     , m_description( src.m_description )
+    , m_minSize( src.m_minSize )
+    , m_maxSize( src.m_maxSize )
 {GUCEF_TRACE;
 
 }
@@ -97,6 +123,8 @@ CCodecParameterInfo::operator=( const CCodecParameterInfo& src )
         m_isRequired = src.m_isRequired;
         m_defaultValue = src.m_defaultValue;
         m_description = src.m_description;
+        m_minSize = src.m_minSize;
+        m_maxSize = src.m_maxSize;
     }
     return *this;
 }
@@ -189,6 +217,52 @@ CCodecParameterInfo::GetDescription( void ) const
 {GUCEF_TRACE;
 
     return m_description;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCodecParameterInfo::SetSizeRange( UInt32 minSize, UInt32 maxSize )
+{GUCEF_TRACE;
+
+    m_minSize = minSize;
+    m_maxSize = maxSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CCodecParameterInfo::GetMinSize( void ) const
+{GUCEF_TRACE;
+
+    return m_minSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CCodecParameterInfo::GetMaxSize( void ) const
+{GUCEF_TRACE;
+
+    return m_maxSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCodecParameterInfo::HasSizeRange( void ) const
+{GUCEF_TRACE;
+
+    return 0 != m_minSize || 0 != m_maxSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCodecParameterInfo::AcceptsSize( UInt32 size ) const
+{GUCEF_TRACE;
+
+    return !HasSizeRange() || ( size >= m_minSize && size <= m_maxSize );
 }
 
 /*-------------------------------------------------------------------------//

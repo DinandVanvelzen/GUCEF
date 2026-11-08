@@ -23,6 +23,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <algorithm>
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -359,6 +361,53 @@ CCodecRegistry::GetCodecs( const CString& codecFamily ,
         return true;
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Highest priority first; std::stable_sort keeps the order of equal ones */
+static bool
+IsHigherPriority( const CCodecRegistry::SCodecProvider& a, const CCodecRegistry::SCodecProvider& b )
+{
+    return a.priority > b.priority;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCodecRegistry::FindCodecs( const CString& codecFamily         ,
+                            UInt32 requiredCapabilities        ,
+                            TCodecProviderVector& providers    ) const
+{GUCEF_TRACE;
+
+    providers.clear();
+    MT::CScopeMutex lock( m_dataLock );
+
+    // the map is ordered by family and type name, the registrations of a type by priority
+    TCodecTypeRegistrationsMap::const_iterator i = m_registrations.begin();
+    while ( i != m_registrations.end() )
+    {
+        const SCodecTypeRegistrations& typeRegistrations = (*i).second;
+        if ( typeRegistrations.codecFamily.Equals( codecFamily, false ) )
+        {
+            TCodecRegistrationVector::const_iterator n = typeRegistrations.registrations.begin();
+            while ( n != typeRegistrations.registrations.end() )
+            {
+                if ( !(*n).codec.IsNULL() && ( (*n).codec->GetCapabilities() & requiredCapabilities ) == requiredCapabilities )
+                {
+                    SCodecProvider provider;
+                    provider.codecType = typeRegistrations.codecType;
+                    provider.codec = (*n).codec;
+                    provider.priority = (*n).priority;
+                    providers.push_back( provider );
+                }
+                ++n;
+            }
+        }
+        ++i;
+    }
+    std::stable_sort( providers.begin(), providers.end(), IsHigherPriority );
+    return !providers.empty();
 }
 
 /*-------------------------------------------------------------------------*/

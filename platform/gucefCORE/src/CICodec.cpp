@@ -158,6 +158,15 @@ CICodec::GetCapabilities( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CICodec::GetOverhead( void ) const
+{GUCEF_TRACE;
+
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
 TCodecStatus
 CICodec::GetLastStatus( void ) const
 {GUCEF_TRACE;

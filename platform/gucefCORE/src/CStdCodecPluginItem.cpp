@@ -354,7 +354,9 @@ CStdCodecPluginItem::GetParameterInfo( CCodecParameterInfoList& info ) const
                                              paramInfo.typeId                                                              ,
                                              0 != paramInfo.required                                                       ,
                                              GUCEF_NULL != paramInfo.defaultValue ? CVariant( paramInfo.defaultValue ) : CVariant() ,
-                                             GUCEF_NULL != paramInfo.description ? CString( paramInfo.description ) : CString() ) );
+                                             GUCEF_NULL != paramInfo.description ? CString( paramInfo.description ) : CString() ,
+                                             paramInfo.minSize                                                             ,
+                                             paramInfo.maxSize                                                             ) );
     }
 }
 
@@ -409,6 +411,15 @@ CStdCodecPluginItem::GetCapabilities( void ) const
 {GUCEF_TRACE;
 
     return m_codecLink.capabilities;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CStdCodecPluginItem::GetOverhead( void ) const
+{GUCEF_TRACE;
+
+    return m_codecLink.overhead;
 }
 
 /*-------------------------------------------------------------------------*/

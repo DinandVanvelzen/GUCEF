@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "codecspluginOPENSSL.h"     // function prototypes for this plugin
 
@@ -437,6 +438,8 @@ struct SSslInstance
     EVP_CIPHER_CTX* decryptContext;
     EVP_MD_CTX* digestContext;
     EVP_MAC_CTX* macContext;
+    UInt8* macKey;              /**< a copy of the HMAC key, given again at the start of every message */
+    UInt32 macKeySize;
     bool rawOutput;
     UInt32 digestSize;
 };
@@ -452,6 +455,11 @@ DestroyInstance( SSslInstance* instance )
     EVP_CIPHER_CTX_free( instance->decryptContext );
     EVP_MD_CTX_free( instance->digestContext );
     EVP_MAC_CTX_free( instance->macContext );
+    if ( GUCEF_NULL != instance->macKey )
+    {
+        OPENSSL_cleanse( instance->macKey, instance->macKeySize );
+        free( instance->macKey );
+    }
     free( instance );
 }
 
@@ -481,8 +489,9 @@ StartHash( SSslInstance* instance, TCodecErrorInfo* error )
 {
     if ( SSLCODEC_HMAC_SHA256 == instance->kind )
     {
-        // the key that was set stays
-        if ( 1 != EVP_MAC_init( instance->macContext, GUCEF_NULL, 0, GUCEF_NULL ) )
+        // the key is given again: OpenSSL 3.0 does not restart an HMAC after its final when the key is left out
+        static const UInt8 emptyKey = 0;
+        if ( 1 != EVP_MAC_init( instance->macContext, instance->macKeySize > 0 ? instance->macKey : &emptyKey, instance->macKeySize, GUCEF_NULL ) )
             return SetError( error, GUCEF_CODEC_STATUS_FAILED, "OpenSSL: unable to start the HMAC" );
         return GUCEF_CODEC_STATUS_OK;
     }
@@ -540,7 +549,16 @@ CreateSslInstance( ESslCodecKind kind, const TVariantMapApi* params, SSslInstanc
             macParams[ 0 ] = OSSL_PARAM_construct_utf8_string( OSSL_MAC_PARAM_DIGEST, digestName, 0 );
             macParams[ 1 ] = OSSL_PARAM_construct_end();
             static const UInt8 emptyKey = 0;
-            if ( GUCEF_NULL == instance->macContext ||
+            if ( keySize > 0 )
+            {
+                instance->macKey = static_cast< UInt8* >( malloc( keySize ) );
+                if ( GUCEF_NULL != instance->macKey )
+                {
+                    memcpy( instance->macKey, key, keySize );
+                    instance->macKeySize = keySize;
+                }
+            }
+            if ( GUCEF_NULL == instance->macContext || ( keySize > 0 && GUCEF_NULL == instance->macKey ) ||
                  1 != EVP_MAC_init( instance->macContext, keySize > 0 ? key : &emptyKey, keySize, macParams ) )
                 status = SetError( error, GUCEF_CODEC_STATUS_FAILED, "OpenSSL: unable to set up the HMAC" );
         }
@@ -984,12 +1002,14 @@ struct SParamInfo
     UInt8 required;
     const char* defaultValue;
     const char* description;
+    UInt32 minSize;             /**< binary parameters: the sizes taken, 0 and 0 when not stated */
+    UInt32 maxSize;
 };
 
 const SParamInfo aeadParams[] =
 {
-    { "key", GUCEF_DATATYPE_BINARY_BLOB, 1, GUCEF_NULL, "The secret key, 32 bytes" },
-    { "nonce", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "12 bytes, never twice with the same key; required for one shot use, per call for instances" },
+    { "key", GUCEF_DATATYPE_BINARY_BLOB, 1, GUCEF_NULL, "The secret key, 32 bytes", 32, 32 },
+    { "nonce", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "12 bytes, never twice with the same key; required for one shot use, per call for instances", 12, 12 },
     { "aad", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "Associated data: authenticated, not encrypted" }
 };
 const SParamInfo x25519Params[] =
@@ -1051,6 +1071,12 @@ SslGetParameterInfo( void* pluginData          ,
     info->required = list[ index ].required;
     info->defaultValue = list[ index ].defaultValue;
     info->description = list[ index ].description;
+    // the sizes when the host knows them (API 2.1)
+    if ( info->structSize >= offsetof( TCodecParameterInfo, maxSize ) + sizeof( info->maxSize ) )
+    {
+        info->minSize = list[ index ].minSize;
+        info->maxSize = list[ index ].maxSize;
+    }
     return GUCEF_CODEC_STATUS_OK;
 }
 
@@ -1158,7 +1184,7 @@ SslGetOutputSizeBound( void* pluginData   ,
       SslEncode, SslDecode, SslGetParameterInfo, SslCreateInstance, SslInstanceProcess, SslDestroyInstance,       \
       SslGetOutputSizeBound }
 
-#define SSL_AEAD_CAPABILITIES       ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC | GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY )
+#define SSL_AEAD_CAPABILITIES       ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC | GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY | GUCEF_CODEC_CAPABILITY_AUTHENTICATED )
 #define SSL_HASH_CAPABILITIES       ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC )
 #define SSL_KEYS_CAPABILITIES       ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_DETERMINISTIC )
 #define SSL_KDF_CAPABILITIES        ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DETERMINISTIC )

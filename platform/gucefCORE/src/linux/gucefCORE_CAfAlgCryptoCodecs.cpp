@@ -587,7 +587,7 @@ class CAfAlgAeadCodec : public CInstanceBasedCodec
     public:
 
     CAfAlgAeadCodec( const CString& typeName, const char* algName )
-        : CInstanceBasedCodec( CoreCodecTypes::EncryptionCodec, typeName, GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC | GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY )
+        : CInstanceBasedCodec( CoreCodecTypes::EncryptionCodec, typeName, GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC | GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY | GUCEF_CODEC_CAPABILITY_AUTHENTICATED )
         , m_algName( algName )
     {GUCEF_TRACE;
     }
@@ -601,9 +601,16 @@ class CAfAlgAeadCodec : public CInstanceBasedCodec
     virtual void GetParameterInfo( CCodecParameterInfoList& info ) const GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
 
-        info.push_back( CCodecParameterInfo( "key", GUCEF_DATATYPE_BINARY_BLOB, true, CVariant(), "The secret key, 32 bytes" ) );
-        info.push_back( CCodecParameterInfo( "nonce", GUCEF_DATATYPE_BINARY_BLOB, false, CVariant(), "12 bytes, never twice with the same key; required for one shot use, per call for instances" ) );
+        info.push_back( CCodecParameterInfo( "key", GUCEF_DATATYPE_BINARY_BLOB, true, CVariant(), "The secret key, 32 bytes", 32, 32 ) );
+        info.push_back( CCodecParameterInfo( "nonce", GUCEF_DATATYPE_BINARY_BLOB, false, CVariant(), "12 bytes, never twice with the same key; required for one shot use, per call for instances", 12, 12 ) );
         info.push_back( CCodecParameterInfo( "aad", GUCEF_DATATYPE_BINARY_BLOB, false, CVariant(), "Associated data: authenticated, not encrypted" ) );
+    }
+
+    /** The tag */
+    virtual UInt32 GetOverhead( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        return AeadTagSize;
     }
 
     virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE

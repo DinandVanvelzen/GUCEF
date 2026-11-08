@@ -86,6 +86,8 @@ class GUCEF_CORE_PUBLIC_CPP CStdCodecPluginItem : public CICodec
 
     virtual UInt32 GetCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual UInt32 GetOverhead( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;

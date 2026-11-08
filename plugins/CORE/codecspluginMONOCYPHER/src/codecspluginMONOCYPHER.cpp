@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "codecspluginMONOCYPHER.h"     // function prototypes for this plugin
 
@@ -751,12 +752,20 @@ struct SParamInfo
     UInt8 required;
     const char* defaultValue;
     const char* description;
+    UInt32 minSize;             /**< binary parameters: the sizes taken, 0 and 0 when not stated */
+    UInt32 maxSize;
 };
 
-const SParamInfo aeadParams[] =
+const SParamInfo xchachaParams[] =
 {
-    { "key", GUCEF_DATATYPE_BINARY_BLOB, 1, GUCEF_NULL, "The secret key, 32 bytes" },
-    { "nonce", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "Never twice with the same key: 12 bytes, 24 for xchacha20-poly1305; required for one shot use, per call for instances" },
+    { "key", GUCEF_DATATYPE_BINARY_BLOB, 1, GUCEF_NULL, "The secret key, 32 bytes", 32, 32 },
+    { "nonce", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "24 bytes, never twice with the same key; required for one shot use, per call for instances", 24, 24 },
+    { "aad", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "Associated data: authenticated, not encrypted" }
+};
+const SParamInfo chachaParams[] =
+{
+    { "key", GUCEF_DATATYPE_BINARY_BLOB, 1, GUCEF_NULL, "The secret key, 32 bytes", 32, 32 },
+    { "nonce", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "12 bytes, never twice with the same key; required for one shot use, per call for instances", 12, 12 },
     { "aad", GUCEF_DATATYPE_BINARY_BLOB, 0, GUCEF_NULL, "Associated data: authenticated, not encrypted" }
 };
 const SParamInfo x25519Params[] =
@@ -813,8 +822,8 @@ MonoGetParameterInfo( void* pluginData          ,
     UInt32 count = 0;
     switch ( codec->kind )
     {
-        case MONOCODEC_XCHACHA20_POLY1305 :
-        case MONOCODEC_CHACHA20_POLY1305 : { list = aeadParams; count = sizeof( aeadParams ) / sizeof( aeadParams[ 0 ] ); break; }
+        case MONOCODEC_XCHACHA20_POLY1305 : { list = xchachaParams; count = sizeof( xchachaParams ) / sizeof( xchachaParams[ 0 ] ); break; }
+        case MONOCODEC_CHACHA20_POLY1305 : { list = chachaParams; count = sizeof( chachaParams ) / sizeof( chachaParams[ 0 ] ); break; }
         case MONOCODEC_X25519 : { list = x25519Params; count = sizeof( x25519Params ) / sizeof( x25519Params[ 0 ] ); break; }
         case MONOCODEC_ED25519 : { list = ed25519Params; count = sizeof( ed25519Params ) / sizeof( ed25519Params[ 0 ] ); break; }
         case MONOCODEC_BLAKE2B : { list = blake2bParams; count = sizeof( blake2bParams ) / sizeof( blake2bParams[ 0 ] ); break; }
@@ -830,6 +839,12 @@ MonoGetParameterInfo( void* pluginData          ,
     info->required = list[ index ].required;
     info->defaultValue = list[ index ].defaultValue;
     info->description = list[ index ].description;
+    // the sizes when the host knows them (API 2.1)
+    if ( info->structSize >= offsetof( TCodecParameterInfo, maxSize ) + sizeof( info->maxSize ) )
+    {
+        info->minSize = list[ index ].minSize;
+        info->maxSize = list[ index ].maxSize;
+    }
     return GUCEF_CODEC_STATUS_OK;
 }
 
@@ -1083,7 +1098,7 @@ MonoGetOutputSizeBound( void* pluginData   ,
       MonoEncode, MonoDecode, MonoGetParameterInfo, MonoCreateInstance, MonoInstanceProcess, MonoDestroyInstance, \
       MonoGetOutputSizeBound }
 
-#define MONO_AEAD_CAPABILITIES      ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC | GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY )
+#define MONO_AEAD_CAPABILITIES      ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC | GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY | GUCEF_CODEC_CAPABILITY_AUTHENTICATED )
 #define MONO_HASH_CAPABILITIES      ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_INSTANCES | GUCEF_CODEC_CAPABILITY_DETERMINISTIC )
 #define MONO_KEYS_CAPABILITIES      ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE | GUCEF_CODEC_CAPABILITY_DETERMINISTIC )
 #define MONO_KDF_CAPABILITIES       ( GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DETERMINISTIC )

@@ -79,7 +79,7 @@ extern "C" {
  *  The host refuses a plugin of another major version. A minor version only adds at the end of structs.
  */
 #define GUCEF_CODECPLUGIN_API_VERSION_MAJOR             2
-#define GUCEF_CODECPLUGIN_API_VERSION_MINOR             0
+#define GUCEF_CODECPLUGIN_API_VERSION_MINOR             1
 #define GUCEF_CODECPLUGIN_API_VERSION                   ( ( GUCEF_CODECPLUGIN_API_VERSION_MAJOR << 16 ) | GUCEF_CODECPLUGIN_API_VERSION_MINOR )
 #define GUCEF_CODECPLUGIN_API_VERSION_GET_MAJOR( v )    ( ( (UInt32) (v) ) >> 16 )
 #define GUCEF_CODECPLUGIN_API_VERSION_GET_MINOR( v )    ( ( (UInt32) (v) ) & 0xFFFF )
@@ -90,6 +90,7 @@ extern "C" {
 #define GUCEF_CODEC_CAPABILITY_INSTANCES        0x04    /* createInstance, instanceProcess and destroyInstance are there: incremental and streaming use */
 #define GUCEF_CODEC_CAPABILITY_DETERMINISTIC    0x08    /* the same input and parameters always give the same output */
 #define GUCEF_CODEC_CAPABILITY_MESSAGE_ONLY     0x10    /* an instance call must have both BEGIN and FINAL: the whole message in one call (AEAD) */
+#define GUCEF_CODEC_CAPABILITY_AUTHENTICATED    0x20    /* decode verifies the input: a changed message, tag or associated data fails with AUTHENTICATION_FAILED (AEAD) */
 
 /*
  *  Flags of instanceProcess. The input is always taken in.
@@ -171,6 +172,8 @@ struct SCodecParameterInfo
     UInt8 required;             /**< 1 or 0 */
     const char* defaultValue;   /**< as text, NULL when there is none */
     const char* description;
+    UInt32 minSize;             /**< GUCEF_DATATYPE_BINARY_BLOB: the fewest bytes the codec takes; 0 with maxSize 0: not stated. API 2.1 */
+    UInt32 maxSize;             /**< GUCEF_DATATYPE_BINARY_BLOB: the most bytes the codec takes; 0 with minSize 0: not stated. API 2.1 */
 };
 typedef struct SCodecParameterInfo TCodecParameterInfo;
 
