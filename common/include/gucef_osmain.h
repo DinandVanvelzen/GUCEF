@@ -1,7 +1,7 @@
 /*
  *  gucef common header: provides header based platform wide facilities
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <signal.h>
+#include <string.h>
 
 #ifndef GUCEF_PLATFORM_H
 #include "gucef_platform.h"
@@ -95,12 +96,60 @@
 /*-------------------------------------------------------------------------*/
 
 /*
+ *  Whether a command line given as one string holds the option --console as a whole token: delimited at both ends
+ *  by the start or end of the string, a space, a tab, a '*' (the separator of the key / value pairs of the tools)
+ *  or a double quote. "--console-log", "x--console" or a path that contains "--console" do not count.
+ *  Used by the Windows entry point, which gets the arguments as one string; plain C so that it is tested on
+ *  every platform.
+ */
+#ifdef __cplusplus
+inline int
+#else
+static int
+#endif
+gucef_osmain_has_console_arg( const char* cmdline )
+{
+    static const char option[] = "--console";
+    const size_t optionLength = sizeof( option ) - 1;
+    const char* p = cmdline;
+    while ( NULL != p && NULL != ( p = strstr( p, option ) ) )
+    {
+        const int startOk = ( p == cmdline ) || ' ' == p[ -1 ] || '\t' == p[ -1 ] || '*' == p[ -1 ] || '"' == p[ -1 ];
+        const char after = p[ optionLength ];
+        const int endOk = '\0' == after || ' ' == after || '\t' == after || '*' == after || '"' == after;
+        if ( startOk && endOk )
+            return 1;
+        p += optionLength;
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*
  *  Here we will define the GUCEF_OSMAIN macro which defines a entry point
  *  and makes the following variables available and application parameters:
  *      int argc
  *      char** argv
  *
  *  This makes the parsing of application parameters uniform
+ *
+ *  Stop signals (SIGINT, SIGTERM; on Windows also the console close, break and shutdown events):
+ *  - the handler given to GUCEF_OSMAIN_SIGNAL_HANDLER() runs in signal context (POSIX) or on a thread of the
+ *    system (Windows console control). It must be async-signal-safe: the expected handler calls only
+ *    GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( signal ), which the application acts on at its next
+ *    pulse, on its own thread.
+ *  - Linux and Android: GUCEF_OSSERVICEMAIN_BEGIN catches SIGINT and SIGTERM from the first statement of main()
+ *    (a signal the parent made ignored stays ignored). A signal that comes before the application installed its
+ *    handler is kept and handed to that handler the moment GUCEF_OSMAIN_SIGNAL_HANDLER() installs it, so a
+ *    SIGTERM during the start of a service (for example while it loads its configuration, or to PID 1 of a
+ *    container, for which the kernel has no default action) is not lost. GUCEF_OSMAIN_BEGIN keeps the default
+ *    action (the process ends) for a signal before the handler is installed, unless the application says
+ *    GUCEF_OSMAIN_DEFER_STOP_SIGNALS as its first statement.
+ *  - Windows: the console control handler is installed by GUCEF_OSMAIN_SIGNAL_HANDLER() as before; a service
+ *    stops on SERVICE_CONTROL_STOP and on SERVICE_CONTROL_SHUTDOWN (to verify on Windows): the control handler,
+ *    on a thread of the service control manager, calls CGUCEFApplication::RequestStopFromSignal( SIGTERM ) and the
+ *    application stops at its next pulse, on its own thread, as for a stop signal.
  */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -203,7 +252,7 @@
     ::DWORD g_win32CurrentState = 0;                                                                   \
     bool g_win32SystemShutdown = false;                                                                \
                                                                                                        \
-    void WINAPI Win32ServiceMain( DWORD argc, LPTSTR* argv );                                          \
+    void WINAPI Win32ServiceMain( DWORD argc, LPSTR* argv );                                           \
     int Win32ServiceInitializer( int argc, char** argv );                                              \
                                                                                                        \
     int __stdcall                                                                                      \
@@ -220,7 +269,7 @@
             if ( *lpcmdline != '\0' )                                                                  \
             {                                                                                          \
                 argc = 1;                                                                              \
-                if ( NULL != strstr( lpcmdline, "--console" ) )                                        \
+                if ( 0 != gucef_osmain_has_console_arg( lpcmdline ) )                                  \
                 {                                                                                      \
                     GUCEF_APP_TYPE = GUCEF_APP_TYPE_CONSOLE;                                           \
                     return Win32ServiceInitializer( argc, argv );                                      \
@@ -228,12 +277,13 @@
             }                                                                                          \
         }                                                                                              \
                                                                                                        \
-        ::SERVICE_TABLE_ENTRY win32ServiceTable[] = {                                                  \
-            { "", &Win32ServiceMain },                                                                 \
+        char win32ServiceTableName[] = "";                                                             \
+        ::SERVICE_TABLE_ENTRYA win32ServiceTable[] = {                                                 \
+            { win32ServiceTableName, &Win32ServiceMain },                                              \
             { NULL, NULL }                                                                             \
         };                                                                                             \
                                                                                                        \
-        if ( ::StartServiceCtrlDispatcher( win32ServiceTable ) )                                       \
+        if ( ::StartServiceCtrlDispatcherA( win32ServiceTable ) )                                      \
             return 0;                                                                                  \
         else if ( ERROR_FAILED_SERVICE_CONTROLLER_CONNECT == ::GetLastError() )                        \
             return -1;                                                                                 \
@@ -278,15 +328,15 @@
         switch ( control )                                                                             \
         {                                                                                              \
             case SERVICE_CONTROL_SHUTDOWN:                                                             \
-            {                                                                                          \
-                g_win32SystemShutdown = true;                                                          \
-                break;                                                                                 \
-            }                                                                                          \
             case SERVICE_CONTROL_STOP:                                                                 \
             {                                                                                          \
+                /* at system shutdown the application stops as for a stop, within the SCM's time */    \
+                if ( SERVICE_CONTROL_SHUTDOWN == control )                                             \
+                    g_win32SystemShutdown = true;                                                      \
                 Win32ReportStatus( SERVICE_STOP_PENDING );                                             \
                 ::SetEvent( g_win32StopEvent );                                                        \
-                ::GUCEF::CORE::CCoreGlobal::Instance()->GetApplication().Stop();                       \
+                /* the application stops on its own pulse thread, not on this SCM thread */            \
+                ::GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( SIGTERM );                    \
                 break;                                                                                 \
             }                                                                                          \
             default:                                                                                   \
@@ -298,16 +348,16 @@
         return NO_ERROR;                                                                               \
     }                                                                                                  \
                                                                                                        \
-    void WINAPI Win32ServiceMain( DWORD argc, LPTSTR *argv )                                           \
+    void WINAPI Win32ServiceMain( DWORD argc, LPSTR *argv )                                            \
     {                                                                                                  \
         GUCEF_MEMORY_CHECK_APP_START;                                                                  \
                                                                                                        \
         g_win32ServiceStatusHandle =                                                                   \
-            ::RegisterServiceCtrlHandlerEx( serviceName, &Win32HandlerEx, NULL);                       \
+            ::RegisterServiceCtrlHandlerExA( serviceName, &Win32HandlerEx, NULL);                      \
                                                                                                        \
         Win32ReportStatus( SERVICE_RUNNING );                                                          \
         g_win32StopEvent = ::CreateEvent( NULL, TRUE, FALSE, NULL );                                   \
-        int appResult = Win32ServiceInitializer( argc, argv );                                         \
+        int appResult = Win32ServiceInitializer( (int) argc, argv );                                   \
         if ( 0 != g_win32StopEvent )                                                                   \
             ::CloseHandle( g_win32StopEvent );                                                         \
                                                                                                        \
@@ -332,16 +382,21 @@
         signal( SIGTERM, &signalHandlerFunc );                                                         \
     }
 
+    /* Linux and Android only: the Windows entry points keep the default handling until the handler is installed */
+    #define GUCEF_OSMAIN_DEFER_STOP_SIGNALS
+
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     #include <string.h>
     #include <unistd.h>
 
-    #define GUCEF_OSMAIN_BEGIN_APPTYPE( appType )                                                      \
+    #define GUCEF_OSMAIN_BEGIN_APPTYPE_SIGNALS( appType, deferStopSignals )                            \
                                                                                                        \
     static unsigned char GUCEF_APP_TYPE = appType;                                                     \
     typedef void ( *gucef_installed_signal_handler_ptr)( int );                                        \
     static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = GUCEF_NULL;             \
+    static volatile sig_atomic_t gucef_osmain_pending_signal = 0;                                      \
+    static volatile sig_atomic_t gucef_osmain_defer_stop_signals = deferStopSignals;                   \
                                                                                                        \
     void linux_sig_term_handler( int signum, siginfo_t* info, void* ptr )                              \
     {                                                                                                  \
@@ -349,9 +404,37 @@
             gucef_installed_signal_handler( signum );                                                  \
     }                                                                                                  \
                                                                                                        \
+    /* until the application installs its handler; async-signal-safe */                               \
+    static void gucef_osmain_early_signal_handler( int signum )                                        \
+    {                                                                                                  \
+        if ( 0 != gucef_osmain_defer_stop_signals )                                                    \
+        {                                                                                              \
+            gucef_osmain_pending_signal = signum;                                                      \
+            return;                                                                                    \
+        }                                                                                              \
+        /* the default action, as if no handler had been installed */                                  \
+        signal( signum, SIG_DFL );                                                                     \
+        raise( signum );                                                                               \
+    }                                                                                                  \
+                                                                                                       \
+    static void gucef_osmain_install_early_signal_handler( int signum )                                \
+    {                                                                                                  \
+        struct sigaction current;                                                                      \
+        memset( &current, 0, sizeof( current ) );                                                      \
+        if ( 0 != sigaction( signum, NULL, &current ) || SIG_IGN == current.sa_handler )               \
+            return;                                                                                    \
+        struct sigaction early;                                                                        \
+        memset( &early, 0, sizeof( early ) );                                                          \
+        early.sa_handler = gucef_osmain_early_signal_handler;                                          \
+        sigemptyset( &early.sa_mask );                                                                 \
+        sigaction( signum, &early, NULL );                                                             \
+    }                                                                                                  \
+                                                                                                       \
     int                                                                                                \
     main( int argc, char* argv[] )                                                                     \
     {                                                                                                  \
+        gucef_osmain_install_early_signal_handler( SIGTERM );                                          \
+        gucef_osmain_install_early_signal_handler( SIGINT );                                           \
         if ( 0 != argc && argv != GUCEF_NULL )                                                         \
         {                                                                                              \
             for ( int i=0; i<argc; ++i )                                                               \
@@ -364,12 +447,17 @@
             }                                                                                          \
         }
 
+    #define GUCEF_OSMAIN_BEGIN_APPTYPE( appType )       GUCEF_OSMAIN_BEGIN_APPTYPE_SIGNALS( appType, 0 )
+
     #define GUCEF_OSMAIN_BEGIN      GUCEF_OSMAIN_BEGIN_APPTYPE( GUCEF_AUTO_APP_TYPE_CONSOLE )
 
     #define GUCEF_OSMAIN_END }
 
-    #define GUCEF_OSSERVICEMAIN_BEGIN( serviceName )    GUCEF_OSMAIN_BEGIN_APPTYPE( GUCEF_AUTO_APP_TYPE_BACKGROUND_PROCESSS )
+    #define GUCEF_OSSERVICEMAIN_BEGIN( serviceName )    GUCEF_OSMAIN_BEGIN_APPTYPE_SIGNALS( GUCEF_AUTO_APP_TYPE_BACKGROUND_PROCESSS, 1 )
     #define GUCEF_OSSERVICEMAIN_END                     GUCEF_OSMAIN_END
+
+    /* a stop signal before GUCEF_OSMAIN_SIGNAL_HANDLER() is kept for the handler, as GUCEF_OSSERVICEMAIN_BEGIN does */
+    #define GUCEF_OSMAIN_DEFER_STOP_SIGNALS     { gucef_osmain_defer_stop_signals = 1; }
 
     #define GUCEF_OSMAIN_SIGNAL_HANDLER( signalHandlerFunc )                                           \
     {                                                                                                  \
@@ -382,6 +470,14 @@
                                                                                                        \
         sigaction( SIGINT, &_sigact, NULL );                                                           \
         sigaction( SIGTERM, &_sigact, NULL );                                                          \
+                                                                                                       \
+        /* a signal that came before the handler: handed to it now, outside signal context */          \
+        if ( 0 != gucef_osmain_pending_signal )                                                        \
+        {                                                                                              \
+            int _pendingSignal = (int) gucef_osmain_pending_signal;                                    \
+            gucef_osmain_pending_signal = 0;                                                           \
+            signalHandlerFunc( _pendingSignal );                                                       \
+        }                                                                                              \
     }
 
 #else
@@ -404,6 +500,8 @@
     #define GUCEF_OSSERVICEMAIN_END                     GUCEF_OSMAIN_END
 
     #define GUCEF_OSMAIN_SIGNAL_HANDLER( signalHandlerFunc )
+
+    #define GUCEF_OSMAIN_DEFER_STOP_SIGNALS
 
 #endif
 

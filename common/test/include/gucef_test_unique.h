@@ -24,7 +24,9 @@
  *      (CTCPServerSocket::GetBoundPort(), CUDPSocket::GetPort(), CTestTcpServer::GetPort()).
  *    - When both sides need the port before anything is open (several UDP sockets that talk to each other, a
  *      multicast group), FindFreeUdpPort() / FindFreeTcpPort() ask the system for a port that is free now and hand
- *      out a port only once per process.
+ *      out a port only once per process. With the environment variable GUCEF_TEST_PORT_BASE set to a port number
+ *      the ports are handed out from that base upward instead, each checked to be free first, so that runs which
+ *      are started side by side can be given ranges of their own.
  *    - Files and directories: UniqueTestName() adds the process id and a counter to a name, CScopedTestDir makes a
  *      directory with such a name below the temporary directory and deletes it with its contents when it goes out
  *      of scope, also when an assertion leaves the test early.
@@ -32,7 +34,11 @@
  *    GUCEF::TESTFW::CScopedTestDir scratch( "gucefCOM_TestApp_Audit" );
  *    const GUCEF::CORE::CString path = GUCEF::CORE::CombinePath( scratch.GetPath(), "audit.jsonl" );
  *
- *  The port lookup is implemented on Linux (BSD sockets). Elsewhere it returns the port that is given as fallback.
+ *    - A port that is used for TCP and for UDP at the same time (a node with a TCP and a UDP link on one port number)
+ *      comes from FindFreeTcpAndUdpPort(): free for both protocols.
+ *
+ *  The port lookup is implemented with BSD sockets on Linux and Android and with Winsock on Windows. Elsewhere it
+ *  returns the port that is given as fallback.
  */
 
 #ifndef GUCEF_TEST_UNIQUE_H
@@ -40,6 +46,7 @@
 
 #ifdef __cplusplus
 
+#include <stdlib.h>
 #include <string.h>
 
 #if defined( __linux__ ) || defined( __ANDROID__ )
@@ -53,6 +60,15 @@
 #elif defined( _WIN32 )
 
   #include <process.h>
+
+  // winsock.h, which windows.h brings in without WIN32_LEAN_AND_MEAN, has all that is used here and cannot be
+  // combined with winsock2.h
+  #if !defined( _WINSOCKAPI_ ) || defined( _WINSOCK2API_ )
+    #include <winsock2.h>
+  #endif
+  #ifdef _MSC_VER
+    #pragma comment( lib, "Ws2_32.lib" )
+  #endif
 
 #endif /* platform ? */
 
@@ -138,31 +154,120 @@ class CScopedTestDir
 
 /*-------------------------------------------------------------------------*/
 
-/** Asks the system for a port that is free now, for UDP or TCP, and does not hand out the same port twice in this process */
+/** The port of the environment variable GUCEF_TEST_PORT_BASE, 0 when it is not set or not a port number */
 inline UInt16
-FindFreePort( bool udp, UInt16 fallbackPort )
+TestPortBase( void )
 {
-    #if defined( __linux__ ) || defined( __ANDROID__ )
-
-    static UInt16 handedOut[ 256 ];
-    static MT::CTAtomic< UInt32 > handedOutCount( 0 );
-
-    for ( int attempt=0; attempt<64; ++attempt )
+    const char* text = ::getenv( "GUCEF_TEST_PORT_BASE" );
+    if ( GUCEF_NULL == text || '\0' == *text )
+        return 0;
+    UInt32 value = 0;
+    for ( const char* c = text; '\0' != *c; ++c )
     {
-        int fd = ::socket( AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0 );
-        if ( fd < 0 )
-            return fallbackPort;
+        if ( *c < '0' || *c > '9' )
+            return 0;
+        value = value * 10 + (UInt32) ( *c - '0' );
+        if ( value > 65535 )
+            return 0;
+    }
+    return (UInt16) value;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Binds a socket of the protocol to the port on every interface, 0 for a port the system picks, and closes it again.
+ *  The port that was bound, 0 when the port could not be bound or the platform has no lookup.
+ */
+inline UInt16
+TryBindTestPort( bool udp, UInt16 port )
+{
+    #if defined( __linux__ ) || defined( __ANDROID__ ) || defined( _WIN32 )
+
+    #if defined( _WIN32 )
+    WSADATA wsaData;
+    if ( 0 != ::WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) )
+        return 0;
+    SOCKET fd = ::socket( AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0 );
+    const bool opened = INVALID_SOCKET != fd;
+    int length = (int) sizeof( struct sockaddr_in );
+    #else
+    int fd = ::socket( AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0 );
+    const bool opened = fd >= 0;
+    socklen_t length = sizeof( struct sockaddr_in );
+    #endif
+
+    UInt16 boundPort = 0;
+    if ( opened )
+    {
         struct sockaddr_in addr;
         memset( &addr, 0, sizeof( addr ) );
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htonl( INADDR_ANY );
-        addr.sin_port = 0;
-        UInt16 port = 0;
-        socklen_t length = sizeof( addr );
+        addr.sin_port = htons( port );
         if ( 0 == ::bind( fd, (struct sockaddr*) &addr, sizeof( addr ) ) && 0 == ::getsockname( fd, (struct sockaddr*) &addr, &length ) )
-            port = ntohs( addr.sin_port );
+            boundPort = ntohs( addr.sin_port );
+        #if defined( _WIN32 )
+        ::closesocket( fd );
+        #else
         ::close( fd );
+        #endif
+    }
+
+    #if defined( _WIN32 )
+    ::WSACleanup();
+    #endif
+    return boundPort;
+
+    #else
+
+    return 0;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Asks the system for a port that is free now for the protocols asked for (TCP, UDP or both), and does not hand out the
+ *  same port twice in this process. With GUCEF_TEST_PORT_BASE set the candidates are that base and the ports above it,
+ *  in order, instead of the ports the system picks. The fallback port when no free port is found.
+ */
+inline UInt16
+FindFreePortFor( bool tcp, bool udp, UInt16 fallbackPort )
+{
+    static UInt16 handedOut[ 256 ];
+    static MT::CTAtomic< UInt32 > handedOutCount( 0 );
+    static MT::CTAtomic< UInt32 > nextFromBase( 0 );
+    static MT::CTAtomic< UInt32 > lastPortBase( 0 );
+
+    if ( !tcp && !udp )
+        return fallbackPort;
+
+    // another base starts at that base again
+    const UInt16 portBase = TestPortBase();
+    if ( lastPortBase.Exchange( portBase ) != (UInt32) portBase )
+        nextFromBase.Store( 0 );
+    for ( int attempt=0; attempt<64; ++attempt )
+    {
+        UInt16 candidate = 0;
+        if ( 0 != portBase )
+        {
+            const UInt32 offset = nextFromBase.FetchAdd( 1 );
+            if ( (UInt32) portBase + offset > 65535 )
+                return fallbackPort;
+            candidate = (UInt16) ( portBase + offset );
+        }
+
+        // the first protocol gives the port (the candidate, or one the system picks), the second has to be free on it too
+        UInt16 port = TryBindTestPort( !tcp, candidate );
         if ( 0 == port )
+        {
+            if ( 0 == candidate )
+                return fallbackPort;        // the system gives no port at all, or this platform has no lookup
+            continue;
+        }
+        if ( tcp && udp && port != TryBindTestPort( true, port ) )
             continue;
 
         // the port numbers of the two protocols are separate, but one list keeps this simple and a repeat only costs another attempt
@@ -179,12 +284,15 @@ FindFreePort( bool udp, UInt16 fallbackPort )
         return port;
     }
     return fallbackPort;
+}
 
-    #else
+/*-------------------------------------------------------------------------*/
 
-    return fallbackPort;
-
-    #endif
+/** FindFreePortFor() for one protocol */
+inline UInt16
+FindFreePort( bool udp, UInt16 fallbackPort )
+{
+    return FindFreePortFor( !udp, udp, fallbackPort );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -201,6 +309,15 @@ inline UInt16
 FindFreeTcpPort( UInt16 fallbackPort = 0 )
 {
     return FindFreePort( false, fallbackPort );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A port that is free for TCP and for UDP, for a test that uses the one port number for both */
+inline UInt16
+FindFreeTcpAndUdpPort( UInt16 fallbackPort = 0 )
+{
+    return FindFreePortFor( true, true, fallbackPort );
 }
 
 /*-------------------------------------------------------------------------*/

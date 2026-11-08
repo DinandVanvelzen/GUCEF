@@ -71,6 +71,11 @@
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 namespace GUCEF {
 namespace TESTFW {
 
@@ -488,7 +493,7 @@ class CTlsTestTerminator
     int m_listenFd;
     UInt16 m_port;
     UInt16 m_backendPort;
-    volatile bool m_running;
+    MT::CTAtomic< bool > m_running;     /**< read by the accept and connection threads, set by Start() and Stop() */
     volatile bool m_abortWithoutCloseNotify;
     bool m_acceptThreadStarted;
     UInt32 m_liveConnections;

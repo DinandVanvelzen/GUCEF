@@ -1,0 +1,132 @@
+# ThreadSanitizer suppressions for the GUCEF test applications.
+#
+# Use: TSAN_OPTIONS="suppressions=<GUCEF>/common/test/sanitizers/gucef_tsan.supp print_suppressions=1 ..."
+#
+# Only lock order reports (deadlock:) whose cycle cannot close at run time are listed, each matched by a function of
+# its stacks that marks the category, never by a whole file or module. Data races are never suppressed.
+# The categories and why each cannot deadlock: gucefCOMCORE RPC design 10.9 ("Lock order reports that cannot
+# deadlock"); the use of this file: GUCEF_SanitizerRuns.md 3.2.
+
+# Shared pointer destruction: the last reference destroys a loopback transport under its shared lock and the
+# destructor unsubscribes; a copy under a lock needs a live reference, so it never meets that destruction.
+deadlock:GUCEF::COMCORE::CRpcLoopbackTransport::~CRpcLoopbackTransport
+
+# Shared pointer destruction: as above, for the loopback listener (CRpcHost::AddListener copies it under its lock).
+deadlock:GUCEF::COMCORE::CRpcLoopbackTransportListener::~CRpcLoopbackTransportListener
+
+# Shared pointer destruction: as above, for the tcp transport.
+deadlock:GUCEF::COM::CRpcTcpTransport::~CRpcTcpTransport
+
+# Shared pointer destruction: as above, for a client stream (OpenStream() and stream events copy it under the lock).
+deadlock:GUCEF::COMCORE::CRpcClientStream::~CRpcClientStream
+
+# Shared pointer destruction: as above, for the fault injecting transport decorator of the RPC tests.
+deadlock:CRpcLossyTransport::~CRpcLossyTransport
+
+# Shared pointer destruction: as above, for a server call whose last reference goes with the object that kept it (the
+# channel of the MCP transport "rpc" when it closes); its destructor unsubscribes.
+deadlock:GUCEF::COMCORE::CRpcServerCall::~CRpcServerCall
+
+# Thread pool: StartTask() and the singular task setup post to the pool's mailbox under the pool lock while its
+# mailbox delivery takes the pool lock in RemoveDelegator(); the cycle lies inside CThreadPool, never through the
+# endpoint, which calls into the pool without its own lock.
+deadlock:GUCEF::CORE::CThreadPool::RemoveDelegator
+
+# Socket construction (tcp): the constructor holds the new socket's notification lock while it subscribes the socket
+# to its pulse generator; a pulse reaches the socket only after that subscription, when the constructor holds neither.
+deadlock:GUCEF::COMCORE::CTCPClientSocket::CTCPClientSocket
+
+# Socket construction (tcp): as above, for a listening socket, which accepts connections under that lock in OnPulse().
+deadlock:GUCEF::COMCORE::CTCPServerSocket::CTCPServerSocket
+
+# Listening (tcp): Listen() subscribes under the listener's notifier lock before ListenOnPort(), so no pulse can
+# accept a connection, which raises TransportAcceptedEvent under that lock, while Listen() holds it.
+deadlock:GUCEF::COM::CRpcTcpTransportListener::Listen
+
+# The following are not RPC categories; they are explained in GUCEF_SanitizerRuns.md 3.2.
+
+# gucefMT read-write lock: rwl_writer_start() takes the writer lock under the data lock only when no writer is active
+# (checked under that data lock), while rwl_writer_stop() takes the data lock as the active writer; the two never meet.
+# Pending the review of gucefMT by its owner (the read-write lock is gucefMT code, outside the RPC categories).
+deadlock:rwl_writer_stop
+
+# Thread log buffers: the swap takes the locks of the two buffers in turn in either order, always under m_swapLock;
+# no other thread holds one buffer's lock while it waits for the other's.
+deadlock:GUCEF::CORE::CThreadLogBuffers::TrySwapAndGetBackBuffer
+
+# Teardown at exit: CCoreGlobal destroys the task manager, the application, the plugin control and, last, the logging
+# global on the exiting thread after it waited without a time limit for every thread of every thread pool (the thread pools
+# stay registered until the task manager goes). The pulse generator of the global objects is pulsed by that thread
+# only, so no other thread holds a lock of them, or a mailbox lock of their pumped observers, at that point.
+deadlock:GUCEF::CORE::CTaskManager::~CTaskManager
+deadlock:GUCEF::CORE::CGUCEFApplication::~CGUCEFApplication
+
+# Logger construction: the desktop terminal console logger logs under its own lock while its constructor starts the
+# terminal (a log statement on the thread of the pulse generator hands its entry to the loggers at once, under the
+# log manager's lock); the log manager calls the logger under that lock only once the logger was added, after the
+# constructor, so no thread holds the log manager's lock and waits for the lock of a logger that is being made.
+deadlock:GUCEF::CORE::CDesktopTerminalConsoleLogger::Initialize
+
+# Socket construction (http): the constructor of the http server subscribes to its own server socket under its
+# notifier lock; the server socket raises its connection events, which take that lock, only once it listens, after
+# the constructor.
+deadlock:GUCEF::WEB::CHTTPServer::RegisterEventHandlers
+
+# Accepting (http): the http server subscribes to a connection the server socket just accepted from within the socket's
+# ClientConnectedEvent, holding its own notifier lock while it takes the connection's notification lock; the events of
+# a connection (data) take the server's lock under the connection's lock. The two never meet for one connection: the
+# server socket makes a connection active, which starts its events, only after that event, and hands it to a later
+# client only once its close was reported, which comes after its last event (DisconnectedEvent). Other holders of a
+# connection's lock (senders, the web socket connection) never take the server's lock.
+deadlock:GUCEF::WEB::CHTTPServer::SubscribeToNewConnection
+
+# Shared pointer destruction (http client): the last reference destroys the progress notifier of a request under its
+# shared lock and the destructor shuts its mailbox and unsubscribes; a copy or a release under another lock needs a
+# live reference, so it never meets that destruction.
+deadlock:GUCEF::WEB::CHttpClientProgressNotifier::~CHttpClientProgressNotifier
+
+# Buffer swap (one writer, one reader): a buffer's lock is taken under the swap's lock only when its hasUnreadData flag,
+# which changes under the swap's lock together with the release of that buffer's lock, says the other side does not
+# hold it: that lock never waits. The writer and the reader hold their buffer's lock between calls. The entry names the
+# writer's call, which is in every such report (GetNextReaderBuffer() takes a buffer's lock the same way).
+deadlock:GUCEF::CORE::CDynamicBufferSwap::GetNextWriterBuffer
+
+# The following are gucefDRN categories; the lock order of the node is gucefDRN design 9.1, the entries are explained in
+# GUCEF_SanitizerRuns.md 3.2.
+
+# Shared pointer destruction (DRN channels): the last reference of a channel goes with its link (or the test's group) and
+# destroys the channel under the channel's shared lock; the destructor closes and unsubscribes its socket (the
+# notification locks of the node's pulse generator and of the socket). A copy of the channel pointer under those locks
+# (an event of the socket, an accept of the listener) needs a live reference, so it never meets that destruction.
+deadlock:GUCEF::DRN::CDRNTcpChannel::~CDRNTcpChannel
+deadlock:GUCEF::DRN::CDRNUdpChannel::~CDRNUdpChannel
+deadlock:GUCEF::DRN::CDRNWebSocketChannel::~CDRNWebSocketChannel
+deadlock:CDRNMemoryChannel::~CDRNMemoryChannel
+deadlock:CDRNLossyChannel::~CDRNLossyChannel
+
+# Shared pointer destruction (DRN RPC transport): as above, for the drn RPC transport whose last reference goes with an
+# endpoint or a test fixture and destroys it under its shared lock. Its destructor unsubscribes from the node's pulse
+# generator (the notification lock that a pulse holds while the endpoint copies the transport pointer under the
+# endpoint lock: the edge in every report), and Detach() takes the node lock and sends the close over the link while
+# the transport is still attached. A copy of the pointer under those locks needs a live reference, so it never meets that
+# destruction. The node lock is never taken under the endpoint lock there: the endpoint lets go of a detached transport
+# after its lock (OnProtocolPulse(), its destructor), CRpcHost after its lock; a transport released under the node lock
+# (accepted, kept by nobody) takes it again on the same thread.
+deadlock:GUCEF::DRN::CDRNRpcTransport::~CDRNRpcTransport
+
+# Shared pointer destruction (table copy): as above, for the copy of a published table that a scan reuses; it goes with
+# the table, and its destructor unsubscribes from the pulse generator.
+deadlock:GUCEF::CORE::CMemoryDataTable::~CMemoryDataTable
+
+# Node lock held (DRN RPC transport): FlushLink() sends over the link of a transport only on a thread that works on the
+# node, which holds the node lock (CDRNNode::IsWorkingOnThisThread()), under the endpoint lock. The locks of a channel are
+# taken only under the node lock as well (the node's pulse generator is pulsed under it), so a cycle through a channel
+# lock has its edge into and its edge out of that lock both on threads that hold the node lock: one thread at a time.
+deadlock:GUCEF::DRN::CDRNRpcTransport::FlushLink
+
+# Node lock held by a table publisher (DRN): where the calling thread holds the node lock while PublishFrom() scans the
+# table, inside an update (BeginUpdate() holds it) and on a thread that works on the node (a handler of a pulse of the
+# node's pulse generator, CDRNNode::IsWorkingOnThisThread()), it scans only on the thread that pulses the table's pulse
+# generator (it refuses elsewhere); the scan subscribes to that pulse generator, whose pulses take the node lock, on that
+# same thread only, so no pulse of it waits for the node lock that thread holds. Elsewhere it scans without the node lock.
+deadlock:GUCEF::DRN::CDRNTablePublisher::PublishFrom
