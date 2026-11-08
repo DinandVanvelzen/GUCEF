@@ -102,9 +102,17 @@ LoadCryptography( void )
     DRN::CDRNGlobal::Instance();
     if ( DRN::CDRNCrypto::IsKeyAgreementAvailable() && DRN::CDRNCrypto::IsCipherAvailable( "xchacha20-poly1305" ) )
         return true;
+    // as a codec plugin, as gucefLabLink loads it: no trial of the other plugin kinds
     CORE::CPluginControl& plugins = CORE::CCoreGlobal::Instance()->GetPluginControl();
-    if ( !plugins.AddPluginFromDir( "$MODULEDIR$/codecspluginMONOCYPHER", "test", true ) )
-        plugins.AddPluginFromDir( "$MODULEDIR$/codecspluginMONOCYPHER_d", "test", true );
+    CORE::CPluginMetaData metaData;
+    metaData.SetFullModulePath( CORE::RelativePath( "$MODULEDIR$" ) );
+    metaData.SetPluginType( "GucefStandardCodecPlugin" );
+    metaData.SetModuleFilename( "codecspluginMONOCYPHER" );
+    if ( !plugins.AddPluginMetaData( metaData, "test", true ) )
+    {
+        metaData.SetModuleFilename( "codecspluginMONOCYPHER_d" );
+        plugins.AddPluginMetaData( metaData, "test", true );
+    }
     return DRN::CDRNCrypto::IsKeyAgreementAvailable() && DRN::CDRNCrypto::IsCipherAvailable( "xchacha20-poly1305" );
 }
 
@@ -172,6 +180,7 @@ class CLab
                    "echo server=https://10.0.0.1:6443\necho version=v1.37.2+k3s1\necho token=K10test::server:secret\n"
                    "case \" $* \" in *\" --ephemeral \"*) echo ephemeral=true ;; *) echo ephemeral=false ;; esac\n", true );
         WriteText( Path( "bin/join.sh" ), "#!/bin/sh\necho \"$* user=$SUDO_USER\" >> \"" + Path( "join.log" ) + "\"\n", true );
+        WriteText( Path( "bin/no-k3s" ), "#!/bin/sh\nexit 1\n", true );     // k3s that gives no version
         WriteText( Path( "bin/claude" ), "#!/bin/sh\necho \"$*\" >> \"" + Path( "claude.log" ) + "\"\n", true );
 
         clusterSettings.stateDir = Path( "cluster" );
@@ -222,6 +231,7 @@ class CLab
     {
         SSettings settings;
         settings.stateDir = Path( name );
+        settings.machineName = CORE::CString( "test-" ) + name;    // not the host name: the log shows a test machine
         settings.useMdns = false;
         settings.useBroadcast = false;
         settings.claudeUser = CORE::GetEnv( "USER" ).IsNULLOrEmpty() ? CORE::CString( "test" ) : CORE::GetEnv( "USER" );
@@ -266,19 +276,6 @@ class CLab
         return found && clusterStore.SaveApprovals( approvals, problem );
     }
 };
-
-/*-------------------------------------------------------------------------*/
-
-/** The name a machine gives itself */
-CORE::CString
-ThisMachine( void )
-{
-    char name[ 256 ];
-    if ( 0 != ::gethostname( name, sizeof( name ) - 1 ) )
-        return "machine";
-    name[ sizeof( name ) - 1 ] = '\0';
-    return CORE::CString( name ).Lowercase();
-}
 
 }
 
@@ -354,7 +351,7 @@ PerformLabLinkTests( void )
             ASSERT_TRUE( 2 == answers.nodes.size() );
 
             // the join: a token for one hour, ephemeral, join.sh with what the cluster gave
-            ASSERT_TRUE( Contains( ReadText( lab.Path( "join-command.args" ) ), "--values --ttl 1h --ephemeral" ) );
+            ASSERT_TRUE( Contains( ReadText( lab.Path( "join-command.args" ) ), "--values --ttl 1h --ephemeral --node test-machine" ) );
             const CORE::CString join = ReadText( lab.Path( "join.log" ) );
             ASSERT_TRUE( Contains( join, "--server https://10.0.0.1:6443 --version v1.37.2+k3s1 --token K10test::server:secret --ephemeral" ) );
             ASSERT_TRUE( Contains( join, "user=" + settings.claudeUser ) );
@@ -472,13 +469,13 @@ PerformLabLinkTests( void )
             CORE::CString problem;
             GUCEF::vector< SApproval > approvals;
             ASSERT_TRUE( lab.clusterStore.LoadApprovals( approvals, problem ) && 1 == approvals.size() );
-            ASSERT_TRUE( approvals[ 0 ].state == AccessPending && approvals[ 0 ].name == ThisMachine() && approvals[ 0 ].address == "127.0.0.1" );
+            ASSERT_TRUE( approvals[ 0 ].state == AccessPending && approvals[ 0 ].name == "test-machine" && approvals[ 0 ].address == "127.0.0.1" );
 
             // asking again adds no second request
             ASSERT_FALSE( machine.Visit( lab.Sighting() ) );
             ASSERT_TRUE( lab.clusterStore.LoadApprovals( approvals, problem ) && 1 == approvals.size() );
 
-            ASSERT_TRUE( lab.SetApproval( ThisMachine().C_String(), AccessApproved ) );
+            ASSERT_TRUE( lab.SetApproval( "test-machine", AccessApproved ) );
             ASSERT_TRUE( machine.Visit( lab.Sighting() ) );
             SIdentity identity;
             ASSERT_TRUE( store.LoadIdentity( identity, problem ) );
@@ -489,7 +486,7 @@ PerformLabLinkTests( void )
             // the token is kept: the next visit needs no access request
             ASSERT_TRUE( machine.Visit( lab.Sighting() ) );
 
-            ASSERT_TRUE( lab.SetApproval( ThisMachine().C_String(), AccessRefused ) );
+            ASSERT_TRUE( lab.SetApproval( "test-machine", AccessRefused ) );
             ASSERT_FALSE( machine.Visit( lab.Sighting() ) );
         }
         catch ( const TESTFW::STestSkipRequest& )

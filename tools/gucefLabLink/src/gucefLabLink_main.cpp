@@ -40,6 +40,11 @@
 #define GUCEF_CORE_CPLUGINCONTROL_H
 #endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINMETADATA_H
+#include "gucefCORE_CPluginMetaData.h"
+#define GUCEF_CORE_CPLUGINMETADATA_H
+#endif /* GUCEF_CORE_CPLUGINMETADATA_H ? */
+
 #ifndef GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
 #include "gucefCORE_CPlatformNativeConsoleLogger.h"
 #define GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
@@ -127,9 +132,10 @@ using namespace GUCEFLabLink;
  *    --join-command PATH    cluster: agent-node/join-command.sh; without it machines cannot join
  *    --k3s-bin PATH         cluster: default /usr/local/bin/k3s
  *    --mcp-dir DIR          cluster: default /var/lib/gucef-mcp
+ *    --machine-name NAME    machine: the name it gives itself; default the host name
  *    --join-script PATH     machine: agent-node/join.sh; with it the machine joins the cluster when it is no node yet
  *    --permanent            machine: join as a node that is always on, not an ephemeral one
- *    --node-marker PATH     machine: exists on a k3s node; default /etc/systemd/system/k3s-agent.service
+ *    --node-marker PATH     machine: exists on a k3s node; default /etc/rancher/k3s/gucef-node-joined (join.sh)
  *    --claude-user NAME     machine: whose Claude Code gets the MCP services
  *    --claude-command PATH, --claude-home DIR   machine: default the claude and the home of that user
  *    --local-node NAME      machine: the node name of this machine, whose MCP service is registered locally
@@ -179,6 +185,7 @@ ParseOptions( int argc, char* argv[], SOptions& options )
         else if ( arg == "--state-dir" ) s.stateDir = value;
         else if ( arg == "--allow" ) options.ranges.push_back( value );
         else if ( arg == "--cluster-name" ) s.clusterName = value;
+        else if ( arg == "--machine-name" ) s.machineName = value;
         else if ( arg == "--lab-port" ) s.labPort = (UInt16) CORE::StringToUInt32( value );
         else if ( arg == "--access-port" ) s.accessPort = (UInt16) CORE::StringToUInt32( value );
         else if ( arg == "--no-mdns" ) s.useMdns = false;
@@ -212,7 +219,7 @@ PrintUsage( void )
                      "Commands: --init, --set-secret SECRET, --approve NAME|ID, --revoke NAME|ID, --list.\n"
                      "Service: --role cluster|machine, --state-dir DIR, --allow CIDR (repeatable), --cluster-name NAME, --lab-port N,\n"
                      "  --access-port N, --no-mdns, --no-broadcast, --broadcast-port N, --join-command PATH, --k3s-bin PATH, --mcp-dir DIR,\n"
-                     "  --join-script PATH, --permanent, --node-marker PATH, --claude-user NAME, --claude-command PATH, --claude-home DIR,\n"
+                     "  --machine-name NAME, --join-script PATH, --permanent, --node-marker PATH, --claude-user NAME, --claude-command PATH, --claude-home DIR,\n"
                      "  --local-node NAME, --refresh SECONDS, --retry SECONDS\n" );
 }
 
@@ -234,15 +241,25 @@ HostName( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** Loads a codec plugin next to the program, as a codec plugin (no trial of the other plugin kinds) */
+static bool
+LoadCodecPlugin( const CORE::CString& moduleName )
+{
+    CORE::CPluginMetaData metaData;
+    metaData.SetFullModulePath( CORE::RelativePath( "$MODULEDIR$" ) );
+    metaData.SetModuleFilename( moduleName );
+    metaData.SetPluginType( "GucefStandardCodecPlugin" );
+    return CORE::CCoreGlobal::Instance()->GetPluginControl().AddPluginMetaData( metaData, "gucefLabLink", true );
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** codecspluginMONOCYPHER: the key agreement and ciphers of DRN */
 static bool
 LoadCryptography( void )
 {
-    if ( DRN::CDRNCrypto::IsKeyAgreementAvailable() && DRN::CDRNCrypto::IsCipherAvailable( "xchacha20-poly1305" ) )
-        return true;
-    CORE::CPluginControl& plugins = CORE::CCoreGlobal::Instance()->GetPluginControl();
-    if ( !plugins.AddPluginFromDir( "$MODULEDIR$/codecspluginMONOCYPHER", "gucefLabLink", true ) )
-        plugins.AddPluginFromDir( "$MODULEDIR$/codecspluginMONOCYPHER_d", "gucefLabLink", true );
+    if ( !LoadCodecPlugin( "codecspluginMONOCYPHER" ) )
+        LoadCodecPlugin( "codecspluginMONOCYPHER_d" );
     return DRN::CDRNCrypto::IsKeyAgreementAvailable() && DRN::CDRNCrypto::IsCipherAvailable( "xchacha20-poly1305" );
 }
 

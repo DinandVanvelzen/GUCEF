@@ -59,10 +59,11 @@ struct SSettings
     GUCEF::CORE::CString mcpDir;                /**< /var/lib/gucef-mcp: tls/ca.crt, lab-token, mcp-nodes */
 
     // machine
+    GUCEF::CORE::CString machineName;           /**< the name this machine gives itself; default the host name */
     bool join;                                  /**< join the cluster as a node when this machine is not one */
     bool ephemeral;                             /**< join as an ephemeral node */
     GUCEF::CORE::CString joinScript;            /**< agent-node/join.sh */
-    GUCEF::CORE::CString nodeMarkerFile;        /**< exists when this machine is a k3s node already */
+    GUCEF::CORE::CString nodeMarkerFile;        /**< exists when this machine is a k3s node already: agent-node/join.sh writes it once the agent runs */
     GUCEF::CORE::CString claudeUser;            /**< the user whose Claude Code is set up; empty: none */
     GUCEF::CORE::CString claudeCommand;         /**< the claude program; empty: looked up for the user */
     GUCEF::CORE::CString claudeHome;            /**< where the CA file and the line of the profile go; empty: the home of the user */
@@ -82,10 +83,11 @@ struct SSettings
         , joinCommand()
         , k3sBin( "/usr/local/bin/k3s" )
         , mcpDir( "/var/lib/gucef-mcp" )
+        , machineName()
         , join( false )
         , ephemeral( true )
         , joinScript()
-        , nodeMarkerFile( "/etc/systemd/system/k3s-agent.service" )
+        , nodeMarkerFile( "/etc/rancher/k3s/gucef-node-joined" )
         , claudeUser()
         , claudeCommand()
         , claudeHome()

@@ -249,6 +249,12 @@ class CLabService : public COMCORE::CRpcServiceImpl
         args.push_back( "1h" );
         if ( ephemeral )
             args.push_back( "--ephemeral" );
+        // the node name the machine joins with: what a join of it that did not complete left behind is cleaned up
+        if ( !name.IsNULLOrEmpty() )
+        {
+            args.push_back( "--node" );
+            args.push_back( name.Lowercase() );
+        }
         std::string output;
         Int32 exitCode = -1;
         if ( !RunProgram( m_role.GetSettings().joinCommand, args, CORE::CProcess::TStringMap(), 60000, output, exitCode ) || 0 != exitCode ||

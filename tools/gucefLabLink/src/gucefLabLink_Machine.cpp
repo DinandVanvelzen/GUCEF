@@ -181,9 +181,13 @@ PumpOnce( DRN::CDRNNode* node )
 
 /*-------------------------------------------------------------------------*/
 
+/** The name the machine gives itself: the setting, or the host name */
 static CORE::CString
-MachineName( void )
+MachineName( const SSettings& settings )
 {GUCEF_TRACE;
+
+    if ( !settings.machineName.IsNULLOrEmpty() )
+        return settings.machineName;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     char name[ 256 ];
@@ -238,8 +242,9 @@ class CRpcLink
 
     ~CRpcLink() { Close(); }
 
-    bool Open( const CORE::CString& address, UInt16 port, const CORE::CString& pinnedKey, const CORE::CString& sessionName,
-               const DRN::CDRNAuthSettings& credentials, const COMCORE::CRpcContractPtr& contract, CORE::CString& problem )
+    bool Open( const CORE::CString& nodeName, const CORE::CString& address, UInt16 port, const CORE::CString& pinnedKey,
+               const CORE::CString& sessionName, const DRN::CDRNAuthSettings& credentials, const COMCORE::CRpcContractPtr& contract,
+               CORE::CString& problem )
     {
         DRN::CDRNNodeSettings nodeSettings;
         nodeSettings.serviceName = "gucef-lab";
@@ -282,7 +287,7 @@ class CRpcLink
         transport = drnTransport;
         m_registry.Register( contract, COMCORE::CRpcContractRegistry::CONTRACTSOURCE_FILE );
         COMCORE::CRpcEndpointSettings settings;
-        settings.nodeName = MachineName();
+        settings.nodeName = nodeName;
         settings.contractRegistry = &m_registry;
         settings.requireSecureTransport = true;
         m_endpoint = COMCORE::CRpcEndpoint::Create( m_node->GetPulseGenerator(), settings );
@@ -388,6 +393,7 @@ CMachineRole::CMachineRole( const SSettings& settings, CStore& store )
     , m_lastAnswers()
     , m_lastOutcome()
     , m_discoveryClients()
+    , m_claudeMissingReported( false )
 {GUCEF_TRACE;
 
 }
@@ -426,7 +432,7 @@ CMachineRole::Start( CORE::CString& problem )
     CORE::CString noSecret;
     if ( !m_store.ReadSecret( m_secret, noSecret ) )
         m_secret.Clear();
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Machine " << MachineName() << " (" << m_identity.machineId << ") looks for its cluster in " <<
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Machine " << MachineName( m_settings ) << " (" << m_identity.machineId << ") looks for its cluster in " <<
                       m_settings.allowedRanges.Describe() << ( m_secret.IsNULLOrEmpty() ? CORE::CString( ", without the lab secret" ) : CORE::CString( ", with the lab secret" ) ) );
 
     COMCORE::CDiscoveryManager& manager = COMCORE::CComCoreGlobal::Instance()->GetDiscoveryManager();
@@ -524,14 +530,14 @@ CMachineRole::AskForAccess( const SClusterSighting& cluster, CORE::CString& toke
     anonymous.authenticatorType = "anonymous";
     CRpcLink link;
     CORE::CString problem;
-    if ( contract.IsNULL() || !link.Open( cluster.address, cluster.accessPort, CORE::CString::Empty, AccessSessionName, anonymous, contract, problem ) )
+    if ( contract.IsNULL() || !link.Open( MachineName( m_settings ), cluster.address, cluster.accessPort, CORE::CString::Empty, AccessSessionName, anonymous, contract, problem ) )
     {
         m_lastOutcome = "cannot ask " + cluster.name + " for access: " + problem;
         return false;
     }
     COMCORE::CRpcMessage request = link.NewRequest( RequestAccessPath );
     request.SetString( 1, m_identity.machineId );
-    request.SetString( 2, MachineName() );
+    request.SetString( 2, MachineName( m_settings ) );
     request.SetString( 3, OsName() );
     COMCORE::CRpcMessage response;
     if ( !link.Call( RequestAccessPath, request, response, problem ) )
@@ -559,7 +565,7 @@ CMachineRole::AskForAccess( const SClusterSighting& cluster, CORE::CString& toke
         return true;
     }
     m_lastOutcome = state == AccessRefused ? "cluster " + cluster.name + " refused access"
-                                           : "waiting for approval by cluster " + cluster.name + ": on it run gucefLabLink --approve " + MachineName();
+                                           : "waiting for approval by cluster " + cluster.name + ": on it run gucefLabLink --approve " + MachineName( m_settings );
     return false;
 }
 
@@ -607,7 +613,7 @@ CMachineRole::TalkToLab( const SClusterSighting& cluster, const CORE::CString& t
     CRpcLink link;
     CORE::CString problem;
     // the link only comes up with the cluster that has the key of the discovery entry
-    if ( contract.IsNULL() || !link.Open( cluster.address, cluster.labPort, cluster.key, LabSessionName, credentials, contract, problem ) )
+    if ( contract.IsNULL() || !link.Open( MachineName( m_settings ), cluster.address, cluster.labPort, cluster.key, LabSessionName, credentials, contract, problem ) )
     {
         m_lastOutcome = problem;
         return false;
@@ -647,7 +653,7 @@ CMachineRole::TalkToLab( const SClusterSighting& cluster, const CORE::CString& t
     if ( m_settings.join && !isNode && !m_settings.joinScript.IsNULLOrEmpty() )
     {
         COMCORE::CRpcMessage request = link.NewRequest( JoinPath );
-        request.SetString( 1, MachineName() );
+        request.SetString( 1, MachineName( m_settings ) );
         request.SetString( 2, OsName() );
         request.SetString( 3, ArchName() );
         request.SetBool( 4, m_settings.ephemeral );
@@ -709,17 +715,26 @@ CMachineRole::RunClaude( const CORE::CProcess::TStringVector& args, std::string&
     const bool asOtherUser = 0 == ::geteuid() && m_settings.claudeUser != "root";
     if ( exe.IsNULLOrEmpty() )
     {
-        // where the claude of the user is: in its login shell
+        // where the claude of the user is: in its login shell, or where its installers put it (a PATH that only
+        // ~/.bashrc sets, as with nvm, is not in a login shell)
         CORE::CProcess::TStringVector lookup;
         if ( asOtherUser ) { lookup.push_back( "-u" ); lookup.push_back( m_settings.claudeUser ); lookup.push_back( "-H" ); lookup.push_back( "bash" ); }
-        lookup.push_back( "-lc" ); lookup.push_back( "command -v claude" );
+        lookup.push_back( "-lc" );
+        lookup.push_back( "command -v claude && exit 0; for f in \"$HOME/.local/bin/claude\" \"$HOME/.claude/local/claude\" \"$HOME/.npm-global/bin/claude\" "
+                          "\"$HOME\"/.nvm/versions/node/*/bin/claude /usr/local/bin/claude /usr/bin/claude; do [ -x \"$f\" ] && { echo \"$f\"; exit 0; }; done; exit 1" );
         std::string found;
         if ( !RunProgram( asOtherUser ? "sudo" : "bash", lookup, CORE::CProcess::TStringMap(), 30000, found, exitCode ) || 0 != exitCode )
+        {
+            output = ( "Claude Code (claude) is not installed for " + m_settings.claudeUser ).STL_String();
             return false;
+        }
         exe = StripText( CORE::CString( found.c_str() ) );
         CORE::CString::StringVector lines = exe.ParseElements( '\n', false );
         if ( lines.empty() )
+        {
+            output = ( "Claude Code (claude) is not installed for " + m_settings.claudeUser ).STL_String();
             return false;
+        }
         exe = StripText( lines.back() );
     }
     if ( asOtherUser )
@@ -855,11 +870,21 @@ CMachineRole::ConfigureClaude( const SClusterAnswers& answers )
             add.push_back( "mcp" ); add.push_back( "add" ); add.push_back( "--transport" ); add.push_back( "http" ); add.push_back( (*i).first );
             add.push_back( (*i).second ); add.push_back( "--scope" ); add.push_back( "user" );
             add.push_back( "--header" ); add.push_back( "Authorization: Bearer " + answers.mcpToken );
+            output.clear();
             if ( !RunClaude( add, output ) )
             {
+                // without Claude Code there is nothing to register: said once, tried again at every visit
+                if ( 0 == output.find( "Claude Code (claude) is not installed" ) )
+                {
+                    if ( !m_claudeMissingReported )
+                        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: " << output.c_str() << ": the MCP services are registered once it is" );
+                    m_claudeMissingReported = true;
+                    break;
+                }
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Registering " << (*i).first << " with Claude Code failed: " << output.c_str() );
                 continue;
             }
+            m_claudeMissingReported = false;
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefLabLink: Registered " << (*i).first << " (" << (*i).second << ") with Claude Code of " << m_settings.claudeUser );
         }
         newRecord += (*i).first + " " + state + "\n";

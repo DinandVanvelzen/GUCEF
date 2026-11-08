@@ -146,6 +146,7 @@ class CMachineRole : public GUCEF::CORE::CObserver
     SClusterAnswers m_lastAnswers;
     GUCEF::CORE::CString m_lastOutcome;
     GUCEF::CORE::CString::StringVector m_discoveryClients;
+    bool m_claudeMissingReported;               /**< that the user has no Claude Code is said once */
 };
 
 /** Milliseconds of a monotonic clock */
