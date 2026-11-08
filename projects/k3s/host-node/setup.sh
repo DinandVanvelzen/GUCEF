@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# inotify limits suitable for a node running many pods
+sudo ./set_inotify_limits.sh
+
 # get and set the k8s/k3s node name which MAY differ from the hostname depending on overrides
 ./set_nodename_var_and_label.sh 
 
