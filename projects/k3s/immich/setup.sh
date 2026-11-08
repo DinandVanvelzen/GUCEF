@@ -241,6 +241,7 @@ cfg['map']['enabled'] = True
 cfg['reverseGeocoding']['enabled'] = True
 cfg['newVersionCheck']['enabled'] = True
 cfg['storageTemplate']['enabled'] = False
+cfg['ffmpeg']['transcode'] = 'disabled'  # external library only; originals stay on NAS
 print(json.dumps(cfg))
 ")
 
