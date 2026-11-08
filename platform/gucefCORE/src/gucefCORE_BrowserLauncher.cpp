@@ -339,11 +339,11 @@ OpenWithPlatform( const CString& url )
             TActivationTokenKind kind = ACTIVATIONTOKEN_XDG_ACTIVATION;
             if ( g_tokenProvider->GetActivationToken( token, kind, ActivationTokenMaxWaitInMs ) && AddActivationTokenToEnvironment( token, kind, environment ) )
             {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "OpenUrlInSystemBrowser: an activation token goes with the browser" );
+                GUCEF_SYSTEM_LOG( LOGLEVEL_BELOW_NORMAL, "OpenUrlInSystemBrowser: an activation token goes with the browser" );
             }
             else
             {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "OpenUrlInSystemBrowser: no activation token, the browser may open behind the window" );
+                GUCEF_SYSTEM_LOG( LOGLEVEL_BELOW_NORMAL, "OpenUrlInSystemBrowser: no activation token, the browser may open behind the window" );
             }
             token.Clear();
         }

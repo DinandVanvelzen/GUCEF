@@ -182,6 +182,7 @@ CNotifierImplementor::CNotifierImplementor( CNotifier* ownerNotifier )
       m_eventMailProcessed( 0 )         ,
       m_notifiedSpill()                 ,
       m_notifiedSpillInUse( false )     ,
+      m_subscriptionErasures( 0 )       ,
       m_ownerNotifier( ownerNotifier )  ,
       m_scheduledForDestruction( false ) ,
       m_newSubscribersOfDelivery( GUCEF_NULL )
@@ -203,6 +204,7 @@ CNotifierImplementor::CNotifierImplementor( CNotifier* ownerNotifier ,
       m_eventMailProcessed( 0 )         ,
       m_notifiedSpill()                 ,
       m_notifiedSpillInUse( false )     ,
+      m_subscriptionErasures( 0 )       ,
       m_ownerNotifier( ownerNotifier )  ,
       m_scheduledForDestruction( false ) ,
       m_newSubscribersOfDelivery( GUCEF_NULL )
@@ -412,6 +414,7 @@ CNotifierImplementor::UnsubscribeAllFromNotifier( bool busyProcessingMailbox )
             (*i).first->UnlinkFrom( m_ownerNotifier );
             ++i;
         }
+        ++m_subscriptionErasures;
         m_observers.clear();
 
         TNotificationList::iterator n = m_eventobservers.begin();
@@ -438,6 +441,7 @@ CNotifierImplementor::UnsubscribeAllFromNotifier( bool busyProcessingMailbox )
             }
             ++n;
         }
+        ++m_subscriptionErasures;
         m_eventobservers.clear();
     }
     else
@@ -742,6 +746,7 @@ CNotifierImplementor::UnsubscribeFromAllEvents( CObserver* observer            ,
         TObserverList::iterator observerEntry = m_observers.find( observer );
         if ( observerEntry != m_observers.end() )
         {
+            ++m_subscriptionErasures;
             m_observers.erase( observerEntry );
         }
 
@@ -771,6 +776,7 @@ CNotifierImplementor::UnsubscribeFromAllEvents( CObserver* observer            ,
                     }
                     callbacks.clear();
                 }
+                ++m_subscriptionErasures;
                 eventObservers.erase( i );
             }
 
@@ -893,6 +899,7 @@ CNotifierImplementor::Unsubscribe( CObserver* observer                      ,
                     }
                     callbacks.clear();
                 }
+                ++m_subscriptionErasures;
                 eventObservers.erase( i );
                 m_isBusy = wasBusy;                    
                 return;
@@ -1066,6 +1073,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
             for ( ;; )
             {
                 TEventNotificationMap::iterator current;
+                bool fromWalk = false;
                 if ( !behindWalk.empty() )
                 {
                     oPtr = *behindWalk.begin();
@@ -1082,7 +1090,9 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                     oPtr = (*n).first;
                     walkPlace = oPtr;
                     walked = true;
+                    fromWalk = true;
                 }
+                const UInt32 erasuresBefore = m_subscriptionErasures;
 
                 // Observers that already got the event are passed by
                 if ( !notifiedObservers.Contains( oPtr ) )
@@ -1177,7 +1187,14 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
 
                 // The administration may have changed: by the mail, or by an observer that was destroyed while it was
                 // notified (its destruction cannot wait for the mailbox). The observers of the event may be gone
-                // altogether, else the walk carries on after its place
+                // altogether, else the walk carries on after its place. Without anything taken out the iterators hold:
+                // the walk steps on, which meets observers subscribed after its place as well
+                if ( erasuresBefore == m_subscriptionErasures )
+                {
+                    if ( fromWalk )
+                        ++n;
+                    continue;
+                }
                 l = m_eventobservers.find( eventid );
                 if ( l == m_eventobservers.end() )
                     break;
@@ -1197,6 +1214,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
             for ( ;; )
             {
                 TObserverList::iterator current;
+                bool fromWalk = false;
                 if ( !behindWalk.empty() )
                 {
                     oPtr = *behindWalk.begin();
@@ -1213,7 +1231,9 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                     oPtr = (*i).first;
                     walkPlace = oPtr;
                     walked = true;
+                    fromWalk = true;
                 }
+                const UInt32 erasuresBefore = m_subscriptionErasures;
 
                 // Check if this observer is registered as interested in all events which is just a flag
                 // and if we have not already notified this observer using a more dedicated subscription and potentially dedicated callback
@@ -1260,7 +1280,14 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                     newSubscribers.clear();
                 }
 
-                // The observer may have been removed while it was notified: the walk carries on after its place
+                // The observer may have been removed while it was notified: the walk carries on after its place.
+                // Without anything taken out the iterator holds and the walk steps on
+                if ( erasuresBefore == m_subscriptionErasures )
+                {
+                    if ( fromWalk )
+                        ++i;
+                    continue;
+                }
                 i = walked ? m_observers.upper_bound( walkPlace ) : m_observers.begin();
             }
         }

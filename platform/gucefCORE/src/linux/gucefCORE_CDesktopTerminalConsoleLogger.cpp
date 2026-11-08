@@ -417,8 +417,15 @@ CDesktopTerminalConsoleLogger::Cleanup( void )
     }
     if ( !m_fifoPath.IsNULLOrEmpty() )
     {
+        // The window has not opened the log (yet). Its reader waits in open() for a writer, which never comes once
+        // the FIFO is gone, and the window would stay. Opened for reading and writing a FIFO does not wait on Linux:
+        // it releases a reader that waits, a reader that opens while it is held gets the end of the log when it is
+        // closed, and one that comes after the FIFO is gone finds nothing. Either way the window ends.
+        int fd = open( m_fifoPath.C_String(), O_RDWR | O_NONBLOCK );
         unlink( m_fifoPath.C_String() );
         m_fifoPath.Clear();
+        if ( -1 != fd )
+            close( fd );
     }
     m_pending.clear();
     m_pendingBytes = 0;

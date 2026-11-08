@@ -398,6 +398,48 @@ PerformDesktopTerminalConsoleLoggerTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A terminal window that had not opened the log yet ends when the logger goes, also one that starts after it" )
+        try
+        {
+            // like gnome-terminal: the window runs on its own, the launcher returns at once. The window says when it ends
+            CORE::CString endedPath = CORE::CombinePath( workDir, "window.ended" );
+            CORE::CString detachedTerminal =
+                "#!/bin/sh\n"
+                "while [ \"$1\" != \"-e\" ] && [ $# -gt 0 ]; do shift; done\n"
+                "shift\n"
+                "( sleep \"$GUCEF_FAKE_TERMINAL_DELAY\"; \"$@\" > \"$GUCEF_FAKE_TERMINAL_OUT\" 2>&1; echo ended > \"$GUCEF_FAKE_TERMINAL_ENDED\" ) > /dev/null 2>&1 &\n"
+                "exit 0\n";
+            ASSERT_TRUE( WriteExecutable( CORE::CombinePath( binDir, "xterm" ), detachedTerminal ) );
+
+            CEnvironmentScope environment;
+            environment.Set( "PATH", searchPathWithFakes.C_String() );
+            environment.Set( "GUCEF_FAKE_TERMINAL_OUT", outPath.C_String() );
+            environment.Set( "GUCEF_FAKE_TERMINAL_ENDED", endedPath.C_String() );
+            environment.Unset( "TERMINAL" );
+
+            // the window waits for the log when the logger goes; and a window that starts after the logger went.
+            // The logger is kept until the launcher returned: a launcher that still runs is ended with the logger
+            const char* delays[] = { "0", "0.8" };
+            for ( UInt32 d=0; d<2; ++d )
+            {
+                CORE::DeleteFile( endedPath );
+                environment.Set( "GUCEF_FAKE_TERMINAL_DELAY", delays[ d ] );
+                {
+                    CORE::CDesktopTerminalConsoleLogger logger( false );
+                    logger.SetPreferredTerminal( "xterm" );
+                    ASSERT_TRUE( logger.Initialize() );
+                    ASSERT_FALSE( logger.IsConnected() );
+                    MT::ThreadDelay( 300 );         // the first window waits for the log by now, the second sleeps on
+                }
+                ASSERT_TRUE( WaitForFileContent( endedPath, "ended", GUCEF_NULL, 5000 ) );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: A terminal window that is closed by the user disables the logger without hurting the application" )
         try
         {

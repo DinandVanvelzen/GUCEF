@@ -409,7 +409,7 @@ COAuth2Flow::BeginAuthorizationCode( void )
     // the hint is personal data: only whether there was one is said
     const bool loginHintUsed = m_descriptor.supportsLoginHint && COAuth2Protocol::IsAcceptableLoginHint( m_options.loginHint );
     const CORE::CString hintText = loginHintUsed ? "yes" : "no";
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OAuth2Flow: " << m_descriptor.name << ": login hint used: " << hintText );
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "OAuth2Flow: " << m_descriptor.name << ": login hint used: " << hintText );
     m_checkNonce = AUTHPROTOCOL_OIDC == m_descriptor.protocol;
     m_stage = STAGE_AUTHORIZATION;
     AnnounceUrl( url );

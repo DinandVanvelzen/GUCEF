@@ -1669,6 +1669,11 @@ CPluginControl::AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData 
                               *pluginGroup        ,
                               groupName           ,
                               registerImmediately );
+
+        // A module that could not be loaded is not kept: loading all plugins later would try it again and fail.
+        // Callers commonly try one file name and then another. A plugin that may fail stays, as configured
+        if ( !success && GUCEF_NULL == pluginMetaData->GetModulePointer() && !pluginMetaData->GetLoadFailAllowed() )
+            pluginGroup->GetPluginMetaData().erase( pluginMetaData );
     }
 
     return success;

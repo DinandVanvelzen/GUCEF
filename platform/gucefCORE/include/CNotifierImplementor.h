@@ -378,6 +378,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     UInt32 m_eventMailProcessed;    /**< the mail at the front of m_eventMailStack that was delivered already */
     TObserverVector m_notifiedSpill;    /**< the observers that got the event being delivered beyond the first 64, see NotifyObservers() */
     bool m_notifiedSpillInUse;
+    UInt32 m_subscriptionErasures;  /**< counts the observers and subscriptions taken out: a delivery steps on to the next observer when none were */
     TObserverVector* m_newSubscribersOfDelivery;    /**< while an event is delivered: the observers that subscription requests carried out during it added, see NotifyObservers() */
 };
 
