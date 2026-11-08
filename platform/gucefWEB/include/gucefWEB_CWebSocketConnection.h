@@ -83,6 +83,11 @@ class CWebSocketServer;
  *
  *  Sending can be done from any thread. Everything else, in particular receiving, happens on the thread
  *  which drives the HTTP server's socket.
+ *
+ *  Lock order: the lock of the TCP connection, which that connection holds while it hands its data and its end to
+ *  this object, comes before the lock of this object. A send takes the lock of the TCP connection first and sends
+ *  under it, never under the lock of this object: a frame goes out whole and in the order in which the senders got
+ *  that lock. Close() closes the TCP connection under that lock as well, right after the close frame.
  */
 class GUCEF_WEB_PUBLIC_CPP CWebSocketConnection : public CIWebSocketConnectionHandler                      ,
                                                   public CORE::CTSharedObjCreator< CWebSocketConnection, MT::CMutex >
@@ -152,7 +157,10 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketConnection : public CIWebSocketConnectionHa
                      const SWebSocketPeerInfo& peerInfo           ,
                      UInt32 maxMessageSize                        );
 
-    /** Called when the owning server goes away: lets go of everything without reporting events */
+    /**
+     *  Called when the owning server goes away: lets go of everything without reporting events. Waits for the sends
+     *  under way on other threads, which may still use the TCP connection that goes with the server
+     */
     void Detach( void );
 
     // CIWebSocketConnectionHandler: the HTTP server hands what happens to the TCP connection to us
@@ -164,6 +172,13 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketConnection : public CIWebSocketConnectionHa
 
     void SendCloseAndDrop( UInt16 sendCode, const SWebSocketCloseInfo& reportedCloseInfo );
 
+    /**
+     *  Sends an encoded frame under the lock of the TCP connection, if the connection is still linked to it then.
+     *  With closeInfo given the frame is the close frame: the close is recorded and the TCP connection is closed
+     *  after the frame, under the same lock, so the close never reaches a later client of the re-used TCP connection.
+     */
+    bool SendEncodedFrame( const CORE::CDynamicBuffer& frame, const SWebSocketCloseInfo* closeInfo );
+
     private:
 
     CWebSocketServer* m_server;
@@ -173,6 +188,7 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketConnection : public CIWebSocketConnectionHa
     SWebSocketCloseInfo m_closeInfo;
     bool m_closeSent;
     void* m_userData;
+    UInt32 m_sendsUnderWay;     /**< sends that may still use m_tcpConnection outside m_lock, see Detach() */
     mutable MT::CMutex m_lock;
 };
 

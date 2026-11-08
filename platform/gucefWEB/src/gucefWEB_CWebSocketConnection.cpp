@@ -28,6 +28,16 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_COBJECTSCOPELOCK_H
+#include "gucefMT_CObjectScopeLock.h"
+#define GUCEF_MT_COBJECTSCOPELOCK_H
+#endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_WEB_CWEBSOCKETCONNECTION_H
 #include "gucefWEB_CWebSocketConnection.h"
 #define GUCEF_WEB_CWEBSOCKETCONNECTION_H
@@ -59,6 +69,15 @@ namespace WEB {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** A send waiting for the lock of the TCP connection looks this often whether the connection was let go of */
+static const UInt32 TcpLockAttemptTimeInMs = 10;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -73,6 +92,7 @@ CWebSocketConnection::CWebSocketConnection( void )
     , m_closeInfo()
     , m_closeSent( false )
     , m_userData( GUCEF_NULL )
+    , m_sendsUnderWay( 0 )
     , m_lock()
 {GUCEF_TRACE;
 
@@ -132,15 +152,29 @@ void
 CWebSocketConnection::Detach( void )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    if ( GUCEF_NULL != m_tcpConnection )
     {
-        // never leave the connection pointing at an object which is going away
-        if ( m_tcpConnection->GetUserData() == static_cast< CIWebSocketConnectionHandler* >( this ) )
-            m_tcpConnection->SetUserData( GUCEF_NULL );
-        m_tcpConnection = GUCEF_NULL;
+        MT::CScopeMutex lock( m_lock );
+        if ( GUCEF_NULL != m_tcpConnection )
+        {
+            // never leave the connection pointing at an object which is going away
+            if ( m_tcpConnection->GetUserData() == static_cast< CIWebSocketConnectionHandler* >( this ) )
+                m_tcpConnection->SetUserData( GUCEF_NULL );
+            m_tcpConnection = GUCEF_NULL;
+        }
+        m_server = GUCEF_NULL;
     }
-    m_server = GUCEF_NULL;
+
+    // A send under way on another thread may still be about to use the TCP connection, which goes with the server
+    // after this. It sees that the link is gone at its next attempt to get the lock of the TCP connection
+    while ( true )
+    {
+        {
+            MT::CScopeMutex lock( m_lock );
+            if ( 0 == m_sendsUnderWay )
+                break;
+        }
+        MT::ThreadDelay( 1 );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -218,11 +252,76 @@ CWebSocketConnection::SendFrame( UInt8 opcode, const void* data, UInt32 dataSize
     if ( !CWebSocketFrameCodec::EncodeFrame( true, opcode, data, dataSize, false, frame ) )
         return false;
 
-    // The lock keeps frames from different threads from interleaving and the connection from ending mid send
+    return SendEncodedFrame( frame, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWebSocketConnection::SendEncodedFrame( const CORE::CDynamicBuffer& frame, const SWebSocketCloseInfo* closeInfo )
+{GUCEF_TRACE;
+
+    COMCORE::CTCPServerConnection* tcpConnection = GUCEF_NULL;
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( GUCEF_NULL == m_tcpConnection || m_closeSent )
+            return false;
+        tcpConnection = m_tcpConnection;
+        ++m_sendsUnderWay;
+    }
+
+    // The frame is sent under the lock of the TCP connection and not under ours: that lock is held while the TCP
+    // connection hands us its data, and a send made from within the handling of that data (a pong, a close, an answer
+    // of the application) takes ours. Under the lock of the TCP connection the frame goes out whole, after the frames
+    // of the sends that got the lock before, and the connection cannot end mid send: the end is reported to us under
+    // that lock (OnWebSocketClosed()), so a connection still linked to us under it has not been handed to a later client
+    bool sent = false;
+    bool closing = false;
+    while ( true )
+    {
+        MT::TLockStatus lockStatus = MT::LOCKSTATUS_OPERATION_FAILED;
+        MT::CObjectScopeLock tcpLock( tcpConnection->AsLockable(), TcpLockAttemptTimeInMs, lockStatus );
+        if ( tcpLock.IsLocked() )
+        {
+            {
+                MT::CScopeMutex lock( m_lock );
+                if ( m_tcpConnection != tcpConnection || m_closeSent )
+                    break;
+                if ( GUCEF_NULL != closeInfo )
+                {
+                    m_closeSent = true;
+                    m_closeInfo = *closeInfo;
+                    m_closeInfo.connectionId = m_peerInfo.connectionId;
+                    closing = true;
+                }
+            }
+            sent = tcpConnection->Send( frame.GetConstBufferPtr(), frame.GetDataSize() );
+
+            // We do not wait for the peer to answer our close frame: the connection is dropped right away, under the lock
+            // of the TCP connection. Under it the connection is still the one of our client: the TCP connection closes
+            // its socket at once and reports the end to the server socket only after the lock is given up, so the object
+            // cannot have been handed to a later client in between (CTCPServerConnection::Close())
+            if ( closing )
+                tcpConnection->Close();
+            break;
+        }
+
+        // a lock that fails for another reason than the time we gave it will not do better the next time
+        if ( MT::LOCKSTATUS_WAIT_TIMEOUT != lockStatus )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketConnection(" << CORE::PointerToString( this ) << "): Failed to get the lock of the TCP connection, the frame is not sent" );
+            break;
+        }
+
+        // let go of by Detach(), which waits for us: the TCP connection may go with the server
+        MT::CScopeMutex lock( m_lock );
+        if ( m_tcpConnection != tcpConnection )
+            break;
+    }
+
     MT::CScopeMutex lock( m_lock );
-    if ( GUCEF_NULL == m_tcpConnection || m_closeSent )
-        return false;
-    return m_tcpConnection->Send( frame.GetConstBufferPtr(), frame.GetDataSize() );
+    --m_sendsUnderWay;
+    return sent;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -261,22 +360,9 @@ CWebSocketConnection::SendCloseAndDrop( UInt16 sendCode, const SWebSocketCloseIn
     CORE::CDynamicBuffer frame;
     CWebSocketFrameCodec::EncodeCloseFrame( sendCode, reportedCloseInfo.closedByPeer ? CORE::CString() : reportedCloseInfo.closeReason, false, frame );
 
-    COMCORE::CTCPServerConnection* tcpConnection = GUCEF_NULL;
-    {
-        MT::CScopeMutex lock( m_lock );
-        if ( GUCEF_NULL == m_tcpConnection || m_closeSent )
-            return;
-
-        m_closeSent = true;
-        m_closeInfo = reportedCloseInfo;
-        m_closeInfo.connectionId = m_peerInfo.connectionId;
-        tcpConnection = m_tcpConnection;
-        tcpConnection->Send( frame.GetConstBufferPtr(), frame.GetDataSize() );
-    }
-
-    // We do not wait for the peer to answer our close frame: the connection is dropped right away.
-    // This must not be done with our lock held as closing reports the disconnect to us right away
-    tcpConnection->Close();
+    // the disconnect reaches us (OnWebSocketClosed()) once the TCP connection reported its close, after SendEncodedFrame()
+    // closed it under its lock and gave that lock up
+    SendEncodedFrame( frame, &reportedCloseInfo );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -367,14 +453,25 @@ void
 CWebSocketConnection::OnWebSocketClosed( void )
 {GUCEF_TRACE;
 
-    CWebSocketServer* server = GUCEF_NULL;
-    SWebSocketCloseInfo closeInfo;
+    COMCORE::CTCPServerConnection* tcpConnection = GUCEF_NULL;
     {
         MT::CScopeMutex lock( m_lock );
         if ( GUCEF_NULL == m_tcpConnection )
             return;     // already reported
+        tcpConnection = m_tcpConnection;
+    }
 
-        // The connection object is re-used for other clients after this: we are done with it
+    CWebSocketServer* server = GUCEF_NULL;
+    SWebSocketCloseInfo closeInfo;
+    {
+        // The connection object is re-used for other clients after this: we are done with it. A send of ours does its
+        // work under the lock of the TCP connection, so with that lock no send is under way on it, and the sends that
+        // get it later find the link gone
+        MT::CObjectScopeLock tcpLock( tcpConnection->AsLockable() );
+        MT::CScopeMutex lock( m_lock );
+        if ( m_tcpConnection != tcpConnection )
+            return;     // already reported
+
         m_tcpConnection = GUCEF_NULL;
         server = m_server;
         closeInfo = m_closeInfo;

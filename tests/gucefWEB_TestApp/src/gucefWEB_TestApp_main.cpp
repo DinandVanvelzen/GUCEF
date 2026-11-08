@@ -132,6 +132,11 @@
 #define GUCEF_WEB_TESTIRCWEBSOCKET_H
 #endif /* GUCEF_WEB_TESTIRCWEBSOCKET_H ? */
 
+#ifndef GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H
+#include "TestServiceHealthHttpEndpoints.h"
+#define GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H
+#endif /* GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -198,6 +203,7 @@ GUCEF_OSMAIN_BEGIN
         PerformMcpStreamableHttpTests();
         PerformHttpHeaderParsingTests();
         PerformIrcWebSocketTests();
+        PerformServiceHealthHttpEndpointsTests();
 
         // The threads of the pools end here, not at the end of the process: what a TLS library keeps per thread is released when they do
         CORE::CCoreGlobal::Instance()->GetTaskManager().RequestAllThreadsToStop( true, false, 5000 );

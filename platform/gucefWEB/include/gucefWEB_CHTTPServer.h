@@ -313,6 +313,17 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPServer : public CORE::CObservingNotifier
 
     void ResetConnectionState( CHttpServerConnectionState& state );
 
+    /**
+     *  Subscribes to the data of a connection the server socket just accepted, from within its ClientConnectedEvent.
+     *  Lock order: this holds the notifier lock of the server while it takes the notification lock of the connection,
+     *  the events of the connection take the lock of the server under the lock of the connection. The two never meet
+     *  for one connection: its events start once the server socket made it active, after the ClientConnectedEvent, and
+     *  it is handed to a later client only after its close was reported to the server socket, which the connection does
+     *  after its last event (DisconnectedEvent) and once its lock was given up (CTCPServerConnection::CloseImp(),
+     *  UnlockAndCompleteClose(); GUCEF_SanitizerRuns.md 3.2, entry of this function)
+     */
+    void SubscribeToNewConnection( COMCORE::CTCPServerConnection* connection );
+
     CHttpServerConnectionState* GetConnectionState( UInt32 connectionIndex ) const;
 
     CHttpServerConnectionState* GetExchangeState( const CHttpServerExchange& exchange ) const;

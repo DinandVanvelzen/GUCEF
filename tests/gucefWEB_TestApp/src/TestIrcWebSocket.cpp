@@ -100,10 +100,6 @@ using namespace GUCEF;
 
 namespace {
 
-const UInt16 IrcWebSocketPort = 47861;
-
-/*-------------------------------------------------------------------------*/
-
 bool
 PumpUntilAtLeast( const UInt32& counter, UInt32 target, UInt32 timeoutInMs )
 {GUCEF_TRACE;
@@ -200,7 +196,14 @@ class CFakeIrcWebSocketServer : public CORE::CObserver
     bool Start( void )
     {GUCEF_TRACE;
 
-        return m_server.Listen( IrcWebSocketPort );
+        return m_server.Listen( 0 );
+    }
+
+    /** the port the system picked for the server */
+    UInt16 GetPort( void )
+    {GUCEF_TRACE;
+
+        return m_server.GetHttpServer().GetBoundPort();
     }
 
     void SendLine( const CORE::CString& line )
@@ -414,7 +417,7 @@ PerformIrcWebSocketTests( void )
 
             COM::CIrcClientSettings settings;
             settings.server = "127.0.0.1";
-            settings.port = IrcWebSocketPort;
+            settings.port = server.GetPort();
             settings.useWebSocket = true;
             settings.webSocketPath = "/irc";
             settings.nick = "webtester";
@@ -458,7 +461,7 @@ PerformIrcWebSocketTests( void )
             CFakeIrcWebSocketServer server;
             ASSERT_TRUE( server.Start() );
             TESTFW::CTlsTestTerminator terminator;
-            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), IrcWebSocketPort ) );
+            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), server.GetPort() ) );
 
             COM::CIrcClient client;
             CIrcRecorder recorder;

@@ -60,6 +60,7 @@ files( {
   "include/TestIrcWebSocket.h",
   "include/TestJsonRpcWebSocket.h",
   "include/TestMcpStreamableHttp.h",
+  "include/TestServiceHealthHttpEndpoints.h",
   "include/TestWebSocket.h",
   "include/TestWebSocketCodec.h"
  } )
@@ -81,6 +82,7 @@ files( {
   "src/TestIrcWebSocket.cpp",
   "src/TestJsonRpcWebSocket.cpp",
   "src/TestMcpStreamableHttp.cpp",
+  "src/TestServiceHealthHttpEndpoints.cpp",
   "src/TestWebSocket.cpp",
   "src/TestWebSocketCodec.cpp",
   "src/gucefWEB_TestApp_main.cpp"

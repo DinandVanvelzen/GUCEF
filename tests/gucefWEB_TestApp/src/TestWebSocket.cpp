@@ -63,6 +63,11 @@
 #define GUCEF_TEST_TLS_TERMINATOR_H
 #endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #ifndef GUCEF_COMCORE_TESTAPP_TESTNOTLSPROVIDER_H
 #include "../../gucefCOMCORE_TestApp/include/TestNoTlsProvider.h"
 #define GUCEF_COMCORE_TESTAPP_TESTNOTLSPROVIDER_H
@@ -73,6 +78,26 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CTASKCONSUMER_H
+#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
+
+#ifndef GUCEF_CORE_CTHREADPOOL_H
+#include "gucefCORE_CThreadPool.h"
+#define GUCEF_CORE_CTHREADPOOL_H
+#endif /* GUCEF_CORE_CTHREADPOOL_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 #include "TestWebSocket.h"
 
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
@@ -81,7 +106,6 @@
 
 using namespace GUCEF;
 
-static const UInt16 TEST_PORT_BASE = 47310;
 static const UInt32 WAIT_TIMEOUT_IN_MS = 5000;
 
 /*-------------------------------------------------------------------------*/
@@ -256,6 +280,372 @@ UrlFor( UInt16 port, const CORE::CString& resource )
 
 /*-------------------------------------------------------------------------*/
 
+static const UInt32 WsThreadsRunTimeInMs = 4000;
+static const UInt32 WsThreadsStallTimeInMs = 2000;
+static const Int32 WsThreadsTaskEndTimeInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS + 15000;
+static const UInt32 WsThreadsWindow = 64;     /**< messages a side may have under way to the client */
+
+static UInt64
+WsThreadsElapsedMs( UInt64 startTicks )
+{
+    return ( MT::PrecisionTickCount() - startTicks ) * 1000 / MT::PrecisionTimerResolution();
+}
+
+/**
+ *  A web socket server on a pulse generator of its own, which a task of the task manager pulses, and what that task,
+ *  a task that sends on the server's connection and the test thread share. The server echoes every text of the client
+ *  from within its message event. The tasks may outlive a case that saw a deadlock, so it is made on the heap and
+ *  given up then
+ */
+class CWsThreadsCase : public CORE::CObserver
+{
+    public:
+
+    CORE::PulseGeneratorPtr pulseGenerator;
+    WEB::CHTTPServer* httpServer;
+    WEB::CWebSocketServer* server;
+    UInt16 port;
+
+    MT::CTAtomic< bool > stopPulsing;
+    MT::CTAtomic< bool > stopSending;
+    MT::CTAtomic< UInt32 > pulses;
+    MT::CTAtomic< UInt32 > connects;
+    MT::CTAtomic< UInt32 > echoes;
+    MT::CTAtomic< UInt32 > sent;                  /**< texts the sending task sent on the server's connection */
+    MT::CTAtomic< UInt32 > sentReceived;          /**< of those, received by the client (written by the test thread) */
+    MT::CTAtomic< UInt32 > sendFailures;
+    MT::CTAtomic< UInt32 > exceptions;
+
+    /** oneTcpConnection: the server socket has a single TCP connection object, a later client waits for it */
+    explicit CWsThreadsCase( bool oneTcpConnection = false )
+        : CORE::CObserver()
+        , pulseGenerator( CORE::CPulseGenerator::CreateSharedObj() )
+        , httpServer( GUCEF_NULL )
+        , server( GUCEF_NULL )
+        , port( 0 )
+        , stopPulsing( false )
+        , stopSending( false )
+        , pulses( 0 )
+        , connects( 0 )
+        , echoes( 0 )
+        , sent( 0 )
+        , sentReceived( 0 )
+        , sendFailures( 0 )
+        , exceptions( 0 )
+        , m_lock()
+        , m_connection()
+    {
+        // set up and listening before the pulse task runs: what is done here happens before that thread starts
+        WEB::CHttpServerSettings settings;
+        settings.allowWebSocketUpgrades = true;
+        settings.processRequestsAsync = false;
+        if ( oneTcpConnection )
+            settings.maxClientConnections = 0;      // no limit of the HTTP server, and the socket has one connection more: one
+        httpServer = GUCEF_NEW WEB::CHTTPServer( pulseGenerator, GUCEF_NULL, &settings );
+        server = GUCEF_NEW WEB::CWebSocketServer( *httpServer );
+
+        TEventCallback connectedCallback( this, &CWsThreadsCase::OnClientConnected );
+        SubscribeTo( server, WEB::CWebSocketServer::ClientConnectedEvent, connectedCallback );
+        TEventCallback textCallback( this, &CWsThreadsCase::OnTextMessage );
+        SubscribeTo( server, WEB::CWebSocketServer::TextMessageEvent, textCallback );
+
+        if ( httpServer->ListenOnPort( 0 ) )
+            port = httpServer->GetBoundPort();
+    }
+
+    virtual ~CWsThreadsCase()
+    {
+        UnsubscribeAllFromObserver();
+        m_connection.Unlink();
+        GUCEF_DELETE server;
+        server = GUCEF_NULL;
+        httpServer->Close();
+        GUCEF_DELETE httpServer;
+        httpServer = GUCEF_NULL;
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CWsThreadsCase";
+        return classTypeName;
+    }
+
+    WEB::TWebSocketConnectionPtr GetConnection( void )
+    {
+        MT::CScopeMutex lock( m_lock );
+        return m_connection;
+    }
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CWsThreadsCase > TEventCallback;
+
+    void OnClientConnected( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        const WEB::TWebSocketConnectionPtr& connection = static_cast< WEB::TWebSocketServerConnectedEventData* >( eventData )->GetData();
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_connection = connection;
+        }
+        connects.FetchAdd( 1 );
+    }
+
+    // on the pulse task, within the data event of the server's TCP connection
+    void OnTextMessage( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        WEB::SWebSocketServerTextMessage& message = static_cast< WEB::TWebSocketServerTextMessageEventData* >( eventData )->GetData();
+        if ( message.connection->SendText( message.text ) )
+            echoes.FetchAdd( 1 );
+        else
+            sendFailures.FetchAdd( 1 );
+    }
+
+    MT::CMutex m_lock;
+    WEB::TWebSocketConnectionPtr m_connection;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Pulses the pulse generator of the case until told to stop: the server runs on this task's thread */
+class CWsThreadsPulseTask : public CORE::CTaskConsumer
+{
+    public:
+
+    explicit CWsThreadsPulseTask( CWsThreadsCase& wsCase ) : CORE::CTaskConsumer(), m_case( wsCase ) {}
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return "TestWebSocket::CWsThreadsPulseTask"; }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        while ( !m_case.stopPulsing.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            try
+            {
+                m_case.pulseGenerator->ForceDirectPulse();
+                m_case.pulses.FetchAdd( 1 );
+            }
+            catch ( ... )
+            {
+                m_case.exceptions.FetchAdd( 1 );
+            }
+            MT::ThreadDelay( 1 );
+        }
+        return true;
+    }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr, bool ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    private:
+
+    CWsThreadsCase& m_case;
+};
+
+typedef CORE::CTSharedPtr< CWsThreadsPulseTask, MT::CMutex > TWsThreadsPulseTaskPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/** Sends numbered texts on the server's connection of the client until told to stop, with at most a window under way */
+class CWsThreadsSendTask : public CORE::CTaskConsumer
+{
+    public:
+
+    CWsThreadsSendTask( CWsThreadsCase& wsCase, const WEB::TWebSocketConnectionPtr& connection )
+        : CORE::CTaskConsumer(), m_case( wsCase ), m_connection( connection ) {}
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return "TestWebSocket::CWsThreadsSendTask"; }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        while ( !m_case.stopSending.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            try
+            {
+                const UInt32 sent = m_case.sent.Load();
+                if ( sent - m_case.sentReceived.Load() < WsThreadsWindow )
+                {
+                    if ( m_connection->SendText( "s" + CORE::UInt32ToString( sent ) ) )
+                        m_case.sent.FetchAdd( 1 );
+                    else
+                        m_case.sendFailures.FetchAdd( 1 );
+                }
+                else
+                {
+                    MT::ThreadDelay( 0 );
+                }
+            }
+            catch ( ... )
+            {
+                m_case.exceptions.FetchAdd( 1 );
+                break;
+            }
+        }
+        m_connection.Unlink();
+        return true;
+    }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr, bool ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    private:
+
+    CWsThreadsCase& m_case;
+    WEB::TWebSocketConnectionPtr m_connection;
+};
+
+typedef CORE::CTSharedPtr< CWsThreadsSendTask, MT::CMutex > TWsThreadsSendTaskPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Stands between the HTTP server of a case and its web socket server to see the TCP connection of the upgraded client.
+ *  When armed it acts when the close frame of the server goes out on that connection, which is on the thread that
+ *  closes the web socket connection, under the lock of the TCP connection: it plays the client that ends its connection
+ *  right then (the TCP connection closes) and waits a while for the server to hand the TCP connection object to a later
+ *  client, which a server whose close is reported under that lock does at once. It only waits, it takes no lock
+ */
+class CWsCloseTap : public CORE::CObserver                  ,
+                    public WEB::CIWebSocketUpgradeHandler
+{
+    public:
+
+    MT::CTAtomic< COMCORE::CTCPServerConnection* > tcpConnection;
+    MT::CTAtomic< bool > armed;
+    MT::CTAtomic< bool > fired;
+    MT::CTAtomic< bool > handedToLaterClientWhileClosing;
+
+    explicit CWsCloseTap( WEB::CWebSocketServer& server )
+        : CORE::CObserver()
+        , WEB::CIWebSocketUpgradeHandler()
+        , tcpConnection( GUCEF_NULL )
+        , armed( false )
+        , fired( false )
+        , handedToLaterClientWhileClosing( false )
+        , m_server( server )
+    {
+    }
+
+    virtual ~CWsCloseTap() { UnsubscribeAllFromObserver(); }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CWsCloseTap";
+        return classTypeName;
+    }
+
+    // on the thread of the server
+    virtual bool OnWebSocketUpgradeRequested( WEB::CHTTPServer& server, COMCORE::CTCPServerConnection& connection, const WEB::CHttpRequestData& request, WEB::CHttpResponseData& response ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        tcpConnection.Store( &connection );
+        TEventCallback sentCallback( this, &CWsCloseTap::OnDataSent );
+        SubscribeTo( &connection, COMCORE::CTCPConnection::DataSentEvent, sentCallback );
+        return Inner().OnWebSocketUpgradeRequested( server, connection, request, response );
+    }
+
+    virtual void OnWebSocketConnectionEstablished( WEB::CHTTPServer& server, COMCORE::CTCPServerConnection& connection, const WEB::CHttpRequestData& request ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Inner().OnWebSocketConnectionEstablished( server, connection, request );
+    }
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CWsCloseTap > TEventCallback;
+
+    WEB::CIWebSocketUpgradeHandler& Inner( void ) { return m_server; }
+
+    void OnDataSent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        const CORE::CDynamicBuffer& data = static_cast< COMCORE::CTCPConnection::TDataSentEventData* >( eventData )->GetData();
+        if ( !armed.Load() || 0 == data.GetDataSize() || 0x88 != static_cast< const UInt8* >( data.GetConstBufferPtr() )[ 0 ] )
+            return;
+        armed.Store( false );
+        fired.Store( true );
+
+        COMCORE::CTCPServerConnection* connection = static_cast< COMCORE::CTCPServerConnection* >( notifier );
+        connection->Close();
+        const UInt64 startTicks = MT::PrecisionTickCount();
+        while ( !connection->IsActive() && WsThreadsElapsedMs( startTicks ) < 500 )
+            MT::ThreadDelay( 1 );
+        handedToLaterClientWhileClosing.Store( connection->IsActive() );
+    }
+
+    WEB::CWebSocketServer& m_server;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The client of the case, on the test thread: checks that the texts of either side arrive whole and in order */
+class CWsThreadsClientWatcher : public CORE::CObserver
+{
+    public:
+
+    explicit CWsThreadsClientWatcher( CWsThreadsCase& wsCase )
+        : CORE::CObserver(), connects( 0 ), closes( 0 ), echoesReceived( 0 ), orderErrors( 0 ), m_case( wsCase ) {}
+
+    virtual ~CWsThreadsClientWatcher() { UnsubscribeAllFromObserver(); }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CWsThreadsClientWatcher";
+        return classTypeName;
+    }
+
+    void Watch( WEB::CWebSocketClient& client )
+    {
+        TEventCallback connectedCallback( this, &CWsThreadsClientWatcher::OnConnected );
+        SubscribeTo( &client, WEB::CWebSocketClient::ConnectedEvent, connectedCallback );
+        TEventCallback closedCallback( this, &CWsThreadsClientWatcher::OnClosed );
+        SubscribeTo( &client, WEB::CWebSocketClient::ClosedEvent, closedCallback );
+        TEventCallback textCallback( this, &CWsThreadsClientWatcher::OnText );
+        SubscribeTo( &client, WEB::CWebSocketClient::TextMessageEvent, textCallback );
+    }
+
+    UInt32 connects;
+    UInt32 closes;
+    UInt32 echoesReceived;
+    UInt32 orderErrors;
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CWsThreadsClientWatcher > TEventCallback;
+
+    void OnConnected( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { ++connects; }
+
+    void OnClosed( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { ++closes; }
+
+    void OnText( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* eventData )
+    {
+        const CORE::CString& text = static_cast< WEB::TWebSocketTextMessageEventData* >( eventData )->GetData().text;
+        if ( text.Length() < 2 )
+        {
+            ++orderErrors;
+            return;
+        }
+        const UInt32 number = CORE::StringToUInt32( text.CutChars( 1, true ) );
+        if ( 's' == text[ 0 ] )
+        {
+            // the texts of the sending task
+            if ( number != m_case.sentReceived.Load() )
+                ++orderErrors;
+            m_case.sentReceived.FetchAdd( 1 );
+        }
+        else
+        if ( 'c' == text[ 0 ] )
+        {
+            // the echoes of our own texts
+            if ( number != echoesReceived )
+                ++orderErrors;
+            ++echoesReceived;
+        }
+        else
+        {
+            ++orderErrors;
+        }
+    }
+
+    CWsThreadsCase& m_case;
+};
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformWebSocketTests( void )
 {GUCEF_TRACE;
@@ -270,14 +660,15 @@ PerformWebSocketTests( void )
         return;
     }
 
-    UInt16 port = TEST_PORT_BASE;
+    // every server listens on a port the system picks
+    UInt16 port = 0;
 
     GUCEF_TESTFW_TESTCASE( "Test: Handshake, text and binary echo" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
 
             CWsRecorder recorder;
             recorder.echoServer = true;
@@ -350,9 +741,9 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Message order is preserved" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder recorder;
             recorder.WatchServer( server );
 
@@ -379,9 +770,9 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Closing handshake started by the client" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder recorder;
             recorder.WatchServer( server );
 
@@ -417,9 +808,9 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Closing handshake started by the server" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder recorder;
             recorder.WatchServer( server );
 
@@ -452,10 +843,10 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: A connection's message size limit changes at runtime, a larger message closes the connection with 1009" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
             ASSERT_TRUE( 16 * 1024 * 1024 == server.GetMaxMessageSize() );
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder recorder;
             recorder.WatchServer( server );
 
@@ -516,13 +907,13 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Sub protocol negotiation" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
             WEB::CWebSocketServer::TStringVector supported;
             supported.push_back( "chat" );
             supported.push_back( "superchat" );
             server.SetSupportedSubProtocols( supported );
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder recorder;
             recorder.WatchServer( server );
 
@@ -563,9 +954,9 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Broadcast reaches all clients" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
 
             CWsRecorder recorderA;
             CWsRecorder recorderB;
@@ -608,14 +999,196 @@ PerformWebSocketTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // A connection is sent on from any thread while its data is received on the thread of the server's pulse
+    // generator, under the lock of the TCP connection, and the server answers from within its message event. A send
+    // used to hold the lock of the web socket connection while it took the lock of the TCP connection, the receiving
+    // side took them the other way around: the two threads deadlocked
+    GUCEF_TESTFW_TESTCASE( "Test: A connection sent on from another thread while the server answers from within its message event: no deadlock, every message whole and in order" )
+        try
+        {
+            CWsThreadsCase* wsCase = GUCEF_NEW CWsThreadsCase();
+            ASSERT_TRUE( 0 != wsCase->port );
+
+            CORE::ThreadPoolPtr pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( "TestWebSocketThreads" );
+            TWsThreadsPulseTaskPtr pulseTask( GUCEF_NEW CWsThreadsPulseTask( *wsCase ) );
+            ASSERT_FALSE( pool->StartTaskWithConsumer( pulseTask ).HasNoFuture() );
+
+            WEB::CWebSocketClient client;
+            CWsThreadsClientWatcher watcher( *wsCase );
+            watcher.Watch( client );
+            ASSERT_TRUE( client.Connect( UrlFor( wsCase->port, "/threads" ) ) );
+            ASSERT_TRUE( PumpUntil( watcher.connects, 1 ) );
+            UInt64 startTicks = MT::PrecisionTickCount();
+            while ( 0 == wsCase->connects.Load() && WsThreadsElapsedMs( startTicks ) < WAIT_TIMEOUT_IN_MS )
+                MT::ThreadDelay( 1 );
+            WEB::TWebSocketConnectionPtr connection = wsCase->GetConnection();
+            ASSERT_FALSE( connection.IsNULL() );
+
+            TWsThreadsSendTaskPtr sendTask;
+            if ( !connection.IsNULL() )
+            {
+                sendTask = TWsThreadsSendTaskPtr( GUCEF_NEW CWsThreadsSendTask( *wsCase, connection ) );
+                ASSERT_FALSE( pool->StartTaskWithConsumer( sendTask ).HasNoFuture() );
+            }
+            connection.Unlink();
+
+            // the client sends numbered texts for the server to echo, at most a window under way, and the test thread
+            // watches both tasks: they have to keep making progress
+            CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+            UInt32 clientSent = 0;
+            UInt32 lastPulses = 0;
+            UInt32 lastSent = 0;
+            UInt64 pulseProgressTicks = MT::PrecisionTickCount();
+            UInt64 sendProgressTicks = pulseProgressTicks;
+            bool stalled = false;
+            startTicks = MT::PrecisionTickCount();
+            while ( WsThreadsElapsedMs( startTicks ) < WsThreadsRunTimeInMs )
+            {
+                if ( clientSent - watcher.echoesReceived < WsThreadsWindow && client.SendText( "c" + CORE::UInt32ToString( clientSent ) ) )
+                    ++clientSent;
+                pulseGenerator->ForceDirectPulse();
+                MT::ThreadDelay( 0 );
+
+                const UInt64 nowTicks = MT::PrecisionTickCount();
+                if ( wsCase->pulses.Load() != lastPulses )
+                {
+                    lastPulses = wsCase->pulses.Load();
+                    pulseProgressTicks = nowTicks;
+                }
+                if ( wsCase->sent.Load() != lastSent )
+                {
+                    lastSent = wsCase->sent.Load();
+                    sendProgressTicks = nowTicks;
+                }
+                if ( WsThreadsElapsedMs( pulseProgressTicks ) > WsThreadsStallTimeInMs || WsThreadsElapsedMs( sendProgressTicks ) > WsThreadsStallTimeInMs )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "WebSocket threads: a task made no progress for " << WsThreadsStallTimeInMs
+                        << " ms, pulses " << lastPulses << ", sent by the task " << lastSent << ", echoes " << wsCase->echoes.Load() );
+                    stalled = true;
+                    break;
+                }
+            }
+            wsCase->stopSending.Store( true, MT::MEMORDER_RELEASE );
+            const bool sendTaskEnded = sendTask.IsNULL() || sendTask->WaitForTaskToFinish( WsThreadsTaskEndTimeInMs );
+
+            // what is still under way reaches the client
+            startTicks = MT::PrecisionTickCount();
+            while ( !stalled && sendTaskEnded && ( wsCase->sentReceived.Load() < wsCase->sent.Load() || watcher.echoesReceived < clientSent ) && WsThreadsElapsedMs( startTicks ) < WAIT_TIMEOUT_IN_MS )
+            {
+                pulseGenerator->ForceDirectPulse();
+                MT::ThreadDelay( 1 );
+            }
+            client.Disconnect();
+
+            wsCase->stopPulsing.Store( true, MT::MEMORDER_RELEASE );
+            const bool pulseTaskEnded = pulseTask->WaitForTaskToFinish( WsThreadsTaskEndTimeInMs );
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WebSocket threads: pulses " << wsCase->pulses.Load() << ", sent by the task " << wsCase->sent.Load()
+                << ", received of those " << wsCase->sentReceived.Load() << ", client texts " << clientSent << ", echoes " << watcher.echoesReceived );
+
+            ASSERT_FALSE( stalled );
+            ASSERT_TRUE( sendTaskEnded );
+            ASSERT_TRUE( pulseTaskEnded );
+            ASSERT_TRUE( wsCase->sent.Load() > 0 );
+            ASSERT_TRUE( watcher.echoesReceived > 0 );
+            ASSERT_TRUE( wsCase->sentReceived.Load() == wsCase->sent.Load() );
+            ASSERT_TRUE( watcher.echoesReceived == clientSent );
+            ASSERT_TRUE( 0 == watcher.orderErrors );
+            ASSERT_TRUE( 0 == wsCase->sendFailures.Load() );
+            ASSERT_TRUE( 0 == wsCase->exceptions.Load() );
+
+            if ( sendTaskEnded && pulseTaskEnded )
+                GUCEF_DELETE wsCase;
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // The close frame and the close of the TCP connection are one step under the lock of the TCP connection: with the
+    // close made after that lock was given up, the connection could have ended and gone to a later client in between
+    GUCEF_TESTFW_TESTCASE( "Test: A connection closed on another thread than the server's never closes a later client of the TCP connection it had" )
+        try
+        {
+            CWsThreadsCase* wsCase = GUCEF_NEW CWsThreadsCase( true );
+            ASSERT_TRUE( 0 != wsCase->port );
+            CWsCloseTap tap( *wsCase->server );
+            wsCase->httpServer->SetWebSocketUpgradeHandler( &tap );
+
+            CORE::ThreadPoolPtr pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( "TestWebSocketThreads" );
+            TWsThreadsPulseTaskPtr pulseTask( GUCEF_NEW CWsThreadsPulseTask( *wsCase ) );
+            ASSERT_FALSE( pool->StartTaskWithConsumer( pulseTask ).HasNoFuture() );
+
+            WEB::CWebSocketClient client;
+            CWsThreadsClientWatcher watcher( *wsCase );
+            watcher.Watch( client );
+            ASSERT_TRUE( client.Connect( UrlFor( wsCase->port, "/close" ) ) );
+            ASSERT_TRUE( PumpUntil( watcher.connects, 1 ) );
+            UInt64 startTicks = MT::PrecisionTickCount();
+            while ( 0 == wsCase->connects.Load() && WsThreadsElapsedMs( startTicks ) < WAIT_TIMEOUT_IN_MS )
+                MT::ThreadDelay( 1 );
+            WEB::TWebSocketConnectionPtr connection = wsCase->GetConnection();
+            ASSERT_FALSE( connection.IsNULL() );
+            ASSERT_TRUE( GUCEF_NULL != tap.tcpConnection.Load() );
+
+            // the later client: the operating system takes its connection, the server socket waits for its one TCP
+            // connection object to become free
+            CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+            COMCORE::CTCPClientSocket later( pulseGenerator, false );
+            ASSERT_TRUE( later.ConnectTo( "127.0.0.1", wsCase->port, false ) );
+            PumpFor( 100 );
+            ASSERT_TRUE( later.IsActive() );
+
+            if ( !connection.IsNULL() && GUCEF_NULL != tap.tcpConnection.Load() )
+            {
+                tap.armed.Store( true );
+                ASSERT_TRUE( connection->Close( 1000, "done" ) );
+                ASSERT_TRUE( tap.fired.Load() );
+                ASSERT_FALSE( tap.handedToLaterClientWhileClosing.Load() );
+
+                // the later client gets the TCP connection object and keeps it
+                startTicks = MT::PrecisionTickCount();
+                while ( !tap.tcpConnection.Load()->IsActive() && WsThreadsElapsedMs( startTicks ) < WAIT_TIMEOUT_IN_MS )
+                {
+                    pulseGenerator->ForceDirectPulse();
+                    MT::ThreadDelay( 1 );
+                }
+                ASSERT_TRUE( tap.tcpConnection.Load()->IsActive() );
+                PumpFor( 300 );
+                ASSERT_TRUE( later.IsActive() );
+                ASSERT_TRUE( tap.tcpConnection.Load()->IsActive() );
+            }
+            connection.Unlink();
+            later.Close();
+            client.Disconnect();
+            PumpFor( 50 );
+
+            wsCase->stopPulsing.Store( true, MT::MEMORDER_RELEASE );
+            const bool pulseTaskEnded = pulseTask->WaitForTaskToFinish( WsThreadsTaskEndTimeInMs );
+            ASSERT_TRUE( pulseTaskEnded );
+            ASSERT_TRUE( 0 == wsCase->exceptions.Load() );
+            tap.UnsubscribeAllFromObserver();
+            if ( pulseTaskEnded )
+            {
+                wsCase->httpServer->SetWebSocketUpgradeHandler( wsCase->server );
+                GUCEF_DELETE wsCase;
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     // The server re-uses its TCP connection objects for later clients, a connection object of an ended
     // connection which is still held by somebody must never end up sending to that later client
     GUCEF_TESTFW_TESTCASE( "Test: A connection object of an ended connection never sends to a later client" )
         try
         {
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder recorder;
             recorder.WatchServer( server );
 
@@ -673,14 +1246,14 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Scheduling the server for destruction from within its message event is safe" )
         try
         {
-            ++port;
             // attached to an HTTP server that outlives it: a server which owns its HTTP server would be deleting
             // the socket stack which is in the middle of dispatching the event
             WEB::CHttpServerSettings httpSettings;
             httpSettings.allowWebSocketUpgrades = true;
             httpSettings.processRequestsAsync = false;
             WEB::CHTTPServer httpServer( GUCEF_NULL, &httpSettings );
-            ASSERT_TRUE( httpServer.ListenOnPort( port ) );
+            ASSERT_TRUE( httpServer.ListenOnPort( 0 ) );
+            port = httpServer.GetBoundPort();
             WEB::CWebSocketServer* server = GUCEF_NEW WEB::CWebSocketServer( httpServer );
 
             // the server is destroyed through ScheduleForDestruction(), which unlinks the recorder from it
@@ -716,7 +1289,7 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Connecting to nothing reports an error and a close" )
         try
         {
-            ++port;
+            port = TESTFW::FindFreeTcpPort();     // free when it was looked up, nothing is started on it
             CWsRecorder recorder;
             WEB::CWebSocketClient client;
             recorder.WatchClient( client );
@@ -741,12 +1314,12 @@ PerformWebSocketTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Attaching to an existing HTTP server" )
         try
         {
-            ++port;
             WEB::CHttpServerSettings settings;
             settings.allowWebSocketUpgrades = true;
             settings.processRequestsAsync = false;
             WEB::CHTTPServer httpServer( GUCEF_NULL, &settings );
-            ASSERT_TRUE( httpServer.ListenOnPort( port ) );
+            ASSERT_TRUE( httpServer.ListenOnPort( 0 ) );
+            port = httpServer.GetBoundPort();
 
             WEB::CWebSocketServer server( httpServer );
             ASSERT_FALSE( server.Listen( port + 1 ) );      // only for servers with their own HTTP server
@@ -779,9 +1352,9 @@ PerformWebSocketTests( void )
             TESTFW::CTlsTestCerts certs;
             ASSERT_TRUE( certs.IsReady() );
 
-            ++port;
             WEB::CWebSocketServer server;
-            ASSERT_TRUE( server.Listen( port ) );
+            ASSERT_TRUE( server.Listen( 0 ) );
+            port = server.GetHttpServer().GetBoundPort();
             CWsRecorder serverRecorder;
             serverRecorder.echoServer = true;
             serverRecorder.WatchServer( server );

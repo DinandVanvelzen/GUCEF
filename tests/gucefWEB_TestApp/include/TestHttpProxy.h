@@ -61,6 +61,11 @@
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 namespace GUCEF {
 namespace TESTFW {
 
@@ -338,7 +343,7 @@ class CTestHttpProxy
     UInt16 m_port;
     UInt16 m_upstreamPort;
     int m_refuseStatus;
-    volatile bool m_running;
+    MT::CTAtomic< bool > m_running;     /**< read by the accept and connection threads, set by Start() and Stop() */
     bool m_threadStarted;
     UInt32 m_liveConnections;
     CORE::CString m_requestLines;

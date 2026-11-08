@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := \
   src/TestIrcWebSocket.cpp \
   src/TestJsonRpcWebSocket.cpp \
   src/TestMcpStreamableHttp.cpp \
+  src/TestServiceHealthHttpEndpoints.cpp \
   src/TestWebSocket.cpp \
   src/TestWebSocketCodec.cpp \
   src/gucefWEB_TestApp_main.cpp

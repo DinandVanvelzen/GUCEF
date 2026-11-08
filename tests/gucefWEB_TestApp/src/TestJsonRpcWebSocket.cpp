@@ -72,8 +72,6 @@
 
 using namespace GUCEF;
 
-static const UInt16 JSONRPC_TEST_PORT = 47400;
-
 /*-------------------------------------------------------------------------*/
 
 static bool
@@ -289,7 +287,8 @@ PerformJsonRpcWebSocketTests( void )
             else
             {
                 WEB::CWebSocketServer wsServer;
-                ASSERT_TRUE( wsServer.Listen( JSONRPC_TEST_PORT ) );
+                ASSERT_TRUE( wsServer.Listen( 0 ) );
+                const UInt16 port = wsServer.GetHttpServer().GetBoundPort();
                 WEB::CJsonRpcServer rpcServer( wsServer );
                 CSpecMethods methods;
                 rpcServer.RegisterMethod( "sum", &methods );
@@ -304,7 +303,7 @@ PerformJsonRpcWebSocketTests( void )
                 rpcClient.AttachWebSocketClient( wsClient );
                 CRpcRecorder clientRecorder;
                 clientRecorder.SubscribeTo( &rpcClient );
-                ASSERT_TRUE( wsClient.Connect( "ws://127.0.0.1:" + CORE::UInt32ToString( JSONRPC_TEST_PORT ) + "/rpc" ) );
+                ASSERT_TRUE( wsClient.Connect( "ws://127.0.0.1:" + CORE::UInt32ToString( port ) + "/rpc" ) );
                 UInt32 pumped = 0;
                 while ( !wsClient.IsConnected() && pumped++ < 5000 )
                 {
@@ -414,7 +413,8 @@ PerformJsonRpcWebSocketTests( void )
                 CORE::PulseGeneratorPtr serverPulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
                 WEB::CWebSocketServer wsServer( serverPulseGenerator );
                 ASSERT_TRUE( wsServer.GetPulseGenerator() == serverPulseGenerator );
-                ASSERT_TRUE( wsServer.Listen( JSONRPC_TEST_PORT + 1 ) );
+                ASSERT_TRUE( wsServer.Listen( 0 ) );
+                const UInt16 port = wsServer.GetHttpServer().GetBoundPort();
                 WEB::CJsonRpcServer rpcServer( wsServer );
 
                 WEB::CWebSocketClient wsClient( serverPulseGenerator );
@@ -422,7 +422,7 @@ PerformJsonRpcWebSocketTests( void )
                 CSpecMethods methods;
                 rpcClient.SetRequestHandler( &methods );
                 rpcClient.AttachWebSocketClient( wsClient );
-                ASSERT_TRUE( wsClient.Connect( "ws://127.0.0.1:" + CORE::UInt32ToString( JSONRPC_TEST_PORT + 1 ) + "/rpc" ) );
+                ASSERT_TRUE( wsClient.Connect( "ws://127.0.0.1:" + CORE::UInt32ToString( port ) + "/rpc" ) );
                 UInt32 pumped = 0;
                 while ( ( !wsClient.IsConnected() || 0 == rpcServer.GetSessionCount() ) && pumped++ < 5000 )
                 {

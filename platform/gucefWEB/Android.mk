@@ -67,6 +67,7 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CMcpStreamableHttpTransport.cpp \
   src/gucefWEB_CModule.cpp \
   src/gucefWEB_CNativeHttpClientBackend.cpp \
+  src/gucefWEB_CServiceHealthHttpEndpoints.cpp \
   src/gucefWEB_CSseEventWriter.cpp \
   src/gucefWEB_CStdParamParser.cpp \
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp \

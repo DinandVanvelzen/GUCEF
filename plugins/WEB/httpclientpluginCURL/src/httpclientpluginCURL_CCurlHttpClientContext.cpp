@@ -54,11 +54,15 @@ CCurlHttpClientContext::CCurlHttpClientContext( void )
 
     if ( GUCEF_NULL != m_share )
     {
-        // Connections, TLS sessions and DNS results are shared. Cookies are not: the WEB module handles those
+        // TLS sessions, DNS results and the public suffix list are shared, across threads under the locks below.
+        // Cookies are not: the WEB module handles those. Connections are not either: curl does not support a connection
+        // cache shared by transfers on several threads (CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT). A transfer looking for
+        // a connection to reuse reads the state of every connection to the same host in the shared cache, also of those
+        // that a transfer on another thread is setting up or using without the lock, which made concurrent synchronous
+        // requests race. The connections stay in the multi handle of each driver, which one thread runs at a time
         curl_share_setopt( m_share, CURLSHOPT_LOCKFUNC, &CCurlHttpClientContext::ShareLock );
         curl_share_setopt( m_share, CURLSHOPT_UNLOCKFUNC, &CCurlHttpClientContext::ShareUnlock );
         curl_share_setopt( m_share, CURLSHOPT_USERDATA, this );
-        curl_share_setopt( m_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT );
         curl_share_setopt( m_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION );
         curl_share_setopt( m_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS );
         curl_share_setopt( m_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_PSL );

@@ -59,6 +59,7 @@ set( HEADER_FILES
   include/gucefWEB_CMcpStreamableHttpTransport.h
   include/gucefWEB_CModule.h
   include/gucefWEB_CNativeHttpClientBackend.h
+  include/gucefWEB_CServiceHealthHttpEndpoints.h
   include/gucefWEB_CSseEventWriter.h
   include/gucefWEB_CStdParamParser.h
   include/gucefWEB_CTConfigurableMapHttpServerResource.h
@@ -129,6 +130,7 @@ set( SOURCE_FILES
   src/gucefWEB_CMcpStreamableHttpTransport.cpp
   src/gucefWEB_CModule.cpp
   src/gucefWEB_CNativeHttpClientBackend.cpp
+  src/gucefWEB_CServiceHealthHttpEndpoints.cpp
   src/gucefWEB_CSseEventWriter.cpp
   src/gucefWEB_CStdParamParser.cpp
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp

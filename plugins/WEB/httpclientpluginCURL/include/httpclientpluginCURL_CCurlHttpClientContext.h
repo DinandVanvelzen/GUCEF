@@ -65,9 +65,10 @@ namespace HTTPCLIENTCURL {
 
 /**
  *  State shared by a curl HTTP client backend and all the requests it started:
- *  - a curl share handle so that connections, TLS sessions and DNS results are reused across requests, also
- *    across threads (curl calls back for locking)
- *  - the multi drivers, one per pulse generator that requests run on
+ *  - a curl share handle so that TLS sessions and DNS results are reused across requests, also across threads
+ *    (curl calls back for locking)
+ *  - the multi drivers, one per pulse generator that requests run on. Connections are kept for reuse by the multi
+ *    handle of a driver, for the requests of that driver: curl does not support sharing connections between threads
  *  Requests hold a shared pointer to it so they can outlive the backend.
  */
 class HTTPCLIENTPLUGIN_CURL_PRIVATE_CPP CCurlHttpClientContext

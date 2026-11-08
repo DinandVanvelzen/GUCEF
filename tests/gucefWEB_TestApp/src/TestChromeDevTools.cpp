@@ -75,6 +75,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestChromeDevTools.h"
 
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
@@ -83,8 +88,9 @@
 
 using namespace GUCEF;
 
-static const UInt16 FAKE_CHROME_PORT = 47500;
-static const UInt16 NOTHING_LISTENS_PORT = 47599;
+// the fake browser listens on a port the system picks; nothing listens on the other, which is free when the tests start
+static UInt16 g_fakeChromePort = 0;
+static UInt16 g_nothingListensPort = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -140,7 +146,7 @@ class CFakeChromeHttpHandler : public WEB::CIHttpServerRequestHandler
 
     virtual bool OnRequest( const WEB::CHttpRequestData& request, WEB::CHttpResponseData& response ) GUCEF_VIRTUAL_OVERRIDE
     {
-        CORE::CString port = CORE::UInt32ToString( FAKE_CHROME_PORT );
+        CORE::CString port = CORE::UInt32ToString( g_fakeChromePort );
         CORE::CString body;
         if ( request.requestUri == "/json/version" )
         {
@@ -416,7 +422,7 @@ class CChromeWaitThread : public MT::CActiveObject
         if ( OPERATION_DISCOVERY == m_operation )
         {
             WEB::SChromeDiscoveryResult discovery;
-            result = m_client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, discovery, 1000 );
+            result = m_client.DiscoverTargetsAndWait( "127.0.0.1", g_fakeChromePort, discovery, 1000 );
         }
         else
         {
@@ -480,7 +486,9 @@ PerformChromeDevToolsTests( void )
     httpSettings.processRequestsAsync = false;
     httpSettings.keepAliveConnections = false;
     WEB::CHTTPServer httpServer( &handlerFactory, &httpSettings );
-    bool listening = httpServer.ListenOnPort( FAKE_CHROME_PORT );
+    bool listening = httpServer.ListenOnPort( 0 );
+    g_fakeChromePort = httpServer.GetBoundPort();
+    g_nothingListensPort = TESTFW::FindFreeTcpPort();
     WEB::CWebSocketServer wsServer( httpServer );
     WEB::CJsonRpcServer rpcServer( wsServer );
     rpcServer.SetDialect( COM::JSONRPC_DIALECT_LENIENT );
@@ -500,7 +508,7 @@ PerformChromeDevToolsTests( void )
             recorder.SubscribeTo( &client );
 
             WEB::SChromeDiscoveryResult result;
-            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, result ) );
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", g_fakeChromePort, result ) );
             ASSERT_TRUE( 1 == recorder.discoveryCompleted && 0 == recorder.discoveryFailed );
             ASSERT_TRUE( result.browser.browser == "Chrome/120.0.0.0" );
             ASSERT_TRUE( result.browser.protocolVersion == "1.3" );
@@ -515,7 +523,7 @@ PerformChromeDevToolsTests( void )
             }
 
             // a second discovery with the same client works too
-            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, result ) );
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", g_fakeChromePort, result ) );
             ASSERT_TRUE( 2 == recorder.discoveryCompleted );
         }
         catch( ... )
@@ -532,7 +540,7 @@ PerformChromeDevToolsTests( void )
             recorder.SubscribeTo( &client );
 
             WEB::SChromeDiscoveryResult result;
-            ASSERT_FALSE( client.DiscoverTargetsAndWait( "127.0.0.1", NOTHING_LISTENS_PORT, result, 5000 ) );
+            ASSERT_FALSE( client.DiscoverTargetsAndWait( "127.0.0.1", g_nothingListensPort, result, 5000 ) );
             ASSERT_TRUE( 1 == recorder.discoveryFailed && 0 == recorder.discoveryCompleted );
             ASSERT_TRUE( result.targets.empty() );
         }
@@ -550,7 +558,7 @@ PerformChromeDevToolsTests( void )
             recorder.SubscribeTo( &client );
 
             WEB::SChromeDiscoveryResult discovery;
-            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, discovery ) );
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", g_fakeChromePort, discovery ) );
             ASSERT_TRUE( !discovery.targets.empty() );
             if ( discovery.targets.empty() )
                 throw std::runtime_error( "no targets discovered, the rest of the test cannot run" );
@@ -674,7 +682,7 @@ PerformChromeDevToolsTests( void )
             ASSERT_TRUE( globalPulseGenerator->GetPulseDriverThreadId() == thisThreadId );
 
             WEB::SChromeDiscoveryResult discovery;
-            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, discovery ) );
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", g_fakeChromePort, discovery ) );
             if ( discovery.targets.empty() )
                 throw std::runtime_error( "no targets discovered, the rest of the test cannot run" );
             ASSERT_TRUE( client.ConnectAndWait( discovery.targets[ 0 ].webSocketDebuggerUrl ) );

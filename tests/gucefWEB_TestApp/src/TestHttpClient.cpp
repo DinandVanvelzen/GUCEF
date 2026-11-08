@@ -105,6 +105,21 @@
 #define GUCEF_TEST_TLS_TERMINATOR_H
 #endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
 #ifndef GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H
 #include "TestHttpProxy.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H
@@ -143,9 +158,11 @@
 
 using namespace GUCEF;
 
-static const UInt16 SCRIPTED_SERVER_PORT = 47600;
-static const UInt16 OTHER_ORIGIN_PORT = 47601;
-static const UInt16 NOTHING_LISTENS_PORT = 47699;
+// the scripted servers listen on a port the system picks, see PerformHttpClientTests(); nothing listens on the
+// third, which is free when the tests start
+static UInt16 g_scriptedServerPort = 0;
+static UInt16 g_otherOriginPort = 0;
+static UInt16 g_nothingListensPort = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -199,6 +216,7 @@ class CScriptedHttpServer : public CORE::CObserver
         , m_lastCookieHeader()
         , m_lastRequestHeaders()
         , m_secureBaseUrl()
+        , m_port( 0 )
     {
         SubscribeTo( &m_socket );
     }
@@ -212,6 +230,7 @@ class CScriptedHttpServer : public CORE::CObserver
     {
         if ( !m_socket.ListenOnPort( port ) )
             return false;
+        m_port = m_socket.GetBoundPort();
         m_running = true;
         m_thread = std::thread( [this]() { Run(); } );
         return true;
@@ -227,6 +246,9 @@ class CScriptedHttpServer : public CORE::CObserver
 
     /** the url of the https that leads to this server, where /to-secure redirects to */
     void SetSecureBaseUrl( const CORE::CString& url ) { MT::CScopeMutex lock( m_lock ); m_secureBaseUrl = url; }
+
+    /** the port the server listens on, also when it was started on port 0 */
+    UInt16 GetPort( void ) const { return m_port; }
 
     UInt32 GetRequestCount( void ) { MT::CScopeMutex lock( m_lock ); return m_requestCount; }
     CORE::CString GetLastCookieHeader( void ) { MT::CScopeMutex lock( m_lock ); return m_lastCookieHeader; }
@@ -294,8 +316,9 @@ class CScriptedHttpServer : public CORE::CObserver
         size_t nextPiece;
         bool answered;
         bool closeAfterAnswer;
+        bool nextRequestAfterAnswer;    /**< the connection stays open and takes the next request once the answer went out */
 
-        SConnection( void ) : connection( GUCEF_NULL ), request(), pieces(), nextPiece( 0 ), answered( false ), closeAfterAnswer( true ) {}
+        SConnection( void ) : connection( GUCEF_NULL ), request(), pieces(), nextPiece( 0 ), answered( false ), closeAfterAnswer( true ), nextRequestAfterAnswer( false ) {}
     };
 
     void Run( void )
@@ -322,6 +345,17 @@ class CScriptedHttpServer : public CORE::CObserver
                 state.connection->Send( piece.C_String(), TextByteCount( piece ) );
             if ( state.nextPiece >= state.pieces.size() && state.closeAfterAnswer )
                 toClose.push_back( state.connection );
+            else
+            if ( state.nextPiece >= state.pieces.size() && state.nextRequestAfterAnswer )
+            {
+                // a persistent connection: the client sends one request at a time, the next one is answered as the first
+                state.request = CORE::CString::Empty;
+                state.pieces.clear();
+                state.nextPiece = 0;
+                state.answered = false;
+                state.nextRequestAfterAnswer = false;
+                state.closeAfterAnswer = true;
+            }
         }
         for ( size_t c=0; c<toClose.size(); ++c )
             toClose[ c ]->Close();
@@ -462,7 +496,7 @@ class CScriptedHttpServer : public CORE::CObserver
             p.push_back( Response( 302, "Location: /redirect/2\r\n", "go on" ) );
         else
         if ( path == "/redirect/2" )
-            p.push_back( Response( 301, "Location: http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/hello\r\n", "moved" ) );
+            p.push_back( Response( 301, "Location: http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + "/hello\r\n", "moved" ) );
         else
         if ( path == "/loop" )
             p.push_back( Response( 302, "Location: /loop\r\n", "" ) );
@@ -471,31 +505,31 @@ class CScriptedHttpServer : public CORE::CObserver
             p.push_back( Response( 200, "", "ok" ) );
         else
         if ( path == "/to-same-origin" )
-            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/headers\r\n", "" ) );
+            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + "/headers\r\n", "" ) );
         else
         if ( path == "/to-same-origin-relative" )
             p.push_back( Response( 307, "Location: /headers\r\n", "" ) );
         else
         if ( path == "/to-other-origin" )
-            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( OTHER_ORIGIN_PORT ) + "/headers\r\n", "" ) );
+            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( g_otherOriginPort ) + "/headers\r\n", "" ) );
         else
         if ( path == "/to-other-origin-307" )
-            p.push_back( Response( 307, "Location: http://127.0.0.1:" + CORE::ToString( OTHER_ORIGIN_PORT ) + "/headers\r\n", "" ) );
+            p.push_back( Response( 307, "Location: http://127.0.0.1:" + CORE::ToString( g_otherOriginPort ) + "/headers\r\n", "" ) );
         else
         if ( path == "/to-other-host" )
-            p.push_back( Response( 302, "Location: http://127.0.0.2:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/headers\r\n", "" ) );
+            p.push_back( Response( 302, "Location: http://127.0.0.2:" + CORE::ToString( g_scriptedServerPort ) + "/headers\r\n", "" ) );
         else
         if ( path == "/to-other-origin-and-back" )
-            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( OTHER_ORIGIN_PORT ) + "/back\r\n", "" ) );
+            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( g_otherOriginPort ) + "/back\r\n", "" ) );
         else
         if ( path == "/back" )
-            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/headers\r\n", "" ) );
+            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + "/headers\r\n", "" ) );
         else
         if ( path == "/redirect/invalid" )
             p.push_back( Response( 302, "Location: http:///redirect-target?key=SECRETREDIRECT\r\n", "" ) );
         else
         if ( path == "/redirect/to-closed" )
-            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( NOTHING_LISTENS_PORT ) + "/trader/v1/accounts/ABCDEF0123456789ABCDEF0123456789/transactions?token=SECRETLOCATIONTOKEN\r\n", "" ) );
+            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( g_nothingListensPort ) + "/trader/v1/accounts/ABCDEF0123456789ABCDEF0123456789/transactions?token=SECRETLOCATIONTOKEN\r\n", "" ) );
         else
         if ( path == "/see-other" )
             p.push_back( Response( 303, "Location: echo\r\n", "" ) );
@@ -537,6 +571,23 @@ class CScriptedHttpServer : public CORE::CObserver
                 p.push_back( response.SubstrFromRange( i, i + 256 * 1024 ) );
         }
         else
+        if ( path == "/large-announced" )
+        {
+            // a body of 2 MiB is announced, a little of it comes and then nothing more: only a client that refuses
+            // the body on its Content-Length is done before its timeout
+            GUCEF::vector< char > someOfTheBody( 100, 'x' );
+            p.push_back( CORE::CString( "HTTP/1.1 200 X\r\nContent-Length: 2097152\r\n\r\n" ) + CORE::CString( &someOfTheBody[ 0 ], (UInt32) someOfTheBody.size() ) );
+            state.closeAfterAnswer = false;
+        }
+        else
+        if ( path == "/keep-alive" )
+        {
+            // the connection stays open for the next request of the client
+            p.push_back( Response( 200, "Content-Type: text/plain\r\n", "kept alive" ) );
+            state.closeAfterAnswer = false;
+            state.nextRequestAfterAnswer = true;
+        }
+        else
         if ( path == "/status/404" )
             p.push_back( Response( 404, "", "not here" ) );
         else
@@ -560,7 +611,7 @@ class CScriptedHttpServer : public CORE::CObserver
 
     CORE::PulseGeneratorPtr m_pulseGenerator;
     COMCORE::CTCPServerSocket m_socket;
-    volatile bool m_running;
+    MT::CTAtomic< bool > m_running;     /**< read by the thread of the server, set by Start() and Stop() */
     std::thread m_thread;
     GUCEF::map< void*, SConnection > m_connections;
     MT::CMutex m_lock;
@@ -568,6 +619,7 @@ class CScriptedHttpServer : public CORE::CObserver
     CORE::CString m_lastCookieHeader;
     CORE::CString m_lastRequestHeaders;
     CORE::CString m_secureBaseUrl;
+    UInt16 m_port;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -659,7 +711,7 @@ static WEB::CHttpRequestData
 MakeRequest( const CORE::CString& path, const CORE::CString& method = "GET" )
 {
     WEB::CHttpRequestData request;
-    request.SetUrl( g_scriptedBaseUrl.IsNULLOrEmpty() ? "http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + path : g_scriptedBaseUrl + path );
+    request.SetUrl( g_scriptedBaseUrl.IsNULLOrEmpty() ? "http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + path : g_scriptedBaseUrl + path );
     request.requestType = method;
     return request;
 }
@@ -1131,6 +1183,61 @@ LoadHttpClientPlugin( const CORE::CString& pluginName )
 
 /*-------------------------------------------------------------------------*/
 
+/** A thread that carries out synchronous requests one after the other with the given client, which other threads use as well */
+class CSyncRequestThread : public MT::CActiveObject
+{
+    public:
+
+    CSyncRequestThread( WEB::CHTTPClient& client, const CORE::CString& path, const CORE::CString& expectedBody, UInt32 rounds )
+        : MT::CActiveObject()
+        , m_client( client )
+        , m_path( path )
+        , m_expectedBody( expectedBody )
+        , m_rounds( rounds )
+        , m_succeeded( 0 )
+        , m_done( false )
+    {
+    }
+
+    virtual ~CSyncRequestThread()
+    {
+        // the thread uses members of this class: it ends before they go
+        Deactivate( false, true );
+    }
+
+    UInt32 GetSucceeded( void ) const { return m_succeeded.Load(); }
+    bool IsDone( void ) const { return m_done.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        for ( UInt32 i=0; i<m_rounds; ++i )
+        {
+            WEB::CHttpResponseData response;
+            if ( m_client.Execute( MakeRequest( m_path ), response ) && 200 == response.statusCode && SameText( ToCString( response.content ), m_expectedBody ) )
+                m_succeeded.FetchAdd( 1 );
+        }
+        m_done.Store( true );
+        return true;
+    }
+
+    private:
+
+    WEB::CHTTPClient& m_client;
+    CORE::CString m_path;
+    CORE::CString m_expectedBody;
+    UInt32 m_rounds;
+    MT::CTAtomic< UInt32 > m_succeeded;     /**< read by the test thread while this thread runs */
+    MT::CTAtomic< bool > m_done;
+};
+
+/*-------------------------------------------------------------------------*/
+
 /** runs the tests which apply to every backend, with the client using only the given backend */
 static void
 PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName, CScriptedHttpServer& server, CScriptedHttpServer& otherOrigin )
@@ -1311,16 +1418,26 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
             // no limit is the default
             ASSERT_TRUE( 0 == WEB::CHttpClientRequestOptions().maxResponseBodySize );
 
-            // a Content-Length over the limit: refused when the header is there, nothing of the body is kept
+            // a Content-Length over the limit: refused when the header is there, nothing of the body is kept. The server
+            // sends no more than the header and 100 bytes of the body, so only the refusal on the header ends the request
+            // before its timeout. (bytesReceived counts what the socket read, which is all that had arrived by the time
+            // of the read, so it says nothing about the refusal when the server sends the whole body at once)
             WEB::CHttpClientRequestOptions limited = client.GetDefaultOptions();
             limited.maxResponseBodySize = 1024 * 1024;
+            WEB::CHttpClientRequestOptions limitedInTime = limited;
+            limitedInTime.totalTimeoutInMs = 20000;
             WEB::CHttpResponseData response;
             WEB::CHttpClientTransferInfo info;
-            ASSERT_FALSE( client.Execute( MakeRequest( "/large" ), limited, response, &info ) );
+            ASSERT_FALSE( client.Execute( MakeRequest( "/large-announced" ), limitedInTime, response, &info ) );
             ASSERT_TRUE( !info.success && info.responseBodyTooLarge && !info.timedOut && !info.wasCancelled && WEB::HTTPERRORCLASS_OTHER == info.errorClass );
             ASSERT_TRUE( 200 == response.statusCode && 0 == response.content.GetDataSize() );
             ASSERT_TRUE( info.bytesReceived < limited.maxResponseBodySize );
             ASSERT_TRUE( info.errorDescription.HasSubstr( "limit", true ) >= 0 );
+            ASSERT_TRUE( info.errorDescription.HasSubstr( "2097152", true ) >= 0 );
+
+            // the whole body sent at once: refused on its Content-Length as well
+            ASSERT_FALSE( client.Execute( MakeRequest( "/large" ), limited, response, &info ) );
+            ASSERT_TRUE( !info.success && info.responseBodyTooLarge && !info.timedOut && 200 == response.statusCode && 0 == response.content.GetDataSize() );
 
             // the same into a sink
             CORE::CDynamicBuffer downloaded;
@@ -1378,7 +1495,7 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
             ASSERT_TRUE( info.timedOut && !info.success && info.durationInMs >= 300 && info.durationInMs < 5000 );
 
             WEB::CHttpRequestData nowhere;
-            nowhere.SetUrl( "http://127.0.0.1:" + CORE::ToString( NOTHING_LISTENS_PORT ) + "/" );
+            nowhere.SetUrl( "http://127.0.0.1:" + CORE::ToString( g_nothingListensPort ) + "/" );
             ASSERT_FALSE( client.Execute( nowhere, client.GetDefaultOptions(), response, &info ) );
             ASSERT_TRUE( !info.success && !info.errorDescription.IsNULLOrEmpty() );
         }
@@ -1425,12 +1542,35 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): Synchronous requests of one client on several threads at the same time" ).C_String() )
+        try
+        {
+            // one client, as a server that checks what its clients send from several threads has: the requests run on the
+            // threads that make them, at the same time, to the same server. Persistent connections as well: a backend
+            // that keeps connections for later requests keeps these
+            const UInt32 rounds = 16;
+            CSyncRequestThread first( client, "/keep-alive", "kept alive", rounds );
+            CSyncRequestThread second( client, "/hello", "hello world", rounds );
+            CSyncRequestThread third( client, "/keep-alive", "kept alive", rounds );
+            CSyncRequestThread fourth( client, "/chunked", "The quick brown fox jumps over the lazy dog!!!!", rounds );
+            ASSERT_TRUE( first.Activate( GUCEF_NULL, 1, 1 ) && second.Activate( GUCEF_NULL, 1, 1 ) && third.Activate( GUCEF_NULL, 1, 1 ) && fourth.Activate( GUCEF_NULL, 1, 1 ) );
+            for ( UInt32 waited=0; waited<60000 && !( first.IsDone() && second.IsDone() && third.IsDone() && fourth.IsDone() ); ++waited )
+                MT::ThreadDelay( 1 );
+            ASSERT_TRUE( first.IsDone() && second.IsDone() && third.IsDone() && fourth.IsDone() );
+            ASSERT_TRUE( rounds == first.GetSucceeded() && rounds == second.GetSucceeded() && rounds == third.GetSucceeded() && rounds == fourth.GetSucceeded() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): The classic API raises its events as before" ).C_String() )
         try
         {
             CClassicRecorder recorder;
             recorder.SubscribeTo( &client );
-            ASSERT_TRUE( client.Get( "http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/hello" ) );
+            ASSERT_TRUE( client.Get( "http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + "/hello" ) );
             for ( int i=0; i<5000 && !recorder.finished; ++i )
             {
                 CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
@@ -1450,7 +1590,7 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
             CClassicRecorder errorRecorder;
             errorRecorder.SubscribeTo( &client );
             recorder.UnsubscribeAllFromObserver();
-            ASSERT_TRUE( client.Get( "127.0.0.1", SCRIPTED_SERVER_PORT, "/status/404" ) );
+            ASSERT_TRUE( client.Get( "127.0.0.1", g_scriptedServerPort, "/status/404" ) );
             for ( int i=0; i<5000 && !errorRecorder.disconnected; ++i )
             {
                 CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
@@ -1464,8 +1604,8 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    PerformHttpRedactionBackendTests( client, backendName, NOTHING_LISTENS_PORT, SCRIPTED_SERVER_PORT );
-    PerformHttpLogRedactionBackendTests( client, backendName, NOTHING_LISTENS_PORT );
+    PerformHttpRedactionBackendTests( client, backendName, g_nothingListensPort, g_scriptedServerPort );
+    PerformHttpLogRedactionBackendTests( client, backendName, g_nothingListensPort );
     PerformRedirectCredentialTests( client, backendName, server, otherOrigin );
 }
 
@@ -1487,7 +1627,7 @@ PerformUriAccessorTests( void )
             if ( accessor.IsNULL() )
                 return;
 
-            CORE::CString base = "http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT );
+            CORE::CString base = "http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort );
 
             // whole resources
             CORE::CDynamicBuffer content;
@@ -1718,11 +1858,12 @@ PerformLocalHttpsTests( WEB::CHTTPClient& client, const CORE::CString& backendNa
     preferred.push_back( backendName );
     client.SetPreferredBackends( preferred );
 
-    static const UInt16 TRUSTED_PORT = 47610;
-    static const UInt16 UNTRUSTED_PORT = 47611;
-    static const UInt16 ENVIRONMENT_PORT = 47612;
-    static const UInt16 WRONGNAME_PORT = 47613;
-    static const UInt16 OTHERBUNDLE_PORT = 47614;
+    // openssl s_server is told its port up front: ports that are free now
+    const UInt16 trustedPort = TESTFW::FindFreeTcpPort();
+    const UInt16 untrustedPort = TESTFW::FindFreeTcpPort();
+    const UInt16 environmentPort = TESTFW::FindFreeTcpPort();
+    const UInt16 wrongNamePort = TESTFW::FindFreeTcpPort();
+    const UInt16 otherBundlePort = TESTFW::FindFreeTcpPort();
     static const CORE::CString answer = "ns:http://specs.openid.net/auth/2.0\nis_valid:true\n";
 
     GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): https works end to end with a trusted certificate and an untrusted one is refused" ).C_String() )
@@ -1744,12 +1885,12 @@ PerformLocalHttpsTests( WEB::CHTTPClient& client, const CORE::CString& backendNa
             // Trusted through the option caBundlePath
             {
                 CLocalTlsServer tlsServer;
-                ASSERT_TRUE( tlsServer.Start( dir, TRUSTED_PORT, "good", answer ) );
+                ASSERT_TRUE( tlsServer.Start( dir, trustedPort, "good", answer ) );
                 WEB::CHttpClientRequestOptions trusting = options;
                 trusting.caBundlePath = dir + "/good.crt";
                 WEB::CHttpResponseData response;
                 WEB::CHttpClientTransferInfo info;
-                bool sent = PostCheckAuthentication( client, trusting, TRUSTED_PORT, response, info );
+                bool sent = PostCheckAuthentication( client, trusting, trustedPort, response, info );
                 if ( !sent )
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpClient test: the https request failed: " << info.errorDescription );
                 ASSERT_TRUE( sent );
@@ -1768,10 +1909,10 @@ PerformLocalHttpsTests( WEB::CHTTPClient& client, const CORE::CString& backendNa
             // The same certificate is not trusted when nothing says so: the system bundle does not know it. The check is on by default
             {
                 CLocalTlsServer tlsServer;
-                ASSERT_TRUE( tlsServer.Start( dir, UNTRUSTED_PORT, "good", answer ) );
+                ASSERT_TRUE( tlsServer.Start( dir, untrustedPort, "good", answer ) );
                 WEB::CHttpResponseData response;
                 WEB::CHttpClientTransferInfo info;
-                ASSERT_FALSE( PostCheckAuthentication( client, options, UNTRUSTED_PORT, response, info ) );
+                ASSERT_FALSE( PostCheckAuthentication( client, options, untrustedPort, response, info ) );
                 ASSERT_FALSE( info.success );
                 ASSERT_TRUE( WEB::HTTPERRORCLASS_TLS == info.errorClass );
                 ASSERT_TRUE( 0 == response.content.GetDataSize() );
@@ -1781,15 +1922,15 @@ PerformLocalHttpsTests( WEB::CHTTPClient& client, const CORE::CString& backendNa
             // A bundle without that certificate in it does not trust it either, and a bundle that cannot be read is a failure, not a pass
             {
                 CLocalTlsServer tlsServer;
-                ASSERT_TRUE( tlsServer.Start( dir, OTHERBUNDLE_PORT, "good", answer ) );
+                ASSERT_TRUE( tlsServer.Start( dir, otherBundlePort, "good", answer ) );
                 WEB::CHttpClientRequestOptions other = options;
                 other.caBundlePath = dir + "/wrongname.crt";
                 WEB::CHttpResponseData response;
                 WEB::CHttpClientTransferInfo info;
-                ASSERT_FALSE( PostCheckAuthentication( client, other, OTHERBUNDLE_PORT, response, info ) );
+                ASSERT_FALSE( PostCheckAuthentication( client, other, otherBundlePort, response, info ) );
                 ASSERT_TRUE( WEB::HTTPERRORCLASS_TLS == info.errorClass );
                 other.caBundlePath = dir + "/does-not-exist.crt";
-                ASSERT_FALSE( PostCheckAuthentication( client, other, OTHERBUNDLE_PORT, response, info ) );
+                ASSERT_FALSE( PostCheckAuthentication( client, other, otherBundlePort, response, info ) );
                 ASSERT_TRUE( WEB::HTTPERRORCLASS_TLS == info.errorClass );
                 tlsServer.Stop();
             }
@@ -1798,11 +1939,11 @@ PerformLocalHttpsTests( WEB::CHTTPClient& client, const CORE::CString& backendNa
             {
                 CORE::CString previous = CORE::GetEnv( "SSL_CERT_FILE" );
                 CLocalTlsServer tlsServer;
-                ASSERT_TRUE( tlsServer.Start( dir, ENVIRONMENT_PORT, "good", answer ) );
+                ASSERT_TRUE( tlsServer.Start( dir, environmentPort, "good", answer ) );
                 CORE::SetEnv( "SSL_CERT_FILE", dir + "/good.crt" );
                 WEB::CHttpResponseData response;
                 WEB::CHttpClientTransferInfo info;
-                bool sent = PostCheckAuthentication( client, options, ENVIRONMENT_PORT, response, info );
+                bool sent = PostCheckAuthentication( client, options, environmentPort, response, info );
                 CORE::SetEnv( "SSL_CERT_FILE", previous );
                 ASSERT_TRUE( sent );
                 ASSERT_TRUE( SameText( ContentAsString( response ), answer ) );
@@ -1812,12 +1953,12 @@ PerformLocalHttpsTests( WEB::CHTTPClient& client, const CORE::CString& backendNa
             // A trusted certificate for another name is refused: the name of the host is checked as well
             {
                 CLocalTlsServer tlsServer;
-                ASSERT_TRUE( tlsServer.Start( dir, WRONGNAME_PORT, "wrongname", answer ) );
+                ASSERT_TRUE( tlsServer.Start( dir, wrongNamePort, "wrongname", answer ) );
                 WEB::CHttpClientRequestOptions trusting = options;
                 trusting.caBundlePath = dir + "/wrongname.crt";
                 WEB::CHttpResponseData response;
                 WEB::CHttpClientTransferInfo info;
-                ASSERT_FALSE( PostCheckAuthentication( client, trusting, WRONGNAME_PORT, response, info ) );
+                ASSERT_FALSE( PostCheckAuthentication( client, trusting, wrongNamePort, response, info ) );
                 ASSERT_TRUE( WEB::HTTPERRORCLASS_TLS == info.errorClass );
                 tlsServer.Stop();
             }
@@ -1988,7 +2129,7 @@ struct SHttpsFixture
         if ( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( noProvider ) )
             whyNot = "this system has no TLS provider: " + noProvider;
         else
-        if ( !terminator.Start( certs.GetPath( "named.crt" ), certs.GetPath( "named.key" ), SCRIPTED_SERVER_PORT ) )
+        if ( !terminator.Start( certs.GetPath( "named.crt" ), certs.GetPath( "named.key" ), g_scriptedServerPort ) )
             whyNot = "the TLS terminator did not start";
         else
             ready = true;
@@ -2084,7 +2225,7 @@ PerformNativeHttpsTests( WEB::CHTTPClient& client, CScriptedHttpServer& server )
 
             // http to https
             WEB::CHttpRequestData plainStart;
-            plainStart.SetUrl( "http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/to-secure" );
+            plainStart.SetUrl( "http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + "/to-secure" );
             WEB::CHttpResponseData toSecure;
             WEB::CHttpClientTransferInfo secureInfo;
             ASSERT_TRUE( client.Execute( plainStart, client.GetDefaultOptions(), toSecure, &secureInfo ) );
@@ -2394,9 +2535,12 @@ PerformHttpClientTests( void )
     PerformUrlAndCookieTests();
 
     CScriptedHttpServer server;
-    bool serverStarted = server.Start( SCRIPTED_SERVER_PORT );
+    bool serverStarted = server.Start( 0 );
+    g_scriptedServerPort = server.GetPort();
     CScriptedHttpServer otherOrigin;
-    bool otherOriginStarted = otherOrigin.Start( OTHER_ORIGIN_PORT );
+    bool otherOriginStarted = otherOrigin.Start( 0 );
+    g_otherOriginPort = otherOrigin.GetPort();
+    g_nothingListensPort = TESTFW::FindFreeTcpPort();
 
     WEB::CHTTPClient client;
 
@@ -2454,7 +2598,7 @@ PerformHttpClientTests( void )
 
             // the plain http of the same client works as ever
             WEB::CHttpRequestData plainRequest;
-            plainRequest.SetUrl( "http://127.0.0.1:" + CORE::ToString( SCRIPTED_SERVER_PORT ) + "/hello" );
+            plainRequest.SetUrl( "http://127.0.0.1:" + CORE::ToString( g_scriptedServerPort ) + "/hello" );
             WEB::CHttpResponseData plainResponse;
             WEB::CHttpClientTransferInfo plainInfo;
             bool plainExecuted = client.Execute( plainRequest, client.GetDefaultOptions(), plainResponse, &plainInfo );

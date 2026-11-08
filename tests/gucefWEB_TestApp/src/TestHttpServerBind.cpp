@@ -55,6 +55,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestHttpServerBind.h"
 
 /*-------------------------------------------------------------------------//
@@ -74,8 +79,6 @@
 //-------------------------------------------------------------------------*/
 
 using namespace GUCEF;
-
-static const UInt16 BIND_TEST_BASE_PORT = 47660;
 
 /*-------------------------------------------------------------------------*/
 
@@ -316,7 +319,8 @@ PerformHttpServerBindTests( void )
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "HttpServerBind TESTS: Using the address " << otherAddress << " as the address besides the loopback one" );
             }
 
-            const UInt16 port = BIND_TEST_BASE_PORT;
+            // the server listens on the same port again and again with other settings: one that is free now
+            const UInt16 port = TESTFW::FindFreeTcpPort();
 
             // default settings: unchanged, every NIC
             {
@@ -436,7 +440,7 @@ PerformHttpServerBindTests( void )
             server.Close();
             ASSERT_TRUE( 0 == server.GetBoundPort() );
 
-            const UInt16 port = BIND_TEST_BASE_PORT + 2;
+            const UInt16 port = TESTFW::FindFreeTcpPort();
             ASSERT_TRUE( server.ListenOnPort( port ) );
             ASSERT_TRUE( port == server.GetBoundPort() );
             server.Close();
@@ -450,7 +454,7 @@ PerformHttpServerBindTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: An HTTP server with a bind address that is not a dotted IPv4 address does not listen at all" )
         try
         {
-            const UInt16 port = BIND_TEST_BASE_PORT + 1;
+            const UInt16 port = TESTFW::FindFreeTcpPort();
             const char* invalid[] = { "localhost", "300.0.0.1", "1.2.3", "::1", "garbage", "127.0.0.1 " };
             for ( UInt32 i=0; i<sizeof( invalid ) / sizeof( invalid[ 0 ] ); ++i )
             {

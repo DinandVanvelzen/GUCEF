@@ -445,10 +445,13 @@ CHTTPServer::CHTTPServer( const CORE::PulseGeneratorPtr& pulsGenerator          
 CHTTPServer::~CHTTPServer()
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-
+    // The subscriptions go first, without the lock of the server: they take the notification locks of what the server
+    // observes (the pulse generator, the server socket, the connections), whose events take the lock of the server.
+    // Once they are gone no event can start, and the lock waits for a handler that is still running
     SignalUpcomingObserverDestruction();
     UnsubscribeAllFromObserver();
+
+    MT::CScopeMutex lock( m_lock );
 
     // exchanges that handlers still hold must not reach back into a server that is gone
     for ( TConnectionStateVector::iterator i = m_connectionStates.begin(); i != m_connectionStates.end(); ++i )
@@ -845,9 +848,17 @@ CHTTPServer::OnClientConnectedEvent( CORE::CNotifier* notifier                 ,
         m_hasPulseWork = true;
     }
 
-    // Subscribe to the connection
+    SubscribeToNewConnection( storage.connection );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CHTTPServer::SubscribeToNewConnection( COMCORE::CTCPServerConnection* connection )
+{GUCEF_TRACE;
+
     TEventCallback callback( this, &CHTTPServer::OnClientDataReceivedEvent );
-    SubscribeTo( storage.connection                               ,
+    SubscribeTo( connection                                       ,
                  COMCORE::CTCPServerConnection::DataRecievedEvent ,
                  callback                                         );
 }
