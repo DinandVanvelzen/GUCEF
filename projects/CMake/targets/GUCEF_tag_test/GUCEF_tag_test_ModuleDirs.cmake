@@ -110,6 +110,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefMT_TestApp 
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefMULTIPLAY_EosTestApp ${CMAKE_BINARY_DIR}/gucefMULTIPLAY_EosTestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefMULTIPLAY_MailProvider_TestApp ${CMAKE_BINARY_DIR}/gucefMULTIPLAY_MailProvider_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefMULTIPLAY_TestApp ${CMAKE_BINARY_DIR}/gucefMULTIPLAY_TestApp )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefMcpLocalLlm_TestApp ${CMAKE_BINARY_DIR}/gucefMcpLocalLlm_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefPATCHERAPP_TestApp ${CMAKE_BINARY_DIR}/gucefPATCHERAPP_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefPRODMAN_TestApp ${CMAKE_BINARY_DIR}/gucefPRODMAN_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefPUBSUB_TestApp ${CMAKE_BINARY_DIR}/gucefPUBSUB_TestApp )

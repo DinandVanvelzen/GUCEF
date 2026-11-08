@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="gucefMcpLocalLlm_TestApp" Platform="All" Type="Executable" Tags="test" >
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefWEB" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefWEB" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_MCPLOCALLLM_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="gucefMcpLocalLlm" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

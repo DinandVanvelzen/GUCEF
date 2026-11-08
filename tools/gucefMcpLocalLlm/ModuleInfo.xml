@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="gucefMcpLocalLlm" Platform="All" Type="Executable" Tags="tools" >
+        <Dependencies>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefWEB" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefWEB" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
