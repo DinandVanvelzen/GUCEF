@@ -77,6 +77,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_TLS_SERVER_H
+#include "gucef_test_tls_server.h"
+#define GUCEF_TEST_TLS_SERVER_H
+#endif /* GUCEF_TEST_TLS_SERVER_H ? */
+
 #include "TestRpcEndpointFixture.h"
 
 #include "TestRpcTransportSuite.h"
@@ -119,9 +124,12 @@ class CTcpHostFixture
     COMCORE::CRpcHost* host;
     COMCORE::CIRpcTransportListenerPtr listener;
     CORE::CUri listenUri;
+    COMCORE::CTlsServerSettings listenerTls;        /**< TLS of the listener when it has a certificate */
+    COMCORE::CTlsSettings clientTls;
+    bool clientUsesTls;
 
     explicit CTcpHostFixture( CRpcEndpointFixture& fixture )
-        : f( fixture ), notes( LoadSampleNotesContract( 1, 2 ) ), host( GUCEF_NULL ), listener(), listenUri()
+        : f( fixture ), notes( LoadSampleNotesContract( 1, 2 ) ), host( GUCEF_NULL ), listener(), listenUri(), listenerTls(), clientTls(), clientUsesTls( false )
     {}
 
     ~CTcpHostFixture()
@@ -149,7 +157,10 @@ class CTcpHostFixture
         if ( !host->GetServiceSet()->RegisterService( notes, "Notes", &f.service ) || !host->Start() )
             return false;
         listener = COMCORE::CComCoreGlobal::Instance()->GetRpcTransportListenerFactory().Create( "tcp" );
-        if ( listener.IsNULL() || !listener->SetPulseGenerator( f.pulseGenerator ) || !listener->Listen( CORE::CUri( "tcp://127.0.0.1:0" ) ) )
+        if ( listener.IsNULL() )
+            return false;
+        static_cast< COM::CRpcTcpTransportListener* >( listener.GetPointerAlways() )->SetTlsSettings( listenerTls );
+        if ( !listener->SetPulseGenerator( f.pulseGenerator ) || !listener->Listen( CORE::CUri( "tcp://127.0.0.1:0" ) ) )
             return false;
         listenUri = listener->GetListenUri();
         f.clientRegistry.Register( notes, COMCORE::CRpcContractRegistry::CONTRACTSOURCE_FILE );
@@ -160,7 +171,11 @@ class CTcpHostFixture
     COMCORE::CIRpcTransportPtr NewClientTransport( CRpcLossyTransport** wire )
     {
         COMCORE::CIRpcTransportPtr transport = COMCORE::CComCoreGlobal::Instance()->GetRpcTransportFactory().Create( "tcp" );
-        if ( transport.IsNULL() || !transport->SetPulseGenerator( f.pulseGenerator ) || !transport->Connect( listenUri ) )
+        if ( transport.IsNULL() )
+            return COMCORE::CIRpcTransportPtr();
+        if ( clientUsesTls )
+            static_cast< COM::CRpcTcpTransport* >( transport.GetPointerAlways() )->SetTlsSettings( clientTls );
+        if ( !transport->SetPulseGenerator( f.pulseGenerator ) || !transport->Connect( listenUri ) )
             return COMCORE::CIRpcTransportPtr();
         return CRpcLossyTransport::Wrap( transport, wire );
     }
@@ -815,6 +830,138 @@ TestTcpSendPathAllocatesNothing( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** the listener of the host with the certificate of the test authority, the client trusting only that authority */
+static void
+UseTls( CTcpHostFixture& h, const TESTFW::CTlsTestCerts& certs, const char* trustedCa = "ca" )
+{
+    h.listenerTls.SetCertificateChainPath( certs.GetPath( "good.crt" ) );
+    h.listenerTls.SetPrivateKeyPath( certs.GetPath( "good.key" ) );
+    h.clientTls.SetCaBundlePath( certs.GetPath( ( CORE::CString( trustedCa ) + ".crt" ).C_String() ) );
+    h.clientTls.SetUseSystemTrust( false );
+    h.clientUsesTls = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+SkipWithoutTls( const TESTFW::CTlsTestCerts& certs )
+{
+    CORE::CString whyNot;
+    GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+    GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNot ), "this system has no TLS provider" );
+    GUCEF_TESTFW_SKIP_IF( !certs.IsReady(), "the test certificates could not be made" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestCallsOverTls( void )
+{
+    TESTFW::CTlsTestCerts certs;
+    SkipWithoutTls( certs );
+
+    CRpcEndpointFixture f;
+    f.clientSettings.requireSecureTransport = true;
+    f.serverSettings.requireSecureTransport = true;
+    CTcpHostFixture h( f );
+    UseTls( h, certs );
+    REQUIRE_TRUE( h.Start() );
+    REQUIRE_TRUE( h.ConnectClient() );
+
+    // both sides require a secure transport: a session at all means both transports report it
+    COMCORE::CRpcCallResult result = f.CallAndPump( g_getPath, GetRequest( f, 7 ), COMCORE::CRpcCallOptions(), 5000 );
+    ASSERT_OK( result.status );
+    ASSERT_TRUE( "note 7" == result.response.GetString( 2 ) );
+    GUCEF::vector< COMCORE::CRpcEndpointPtr > endpoints;
+    h.host->GetEndpoints( endpoints );
+    REQUIRE_TRUE( 1 == endpoints.size() );
+    ASSERT_FALSE( endpoints[ 0 ]->GetPeerPrincipal().isAuthenticated );
+
+    // a server stream past the initial credit, over TLS
+    f.service.watchCount = 150;
+    COMCORE::CRpcMethodRef ref;
+    COMCORE::CRpcStatus status;
+    REQUIRE_TRUE( f.client->ResolveMethod( g_watchPath, ref, status ) );
+    COMCORE::CRpcMessage watch = f.client->NewRequest( ref );
+    COMCORE::CIRpcStreamPtr stream = f.client->OpenStream( ref, &watch );
+    REQUIRE_TRUE( !stream.IsNULL() );
+    COMCORE::CRpcMessage event;
+    UInt32 received = 0;
+    while ( stream->ReadNext( event, status, 5000 ) )
+        ++received;
+    ASSERT_OK( status );
+    ASSERT_TRUE( 150 == received );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestTlsRefusals( void )
+{
+    TESTFW::CTlsTestCerts certs;
+    SkipWithoutTls( certs );
+    {
+        // a client that trusts another authority does not get a session
+        CRpcEndpointFixture f;
+        CTcpHostFixture h( f );
+        UseTls( h, certs, "other_ca" );
+        REQUIRE_TRUE( h.Start() );
+        ASSERT_FALSE( h.ConnectClient() );
+        ASSERT_TRUE( 0 == h.host->GetEndpointCount() );
+    }
+    {
+        // a plain client to a TLS listener does not get a session
+        CRpcEndpointFixture f;
+        CTcpHostFixture h( f );
+        UseTls( h, certs );
+        h.clientUsesTls = false;
+        REQUIRE_TRUE( h.Start() );
+        ASSERT_FALSE( h.ConnectClient() );
+        ASSERT_TRUE( 0 == h.host->GetEndpointCount() );
+    }
+    {
+        // a host that requires a secure transport refuses plain tcp
+        CRpcEndpointFixture f;
+        f.serverSettings.requireSecureTransport = true;
+        CTcpHostFixture h( f );
+        REQUIRE_TRUE( h.Start() );
+        ASSERT_FALSE( h.ConnectClient() );
+    }
+    {
+        // TLS allows another bind address than loopback, a key that does not belong to the certificate stops the listening
+        COM::CRpcTcpTransportListener open;
+        COMCORE::CTlsServerSettings tls;
+        tls.SetCertificateChainPath( certs.GetPath( "good.crt" ) );
+        tls.SetPrivateKeyPath( certs.GetPath( "good.key" ) );
+        open.SetTlsSettings( tls );
+        ASSERT_TRUE( open.Listen( CORE::CUri( "tcp://0.0.0.0:0" ) ) );
+        open.StopListening();
+
+        COM::CRpcTcpTransportListener broken;
+        tls.SetPrivateKeyPath( certs.GetPath( "wrongname.key" ) );
+        broken.SetTlsSettings( tls );
+        ASSERT_FALSE( broken.Listen( CORE::CUri( "tcp://127.0.0.1:0" ) ) );
+    }
+    {
+        // the keys of TLS are read from the configuration of the transport and the listener
+        CORE::CDataNode cfg;
+        cfg.SetAttribute( "useTls", true );
+        cfg.SetAttribute( "caBundlePath", certs.GetPath( "ca.crt" ) );
+        COM::CRpcTcpTransport transport;
+        ASSERT_TRUE( transport.LoadConfig( cfg ) );
+        ASSERT_TRUE( transport.IsTls() );
+
+        CORE::CDataNode listenerCfg;
+        listenerCfg.SetAttribute( "certificateChainPath", certs.GetPath( "good.crt" ) );
+        listenerCfg.SetAttribute( "privateKeyPath", certs.GetPath( "good.key" ) );
+        COM::CRpcTcpTransportListener listener;
+        ASSERT_TRUE( listener.LoadConfig( listenerCfg ) );
+        ASSERT_TRUE( listener.GetTlsSettings().IsEnabled() );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 #define RUN_RPC_CASE( name, call )                                  \
     GUCEF_TESTFW_TESTCASE( "rpc_tcp: " name )                       \
     try                                                             \
@@ -840,6 +987,8 @@ PerformRpcTcpTests( void )
     COM::CComGlobal::Instance();
     RUN_RPC_CASE( "calls, streams and reflection through a host on a loopback listener", TestCallsThroughHost() );
     RUN_RPC_CASE( "a peer without the preface or with an oversized frame is disconnected; loopback only", TestPrefaceAndFrameLimits() );
+    RUN_RPC_CASE( "calls and streams over TLS between transports that both require a secure transport", TestCallsOverTls() );
+    RUN_RPC_CASE( "TLS: an untrusted authority, a plain client and a plain transport for a secure host are refused; bind and configuration", TestTlsRefusals() );
     RUN_RPC_CASE( "a session resumes from loopback onto tcp", TestResumeFromLoopbackOntoTcp() );
     RUN_RPC_CASE( "an authenticated session does not resume over unauthenticated tcp", TestNoStepDownOntoTcp() );
     RUN_RPC_CASE( "MCP tools/list over gucef.mcp.Session/Exchange through the relay", TestMcpOverRpc() );

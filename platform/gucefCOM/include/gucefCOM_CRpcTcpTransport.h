@@ -36,10 +36,10 @@
 #define GUCEF_CORE_COBSERVER_H
 #endif /* GUCEF_CORE_COBSERVER_H ? */
 
-#ifndef GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#include "CTCPClientSocket.h"
-#define GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#endif /* GUCEF_COMCORE_CTCPCLIENTSOCKET_H ? */
+#ifndef GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#include "gucefCOMCORE_CTlsClientConnection.h"
+#define GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#endif /* GUCEF_COMCORE_CTLSCLIENTCONNECTION_H ? */
 
 #ifndef GUCEF_COMCORE_CTCPSERVERCONNECTION_H
 #include "CTCPServerConnection.h"
@@ -85,9 +85,12 @@ class CRpcTcpTransportListener;
  *  whose frame is larger than allowed is disconnected before anything else is read: the first frame may be up to
  *  maxPreHelloFrameSize (the HELLO with its offers), every later one up to maxFrameSize.
  *
- *  The transport is reliable and ordered and not secure (there is no TLS for it): the principal is
- *  "tcp:<address>:<port>", not authenticated. Connect() refuses an address that is not a loopback address unless
- *  allowNonLoopback is set.
+ *  The transport is reliable and ordered. TLS is optional: with SetTlsSettings() (or useTls in the configuration)
+ *  Connect() protects the connection with TLS and verifies the certificate of the server for the host of the URI;
+ *  a connection accepted by a listener with TLS settings is protected likewise. A protected transport reports
+ *  isSecure, which an endpoint with requireSecureTransport needs. The principal is "tcp:<address>:<port>", not
+ *  authenticated: TLS authenticates the server to the client, not the client. Connect() refuses an address that is
+ *  not a loopback address unless TLS is used or allowNonLoopback is set.
  *
  *  Threading (CIRpcTransport): the socket runs on the transport's pulse generator, which is the endpoint's protocol
  *  thread or, without one, a dedicated task of the task manager (CRpcProtocolTask). Every event is raised there.
@@ -95,7 +98,8 @@ class CRpcTcpTransportListener;
  *  which writes them at once when it is the caller, else at its next pulse.
  *
  *  Configuration keys: maxFrameSize (16384), maxPreHelloFrameSize (65536), allowNonLoopback (false),
- *  threadPoolName ("gucef.rpc.tcp").
+ *  threadPoolName ("gucef.rpc.tcp"), useTls (false) with the keys of CTlsSettings (caBundlePath, serverName,
+ *  minVersion, ...) in the same node.
  */
 class GUCEF_COM_PUBLIC_CPP CRpcTcpTransport : public COMCORE::CIRpcTransport
 {
@@ -112,6 +116,15 @@ class GUCEF_COM_PUBLIC_CPP CRpcTcpTransport : public COMCORE::CIRpcTransport
     void SetMaxFrameSize( UInt32 maxFrameSize );
     void SetMaxPreHelloFrameSize( UInt32 maxFrameSize );
     void SetAllowNonLoopback( bool allowNonLoopback );
+
+    /** Connect() uses TLS with these settings. Before Connect() */
+    void SetTlsSettings( const COMCORE::CTlsSettings& settings );
+
+    /** Connect() uses plain TCP again. Before Connect() */
+    void ClearTlsSettings( void );
+
+    /** Whether the connection is protected by TLS, or Connect() will protect it */
+    bool IsTls( void ) const;
 
     virtual const CORE::CString& GetTransportType( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Connect( const CORE::CUri& remote ) GUCEF_VIRTUAL_OVERRIDE;
@@ -175,7 +188,7 @@ class GUCEF_COM_PUBLIC_CPP CRpcTcpTransport : public COMCORE::CIRpcTransport
     CORE::CDynamicBuffer m_sending;             /**< protocol thread: the bytes being written, swapped with m_outbound */
     bool m_flushing;
     bool m_closeRequested;
-    COMCORE::CTCPClientSocket* m_client;
+    COMCORE::CTlsClientConnection* m_client;
     COMCORE::CTCPServerConnection* m_serverConnection;
     CORE::PulseGeneratorPtr m_pulseGenerator;
     COMCORE::CRpcProtocolTaskPtr m_task;
@@ -194,6 +207,8 @@ class GUCEF_COM_PUBLIC_CPP CRpcTcpTransport : public COMCORE::CIRpcTransport
     UInt32 m_maxFrameSize;
     UInt32 m_maxPreHelloFrameSize;
     bool m_allowNonLoopback;
+    bool m_useTls;
+    COMCORE::CTlsSettings m_tlsSettings;
     CORE::CString m_threadPoolName;
     mutable MT::CMutex m_notifierLock;          /**< see Lock() */
 };

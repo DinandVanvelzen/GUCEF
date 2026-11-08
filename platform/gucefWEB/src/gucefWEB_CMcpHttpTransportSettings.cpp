@@ -102,6 +102,7 @@ CMcpHttpTransportSettings::CMcpHttpTransportSettings( void )
     , bodyTimeoutMs( 30000 )
     , idleTimeoutMs( 60000 )
     , allowNonLoopback( false )
+    , tls()
 {GUCEF_TRACE;
 
 }
@@ -123,6 +124,7 @@ CMcpHttpTransportSettings::CMcpHttpTransportSettings( const CMcpHttpTransportSet
     , bodyTimeoutMs( src.bodyTimeoutMs )
     , idleTimeoutMs( src.idleTimeoutMs )
     , allowNonLoopback( src.allowNonLoopback )
+    , tls( src.tls )
 {GUCEF_TRACE;
 
 }
@@ -156,6 +158,7 @@ CMcpHttpTransportSettings::operator=( const CMcpHttpTransportSettings& src )
         bodyTimeoutMs = src.bodyTimeoutMs;
         idleTimeoutMs = src.idleTimeoutMs;
         allowNonLoopback = src.allowNonLoopback;
+        tls = src.tls;
     }
     return *this;
 }
@@ -179,6 +182,8 @@ CMcpHttpTransportSettings::SaveConfig( CORE::CDataNode& cfg ) const
     cfg.SetAttribute( "bodyTimeoutMs", bodyTimeoutMs );
     cfg.SetAttribute( "idleTimeoutMs", idleTimeoutMs );
     cfg.SetAttribute( "allowNonLoopback", allowNonLoopback );
+    if ( tls.IsEnabled() )
+        tls.SaveConfig( cfg );
     return true;
 }
 
@@ -222,6 +227,7 @@ CMcpHttpTransportSettings::LoadConfig( const CORE::CDataNode& cfg )
     bodyTimeoutMs = cfg.GetAttributeValueOrChildValueByName( "bodyTimeoutMs" ).AsUInt32( bodyTimeoutMs, true );
     idleTimeoutMs = cfg.GetAttributeValueOrChildValueByName( "idleTimeoutMs" ).AsUInt32( idleTimeoutMs, true );
     allowNonLoopback = cfg.GetAttributeValueOrChildValueByName( "allowNonLoopback" ).AsBool( allowNonLoopback, true );
+    tls.LoadConfig( cfg );
     return true;
 }
 

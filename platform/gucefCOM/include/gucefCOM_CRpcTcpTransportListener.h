@@ -62,11 +62,14 @@ namespace COM {
  *  CRpcTcpTransport raised with TransportAcceptedEvent, on that thread. CRpcHost takes it from there (the first frame
  *  must be a HELLO).
  *
- *  Listen( "tcp://127.0.0.1:0" ) picks a free port, see GetListenUri(). A bind address that is not a loopback address
- *  is refused unless allowNonLoopback is set: there is no TLS for this transport.
+ *  Listen( "tcp://127.0.0.1:0" ) picks a free port, see GetListenUri(). TLS is optional: with SetTlsSettings() (a
+ *  certificate and key) every accepted connection is protected by TLS and its transport reports isSecure; TLS that
+ *  cannot be used makes Listen() fail. A bind address that is not a loopback address is refused unless TLS is used
+ *  or allowNonLoopback is set.
  *
  *  Configuration keys: maxConnections (64), maxFrameSize (16384), maxPreHelloFrameSize (65536),
- *  allowNonLoopback (false), threadPoolName ("gucef.rpc.tcp").
+ *  allowNonLoopback (false), threadPoolName ("gucef.rpc.tcp"), and the keys of CTlsServerSettings
+ *  (certificateChainPath, privateKeyPath, ...) in the same node.
  */
 class GUCEF_COM_PUBLIC_CPP CRpcTcpTransportListener : public COMCORE::CIRpcTransportListener
 {
@@ -80,6 +83,10 @@ class GUCEF_COM_PUBLIC_CPP CRpcTcpTransportListener : public COMCORE::CIRpcTrans
     void SetMaxConnections( UInt32 maxConnections );
     void SetMaxFrameSize( UInt32 maxFrameSize );
     void SetAllowNonLoopback( bool allowNonLoopback );
+
+    /** TLS for the connections that are accepted: settings with a certificate and key turn it on. Before Listen() */
+    void SetTlsSettings( const COMCORE::CTlsServerSettings& settings );
+    const COMCORE::CTlsServerSettings& GetTlsSettings( void ) const;
     UInt32 GetConnectionCount( void ) const;
 
     virtual const CORE::CString& GetTransportType( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -124,6 +131,7 @@ class GUCEF_COM_PUBLIC_CPP CRpcTcpTransportListener : public COMCORE::CIRpcTrans
     UInt32 m_maxFrameSize;
     UInt32 m_maxPreHelloFrameSize;
     bool m_allowNonLoopback;
+    COMCORE::CTlsServerSettings m_tlsSettings;
     CORE::CString m_threadPoolName;
     mutable MT::CMutex m_notifierLock;          /**< see Lock() */
 };

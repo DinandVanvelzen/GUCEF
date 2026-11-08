@@ -360,7 +360,7 @@ CORE::CString
 CMcpStreamableHttpTransport::GetEndpointDescription( void ) const
 {GUCEF_TRACE;
 
-    return "http://" + m_settings.bindAddress + ":" + CORE::UInt32ToString( m_active ? (UInt32) GetBoundPort() : (UInt32) m_settings.port ) + m_settings.path;
+    return CORE::CString( m_settings.tls.IsEnabled() ? "https://" : "http://" ) + m_settings.bindAddress + ":" + CORE::UInt32ToString( m_active ? (UInt32) GetBoundPort() : (UInt32) m_settings.port ) + m_settings.path;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -384,11 +384,11 @@ CMcpStreamableHttpTransport::Start( COM::CMcpServer& server )
     if ( m_active )
         return true;
 
-    if ( !COM::CMcpTcpTransport::IsLoopbackAddress( m_settings.bindAddress ) )
+    if ( !COM::CMcpTcpTransport::IsLoopbackAddress( m_settings.bindAddress ) && !m_settings.tls.IsEnabled() )
     {
         if ( !m_settings.allowNonLoopback )
         {
-            RaiseError( "The bind address \"" + m_settings.bindAddress + "\" is not a loopback address, which needs allowNonLoopback. There is no TLS server" );
+            RaiseError( "The bind address \"" + m_settings.bindAddress + "\" is not a loopback address, which needs TLS (certificateChainPath, privateKeyPath) or allowNonLoopback for plain HTTP" );
             return false;
         }
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "McpStreamableHttpTransport: Binding to \"" << m_settings.bindAddress << "\", which is not a loopback address, without TLS" );
@@ -432,6 +432,7 @@ CMcpStreamableHttpTransport::Start( COM::CMcpServer& server )
     httpSettings.headerTimeoutMs = m_settings.headerTimeoutMs;
     httpSettings.bodyTimeoutMs = m_settings.bodyTimeoutMs;
     httpSettings.idleTimeoutMs = m_settings.idleTimeoutMs;
+    httpSettings.tls = m_settings.tls;
 
     // the HTTP server runs on the protocol thread of the MCP server: sockets, dispatch and sends never race
     m_httpServer = GUCEF_NEW CHTTPServer( m_pulseGenerator, &g_mcpNotFoundRequestHandlerFactory, &httpSettings );
@@ -443,7 +444,8 @@ CMcpStreamableHttpTransport::Start( COM::CMcpServer& server )
     }
     if ( !m_httpServer->ListenOnPort( m_settings.port ) )
     {
-        RaiseError( "Cannot listen on " + m_settings.bindAddress + ":" + CORE::UInt32ToString( m_settings.port ) );
+        RaiseError( "Cannot listen on " + m_settings.bindAddress + ":" + CORE::UInt32ToString( m_settings.port ) +
+                    ( m_settings.tls.IsEnabled() && !m_httpServer->IsTlsEnabled() ? CORE::CString( ": the TLS certificate or key cannot be used, see the log" ) : CORE::CString::Empty ) );
         Release();
         return false;
     }

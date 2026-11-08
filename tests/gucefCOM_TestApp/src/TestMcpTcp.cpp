@@ -57,6 +57,26 @@
 #define GUCEF_TEST_UNIQUE_H
 #endif /* GUCEF_TEST_UNIQUE_H ? */
 
+#ifndef GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#include "gucefCOMCORE_CTlsClientConnection.h"
+#define GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#endif /* GUCEF_COMCORE_CTLSCLIENTCONNECTION_H ? */
+
+#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#include "gucefCOMCORE_CComCoreGlobal.h"
+#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+
+#ifndef GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#include "gucefCOMCORE_CTlsProviderRegistry.h"
+#define GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#endif /* GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H ? */
+
+#ifndef GUCEF_TEST_TLS_SERVER_H
+#include "gucef_test_tls_server.h"
+#define GUCEF_TEST_TLS_SERVER_H
+#endif /* GUCEF_TEST_TLS_SERVER_H ? */
+
 #include "TestMcpSupport.h"
 #include "TestMcpClientSupport.h"
 #include "TestMcpTcp.h"
@@ -134,7 +154,7 @@ class CTcpFixture
 {
     public:
 
-    CTcpFixture( bool requireToken, const char* token = GUCEF_NULL, UInt32 maxMessageBytes = 0 )
+    CTcpFixture( bool requireToken, const char* token = GUCEF_NULL, UInt32 maxMessageBytes = 0, const COMCORE::CTlsServerSettings* tls = GUCEF_NULL )
         : rig()
         , transport( GUCEF_NULL )
         , transportPtr()
@@ -157,6 +177,8 @@ class CTcpFixture
         transport->SetRequireToken( requireToken );
         if ( GUCEF_NULL != token )
             transport->SetToken( token );
+        if ( GUCEF_NULL != tls )
+            transport->SetTlsSettings( *tls );
         tally = GUCEF_NEW CServerTally( *rig.server );
         rig.server->AddTransport( transportPtr );
         started = rig.server->Start();
@@ -250,6 +272,64 @@ CORE::CString
 EchoParams( const char* text )
 {
     return CORE::CString( "\"name\":\"echo\",\"arguments\":{\"text\":\"" ) + text + "\"}";
+}
+
+/** A client over TLS on the pulse generator of the server, that keeps what it receives */
+class CMcpTlsLineClient : public CORE::CObserver
+{
+    public:
+
+    COMCORE::CTlsClientConnection connection;
+    CORE::CString received;
+    bool connected;
+    bool disconnected;
+
+    explicit CMcpTlsLineClient( const CORE::PulseGeneratorPtr& pulseGenerator )
+        : CORE::CObserver(), connection( pulseGenerator, false ), received(), connected( false ), disconnected( false )
+    {
+        SubscribeTo( &connection );
+    }
+
+    virtual ~CMcpTlsLineClient()
+    {
+        UnsubscribeAllFromObserver();
+        connection.Close();
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CMcpTlsLineClient";
+        return classTypeName;
+    }
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( COMCORE::CTCPConnection::ConnectedEvent == eventId )
+            connected = true;
+        else
+        if ( COMCORE::CTCPConnection::DisconnectedEvent == eventId )
+            disconnected = true;
+        else
+        if ( COMCORE::CTCPConnection::DataRecievedEvent == eventId )
+        {
+            const CORE::CDynamicBuffer& data = static_cast< COMCORE::CTCPConnection::TDataRecievedEventData* >( eventData )->GetData();
+            received.Append( data.AsConstTypePtr< char >(), data.GetDataSize() );
+        }
+    }
+};
+
+/** Pulses the server until the client has the text, or closed */
+bool
+PumpUntilReceived( CTcpFixture& fixture, CMcpTlsLineClient& client, const char* text, UInt32 timeoutInMs = 5000 )
+{
+    for ( UInt32 waited=0; waited<=timeoutInMs && client.received.HasSubstr( text ) < 0 && !client.disconnected; ++waited )
+    {
+        fixture.rig.Pulse();
+        MT::ThreadDelay( 1 );
+    }
+    return client.received.HasSubstr( text ) >= 0;
 }
 
 }
@@ -835,6 +915,98 @@ PerformMcpTcpTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
     #endif
+
+    GUCEF_TESTFW_TESTCASE( "Test: With a certificate and key the transport speaks TLS, the lines and the token inside it; a plain client gets nothing" )
+        try
+        {
+            CORE::CString whyNot;
+            GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+            GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNot ), "this system has no TLS provider" );
+            TESTFW::CTlsTestCerts certs;
+            GUCEF_TESTFW_SKIP_IF( !certs.IsReady(), "the test certificates could not be made" );
+
+            COMCORE::CTlsServerSettings tls;
+            tls.SetCertificateChainPath( certs.GetPath( "good.crt" ) );
+            tls.SetPrivateKeyPath( certs.GetPath( "good.key" ) );
+            CTcpFixture fixture( true, "tls-token", 0, &tls );
+            ASSERT_TRUE( fixture.started );
+            if ( !fixture.started )
+                return;
+            ASSERT_TRUE( fixture.transport->GetEndpointDescription() == "tls://127.0.0.1:" + CORE::UInt32ToString( fixture.Port() ) );
+
+            COMCORE::CTlsSettings trust;
+            trust.SetCaBundlePath( certs.GetPath( "ca.crt" ) );
+            trust.SetUseSystemTrust( false );
+            CMcpTlsLineClient client( fixture.rig.pulseGenerator );
+            ASSERT_TRUE( client.connection.ConnectTo( "localhost", fixture.Port(), &trust ) );
+            const CORE::CString line = TokenRequest( "1", "tools/call", EchoParams( "inside tls" ), "tls-token" ) + "\n";
+            for ( UInt32 waited=0; waited<5000 && !client.connected && !client.disconnected; ++waited )
+            {
+                fixture.rig.Pulse();
+                MT::ThreadDelay( 1 );
+            }
+            ASSERT_TRUE( client.connected );
+            ASSERT_TRUE( client.connection.Send( line.C_String(), line.Length() ) );
+            ASSERT_TRUE( PumpUntilReceived( fixture, client, "echo: inside tls" ) );
+
+            // a client without TLS is closed and none of its lines is served
+            CMcpRawTcpClient plain;
+            ASSERT_TRUE( plain.Connect( fixture.Port() ) );
+            ASSERT_TRUE( plain.SendLine( TokenRequest( "2", "tools/call", EchoParams( "plain" ), "tls-token" ) ) );
+            ASSERT_TRUE( fixture.WaitForClose( plain ) );
+            CORE::CString got;
+            ASSERT_FALSE( plain.Lines().PopLine( got ) );
+        }
+        catch( const TESTFW::STestSkipRequest& )
+        {
+            throw;
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: TLS allows another than a loopback address, a certificate that cannot be used stops the start, the keys come from the configuration" )
+        try
+        {
+            CORE::CString whyNot;
+            GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+            GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNot ), "this system has no TLS provider" );
+            TESTFW::CTlsTestCerts certs;
+            GUCEF_TESTFW_SKIP_IF( !certs.IsReady(), "the test certificates could not be made" );
+
+            CORE::CDataNode cfg;
+            cfg.SetAttribute( "bindAddress", "0.0.0.0" );
+            cfg.SetAttribute( "requireToken", false );
+            cfg.SetAttribute( "certificateChainPath", certs.GetPath( "good.crt" ) );
+            cfg.SetAttribute( "privateKeyPath", certs.GetPath( "good.key" ) );
+            {
+                CMcpTestRig rig;
+                COM::CMcpTcpTransport transport;
+                ASSERT_TRUE( transport.LoadConfig( cfg ) );
+                ASSERT_TRUE( transport.GetTlsSettings().IsEnabled() );
+                ASSERT_TRUE( transport.Start( *rig.server ) );
+                transport.Stop( false );
+            }
+            {
+                cfg.SetAttribute( "privateKeyPath", certs.GetPath( "wrongname.key" ) );
+                CMcpTestRig rig;
+                COM::CMcpTcpTransport transport;
+                ASSERT_TRUE( transport.LoadConfig( cfg ) );
+                ASSERT_FALSE( transport.Start( *rig.server ) );
+                ASSERT_FALSE( transport.IsActive() );
+            }
+        }
+        catch( const TESTFW::STestSkipRequest& )
+        {
+            throw;
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL MCP TCP TESTS COMPLETED" );

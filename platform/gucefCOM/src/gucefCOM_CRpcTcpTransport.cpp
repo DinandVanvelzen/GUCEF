@@ -108,6 +108,8 @@ CRpcTcpTransport::CRpcTcpTransport( void )
     , m_maxFrameSize( DefaultMaxFrameSize )
     , m_maxPreHelloFrameSize( DefaultMaxPreHelloFrameSize )
     , m_allowNonLoopback( false )
+    , m_useTls( false )
+    , m_tlsSettings()
     , m_threadPoolName( "gucef.rpc.tcp" )
     , m_notifierLock()
 {GUCEF_TRACE;
@@ -189,6 +191,35 @@ CRpcTcpTransport::SetAllowNonLoopback( bool allowNonLoopback )
 {GUCEF_TRACE;
 
     m_allowNonLoopback = allowNonLoopback;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcTcpTransport::SetTlsSettings( const COMCORE::CTlsSettings& settings )
+{GUCEF_TRACE;
+
+    m_tlsSettings = settings;
+    m_useTls = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcTcpTransport::ClearTlsSettings( void )
+{GUCEF_TRACE;
+
+    m_tlsSettings = COMCORE::CTlsSettings();
+    m_useTls = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRpcTcpTransport::IsTls( void ) const
+{GUCEF_TRACE;
+
+    return m_properties.isSecure || ( GUCEF_NULL == m_serverConnection && m_useTls );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -307,9 +338,9 @@ CRpcTcpTransport::Connect( const CORE::CUri& remote )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransport: \"" << remote.ToUriInStringForm() << "\" has no host and port" );
         return false;
     }
-    if ( !IsLoopbackHost( host ) && !m_allowNonLoopback )
+    if ( !IsLoopbackHost( host ) && !m_allowNonLoopback && !m_useTls )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransport: " << host << " is not a loopback address, which needs allowNonLoopback; there is no TLS for this transport" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransport: " << host << " is not a loopback address, which needs TLS (SetTlsSettings, useTls) or allowNonLoopback" );
         return false;
     }
     if ( !EnsurePulseGenerator() )
@@ -317,7 +348,8 @@ CRpcTcpTransport::Connect( const CORE::CUri& remote )
 
     m_remoteUri = remote;
     m_principal = COMCORE::CRpcPrincipal( TransportType, "tcp:" + host + ":" + CORE::UInt32ToString( port ), false );
-    m_client = GUCEF_NEW COMCORE::CTCPClientSocket( m_pulseGenerator, false );
+    m_client = GUCEF_NEW COMCORE::CTlsClientConnection( m_pulseGenerator, false );
+    m_properties.isSecure = m_useTls;
 
     // on a task of its own the socket wakes that task when it becomes ready; a pulse generator that was given is
     // serviced at its periodic pulses, whoever gave it knows how it is driven
@@ -340,9 +372,10 @@ CRpcTcpTransport::Connect( const CORE::CUri& remote )
         m_pulsesRequested = true;
     }
     m_pulseGenerator->RequestPeriodicPulses( this, 5 );
-    if ( !m_client->ConnectTo( host, port, false ) )
+    if ( !m_client->ConnectTo( host, port, m_useTls ? &m_tlsSettings : GUCEF_NULL, false ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransport: cannot connect to " << host << ":" << port );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransport: cannot connect to " << host << ":" << port <<
+                         ( m_useTls && m_client->GetLastError().IsError() ? CORE::CString( ": " ) + m_client->GetLastError().GetDescription( host ) : CORE::CString::Empty ) );
         return false;
     }
     return true;
@@ -355,6 +388,7 @@ CRpcTcpTransport::Adopt( COMCORE::CTCPServerConnection* connection, const CORE::
 {GUCEF_TRACE;
 
     m_serverConnection = connection;
+    m_properties.isSecure = connection->IsTls();
     m_pulseGenerator = pulseGenerator;
     m_onOwnTask = onOwnTask;
     m_remoteUri = remote;
@@ -644,9 +678,15 @@ CRpcTcpTransport::OnSocketError( CORE::CNotifier* notifier, const CORE::CEvent& 
 {GUCEF_TRACE;
 
     Int32 code = GUCEF_NULL != eventData ? static_cast< const COMCORE::CTCPConnection::TSocketErrorEventData* >( eventData )->GetData() : 0;
-    CORE::TCloneableString text( "socket error " + CORE::Int32ToString( code ) );
+
+    // a failure of TLS: the certificate, the handshake. Its description says what to look at
+    CORE::CString what = "tcp socket error " + CORE::Int32ToString( code );
+    if ( GUCEF_NULL != m_client && code >= GUCEF_COMCORE_TLS_ERRORCODE_BASE && m_client->GetLastError().IsError() )
+        what = "tls: " + m_client->GetLastError().GetDescription( m_remoteUri.GetAuthorityHost() );
+
+    CORE::TCloneableString text( what );
     NotifyObservers( TransportErrorEvent, &text );
-    Disconnect( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_UNAVAILABLE, "tcp socket error " + CORE::Int32ToString( code ) ) );
+    Disconnect( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_UNAVAILABLE, what ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -693,6 +733,9 @@ CRpcTcpTransport::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "maxPreHelloFrameSize", m_maxPreHelloFrameSize );
     config.SetAttribute( "allowNonLoopback", m_allowNonLoopback );
     config.SetAttribute( "threadPoolName", m_threadPoolName );
+    config.SetAttribute( "useTls", m_useTls );
+    if ( m_useTls )
+        m_tlsSettings.SaveConfig( config );
     return true;
 }
 
@@ -706,6 +749,9 @@ CRpcTcpTransport::LoadConfig( const CORE::CDataNode& config )
     m_maxPreHelloFrameSize = config.GetAttributeValueOrChildValueByName( "maxPreHelloFrameSize" ).AsUInt32( m_maxPreHelloFrameSize );
     m_allowNonLoopback = config.GetAttributeValueOrChildValueByName( "allowNonLoopback" ).AsBool( m_allowNonLoopback );
     m_threadPoolName = config.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( m_threadPoolName );
+    m_useTls = config.GetAttributeValueOrChildValueByName( "useTls" ).AsBool( m_useTls );
+    if ( m_useTls )
+        m_tlsSettings.LoadConfig( config );
     return true;
 }
 

@@ -263,6 +263,7 @@ CHttpServerSettings::CHttpServerSettings( void )
     , bodyTimeoutMs( DefaultBodyTimeoutMs )
     , idleTimeoutMs( DefaultIdleTimeoutMs )
     , maxStreamBacklogBytes( DefaultMaxStreamBacklogBytes )
+    , tls()
 {GUCEF_TRACE;
 
 }
@@ -283,6 +284,7 @@ CHttpServerSettings::CHttpServerSettings( const CHttpServerSettings& src )
     , bodyTimeoutMs( src.bodyTimeoutMs )
     , idleTimeoutMs( src.idleTimeoutMs )
     , maxStreamBacklogBytes( src.maxStreamBacklogBytes )
+    , tls( src.tls )
 {GUCEF_TRACE;
 
 }
@@ -308,6 +310,7 @@ CHttpServerSettings::operator=( const CHttpServerSettings& src )
         bodyTimeoutMs = src.bodyTimeoutMs;
         idleTimeoutMs = src.idleTimeoutMs;
         maxStreamBacklogBytes = src.maxStreamBacklogBytes;
+        tls = src.tls;
     }
     return *this;
 }
@@ -339,6 +342,8 @@ CHttpServerSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "bodyTimeoutMs", bodyTimeoutMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "idleTimeoutMs", idleTimeoutMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "maxStreamBacklogBytes", maxStreamBacklogBytes ) && totalSuccess;
+    if ( tls.IsEnabled() )
+        totalSuccess = tls.SaveConfig( cfg ) && totalSuccess;
     return totalSuccess;
 }
 
@@ -360,6 +365,7 @@ CHttpServerSettings::LoadConfig( const CORE::CDataNode& cfg )
     bodyTimeoutMs = cfg.GetAttributeValueOrChildValueByName( "bodyTimeoutMs" ).AsUInt32( bodyTimeoutMs, true );
     idleTimeoutMs = cfg.GetAttributeValueOrChildValueByName( "idleTimeoutMs" ).AsUInt32( idleTimeoutMs, true );
     maxStreamBacklogBytes = cfg.GetAttributeValueOrChildValueByName( "maxStreamBacklogBytes" ).AsUInt32( maxStreamBacklogBytes, true );
+    tls.LoadConfig( cfg );
 
     return true;
 }
@@ -401,6 +407,7 @@ CHTTPServer::CHTTPServer( THttpServerRequestHandlerFactory* requestHandlerFactor
     {
         m_settings = *settings;
         ApplyBindAddress();
+        ApplyTls();
     }
 
     RegisterEventHandlers();
@@ -435,6 +442,7 @@ CHTTPServer::CHTTPServer( const CORE::PulseGeneratorPtr& pulsGenerator          
     {
         m_settings = *settings;
         ApplyBindAddress();
+        ApplyTls();
     }
 
     RegisterEventHandlers();
@@ -518,6 +526,35 @@ CHTTPServer::SetSettings( const CHttpServerSettings& settings )
         m_settings = settings;
     }
     ApplyBindAddress();
+    ApplyTls();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CHTTPServer::ApplyTls( void )
+{GUCEF_TRACE;
+
+    COMCORE::CTlsServerSettings tls;
+    {
+        MT::CScopeMutex lock( m_lock );
+        tls = m_settings.tls;
+    }
+
+    // takes effect at the next listen; TLS that cannot be used makes that listen fail
+    if ( !m_tcpServerSocket.SetTlsSettings( tls ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CHTTPServer: HTTPS cannot be served with the certificate \"" << tls.GetCertificateChainPath() << "\" and the key \"" << tls.GetPrivateKeyPath() << "\"" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CHTTPServer::IsTlsEnabled( void ) const
+{GUCEF_TRACE;
+
+    return m_tcpServerSocket.IsTlsEnabled();
 }
 
 /*-------------------------------------------------------------------------*/

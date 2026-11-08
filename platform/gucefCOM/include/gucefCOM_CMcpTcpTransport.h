@@ -83,11 +83,14 @@ namespace COM {
  *    new client is always accepted; when that makes one too many, the oldest connection without such a request is
  *    closed to make room. When every place has a client that made such a request, the new connection is held: what
  *    it sends waits (up to the message size limit) until a place is free, as the backlog of the socket held it before.
- *  - Loopback only. A bind address that is not a loopback address (127.x.x.x) is refused unless allowNonLoopback is
- *    set, which logs a warning. There is no TLS server in GUCEF yet.
+ *  - TLS, optional. With SetTlsSettings() (a certificate and key) every connection is protected by TLS: the client
+ *    speaks TLS first and the lines above inside it. TLS that cannot be used makes Start() fail.
+ *  - Loopback unless TLS. A bind address that is not a loopback address (127.x.x.x) is refused unless TLS is used,
+ *    or allowNonLoopback is set, which logs a warning: plain TCP on the network.
  *
  *  Configuration keys: bindAddress ("127.0.0.1"), port (0: a free one, see GetBoundPort()), maxConnections (8),
- *  requireToken (true), tokenFile (none), allowNonLoopback (false), firstRequestTimeoutMs (10000).
+ *  requireToken (true), tokenFile (none), allowNonLoopback (false), firstRequestTimeoutMs (10000), and the keys of
+ *  CTlsServerSettings (certificateChainPath, privateKeyPath, ...) in the same node.
  */
 class GUCEF_COM_PUBLIC_CPP CMcpTcpTransport : public CIMcpTransport
 {
@@ -112,6 +115,10 @@ class GUCEF_COM_PUBLIC_CPP CMcpTcpTransport : public CIMcpTransport
     void SetTokenFile( const CORE::CString& tokenFile );
     void SetAllowNonLoopback( bool allowNonLoopback );
     void SetFirstRequestTimeoutMs( UInt32 timeoutInMs );
+
+    /** TLS for every connection: settings with a certificate and key turn it on */
+    void SetTlsSettings( const COMCORE::CTlsServerSettings& settings );
+    const COMCORE::CTlsServerSettings& GetTlsSettings( void ) const;
 
     /** The token to require, instead of the one of the token file. It is not part of the configuration */
     void SetToken( const CORE::CString& token );
@@ -194,6 +201,7 @@ class GUCEF_COM_PUBLIC_CPP CMcpTcpTransport : public CIMcpTransport
     bool m_requireToken;
     CORE::CString m_tokenFile;
     bool m_allowNonLoopback;
+    COMCORE::CTlsServerSettings m_tlsSettings;
     UInt32 m_firstRequestTimeoutMs;
     UInt64 m_nextTimeoutCheckInMs;
     CORE::PulseGeneratorPtr m_pulseGenerator;

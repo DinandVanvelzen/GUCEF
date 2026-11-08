@@ -242,6 +242,7 @@ CMcpTcpTransport::CMcpTcpTransport( void )
     , m_requireToken( true )
     , m_tokenFile()
     , m_allowNonLoopback( false )
+    , m_tlsSettings()
     , m_firstRequestTimeoutMs( DefaultFirstRequestTimeoutMs )
     , m_nextTimeoutCheckInMs( 0 )
     , m_pulseGenerator()
@@ -291,6 +292,8 @@ void CMcpTcpTransport::SetRequireToken( bool requireToken ) {GUCEF_TRACE; m_requ
 void CMcpTcpTransport::SetTokenFile( const CORE::CString& tokenFile ) {GUCEF_TRACE; m_tokenFile = tokenFile; }
 void CMcpTcpTransport::SetAllowNonLoopback( bool allowNonLoopback ) {GUCEF_TRACE; m_allowNonLoopback = allowNonLoopback; }
 void CMcpTcpTransport::SetFirstRequestTimeoutMs( UInt32 timeoutInMs ) {GUCEF_TRACE; m_firstRequestTimeoutMs = timeoutInMs; }
+void CMcpTcpTransport::SetTlsSettings( const COMCORE::CTlsServerSettings& settings ) {GUCEF_TRACE; m_tlsSettings = settings; }
+const COMCORE::CTlsServerSettings& CMcpTcpTransport::GetTlsSettings( void ) const {GUCEF_TRACE; return m_tlsSettings; }
 
 /*-------------------------------------------------------------------------*/
 
@@ -343,7 +346,7 @@ CORE::CString
 CMcpTcpTransport::GetEndpointDescription( void ) const
 {GUCEF_TRACE;
 
-    return "tcp://" + m_bindAddress + ":" + CORE::UInt32ToString( m_active ? (UInt32) GetBoundPort() : (UInt32) m_port );
+    return CORE::CString( m_tlsSettings.IsEnabled() ? "tls://" : "tcp://" ) + m_bindAddress + ":" + CORE::UInt32ToString( m_active ? (UInt32) GetBoundPort() : (UInt32) m_port );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -454,11 +457,11 @@ CMcpTcpTransport::Start( CMcpServer& server )
         return true;
 
     CORE::CString problem;
-    if ( !IsLoopbackAddress( m_bindAddress ) )
+    if ( !IsLoopbackAddress( m_bindAddress ) && !m_tlsSettings.IsEnabled() )
     {
         if ( !m_allowNonLoopback )
         {
-            problem = "McpTcpTransport: The bind address \"" + m_bindAddress + "\" is not a loopback address, which needs allowNonLoopback. There is no TLS server yet";
+            problem = "McpTcpTransport: The bind address \"" + m_bindAddress + "\" is not a loopback address, which needs TLS (certificateChainPath, privateKeyPath) or allowNonLoopback for plain TCP";
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, problem );
             CORE::TCloneableString eData( problem );
             NotifyObservers( TransportErrorEvent, &eData );
@@ -481,6 +484,15 @@ CMcpTcpTransport::Start( CMcpServer& server )
     if ( !m_socket->SetBindAddress( m_bindAddress ) )
     {
         problem = "McpTcpTransport: The bind address \"" + m_bindAddress + "\" is not valid";
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, problem );
+        CORE::TCloneableString eData( problem );
+        NotifyObservers( TransportErrorEvent, &eData );
+        Release();
+        return false;
+    }
+    if ( !m_socket->SetTlsSettings( m_tlsSettings ) )
+    {
+        problem = "McpTcpTransport: TLS cannot be used with the certificate \"" + m_tlsSettings.GetCertificateChainPath() + "\" and the key \"" + m_tlsSettings.GetPrivateKeyPath() + "\", see the log";
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, problem );
         CORE::TCloneableString eData( problem );
         NotifyObservers( TransportErrorEvent, &eData );
@@ -815,6 +827,8 @@ CMcpTcpTransport::SaveConfig( CORE::CDataNode& cfg ) const
     cfg.SetAttribute( "tokenFile", CORE::CVariant( m_tokenFile ) );
     cfg.SetAttribute( "allowNonLoopback", m_allowNonLoopback );
     cfg.SetAttribute( "firstRequestTimeoutMs", m_firstRequestTimeoutMs );
+    if ( m_tlsSettings.IsEnabled() )
+        m_tlsSettings.SaveConfig( cfg );
     return true;
 }
 
@@ -837,6 +851,7 @@ CMcpTcpTransport::LoadConfig( const CORE::CDataNode& cfg )
     m_tokenFile = cfg.GetAttributeValueOrChildValueByName( "tokenFile" ).AsString( m_tokenFile, true );
     m_allowNonLoopback = cfg.GetAttributeValueOrChildValueByName( "allowNonLoopback" ).AsBool( m_allowNonLoopback, true );
     m_firstRequestTimeoutMs = cfg.GetAttributeValueOrChildValueByName( "firstRequestTimeoutMs" ).AsUInt32( m_firstRequestTimeoutMs, true );
+    m_tlsSettings.LoadConfig( cfg );
     return true;
 }
 

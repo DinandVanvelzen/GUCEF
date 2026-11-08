@@ -132,6 +132,14 @@ class GUCEF_WEB_PUBLIC_CPP CHttpServerSettings : public CORE::CIConfigurable
      */
     UInt32 maxStreamBacklogBytes;
 
+    /**
+     *  TLS: with a certificate and key (tls.IsEnabled()) every connection is HTTPS, see CTCPServerSocket::SetTlsSettings().
+     *  TLS that is asked for and cannot be used makes Listen() fail rather than serving plain HTTP. In config the keys
+     *  of CTlsServerSettings next to the others: certificateChainPath, privateKeyPath, minVersion, maxVersion, alpn,
+     *  handshakeTimeoutInMs
+     */
+    COMCORE::CTlsServerSettings tls;
+
     static const UInt32 DefaultMaxHeaderBytes = 16384;
     static const UInt32 DefaultMaxHeaderCount = 100;
     static const UInt32 DefaultMaxBodyBytes = 1048576;
@@ -205,6 +213,9 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPServer : public CORE::CObservingNotifier
     bool ListenOnPort( const UInt16 port );
 
     bool Listen( void );
+
+    /** Whether the connections are HTTPS: the settings ask for TLS and the certificate and key can be used */
+    bool IsTlsEnabled( void ) const;
 
     /**
      *  The port the server is listening on, 0 when it is not. For a server that was told to listen on port 0
@@ -348,6 +359,8 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPServer : public CORE::CObservingNotifier
     void RegisterEventHandlers( void );
 
     void ApplyBindAddress( void );
+
+    void ApplyTls( void );
 
     void
     OnClientConnectedEvent( CORE::CNotifier* notifier    ,

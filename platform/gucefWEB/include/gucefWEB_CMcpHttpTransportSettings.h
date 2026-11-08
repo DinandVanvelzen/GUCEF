@@ -41,6 +41,11 @@
 #define GUCEF_WEB_MACROS_H
 #endif /* GUCEF_WEB_MACROS_H ? */
 
+#ifndef GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#include "gucefCOMCORE_CTlsServerSettings.h"
+#define GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#endif /* GUCEF_COMCORE_CTLSSERVERSETTINGS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -65,7 +70,7 @@ class GUCEF_WEB_PUBLIC_CPP CMcpHttpTransportSettings : public CORE::CIConfigurab
 {
     public:
 
-    CORE::CString bindAddress;                      /**< dotted IPv4, default 127.0.0.1; another than a loopback address needs allowNonLoopback */
+    CORE::CString bindAddress;                      /**< dotted IPv4, default 127.0.0.1; another than a loopback address needs TLS or allowNonLoopback */
     UInt16 port;                                    /**< 0 (the default) picks a free port, see CMcpStreamableHttpTransport::GetBoundPort() */
     CORE::CString path;                             /**< the MCP endpoint, default "/mcp" */
     CORE::CString::StringVector allowedOrigins;     /**< origins ("http://localhost:3000") whose requests are allowed; empty: no request with an Origin */
@@ -77,7 +82,8 @@ class GUCEF_WEB_PUBLIC_CPP CMcpHttpTransportSettings : public CORE::CIConfigurab
     UInt32 headerTimeoutMs;                         /**< default 10000, see CHttpServerSettings */
     UInt32 bodyTimeoutMs;                           /**< default 30000 */
     UInt32 idleTimeoutMs;                           /**< default 60000 */
-    bool allowNonLoopback;                          /**< default false: there is no TLS server, see the class description of the transport */
+    bool allowNonLoopback;                          /**< default false: true allows another than a loopback address without TLS, plain HTTP on the network */
+    COMCORE::CTlsServerSettings tls;                /**< HTTPS when a certificate and key are given: certificateChainPath, privateKeyPath and the other keys of CTlsServerSettings in the same entry */
 
     CMcpHttpTransportSettings( void );
 

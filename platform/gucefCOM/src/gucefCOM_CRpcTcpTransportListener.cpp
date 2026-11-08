@@ -68,6 +68,7 @@ CRpcTcpTransportListener::CRpcTcpTransportListener( void )
     , m_maxFrameSize( CRpcTcpTransport::DefaultMaxFrameSize )
     , m_maxPreHelloFrameSize( CRpcTcpTransport::DefaultMaxPreHelloFrameSize )
     , m_allowNonLoopback( false )
+    , m_tlsSettings()
     , m_threadPoolName( "gucef.rpc.tcp" )
     , m_notifierLock()
 {GUCEF_TRACE;
@@ -109,6 +110,8 @@ CRpcTcpTransportListener::GetTransportType( void ) const
 void CRpcTcpTransportListener::SetMaxConnections( UInt32 maxConnections ) {GUCEF_TRACE; m_maxConnections = maxConnections; }
 void CRpcTcpTransportListener::SetMaxFrameSize( UInt32 maxFrameSize ) {GUCEF_TRACE; m_maxFrameSize = maxFrameSize; }
 void CRpcTcpTransportListener::SetAllowNonLoopback( bool allowNonLoopback ) {GUCEF_TRACE; m_allowNonLoopback = allowNonLoopback; }
+void CRpcTcpTransportListener::SetTlsSettings( const COMCORE::CTlsServerSettings& settings ) {GUCEF_TRACE; m_tlsSettings = settings; }
+const COMCORE::CTlsServerSettings& CRpcTcpTransportListener::GetTlsSettings( void ) const {GUCEF_TRACE; return m_tlsSettings; }
 
 /*-------------------------------------------------------------------------*/
 
@@ -171,11 +174,11 @@ CRpcTcpTransportListener::Listen( const CORE::CUri& local )
     if ( m_host.IsNULLOrEmpty() )
         m_host = "127.0.0.1";
     UInt16 port = (UInt16) CORE::StringToUInt32( local.GetAuthorityPort() );
-    if ( !CRpcTcpTransport::IsLoopbackHost( m_host ) )
+    if ( !CRpcTcpTransport::IsLoopbackHost( m_host ) && !m_tlsSettings.IsEnabled() )
     {
         if ( !m_allowNonLoopback )
         {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransportListener: " << m_host << " is not a loopback address, which needs allowNonLoopback; there is no TLS for this transport" );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransportListener: " << m_host << " is not a loopback address, which needs TLS (certificateChainPath, privateKeyPath) or allowNonLoopback" );
             return false;
         }
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransportListener: listening on " << m_host << ", which is not a loopback address, without TLS" );
@@ -197,6 +200,13 @@ CRpcTcpTransportListener::Listen( const CORE::CUri& local )
     if ( !m_socket->SetBindAddress( "localhost" == m_host.Lowercase() ? CORE::CString( "127.0.0.1" ) : m_host ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransportListener: the bind address " << m_host << " is not valid" );
+        GUCEF_DELETE m_socket;
+        m_socket = GUCEF_NULL;
+        return false;
+    }
+    if ( !m_socket->SetTlsSettings( m_tlsSettings ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcTcpTransportListener: TLS cannot be used with the certificate \"" << m_tlsSettings.GetCertificateChainPath() << "\" and the key \"" << m_tlsSettings.GetPrivateKeyPath() << "\"" );
         GUCEF_DELETE m_socket;
         m_socket = GUCEF_NULL;
         return false;
@@ -346,6 +356,8 @@ CRpcTcpTransportListener::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "maxPreHelloFrameSize", m_maxPreHelloFrameSize );
     config.SetAttribute( "allowNonLoopback", m_allowNonLoopback );
     config.SetAttribute( "threadPoolName", m_threadPoolName );
+    if ( m_tlsSettings.IsEnabled() )
+        m_tlsSettings.SaveConfig( config );
     return true;
 }
 
@@ -360,6 +372,7 @@ CRpcTcpTransportListener::LoadConfig( const CORE::CDataNode& config )
     m_maxPreHelloFrameSize = config.GetAttributeValueOrChildValueByName( "maxPreHelloFrameSize" ).AsUInt32( m_maxPreHelloFrameSize );
     m_allowNonLoopback = config.GetAttributeValueOrChildValueByName( "allowNonLoopback" ).AsBool( m_allowNonLoopback );
     m_threadPoolName = config.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( m_threadPoolName );
+    m_tlsSettings.LoadConfig( config );
     return true;
 }
 

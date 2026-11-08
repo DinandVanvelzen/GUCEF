@@ -89,8 +89,9 @@ class CMcpHttpExchangeChannel;
  *  the method (405 for anything but POST, with Allow: POST), authentication (401), Content-Type application/json
  *  (415), Content-Length (411; 413 when larger than allowed), Accept (406 when it lists neither JSON nor SSE).
  *
- *  It binds to 127.0.0.1 by default; another address needs allowNonLoopback, as GUCEF has no TLS server: remote
- *  access goes through a TLS terminating proxy on the same machine that forwards Host and Origin as they came in.
+ *  It binds to 127.0.0.1 by default. Another address needs TLS (a certificate and key in the settings: HTTPS) or
+ *  allowNonLoopback, which serves plain HTTP on the network. Remote clients name the host in Host, which has to be
+ *  one of allowedHosts.
  *  Binding to loopback is no authentication: every local process and every web page can reach it, hence Host and
  *  Origin validation (DNS rebinding) and the authenticator ("static-bearer" by default).
  */

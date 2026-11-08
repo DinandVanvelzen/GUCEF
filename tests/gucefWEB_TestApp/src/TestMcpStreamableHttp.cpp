@@ -76,6 +76,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_TLS_SERVER_H
+#include "gucef_test_tls_server.h"
+#define GUCEF_TEST_TLS_SERVER_H
+#endif /* GUCEF_TEST_TLS_SERVER_H ? */
+
 #ifndef GUCEF_WEB_TESTAPP_TESTHTTPRAWCLIENT_H
 #include "TestHttpRawClient.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPRAWCLIENT_H
@@ -1433,6 +1438,134 @@ PerformMcpHttpHardeningTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** One tools/call of echo with the GUCEF HTTP client, @return the status, 0 when no response came */
+static Int32
+McpHttpClientEcho( const CORE::CString& url, const WEB::CHttpClientRequestOptions& options, CORE::CString& echoed )
+{GUCEF_TRACE;
+
+    WEB::CHTTPClient httpClient;
+    WEB::CHttpRequestData request;
+    if ( !request.SetUrl( url ) )
+        return 0;
+    request.requestType = "POST";
+    request.contentRepresentation = "application/json";
+    request.resourceRepresentations.push_back( "application/json" );
+    request.resourceRepresentations.push_back( "text/event-stream" );
+    request.otherHeaders[ "Authorization" ] = "Bearer " + CORE::CString( McpHttpTestToken );
+    request.otherHeaders[ "MCP-Protocol-Version" ] = "2026-07-28";
+    request.otherHeaders[ "Mcp-Method" ] = "tools/call";
+    request.otherHeaders[ "Mcp-Name" ] = "echo";
+    const CORE::CString body = McpTestRequest( "7", "tools/call", "\"name\":\"echo\",\"arguments\":{\"text\":\"over tls\"}" );
+    request.content.CopyFrom( body.Length(), body.C_String() );
+
+    CORE::CFutureResult future = httpClient.ExecuteAsync( request, options );
+    UInt32 waited = 0;
+    while ( !future.IsReady() && waited++ < 10000 )
+        TestHttpPumpFor( 1 );
+    if ( !future.IsReady() )
+        return 0;
+    WEB::CHttpClientRequestTaskData* data = WEB::CHTTPClient::GetRequestTaskData( future.GetResult() );
+    if ( GUCEF_NULL == data )
+        return 0;
+    CORE::CDataNode message;
+    const CORE::CString text( static_cast< const char* >( data->response.content.GetConstBufferPtr() ), data->response.content.GetDataSize() );
+    if ( McpTestParse( text, message ) )
+        echoed = McpTestFirstText( message.FindChild( "result" ) );
+    return data->response.statusCode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformMcpHttpTlsTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Test: With a certificate and key the transport serves HTTPS, a client that trusts the authority talks MCP over it" )
+        try
+        {
+            GUCEF_TESTFW_SKIP_IF( !McpTestJsonAvailable(), "the json codec plugin is not available" );
+            GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+            CORE::CString whyNoTls;
+            GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNoTls ), "this system has no TLS provider" );
+            TESTFW::CTlsTestCerts certs;
+            GUCEF_TESTFW_SKIP_IF( !certs.IsReady(), "the test certificates could not be made" );
+
+            WEB::CMcpHttpTransportSettings settings;
+            settings.tls.SetCertificateChainPath( certs.GetPath( "good.crt" ) );
+            settings.tls.SetPrivateKeyPath( certs.GetPath( "good.key" ) );
+            CMcpHttpTestRig rig;
+            ASSERT_TRUE( rig.Start( &settings ) );
+            ASSERT_TRUE( rig.transport->GetEndpointDescription().StartsWith( "https://" ) );
+            const CORE::CString port = CORE::ToString( (UInt32) rig.GetPort() );
+
+            WEB::CHttpClientRequestOptions options;
+            options.caBundlePath = certs.GetPath( "ca.crt" );
+            CORE::CString echoed;
+            ASSERT_TRUE( McpHttpSameInt( McpHttpClientEcho( "https://localhost:" + port + "/mcp", options, echoed ), 200, "status over https" ) );
+            ASSERT_TRUE( McpHttpSame( echoed, "echo: over tls" ) );
+
+            // a client that does not trust the authority gets nothing
+            WEB::CHttpClientRequestOptions untrusting;
+            untrusting.caBundlePath = certs.GetPath( "other_ca.crt" );
+            echoed.Clear();
+            ASSERT_TRUE( 200 != McpHttpClientEcho( "https://localhost:" + port + "/mcp", untrusting, echoed ) );
+            ASSERT_TRUE( echoed.IsNULLOrEmpty() );
+
+            // plain HTTP to the HTTPS port is not answered
+            WEB::CHttpClientRequestOptions plain;
+            echoed.Clear();
+            ASSERT_TRUE( 200 != McpHttpClientEcho( "http://127.0.0.1:" + port + "/mcp", plain, echoed ) );
+            ASSERT_TRUE( echoed.IsNULLOrEmpty() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: TLS lets the transport bind to another than a loopback address; a certificate that cannot be used stops it from serving" )
+        try
+        {
+            GUCEF_TESTFW_SKIP_IF( !McpTestJsonAvailable(), "the json codec plugin is not available" );
+            GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+            CORE::CString whyNoTls;
+            GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNoTls ), "this system has no TLS provider" );
+            TESTFW::CTlsTestCerts certs;
+            GUCEF_TESTFW_SKIP_IF( !certs.IsReady(), "the test certificates could not be made" );
+            {
+                WEB::CMcpHttpTransportSettings settings;
+                settings.bindAddress = "0.0.0.0";
+                settings.tls.SetCertificateChainPath( certs.GetPath( "good.crt" ) );
+                settings.tls.SetPrivateKeyPath( certs.GetPath( "good.key" ) );
+                CMcpHttpTestRig rig;
+                ASSERT_TRUE( rig.Start( &settings ) );
+            }
+            {
+                WEB::CMcpHttpTransportSettings settings;
+                settings.tls.SetCertificateChainPath( certs.GetPath( "good.crt" ) );
+                settings.tls.SetPrivateKeyPath( certs.GetPath( "wrongname.key" ) );
+                CMcpHttpTestRig rig;
+                ASSERT_FALSE( rig.Start( &settings ) );
+            }
+            {
+                // the keys of the certificate are read from the entry of the transport
+                CORE::CDataNode cfg;
+                cfg.SetAttribute( "certificateChainPath", certs.GetPath( "good.crt" ) );
+                cfg.SetAttribute( "privateKeyPath", certs.GetPath( "good.key" ) );
+                WEB::CMcpHttpTransportSettings loaded;
+                ASSERT_TRUE( loaded.LoadConfig( cfg ) );
+                ASSERT_TRUE( loaded.tls.IsEnabled() );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformMcpStreamableHttpTests( void )
 {GUCEF_TRACE;
@@ -1447,4 +1580,5 @@ PerformMcpStreamableHttpTests( void )
     PerformMcpHttpLegacyTests();
     PerformMcpHttpLoadTests();
     PerformMcpHttpHardeningTests();
+    PerformMcpHttpTlsTests();
 }
