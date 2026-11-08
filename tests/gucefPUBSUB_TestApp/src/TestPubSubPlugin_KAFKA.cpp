@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -75,6 +77,49 @@ PerformPubSubPlugin_KAFKATests( void )
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING pubsubpluginKAFKA backend TESTS" );
 
     GUCEF_TESTFW_SUITE_SCOPE( "pubsubpluginKAFKA" );
+
+    // The topic index bookmark of the plugin is a blob of packed 12 byte entries, a UInt32 partition id and an Int64
+    // offset in host byte order: CKafkaPubSubClientTopic::GetCurrentBookmark() writes it, VariantToPartitionOffsets()
+    // reads it (entry count = size / sizeof( TPartitionOffset ), a packed struct of 12 bytes). Both need a broker to
+    // run, so this pins the layout instead: written as the writer does (AppendValue(), no typed store at the offsets
+    // that are not aligned), compared with the image of the writer before (each value at its offset, no padding), and
+    // read back as the reader does (ReadValue() at the same offsets).
+    GUCEF_TESTFW_TESTCASE( "Bookmark blob layout: packed 12 byte entries of a UInt32 partition id and an Int64 offset" )
+        try
+        {
+            const CORE::UInt32 entryCount = 3;
+            const CORE::UInt32 entrySize = sizeof( CORE::UInt32 ) + sizeof( CORE::Int64 );
+            const CORE::UInt32 partitionIds[ 3 ] = { 0, 7, 0x80000001 };
+            const CORE::Int64 partitionOffsets[ 3 ] = { 0, 1234567890123LL, -2 };
+
+            CORE::CDynamicBuffer written( entryCount * entrySize );
+            for ( CORE::UInt32 i=0; i<entryCount; ++i )
+            {
+                written.AppendValue< CORE::UInt32 >( partitionIds[ i ] );
+                written.AppendValue< CORE::Int64 >( partitionOffsets[ i ] );
+            }
+            ASSERT_TRUE( 12 == entrySize && entryCount * entrySize == written.GetDataSize() );
+
+            CORE::UInt8 expected[ 36 ];
+            for ( CORE::UInt32 i=0; i<entryCount; ++i )
+            {
+                memcpy( expected + i*entrySize, &partitionIds[ i ], sizeof( CORE::UInt32 ) );
+                memcpy( expected + i*entrySize + sizeof( CORE::UInt32 ), &partitionOffsets[ i ], sizeof( CORE::Int64 ) );
+            }
+            ASSERT_TRUE( 0 == memcmp( expected, written.GetConstBufferPtr(), sizeof( expected ) ) );
+
+            CORE::CVariant bookmarkBlob( written );
+            CORE::CDynamicBuffer read;
+            read.LinkTo( bookmarkBlob );
+            ASSERT_TRUE( entryCount == read.GetDataSize() / entrySize );
+            for ( CORE::UInt32 i=0; i<entryCount; ++i )
+            {
+                ASSERT_TRUE( partitionIds[ i ] == read.ReadValue< CORE::UInt32 >( i*entrySize ) );
+                ASSERT_TRUE( partitionOffsets[ i ] == read.ReadValue< CORE::Int64 >( i*entrySize + sizeof( CORE::UInt32 ) ) );
+            }
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
 
     CORE::CPluginControl& pluginControl = CORE::CCoreGlobal::Instance()->GetPluginControl();
 

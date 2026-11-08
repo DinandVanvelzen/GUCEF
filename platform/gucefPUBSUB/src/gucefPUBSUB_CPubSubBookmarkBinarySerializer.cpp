@@ -164,7 +164,7 @@ CPubSubBookmarkBinarySerializer::Deserialize( CPubSubBookmark& bookmark         
             return false;
         }
 
-        UInt8 formatVersion = source.AsConstType< UInt8 >( currentSourceOffset );
+        UInt8 formatVersion = source.ReadValue< UInt8 >( currentSourceOffset );
         bytesRead += sizeof(formatVersion);
         currentSourceOffset += sizeof(formatVersion);
         if ( CurrentFormatVersion != formatVersion )
@@ -177,12 +177,12 @@ CPubSubBookmarkBinarySerializer::Deserialize( CPubSubBookmark& bookmark         
         // this class's Serialize() was used. Commonly used Unix epoch variables do NOT have a  
         // timezone associated nor does the Unix epoch offset in a lot of implementations take
         // leap seconds into account. Hence choose carefully to ensure consistency in interpretation
-        UInt64 msSinceUnixEpochInUtc = source.AsConstType< UInt64 >( currentSourceOffset );
+        UInt64 msSinceUnixEpochInUtc = source.ReadValue< UInt64 >( currentSourceOffset );
         currentSourceOffset += sizeof(msSinceUnixEpochInUtc);
         bytesRead += sizeof(msSinceUnixEpochInUtc);
         bookmark.GetBookmarkDateTime().FromUnixEpochBasedTicksInMillisecs( msSinceUnixEpochInUtc );
 
-        Int32 bmType = source.AsConstType< Int32 >( currentSourceOffset );
+        Int32 bmType = source.ReadValue< Int32 >( currentSourceOffset );
         bytesRead += sizeof(bmType);
         currentSourceOffset += sizeof(bmType);
         bookmark.SetBookmarkType( (CPubSubBookmark::TBookmarkType) bmType );

@@ -497,7 +497,7 @@ CPubSubMsgBinarySerializer::DeserializeKvPairs( bool linkWherePossible          
 
     // Now read the key-value pairs if any exists
             
-    UInt32 nrOfKvPairs = source.AsConstType< UInt32 >( currentSourceOffset );
+    UInt32 nrOfKvPairs = source.ReadValue< UInt32 >( currentSourceOffset );
     currentSourceOffset += sizeof(nrOfKvPairs);
     bytesRead += sizeof(nrOfKvPairs);
 
@@ -563,7 +563,7 @@ CPubSubMsgBinarySerializer::Deserialize( const CPubSubMsgBinarySerializerOptions
                 // this class's Serialize() was used. Commonly used Unix epoch variables do NOT have a  
                 // timezone associated nor does the Unix epoch offset in a lot of implementations take
                 // leap seconds into account. Hence choose carefully to ensure consistency in interpretation
-                UInt64 msSinceUnixEpochInUtc = source.AsConstType< UInt64 >( currentSourceOffset );
+                UInt64 msSinceUnixEpochInUtc = source.ReadValue< UInt64 >( currentSourceOffset );
                 currentSourceOffset += sizeof(msSinceUnixEpochInUtc);
                 bytesRead += sizeof(msSinceUnixEpochInUtc);
 

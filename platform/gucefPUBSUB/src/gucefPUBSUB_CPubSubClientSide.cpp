@@ -130,6 +130,7 @@ CPubSubClientSide::CPubSubClientSide( const CORE::CString& sideId   ,
     , m_pubsubClientReconnectTimer( CORE::PulseGeneratorPtr(), 1000 )
     , m_sideId( sideId )
     , m_threadIdOfSide( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_systemThreadIdOfSide, 0 )
     , m_flowRouter( flowRouter )
     , m_isHealthy( true )
     , m_connectOnTaskStart( true )
@@ -200,6 +201,7 @@ CPubSubClientSide::TopicLink::TopicLink( void )
     , totalMsgsInFlight( 0 )
     , bookmarkNamespace()
     , threadIdOfTopicLink( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( systemThreadIdOfTopicLink, 0 )
     , timedOutInFlightMessagesCheckTimer( CORE::PulseGeneratorPtr(), 5000 )
     , metricsTimer( CORE::PulseGeneratorPtr(), 1000 )
 {GUCEF_TRACE;
@@ -235,6 +237,7 @@ CPubSubClientSide::TopicLink::TopicLink( CPubSubClientTopicBasicPtr t )
     , totalMsgsInFlight( 0 )
     , bookmarkNamespace()
     , threadIdOfTopicLink( 0 )
+    GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( systemThreadIdOfTopicLink, 0 )
 {GUCEF_TRACE;
 
 }
@@ -1188,6 +1191,7 @@ CPubSubClientSide::TopicLink::SetPulseGenerator( CORE::PulseGeneratorPtr newPuls
     metricsTimer.SetPulseGenerator( newPulseGenerator );
     timedOutInFlightMessagesCheckTimer.SetPulseGenerator( newPulseGenerator );
     threadIdOfTopicLink = newPulseGenerator->GetPulseDriverThreadId();
+    GUCEF_SYSTEM_THREAD_ID_CODE( systemThreadIdOfTopicLink = newPulseGenerator->GetPulseDriverSystemThreadId(); )
 
     TEventCallback callback( this, &CPubSubClientSide::TopicLink::OnPulseCycle );
     SubscribeTo( newPulseGenerator.GetPointerAlways() ,
@@ -1406,7 +1410,7 @@ CPubSubClientSide::TopicLink::PublishMsgs( const TMsgCollection& msgs )
 
     // We need to determine if the caller is running in the same thread
     // We only want to take the hit of using the mailbox (requires dynamic mem usage) if we are multi-threaded as its a performance trade-off
-    if ( threadIdOfTopicLink == MT::GetCurrentTaskID() )
+    if ( threadIdOfTopicLink == MT::GetCurrentThreadID() )
     {
         if ( !awaitingFailureReport )
         {
@@ -2435,7 +2439,7 @@ bool
 CPubSubClientSide::TopicLink::AcknowledgeReceipt( CIPubSubMsg::TNoLockSharedPtr& msg )
 {GUCEF_TRACE;
 
-    if ( threadIdOfTopicLink == MT::GetCurrentTaskID() )
+    if ( threadIdOfTopicLink == MT::GetCurrentThreadID() )
         return AcknowledgeReceiptSync( msg );
     else
         return AcknowledgeReceiptASync( msg );
@@ -2663,6 +2667,7 @@ CPubSubClientSide::TopicLink::Clear( void )
 
     awaitingFailureReport = false;
     threadIdOfTopicLink = 0;
+    GUCEF_SYSTEM_THREAD_ID_CODE( systemThreadIdOfTopicLink = 0; )
     msgsSinceLastBookmarkPersist = 0;
     totalMsgsInFlight = 0;
 
@@ -3358,7 +3363,10 @@ CPubSubClientSide::OnTaskStart( CORE::CTaskPtr task )
     // IMPORTANT: For thread safety we need to capture the ID of the thread running this side (consumer)
     //            We allow for running sides in their own dedicated thread or in the channel thread depending on config
     //            to tune the performance trade-offs based on the needs. This does mean we need to keep in mind a varried threading model
-    m_threadIdOfSide = MT::GetCurrentTaskID();
+    MT::SThreadIds ownerIds;
+    MT::GetCurrentThreadIds( &ownerIds );
+    m_threadIdOfSide = ownerIds.threadId;
+    GUCEF_SYSTEM_THREAD_ID_CODE( m_systemThreadIdOfSide = ownerIds.systemThreadId; )
 
 
     CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();

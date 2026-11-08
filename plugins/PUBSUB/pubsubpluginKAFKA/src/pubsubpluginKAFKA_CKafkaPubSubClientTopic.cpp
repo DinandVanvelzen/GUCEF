@@ -1023,11 +1023,11 @@ CKafkaPubSubClientTopic::VariantToPartitionOffset( const CORE::CVariant& partiti
         blob.LinkTo( partitionOffsetBlob );
         CORE::UInt32 byteOffset = 0;
 
-        CORE::UInt32 partitionId = blob.AsConstType< CORE::UInt32 >( byteOffset );
+        CORE::UInt32 partitionId = blob.ReadValue< CORE::UInt32 >( byteOffset );
         byteOffset += sizeof( CORE::UInt32 );
         offset.partitionId = partitionId;
 
-        offset.partitionOffset = blob.AsConstType< CORE::Int64 >( byteOffset );
+        offset.partitionOffset = blob.ReadValue< CORE::Int64 >( byteOffset );
         byteOffset += sizeof( CORE::Int64 );
 
         return true;
@@ -1055,13 +1055,13 @@ CKafkaPubSubClientTopic::VariantToPartitionOffsets( const CORE::CVariant& indexB
         CORE::UInt32 offset = 0;
         for ( CORE::UInt32 i=0; i<partitionCount; ++i )
         {
-            CORE::UInt32 partitionId = blob.AsConstType< CORE::UInt32 >( offset );
+            CORE::UInt32 partitionId = blob.ReadValue< CORE::UInt32 >( offset );
             offset += sizeof( CORE::UInt32 );
 
             TPartitionOffset& offsetEntry = offsets[ partitionId ];
             offsetEntry.partitionId = partitionId;
 
-            offsetEntry.partitionOffset = blob.AsConstType< CORE::Int64 >( offset );
+            offsetEntry.partitionOffset = blob.ReadValue< CORE::Int64 >( offset );
             offset += sizeof( CORE::Int64 );
         }
 
@@ -1414,16 +1414,13 @@ CKafkaPubSubClientTopic::GetCurrentBookmark( void )
         {
             CORE::CDynamicBuffer consumerOffsetsBuffer( (UInt32) ( m_consumerAckdOffsets.size() * ( sizeof(CORE::UInt32) + sizeof(CORE::Int64) ) ) );
 
-            CORE::UInt32 byteOffset = 0;
+            // Packed entries of 12 bytes (UInt32 partition id, Int64 offset) as VariantToPartitionOffsets() reads them. The
+            // values are copied in: most of them are not aligned for their type, a typed store there is undefined behaviour
             TInt32ToInt64Map::iterator i = m_consumerAckdOffsets.begin();
             while ( i != m_consumerAckdOffsets.end() )
             {
-                *consumerOffsetsBuffer.AsTypePtr< CORE::UInt32 >( byteOffset ) = (*i).first;
-                byteOffset += sizeof(CORE::UInt32);
-                *consumerOffsetsBuffer.AsTypePtr< CORE::Int64 >( byteOffset ) = (*i).second;
-                byteOffset += sizeof(CORE::Int64);
-
-                consumerOffsetsBuffer.SetDataSize( byteOffset );
+                consumerOffsetsBuffer.AppendValue< CORE::UInt32 >( (CORE::UInt32) (*i).first );
+                consumerOffsetsBuffer.AppendValue< CORE::Int64 >( (*i).second );
                 ++i;
             }
 

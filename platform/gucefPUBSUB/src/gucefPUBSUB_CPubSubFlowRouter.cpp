@@ -383,7 +383,7 @@ CPubSubFlowRouter::CRouteInfo::MatchTopicRouteConfig( const CPubSubFlowRouteTopi
                 {
                     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Obtained access to " + CORE::SizeTToString( topicAccessSet.size() ) +
                         " topics association for pattern matched 'from' topic " + topicRouteConfig->fromSideTopicName +
-                        ( fromPulseGenerator.IsNULL() ?  "" : ". Requested using pulse generator for thread " + CORE::ToString( fromPulseGenerator->GetPulseDriverThreadId() ) ) );
+                        ( fromPulseGenerator.IsNULL() ?  "" : ". Requested using pulse generator for thread " + CORE::ToString( fromPulseGenerator->GetPulseDriverSystemThreadId() ) ) );
 
                     CPubSubClient::PubSubClientTopicSet::iterator i = topicAccessSet.begin();
                     while ( i != topicAccessSet.end() )
@@ -404,7 +404,7 @@ CPubSubFlowRouter::CRouteInfo::MatchTopicRouteConfig( const CPubSubFlowRouteTopi
                                     if ( !fromPulseGenerator.IsNULL() )
                                     {
                                         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Preference given to use 'from' thread for driving destinations as well, will be using pulse generator for thread " +
-                                            CORE::ToString( fromPulseGenerator->GetPulseDriverThreadId() ) );
+                                            CORE::ToString( fromPulseGenerator->GetPulseDriverSystemThreadId() ) );
                                     }
                                     else
                                     {
@@ -469,7 +469,7 @@ CPubSubFlowRouter::CRouteInfo::MatchTopicRouteConfig( const CPubSubFlowRouteTopi
                 if ( GUCEF_NULL != topicLinks.fromTopic )
                 {
                     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Obtained access to topic for 'from' topic " + topicRouteConfig->fromSideTopicName +
-                            ( fromPulseGenerator.IsNULL() ?  "" : ". Requested using pulse generator for thread " + CORE::ToString( fromPulseGenerator->GetPulseDriverThreadId() ) ) );
+                            ( fromPulseGenerator.IsNULL() ?  "" : ". Requested using pulse generator for thread " + CORE::ToString( fromPulseGenerator->GetPulseDriverSystemThreadId() ) ) );
                 }
                 else
                 {
@@ -488,7 +488,7 @@ CPubSubFlowRouter::CRouteInfo::MatchTopicRouteConfig( const CPubSubFlowRouteTopi
                     if ( !fromPulseGenerator.IsNULL() )
                     {
                         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Preference given to use 'from' thread for driving destinations as well, will be using pulse generator for thread " +
-                            CORE::ToString( fromPulseGenerator->GetPulseDriverThreadId() ) );
+                            CORE::ToString( fromPulseGenerator->GetPulseDriverSystemThreadId() ) );
                     }
                     else
                     {

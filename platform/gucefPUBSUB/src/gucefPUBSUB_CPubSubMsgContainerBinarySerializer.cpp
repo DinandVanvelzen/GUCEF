@@ -245,7 +245,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeHeader( CPubSubMsgBinarySerializ
             return false;
         }
 
-        UInt8 formatVersion = source.AsConstType< UInt8 >( currentSourceOffset );
+        UInt8 formatVersion = source.ReadValue< UInt8 >( currentSourceOffset );
         bytesRead += sizeof(formatVersion);
         currentSourceOffset += sizeof(formatVersion);
         if ( CurrentFormatVersion != formatVersion )
@@ -254,7 +254,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeHeader( CPubSubMsgBinarySerializ
             return false;
         }
 
-        UInt32 optionsBitMask = source.AsConstType< UInt32 >( currentSourceOffset );
+        UInt32 optionsBitMask = source.ReadValue< UInt32 >( currentSourceOffset );
         bytesRead += sizeof(optionsBitMask);
         currentSourceOffset += sizeof(optionsBitMask);
         options.FromOptionsBitMask( optionsBitMask );
@@ -438,7 +438,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeFooter( TMsgOffsetIndex& index  
         bytesRead += MagicText.ByteSize()-1;
 
         UInt32 indexSize = 0;
-        indexSize = source.AsConstType< UInt32 >( currentSourceOffset - sizeof(indexSize) );
+        indexSize = source.ReadValue< UInt32 >( currentSourceOffset - sizeof(indexSize) );
         currentSourceOffset -= sizeof(indexSize);
         bytesRead += sizeof(indexSize);
 
@@ -453,7 +453,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeFooter( TMsgOffsetIndex& index  
             for ( UInt32 i=0; i<indexSize; ++i )
             {
                 UInt32 msgOffset = 0;
-                msgOffset = source.AsConstType< UInt32 >( currentSourceOffset );
+                msgOffset = source.ReadValue< UInt32 >( currentSourceOffset );
                 currentSourceOffset += sizeof(msgOffset);
                 bytesRead += sizeof(msgOffset);
 
@@ -474,7 +474,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeFooter( TMsgOffsetIndex& index  
             {
                 UInt32 msgOffset = 0;
                 currentSourceOffset -= sizeof(UInt32);
-                msgOffset = source.AsConstType< UInt32 >( currentSourceOffset );
+                msgOffset = source.ReadValue< UInt32 >( currentSourceOffset );
                 bytesRead += sizeof(UInt32);
 
                 if ( !index.empty() )
@@ -536,17 +536,17 @@ CPubSubMsgContainerBinarySerializer::DeserializeFirstAndLastMsgOffsetFromFooter(
         }
         currentSourceOffset -= MagicText.ByteSize()-1;
 
-        indexSize = source.AsConstType< UInt32 >( currentSourceOffset - sizeof(indexSize) );
+        indexSize = source.ReadValue< UInt32 >( currentSourceOffset - sizeof(indexSize) );
         currentSourceOffset -= sizeof(indexSize);
 
         if ( 0 == indexSize )
             return true;
 
         currentSourceOffset = currentSourceOffset - ( indexSize * sizeof(UInt32) );
-        firstMsgOffset = source.AsConstType< UInt32 >( currentSourceOffset );
+        firstMsgOffset = source.ReadValue< UInt32 >( currentSourceOffset );
 
         currentSourceOffset = currentSourceOffset + ( (indexSize-1) * sizeof(UInt32) );
-        lastMsgOffset = source.AsConstType< UInt32 >( currentSourceOffset );
+        lastMsgOffset = source.ReadValue< UInt32 >( currentSourceOffset );
         return true;
     }
     catch ( const std::exception& e )

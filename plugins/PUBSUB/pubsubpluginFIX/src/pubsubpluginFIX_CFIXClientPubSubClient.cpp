@@ -703,13 +703,15 @@ CFIXClientPubSubClient::LoadSequenceBookmark( void )
         const CORE::CVariant& data = bookmark.GetBookmarkData();
         if ( data.ByteSize() >= 16 )
         {
-            const CORE::UInt64* pData = static_cast< const CORE::UInt64* >( data.AsVoidPtr() );
+            // Copied out: the bookmark data may sit at any address (a linked blob), a typed load there is undefined
+            // behaviour when it is not aligned
+            const void* pData = data.AsVoidPtr();
             if ( GUCEF_NULL != pData )
             {
-                m_outgoingSeqNum         = pData[ 0 ];
-                m_expectedIncomingSeqNum = pData[ 1 ];
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::LoadSequenceBookmark: Restored outgoing=" +
-                    CORE::ToString( m_outgoingSeqNum ) + " incoming=" + CORE::ToString( m_expectedIncomingSeqNum ) );
+                memcpy( &m_outgoingSeqNum, pData, sizeof( CORE::UInt64 ) );
+                memcpy( &m_expectedIncomingSeqNum, static_cast< const CORE::UInt8* >( pData ) + sizeof( CORE::UInt64 ), sizeof( CORE::UInt64 ) );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::LoadSequenceBookmark: Restored outgoing=" <<
+                    m_outgoingSeqNum << " incoming=" << m_expectedIncomingSeqNum );
             }
         }
     }

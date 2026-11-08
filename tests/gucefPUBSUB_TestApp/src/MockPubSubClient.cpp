@@ -446,10 +446,18 @@ CMockPubSubClient::RegisterInFactory( void )
 
     typedef CORE::CTFactoryWithParam< CPubSubClient, CMockPubSubClient, CPubSubClientConfig, MT::CMutex > TMockClientFactory;
 
+    // The client factory does not own its concrete factories, and a mock client goes through the concrete factory that
+    // made it, also after the unregistration: one concrete factory for the life of the process. It is never deleted, on
+    // purpose: the client factory is destroyed at exit after function local statics are (CPubSubGlobal registered its
+    // teardown with atexit earlier), and a test that ends without UnregisterFromFactory() leaves the mock registered,
+    // where the destruction of the client factory still asks it for its class type name. The static pointer keeps it
+    // reachable, so the leak checker does not report it.
+    static TMockClientFactory* mockClientFactory = GUCEF_NEW TMockClientFactory();
+
     PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
     if ( !factory.IsConstructible( MockClientTypeId ) )
     {
-        factory.RegisterConcreteFactory( MockClientTypeId, GUCEF_NEW TMockClientFactory() );
+        factory.RegisterConcreteFactory( MockClientTypeId, mockClientFactory );
     }
     return factory.IsConstructible( MockClientTypeId );
 }

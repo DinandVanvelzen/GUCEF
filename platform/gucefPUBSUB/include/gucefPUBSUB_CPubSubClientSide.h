@@ -528,7 +528,8 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
         bool awaitingFailureReport;
         CORE::UInt64 totalMsgsInFlight;
         CORE::CString bookmarkNamespace;
-        CORE::UInt32 threadIdOfTopicLink;
+        TThreadId threadIdOfTopicLink;
+        GUCEF_SYSTEM_THREAD_ID_MEMBER( systemThreadIdOfTopicLink )   /**< display only, recorded with threadIdOfTopicLink */
         CORE::CTimer timedOutInFlightMessagesCheckTimer;
         CORE::CTimer metricsTimer;
     };
@@ -549,7 +550,8 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
     CORE::CTimer m_metricsTimer;
     CORE::CTimer m_pubsubClientReconnectTimer;
     CORE::CString m_sideId;
-    CORE::UInt32 m_threadIdOfSide;
+    TThreadId m_threadIdOfSide;
+    GUCEF_SYSTEM_THREAD_ID_MEMBER( m_systemThreadIdOfSide )   /**< display only, recorded with m_threadIdOfSide */
     CPubSubFlowRouter* m_flowRouter;
     mutable bool m_isHealthy;
     bool m_connectOnTaskStart;
