@@ -24,6 +24,7 @@ LOCAL_MODULE_FILENAME := libgucefGUI
 LOCAL_SRC_FILES := \
   src/gucefGUI.cpp \
   src/gucefGUI_CAudioPlayer.cpp \
+  src/gucefGUI_CAudioSettingsForm.cpp \
   src/gucefGUI_CBitmapFont.cpp \
   src/gucefGUI_CButton.cpp \
   src/gucefGUI_CChartAxis.cpp \

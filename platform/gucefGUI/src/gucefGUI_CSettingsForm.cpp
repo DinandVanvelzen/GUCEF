@@ -57,6 +57,11 @@
 #define GUCEF_GUI_CGENERALSETTINGSFORM_H
 #endif /* GUCEF_GUI_CGENERALSETTINGSFORM_H ? */
 
+#ifndef GUCEF_GUI_CAUDIOSETTINGSFORM_H
+#include "gucefGUI_CAudioSettingsForm.h"
+#define GUCEF_GUI_CAUDIOSETTINGSFORM_H
+#endif /* GUCEF_GUI_CAUDIOSETTINGSFORM_H ? */
+
 #include "gucefGUI_CSettingsForm.h"
 
 /*-------------------------------------------------------------------------//
@@ -81,6 +86,7 @@ namespace {
 
 CORE::CTFactory< CSettingsPageForm, CVideoSettingsForm, MT::CMutex > g_videoSettingsPageFactory;
 CORE::CTFactory< CSettingsPageForm, CGeneralSettingsForm, MT::CMutex > g_generalSettingsPageFactory;
+CORE::CTFactory< CSettingsPageForm, CAudioSettingsForm, MT::CMutex > g_audioSettingsPageFactory;
 
 }
 
@@ -154,6 +160,7 @@ CSettingsForm::RegisterStandardPages( void )
 
     GetPageFactory().RegisterConcreteFactory( "Video", &g_videoSettingsPageFactory );
     GetPageFactory().RegisterConcreteFactory( "General", &g_generalSettingsPageFactory );
+    GetPageFactory().RegisterConcreteFactory( "Audio", &g_audioSettingsPageFactory );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -164,6 +171,7 @@ CSettingsForm::UnregisterStandardPages( void )
 
     GetPageFactory().UnregisterConcreteFactory( "Video" );
     GetPageFactory().UnregisterConcreteFactory( "General" );
+    GetPageFactory().UnregisterConcreteFactory( "Audio" );
 }
 
 /*-------------------------------------------------------------------------*/

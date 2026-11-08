@@ -24,6 +24,7 @@ if (ANDROID32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -66,6 +67,7 @@ elseif (ANDROID64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -108,6 +110,7 @@ elseif (EMSCRIPTEN32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -150,6 +153,7 @@ elseif (EMSCRIPTEN64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -192,6 +196,7 @@ elseif (LINUX32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -234,6 +239,7 @@ elseif (LINUX64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -276,6 +282,7 @@ elseif (WIN32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
@@ -318,6 +325,7 @@ elseif (WIN64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp

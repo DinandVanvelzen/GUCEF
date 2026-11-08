@@ -51,8 +51,8 @@ namespace GUI {
  *  puts the settings back in the pages and closes.
  *
  *  Pages are CSettingsPageForm objects. The page factory knows them by name: gucefGUI registers "Video"
- *  (CVideoSettingsForm) and "General" (CGeneralSettingsForm), an application registers its own and picks
- *  the pages with AddPage(). AddPage() with an object adds a page the application made itself.
+ *  (CVideoSettingsForm), "General" (CGeneralSettingsForm) and "Audio" (CAudioSettingsForm), an application
+ *  registers its own and picks the pages with AddPage(). AddPage() with an object adds a page the application made itself.
  *
  *  The layout is built in code and made for BuildDarkTheme(); it fills most of the context, which is
  *  meant to be a layer of its own at the resolution of the window.
@@ -79,7 +79,7 @@ class GUCEF_GUI_PUBLIC_CPP CSettingsForm : public CFormEx
     /** The page types by name, for AddPage() */
     static CSettingsPageFactory& GetPageFactory( void );
 
-    /** Registers the pages gucefGUI comes with: "Video" and "General"; done by CGuiGlobal at start */
+    /** Registers the pages gucefGUI comes with: "Video", "General" and "Audio"; done by CGuiGlobal at start */
     static void RegisterStandardPages( void );
 
     static void UnregisterStandardPages( void );

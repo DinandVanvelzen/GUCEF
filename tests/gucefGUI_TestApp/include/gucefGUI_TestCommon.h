@@ -79,6 +79,7 @@ void PerformGuiChartTests( void );
 void PerformGuiChartMarkerTests( void );
 void PerformGuiFontTests( void );
 void PerformGuiSettingsTests( void );
+void PerformGuiAudioSettingsFormTests( void );
 void PerformGuiUserActionLogTests( void );
 
 void PerformGuiGridModelTests( void );

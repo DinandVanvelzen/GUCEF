@@ -14,6 +14,7 @@
 set( HEADER_FILES 
   include/gucefGUI.h
   include/gucefGUI_CAudioPlayer.h
+  include/gucefGUI_CAudioSettingsForm.h
   include/gucefGUI_CBitmapFont.h
   include/gucefGUI_CButton.h
   include/gucefGUI_CChartAxis.h
@@ -120,6 +121,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/gucefGUI.cpp
   src/gucefGUI_CAudioPlayer.cpp
+  src/gucefGUI_CAudioSettingsForm.cpp
   src/gucefGUI_CBitmapFont.cpp
   src/gucefGUI_CButton.cpp
   src/gucefGUI_CChartAxis.cpp

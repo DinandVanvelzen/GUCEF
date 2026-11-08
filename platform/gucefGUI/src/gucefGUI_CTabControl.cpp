@@ -25,13 +25,13 @@
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
 #ifndef GUCEF_GUI_CGUICONTEXT_H
 #include "gucefGUI_CGUIContext.h"
 #define GUCEF_GUI_CGUICONTEXT_H
 #endif /* GUCEF_GUI_CGUICONTEXT_H ? */
-#define GUCEF_CORE_DVCPPSTRINGUTILS_H
-#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
 #ifndef GUCEF_GUI_CTABCONTENTPANE_H
 #include "gucefGUI_CTabContentPane.h"

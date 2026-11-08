@@ -42,6 +42,7 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/gucefGUI.h",
   "include/gucefGUI_CAudioPlayer.h",
+  "include/gucefGUI_CAudioSettingsForm.h",
   "include/gucefGUI_CBitmapFont.h",
   "include/gucefGUI_CButton.h",
   "include/gucefGUI_CChartAxis.h",
@@ -152,6 +153,7 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/gucefGUI.cpp",
   "src/gucefGUI_CAudioPlayer.cpp",
+  "src/gucefGUI_CAudioSettingsForm.cpp",
   "src/gucefGUI_CBitmapFont.cpp",
   "src/gucefGUI_CButton.cpp",
   "src/gucefGUI_CChartAxis.cpp",

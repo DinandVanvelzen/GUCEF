@@ -90,6 +90,7 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiChartMarkerTests();
         PerformGuiFontTests();
         PerformGuiSettingsTests();
+        PerformGuiAudioSettingsFormTests();
         PerformGuiUserActionLogTests();
         PerformGuiGridModelTests();
         PerformGuiGridSelectionTests();

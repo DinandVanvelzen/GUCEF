@@ -185,6 +185,7 @@ configuration( { "ANDROID32" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -225,6 +226,7 @@ configuration( { "ANDROID64" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -265,6 +267,7 @@ configuration( { "EMSCRIPTEN32" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -305,6 +308,7 @@ configuration( { "EMSCRIPTEN64" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -345,6 +349,7 @@ configuration( { "LINUX32" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -385,6 +390,7 @@ configuration( { "LINUX64" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -425,6 +431,7 @@ configuration( { "WIN32" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -465,6 +472,7 @@ configuration( { "WIN64" } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAudioSettingsForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
