@@ -103,6 +103,8 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CMcpResourceContents.cpp \
   src/gucefCOM_CMcpResourceDescriptor.cpp \
   src/gucefCOM_CMcpResourceRegistry.cpp \
+  src/gucefCOM_CMcpRpcRelay.cpp \
+  src/gucefCOM_CMcpRpcTransport.cpp \
   src/gucefCOM_CMcpServer.cpp \
   src/gucefCOM_CMcpServerSettings.cpp \
   src/gucefCOM_CMcpStdioTransport.cpp \
@@ -125,6 +127,8 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CPop3CommandResult.cpp \
   src/gucefCOM_CPop3FetchOptions.cpp \
   src/gucefCOM_CPop3FetchResult.cpp \
+  src/gucefCOM_CRpcTcpTransport.cpp \
+  src/gucefCOM_CRpcTcpTransportListener.cpp \
   src/gucefCOM_CSmtpClient.cpp \
   src/gucefCOM_CSmtpClientSettings.cpp \
   src/gucefCOM_CSmtpReply.cpp \

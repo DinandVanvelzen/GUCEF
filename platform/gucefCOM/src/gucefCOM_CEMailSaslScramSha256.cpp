@@ -29,6 +29,11 @@
 #define GUCEF_CORE_CSHA256_H
 #endif /* GUCEF_CORE_CSHA256_H ? */
 
+#ifndef GUCEF_CORE_CPBKDF2HMACSHA256_H
+#include "gucefCORE_CPbkdf2HmacSha256.h"
+#define GUCEF_CORE_CPBKDF2HMACSHA256_H
+#endif /* GUCEF_CORE_CPBKDF2HMACSHA256_H ? */
+
 #ifndef GUCEF_CORE_CRANDOM_H
 #include "gucefCORE_CRandom.h"
 #define GUCEF_CORE_CRANDOM_H
@@ -145,29 +150,8 @@ void
 CEMailSaslScramSha256::Pbkdf2HmacSha256( const void* password, UInt32 passwordSize, const void* salt, UInt32 saltSize, UInt32 iterations, UInt8* output )
 {GUCEF_TRACE;
 
-    // one block of 32 bytes is all that is needed: T1 = U1 xor U2 xor ... Un
-    CORE::CHmacSha256 hmac( password, passwordSize );
-    GUCEF::vector< UInt8 > first( saltSize + 4 );
-    if ( saltSize > 0 )
-        memcpy( &first[ 0 ], salt, saltSize );
-    first[ saltSize ] = 0;
-    first[ saltSize + 1 ] = 0;
-    first[ saltSize + 2 ] = 0;
-    first[ saltSize + 3 ] = 1;
-
-    UInt8 u[ 32 ];
-    hmac.Reset();
-    hmac.Update( &first[ 0 ], saltSize + 4 );
-    hmac.Final( u );
-    memcpy( output, u, 32 );
-    for ( UInt32 i=1; i<iterations; ++i )
-    {
-        hmac.Reset();
-        hmac.Update( u, 32 );
-        hmac.Final( u );
-        for ( int k=0; k<32; ++k )
-            output[ k ] ^= u[ k ];
-    }
+    // one block of 32 bytes; the general derivation is in gucefCORE
+    CORE::CPbkdf2HmacSha256::Derive( password, passwordSize, salt, saltSize, iterations, output, CORE::CSha256::DigestSize );
 }
 
 /*-------------------------------------------------------------------------*/

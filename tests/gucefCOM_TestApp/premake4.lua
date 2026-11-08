@@ -65,6 +65,7 @@ files( {
   "include/TestMime.h",
   "include/TestNatTraversal.h",
   "include/TestPop3Client.h",
+  "include/TestRpcTcp.h",
   "include/TestRttProbes.h",
   "include/TestSmtpClient.h",
   "include/TestStatsDClient.h"
@@ -90,6 +91,7 @@ files( {
   "src/TestMime.cpp",
   "src/TestNatTraversal.cpp",
   "src/TestPop3Client.cpp",
+  "src/TestRpcTcp.cpp",
   "src/TestRttProbes.cpp",
   "src/TestSmtpClient.cpp",
   "src/TestStatsDClient.cpp",
@@ -98,7 +100,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../tests/gucefCOMCORE_TestApp/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

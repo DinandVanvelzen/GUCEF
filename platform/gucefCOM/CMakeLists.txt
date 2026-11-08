@@ -102,6 +102,8 @@ set( HEADER_FILES
   include/gucefCOM_CMcpResourceContents.h
   include/gucefCOM_CMcpResourceDescriptor.h
   include/gucefCOM_CMcpResourceRegistry.h
+  include/gucefCOM_CMcpRpcRelay.h
+  include/gucefCOM_CMcpRpcTransport.h
   include/gucefCOM_CMcpServer.h
   include/gucefCOM_CMcpServerSettings.h
   include/gucefCOM_CMcpStdioTransport.h
@@ -124,6 +126,8 @@ set( HEADER_FILES
   include/gucefCOM_CPop3CommandResult.h
   include/gucefCOM_CPop3FetchOptions.h
   include/gucefCOM_CPop3FetchResult.h
+  include/gucefCOM_CRpcTcpTransport.h
+  include/gucefCOM_CRpcTcpTransportListener.h
   include/gucefCOM_CSmtpClient.h
   include/gucefCOM_CSmtpClientSettings.h
   include/gucefCOM_CSmtpReply.h
@@ -230,6 +234,8 @@ set( SOURCE_FILES
   src/gucefCOM_CMcpResourceContents.cpp
   src/gucefCOM_CMcpResourceDescriptor.cpp
   src/gucefCOM_CMcpResourceRegistry.cpp
+  src/gucefCOM_CMcpRpcRelay.cpp
+  src/gucefCOM_CMcpRpcTransport.cpp
   src/gucefCOM_CMcpServer.cpp
   src/gucefCOM_CMcpServerSettings.cpp
   src/gucefCOM_CMcpStdioTransport.cpp
@@ -252,6 +258,8 @@ set( SOURCE_FILES
   src/gucefCOM_CPop3CommandResult.cpp
   src/gucefCOM_CPop3FetchOptions.cpp
   src/gucefCOM_CPop3FetchResult.cpp
+  src/gucefCOM_CRpcTcpTransport.cpp
+  src/gucefCOM_CRpcTcpTransportListener.cpp
   src/gucefCOM_CSmtpClient.cpp
   src/gucefCOM_CSmtpClientSettings.cpp
   src/gucefCOM_CSmtpReply.cpp

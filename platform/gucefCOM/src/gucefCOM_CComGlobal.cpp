@@ -108,6 +108,11 @@
 #define GUCEF_COM_CNATPMPPORTMAPPER_H
 #endif /* GUCEF_COM_CNATPMPPORTMAPPER_H ? */
 
+#ifndef GUCEF_COM_CRPCTCPTRANSPORTLISTENER_H
+#include "gucefCOM_CRpcTcpTransportListener.h"
+#define GUCEF_COM_CRPCTCPTRANSPORTLISTENER_H
+#endif /* GUCEF_COM_CRPCTCPTRANSPORTLISTENER_H ? */
+
 #ifndef GUCEF_COM_CSTUNCLIENT_H
 #include "gucefCOM_CStunClient.h"
 #define GUCEF_COM_CSTUNCLIENT_H
@@ -161,6 +166,11 @@
 #define GUCEF_COM_CMCPTCPTRANSPORT_H
 #endif /* GUCEF_COM_CMCPTCPTRANSPORT_H ? */
 
+#ifndef GUCEF_COM_CMCPRPCTRANSPORT_H
+#include "gucefCOM_CMcpRpcTransport.h"
+#define GUCEF_COM_CMCPRPCTRANSPORT_H
+#endif /* GUCEF_COM_CMCPRPCTRANSPORT_H ? */
+
 #include "gucefCOM_CComGlobal.h"  /* definition of the class implemented here */
 
 /*-------------------------------------------------------------------------//
@@ -189,11 +199,16 @@ static TIcmpRttProbeFactory g_icmpRttProbeFactory;
 static TTcpConnectRttProbeFactory g_tcpConnectRttProbeFactory;
 static TUdpEchoRttProbeFactory g_udpEchoRttProbeFactory;
 static TNatPmpPortMapperFactory g_natPmpPortMapperFactory;
+typedef CORE::CTFactory< COMCORE::CIRpcTransport, CRpcTcpTransport, MT::CMutex > TRpcTcpTransportFactory;
+typedef CORE::CTFactory< COMCORE::CIRpcTransportListener, CRpcTcpTransportListener, MT::CMutex > TRpcTcpTransportListenerFactory;
+static TRpcTcpTransportFactory g_rpcTcpTransportFactory;
+static TRpcTcpTransportListenerFactory g_rpcTcpTransportListenerFactory;
 static TIrcTcpTransportFactory g_ircTcpTransportFactory;
 static TEMailOperationTaskConsumerFactory g_mailOperationTaskConsumerFactory;
 static TMcpOperationTaskConsumerFactory g_mcpOperationTaskConsumerFactory;
 static CORE::CTFactory< CIMcpTransport, CMcpStdioTransport, MT::CMutex > g_mcpStdioTransportFactory;
 static CORE::CTFactory< CIMcpTransport, CMcpTcpTransport, MT::CMutex > g_mcpTcpTransportFactory;
+static CORE::CTFactory< CIMcpTransport, CMcpRpcTransport, MT::CMutex > g_mcpRpcTransportFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -245,6 +260,7 @@ CComGlobal::Initialize( void )
     m_mcpTransportFactory = GUCEF_NEW CMcpTransportFactory();
     m_mcpTransportFactory->RegisterConcreteFactory( CIMcpTransport::StdioTransportName, &g_mcpStdioTransportFactory );
     m_mcpTransportFactory->RegisterConcreteFactory( CIMcpTransport::TcpTransportName, &g_mcpTcpTransportFactory );
+    m_mcpTransportFactory->RegisterConcreteFactory( CMcpRpcTransport::RpcTransportName, &g_mcpRpcTransportFactory );
 
     // The implementations of the COMCORE interfaces that need nothing but COMCORE
     COMCORE::CComCoreGlobal* comCore = COMCORE::CComCoreGlobal::Instance();
@@ -260,6 +276,8 @@ CComGlobal::Initialize( void )
     rttProbeFactory.RegisterConcreteFactory( CUdpEchoRttProbe::MethodName, &g_udpEchoRttProbeFactory );
 
     comCore->GetPortMapperFactory().RegisterConcreteFactory( CNatPmpPortMapper::MapperName, &g_natPmpPortMapperFactory );
+    comCore->GetRpcTransportFactory().RegisterConcreteFactory( CRpcTcpTransport::TransportType, &g_rpcTcpTransportFactory );
+    comCore->GetRpcTransportListenerFactory().RegisterConcreteFactory( CRpcTcpTransport::TransportType, &g_rpcTcpTransportListenerFactory );
 
     CORE::CMetricsClientManager::CIMetricsSystemClientPtr statsDClient( GUCEF_NEW CStatsDClient() );
     CORE::CCoreGlobal::Instance()->GetMetricsClientManager().AddMetricsClient( CStatsDClient::Type, statsDClient );
@@ -298,6 +316,8 @@ CComGlobal::~CComGlobal()
     rttProbeFactory.UnregisterConcreteFactory( CUdpEchoRttProbe::MethodName );
 
     comCore->GetPortMapperFactory().UnregisterConcreteFactory( CNatPmpPortMapper::MapperName );
+    comCore->GetRpcTransportFactory().UnregisterConcreteFactory( CRpcTcpTransport::TransportType );
+    comCore->GetRpcTransportListenerFactory().UnregisterConcreteFactory( CRpcTcpTransport::TransportType );
 
     m_ircTransportFactory->UnregisterAllConcreteFactories();
     GUCEF_DELETE m_ircTransportFactory;

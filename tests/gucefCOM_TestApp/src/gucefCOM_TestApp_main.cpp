@@ -74,6 +74,7 @@
 #include "TestMcpPolicy.h"
 #include "TestMcpStdio.h"
 #include "TestMcpTcp.h"
+#include "TestRpcTcp.h"
 #include "TestMcpLegacy.h"
 #include "TestStatsDClient.h"
 #include "TestMime.h"
@@ -157,6 +158,7 @@ GUCEF_OSMAIN_BEGIN
         RUN_SUITE( PerformMcpPolicyTests );
         RUN_SUITE( PerformMcpStdioTests );
         RUN_SUITE( PerformMcpTcpTests );
+        RUN_SUITE( PerformRpcTcpTests );
         RUN_SUITE( PerformStatsDClientTests );
         RUN_SUITE( PerformMimeCodecTests );
         RUN_SUITE( PerformMimeParserTests );

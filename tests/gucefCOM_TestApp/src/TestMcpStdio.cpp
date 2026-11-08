@@ -54,6 +54,11 @@
 #define GUCEF_TEST_UNIQUE_H
 #endif /* GUCEF_TEST_UNIQUE_H ? */
 
+#ifndef GUCEF_TEST_CHILD_PROCESS_H
+#include "gucef_test_child_process.h"
+#define GUCEF_TEST_CHILD_PROCESS_H
+#endif /* GUCEF_TEST_CHILD_PROCESS_H ? */
+
 #include "TestMcpSupport.h"
 #include "TestMcpClientSupport.h"
 #include "TestMcpStdio.h"
@@ -292,9 +297,10 @@ FindEchoServer( void )
 CORE::CProcess::TStringMap
 ChildEnvironment( void )
 {
-    // the log of the child goes to its standard error, never to a window
+    // the log of the child goes to its standard error, never to a window, and its exit code is its own
     CORE::CProcess::TStringMap environment;
     environment[ "GUCEF_CONSOLE_LOGGER" ] = "stderr";
+    TESTFW::KeepChildExitCodeUnderSanitizers( environment );
     return environment;
 }
 

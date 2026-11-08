@@ -36,6 +36,7 @@ LOCAL_SRC_FILES := \
   src/TestMime.cpp \
   src/TestNatTraversal.cpp \
   src/TestPop3Client.cpp \
+  src/TestRpcTcp.cpp \
   src/TestRttProbes.cpp \
   src/TestSmtpClient.cpp \
   src/TestStatsDClient.cpp \
@@ -45,6 +46,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../common/test/include \
+  $(MY_MODULE_PATH)/../../tests/gucefCOMCORE_TestApp/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \

@@ -74,7 +74,7 @@ class GUCEF_COM_PUBLIC_CPP CEMailSaslScramSha256 : public CIEMailSaslMechanism
     /** The nonce of the client; for tests that replay the example of the RFC. Without it a random nonce is made by Start() */
     void SetClientNonceForTesting( const CORE::CString& nonce );
 
-    /** PBKDF2 with HMAC-SHA256 (RFC 8018), 32 bytes of output */
+    /** PBKDF2 with HMAC-SHA256 (RFC 8018), 32 bytes of output: CORE::CPbkdf2HmacSha256::Derive() for one block */
     static void Pbkdf2HmacSha256( const void* password, UInt32 passwordSize, const void* salt, UInt32 saltSize, UInt32 iterations, UInt8* output );
 
     private:
