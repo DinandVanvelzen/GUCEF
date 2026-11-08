@@ -210,6 +210,19 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
 
     typedef GUCEF::set< CGloballyConfigurable* > TConfigurableSet;
     typedef GUCEF::vector< UInt8 > TUInt8Vector;
+    typedef GUCEF::vector< CGloballyConfigurable* > TConfigurableVector;
+
+    /**
+     *  Takes the next configurable out of todo that is still registered and marks it in use until
+     *  ReleaseConfigurable(): an Unregister() on another thread waits for that.
+     *  @return the configurable, GUCEF_NULL when todo has no more
+     */
+    CGloballyConfigurable* UseNextConfigurable( TConfigurableSet& todo, bool& isOptional );
+
+    void ReleaseConfigurable( CGloballyConfigurable* configobj );
+
+    /** Under m_configurablesLock: whether a load or a save on another thread than the caller's is calling it */
+    bool IsInUseByOtherThread( CGloballyConfigurable* configobj ) const;
 
     CString _codectype;
     CString m_bootstrapConfigFile;
@@ -221,6 +234,14 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
     TUInt8Vector m_configurableScopes;          /**< per open scope: whether its configurables are optional */
     UInt32 m_configurableScopeThreadId;         /**< the thread that began the open scopes */
     bool m_isBusyLoadingConfig;
+    TConfigurableVector m_configurablesInUse;   /**< called by a load or a save now, without m_configurablesLock */
+    UInt32 m_configurablesUserThreadId;         /**< the thread of that load or save, which hold the lock of the config
+                                                     store: one at a time */
+    mutable MT::CMutex m_configurablesLock;     /**< leaf lock of the configurables, their scopes and the state above:
+                                                     never held while a configurable is called. A plugin is loaded and
+                                                     its configurables are made under the lock of the plugin control,
+                                                     which a load of the config takes in the plugin control's
+                                                     LoadConfig() under the lock of the config store */
     bool m_globalConfigIsLoaded;
     bool m_globalBootstrapConfigIsLoaded;
     CString m_configLocation;           /**< the folder of the config the bootstrap config names, with its variables */

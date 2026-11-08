@@ -93,6 +93,36 @@
 #define GUCEF_TEST_UNIQUE_H
 #endif /* GUCEF_TEST_UNIQUE_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_COBJECTSCOPELOCK_H
+#include "gucefMT_CObjectScopeLock.h"
+#define GUCEF_MT_COBJECTSCOPELOCK_H
+#endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CTASKCONSUMER_H
+#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
+
+#ifndef GUCEF_CORE_CTHREADPOOL_H
+#include "gucefCORE_CThreadPool.h"
+#define GUCEF_CORE_CTHREADPOOL_H
+#endif /* GUCEF_CORE_CTHREADPOOL_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 #include "TestConfigStore.h"
 
 /*-------------------------------------------------------------------------//
@@ -196,6 +226,247 @@ ConfigAppliesAsAWhole( CORE::CConfigStore& configStore )
 {
     CORE::CDataNode config;
     return configStore.ApplyConsolidatedConfig( config );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const UInt32 LockOrderRunTimeInMs = 3000;
+const UInt32 LockOrderStallTimeInMs = 2000;
+const Int32 LockOrderTaskEndTimeInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS + 15000;
+
+UInt64
+LockOrderElapsedMs( UInt64 startTicks )
+{
+    return ( MT::PrecisionTickCount() - startTicks ) * 1000 / MT::PrecisionTimerResolution();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** What the tasks of the lock order case share with the test thread. The tasks may outlive a case that saw a
+ *  deadlock, so it is made on the heap and given up then */
+struct SConfigLockOrderCase
+{
+    MT::CTAtomic< bool > stop;
+    MT::CTAtomic< UInt32 > pluginRounds;
+    MT::CTAtomic< UInt32 > configRounds;
+    MT::CTAtomic< UInt32 > exceptions;
+
+    SConfigLockOrderCase( void ) : stop( false ), pluginRounds( 0 ), configRounds( 0 ), exceptions( 0 ) {}
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Does under the lock of the plugin control what loading a plugin does around the module: a fault tolerant config scope */
+class CPluginSideTask : public CORE::CTaskConsumer
+{
+    public:
+
+    explicit CPluginSideTask( SConfigLockOrderCase& lockCase ) : CORE::CTaskConsumer(), m_case( lockCase ) {}
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return "TestConfigStore::CPluginSideTask"; }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+        CORE::CPluginControl& pluginControl = coreGlobal->GetPluginControl();
+        CORE::CConfigStore& configStore = coreGlobal->GetConfigStore();
+        while ( !m_case.stop.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            try
+            {
+                MT::CObjectScopeLock pluginControlLock( pluginControl.AsLockable() );
+                CORE::CFaultTolerantConfigScope faultTolerantScope( configStore, true );
+                m_case.pluginRounds.FetchAdd( 1 );
+            }
+            catch ( ... )
+            {
+                m_case.exceptions.FetchAdd( 1 );
+                break;
+            }
+            MT::ThreadDelay( 0 );
+        }
+        return true;
+    }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr, bool ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    private:
+
+    SConfigLockOrderCase& m_case;
+};
+
+typedef CORE::CTSharedPtr< CPluginSideTask, MT::CMutex > TPluginSideTaskPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/** Applies a config to every globally configurable object, the plugin control included, as loading the config does */
+class CConfigSideTask : public CORE::CTaskConsumer
+{
+    public:
+
+    explicit CConfigSideTask( SConfigLockOrderCase& lockCase ) : CORE::CTaskConsumer(), m_case( lockCase ) {}
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return "TestConfigStore::CConfigSideTask"; }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        CORE::CConfigStore& configStore = CORE::CCoreGlobal::Instance()->GetConfigStore();
+        while ( !m_case.stop.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            try
+            {
+                ConfigAppliesAsAWhole( configStore );
+                m_case.configRounds.FetchAdd( 1 );
+            }
+            catch ( ... )
+            {
+                m_case.exceptions.FetchAdd( 1 );
+                break;
+            }
+            MT::ThreadDelay( 0 );
+        }
+        return true;
+    }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr, bool ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    private:
+
+    SConfigLockOrderCase& m_case;
+};
+
+typedef CORE::CTSharedPtr< CConfigSideTask, MT::CMutex > TConfigSideTaskPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/** What a load on another thread shares with the test thread: the hold of the configurable that is being loaded */
+struct SConfigInUseCase
+{
+    MT::CTAtomic< bool > hold;              /**< the holding configurable waits in its LoadConfig() until release */
+    MT::CTAtomic< bool > inLoad;
+    MT::CTAtomic< bool > release;
+    MT::CTAtomic< bool > loadDone;
+    MT::CTAtomic< bool > unregistered;
+    MT::CTAtomic< bool > intactAfterRelease;
+    CORE::CGloballyConfigurable* toUnregister;
+
+    SConfigInUseCase( void ) : hold( true ), inLoad( false ), release( false ), loadDone( false ), unregistered( false ), intactAfterRelease( false ), toUnregister( GUCEF_NULL ) {}
+};
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ConfigWaitFor( const MT::CTAtomic< bool >& flag, UInt32 timeoutInMs )
+{
+    const UInt64 startTicks = MT::PrecisionTickCount();
+    while ( !flag.Load( MT::MEMORDER_ACQUIRE ) )
+    {
+        if ( LockOrderElapsedMs( startTicks ) > timeoutInMs )
+            return false;
+        MT::ThreadDelay( 1 );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Counts its loads; while the case holds, its LoadConfig() waits for the release and then looks at itself again */
+class CHoldingConfigurable : public CORE::CGloballyConfigurable
+{
+    public:
+
+    static const UInt32 AliveMark = 0xC0F1C0F1;
+
+    MT::CTAtomic< UInt32 > loads;
+
+    explicit CHoldingConfigurable( SConfigInUseCase* inUseCase ) : CORE::CGloballyConfigurable( false ), loads( 0 ), m_case( inUseCase ), m_alive( AliveMark ) {}
+
+    virtual ~CHoldingConfigurable()
+    {
+        // a configurable leaves the store in its own destructor: a load that calls it is waited for while it is whole
+        UnregisterFromConfigStore();
+        m_alive = 0;
+    }
+
+    void LeaveConfigStore( void ) { UnregisterFromConfigStore(); }
+
+    virtual bool SaveConfig( CORE::CDataNode& cfg ) const GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool LoadConfig( const CORE::CDataNode& cfg ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        loads.FetchAdd( 1 );
+        if ( GUCEF_NULL != m_case && m_case->hold.Load( MT::MEMORDER_ACQUIRE ) )
+        {
+            m_case->inLoad.Store( true, MT::MEMORDER_RELEASE );
+            ConfigWaitFor( m_case->release, 20000 );
+            m_case->intactAfterRelease.Store( AliveMark == m_alive, MT::MEMORDER_RELEASE );
+        }
+        return true;
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CHoldingConfigurable";
+        return classTypeName;
+    }
+
+    private:
+
+    SConfigInUseCase* m_case;
+    UInt32 m_alive;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Applies a config to every globally configurable object, on a thread of its own */
+UInt32 GUCEF_CALLSPEC_PREFIX
+ConfigLoadThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SConfigInUseCase& inUseCase = *static_cast< SConfigInUseCase* >( data );
+    ConfigAppliesAsAWhole( CORE::CCoreGlobal::Instance()->GetConfigStore() );
+    inUseCase.loadDone.Store( true, MT::MEMORDER_RELEASE );
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Destroys the configurable of the case on a thread of its own */
+UInt32 GUCEF_CALLSPEC_PREFIX
+ConfigDestroyThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SConfigInUseCase& inUseCase = *static_cast< SConfigInUseCase* >( data );
+    GUCEF_DELETE inUseCase.toUnregister;
+    inUseCase.unregistered.Store( true, MT::MEMORDER_RELEASE );
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+MT::SThreadData*
+StartConfigThread( MT::TThreadFunc threadMain, SConfigInUseCase* inUseCase )
+{
+    MT::SThreadData* thread = MT::ThreadDataReserve();
+    if ( GUCEF_NULL == thread )
+        return GUCEF_NULL;
+    if ( 0 == MT::ThreadCreate( thread, threadMain, inUseCase ) )
+    {
+        MT::ThreadDataCleanup( thread );
+        return GUCEF_NULL;
+    }
+    return thread;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+EndConfigThread( MT::SThreadData* thread )
+{
+    if ( GUCEF_NULL == thread )
+        return true;
+    if ( 1 != MT::ThreadWait( thread, LockOrderTaskEndTimeInMs ) )
+        return false;
+    MT::ThreadDataCleanup( thread );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -521,6 +792,142 @@ PerformConfigStoreTests( void )
             ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
         }
         ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Loading a plugin opens a config scope, and a plugin may make configurables, under the lock of the plugin control,
+    // while loading the config calls every configurable, the plugin control included, which takes that lock. With
+    // the config store's lock taken for the scope and the registrations the two threads deadlocked
+    GUCEF_TESTFW_TESTCASE( "ConfigStore: A plugin loaded on one thread while another thread loads the config: no deadlock" )
+    try
+    {
+        SConfigLockOrderCase* lockCase = GUCEF_NEW SConfigLockOrderCase();
+        CORE::ThreadPoolPtr pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( "TestConfigStoreLockOrder" );
+        TPluginSideTaskPtr pluginSide( GUCEF_NEW CPluginSideTask( *lockCase ) );
+        TConfigSideTaskPtr configSide( GUCEF_NEW CConfigSideTask( *lockCase ) );
+        ASSERT_FALSE( pool->StartTaskWithConsumer( pluginSide ).HasNoFuture() );
+        ASSERT_FALSE( pool->StartTaskWithConsumer( configSide ).HasNoFuture() );
+
+        // both tasks have to keep making progress for the run time
+        const UInt64 startTicks = MT::PrecisionTickCount();
+        UInt64 pluginProgressTicks = startTicks;
+        UInt64 configProgressTicks = startTicks;
+        UInt32 lastPluginRounds = 0;
+        UInt32 lastConfigRounds = 0;
+        bool stalled = false;
+        while ( LockOrderElapsedMs( startTicks ) < LockOrderRunTimeInMs )
+        {
+            MT::ThreadDelay( 10 );
+            const UInt64 nowTicks = MT::PrecisionTickCount();
+            if ( lockCase->pluginRounds.Load() != lastPluginRounds )
+            {
+                lastPluginRounds = lockCase->pluginRounds.Load();
+                pluginProgressTicks = nowTicks;
+            }
+            if ( lockCase->configRounds.Load() != lastConfigRounds )
+            {
+                lastConfigRounds = lockCase->configRounds.Load();
+                configProgressTicks = nowTicks;
+            }
+            if ( LockOrderElapsedMs( pluginProgressTicks ) > LockOrderStallTimeInMs || LockOrderElapsedMs( configProgressTicks ) > LockOrderStallTimeInMs )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ConfigStore lock order: a task made no progress for " << LockOrderStallTimeInMs
+                    << " ms, plugin side rounds " << lastPluginRounds << ", config side rounds " << lastConfigRounds );
+                stalled = true;
+                break;
+            }
+        }
+
+        lockCase->stop.Store( true, MT::MEMORDER_RELEASE );
+        const bool pluginSideEnded = pluginSide->WaitForTaskToFinish( LockOrderTaskEndTimeInMs );
+        const bool configSideEnded = configSide->WaitForTaskToFinish( LockOrderTaskEndTimeInMs );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ConfigStore lock order: plugin side rounds " << lockCase->pluginRounds.Load()
+            << ", config side rounds " << lockCase->configRounds.Load() );
+
+        ASSERT_FALSE( stalled );
+        ASSERT_TRUE( pluginSideEnded );
+        ASSERT_TRUE( configSideEnded );
+        ASSERT_TRUE( lockCase->pluginRounds.Load() > 0 );
+        ASSERT_TRUE( lockCase->configRounds.Load() > 0 );
+        ASSERT_TRUE( 0 == lockCase->exceptions.Load() );
+
+        if ( pluginSideEnded && configSideEnded )
+            GUCEF_DELETE lockCase;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "ConfigStore: A configurable destroyed on one thread while a load on another thread calls it: UnregisterFromConfigStore() in its destructor waits for that call" )
+    try
+    {
+        // the case and the configurable stay when a thread did not end: it may still use them
+        SConfigInUseCase* inUseCase = GUCEF_NEW SConfigInUseCase();
+        inUseCase->toUnregister = GUCEF_NEW CHoldingConfigurable( inUseCase );
+
+        MT::SThreadData* loader = StartConfigThread( &ConfigLoadThreadMain, inUseCase );
+        ASSERT_TRUE( GUCEF_NULL != loader );
+        ASSERT_TRUE( ConfigWaitFor( inUseCase->inLoad, 10000 ) );
+
+        MT::SThreadData* destroyer = StartConfigThread( &ConfigDestroyThreadMain, inUseCase );
+        ASSERT_TRUE( GUCEF_NULL != destroyer );
+        MT::ThreadDelay( 200 );
+        ASSERT_FALSE( inUseCase->unregistered.Load() );
+
+        inUseCase->release.Store( true, MT::MEMORDER_RELEASE );
+        ASSERT_TRUE( ConfigWaitFor( inUseCase->unregistered, 10000 ) );
+        ASSERT_TRUE( ConfigWaitFor( inUseCase->loadDone, 10000 ) );
+        const bool loaderEnded = EndConfigThread( loader );
+        const bool destroyerEnded = EndConfigThread( destroyer );
+        ASSERT_TRUE( loaderEnded && destroyerEnded );
+        ASSERT_TRUE( inUseCase->intactAfterRelease.Load() );
+
+        if ( loaderEnded && destroyerEnded )
+            GUCEF_DELETE inUseCase;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "ConfigStore: A configurable unregistered during a load that has not called it yet is not called by that load" )
+    try
+    {
+        SConfigInUseCase* inUseCase = GUCEF_NEW SConfigInUseCase();
+        CHoldingConfigurable* holding = GUCEF_NEW CHoldingConfigurable( inUseCase );
+        CHoldingConfigurable* leaving = GUCEF_NEW CHoldingConfigurable( GUCEF_NULL );
+
+        MT::SThreadData* loader = StartConfigThread( &ConfigLoadThreadMain, inUseCase );
+        ASSERT_TRUE( GUCEF_NULL != loader );
+        ASSERT_TRUE( ConfigWaitFor( inUseCase->inLoad, 10000 ) );
+
+        // the load waits in the other configurable: this one is not in use, it goes at once
+        const UInt32 loadsBefore = leaving->loads.Load();
+        const UInt64 startTicks = MT::PrecisionTickCount();
+        leaving->LeaveConfigStore();
+        ASSERT_TRUE( LockOrderElapsedMs( startTicks ) < 1000 );
+        ASSERT_FALSE( inUseCase->loadDone.Load() );
+
+        inUseCase->release.Store( true, MT::MEMORDER_RELEASE );
+        ASSERT_TRUE( ConfigWaitFor( inUseCase->loadDone, 10000 ) );
+        const bool loaderEnded = EndConfigThread( loader );
+        ASSERT_TRUE( loaderEnded );
+        ASSERT_TRUE( loadsBefore == leaving->loads.Load() );
+        ASSERT_TRUE( 1 == holding->loads.Load() );
+
+        if ( loaderEnded )
+        {
+            GUCEF_DELETE leaving;
+            GUCEF_DELETE holding;
+            GUCEF_DELETE inUseCase;
+        }
     }
     catch ( ... )
     {

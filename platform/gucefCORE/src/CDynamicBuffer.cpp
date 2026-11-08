@@ -1010,7 +1010,9 @@ CDynamicBuffer::Append( const void* data                            ,
     {
         if ( EnsureBufferSizeForGrowth( m_dataSize + size ) )
         {
-            memcpy( _buffer + m_dataSize, data, size );
+            // nothing to copy may come as a null pointer, to a buffer that has no memory yet
+            if ( size > 0 )
+                memcpy( _buffer + m_dataSize, data, size );
             m_dataSize += size;
             return size;
         }
@@ -1025,7 +1027,8 @@ CDynamicBuffer::Append( const void* data                            ,
         UInt32 oldBufferSize = _bsize;
         if ( SetBufferSize( oldBufferSize + size, false, true ) )
         {
-            memcpy( _buffer + oldBufferSize, data, size );
+            if ( size > 0 )
+                memcpy( _buffer + oldBufferSize, data, size );
             m_dataSize = _bsize;
             return size;
         }

@@ -43,6 +43,11 @@
 #define GUCEF_CORE_CIOBSERVER_H
 #endif /* GUCEF_CORE_CIOBSERVER_H ? */
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_CORE_CIEVENTHANDLERFUNCTORBASE_H
 #include "gucefCORE_CIEventHandlerFunctorBase.h"
 #define GUCEF_CORE_CIEVENTHANDLERFUNCTORBASE_H
@@ -169,6 +174,7 @@ class GUCEF_CORE_PUBLIC_CPP CObserver : public CIObserver
     typedef GUCEF::set< CNotifier*, std::less< CNotifier* >, gucef_allocator< CNotifier* > > TNotifierList;
 
     TNotifierList m_notifiers;
+    MT::CMutex m_notifiersLock;     /**< guards m_notifiers only, never held while a notifier is called: a leaf lock */
 };
 
 /*-------------------------------------------------------------------------//

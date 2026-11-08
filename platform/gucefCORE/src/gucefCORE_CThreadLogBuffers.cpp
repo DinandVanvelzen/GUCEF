@@ -68,6 +68,7 @@ void
 CThreadLogBuffers::Swap( void )
 {GUCEF_TRACE;
 
+    MT::CScopeMutex swapLock( m_swapLock );
     CLogStreamTypedPtr frontBufferPtr = m_frontBuffer;
     m_frontBuffer = m_backBuffer;
     m_backBuffer = frontBufferPtr;
@@ -79,6 +80,9 @@ CLogStreamPtr
 CThreadLogBuffers::GetFrontBuffer( void )
 {GUCEF_TRACE;
 
+    // The pointer objects themselves are shared with the thread that swaps them: a copy taken while the
+    // other thread reassigns it locks the shared data of one buffer and unlocks that of the other
+    MT::CScopeMutex swapLock( m_swapLock );
     return m_frontBuffer;
 }
 
@@ -88,6 +92,7 @@ CLogStreamPtr
 CThreadLogBuffers::GetBackBuffer( void )
 {GUCEF_TRACE;
 
+    MT::CScopeMutex swapLock( m_swapLock );
     return m_backBuffer;
 }
 
@@ -106,6 +111,7 @@ void
 CThreadLogBuffers::SetThreadId( UInt32 threadId, bool isPulseGeneratorThread )
 {GUCEF_TRACE;
 
+    MT::CScopeMutex swapLock( m_swapLock );
     m_threadId = threadId;
     m_frontBuffer->SetIsPulseGeneratorThread( isPulseGeneratorThread );
     m_backBuffer->SetIsPulseGeneratorThread( isPulseGeneratorThread );
@@ -127,6 +133,7 @@ CThreadLogBuffers::IsFrontBufferInUse( void ) const
 {GUCEF_TRACE;
 
     // If ref count > 1, someone else (CLogStreamScope) holds a reference
+    MT::CScopeMutex swapLock( m_swapLock );
     return m_frontBuffer.GetReferenceCount() > 1;
 }
 
@@ -138,6 +145,9 @@ CThreadLogBuffers::TrySwapAndGetBackBuffer( void )
 
     try
     {
+        // The swap lock keeps the owning thread from taking a copy of a pointer that is being reassigned
+        MT::CScopeMutex swapLock( m_swapLock );
+
         // we lock the shared pointer of the front buffer to ensure that the
         // reference count check and swap are atomic with respect to other threads
         // this thus prevents the front buffer from being acquired by the logger thread

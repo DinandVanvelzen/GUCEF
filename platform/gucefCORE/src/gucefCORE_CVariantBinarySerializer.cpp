@@ -247,11 +247,17 @@ CVariantBinarySerializer::Deserialize( CVariant& var                ,
     {
         var.Clear();
 
+        // At the end of the data there is no value: the normal end of a reader that reads until a read fails, so it
+        // is not logged. An offset beyond the end is a mistake of the caller. A value that is cut short or whose size
+        // does not fit the data is corruption and is reported below
         UInt32 bufferDataSize = source.GetDataSize();
-        if ( currentSourceOffset+1 > bufferDataSize )
+        if ( currentSourceOffset >= bufferDataSize )
         {
-            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Invalid starting offset given of " + 
-                ToString( currentSourceOffset ) + " bytes. Available data= " + ToString( bufferDataSize ) );
+            if ( currentSourceOffset > bufferDataSize )
+            {
+                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Invalid starting offset given of " <<
+                    currentSourceOffset << " bytes. Available data= " << bufferDataSize );
+            }
             return false;
         }
 
@@ -272,8 +278,8 @@ CVariantBinarySerializer::Deserialize( CVariant& var                ,
             UInt32 availableBytesLeft = bufferDataSize - currentSourceOffset;
             if ( payloadSize > availableBytesLeft )
             {
-                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Invalid payloadSize of " + 
-                    ToString( payloadSize ) + " bytes. Available data= " + ToString( availableBytesLeft ) );
+                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Invalid payloadSize of " <<
+                    payloadSize << " bytes. Available data= " << availableBytesLeft );
                 return false;
             }
 
@@ -284,8 +290,8 @@ CVariantBinarySerializer::Deserialize( CVariant& var                ,
             }
             else
             {
-                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Failed to set payloadSize " + 
-                    ToString( payloadSize ) + " bytes on variant as " + CVariant::TypeNameForTypeId( typeId ) );
+                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Failed to set payloadSize " <<
+                    payloadSize << " bytes on variant as " << CVariant::TypeNameForTypeId( typeId ) );
                 bytesRead += var.ByteSize();
                 return false;
             }
@@ -308,7 +314,7 @@ CVariantBinarySerializer::Deserialize( CVariant& var                ,
     }   
     catch ( const std::exception& e )    
     {
-        GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, CString( "VariantBinarySerializer:Deserialize: caught exception: " ) + e.what()  );
+        GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: caught exception: " << e.what() );
         return false;
     } 
 }

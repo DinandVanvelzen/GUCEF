@@ -92,6 +92,7 @@ class CFunctionRegistry;
 class CDataTableBufferPool;
 class CTableCodecRegistry;
 class CTableCodecPluginManager;
+class CServiceHealthRegistry;
 
 //typedef CTBasicSharedPtr< CPulseGenerator, MT::CMutex > BasicPulseGeneratorPtr;
 
@@ -155,6 +156,9 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
     /** Loads and unloads table codec plugins, plugin type "GucefTableCodecPlugin" */
     CTableCodecPluginManager& GetTableCodecPluginManager( void );
 
+    /** The health of the process for liveness, readiness and startup probes, on the global pulse generator */
+    CServiceHealthRegistry& GetServiceHealthRegistry( void );
+
     /**
      *  Logging proxy call provided here to avoid including the logging manager 
      *  with its more involved dependencies
@@ -210,6 +214,7 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
     CTableCodecRegistry* m_tableCodecRegistry;
     CTableCodecPluginManager* m_tableCodecPluginManager;
     CUriResourceAccessorFactory* m_uriResourceAccessorFactory;
+    CServiceHealthRegistry* m_serviceHealthRegistry;
 
     static MT::CMutex g_dataLock;
     static CCoreGlobal* g_instance;

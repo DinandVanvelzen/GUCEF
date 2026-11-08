@@ -83,6 +83,11 @@
 #define GUCEF_MT_CACTIVEOBJECT_H
 #endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_MT_CTATOMIC_H
 #include "gucefMT_CTAtomic.h"
 #define GUCEF_MT_CTATOMIC_H
@@ -618,7 +623,7 @@ class CThreadedNotifier : public CTSGNotifier
     public:
 
     CThreadedNotifier( const PulseGeneratorPtr& pulseGenerator ) : CTSGNotifier( pulseGenerator, false, false ) {}
-    virtual ~CThreadedNotifier() {}
+    virtual ~CThreadedNotifier() { SignalUpcomingDestruction(); }
 
     void Send( void ) { NotifyObserversFromThread( ThreadedTestEvent() ); }
 
@@ -637,7 +642,7 @@ class CTestGatewayNotifier : public CTSGNotifier
     public:
 
     CTestGatewayNotifier( const PulseGeneratorPtr& pulseGenerator ) : CTSGNotifier( pulseGenerator, false, false ) {}
-    virtual ~CTestGatewayNotifier() {}
+    virtual ~CTestGatewayNotifier() { SignalUpcomingDestruction(); }   // first, as every class derived from CTSGNotifier
 
     void Post( void ) { NotifyObserversFromThread(); }
 
@@ -756,6 +761,85 @@ class CChurnThread : public MT::CActiveObject
 
 /*-------------------------------------------------------------------------*/
 
+/** A notifier that may be used from several threads: its subscriptions are guarded by a lock of its own */
+class CLockingTestNotifier : public CNotifier
+{
+    public:
+
+    CLockingTestNotifier( void ) : CNotifier(), m_lock() {}
+    virtual ~CLockingTestNotifier() {}
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CString typeName = "CLockingTestNotifier";
+        return typeName;
+    }
+
+    protected:
+
+    virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        return m_lock.Lock( lockWaitTimeoutInMs );
+    }
+
+    virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        return m_lock.Unlock();
+    }
+
+    private:
+
+    MT::CMutex m_lock;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Subscribes one observer to notifiers of its own and has those notifiers unsubscribe it again, on a thread of its
+ *  own: the notifiers update the observer's list of notifiers on this thread while other threads do the same
+ */
+class CSubscriptionChurnThread : public MT::CActiveObject
+{
+    public:
+
+    CSubscriptionChurnThread( CObserver* observer, CLockingTestNotifier* notifiers, UInt32 notifierCount, UInt32 rounds )
+        : MT::CActiveObject()
+        , m_observer( observer )
+        , m_notifiers( notifiers )
+        , m_notifierCount( notifierCount )
+        , m_rounds( rounds )
+        , m_done( 0 )
+    {}
+    virtual ~CSubscriptionChurnThread() {}
+
+    UInt32 GetRoundsDone( void ) const { return m_done.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        for ( UInt32 i=0; i<m_notifierCount; ++i )
+            m_observer->SubscribeTo( &m_notifiers[ i ] );
+        for ( UInt32 i=0; i<m_notifierCount; ++i )
+            m_notifiers[ i ].Unsubscribe( m_observer );
+        return ++m_done >= m_rounds;
+    }
+
+    private:
+
+    CObserver* m_observer;
+    CLockingTestNotifier* m_notifiers;
+    UInt32 m_notifierCount;
+    UInt32 m_rounds;
+    MT::CTAtomic< UInt32 > m_done;
+};
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  Waits for the churn thread to do its rounds. Gives up when it makes no progress for the given time
  *  @return whether all rounds were done
@@ -841,6 +925,46 @@ PerformNotifierThreadingTests( void )
             pump.Deactivate( false, true );
             ASSERT_TRUE( sender.GetSent() > 0 );
         }
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: An observer whose notifiers subscribe and unsubscribe it on several threads while it unsubscribes from all of them keeps a consistent list of notifiers" )
+    try
+    {
+        const UInt32 rounds = 300;
+        const UInt32 perThread = 32;
+        CObserver observer;
+        CLockingTestNotifier first[ perThread ];
+        CLockingTestNotifier second[ perThread ];
+
+        CSubscriptionChurnThread a( &observer, first, perThread, rounds );
+        CSubscriptionChurnThread b( &observer, second, perThread, rounds );
+        ASSERT_TRUE( a.Activate( GUCEF_NULL, 1, 1 ) );
+        ASSERT_TRUE( b.Activate( GUCEF_NULL, 1, 1 ) );
+
+        // this thread reads the observer's list of notifiers while the notifiers change it on the other threads
+        UInt64 start = MT::PrecisionTickCount();
+        UInt64 limit = MT::PrecisionTimerResolution() * 60;
+        while ( ( a.GetRoundsDone() < rounds || b.GetRoundsDone() < rounds ) && ( MT::PrecisionTickCount() - start ) < limit )
+        {
+            observer.UnsubscribeAllFromObserver();
+            observer.GetNotifierCount();
+        }
+        ASSERT_TRUE( a.GetRoundsDone() >= rounds && b.GetRoundsDone() >= rounds );
+        a.Deactivate( false, true );
+        b.Deactivate( false, true );
+
+        // every notifier took the observer off again: its list is empty and no notifier still counts it
+        observer.UnsubscribeAllFromObserver();
+        ASSERT_TRUE( 0 == observer.GetNotifierCount() );
+        UInt32 stillSubscribed = 0;
+        for ( UInt32 i=0; i<perThread; ++i )
+        {
+            stillSubscribed += first[ i ].GetSubscriptionCountForObserver( &observer );
+            stillSubscribed += second[ i ].GetSubscriptionCountForObserver( &observer );
+        }
+        ASSERT_TRUE( 0 == stillSubscribed );
     }
     catch( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -1266,6 +1390,97 @@ PerformPumpedMailboxOwnershipTests( void )
         }
         ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
         ASSERT_TRUE( baseFunctors == CCountedFunctor::Live().Load() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Sends the threaded test event, on the calling thread */
+class CSendingTestNotifier : public CNotifier
+{
+    public:
+
+    CSendingTestNotifier( void ) : CNotifier() {}
+    virtual ~CSendingTestNotifier() {}
+
+    void Send( void ) { NotifyObservers( ThreadedTestEvent() ); }
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CString typeName = "CSendingTestNotifier";
+        return typeName;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Subscribes many observers to the notifier while it delivers an event to this one, then unsubscribes every other one */
+class CSubscribingTestObserver : public CObserver
+{
+    public:
+
+    CNotifier* notifier;
+    GUCEF::vector< CObserver* >* others;
+    bool done;
+
+    CSubscribingTestObserver( void ) : CObserver(), notifier( GUCEF_NULL ), others( GUCEF_NULL ), done( false ) {}
+    virtual ~CSubscribingTestObserver() { UnsubscribeAllFromObserver(); }
+
+    virtual void OnNotify( CNotifier* sender, const CEvent& eventId, CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( done || ThreadedTestEvent() != eventId || GUCEF_NULL == others )
+            return;
+        done = true;
+        for ( UInt32 i=0; i<others->size(); ++i )
+            (*others)[ i ]->SubscribeTo( notifier );
+        for ( UInt32 i=0; i<others->size(); i+=2 )
+            notifier->Unsubscribe( (*others)[ i ] );
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformNotifierCommandMailTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Test: Many subscription requests made while the notifier delivers are carried out in order, in time that grows with their number" )
+    try
+    {
+        // a notifier that is busy delivering takes subscription requests as mail and carries them out afterwards. A
+        // pulse generator gets thousands of them in one pulse (every object made in it subscribes, every object released
+        // unsubscribes); taking each request off the front of the list moved all the others every time
+        const UInt32 count = 20000;
+        CSendingTestNotifier notifier;
+        GUCEF::vector< CObserver* > others;
+        for ( UInt32 i=0; i<count; ++i )
+            others.push_back( GUCEF_NEW CObserver() );
+        CSubscribingTestObserver subscriber;
+        subscriber.notifier = &notifier;
+        subscriber.others = &others;
+        subscriber.SubscribeTo( &notifier );
+
+        UInt64 start = MT::PrecisionTickCount();
+        notifier.Send();
+        UInt64 elapsedMs = ( MT::PrecisionTickCount() - start ) * 1000 / MT::PrecisionTimerResolution();
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Notifier test: " << count << " subscriptions and " << count / 2 << " unsubscriptions requested during a notification took " << elapsedMs << " ms" );
+
+        UInt32 wrong = 0;
+        for ( UInt32 i=0; i<count; ++i )
+        {
+            bool subscribed = others[ i ]->GetNotifierCount() > 0;
+            if ( subscribed == ( 0 == i % 2 ) )
+                ++wrong;
+        }
+        if ( 0 != wrong )
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Notifier test: " << wrong << " observers with the wrong subscription" );
+        ASSERT_TRUE( 0 == wrong );
+        ASSERT_TRUE( elapsedMs < 5000 );
+
+        subscriber.UnsubscribeAllFromObserver();
+        for ( UInt32 i=0; i<count; ++i )
+            GUCEF_DELETE others[ i ];
     }
     catch( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -2343,6 +2558,7 @@ PerformNotifierObserverTests( void )
     PerformNotifierThreadingTests();
     PerformPumpedMailboxOwnershipTests();
     PerformNotifierFunctorTests();
+    PerformNotifierCommandMailTests();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL NOTIFIER-OBSERVER TESTS COMPLETED" );

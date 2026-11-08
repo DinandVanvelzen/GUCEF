@@ -208,6 +208,17 @@ CEmscriptenPulseGeneratorDriver::RequestImmediatePulse( CPulseGenerator& pulseGe
 /*--------------------------------------------------------------------------*/
 
 void
+CEmscriptenPulseGeneratorDriver::QueueImmediatePulse( CPulseGenerator& pulseGenerator )
+{GUCEF_TRACE;
+
+    // Running or not: a request through the driver may come from any thread and never pulses there. The main loop
+    // takes it at its next cycle, or at its first when it starts later
+    m_immediatePulseTickets = m_immediatePulseTicketMax;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
 CEmscriptenPulseGeneratorDriver::RequestPulsesPerImmediatePulseRequest( CPulseGenerator& pulseGenerator                     ,
                                                                         const Int32 requestedPulsesPerImmediatePulseRequest )
 {GUCEF_TRACE;

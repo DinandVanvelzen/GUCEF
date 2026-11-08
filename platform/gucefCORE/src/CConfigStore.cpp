@@ -139,6 +139,9 @@ CConfigStore::CConfigStore( void )
     , m_configurableScopes()
     , m_configurableScopeThreadId( 0 )
     , m_isBusyLoadingConfig( false )
+    , m_configurablesInUse()
+    , m_configurablesUserThreadId( 0 )
+    , m_configurablesLock()
     , m_globalConfigIsLoaded( false )
     , m_globalBootstrapConfigIsLoaded( false )
     , m_configLocation()
@@ -271,12 +274,16 @@ void
 CConfigStore::Register( CGloballyConfigurable* configobj )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    // Only the leaf lock: configurables are made under the locks of others (a plugin that is loaded, under the lock
+    // of the plugin control) which a load of the config takes under the lock of the config store
+    MT::CScopeMutex lock( m_configurablesLock );
 
-    if ( !m_isBusyLoadingConfig )
-        m_configureables.insert( configobj );
-    else
+    // One that a load of the config makes is loaded by it as well. One made on another thread meanwhile is not: it
+    // is still being constructed, the next load has it
+    if ( m_isBusyLoadingConfig && m_configurablesUserThreadId == MT::GetCurrentTaskID() )
         m_newConfigureables.insert( configobj );
+    else
+        m_configureables.insert( configobj );
 
     // A configurable that comes along with something that may fail is one that may fail as well
     if ( !m_configurableScopes.empty() && 0 != m_configurableScopes.back() && m_configurableScopeThreadId == MT::GetCurrentTaskID() )
@@ -289,7 +296,8 @@ void
 CConfigStore::BeginConfigurableScope( bool configurablesAreOptional )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    // only the leaf lock: a plugin is loaded in a scope under the lock of the plugin control, see Register()
+    MT::CScopeMutex lock( m_configurablesLock );
     if ( m_configurableScopes.empty() )
         m_configurableScopeThreadId = MT::GetCurrentTaskID();
     m_configurableScopes.push_back( configurablesAreOptional ? 1 : 0 );
@@ -301,7 +309,7 @@ void
 CConfigStore::EndConfigurableScope( void )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    MT::CScopeMutex lock( m_configurablesLock );
     if ( !m_configurableScopes.empty() )
         m_configurableScopes.pop_back();
 }
@@ -312,14 +320,82 @@ bool
 CConfigStore::Unregister( CGloballyConfigurable* configobj )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    
+    // Only the leaf lock, see Register(). A load or a save walks a copy of the configurables and looks whether each
+    // is still registered before it calls it, so it is taken out at once, also during a load
+    MT::CScopeMutex lock( m_configurablesLock );
     m_optionalConfigurables.erase( configobj );
-    if ( m_isBusyLoadingConfig )
-        return false;
-
     m_configureables.erase( configobj );
+    m_newConfigureables.erase( configobj );
+
+    // a load or a save on another thread that is calling it right now is waited for
+    while ( IsInUseByOtherThread( configobj ) )
+    {
+        lock.EarlyUnlock();
+        MT::ThreadDelay( 1 );
+        lock.ReLock();
+    }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CConfigStore::IsInUseByOtherThread( CGloballyConfigurable* configobj ) const
+{GUCEF_TRACE;
+
+    if ( m_configurablesUserThreadId == MT::GetCurrentTaskID() )
+        return false;
+    TConfigurableVector::const_iterator i = m_configurablesInUse.begin();
+    while ( i != m_configurablesInUse.end() )
+    {
+        if ( (*i) == configobj )
+            return true;
+        ++i;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGloballyConfigurable*
+CConfigStore::UseNextConfigurable( TConfigurableSet& todo, bool& isOptional )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_configurablesLock );
+    while ( !todo.empty() )
+    {
+        CGloballyConfigurable* configobj = *todo.begin();
+        todo.erase( todo.begin() );
+
+        // one that was unregistered since the copy was made is left out
+        if ( m_configureables.find( configobj ) == m_configureables.end() && m_newConfigureables.find( configobj ) == m_newConfigureables.end() )
+            continue;
+
+        isOptional = m_optionalConfigurables.find( configobj ) != m_optionalConfigurables.end();
+        m_configurablesInUse.push_back( configobj );
+        m_configurablesUserThreadId = MT::GetCurrentTaskID();
+        return configobj;
+    }
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConfigStore::ReleaseConfigurable( CGloballyConfigurable* configobj )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_configurablesLock );
+    TConfigurableVector::iterator i = m_configurablesInUse.begin();
+    while ( i != m_configurablesInUse.end() )
+    {
+        if ( (*i) == configobj )
+        {
+            m_configurablesInUse.erase( i );
+            return;
+        }
+        ++i;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -360,15 +436,22 @@ CConfigStore::SaveConsolidatedConfig( const CString& name ,
             rootnode = oldtree;
     }
 
-    TConfigurableSet::iterator i = m_configureables.begin();
-    while ( i != m_configureables.end() )
+    // the configurables are called without the leaf lock of their list, see m_configurablesLock
+    TConfigurableSet todo;
+    {
+        MT::CScopeMutex configurablesLock( m_configurablesLock );
+        todo = m_configureables;
+    }
+    bool isOptional = false;
+    CGloballyConfigurable* configurable = GUCEF_NULL;
+    while ( GUCEF_NULL != ( configurable = UseNextConfigurable( todo, isOptional ) ) )
     {
         // a configurable that cannot save (or has nothing to save) does not stop the others from being saved
-        if ( !(*i)->SaveConfig( rootnode ) )
+        if ( !configurable->SaveConfig( rootnode ) )
         {
-            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ConfigStore:SaveConsolidatedConfig: A configurable of type \"" + (*i)->GetClassTypeName() + "\" did not save its config" );
+            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ConfigStore:SaveConsolidatedConfig: A configurable of type \"" + configurable->GetClassTypeName() + "\" did not save its config" );
         }
-        ++i;
+        ReleaseConfigurable( configurable );
     }
 
     if ( codec->StoreDataTree( &rootnode, m_consolidatedConfigFile ) )
@@ -796,61 +879,79 @@ CConfigStore::ApplyConfigData( const CDataNode& loadedConfig ,
                                bool hasBootstrap             )
 {GUCEF_TRACE;
 
-    m_isBusyLoadingConfig = true;
-                        
-    bool errorOccured = false;
-    TConfigurableSet::iterator i = m_configureables.begin();
-    while ( i != m_configureables.end() )
+    // The configurables are called without the leaf lock of their list (see m_configurablesLock): from a copy, each
+    // one marked in use while it is called
+    TConfigurableSet todo;
     {
-        if ( !hasBootstrap || ( isBootstrap == (*i)->IsIncludedInGlobalBootstrapConfigLoad() ) )
+        MT::CScopeMutex configurablesLock( m_configurablesLock );
+        m_isBusyLoadingConfig = true;
+        m_configurablesUserThreadId = MT::GetCurrentTaskID();
+        todo = m_configureables;
+    }
+
+    bool errorOccured = false;
+    bool isOptional = false;
+    CGloballyConfigurable* configurable = GUCEF_NULL;
+    while ( GUCEF_NULL != ( configurable = UseNextConfigurable( todo, isOptional ) ) )
+    {
+        if ( !hasBootstrap || ( isBootstrap == configurable->IsIncludedInGlobalBootstrapConfigLoad() ) )
         {
-            if ( !(*i)->LoadConfig( loadedConfig ) )
+            if ( !configurable->LoadConfig( loadedConfig ) )
             {
-                if ( m_optionalConfigurables.find( *i ) == m_optionalConfigurables.end() )
+                if ( !isOptional )
                 {
                     errorOccured = true;
-                    GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a configureable with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                    GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a configureable with type name \"" << configurable->GetClassTypeName() << "\"" );
                 }
                 else
                 {
-                    GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for an optional configureable (it came with a plugin that may fail) with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                    GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for an optional configureable (it came with a plugin that may fail) with type name \"" << configurable->GetClassTypeName() << "\"" );
                 }
             }
         }
-        ++i;
+        ReleaseConfigurable( configurable );
     }
 
     // Loading of config can cause more configurables to register
     // We handle those after dealing with the initial set
-    while ( !m_newConfigureables.empty() )
+    while ( true )
     {
-        TConfigurableSet setCopy( m_newConfigureables );
-        i = setCopy.begin();
-        while ( i != setCopy.end() )
         {
-            if ( !hasBootstrap || ( isBootstrap == (*i)->IsIncludedInGlobalBootstrapConfigLoad() ) )
+            MT::CScopeMutex configurablesLock( m_configurablesLock );
+            if ( m_newConfigureables.empty() )
             {
-                if ( !(*i)->LoadConfig( loadedConfig ) )
+                m_isBusyLoadingConfig = false;
+                break;
+            }
+            todo = m_newConfigureables;
+        }
+
+        while ( GUCEF_NULL != ( configurable = UseNextConfigurable( todo, isOptional ) ) )
+        {
+            if ( !hasBootstrap || ( isBootstrap == configurable->IsIncludedInGlobalBootstrapConfigLoad() ) )
+            {
+                if ( !configurable->LoadConfig( loadedConfig ) )
                 {
-                    if ( m_optionalConfigurables.find( *i ) == m_optionalConfigurables.end() )
+                    if ( !isOptional )
                     {
                         errorOccured = true;
-                        GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a late-addition configureable with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                        GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a late-addition configureable with type name \"" << configurable->GetClassTypeName() << "\"" );
                     }
                     else
                     {
-                        GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for an optional late-addition configureable (it came with a plugin that may fail) with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                        GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for an optional late-addition configureable (it came with a plugin that may fail) with type name \"" << configurable->GetClassTypeName() << "\"" );
                     }
-                }            
+                }
             }
 
-            m_configureables.insert( (*i) );
-            m_newConfigureables.erase( (*i) );
-            ++i;
+            {
+                MT::CScopeMutex configurablesLock( m_configurablesLock );
+                if ( 0 != m_newConfigureables.erase( configurable ) )
+                    m_configureables.insert( configurable );
+            }
+            ReleaseConfigurable( configurable );
         }
     }
-
-    m_isBusyLoadingConfig = false;
                         
     if ( !errorOccured )
     {
@@ -870,6 +971,7 @@ bool
 CConfigStore::IsGlobalBootstrapConfigLoadInProgress( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_configurablesLock );
     return m_isBusyLoadingConfig && !m_globalBootstrapConfigIsLoaded;
 }
 
@@ -879,6 +981,7 @@ bool
 CConfigStore::IsGlobalConfigLoadInProgress( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_configurablesLock );
     return m_isBusyLoadingConfig && !m_globalConfigIsLoaded;
 }
 

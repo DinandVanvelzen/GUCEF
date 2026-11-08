@@ -132,16 +132,10 @@ CMultiLogger::AddLogger( CILogger* loggerImp )
 {GUCEF_TRACE;
 
     // Do not add bogus loggers
+    // Nothing is logged here: the log manager calls this under its own lock, which a log statement must not be made
+    // under (see CLogManager::AddLogger()); the log manager logs the change once it gave up that lock
     if ( GUCEF_NULL != loggerImp )
-    {
         m_loggers.insert( loggerImp );
-        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "MultiLogger: Added logger" );
-    }
-    else
-    {
-        // Not an error: for example there is no console logger when there is no console to log to
-        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "MultiLogger: Null given for logger, nothing to add" );
-    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -153,8 +147,7 @@ CMultiLogger::RemoveLogger( CILogger* loggerImp )
     // Do not pass in bogus pointers
     assert( GUCEF_NULL != loggerImp );
 
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "MultiLogger: Removing logger" );
-
+    // nothing is logged here, see AddLogger()
     m_loggers.erase( loggerImp );
 }
 

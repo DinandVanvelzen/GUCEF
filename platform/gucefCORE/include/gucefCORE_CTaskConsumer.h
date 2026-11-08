@@ -31,6 +31,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CTSGNOTIFIER_H
 #include "CTSGNotifier.h"
 #define GUCEF_CORE_CTSGNOTIFIER_H
@@ -259,7 +264,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskConsumer : public CTSGNotifier
     ThreadPoolPtr m_threadPool;
     TTaskDelegatorBasicPtr m_delegator;
     bool m_ownedByThreadPool;
-    bool m_inPhasedSetup;
+    MT::CTAtomic< bool > m_inPhasedSetup;    /**< go signal for the delegator thread: released by the pool, acquired by the thread */
 };
 
 /*-------------------------------------------------------------------------*/

@@ -68,6 +68,9 @@ namespace CORE {
 MT::CMutex CLoggingGlobal::g_dataLock;
 CLoggingGlobal* CLoggingGlobal::g_instance = NULL;
 
+/** The logging globals this process made, under g_dataLock (test seam, see CLoggingGlobalTestAccess) */
+static UInt32 g_instanceCreationCount = 0;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -86,11 +89,32 @@ CLoggingGlobal::Instance()
             g_instance = GUCEF_NEW CLoggingGlobal();
             if ( GUCEF_NULL != g_instance )
             {
+                ++g_instanceCreationCount;
                 g_instance->Initialize();
             }
         }
     }
     return g_instance;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLoggingGlobal::GetInstanceCreationCount( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( g_dataLock );
+    return g_instanceCreationCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLoggingGlobal::HasInstance( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( g_dataLock );
+    return GUCEF_NULL != g_instance;
 }
 
 /*-------------------------------------------------------------------------*/

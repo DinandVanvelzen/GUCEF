@@ -67,6 +67,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 class CTaskDelegator;
+class CTaskManagerTestAccess;
 
 /*-------------------------------------------------------------------------*/
 
@@ -340,6 +341,14 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     void SetTaskIdRecycleCheckThreshold( UInt32 threshold );
 
     UInt32 GetTaskIdRecycleCheckThreshold( void ) const;
+
+    /**
+     *  Whether a task delegator can end its wait between cycles on a pulse request of another thread, which takes a
+     *  working MT::CSemaphore. Probed once per process, at the first call. When the semaphore does not work a warning
+     *  is logged once and the delegators wait between their cycles with a plain delay: they take pulse requests of
+     *  other threads at their next cycle, within their minimal cycle delta.
+     */
+    static bool IsTaskDelegatorWakeUpAvailable( void );
     
     protected:
 
@@ -374,6 +383,15 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     bool TryGetGlobalTaskId( CTask::TTaskId& taskId );
 
     void ReleaseGlobalTaskId( CTask::TTaskId& taskId );
+
+    private:
+    friend class CTaskManagerTestAccess;
+
+    /**
+     *  Test seam: what IsTaskDelegatorWakeUpAvailable() answers from now on, for the delegators made from then on:
+     *  1 available, -1 not available (the fallback of a build whose semaphore does not work), 0 the outcome of the probe
+     */
+    static void OverrideTaskDelegatorWakeUpAvailability( Int32 availability );
 
     private:
     friend class CCoreGlobal;

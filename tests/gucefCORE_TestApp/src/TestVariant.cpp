@@ -1496,6 +1496,48 @@ PerformVariantTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Linking to data at an address that is not aligned for the code units or numbers of the type makes an aligned copy" )
+        try
+        {
+            // a serialized buffer has its values at any byte offset, the variant reads UTF-16 and UTF-32 code units and
+            // the 64 bit fraction parts as such: linked at an offset that is not aligned for them it reads them misaligned
+            const UInt32 utf32Text[ 6 ] = { 'h', 'e', 'l', 'l', 'o', 0 };
+            const UInt16 utf16Text[ 6 ] = { 'h', 'e', 'l', 'l', 'o', 0 };
+            const Int64 fraction[ 2 ] = { 3, 4 };
+
+            for ( UInt32 offset=0; offset<8; ++offset )
+            {
+                CORE::CDynamicBuffer buffer;
+                buffer.CopyFrom( offset, sizeof( utf32Text ), utf32Text );
+                CORE::CVariant utf32;
+                utf32.LinkTo( buffer, offset, GUCEF_DATATYPE_UTF32_STRING, sizeof( utf32Text ) );
+                ASSERT_TRUE( 0 == ( (size_t) utf32.AsVoidPtr() ) % sizeof( UInt32 ) );
+                ASSERT_TRUE( "hello" == utf32.AsString() );
+                ASSERT_TRUE( ( 0 == offset % sizeof( UInt32 ) ) == utf32.IsDynamicMemoryLinked() );
+
+                buffer.Clear();
+                buffer.CopyFrom( offset, sizeof( utf16Text ), utf16Text );
+                CORE::CVariant utf16;
+                utf16.LinkTo( buffer, offset, GUCEF_DATATYPE_UTF16_LE_STRING, sizeof( utf16Text ) );
+                ASSERT_TRUE( 0 == ( (size_t) utf16.AsVoidPtr() ) % sizeof( UInt16 ) );
+                ASSERT_TRUE( "hello" == utf16.AsString() );
+                ASSERT_TRUE( ( 0 == offset % sizeof( UInt16 ) ) == utf16.IsDynamicMemoryLinked() );
+
+                buffer.Clear();
+                buffer.CopyFrom( offset, sizeof( fraction ), fraction );
+                CORE::CVariant ratio;
+                ratio.LinkTo( buffer, offset, GUCEF_DATATYPE_INT64T2_FRACTION, sizeof( fraction ) );
+                ASSERT_TRUE( 0 == ( (size_t) ratio.AsVoidPtr() ) % sizeof( Int64 ) );
+                ASSERT_TRUE( 0.75 == ratio.AsFloat64() );
+                ASSERT_TRUE( ( 0 == offset % sizeof( Int64 ) ) == ratio.IsDynamicMemoryLinked() );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariant TESTS COMPLETED" );
 }

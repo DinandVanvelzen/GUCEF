@@ -139,6 +139,11 @@
 #define GUCEF_CORE_CFILEACCESS_H
 #endif /* GUCEF_CORE_CFILEACCESS_H ? */
 
+#ifndef GUCEF_CORE_SECUREMEMORY_H
+#include "gucefCORE_SecureMemory.h"
+#define GUCEF_CORE_SECUREMEMORY_H
+#endif /* GUCEF_CORE_SECUREMEMORY_H ? */
+
 #include "dvcppfileutils.h"
 
 /*-------------------------------------------------------------------------//
@@ -1629,6 +1634,18 @@ CreateOwnerOnlyFile( const CString& path      ,
 
 /*-------------------------------------------------------------------------*/
 
+/** Gives back the memory of a secret that was read in part: the bytes are overwritten before the memory is freed */
+static void
+WipeAndFreeSecret( CDynamicBuffer& content )
+{GUCEF_TRACE;
+
+    if ( !content.IsLinked() )
+        SecureWipe( content.GetBufferPtr(), content.GetBufferSize() );
+    content.Clear( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 ReadOwnerOnlyFile( const CString& path      ,
                    CDynamicBuffer& content  ,
@@ -1759,7 +1776,7 @@ ReadOwnerOnlyFile( const CString& path      ,
     }
     ::CloseHandle( file );
     if ( !safe )
-        content.Clear( false );
+        WipeAndFreeSecret( content );
     return safe;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
@@ -1840,12 +1857,174 @@ ReadOwnerOnlyFile( const CString& path      ,
     }
     ::close( fd );
     if ( !safe )
-        content.Clear( false );
+        WipeAndFreeSecret( content );
     return safe;
 
     #else
 
     problem = "owner-only files are not supported on this platform";
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ReadMountedSecretFile( const CString& path                     ,
+                       CDynamicBuffer& content                 ,
+                       CString& problem                        ,
+                       bool* isMissing                         ,
+                       bool assumeReadOnlyFileSystemForTesting )
+{GUCEF_TRACE;
+
+    static const UInt32 maxBytes = 1048576;
+
+    problem.Clear();
+    content.Clear( false );
+    if ( GUCEF_NULL != isMissing )
+        *isMissing = false;
+    if ( path.IsNULLOrEmpty() )
+    {
+        problem = "no path";
+        return false;
+    }
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    const CString actualPath = RelativePath( path );
+    CString directory = StripFilename( actualPath );
+    if ( directory.IsNULLOrEmpty() )
+        directory = ".";
+
+    // the directory that holds the path and the file the path leads to, both with every link resolved
+    char resolvedDirectory[ PATH_MAX ];
+    if ( GUCEF_NULL == ::realpath( directory.C_String(), resolvedDirectory ) )
+    {
+        if ( ENOENT == errno && GUCEF_NULL != isMissing )
+            *isMissing = true;
+        problem = "the directory of the file cannot be resolved: " + CString( ::strerror( errno ) );
+        return false;
+    }
+    char resolvedPath[ PATH_MAX ];
+    if ( GUCEF_NULL == ::realpath( actualPath.C_String(), resolvedPath ) )
+    {
+        if ( ENOENT == errno )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        {
+            problem = "the path cannot be resolved: " + CString( ::strerror( errno ) );
+        }
+        return false;
+    }
+
+    // links are followed within the directory only (the "..data" links of a Kubernetes Secret volume)
+    const size_t directoryLength = ::strlen( resolvedDirectory );
+    const bool rootDirectory = 1 == directoryLength && '/' == resolvedDirectory[ 0 ];
+    if ( 0 != ::strncmp( resolvedPath, resolvedDirectory, directoryLength ) ||
+         ( !rootDirectory && '/' != resolvedPath[ directoryLength ] ) )
+    {
+        problem = "the path leads out of the directory that holds it";
+        return false;
+    }
+
+    // O_NOFOLLOW: what realpath() gave is no link, unless it was swapped since; O_NONBLOCK: a FIFO cannot hold the open up
+    int flags = O_RDONLY | O_NOFOLLOW | O_NONBLOCK;
+    #ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+    #endif
+    int fd = ::open( resolvedPath, flags );
+    if ( fd < 0 )
+    {
+        if ( ENOENT == errno )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        if ( ELOOP == errno )
+            problem = "the resolved path is a symbolic link";
+        else
+            problem = "the file cannot be opened: " + CString( ::strerror( errno ) );
+        return false;
+    }
+
+    struct stat info;
+    struct statvfs fileSystemInfo;
+    bool safe = 0 == ::fstat( fd, &info );
+    if ( !safe )
+        problem = "the file cannot be examined";
+    else
+    if ( !S_ISREG( info.st_mode ) )
+    {
+        safe = false;
+        problem = "the path is no regular file";
+    }
+    else
+    if ( 0 != info.st_uid && info.st_uid != ::geteuid() )
+    {
+        safe = false;
+        problem = "the file is owned by neither root nor the user of the process";
+    }
+    else
+    if ( 0 != ( info.st_mode & ( S_IWGRP | S_IWOTH ) ) )
+    {
+        safe = false;
+        problem = "the group or others can write the file";
+    }
+    else
+    if ( 0 != ( info.st_mode & S_IROTH ) )
+    {
+        safe = false;
+        problem = "others can read the file";
+    }
+    else
+    if ( !assumeReadOnlyFileSystemForTesting && ( 0 != ::fstatvfs( fd, &fileSystemInfo ) || 0 == ( fileSystemInfo.f_flag & ST_RDONLY ) ) )
+    {
+        safe = false;
+        problem = "the file system of the file is not mounted read only";
+    }
+    else
+    if ( info.st_size > (off_t) maxBytes )
+    {
+        safe = false;
+        problem = "the file is too large";
+    }
+
+    if ( safe )
+    {
+        const UInt32 total = (UInt32) info.st_size;
+        content.SetBufferSize( total > 0 ? total : 1, false );
+        UInt32 got = 0;
+        while ( got < total )
+        {
+            ssize_t chunk = ::read( fd, static_cast< char* >( content.GetBufferPtr() ) + got, total - got );
+            if ( chunk < 0 && EINTR == errno )
+                continue;
+            if ( chunk <= 0 )
+                break;
+            got += (UInt32) chunk;
+        }
+        content.SetDataSize( got );
+        if ( got != total )
+        {
+            safe = false;
+            problem = "the file cannot be read";
+        }
+    }
+    ::close( fd );
+    if ( !safe )
+        WipeAndFreeSecret( content );
+    return safe;
+
+    #else
+
+    problem = "mounted-secret is a POSIX mode";
     return false;
 
     #endif

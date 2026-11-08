@@ -142,6 +142,8 @@ set( HEADER_FILES
   include/gucefCORE_CBackoffPolicy.h
   include/gucefCORE_CBasicBracketLoggingFormatter.h
   include/gucefCORE_CBigUnsigned.h
+  include/gucefCORE_CBinaryWireReader.h
+  include/gucefCORE_CBinaryWireWriter.h
   include/gucefCORE_CBuiltInCodecs.h
   include/gucefCORE_CBusyWaitPulseGeneratorDriver.h
   include/gucefCORE_CCharSepLoggingFormatter.h
@@ -154,6 +156,7 @@ set( HEADER_FILES
   include/gucefCORE_CDataDrivenDStoreCodec.h
   include/gucefCORE_CDataDrivenDStoreCodecFactory.h
   include/gucefCORE_CDataDrivenDStoreCodecMeta.h
+  include/gucefCORE_CDenormalFlushScope.h
   include/gucefCORE_CDataNodeBinarySerializer.h
   include/gucefCORE_CDataNodeDefinition.h
   include/gucefCORE_CDataNodeDocumentBuilder.h
@@ -245,6 +248,7 @@ set( HEADER_FILES
   include/gucefCORE_CIPluginLoadLogic.h
   include/gucefCORE_CIPluginMetaData.h
   include/gucefCORE_CIPulseGeneratorDriver.h
+  include/gucefCORE_CIServiceHealthCheck.h
   include/gucefCORE_CITableCodec.h
   include/gucefCORE_CITableFileMetaData.h
   include/gucefCORE_CITableReader.h
@@ -272,6 +276,7 @@ set( HEADER_FILES
   include/gucefCORE_COSWindow.h
   include/gucefCORE_CObserverSwitch.h
   include/gucefCORE_COsCryptoCodecs.h
+  include/gucefCORE_CPbkdf2HmacSha256.h
   include/gucefCORE_CPlatformNativeConsoleLogger.h
   include/gucefCORE_CPlatformNativeConsoleWindow.h
   include/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h
@@ -295,6 +300,7 @@ set( HEADER_FILES
   include/gucefCORE_CSchedule.h
   include/gucefCORE_CScheduleTrigger.h
   include/gucefCORE_CSecureBuffer.h
+  include/gucefCORE_CServiceHealthRegistry.h
   include/gucefCORE_CSha256.h
   include/gucefCORE_CSha512.h
   include/gucefCORE_CSimplisticPluginLoadLogic.h
@@ -372,6 +378,7 @@ set( HEADER_FILES
   include/gucefCORE_Logging.h
   include/gucefCORE_LoggingMacros.h
   include/gucefCORE_MetricsMacros.h
+  include/gucefCORE_ProcessArguments.h
   include/gucefCORE_RoundingMode.h
   include/gucefCORE_SFINAE_utils.h
   include/gucefCORE_SecureMemory.h
@@ -413,6 +420,8 @@ set( HEADER_FILES
   include/c_api/gucefCORE_c_variantdata.h
   include/c_api/gucefCORE_c_variantmap.h
   include/c_api/gucefCORE_c_variantvector.h
+  src/gucefCORE_CBinaryWireReader.cpp
+  src/gucefCORE_CBinaryWireWriter.cpp
   src/gucefCORE_CCsvColumnConverter.h
   src/gucefCORE_CCsvRecordParser.h
   src/gucefCORE_CCsvSchemaResolver.h
@@ -559,6 +568,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDataDrivenDStoreCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp
   src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp
+  src/gucefCORE_CDenormalFlushScope.cpp
   src/gucefCORE_CDataNodeBinarySerializer.cpp
   src/gucefCORE_CDataNodeDefinition.cpp
   src/gucefCORE_CDataNodeDocumentBuilder.cpp
@@ -646,6 +656,7 @@ set( SOURCE_FILES
   src/gucefCORE_CIPluginLoadLogic.cpp
   src/gucefCORE_CIPluginMetaData.cpp
   src/gucefCORE_CIPulseGeneratorDriver.cpp
+  src/gucefCORE_CIServiceHealthCheck.cpp
   src/gucefCORE_CITableCodec.cpp
   src/gucefCORE_CITableFileMetaData.cpp
   src/gucefCORE_CITableReader.cpp
@@ -673,6 +684,7 @@ set( SOURCE_FILES
   src/gucefCORE_COSWindow.cpp
   src/gucefCORE_CObserverSwitch.cpp
   src/gucefCORE_COsCryptoCodecs.cpp
+  src/gucefCORE_CPbkdf2HmacSha256.cpp
   src/gucefCORE_CPlatformNativeConsoleLogger.cpp
   src/gucefCORE_CPlatformNativeConsoleWindow.cpp
   src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp
@@ -696,6 +708,7 @@ set( SOURCE_FILES
   src/gucefCORE_CSchedule.cpp
   src/gucefCORE_CScheduleTrigger.cpp
   src/gucefCORE_CSecureBuffer.cpp
+  src/gucefCORE_CServiceHealthRegistry.cpp
   src/gucefCORE_CSha256.cpp
   src/gucefCORE_CSha512.cpp
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp
@@ -760,6 +773,7 @@ set( SOURCE_FILES
   src/gucefCORE_IFileSystemAccess.cpp
   src/gucefCORE_IFileSystemIterator.cpp
   src/gucefCORE_LogLevels.cpp
+  src/gucefCORE_ProcessArguments.cpp
   src/gucefCORE_SecureMemory.cpp
   src/gucefCORE_StdoutClaim.cpp
   src/gucefCORE_TaskStatus.cpp

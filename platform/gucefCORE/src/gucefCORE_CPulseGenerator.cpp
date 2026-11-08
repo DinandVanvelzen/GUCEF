@@ -99,6 +99,7 @@ CPulseGenerator::CPulseGenerator( void )
     , m_driverThreadId( 0 )
     , m_notificationLock()
     , m_dataLock()
+    , m_driverRequestsInFlight( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -159,6 +160,28 @@ CPulseGenerator::RequestImmediatePulse( void )
             
     CPulseData pulseData( newTickCount, deltaTicks, updateDeltaTime );
     NotifyObservers( PulseEvent, &pulseData );
+}
+
+/*--------------------------------------------------------------------------*/
+
+bool
+CPulseGenerator::RequestImmediatePulseThroughDriver( void )
+{GUCEF_TRACE;
+
+    // The driver is called without any lock of the pulse generator held, and it never pulses inside the call
+    // (QueueImmediatePulse()): nothing it does meets the locks of the handlers of a pulse. The driver is taken under the
+    // data lock and counted as in use, SetPulseGeneratorDriver() waits for that count before it lets a driver go
+    CIPulseGeneratorDriver* driver = GUCEF_NULL;
+    {
+        MT::CScopeMutex dataLock( m_dataLock );
+        driver = m_driver;
+        if ( GUCEF_NULL == driver )
+            return false;
+        ++m_driverRequestsInFlight;
+    }
+    driver->QueueImmediatePulse( *this );
+    --m_driverRequestsInFlight;
+    return true;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -260,12 +283,18 @@ CPulseGenerator::RequestPeriodicPulses( void* requestor                    ,
     }
     
     m_updateDeltaInMilliSecs = DetermineRequiredPulseInterval();
+    UInt32 updateDeltaInMilliSecs = m_updateDeltaInMilliSecs;  // other threads change it once the lock is released
+    // The driver is called without the data lock (it may take the data lock of another pulse generator, as the driver
+    // of a DRN node does) and counted as in use meanwhile, see GetPulseDriverThreadId()
+    CIPulseGeneratorDriver* driver = m_driver;
+    if ( GUCEF_NULL != driver )
+        ++m_driverRequestsInFlight;
     lock.EarlyUnlock();
     
-    if ( GUCEF_NULL != m_driver )
+    if ( GUCEF_NULL != driver )
     {
-        m_driver->RequestPeriodicPulses( *this, m_updateDeltaInMilliSecs );
-        return;
+        driver->RequestPeriodicPulses( *this, updateDeltaInMilliSecs );
+        --m_driverRequestsInFlight;
     }
 }
 
@@ -369,19 +398,18 @@ CPulseGenerator::GetActualPulseDeltaInMilliSecs( void ) const
 
 /*--------------------------------------------------------------------------*/
 
-void
-CPulseGenerator::WaitTillNextPulseWindow( UInt32 forcedMinimalDeltaInMilliSecs  ,
-                                          UInt32 desiredMaximumDeltaInMilliSecs ,
-                                          UInt32* elapsedTimeInMilliSecs        ) const
+UInt32
+CPulseGenerator::GetTimeTillNextPulseWindowInMilliSecs( UInt32 forcedMinimalDeltaInMilliSecs  ,
+                                                        UInt32 desiredMaximumDeltaInMilliSecs ) const
 {GUCEF_TRACE;
-   
+
     MT::CScopeMutex dataLock( m_dataLock );
 
     Float64 deltaInMs = GetActualPulseDeltaInMilliSecs();
     Int32 timeLeftToWaitInMs = (Int32) ( m_updateDeltaInMilliSecs - deltaInMs );
 
     // forcedMinimalDeltaInMilliSecs == 0 means no forced minimum
-    if ( ( forcedMinimalDeltaInMilliSecs > 0 ) && 
+    if ( ( forcedMinimalDeltaInMilliSecs > 0 ) &&
          ( (Int32) forcedMinimalDeltaInMilliSecs >= timeLeftToWaitInMs ) )
     {
         timeLeftToWaitInMs = (Int32) forcedMinimalDeltaInMilliSecs;
@@ -393,10 +421,20 @@ CPulseGenerator::WaitTillNextPulseWindow( UInt32 forcedMinimalDeltaInMilliSecs  
         timeLeftToWaitInMs = (Int32) desiredMaximumDeltaInMilliSecs;
     }
 
-    if ( timeLeftToWaitInMs <= 0 )
-        return; // Time's up already
+    return timeLeftToWaitInMs > 0 ? (UInt32) timeLeftToWaitInMs : 0;
+}
 
-    dataLock.EarlyUnlock();
+/*--------------------------------------------------------------------------*/
+
+void
+CPulseGenerator::WaitTillNextPulseWindow( UInt32 forcedMinimalDeltaInMilliSecs  ,
+                                          UInt32 desiredMaximumDeltaInMilliSecs ,
+                                          UInt32* elapsedTimeInMilliSecs        ) const
+{GUCEF_TRACE;
+
+    UInt32 timeLeftToWaitInMs = GetTimeTillNextPulseWindowInMilliSecs( forcedMinimalDeltaInMilliSecs, desiredMaximumDeltaInMilliSecs );
+    if ( 0 == timeLeftToWaitInMs )
+        return; // Time's up already
 
     MT::PrecisionDelay( timeLeftToWaitInMs );
 
@@ -430,12 +468,16 @@ void
 CPulseGenerator::SetPulseGeneratorDriver( CIPulseGeneratorDriver* driver )
 {GUCEF_TRACE;
 
+    // asked before the data lock is taken: a driver may take a lock of its own to answer, the data lock stays a leaf
+    UInt32 driverThreadId = GUCEF_NULL != driver ? driver->GetPulseDriverThreadId() : 0;
+
     MT::CScopeMutex dataLock( m_dataLock );
 
+    CIPulseGeneratorDriver* previousDriver = m_driver;
     m_driver = driver;
 
     if ( GUCEF_NULL != m_driver )
-        m_driverThreadId = m_driver->GetPulseDriverThreadId();
+        m_driverThreadId.Store( driverThreadId );
 
     if ( IsPulsingPeriodicly() )
     {
@@ -446,6 +488,16 @@ CPulseGenerator::SetPulseGeneratorDriver( CIPulseGeneratorDriver* driver )
     {     
         if ( GUCEF_NULL != m_driver )
             m_driver->RequestImmediatePulse( *this );
+    }
+    dataLock.EarlyUnlock();
+
+    // A call through the driver (RequestImmediatePulseThroughDriver(), GetPulseDriverThreadId(), RequestPeriodicPulses())
+    // that took the previous driver may still be inside it, called without the data lock: the previous driver may be
+    // destroyed once this returns
+    if ( previousDriver != driver )
+    {
+        while ( 0 < m_driverRequestsInFlight.Load() )
+            MT::ThreadDelay( 0 );
     }
 }
 
@@ -525,12 +577,24 @@ CPulseGenerator::RequestPeriodicPulses( void )
 UInt32
 CPulseGenerator::GetPulseDriverThreadId( void ) const
 {
-    if ( GUCEF_NULL != m_driver )
+    // The driver is taken under the data lock and counted as in use, as in RequestImmediatePulseThroughDriver(): it is
+    // asked without the data lock (a driver may take a lock of its own to answer), and SetPulseGeneratorDriver() waits
+    // for that count before it lets a driver go, which may be destroyed then
+    CIPulseGeneratorDriver* driver = GUCEF_NULL;
     {
-        return m_driver->GetPulseDriverThreadId();
+        MT::CScopeMutex dataLock( m_dataLock );
+        driver = m_driver;
+        if ( GUCEF_NULL != driver )
+            ++m_driverRequestsInFlight;
     }
-    
-    return m_driverThreadId;
+    if ( GUCEF_NULL != driver )
+    {
+        const UInt32 driverThreadId = driver->GetPulseDriverThreadId();
+        --m_driverRequestsInFlight;
+        return driverThreadId;
+    }
+
+    return m_driverThreadId.Load();
 }
 
 /*--------------------------------------------------------------------------*/
@@ -587,7 +651,7 @@ CPulseGenerator::SetPulseDriverThreadId( UInt32 driverThreadId )
 {GUCEF_TRACE;
 
     MT::CScopeMutex dataLock( m_dataLock );
-    m_driverThreadId = driverThreadId;
+    m_driverThreadId.Store( driverThreadId );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -600,7 +664,7 @@ CPulseGenerator::OnDriverPulse( void )
     {
         MT::CScopeMutex dataLock( m_dataLock );
 
-        m_driverThreadId = MT::GetCurrentTaskID();
+        m_driverThreadId.Store( MT::GetCurrentTaskID() );
     
         UInt64 tickCount = MT::PrecisionTickCount();
         UInt64 deltaTicks = tickCount - m_lastCycleTickCount;

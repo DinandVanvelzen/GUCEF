@@ -3203,6 +3203,34 @@ CVariant::operator=( void*& src )
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Whether data of the given type can be linked to at the given address. Heap data of the UTF-16 and UTF-32 string
+ *  types is read as code units and that of the 64 bit fraction types as 64 bit numbers: at an address that is not
+ *  aligned for them the reads are misaligned (undefined behaviour, a fault on some processors). Linked data comes
+ *  from wherever the caller has it, for instance a value at any offset in a serialized buffer.
+ */
+static bool
+IsAlignedForLinking( const void* data, UInt8 varType )
+{GUCEF_TRACE;
+
+    size_t alignment = 1;
+    switch ( varType )
+    {
+        case GUCEF_DATATYPE_UTF16_LE_STRING:
+        case GUCEF_DATATYPE_UTF16_BE_STRING:        { alignment = sizeof( UInt16 ); break; }
+        case GUCEF_DATATYPE_UTF32_LE_STRING:
+        case GUCEF_DATATYPE_UTF32_BE_STRING:        { alignment = sizeof( UInt32 ); break; }
+        case GUCEF_DATATYPE_INT64T2_LE_FRACTION:
+        case GUCEF_DATATYPE_INT64T2_BE_FRACTION:
+        case GUCEF_DATATYPE_UINT64T2_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT64T2_BE_FRACTION:   { alignment = sizeof( UInt64 ); break; }
+        default:                                    { break; }
+    }
+    return 0 == ( reinterpret_cast< size_t >( data ) % alignment );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyForDynMem )
 {GUCEF_TRACE;
@@ -3350,7 +3378,8 @@ CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyFo
         case GUCEF_DATATYPE_UINT64T2_LE_FRACTION:
         case GUCEF_DATATYPE_UINT64T2_BE_FRACTION:
         {
-            if ( linkOnlyForDynMem )
+            // data that is not aligned for the type is copied instead, the copy is aligned
+            if ( linkOnlyForDynMem && IsAlignedForLinking( data, varType ) )
             {
                 m_variantData.union_data.heap_data.heap_data_is_linked = 1;
                 if ( dataSize > 0 && GUCEF_NULL != data )

@@ -1447,17 +1447,18 @@ CThreadPool::StartTaskChain( const TTaskPtrVector& tasks )
 
     // Check to see if setup has been performed yet
     // If it was not explicitly invoked yet we will just incorporate the setup step here
+    // The consumer is read while its thread still waits: once it may commence the task can run to its end
     CTaskConsumerPtr taskConsumer = firstTask->GetTaskConsumer();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): First chain task of task type \"" + taskConsumer->GetType() +
+            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
+            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work. There are "
+            + SizeTToString( tasks.size() ) + " tasks in the chain." );
+
     if ( taskConsumer->GetIsInPhasedSetup() )
     {
         // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
         taskConsumer->SetIsInPhasedSetup( false );
     }
-
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): First chain task of task type \"" + taskConsumer->GetType() +
-            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
-            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work. There are "
-            + SizeTToString( tasks.size() ) + " tasks in the chain." );
 
     // We return the last task as that is the task one would wait for to finish the chain
     // any failure earlier in the chain will propagate to the last task as well
@@ -1483,16 +1484,17 @@ CThreadPool::StartTask( CTaskPtr task )
 
     // Check to see if setup has been performed yet
     // If it was not explicitly invoked yet we will just incorporate the setup step here
+    // The consumer is read while its thread still waits: once it may commence the task can run to its end
     CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
+            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
+            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
+
     if ( taskConsumer->GetIsInPhasedSetup() )
     {
         // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
         taskConsumer->SetIsInPhasedSetup( false );
     }
-
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
-            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
-            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
 
     return task;
 }
@@ -1521,19 +1523,24 @@ CThreadPool::StartTaskWithConsumer( CTaskConsumerPtr taskConsumer  ,
         if GUCEF_PREDICT_FALSE( future.HasNoFuture() )
             return future;
 
-        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
-        taskConsumer->SetIsInPhasedSetup( false );
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
                 "\" with task ID " + ToString( future.GetTaskId() ) + " is instructed to commence work" );
+
+        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
+        taskConsumer->SetIsInPhasedSetup( false );
         return future;
     }
 
+    // Everything taken from the consumer is taken while its thread still waits: once it may commence the task
+    // can run to its end, after which the consumer no longer refers to it
+    CTaskPtr task = taskConsumer->GetCurrentTask();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
+            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
+            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
+
     // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
     taskConsumer->SetIsInPhasedSetup( false );
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
-            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
-            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
-    return taskConsumer->GetCurrentTask();
+    return task;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1563,12 +1570,13 @@ CThreadPool::StartTask( const CString& taskType        ,
     CFutureResult taskFuture = SetupSingularTaskImpl( taskConsumer, taskData, assumeOwnershipOfTaskData, GUCEF_NULL, true );
     if ( taskFuture.HasAFuture() )
     {
-        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
-        taskConsumer->SetIsInPhasedSetup( false );            
+        // The consumer is read while its thread still waits: once it may commence the task can run to its end
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskType +
-                "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
+                "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
                 ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
 
+        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
+        taskConsumer->SetIsInPhasedSetup( false );
         return taskFuture;
     }
     else

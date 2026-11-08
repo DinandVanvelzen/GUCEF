@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
@@ -124,7 +129,7 @@ class GUCEF_CORE_PUBLIC_CPP CEvent
 
     private:
 
-    UInt32 m_eventID;
+    MT::CTAtomic< UInt32 > m_eventID;   /**< found on first use by whichever thread uses the event, always the same value for a name */
     CString m_eventName;
 };
 

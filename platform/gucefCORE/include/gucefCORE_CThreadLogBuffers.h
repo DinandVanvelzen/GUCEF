@@ -111,7 +111,7 @@ class GUCEF_HIDDEN CThreadLogBuffers
 
     CLogStreamTypedPtr m_frontBuffer;    /**< Thread writes log entries here */
     CLogStreamTypedPtr m_backBuffer;     /**< Logger drains completed entries from here */
-    MT::CMutex m_swapLock;               /**< Protects swap operation only */
+    MT::CMutex m_swapLock;               /**< Guards both buffer pointers: taken by the owning thread to get its front buffer and by the swap */
     UInt32 m_threadId;                   /**< Thread ID owning these buffers */
 };
 

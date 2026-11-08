@@ -78,6 +78,9 @@ class CPulseGenerator;
  *  Threading: a CTSGNotifier can be created and destroyed on any thread, also while another thread pumps the
  *  pulse generator it is on and while the notifiers it is subscribed to are delivering events. The destructor
  *  waits for a delivery in progress and does not return before the object is unsubscribed everywhere.
+ *  A class derived from CTSGNotifier calls SignalUpcomingDestruction() first in its own destructor: the derived
+ *  part of the object is gone before ~CTSGNotifier() runs, and an event delivered in between would reach an
+ *  object that is being destroyed.
  *  An observer's lock is therefore never held while a notifier is called (see CObserver::SignalUpcomingObserverDestruction()
  *  and CPumpedObserver::Shutdown()): a notifier holds its own lock while delivering to an observer, taking
  *  the locks in the opposite order from another thread is a deadlock.
@@ -219,6 +222,10 @@ class GUCEF_CORE_PUBLIC_CPP CTSGNotifier : public CNotifier  ,
                            const CEvent& eventId              ,
                            CICloneable* evenData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Stops all delivery to this object: waits for a delivery in progress on another thread and unsubscribes
+     *  the object everywhere. A derived class calls it first in its destructor, see the class description.
+     */
     void SignalUpcomingDestruction( void );
 
     virtual bool PlaceHoldOnNotifications( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;

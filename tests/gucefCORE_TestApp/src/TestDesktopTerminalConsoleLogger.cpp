@@ -73,6 +73,11 @@
 #define GUCEF_TEST_UNIQUE_H
 #endif /* GUCEF_TEST_UNIQUE_H ? */
 
+#ifndef GUCEF_TEST_CHILD_PROCESS_H
+#include "gucef_test_child_process.h"
+#define GUCEF_TEST_CHILD_PROCESS_H
+#endif /* GUCEF_TEST_CHILD_PROCESS_H ? */
+
 #ifdef GUCEF_LINUX_BUILD
 
 #include <stdlib.h>
@@ -656,7 +661,7 @@ PerformDesktopTerminalConsoleLoggerTests( void )
             CORE::CProcess::TStringVector args;
             args.push_back( GUCEF_CORE_TESTAPP_EXIT_WITH_CONSOLE_LOG_WINDOW_ARG );
             CORE::CProcess application;
-            ASSERT_TRUE( application.Launch( exePath, args, workDir ) );
+            ASSERT_TRUE( application.Launch( exePath, args, workDir, TESTFW::ChildEnvironmentWithOwnExitCode() ) );
             Int32 exitCode = -1;
             ASSERT_TRUE( application.WaitForExit( 60000, exitCode ) );
 

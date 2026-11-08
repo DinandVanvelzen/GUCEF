@@ -71,6 +71,11 @@
 #define GUCEF_TEST_UNIQUE_H
 #endif /* GUCEF_TEST_UNIQUE_H ? */
 
+#ifndef GUCEF_TEST_CHILD_PROCESS_H
+#include "gucef_test_child_process.h"
+#define GUCEF_TEST_CHILD_PROCESS_H
+#endif /* GUCEF_TEST_CHILD_PROCESS_H ? */
+
 #include "TestProcess.h"
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -394,6 +399,46 @@ PerformProcessTests( void )
             Int32 exitCode = 0;
             ASSERT_TRUE( process.WaitForExit( 0, exitCode ) );
             ASSERT_TRUE( 137 == exitCode );     // 128 + SIGKILL
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The child environment of the test helper keeps the thread sanitizer options and the exit code of the child its own" )
+        try
+        {
+            // options that are given already stay, exitcode=0 comes after them and so wins
+            CORE::CProcess::TStringMap given;
+            given[ "TSAN_OPTIONS" ] = "log_path=/somewhere/tsan history_size=4";
+            given[ "OTHER" ] = "kept";
+            TESTFW::KeepChildExitCodeUnderSanitizers( given );
+            ASSERT_TRUE( "log_path=/somewhere/tsan history_size=4 exitcode=0" == given[ "TSAN_OPTIONS" ] );
+            ASSERT_TRUE( "kept" == given[ "OTHER" ] && 2 == given.size() );
+
+            // without any, those of this process are the ones that carry over; when they have no log_path the reports
+            // of the child go to a log in the temporary directory, its exit code no longer tells of them
+            const CORE::CString ours = CORE::GetEnv( "TSAN_OPTIONS" );
+            CORE::CString expected = ours;
+            if ( TESTFW::SanitizerOptionValue( ours, "log_path" ).IsNULLOrEmpty() )
+            {
+                const CORE::CString logPath = CORE::CombinePath( CORE::CombinePath( CORE::TempDir(), "gucef_test_child_sanitizer_logs" ), "tsan" );
+                expected = ours.IsNULLOrEmpty() ? "log_path=" + logPath : ours + " log_path=" + logPath;
+            }
+            expected += " exitcode=0";
+            CORE::CProcess::TStringMap environment = TESTFW::ChildEnvironmentWithOwnExitCode();
+            ASSERT_TRUE( expected == environment[ "TSAN_OPTIONS" ] );
+
+            // and they reach the child
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "[ \"$TSAN_OPTIONS\" = \"" + expected + "\" ] && exit 0; exit 3" );
+            CORE::CProcess process;
+            ASSERT_TRUE( process.Launch( "sh", args, CORE::CString(), environment ) );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
         }
         catch( ... )
         {

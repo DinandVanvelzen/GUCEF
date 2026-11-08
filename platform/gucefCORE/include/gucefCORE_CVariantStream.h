@@ -252,12 +252,14 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CDynamicBuffer& GetBuffer( void );
 
     /**
-     *  Returns whether the stream is in a valid state (last operation succeeded)
+     *  Returns whether the stream is in a valid state: no operation failed since the stream was made, cleared or its
+     *  valid state was reset. A read at the end of the data fails as well: reading until this says false is the normal
+     *  way to read a stream to its end
      */
     bool IsValid( void ) const;
 
     /**
-     *  Resets the valid state (useful after handling an error)
+     *  Resets the valid state (useful after handling an error); a value that could not be read is tried again
      */
     void ResetValidState( void );
 
@@ -306,10 +308,19 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
 
     private:
 
+    /**
+     *  Reads the value at the read position. False at the end of the data (the normal end of reading, not logged)
+     *  and for a value that cannot be read (logged by the serializer once: the same value is not read again until
+     *  data is added, the stream is reset or ResetValidState() is called). Either makes the stream invalid.
+     */
+    bool ReadVariant( CVariant& var, bool linkWherePossible );
+
     CDynamicBuffer* m_buffer;
     UInt32 m_writePosition;
     UInt32 m_readPosition;
     bool m_isValid;
+    UInt32 m_failedReadPosition;    /**< where the last read failed on a value that was there, GUCEF_UINT32MAX for none */
+    UInt32 m_failedReadDataSize;    /**< the data size at that failed read: data added since makes the value worth another read */
 };
 
 /*-------------------------------------------------------------------------//

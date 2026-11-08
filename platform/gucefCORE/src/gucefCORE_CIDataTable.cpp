@@ -76,6 +76,15 @@ CIDataTable::~CIDataTable()
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CIDataTable::GetColumnHints( UInt32 /* columnIndex */, CValueList& /* hints */ ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CString&
 CIDataTable::GetClassTypeName( void ) const
 {GUCEF_TRACE;

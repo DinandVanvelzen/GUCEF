@@ -242,7 +242,7 @@ CDataNodeBinarySerializer::Deserialize( const CDataNodeBinarySerializerOptions& 
         UInt32 partBytesRead = 0;
         {
             // read the node type
-            Int32 nodeType = source.AsConstType< Int32 >( currentSourceOffset );
+            Int32 nodeType = source.ReadValue< Int32 >( currentSourceOffset );
             currentSourceOffset += sizeof(Int32);
             bytesRead += sizeof(Int32);
             node.SetNodeType( nodeType );
@@ -272,7 +272,7 @@ CDataNodeBinarySerializer::Deserialize( const CDataNodeBinarySerializerOptions& 
             bytesRead += varByteSize;
 
             // read attribute count
-            UInt32 attCount = source.AsConstType< Int32 >( currentSourceOffset );
+            UInt32 attCount = source.ReadValue< Int32 >( currentSourceOffset );
             currentSourceOffset += sizeof(Int32);
             bytesRead += sizeof(Int32);
 
@@ -309,7 +309,7 @@ CDataNodeBinarySerializer::Deserialize( const CDataNodeBinarySerializerOptions& 
         }
 
         // read direct child count
-        UInt32 childCount = source.AsConstType< Int32 >( currentSourceOffset );
+        UInt32 childCount = source.ReadValue< Int32 >( currentSourceOffset );
         currentSourceOffset += sizeof(Int32);
         bytesRead += sizeof(Int32);
 

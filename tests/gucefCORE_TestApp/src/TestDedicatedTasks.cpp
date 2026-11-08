@@ -235,6 +235,52 @@ MT::CTAtomic< Int32 > CQuickConsumer::liveInstances( 0 );
 
 typedef CORE::CTFactory< CORE::CTaskConsumer, CQuickConsumer, MT::CMutex > TQuickConsumerFactory;
 
+/**
+ *  Ends in its first cycle and notes what it saw when it started.
+ *  GetType() can be made slow for one given thread, which holds that thread up wherever it asks for the type.
+ */
+class CPhasedSetupConsumer : public CORE::CTaskConsumer
+{
+    public:
+
+    CPhasedSetupConsumer( void )
+        : CORE::CTaskConsumer()
+        , slowTypeForThread( 0 )
+        , configured( 0 )
+        , seenAtStart( 0 )
+        , ended( false )
+    {}
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        const UInt32 slowThread = slowTypeForThread.Load();
+        if ( 0 != slowThread && MT::GetCurrentTaskID() == slowThread )
+            MT::PrecisionDelay( 500 );
+        return "TestDedicatedTasks::CPhasedSetupConsumer";
+    }
+
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        seenAtStart.Store( configured );
+        return CORE::CTaskConsumer::OnTaskStart( task );
+    }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr task, bool wasForced ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        ended.Store( true );
+        CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
+    }
+
+    MT::CTAtomic< UInt32 > slowTypeForThread;
+    UInt32 configured;                        /**< plain on purpose: set up between the phases, published by the start */
+    MT::CTAtomic< UInt32 > seenAtStart;
+    MT::CTAtomic< bool > ended;
+};
+
+typedef CORE::CTSharedPtr< CPhasedSetupConsumer, MT::CMutex > TPhasedSetupConsumerPtr;
+
 }
 
 /*-------------------------------------------------------------------------//
@@ -270,6 +316,52 @@ PerformDedicatedTaskTests( void )
         ASSERT_FALSE( started.HasNoFuture() );
         ASSERT_TRUE( WaitUntil( consumer->ended, 5000 ) );           // the thread notices within its wait (25 ms windows)
         ASSERT_TRUE( 3 == consumer->cycles.Load() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DedicatedTasks: What is set up between SetupSingularTask and StartTaskWithConsumer is seen by the task thread at its start" )
+    try
+    {
+        CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksPhasedSetup" );
+        TPhasedSetupConsumerPtr consumer( GUCEF_NEW CPhasedSetupConsumer() );
+
+        CORE::CFutureResult setup = pool->SetupSingularTask( consumer );
+        ASSERT_FALSE( setup.HasNoFuture() );
+        MT::PrecisionDelay( 50 );                                    // the thread is up and waits for the start
+        consumer->configured = 42;                                   // the setup the phases are there for
+
+        CORE::CFutureResult started = pool->StartTaskWithConsumer( consumer );
+        ASSERT_FALSE( started.HasNoFuture() );
+        ASSERT_TRUE( WaitUntil( consumer->ended, 5000 ) );
+        ASSERT_TRUE( 42 == consumer->seenAtStart.Load() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DedicatedTasks: StartTaskWithConsumer after SetupSingularTask hands back the task, also when it ended before the call returned" )
+    try
+    {
+        CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksPhasedStartResult" );
+        TPhasedSetupConsumerPtr consumer( GUCEF_NEW CPhasedSetupConsumer() );
+
+        CORE::CFutureResult setup = pool->SetupSingularTask( consumer );
+        ASSERT_FALSE( setup.HasNoFuture() );
+
+        // the starting thread is held up whenever it asks for the type: a task that may go ahead runs to its end meanwhile
+        consumer->slowTypeForThread.Store( MT::GetCurrentTaskID() );
+        CORE::CFutureResult started = pool->StartTaskWithConsumer( consumer );
+        consumer->slowTypeForThread.Store( 0 );
+
+        ASSERT_TRUE( WaitUntil( consumer->ended, 5000 ) );
+        ASSERT_FALSE( started.HasNoFuture() );
+        ASSERT_TRUE( started.GetTaskId() == setup.GetTaskId() );
     }
     catch( ... )
     {

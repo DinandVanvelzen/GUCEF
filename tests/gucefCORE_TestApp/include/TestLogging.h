@@ -37,4 +37,16 @@ PerformLoggingTests( void );
 
 /*-------------------------------------------------------------------------*/
 
+/** The argument which starts the test app as the process of the log buffer swap race, see RunLogBufferSwapRace() */
+#define GUCEF_CORE_TESTAPP_LOG_BUFFER_SWAP_RACE_ARG    "--log-buffer-swap-race"
+
+/**
+ *  What the test app does when started with GUCEF_CORE_TESTAPP_LOG_BUFFER_SWAP_RACE_ARG: one thread logs while the
+ *  main thread flushes the log buffers for two seconds. Returns the exit code, 0 when both got to the end
+ */
+int
+RunLogBufferSwapRace( void );
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* GUCEF_CORE_TESTAPP_TESTLOGGING_H ? */

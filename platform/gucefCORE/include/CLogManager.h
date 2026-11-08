@@ -346,6 +346,12 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
 
     CThreadLogBuffers* GetOrCreateThreadBuffers( UInt32 threadId );
 
+    /** pauses the logging task, if there is one, without the lock of the log manager; returns that task */
+    CLoggingTaskBasePtr PauseLoggingTask( void );
+
+    /** resumes the task PauseLoggingTask() paused, without the lock of the log manager */
+    void ResumeLoggingTask( CLoggingTaskBasePtr& loggingTask );
+
     CMultiLogger* m_loggers;
     CPlatformNativeConsoleLogger* m_nativeConsoleLogger;
     bool m_nativeConsoleLoggerInOwnWindow;

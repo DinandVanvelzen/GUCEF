@@ -97,6 +97,9 @@ class GUCEF_CORE_PUBLIC_CPP CEmscriptenPulseGeneratorDriver : public CIPulseGene
 
     virtual void RequestImmediatePulse( CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Keeps the request for the browser main loop, also before it runs; never pulses here */
+    virtual void QueueImmediatePulse( CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual void RequestPulsesPerImmediatePulseRequest( CPulseGenerator& pulseGenerator                     ,
                                                         const Int32 requestedPulsesPerImmediatePulseRequest ) GUCEF_VIRTUAL_OVERRIDE;
 

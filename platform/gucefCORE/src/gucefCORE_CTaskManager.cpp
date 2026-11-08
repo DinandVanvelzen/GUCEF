@@ -43,6 +43,16 @@
 #define GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H ? */ 
 
+#ifndef GUCEF_MT_CSEMAPHORE_H
+#include "gucefMT_CSemaphore.h"
+#define GUCEF_MT_CSEMAPHORE_H
+#endif /* GUCEF_MT_CSEMAPHORE_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -119,6 +129,12 @@ const CString CTaskManager::ExternalThreadPoolName = "external";
 
 TGenericCallbackTaskConsumerFactory g_genericCallbackTaskConsumerFactory;
 TAsyncUriRetrievalTaskConsumerFactory g_asyncUriRetrievalTaskConsumerFactory;
+
+/** Outcome of the probe of the wake-up signal of the task delegators: 0 not probed yet, 1 works, -1 does not work */
+static MT::CTAtomic< Int32 > g_taskDelegatorWakeUpProbe( 0 );
+
+/** Test seam (CTaskManagerTestAccess): 0 the probe decides, 1 available, -1 not available */
+static MT::CTAtomic< Int32 > g_taskDelegatorWakeUpOverride( 0 );
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -208,7 +224,12 @@ CTaskManager::OnAppShutdown( CORE::CNotifier* notifier    ,
                              CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    Shutdown();
+    // The threads are asked to stop, not waited for: the application raises this event under its own lock and that of
+    // its notifier, which a task may need before it can end (it calls into the application, or subscribes to it).
+    // CGUCEFApplication::Stop() waits for the threads once it gave those locks up. The thread pools stay registered:
+    // the wait of the teardown of CCoreGlobal finds every thread that is still running there, before the global
+    // objects the threads use are destroyed
+    RequestAllThreadsToStop( false, false, GUCEF_MT_SUPER_LONG_LOCK_TIMEOUT );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -931,6 +952,47 @@ CTaskManager::GetTaskIdRecycleCheckThreshold( void ) const
 {GUCEF_TRACE;
 
     return m_taskIdGenerator->GetRecycleCheckThreshold();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::IsTaskDelegatorWakeUpAvailable( void )
+{GUCEF_TRACE;
+
+    Int32 availability = g_taskDelegatorWakeUpOverride.Load();
+    if ( 0 != availability )
+        return availability > 0;
+
+    availability = g_taskDelegatorWakeUpProbe.Load();
+    if ( 0 == availability )
+    {
+        // A semaphore without a post must not be taken, one post must be taken exactly once. A placeholder
+        // implementation that returns success for every wait would make a delegator spin instead of wait
+        MT::CSemaphore probe( 0 );
+        const bool works = 1 == probe.WaitOrTimeout( 0 ) &&
+                           probe.Post()                   &&
+                           0 == probe.WaitOrTimeout( 0 ) &&
+                           1 == probe.WaitOrTimeout( 0 );
+
+        Int32 notProbed = 0;
+        if ( g_taskDelegatorWakeUpProbe.CompareExchangeStrong( notProbed, works ? 1 : -1 ) && !works )
+        {
+            GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "TaskManager: MT::CSemaphore does not work in this build. Task delegators wait between their cycles "
+                "with a plain delay and take pulse requests of other threads at their next cycle" );
+        }
+        availability = g_taskDelegatorWakeUpProbe.Load();
+    }
+    return availability > 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::OverrideTaskDelegatorWakeUpAvailability( Int32 availability )
+{GUCEF_TRACE;
+
+    g_taskDelegatorWakeUpOverride.Store( availability > 0 ? 1 : ( availability < 0 ? -1 : 0 ) );
 }
 
 /*-------------------------------------------------------------------------*/

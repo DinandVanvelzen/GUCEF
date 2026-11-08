@@ -136,6 +136,8 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CBackoffPolicy.cpp \
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp \
   src/gucefCORE_CBigUnsigned.cpp \
+  src/gucefCORE_CBinaryWireReader.cpp \
+  src/gucefCORE_CBinaryWireWriter.cpp \
   src/gucefCORE_CBuiltInCodecs.cpp \
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp \
   src/gucefCORE_CCharSepLoggingFormatter.cpp \
@@ -155,6 +157,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CDataDrivenDStoreCodec.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp \
+  src/gucefCORE_CDenormalFlushScope.cpp \
   src/gucefCORE_CDataNodeBinarySerializer.cpp \
   src/gucefCORE_CDataNodeDefinition.cpp \
   src/gucefCORE_CDataNodeDocumentBuilder.cpp \
@@ -242,6 +245,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIPluginLoadLogic.cpp \
   src/gucefCORE_CIPluginMetaData.cpp \
   src/gucefCORE_CIPulseGeneratorDriver.cpp \
+  src/gucefCORE_CIServiceHealthCheck.cpp \
   src/gucefCORE_CITableCodec.cpp \
   src/gucefCORE_CITableFileMetaData.cpp \
   src/gucefCORE_CITableReader.cpp \
@@ -269,6 +273,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_COSWindow.cpp \
   src/gucefCORE_CObserverSwitch.cpp \
   src/gucefCORE_COsCryptoCodecs.cpp \
+  src/gucefCORE_CPbkdf2HmacSha256.cpp \
   src/gucefCORE_CPlatformNativeConsoleLogger.cpp \
   src/gucefCORE_CPlatformNativeConsoleWindow.cpp \
   src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp \
@@ -292,6 +297,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CSchedule.cpp \
   src/gucefCORE_CScheduleTrigger.cpp \
   src/gucefCORE_CSecureBuffer.cpp \
+  src/gucefCORE_CServiceHealthRegistry.cpp \
   src/gucefCORE_CSha256.cpp \
   src/gucefCORE_CSha512.cpp \
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp \
@@ -357,6 +363,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_IFileSystemAccess.cpp \
   src/gucefCORE_IFileSystemIterator.cpp \
   src/gucefCORE_LogLevels.cpp \
+  src/gucefCORE_ProcessArguments.cpp \
   src/gucefCORE_SecureMemory.cpp \
   src/gucefCORE_TaskStatus.cpp \
   src/gucefCORE_ThreadStatus.cpp \

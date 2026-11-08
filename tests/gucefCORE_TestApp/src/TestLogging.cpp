@@ -121,6 +121,25 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_CHILD_PROCESS_H
+#include "gucef_test_child_process.h"
+#define GUCEF_TEST_CHILD_PROCESS_H
+#endif /* GUCEF_TEST_CHILD_PROCESS_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_CORE_CPROCESS_H
+#include "gucefCORE_CProcess.h"
+#define GUCEF_CORE_CPROCESS_H
+#endif /* GUCEF_CORE_CPROCESS_H ? */
+
+#ifdef GUCEF_LINUX_BUILD
+#include <unistd.h>
+#endif /* GUCEF_LINUX_BUILD ? */
+
 #include "TestLogging.h"
 
 /*-------------------------------------------------------------------------//
@@ -542,6 +561,56 @@ RunUserLogSwitchWorker( UInt32 nrOfMessages )
         GUCEF_DELETE worker;
     return done;
 }
+
+/*-------------------------------------------------------------------------*/
+
+static MT::CTAtomic< bool > g_logBufferSwapRaceStop( false );
+
+/** Logs as fast as it can until told to stop */
+static UInt32 GUCEF_CALLSPEC_PREFIX
+LogBufferSwapRaceWriterMain( void* ) GUCEF_CALLSPEC_SUFFIX
+{
+    UInt32 lineNr = 0;
+    while ( !g_logBufferSwapRaceStop.Load( MT::MEMORDER_ACQUIRE ) )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "log buffer swap race: line " << lineNr );
+        ++lineNr;
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int
+RunLogBufferSwapRace( void )
+{GUCEF_TRACE;
+
+    // one thread logs while this one flushes, which swaps the buffers of that thread as often as it can
+    // The logging globals are made here first: their creation is not what this is about
+    CORE::CLogStreamScope::FlushLogs();
+
+    MT::SThreadData* writer = MT::ThreadDataReserve();
+    if ( GUCEF_NULL == writer )
+        return 2;
+    if ( 0 == MT::ThreadCreate( writer, &LogBufferSwapRaceWriterMain, GUCEF_NULL ) )
+    {
+        MT::ThreadDataCleanup( writer );
+        return 2;
+    }
+
+    const UInt64 ticksPerSecond = MT::PrecisionTimerResolution();
+    const UInt64 startTicks = MT::PrecisionTickCount();
+    while ( ( MT::PrecisionTickCount() - startTicks ) < 2 * ticksPerSecond )
+        CORE::CLogStreamScope::FlushLogs();
+
+    g_logBufferSwapRaceStop.Store( true, MT::MEMORDER_RELEASE );
+    MT::ThreadWait( writer, 10000 );
+    MT::ThreadDataCleanup( writer );
+    CORE::CLogStreamScope::FlushLogs();
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
 
 void
 PerformLoggingTests( void )
@@ -1422,6 +1491,44 @@ PerformLoggingTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+    #ifdef GUCEF_LINUX_BUILD
+
+    // A thread which takes its front buffer while another thread swaps it got the lock of one buffer and released that of
+    // the other: the buffer stayed locked for good and the next flush waited for it forever. Run in a child process so a
+    // failure cannot leave the logging of this process stuck
+    GUCEF_TESTFW_TESTCASE( "Test 25: A thread which logs while another thread flushes its log buffers leaves no buffer locked" )
+        try
+        {
+            char exePath[ 4096 ];
+            ssize_t exePathLength = readlink( "/proc/self/exe", exePath, sizeof( exePath ) - 1 );
+            ASSERT_TRUE( exePathLength > 0 );
+            if ( exePathLength > 0 )
+            {
+                exePath[ exePathLength ] = '\0';
+
+                CORE::CProcess::TStringVector args;
+                args.push_back( GUCEF_CORE_TESTAPP_LOG_BUFFER_SWAP_RACE_ARG );
+                CORE::CProcess race;
+                race.SetIsolateFromParent( true );
+                ASSERT_TRUE( race.Launch( exePath, args, CORE::CString(), TESTFW::ChildEnvironmentWithOwnExitCode() ) );
+
+                // two seconds of racing, a stuck flush never ends
+                Int32 exitCode = -1;
+                const bool ended = race.WaitForExit( 30000, exitCode );
+                if ( !ended )
+                    race.Terminate( false );
+                ASSERT_TRUE( ended );
+                ASSERT_TRUE( 0 == exitCode );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    #endif /* GUCEF_LINUX_BUILD ? */
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL logging backend TESTS COMPLETED" );

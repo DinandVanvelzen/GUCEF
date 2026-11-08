@@ -27,6 +27,8 @@ LOCAL_SRC_FILES := \
   src/TestAsyncUriResourceRetriever.cpp \
   src/TestBase64Url.cpp \
   src/TestBigUnsigned.cpp \
+  src/TestBinaryWire.cpp \
+  src/TestBusyWaitPulseGeneratorDriver.cpp \
   src/TestBrowserLauncher.cpp \
   src/TestCodecPlugins.cpp \
   src/TestConfigStore.cpp \
@@ -54,6 +56,7 @@ LOCAL_SRC_FILES := \
   src/TestDecimal.cpp \
   src/TestDecimalVariant.cpp \
   src/TestDedicatedTasks.cpp \
+  src/TestDenormalFlushScope.cpp \
   src/TestDesktopTerminalConsoleLogger.cpp \
   src/TestDynamicBuffer.cpp \
   src/TestDynamicBufferStringStream.cpp \
@@ -66,6 +69,7 @@ LOCAL_SRC_FILES := \
   src/TestFileUtils.cpp \
   src/TestFraction.cpp \
   src/TestFrameworkSkip.cpp \
+  src/TestFrameworkSuites.cpp \
   src/TestFreeList.cpp \
   src/TestFutureResultSource.cpp \
   src/TestIniParser.cpp \
@@ -73,8 +77,16 @@ LOCAL_SRC_FILES := \
   src/TestJsonSchema.cpp \
   src/TestJsonSyntaxValidator.cpp \
   src/TestLogging.cpp \
+  src/TestLogManagerLockOrder.cpp \
+  src/TestPumpedObserverLockOrder.cpp \
+  src/TestPumpedObserverMail.cpp \
+  src/TestAppStopWithTasks.cpp \
+  src/TestCoreGlobalTeardown.cpp \
   src/TestMemoryDataTable.cpp \
+  src/TestNotificationCost.cpp \
+  src/TestNotifierDelivery.cpp \
   src/TestNotifierObserver.cpp \
+  src/TestPbkdf2HmacSha256.cpp \
   src/TestPluginUnload.cpp \
   src/TestProcess.cpp \
   src/TestRandom.cpp \
@@ -83,6 +95,8 @@ LOCAL_SRC_FILES := \
   src/TestSchedule.cpp \
   src/TestScopedValue.cpp \
   src/TestSecureBuffer.cpp \
+  src/TestServiceHealthRegistry.cpp \
+  src/TestServiceHosting.cpp \
   src/TestSfinaeUtils.cpp \
   src/TestSharedPtr.cpp \
   src/TestStandardStreams.cpp \
@@ -90,7 +104,9 @@ LOCAL_SRC_FILES := \
   src/TestString.cpp \
   src/TestSysConsole.cpp \
   src/TestTableCodecRegistry.cpp \
+  src/TestTaskDelegatorWakeUp.cpp \
   src/TestTaskMemoryRetention.cpp \
+  src/TestTaskPulseRequests.cpp \
   src/TestThreadPoolCancellation.cpp \
   src/TestTimeZoneRules.cpp \
   src/TestTimestamp.cpp \

@@ -370,6 +370,29 @@ PerformDynamicBufferTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DynamicBuffer: Appending nothing, also from a null pointer and to a buffer without memory, changes nothing" )
+    try
+    {
+        // an empty field or payload is appended as a null pointer of size 0: no copy may be made of it
+        CORE::CDynamicBuffer empty;
+        ASSERT_TRUE( 0 == empty.Append( GUCEF_NULL, 0 ) );
+        ASSERT_TRUE( 0 == empty.GetDataSize() );
+        ASSERT_TRUE( 0 == empty.Append( GUCEF_NULL, 0, false ) );
+        ASSERT_TRUE( 0 == empty.GetDataSize() );
+
+        CORE::CDynamicBuffer some;
+        some.CopyFrom( 3, "abc" );
+        ASSERT_TRUE( 0 == some.Append( GUCEF_NULL, 0 ) );
+        ASSERT_TRUE( 3 == some.GetDataSize() && 0 == memcmp( some.GetConstBufferPtr(), "abc", 3 ) );
+        ASSERT_TRUE( 2 == some.Append( "de", 2 ) );
+        ASSERT_TRUE( 5 == some.GetDataSize() && 0 == memcmp( some.GetConstBufferPtr(), "abcde", 5 ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

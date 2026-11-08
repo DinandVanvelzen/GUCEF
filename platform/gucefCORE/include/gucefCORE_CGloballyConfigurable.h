@@ -92,6 +92,16 @@ class GUCEF_CORE_PUBLIC_CPP CGloballyConfigurable : public CIConfigurable
     static bool IsGlobalBootstrapConfigLoadInProgress( void );
 
     static bool IsGlobalConfigLoadInProgress( void );
+
+    protected:
+
+    /**
+     *  Takes this object out of the global config store and waits for a load or a save of the config on another thread
+     *  that calls it right now. A derived class that may be destroyed while another thread loads or saves the config
+     *  calls it first in its own destructor: the destructor of this class does the same, but only once the derived
+     *  part of the object is gone, which such a call may still use.
+     */
+    void UnregisterFromConfigStore( void );
     
     private:
 

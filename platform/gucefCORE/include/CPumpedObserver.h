@@ -68,6 +68,18 @@ class CPulseGenerator;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  An observer whose events are delivered on the thread of a pulse generator: events that arrive on another thread wait
+ *  in a mailbox until that pulse generator pulses (OnPumpedNotify()).
+ *
+ *  The mailbox lock is a leaf: it is held while mail is put in or taken out, never while mail is delivered, so a
+ *  handler may mail other pumped observers, also ones whose pulse thread mails this one at the same time. Mail is
+ *  delivered in the order it arrived, a pulse delivers the mail that waited when it began (mail that arrives during
+ *  the pulse waits for the next one); the mail being delivered stays first in the mailbox until it was delivered (after a
+ *  lock timeout it is delivered again at the next pulse). A thread that destroys the notifier of that mail waits for
+ *  its delivery. The notification lock of a thread safe notifier built on this observer (CTSGNotifier) is a lock of its
+ *  own, not the mailbox lock.
+ */
 class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
 {
     public:
@@ -102,6 +114,13 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
     bool GetPropagatePulseEvent( void ) const;
 
     void ClearMailbox( bool acceptNewMail );
+
+    /**
+     *  Lets go of the mail of the given notifier that waits in the mailbox: for a notifier that mails its events to
+     *  this observer itself (AddEventToMailbox()) and goes, where no destruction event of a subscription does it.
+     *  Mail of the notifier that the pulse thread delivers right now is waited for when this is another thread.
+     */
+    void DiscardMailOf( CNotifier* notifier );
 
     bool AddEventToMailbox( CNotifier* notifier                 , 
                             const CEvent& eventId               ,
@@ -214,6 +233,11 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
     void RegisterPulseGeneratorEventHandlers( void );
 
     void ClearNotifierReferencesFromMailbox( CNotifier* notifier );
+
+    typedef GUCEF::vector< CICloneable* > TMailElementVector;
+
+    /** Lets go of mail taken out of the mailbox, what it carries included, without the mailbox lock */
+    static void DeleteMail( TMailElementVector& mail );
     
     private:
 
@@ -225,6 +249,9 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
     CICloneable* m_mailBeingDelivered;             /**< mail OnPulse() is delivering, it stays owned by OnPulse() */
     bool m_mailBeingDeliveredLostItsNotifier;      /**< its notifier was destroyed while it was being delivered */
     const CNotifier* m_pulseGeneratorBeingLinked;  /**< pulse generator this observer subscribes to or unsubscribes from right now */
+    UInt32 m_deliveringThreadId;                   /**< thread delivering m_mailBeingDelivered, under the mailbox lock */
+    MT::CMutex m_deliveryLock;                     /**< held by OnPulse() while it delivers one mail, never with the mailbox lock */
+    MT::CMutex m_notificationLock;                 /**< the notification lock (CTSGNotifier); the mailbox lock stays a leaf */
 };
 
 /*-------------------------------------------------------------------------//

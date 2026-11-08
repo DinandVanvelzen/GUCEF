@@ -74,6 +74,7 @@ namespace CORE {
 class CTimestamp;
 class CLogManager;
 class CCoreGlobal;
+class CLoggingGlobalTestAccess;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -145,6 +146,15 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
     friend class CLogStream;
 
     UInt32 FlushThreadStreamBuffer( CLogStreamPtr buffer );
+
+    private:
+    friend class CLoggingGlobalTestAccess;
+
+    /** Test seam: how many logging globals this process made. One, unless something logged after the teardown */
+    static UInt32 GetInstanceCreationCount( void );
+
+    /** Test seam: whether a logging global exists now */
+    static bool HasInstance( void );
 
     private:
 

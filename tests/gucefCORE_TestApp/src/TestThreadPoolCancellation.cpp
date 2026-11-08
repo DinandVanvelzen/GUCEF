@@ -291,6 +291,10 @@ class CPoolCreatorThread : public MT::CActiveObject
     {GUCEF_TRACE;
     }
 
+    // the thread may still be ending (OnThreadEnding(), OnThreadEnded()) when the test sees it done: it is waited for
+    // before this part of the object goes
+    virtual ~CPoolCreatorThread() { Deactivate( false, true ); }
+
     bool IsDone( void ) const
     {GUCEF_TRACE;
 

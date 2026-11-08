@@ -2220,8 +2220,14 @@ PerformRsaSignatureTests( void )
                 ASSERT_TRUE( allVerified );
 
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RSA " << modulus.GetDataSize() * 8 << " bit verification: " << oneShotMs << " ms one shot including key set up, " << instanceMs << " ms with a prepared instance" );
+                #if !defined( __SANITIZE_THREAD__ ) && !defined( __SANITIZE_ADDRESS__ )
                 ASSERT_TRUE( oneShotMs < 10.0 );
                 ASSERT_TRUE( instanceMs < 10.0 );
+                #else
+                // instrumented builds run the big number arithmetic several times slower: only a gross regression fails
+                ASSERT_TRUE( oneShotMs < 100.0 );
+                ASSERT_TRUE( instanceMs < 100.0 );
+                #endif
             }
         }
         catch( ... )

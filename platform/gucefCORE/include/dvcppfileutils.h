@@ -257,6 +257,32 @@ ReadOwnerOnlyFile( const CString& path      ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Reads a secret from a read only mount provisioned for the process by someone else, such as a Kubernetes Secret
+ *  volume, where ReadOwnerOnlyFile() cannot apply: the files are owned by root, each one is a symbolic link into a
+ *  "..data" directory, and a group may read them (fsGroup). POSIX (Linux, Android) only:
+ *  - the path is resolved (realpath()): symbolic links are followed only within the directory that holds the given
+ *    path; a link that leads out of it is refused
+ *  - the resolved file is opened with O_NOFOLLOW and must be a regular file (no FIFO, device or directory)
+ *  - owned by root or by the effective user of the process
+ *  - no write permission for the group or others, no read permission for others (group read is allowed)
+ *  - on a file system that is mounted read only (fstatvfs(), ST_RDONLY), so nothing in the container can replace it
+ *  - at most 1 MiB is read
+ *  Other platforms: refused, "mounted-secret is a POSIX mode".
+ *  @param isMissing    when given: set to whether the path (or what a link of it points to) does not exist
+ *  @param problem      why it failed, for a log line
+ *  @param assumeReadOnlyFileSystemForTesting   for tests that cannot mount a file system read only: the read only
+ *                      file system rule is taken as met. Never set outside tests
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+ReadMountedSecretFile( const CString& path                             ,
+                       CDynamicBuffer& content                         ,
+                       CString& problem                                ,
+                       bool* isMissing = GUCEF_NULL                    ,
+                       bool assumeReadOnlyFileSystemForTesting = false );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP bool
 DirExists( const CString& path );
 

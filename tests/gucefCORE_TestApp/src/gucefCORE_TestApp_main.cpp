@@ -250,6 +250,11 @@
 #define GUCEF_CORE_TESTAPP_TESTCSVTABLECODEC_H
 #endif /* GUCEF_CORE_TESTAPP_TESTCSVTABLECODEC_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTDENORMALFLUSHSCOPE_H
+#include "TestDenormalFlushScope.h"
+#define GUCEF_CORE_TESTAPP_TESTDENORMALFLUSHSCOPE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDENORMALFLUSHSCOPE_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
 #include "TestDataDrivenDStoreCodecs.h"
 #define GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
@@ -268,6 +273,11 @@
 #ifndef GUCEF_CORE_TESTAPP_TESTTHREADPOOLCANCELLATION_H
 #include "TestThreadPoolCancellation.h"
 #include "TestTaskMemoryRetention.h"
+#include "TestNotifierDelivery.h"
+#include "TestNotificationCost.h"
+#include "TestTaskDelegatorWakeUp.h"
+#include "TestTaskPulseRequests.h"
+#include "TestBusyWaitPulseGeneratorDriver.h"
 #include "TestFutureResultSource.h"
 #include "TestFileSystemAccess.h"
 #include "TestVariantMapAdapter.h"
@@ -303,6 +313,11 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTLOGGING_H
 #include "TestLogging.h"
+#include "TestLogManagerLockOrder.h"
+#include "TestPumpedObserverLockOrder.h"
+#include "TestPumpedObserverMail.h"
+#include "TestAppStopWithTasks.h"
+#include "TestCoreGlobalTeardown.h"
 #define GUCEF_CORE_TESTAPP_TESTLOGGING_H
 #endif /* GUCEF_CORE_TESTAPP_TESTLOGGING_H ? */
 
@@ -374,6 +389,7 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTFRAMEWORKSKIP_H
 #include "TestFrameworkSkip.h"
+#include "TestFrameworkSuites.h"
 #define GUCEF_CORE_TESTAPP_TESTFRAMEWORKSKIP_H
 #endif /* GUCEF_CORE_TESTAPP_TESTFRAMEWORKSKIP_H ? */
 
@@ -402,6 +418,26 @@
 #define GUCEF_CORE_TESTAPP_TESTTIMEZONERULES_H
 #endif /* GUCEF_CORE_TESTAPP_TESTTIMEZONERULES_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTBINARYWIRE_H
+#include "TestBinaryWire.h"
+#define GUCEF_CORE_TESTAPP_TESTBINARYWIRE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTBINARYWIRE_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H
+#include "TestPbkdf2HmacSha256.h"
+#define GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H
+#endif /* GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTSERVICEHOSTING_H
+#include "TestServiceHosting.h"
+#define GUCEF_CORE_TESTAPP_TESTSERVICEHOSTING_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSERVICEHOSTING_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTSERVICEHEALTHREGISTRY_H
+#include "TestServiceHealthRegistry.h"
+#define GUCEF_CORE_TESTAPP_TESTSERVICEHEALTHREGISTRY_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSERVICEHEALTHREGISTRY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -409,6 +445,15 @@
 //-------------------------------------------------------------------------*/
 
 using namespace GUCEF;
+
+/*-------------------------------------------------------------------------*/
+
+/** The stop signal handler of the stop signal tests: what a service installs, only the async-signal-safe request */
+static void
+TestAppStopSignalHandler( int signal )
+{
+    GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( signal );
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -420,9 +465,41 @@ GUCEF_OSMAIN_BEGIN
 
     try
     {
+        // started by a test as the process of the log buffer swap race, see TestLogging.h
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_LOG_BUFFER_SWAP_RACE_ARG ) )
+            return RunLogBufferSwapRace();
+
+        // started by a test as the application that stops while a task of it calls into it, see TestAppStopWithTasks.h
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_APP_STOP_WITH_TASK_ARG ) )
+            return RunAppStopWithAppUsingTask();
+
+        // started by a test as the application that loads and unloads a plugin and exits, see TestCoreGlobalTeardown.h
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_CORE_GLOBAL_TEARDOWN_ARG ) )
+            return RunCoreGlobalTeardown();
+
         // started by a test as the application whose exit it looks at
         if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_EXIT_WITH_CONSOLE_LOG_WINDOW_ARG ) )
             return RunExitWithConsoleLogWindow();
+
+        // started by a test framework test as a run of its own with assertions outside its test cases, see TestFrameworkSuites.h
+        if ( argc > 2 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_ASSERT_OUTSIDE_CASES_ARG ) )
+            return RunAssertionsOutsideCases( argv[ 2 ] );
+
+        // started by a stop signal test as an application that gets a SIGTERM, see TestServiceHosting.h
+        if ( argc > 2 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_STOP_SIGNAL_ARG ) )
+        {
+            if ( 0 == strcmp( argv[ 2 ], "default" ) )
+            {
+                raise( SIGTERM );
+                return 2;
+            }
+            GUCEF_OSMAIN_DEFER_STOP_SIGNALS;
+            const bool signalBeforeRun = 0 == strcmp( argv[ 2 ], "before" );
+            if ( signalBeforeRun )
+                raise( SIGTERM );
+            GUCEF_OSMAIN_SIGNAL_HANDLER( TestAppStopSignalHandler );
+            return RunStopSignalApplication( signalBeforeRun );
+        }
 
         GUCEF::CORE::CString logFilename = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( logFilename, "gucefCORE_TestApp_Log.txt" );
@@ -478,13 +555,23 @@ GUCEF_OSMAIN_BEGIN
         PerformDynamicBufferStringStreamTests();
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();
+        PerformNotifierDeliveryTests();
+        PerformNotificationCostTests();
         PerformVariantStreamTests();
         PerformLoggingTests();
+        PerformLogManagerLockOrderTests();
+        PerformPumpedObserverLockOrderTests();
+        PerformPumpedObserverMailTests();
+        PerformAppStopWithTasksTests();
+        PerformCoreGlobalTeardownTests();
         PerformDataDrivenDStoreCodecsTests();
         PerformFreeListTests();
         PerformASyncTests();
         PerformThreadPoolCancellationTests();
         PerformTaskMemoryRetentionTests();
+        PerformTaskPulseRequestTests();
+        PerformBusyWaitPulseGeneratorDriverTests();
+        PerformTaskDelegatorWakeUpTests();
         PerformFutureResultSourceTests();
         PerformFileSystemAccessTests();
         PerformVariantMapAdapterTests();
@@ -511,6 +598,7 @@ GUCEF_OSMAIN_BEGIN
         PerformCsvTableCodecInferenceTests();
         PerformCsvTableCodecWriterTests();
         PerformCsvTableCodecTests();
+        PerformDenormalFlushScopeTests();
         PerformCodecPluginTests();
         PerformCryptoCodecTests();
         PerformBase64UrlTests();
@@ -525,11 +613,16 @@ GUCEF_OSMAIN_BEGIN
         PerformSecureBufferTests();
         PerformFileAccessTests();
         PerformTestFrameworkSkipTests();
+        PerformTestFrameworkSuitesTests();
         PerformJsonDataNodeFidelityTests();
         PerformJsonSchemaTests();
         PerformJsonSyntaxValidatorTests();
         PerformStandardStreamsTests();
         PerformTimeZoneRulesTests();
+        PerformBinaryWireTests();
+        PerformPbkdf2HmacSha256Tests();
+        PerformServiceHostingTests();
+        PerformServiceHealthRegistryTests();
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefCORE_TestApp_Results.xml" );

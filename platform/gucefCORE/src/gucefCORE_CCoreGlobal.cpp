@@ -228,6 +228,11 @@
 #define GUCEF_CORE_CTABLECODECPLUGINMANAGER_H
 #endif /* GUCEF_CORE_CTABLECODECPLUGINMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CSERVICEHEALTHREGISTRY_H
+#include "gucefCORE_CServiceHealthRegistry.h"
+#define GUCEF_CORE_CSERVICEHEALTHREGISTRY_H
+#endif /* GUCEF_CORE_CSERVICEHEALTHREGISTRY_H ? */
+
 #ifndef GUCEF_CORE_CCSVTABLECODEC_H
 #include "gucefCORE_CCsvTableCodec.h"
 #define GUCEF_CORE_CCSVTABLECODEC_H
@@ -398,6 +403,7 @@ CCoreGlobal::Initialize( void )
     m_application = GUCEF_NEW CGUCEFApplication();
     m_application->SetPulseGenerator( m_pulseGenerator );
     m_logManager->SetPulseGenerator( m_pulseGenerator );
+    m_serviceHealthRegistry = GUCEF_NEW CServiceHealthRegistry( m_pulseGenerator );
 
     /*
      *  Instantiate the rest of the singletons
@@ -471,6 +477,7 @@ CCoreGlobal::CCoreGlobal( void )
     , m_tableCodecRegistry( GUCEF_NULL )
     , m_tableCodecPluginManager( GUCEF_NULL )
     , m_uriResourceAccessorFactory( GUCEF_NULL )
+    , m_serviceHealthRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -512,6 +519,18 @@ CCoreGlobal::~CCoreGlobal()
     /*
      *      cleanup all singletons
      *      Take care to deinstance them in the correct order !!!
+     *
+     *      The order of the teardown:
+     *      1. The application stops and every thread of every thread pool ends, without a time limit (above): from
+     *         here on nothing runs on another thread.
+     *      2. What was registered with the global objects goes: task types, URI handlers, codecs, the plugins (above).
+     *      3. The global objects go, each before what it uses: the task manager first (its threads are gone), the
+     *         application, the metrics, the plugin managers and the plugin control, the console, the config store,
+     *         the registries (below).
+     *      4. The logging global goes last. Everything of 1 to 3 may log while it goes: the plugin control says it
+     *         unregisters its modules, the plugin managers and the config store report what they do. A log statement
+     *         after the logging global went would make a new one (CLoggingGlobal::Instance()) that nothing destroys,
+     *         on top of the global objects that are gone.
      */
     GUCEF_DELETE m_taskManager;
     m_taskManager = GUCEF_NULL;
@@ -525,10 +544,10 @@ CCoreGlobal::~CCoreGlobal()
     m_dataDrivenDStoreCodecFactory = GUCEF_NULL;
     GUCEF_DELETE m_exclusiveActivationManager;
     m_exclusiveActivationManager = GUCEF_NULL;
+    GUCEF_DELETE m_serviceHealthRegistry;
+    m_serviceHealthRegistry = GUCEF_NULL;
     GUCEF_DELETE m_application;
     m_application = GUCEF_NULL;
-    CLoggingGlobal::Deinstance();
-    m_logManager = GUCEF_NULL;
     GUCEF_DELETE m_metricsClientManager;
     m_metricsClientManager = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecPluginManager;
@@ -561,6 +580,10 @@ CCoreGlobal::~CCoreGlobal()
     CWindowsComponentAccess::Deinstance();
     
     #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
+
+    // last: everything above may log while it goes, see the order at the top of the cleanup
+    CLoggingGlobal::Deinstance();
+    m_logManager = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -783,6 +806,15 @@ CCoreGlobal::GetTableCodecPluginManager( void )
 {GUCEF_TRACE;
 
     return *m_tableCodecPluginManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CServiceHealthRegistry&
+CCoreGlobal::GetServiceHealthRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_serviceHealthRegistry;
 }
 
 /*-------------------------------------------------------------------------//

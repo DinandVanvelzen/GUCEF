@@ -34,6 +34,11 @@
 #define GUCEF_CORE_CTCLONEABLEOBJ_H
 #endif /* GUCEF_CORE_CTCLONEABLEOBJ_H ? */
 
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
 #ifndef GUCEF_CORE_CVARIANT_H
 #include "gucefCORE_CVariant.h"
 #define GUCEF_CORE_CVARIANT_H
@@ -160,6 +165,14 @@ class GUCEF_CORE_PUBLIC_CPP CIDataTable : public CTSGNotifier
 
     /** The message of the last failed call this thread made on the table */
     virtual CString GetLastErrorMessage( void ) const = 0;
+
+    /**
+     *  Presentation hints of a column (index into GetSchema()), for generic consumers such as a grid view: hint names
+     *  are those of the presentation of a column (title, width, hidden, alignment, decimals, thousandsSeparator,
+     *  prefix, suffix, dateFormat, booleanDisplay, nullText), values as text. Tables without hints return false
+     *  (the default).
+     */
+    virtual bool GetColumnHints( UInt32 columnIndex, CValueList& hints ) const;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

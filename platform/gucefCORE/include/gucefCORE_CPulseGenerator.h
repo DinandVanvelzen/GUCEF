@@ -33,6 +33,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CTSHAREDPTR_H
 #include "CTSharedPtr.h"
 #define GUCEF_CORE_CTSHAREDPTR_H
@@ -86,6 +91,19 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
 
     void RequestImmediatePulse( void );
 
+    /**
+     *  Passes an immediate pulse request on to the driver (CIPulseGeneratorDriver::QueueImmediatePulse()), for a
+     *  request made on any thread, for example one that waits for socket readiness on behalf of the pulse generator's
+     *  users. Unlike RequestImmediatePulse() it never pulses on the calling thread: without a driver it does nothing,
+     *  and a driver keeps the request for its own loop. The driver is called without any lock of the pulse generator
+     *  held; meanwhile SetPulseGeneratorDriver() waits before it lets the driver go.
+     *  A task delegator (and the gucefDRN node task) ends its wait between cycles on such a request; the busy wait and
+     *  Emscripten drivers take it at the next pulse of their loops.
+     *
+     *  @return whether a driver took the request
+     */
+    bool RequestImmediatePulseThroughDriver( void );
+
     void RequestPulsesPerImmediatePulseRequest( const Int32 requestedPulsesPerImmediatePulseRequest );
 
     void RequestPeriodicPulses( void* requestor );
@@ -114,6 +132,11 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
 
     Float64 GetTimeSinceTickCountInMilliSecs( UInt64 sinceTickCount ) const;
 
+    /**
+     *  Sets the driver, GUCEF_NULL for none. When it replaces a driver it returns only once no call that is made without
+     *  the data lock (RequestImmediatePulseThroughDriver(), GetPulseDriverThreadId(), RequestPeriodicPulses()) is inside
+     *  the previous one, which may be destroyed then. Not called from within a call of the driver
+     */
     void SetPulseGeneratorDriver( CIPulseGeneratorDriver* driver );
 
     CIPulseGeneratorDriver* GetPulseGeneratorDriver( void ) const;
@@ -140,6 +163,15 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
     void WaitTillNextPulseWindow( UInt32 forcedMinimalDeltaInMilliSecs = 25    ,
                                   UInt32 desiredMaximumDeltaInMilliSecs = 1000 ,
                                   UInt32* elapsedTimeInMilliSecs = GUCEF_NULL  ) const;
+
+    /**
+     *  The time WaitTillNextPulseWindow() would block the calling thread with the same parameters, without blocking.
+     *  For a driver that waits in a way of its own, for example on a signal that ends the wait early.
+     *
+     *  @return the time to wait in milliseconds, 0 if the next pulse time window has come already
+     */
+    UInt32 GetTimeTillNextPulseWindowInMilliSecs( UInt32 forcedMinimalDeltaInMilliSecs = 25    ,
+                                                  UInt32 desiredMaximumDeltaInMilliSecs = 1000 ) const;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -179,9 +211,10 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
     bool m_forcedStopOfPeriodPulses;
     TPeriodicPulseRequestorMap m_periodicUpdateRequestors;
     CIPulseGeneratorDriver* m_driver;
-    UInt32 m_driverThreadId;
+    MT::CTAtomic< UInt32 > m_driverThreadId;            /**< written under m_dataLock, read without it (GetPulseDriverThreadId()) */
     MT::CMutex m_notificationLock;
     MT::CMutex m_dataLock;
+    mutable MT::CTAtomic< UInt32 > m_driverRequestsInFlight;    /**< calls made without m_dataLock inside the driver: RequestImmediatePulseThroughDriver(), GetPulseDriverThreadId(), RequestPeriodicPulses() */
 };
 
 /*-------------------------------------------------------------------------*/

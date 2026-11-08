@@ -97,6 +97,16 @@ CGloballyConfigurable::operator=( const CGloballyConfigurable& src )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CGloballyConfigurable::UnregisterFromConfigStore( void )
+{GUCEF_TRACE;
+
+    // a second time, from the destructor of this class, finds nothing to do
+    CORE::CCoreGlobal::Instance()->GetConfigStore().Unregister( this );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CGloballyConfigurable::IsGlobalBootstrapConfigLoadInProgress( void )
 {GUCEF_TRACE;

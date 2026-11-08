@@ -96,7 +96,10 @@ DecodesTo( const char* encoded, const char* expectedText )
     if ( !CORE::Base64UrlDecode( encoded, result ) )
         return false;
     UInt32 expectedSize = (UInt32) strlen( expectedText );
-    return expectedSize == result.GetDataSize() && 0 == memcmp( expectedText, result.GetConstBufferPtr(), expectedSize );
+    if ( expectedSize != result.GetDataSize() )
+        return false;
+    // an empty result has no buffer, memcmp() is not given a null pointer, also not for zero bytes
+    return 0 == expectedSize || 0 == memcmp( expectedText, result.GetConstBufferPtr(), expectedSize );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -56,19 +56,6 @@
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      MACROS                                                             //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-/* make sure no structure packing is enabled, this allows us to use the structures directly */
-#if (defined(_WIN32) || defined(__WIN32__))
-#pragma pack(push, 1)
-#else
-#pragma pack(1)
-#endif /* WIN32 */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -2192,19 +2179,6 @@ DSTOREPLUG_Version( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 }; /* namespace PROTOBUF */
 }; /* namespace DSTOREPLUGIN */
 }; /* namespace GUCEF */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      MACROS                                                             //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-/* restore structure packing */
-#if (defined(_WIN32) || defined(__WIN32__))
-#pragma pack(pop)
-#else
-#pragma pack()
-#endif /* WIN32 */
 
 /*-------------------------------------------------------------------------*/
 

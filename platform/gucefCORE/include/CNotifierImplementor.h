@@ -307,8 +307,11 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
 
     // Adds the bi-directional link between the notifier and observer if this is a new link
     // Returns whether the this is a new link
+    // While the notifier is busy only the observer's side of the link is made at once, the notifier's side when the
+    // request is carried out from the mailbox (busyProcessingMailbox)
     bool LinkObserver( CObserver* observer          ,
-                       bool subscribeToAllEvents    );
+                       bool subscribeToAllEvents    ,
+                       bool busyProcessingMailbox   );
 
     private:
     
@@ -322,6 +325,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     typedef GUCEF::map< CObserver* const, TEventHandlerFunctorInterfaceVector, std::less< CObserver* const >, gucef_allocator< TObserverRawPtrAndFuncInterfVecPair > > TEventNotificationMap;
     
     typedef GUCEF::set< CObserver*, std::less< CObserver* >, gucef_allocator< CObserver* >  > TObserverSet;
+    typedef GUCEF::vector< CObserver*, gucef_allocator< CObserver* > > TObserverVector;
     typedef std::pair< const CEvent, TEventNotificationMap > TEventAndEventNotificationMapPair;
     typedef GUCEF::map< CEvent, TEventNotificationMap, std::less< CEvent >, gucef_allocator< TEventAndEventNotificationMapPair > > TNotificationList;
     typedef std::pair< CObserver* const, bool >   TObserverRawPtrAndBoolPair;
@@ -370,6 +374,11 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     bool m_scheduledForDestruction;
     TEventMailVector m_eventMailStack;
     TCmdMailVector m_cmdMailStack;
+    UInt32 m_cmdMailProcessed;      /**< the requests at the front of m_cmdMailStack that were carried out already */
+    UInt32 m_eventMailProcessed;    /**< the mail at the front of m_eventMailStack that was delivered already */
+    TObserverVector m_notifiedSpill;    /**< the observers that got the event being delivered beyond the first 64, see NotifyObservers() */
+    bool m_notifiedSpillInUse;
+    TObserverVector* m_newSubscribersOfDelivery;    /**< while an event is delivered: the observers that subscription requests carried out during it added, see NotifyObservers() */
 };
 
 /*-------------------------------------------------------------------------//

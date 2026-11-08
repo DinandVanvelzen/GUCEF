@@ -33,6 +33,21 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_CORE_CTWEAKPTR_H
+#include "gucefCORE_CTWeakPtr.h"
+#define GUCEF_CORE_CTWEAKPTR_H
+#endif /* GUCEF_CORE_CTWEAKPTR_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_CTMAILBOXFORSHAREDCLONEABLES_H
 #include "gucefCORE_CTMailboxForSharedCloneables.h"
 #define GUCEF_CORE_CTMAILBOXFORSHAREDCLONEABLES_H
@@ -336,6 +351,172 @@ PerformBasicSharedPtrSanityTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** Counts its destructions, safe to destroy on any thread */
+class CReleaseCounted
+{
+    public:
+
+    static GUCEF::MT::CTAtomic< GUCEF::Int32 > destroyed;
+
+    CReleaseCounted( void ) {}
+    virtual ~CReleaseCounted() { destroyed.FetchAdd( 1 ); }
+};
+
+GUCEF::MT::CTAtomic< GUCEF::Int32 > CReleaseCounted::destroyed( 0 );
+
+typedef GUCEF::CORE::CTSharedPtr< CReleaseCounted, GUCEF::MT::CMutex > TReleaseCountedPtr;
+typedef GUCEF::CORE::CTWeakPtr< CReleaseCounted, GUCEF::MT::CMutex > TReleaseCountedWeakPtr;
+
+/** Shared data (lock included) embedded in the object itself */
+class CEmbeddedReleaseCounted : public GUCEF::CORE::CTSharedObjCreator< CEmbeddedReleaseCounted, GUCEF::MT::CMutex >
+{
+    public:
+
+    static GUCEF::MT::CTAtomic< GUCEF::Int32 > destroyed;
+
+    CEmbeddedReleaseCounted( void ) : GUCEF::CORE::CTSharedObjCreator< CEmbeddedReleaseCounted, GUCEF::MT::CMutex >( this ) {}
+    virtual ~CEmbeddedReleaseCounted() { destroyed.FetchAdd( 1 ); }
+};
+
+GUCEF::MT::CTAtomic< GUCEF::Int32 > CEmbeddedReleaseCounted::destroyed( 0 );
+
+typedef GUCEF::CORE::CTSharedPtr< CEmbeddedReleaseCounted, GUCEF::MT::CMutex > TEmbeddedReleaseCountedPtr;
+
+/** A reference handed to a thread, released there once told to */
+struct SReleasingThread
+{
+    TReleaseCountedPtr ptr;
+    GUCEF::MT::CTAtomic< bool >* go;
+};
+
+GUCEF::UInt32 GUCEF_CALLSPEC_PREFIX
+ReleaseWhenToldThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SReleasingThread* threadData = static_cast< SReleasingThread* >( data );
+    while ( !threadData->go->Load( GUCEF::MT::MEMORDER_ACQUIRE ) )
+        GUCEF::MT::ThreadDelay( 1 );
+    threadData->ptr.Unlink();
+    return 0;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The lock of a shared pointer lives in the shared data, which goes away with the last reference.
+ *  None of these releases may destroy that lock while it is still locked: a thread sanitizer reports
+ *  "destroy of a locked mutex" for that, and with recursive pthread mutexes on musl (Emscripten) the
+ *  freed mutex stays linked in the thread's list of held mutexes, which later lock operations write to.
+ */
+void
+PerformSharedPtrReleaseTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: The last reference destroys the object once and releases its lock before the lock goes" )
+    try
+    {
+        CReleaseCounted::destroyed.Store( 0 );
+        {
+            TReleaseCountedPtr first( GUCEF_NEW CReleaseCounted() );
+            TReleaseCountedPtr second( first );
+            TESTASSERT( 2 == first.GetReferenceCount() );
+            first.Unlink();
+            TESTASSERT( 0 == CReleaseCounted::destroyed.Load() );
+        }
+        TESTASSERT( 1 == CReleaseCounted::destroyed.Load() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: Shared data kept by a weak pointer is destroyed by the weak pointer, unlocked" )
+    try
+    {
+        CReleaseCounted::destroyed.Store( 0 );
+        TReleaseCountedWeakPtr weak;
+        {
+            TReleaseCountedPtr shared( GUCEF_NEW CReleaseCounted() );
+            weak = shared;
+        }
+        TESTASSERT( 1 == CReleaseCounted::destroyed.Load() );
+        TESTASSERT( weak.IsExpired() );
+        weak.Unlink();
+        TESTASSERT( 1 == CReleaseCounted::destroyed.Load() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: A lock embedded in the object (CTSharedObjCreator) is released before the object goes" )
+    try
+    {
+        CEmbeddedReleaseCounted::destroyed.Store( 0 );
+        {
+            TEmbeddedReleaseCountedPtr first = CEmbeddedReleaseCounted::CreateSharedObj();
+            TEmbeddedReleaseCountedPtr second( first );
+            TESTASSERT( 2 == second.GetReferenceCount() );
+        }
+        TESTASSERT( 1 == CEmbeddedReleaseCounted::destroyed.Load() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: References released at the same time on several threads destroy the object exactly once" )
+    try
+    {
+        static const GUCEF::UInt32 threadCount = 4;
+        static const GUCEF::UInt32 rounds = 25;
+
+        CReleaseCounted::destroyed.Store( 0 );
+        for ( GUCEF::UInt32 round=0; round<rounds; ++round )
+        {
+            GUCEF::MT::CTAtomic< bool > go( false );
+            SReleasingThread threadData[ threadCount ];
+            GUCEF::MT::SThreadData* threads[ threadCount ];
+
+            {
+                TReleaseCountedPtr shared( GUCEF_NEW CReleaseCounted() );
+                for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+                {
+                    threadData[ i ].ptr = shared;
+                    threadData[ i ].go = &go;
+                    threads[ i ] = GUCEF::MT::ThreadDataReserve();
+                    TESTASSERT( GUCEF_NULL != threads[ i ] );
+                    if ( GUCEF_NULL != threads[ i ] )
+                        TESTASSERT( 0 != GUCEF::MT::ThreadCreate( threads[ i ], &ReleaseWhenToldThreadMain, &threadData[ i ] ) );
+                }
+                go.Store( true, GUCEF::MT::MEMORDER_RELEASE );
+            }
+
+            for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+            {
+                if ( GUCEF_NULL != threads[ i ] )
+                {
+                    GUCEF::MT::ThreadWait( threads[ i ], 60000 );
+                    GUCEF::MT::ThreadDataCleanup( threads[ i ] );
+                }
+            }
+            TESTASSERT( round+1 == (GUCEF::UInt32) CReleaseCounted::destroyed.Load() );
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformSharedPtrTests( void )
 {GUCEF_TRACE;
@@ -345,6 +526,7 @@ PerformSharedPtrTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "SharedPtr" );
 
     PerformBasicSharedPtrSanityTests();
+    PerformSharedPtrReleaseTests();
 
     GUCEF::CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "ALL SHARED PTR TESTS COMPLETED" );

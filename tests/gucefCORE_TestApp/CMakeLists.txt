@@ -18,6 +18,8 @@ set( HEADER_FILES
   include/TestAsyncUriResourceRetriever.h
   include/TestBase64Url.h
   include/TestBigUnsigned.h
+  include/TestBinaryWire.h
+  include/TestBusyWaitPulseGeneratorDriver.h
   include/TestBrowserLauncher.h
   include/TestCodecPlugins.h
   include/TestConfigStore.h
@@ -50,6 +52,7 @@ set( HEADER_FILES
   include/TestDecimalReference.h
   include/TestDecimalVariant.h
   include/TestDedicatedTasks.h
+  include/TestDenormalFlushScope.h
   include/TestDesktopTerminalConsoleLogger.h
   include/TestDynamicBuffer.h
   include/TestDynamicBufferStringStream.h
@@ -62,14 +65,23 @@ set( HEADER_FILES
   include/TestFloatText.h
   include/TestFraction.h
   include/TestFrameworkSkip.h
+  include/TestFrameworkSuites.h
   include/TestFutureResultSource.h
   include/TestIniParser.h
   include/TestJsonDataNodeFidelity.h
   include/TestJsonSchema.h
   include/TestJsonSyntaxValidator.h
   include/TestLogging.h
+  include/TestLogManagerLockOrder.h
+  include/TestPumpedObserverLockOrder.h
+  include/TestPumpedObserverMail.h
+  include/TestAppStopWithTasks.h
+  include/TestCoreGlobalTeardown.h
   include/TestMemoryDataTable.h
+  include/TestNotificationCost.h
+  include/TestNotifierDelivery.h
   include/TestNotifierObserver.h
+  include/TestPbkdf2HmacSha256.h
   include/TestPluginUnload.h
   include/TestProcess.h
   include/TestRandom.h
@@ -80,6 +92,8 @@ set( HEADER_FILES
   include/TestScheduleTrigger.h
   include/TestScopedValue.h
   include/TestSecureBuffer.h
+  include/TestServiceHealthRegistry.h
+  include/TestServiceHosting.h
   include/TestSfinaeUtils.h
   include/TestSharedPtr.h
   include/TestStandardStreams.h
@@ -87,7 +101,9 @@ set( HEADER_FILES
   include/TestString.h
   include/TestSysConsole.h
   include/TestTableCodecRegistry.h
+  include/TestTaskDelegatorWakeUp.h
   include/TestTaskMemoryRetention.h
+  include/TestTaskPulseRequests.h
   include/TestThreadPoolCancellation.h
   include/TestTimeZoneRules.h
   include/TestTimestamp.h
@@ -106,6 +122,8 @@ set( HEADER_FILES
   include/TestX11ClipboardPeer.h
   include/TestX11EventDispatcher.h
   include/TestXmlDStoreCodec.h
+  src/TestBinaryWire.cpp
+  src/TestBusyWaitPulseGeneratorDriver.cpp
   src/TestFreeList.h
 )
 
@@ -143,6 +161,7 @@ set( SOURCE_FILES
   src/TestDecimal.cpp
   src/TestDecimalVariant.cpp
   src/TestDedicatedTasks.cpp
+  src/TestDenormalFlushScope.cpp
   src/TestDesktopTerminalConsoleLogger.cpp
   src/TestDynamicBuffer.cpp
   src/TestDynamicBufferStringStream.cpp
@@ -156,6 +175,7 @@ set( SOURCE_FILES
   src/TestFloatText.cpp
   src/TestFraction.cpp
   src/TestFrameworkSkip.cpp
+  src/TestFrameworkSuites.cpp
   src/TestFreeList.cpp
   src/TestFutureResultSource.cpp
   src/TestIniParser.cpp
@@ -163,8 +183,16 @@ set( SOURCE_FILES
   src/TestJsonSchema.cpp
   src/TestJsonSyntaxValidator.cpp
   src/TestLogging.cpp
+  src/TestLogManagerLockOrder.cpp
+  src/TestPumpedObserverLockOrder.cpp
+  src/TestPumpedObserverMail.cpp
+  src/TestAppStopWithTasks.cpp
+  src/TestCoreGlobalTeardown.cpp
   src/TestMemoryDataTable.cpp
+  src/TestNotificationCost.cpp
+  src/TestNotifierDelivery.cpp
   src/TestNotifierObserver.cpp
+  src/TestPbkdf2HmacSha256.cpp
   src/TestPluginUnload.cpp
   src/TestProcess.cpp
   src/TestRandom.cpp
@@ -174,6 +202,8 @@ set( SOURCE_FILES
   src/TestScheduleTrigger.cpp
   src/TestScopedValue.cpp
   src/TestSecureBuffer.cpp
+  src/TestServiceHealthRegistry.cpp
+  src/TestServiceHosting.cpp
   src/TestSfinaeUtils.cpp
   src/TestSharedPtr.cpp
   src/TestStandardStreams.cpp
@@ -181,7 +211,9 @@ set( SOURCE_FILES
   src/TestString.cpp
   src/TestSysConsole.cpp
   src/TestTableCodecRegistry.cpp
+  src/TestTaskDelegatorWakeUp.cpp
   src/TestTaskMemoryRetention.cpp
+  src/TestTaskPulseRequests.cpp
   src/TestThreadPoolCancellation.cpp
   src/TestTimeZoneRules.cpp
   src/TestTimestamp.cpp
