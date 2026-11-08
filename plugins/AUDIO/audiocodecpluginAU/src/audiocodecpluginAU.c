@@ -67,6 +67,14 @@
 
 #define AU_COPY_CHUNK_BYTES     16384
 
+/* The two names of the format. A build of this source for another purpose than the plugin itself may give them other names */
+#ifndef AU_CODEC_TYPE_PRIMARY
+  #define AU_CODEC_TYPE_PRIMARY     "au"
+#endif
+#ifndef AU_CODEC_TYPE_SECONDARY
+  #define AU_CODEC_TYPE_SECONDARY   "snd"
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      TYPES                                                              //
@@ -96,7 +104,7 @@ typedef struct SAuSource
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static const char* g_codecTypes[] = { "au", "snd" };
+static const char* g_codecTypes[] = { AU_CODEC_TYPE_PRIMARY, AU_CODEC_TYPE_SECONDARY };
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -449,7 +457,7 @@ MODULE_API_FUNCTION( AUDIOCODECPLUG_Create_Codec )( void** plugdata, const char*
 {
     /* Both types are the same format, there is no per codec state */
     *codecdata = NULL;
-    return NULL != codecType && ( 0 == strcmp( codecType, "au" ) || 0 == strcmp( codecType, "snd" ) ) ? 1 : 0;
+    return NULL != codecType && ( 0 == strcmp( codecType, AU_CODEC_TYPE_PRIMARY ) || 0 == strcmp( codecType, AU_CODEC_TYPE_SECONDARY ) ) ? 1 : 0;
 }
 
 /*-------------------------------------------------------------------------*/

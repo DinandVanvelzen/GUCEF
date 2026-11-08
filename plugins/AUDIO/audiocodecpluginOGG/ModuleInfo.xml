@@ -1,0 +1,48 @@
+<ModuleInfoEntry>
+    <Module Name="audiocodecpluginOGG" Type="SharedLibrary" Platform="linux;mswin;android" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO codec plugin for Ogg Vorbis and Ogg Opus audio</DescriptionHeadline>
+            <DescriptionDetails>Reads and writes Ogg Vorbis and Ogg Opus files under the types ogg, oga and opus; the first packet of the file decides which codec it is. Decoding is done by vorbisfile and opusfile, sample exact seeking included, with the surround channels in WAVE order. Writing is done by libvorbisenc and by libopus with a small Ogg Opus writer on libogg. The Opus part is only built where the opus module is. Written in C against the gucefAUDIO codec plugin C interface.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="libogg" />
+            <Dependency Name="libvorbis" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="libogg" />
+            <Dependency Name="libvorbis" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE" />
+        </Preprocessor>
+        <!-- the decoders run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+    <!-- the platforms that have the opus module: the Opus half of the plugin -->
+    <Module Platform="linux;mswin;android">
+        <Dependencies>
+            <Dependency Name="opusfile" />
+            <Dependency Name="opus" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="opusfile" />
+            <Dependency Name="opus" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

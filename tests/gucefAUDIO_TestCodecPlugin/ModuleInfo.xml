@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="gucefAUDIO_TestCodecPlugin" Platform="All" Type="SharedLibrary" Tags="test" >
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO codec plugin that implements the optional plugin interface additions, for tests</DescriptionHeadline>
+            <DescriptionDetails>The .au codec of audiocodecpluginAU built under other type names with the optional entry points added: threading model, stream tags and content probe. The plain .au plugin stays the example of a plugin without them.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOCODECPLUGIN_AU_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>
