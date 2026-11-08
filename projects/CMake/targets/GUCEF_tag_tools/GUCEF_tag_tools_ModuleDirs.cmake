@@ -75,6 +75,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGenerator
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/PubSubStorageTool ${CMAKE_BINARY_DIR}/PubSubStorageTool )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/gucefMcpEcho ${CMAKE_BINARY_DIR}/gucefMcpEcho )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/gucefMcpLocalLlm ${CMAKE_BINARY_DIR}/gucefMcpLocalLlm )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/gucefLabLink ${CMAKE_BINARY_DIR}/gucefLabLink )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/itvExporter ${CMAKE_BINARY_DIR}/itvExporter )
 
 
