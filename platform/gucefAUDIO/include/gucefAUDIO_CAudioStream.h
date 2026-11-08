@@ -112,7 +112,15 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioStream : public IAudioSource
 
     virtual bool IsEndOfStream( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool IsRealtimeSafe( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool IsSeekable( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  The tags of the wrapped source. The source is only touched under the fill lock, like the read ahead and
+     *  its seeks do, so this waits for a read ahead turn that is busy: owner side only, never the audio thread.
+     */
+    virtual bool GetMetaData( CORE::CValueList& metaData ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /** Render side: what was read ahead is dropped and the read ahead continues from the new place on its next turn */
     virtual bool SeekToFrame( UInt64 frame ) GUCEF_VIRTUAL_OVERRIDE;
@@ -186,7 +194,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioStream : public IAudioSource
     bool m_atEnd;
 
     // read ahead side only, under m_fillLock
-    MT::CMutex m_fillLock;
+    mutable MT::CMutex m_fillLock;          /**< every access to the source is under this lock, also the const ones that ask for tags */
     UInt32 m_fillGeneration;
     UInt32 m_spareBlock;
     UInt32 m_playsDone;

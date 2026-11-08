@@ -135,6 +135,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioClipSource : public IAudioSource
 
     virtual bool IsEndOfStream( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool IsRealtimeSafe( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool IsSeekable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool SeekToFrame( UInt64 frame ) GUCEF_VIRTUAL_OVERRIDE;
@@ -151,6 +153,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioClipSource : public IAudioSource
     private:
 
     TAudioBufferPtr m_audio;
+    const CAudioBuffer* m_buffer;       /**< the buffer for the audio thread: reaching it through the shared pointer is not real time safe */
     UInt32 m_position;
 };
 

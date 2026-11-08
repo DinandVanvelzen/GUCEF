@@ -136,7 +136,8 @@ CToneSequenceSource::GetFormat( void ) const
 
 bool
 CToneSequenceSource::GetSegmentAt( UInt64 frameInSequence, UInt32& segmentIndex, UInt64& frameInSegment ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     if ( frameInSequence >= m_sequenceLength )
         return false;
@@ -221,7 +222,8 @@ CToneSequenceSource::SampleAt( const SSegment& segment, UInt64 segmentLength, UI
 
 UInt32
 CToneSequenceSource::ReadFrames( void* destination, UInt32 frameCapacity )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     Float32* out = static_cast< Float32* >( destination );
     const UInt32 channels = m_format.GetChannelCount();
@@ -251,7 +253,8 @@ CToneSequenceSource::ReadFrames( void* destination, UInt32 frameCapacity )
 
 bool
 CToneSequenceSource::IsEndOfStream( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return 0 != m_loopCount && m_position >= m_sequenceLength * m_loopCount;
 }
@@ -259,7 +262,7 @@ CToneSequenceSource::IsEndOfStream( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CToneSequenceSource::IsSeekable( void ) const
+CToneSequenceSource::IsRealtimeSafe( void ) const
 {GUCEF_TRACE;
 
     return true;
@@ -268,8 +271,19 @@ CToneSequenceSource::IsSeekable( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CToneSequenceSource::IsSeekable( void ) const
+{
+    // no trace macro: this runs where the audio is mixed
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CToneSequenceSource::SeekToFrame( UInt64 frame )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     if ( 0 != m_loopCount && frame > m_sequenceLength * m_loopCount )
         return false;

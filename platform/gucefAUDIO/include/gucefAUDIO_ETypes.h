@@ -110,6 +110,20 @@ enum ESpeakerPosition
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  How the master stage of the engine keeps the output from going over full level. The values are stable, they are
+ *  stored by name in the audio settings of the user: new modes are only ever appended.
+ */
+enum EAudioLimiterMode
+{
+    AUDIOLIMITERMODE_OFF = 0 ,      /**< no limiting: what goes over full level clips in the device */
+    AUDIOLIMITERMODE_INSTANT ,      /**< turns the output down where it would go over full level, with no delay */
+    AUDIOLIMITERMODE_LOOKAHEAD      /**< looks ahead in the signal so it can turn down smoothly, at the cost of latency */
+};
+typedef enum EAudioLimiterMode TAudioLimiterMode;
+
+/*-------------------------------------------------------------------------*/
+
 /** Direction of an audio stream or device */
 enum EAudioDirection
 {

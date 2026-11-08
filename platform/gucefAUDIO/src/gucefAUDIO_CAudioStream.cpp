@@ -410,9 +410,32 @@ CAudioStream::IsEndOfStream( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CAudioStream::IsRealtimeSafe( void ) const
+{
+    // the render side only copies what the read ahead task prepared
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CAudioStream::IsSeekable( void ) const
 {
     return m_seekable;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioStream::GetMetaData( CORE::CValueList& metaData ) const
+{GUCEF_TRACE;
+
+    if ( m_source.IsNULL() )
+        return false;
+
+    // the read ahead task uses the source on its own thread, so it is only touched under the fill lock
+    MT::CScopeMutex lock( m_fillLock );
+    return m_source->GetMetaData( metaData );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -70,6 +70,15 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioCodecRegistry : public CORE::CTGlobalONRegist
     /** Convenience: the codec for the extension of a file name or path */
     bool TryFindCodecForFilename( const CString& filename, TAudioCodecPtr& codec ) const;
 
+    /**
+     *  Content sniffing for the case where the name does not settle it (no extension, a wrong one, one format
+     *  under several): asks the codecs that can probe (CIAudioCodec::Probe, for plugin codecs the optional
+     *  AUDIOCODECPLUG_Probe) about the data at the current position of the input and picks the most confident
+     *  answer above 0. The first one found wins a tie; the order of codecs is by type name. The input position is
+     *  the same afterwards. Codecs that cannot probe are never chosen this way. 'confidence' may be NULL.
+     */
+    bool TryFindCodecForData( CORE::CIOAccess& encodedInput, TAudioCodecPtr& codec, UInt32* confidence = GUCEF_NULL ) const;
+
     private:
     friend class CAudioGlobal;
 

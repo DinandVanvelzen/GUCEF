@@ -140,6 +140,16 @@ CIAudioCodec::DecodeAll( CORE::CIOAccess& encodedInput, CAudioBuffer& audio, con
 /*-------------------------------------------------------------------------*/
 
 bool
+CIAudioCodec::Probe( CORE::CIOAccess& encodedInput, UInt32& confidence )
+{GUCEF_TRACE;
+
+    confidence = 0;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CIAudioCodec::CanEncode( void ) const
 {GUCEF_TRACE;
 

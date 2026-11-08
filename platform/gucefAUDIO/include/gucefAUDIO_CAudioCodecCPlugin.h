@@ -93,6 +93,10 @@ class GUCEF_AUDIO_PRIVATE_CPP CIAudioCodecCPluginClient
  *  Every call into the module goes through the call lock, so the module sees one thread at a time and can be
  *  unlinked while streams are still open: unlinking closes the open streams and codec instances first, after
  *  which they act as ended instead of calling into a module that is gone.
+ *
+ *  A module that declares GUCEF_AUDIOCODEC_THREADING_PER_SOURCE (AUDIOCODECPLUG_Threading_Model) is not called
+ *  under the call lock for the calls of open streams (reading, seeking, tags): the stream takes its own lock,
+ *  so streams of that module decode at the same time. Everything else still goes through the call lock.
  */
 class GUCEF_AUDIO_PUBLIC_CPP CAudioCodecCPlugin : public CORE::CIPlugin
 {
@@ -125,6 +129,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioCodecCPlugin : public CORE::CIPlugin
 
     /** The codec types the plugin offers ("au", "ogg", ...) */
     TStringVector GetCodecTypes( void ) const;
+
+    /** GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK or GUCEF_AUDIOCODEC_THREADING_PER_SOURCE, as the module declared. Fixed once linked */
+    UInt32 GetThreadingModel( void ) const;
 
     /** The codec types that ended up in the codec registry */
     const TStringVector& GetRegisteredCodecTypes( void ) const;
@@ -159,6 +166,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioCodecCPlugin : public CORE::CIPlugin
     void* m_moduleHandle;
     void* m_plugdata;
     bool m_isLinked;
+    UInt32 m_threadingModel;
     CORE::TPluginMetaDataStoragePtr m_metaData;
     TStringVector m_registeredCodecTypes;
     TClientSet m_streams;

@@ -17,6 +17,8 @@ set( HEADER_FILES
   include/gucefAUDIO_CAtomicFloat.h
   include/gucefAUDIO_CAudioBuffer.h
   include/gucefAUDIO_CAudioBus.h
+  include/gucefAUDIO_CAudioBusLayout.h
+  include/gucefAUDIO_CAudioBusRouting.h
   include/gucefAUDIO_CAudioClip.h
   include/gucefAUDIO_CAudioCodecCPlugin.h
   include/gucefAUDIO_CAudioCodecCPluginCodec.h
@@ -28,21 +30,44 @@ set( HEADER_FILES
   include/gucefAUDIO_CAudioDeviceParams.h
   include/gucefAUDIO_CAudioDriver.h
   include/gucefAUDIO_CAudioDriverRegistry.h
+  include/gucefAUDIO_CAudioEffect.h
+  include/gucefAUDIO_CAudioEffectChain.h
+  include/gucefAUDIO_CAudioEffectFactory.h
+  include/gucefAUDIO_CAudioEffectParameterInfo.h
+  include/gucefAUDIO_CAudioEffectRegistry.h
   include/gucefAUDIO_CAudioEngine.h
   include/gucefAUDIO_CAudioEngineParams.h
   include/gucefAUDIO_CAudioFormat.h
   include/gucefAUDIO_CAudioGlobal.h
+  include/gucefAUDIO_CAudioLevelMeter.h
   include/gucefAUDIO_CAudioMixer.h
+  include/gucefAUDIO_CAudioParameterBlock.h
+  include/gucefAUDIO_CAudioParameterSmoother.h
   include/gucefAUDIO_CAudioPushDevice.h
+  include/gucefAUDIO_CAudioSettings.h
   include/gucefAUDIO_CAudioStream.h
   include/gucefAUDIO_CAudioVoice.h
+  include/gucefAUDIO_CBiquadDesign.h
+  include/gucefAUDIO_CCompressorEffect.h
+  include/gucefAUDIO_CDelayEffect.h
+  include/gucefAUDIO_CDelayLine.h
+  include/gucefAUDIO_CEnvelopeFollower.h
+  include/gucefAUDIO_CEqualizerEffect.h
+  include/gucefAUDIO_CFilterBand.h
+  include/gucefAUDIO_CFilterEffect.h
   include/gucefAUDIO_CIAudioCodec.h
+  include/gucefAUDIO_CLimiterEffect.h
   include/gucefAUDIO_CLinearResampler.h
   include/gucefAUDIO_CNullAudioDriver.h
   include/gucefAUDIO_CPcmStreamSource.h
   include/gucefAUDIO_CRawAudioCodec.h
+  include/gucefAUDIO_CReverbEffect.h
+  include/gucefAUDIO_CSlidingMinimum.h
+  include/gucefAUDIO_CSvfFilter.h
+  include/gucefAUDIO_CTAudioEffectFactory.h
   include/gucefAUDIO_CToneSequenceSource.h
   include/gucefAUDIO_CWavAudioCodec.h
+  include/gucefAUDIO_EFilterResponse.h
   include/gucefAUDIO_ETypes.h
   include/gucefAUDIO_IAudioDeviceCallback.h
   include/gucefAUDIO_IAudioResampler.h
@@ -57,6 +82,8 @@ set( SOURCE_FILES
   src/gucefAUDIO.cpp
   src/gucefAUDIO_CAudioBuffer.cpp
   src/gucefAUDIO_CAudioBus.cpp
+  src/gucefAUDIO_CAudioBusLayout.cpp
+  src/gucefAUDIO_CAudioBusRouting.cpp
   src/gucefAUDIO_CAudioClip.cpp
   src/gucefAUDIO_CAudioCodecCPlugin.cpp
   src/gucefAUDIO_CAudioCodecCPluginCodec.cpp
@@ -68,19 +95,40 @@ set( SOURCE_FILES
   src/gucefAUDIO_CAudioDeviceParams.cpp
   src/gucefAUDIO_CAudioDriver.cpp
   src/gucefAUDIO_CAudioDriverRegistry.cpp
+  src/gucefAUDIO_CAudioEffect.cpp
+  src/gucefAUDIO_CAudioEffectChain.cpp
+  src/gucefAUDIO_CAudioEffectFactory.cpp
+  src/gucefAUDIO_CAudioEffectParameterInfo.cpp
+  src/gucefAUDIO_CAudioEffectRegistry.cpp
   src/gucefAUDIO_CAudioEngine.cpp
   src/gucefAUDIO_CAudioEngineParams.cpp
   src/gucefAUDIO_CAudioFormat.cpp
   src/gucefAUDIO_CAudioGlobal.cpp
+  src/gucefAUDIO_CAudioLevelMeter.cpp
   src/gucefAUDIO_CAudioMixer.cpp
+  src/gucefAUDIO_CAudioParameterBlock.cpp
+  src/gucefAUDIO_CAudioParameterSmoother.cpp
   src/gucefAUDIO_CAudioPushDevice.cpp
+  src/gucefAUDIO_CAudioSettings.cpp
   src/gucefAUDIO_CAudioStream.cpp
   src/gucefAUDIO_CAudioVoice.cpp
+  src/gucefAUDIO_CBiquadDesign.cpp
+  src/gucefAUDIO_CCompressorEffect.cpp
+  src/gucefAUDIO_CDelayEffect.cpp
+  src/gucefAUDIO_CDelayLine.cpp
+  src/gucefAUDIO_CEnvelopeFollower.cpp
+  src/gucefAUDIO_CEqualizerEffect.cpp
+  src/gucefAUDIO_CFilterBand.cpp
+  src/gucefAUDIO_CFilterEffect.cpp
   src/gucefAUDIO_CIAudioCodec.cpp
+  src/gucefAUDIO_CLimiterEffect.cpp
   src/gucefAUDIO_CLinearResampler.cpp
   src/gucefAUDIO_CNullAudioDriver.cpp
   src/gucefAUDIO_CPcmStreamSource.cpp
   src/gucefAUDIO_CRawAudioCodec.cpp
+  src/gucefAUDIO_CReverbEffect.cpp
+  src/gucefAUDIO_CSlidingMinimum.cpp
+  src/gucefAUDIO_CSvfFilter.cpp
   src/gucefAUDIO_CToneSequenceSource.cpp
   src/gucefAUDIO_CWavAudioCodec.cpp
   src/gucefAUDIO_IAudioSource.cpp

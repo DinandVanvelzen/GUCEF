@@ -79,6 +79,7 @@ CAudioCodecCPlugin::CAudioCodecCPlugin( void )
     , m_moduleHandle( GUCEF_NULL )
     , m_plugdata( GUCEF_NULL )
     , m_isLinked( false )
+    , m_threadingModel( GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK )
     , m_metaData()
     , m_registeredCodecTypes()
     , m_streams()
@@ -127,6 +128,9 @@ CAudioCodecCPlugin::Link( void* modulePtr, CORE::TPluginMetaDataPtr pluginMetaDa
     GUCEF_AUDIOCODECPLUG_RESOLVE( Src_Close, 3*sizeof(void*) )
     GUCEF_AUDIOCODECPLUG_RESOLVE( Decode_Meta_Data, 4*sizeof(void*) )
     GUCEF_AUDIOCODECPLUG_RESOLVE( Encode, 6*sizeof(void*)+8 )
+    GUCEF_AUDIOCODECPLUG_RESOLVE( Threading_Model, 1*sizeof(void*) )
+    GUCEF_AUDIOCODECPLUG_RESOLVE( Src_Meta_Data, 4*sizeof(void*) )
+    GUCEF_AUDIOCODECPLUG_RESOLVE( Probe, 4*sizeof(void*) )
 
     #undef GUCEF_AUDIOCODECPLUG_RESOLVE
 
@@ -154,6 +158,18 @@ CAudioCodecCPlugin::Link( void* modulePtr, CORE::TPluginMetaDataPtr pluginMetaDa
 
     m_moduleHandle = modulePtr;
     m_isLinked = true;
+
+    // The optional threading declaration. Anything but a clear "per source" keeps the one call at a time rule
+    m_threadingModel = GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK;
+    if ( GUCEF_NULL != m_api.Threading_Model )
+    {
+        const UInt32 declared = m_api.Threading_Model( m_plugdata );
+        if ( GUCEF_AUDIOCODEC_THREADING_PER_SOURCE == declared )
+            m_threadingModel = GUCEF_AUDIOCODEC_THREADING_PER_SOURCE;
+        else
+        if ( GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK != declared )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioCodecCPlugin: Module " << CORE::PointerToString( modulePtr ) << " declares unknown threading model " << declared << ", using one call at a time" );
+    }
 
     m_metaData = CORE::TPluginMetaDataStoragePtr( GUCEF_NEW CORE::CPluginMetaData( *pluginMetaData ) );
     m_metaData->SetDescription( GetName() );
@@ -198,6 +214,7 @@ CAudioCodecCPlugin::Unlink( void )
     memset( &m_api, 0, sizeof( m_api ) );
     m_plugdata = GUCEF_NULL;
     m_isLinked = false;
+    m_threadingModel = GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK;
     // The handle and the meta data stay: plugin control unloads the module with them after we are unlinked
     return true;
 }
@@ -307,6 +324,16 @@ CAudioCodecCPlugin::GetCodecTypes( void ) const
         }
     }
     return types;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAudioCodecCPlugin::GetThreadingModel( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_callLock );
+    return m_threadingModel;
 }
 
 /*-------------------------------------------------------------------------*/

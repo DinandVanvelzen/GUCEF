@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
 #define GUCEF_MT_CMUTEX_H
@@ -93,11 +98,25 @@ class GUCEF_AUDIO_PUBLIC_CPP IAudioSource
     /** True when there will never be more frames, unless the source is rewound or sought */
     virtual bool IsEndOfStream( void ) const = 0;
 
+    /**
+     *  True when ReadFrames() never allocates, locks, waits or logs, so that it may be called from the real time
+     *  audio thread. False by default: a source must opt in. A voice on a source that is not real time safe
+     *  causes a warning when it is created (CAudioEngine::CreateVoice), since it can make the audio glitch.
+     */
+    virtual bool IsRealtimeSafe( void ) const;
+
     /** True when SeekToFrame() works */
     virtual bool IsSeekable( void ) const;
 
     /** Moves to the given frame. Fails (and stays where it was) for a source that is not seekable or a frame beyond the end */
     virtual bool SeekToFrame( UInt64 frame );
+
+    /**
+     *  Adds the tags of the source (loop points, title and so on) to 'metaData'. Returns false, and adds nothing, when
+     *  the source has no tags. False by default. Meant for the owner of the source, the side that opens and decodes
+     *  it: never call this from the real time audio thread, it may lock and allocate.
+     */
+    virtual bool GetMetaData( CORE::CValueList& metaData ) const;
 
     /** Number of frames read so far from the start of the audio */
     virtual UInt64 GetPositionInFrames( void ) const = 0;

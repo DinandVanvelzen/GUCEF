@@ -116,7 +116,8 @@ CAudioFormat::SetSampleRate( UInt32 sampleRate )
 
 UInt32
 CAudioFormat::GetSampleRate( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_sampleRate;
 }
@@ -136,7 +137,8 @@ CAudioFormat::SetChannelCount( UInt32 channelCount )
 
 UInt32
 CAudioFormat::GetChannelCount( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_channelCount;
 }
@@ -154,7 +156,8 @@ CAudioFormat::SetSampleType( TSampleType sampleType )
 
 TSampleType
 CAudioFormat::GetSampleType( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_sampleType;
 }
@@ -174,7 +177,8 @@ CAudioFormat::SetChannelLayout( UInt32 channelLayout )
 
 UInt32
 CAudioFormat::GetChannelLayout( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     if ( 0 != m_channelLayout )
         return m_channelLayout;
@@ -185,7 +189,8 @@ CAudioFormat::GetChannelLayout( void ) const
 
 bool
 CAudioFormat::HasExplicitChannelLayout( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return 0 != m_channelLayout;
 }
@@ -194,7 +199,8 @@ CAudioFormat::HasExplicitChannelLayout( void ) const
 
 UInt32
 CAudioFormat::GetBytesPerSample( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return GetBytesPerSample( m_sampleType );
 }
@@ -203,7 +209,8 @@ CAudioFormat::GetBytesPerSample( void ) const
 
 UInt32
 CAudioFormat::GetBytesPerFrame( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return GetBytesPerSample( m_sampleType ) * m_channelCount;
 }
@@ -212,7 +219,8 @@ CAudioFormat::GetBytesPerFrame( void ) const
 
 bool
 CAudioFormat::IsValid( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_sampleRate > 0 && m_channelCount > 0 && GetBytesPerSample( m_sampleType ) > 0;
 }
@@ -221,7 +229,8 @@ CAudioFormat::IsValid( void ) const
 
 bool
 CAudioFormat::operator==( const CAudioFormat& other ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_sampleRate == other.m_sampleRate     &&
            m_channelCount == other.m_channelCount &&
@@ -233,7 +242,8 @@ CAudioFormat::operator==( const CAudioFormat& other ) const
 
 bool
 CAudioFormat::operator!=( const CAudioFormat& other ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return !( *this == other );
 }
@@ -251,7 +261,8 @@ CAudioFormat::ToString( void ) const
 
 UInt32
 CAudioFormat::GetBytesPerSample( TSampleType sampleType )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     switch ( sampleType )
     {
@@ -300,7 +311,8 @@ CAudioFormat::SampleTypeFromString( const CString& text )
 
 UInt32
 CAudioFormat::GetDefaultChannelLayout( UInt32 channelCount )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     switch ( channelCount )
     {
@@ -328,7 +340,8 @@ CAudioFormat::GetDefaultChannelLayout( UInt32 channelCount )
 
 UInt32
 CAudioFormat::GetChannelCountOfLayout( UInt32 channelLayout )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     UInt32 count = 0;
     while ( 0 != channelLayout )

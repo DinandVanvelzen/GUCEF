@@ -108,6 +108,24 @@
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *      Marks a function as running in a real time context (audio thread: no allocation, no locks, no blocking calls).
+ *      Placed after the declarator of the function definition. Only has an effect in a build with the Clang
+ *      RealtimeSanitizer (-fsanitize=realtime), which then reports every unsafe call made while the function runs.
+ *      Other compilers and builds ignore it.
+ */
+#undef GUCEF_AUDIO_REALTIME_CONTEXT
+#if defined( __clang__ ) && defined( __has_feature )
+  #if __has_feature( realtime_sanitizer )
+    #define GUCEF_AUDIO_REALTIME_CONTEXT __attribute__(( nonblocking ))
+  #endif
+#endif
+#ifndef GUCEF_AUDIO_REALTIME_CONTEXT
+  #define GUCEF_AUDIO_REALTIME_CONTEXT
+#endif /* GUCEF_AUDIO_REALTIME_CONTEXT ? */
+
+/*-------------------------------------------------------------------------*/
+
 #undef GUCEF_AUDIO_PLUGIN_PUBLIC_CPP
 #ifdef GUCEF_AUDIO_PLUGIN_PUBLIC_CPP_CODE
   #define GUCEF_AUDIO_PLUGIN_PUBLIC_CPP GUCEF_AUDIO_PLUGIN_EXPORTSPEC

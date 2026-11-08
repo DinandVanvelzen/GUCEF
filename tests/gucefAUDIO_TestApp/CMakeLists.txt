@@ -13,29 +13,72 @@
 
 set( HEADER_FILES 
   include/TestAudioAlsa.h
+  include/TestAudioBenchmark.h
+  include/TestAudioBusLayout.h
+  include/TestAudioCodecFlac.h
+  include/TestAudioCodecMp3.h
+  include/TestAudioCodecMp3Support.h
+  include/TestAudioCodecOgg.h
   include/TestAudioCodecPlugin.h
+  include/TestAudioCodecSupport.h
   include/TestAudioCodecs.h
   include/TestAudioConversion.h
   include/TestAudioDevices.h
+  include/TestAudioDsp.h
+  include/TestAudioEffects.h
+  include/TestAudioBuiltinEffects.h
+  include/TestAudioCompressor.h
+  include/TestAudioDelay.h
+  include/TestAudioEffectSupport.h
+  include/TestAudioEqualizer.h
+  include/TestAudioLimiter.h
   include/TestAudioEngine.h
+  include/TestAudioEngineReopen.h
   include/TestAudioFormat.h
   include/TestAudioMixer.h
+  include/TestAudioRealtime.h
+  include/TestAudioReferenceScenarios.h
+  include/TestAudioReverb.h
+  include/TestAudioRouting.h
+  include/TestAudioSettings.h
   include/TestAudioStream.h
+  include/TestAudioStreaming.h
+  include/TestAudioTestEffect.h
   include/TestAudioTestSignals.h
+  include/TestAudioVoiceEffects.h
   include/TestAudioWebAudio.h
 )
 
 set( SOURCE_FILES 
   src/TestAudioAlsa.cpp
+  src/TestAudioBenchmark.cpp
+  src/TestAudioBusLayout.cpp
+  src/TestAudioCodecFlac.cpp
+  src/TestAudioCodecMp3.cpp
+  src/TestAudioCodecOgg.cpp
   src/TestAudioCodecPlugin.cpp
   src/TestAudioCodecs.cpp
   src/TestAudioConversion.cpp
   src/TestAudioDevices.cpp
+  src/TestAudioDsp.cpp
+  src/TestAudioEffects.cpp
+  src/TestAudioBuiltinEffects.cpp
+  src/TestAudioCompressor.cpp
+  src/TestAudioDelay.cpp
+  src/TestAudioEqualizer.cpp
+  src/TestAudioLimiter.cpp
   src/TestAudioEngine.cpp
+  src/TestAudioEngineReopen.cpp
   src/TestAudioFormat.cpp
   src/TestAudioMixer.cpp
+  src/TestAudioRealtime.cpp
+  src/TestAudioReverb.cpp
+  src/TestAudioRouting.cpp
+  src/TestAudioSettings.cpp
   src/TestAudioStream.cpp
+  src/TestAudioStreaming.cpp
   src/TestAudioTestSignals.cpp
+  src/TestAudioVoiceEffects.cpp
   src/TestAudioWebAudio.cpp
   src/gucefAUDIO_TestApp.cpp
 )

@@ -212,11 +212,13 @@ CAudioClip::CreateSource( void ) const
 CAudioClipSource::CAudioClipSource( const TAudioBufferPtr& audio )
     : IAudioSource()
     , m_audio( audio )
+    , m_buffer( GUCEF_NULL )
     , m_position( 0 )
 {GUCEF_TRACE;
 
     if ( m_audio.IsNULL() )
         m_audio = TAudioBufferPtr( GUCEF_NEW CAudioBuffer() );
+    m_buffer = m_audio.GetPointerAlways();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -239,13 +241,14 @@ CAudioClipSource::GetFormat( void ) const
 
 UInt32
 CAudioClipSource::ReadFrames( void* destination, UInt32 frameCapacity )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
-    const UInt32 left = m_audio->GetFrameCount() - m_position;
+    const UInt32 left = m_buffer->GetFrameCount() - m_position;
     const UInt32 count = ( frameCapacity < left ) ? frameCapacity : left;
     if ( count > 0 && GUCEF_NULL != destination )
     {
-        memcpy( destination, m_audio->GetDataPtr( m_position ), (size_t) count * m_audio->GetFormat().GetBytesPerFrame() );
+        memcpy( destination, m_buffer->GetDataPtr( m_position ), (size_t) count * m_buffer->GetFormat().GetBytesPerFrame() );
         m_position += count;
         return count;
     }
@@ -256,15 +259,16 @@ CAudioClipSource::ReadFrames( void* destination, UInt32 frameCapacity )
 
 bool
 CAudioClipSource::IsEndOfStream( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
-    return m_position >= m_audio->GetFrameCount();
+    return m_position >= m_buffer->GetFrameCount();
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CAudioClipSource::IsSeekable( void ) const
+CAudioClipSource::IsRealtimeSafe( void ) const
 {GUCEF_TRACE;
 
     return true;
@@ -273,10 +277,21 @@ CAudioClipSource::IsSeekable( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CAudioClipSource::SeekToFrame( UInt64 frame )
-{GUCEF_TRACE;
+CAudioClipSource::IsSeekable( void ) const
+{
+    // no trace macro: this runs where the audio is mixed
 
-    if ( frame > m_audio->GetFrameCount() )
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioClipSource::SeekToFrame( UInt64 frame )
+{
+    // no trace macro: this runs where the audio is mixed
+
+    if ( frame > m_buffer->GetFrameCount() )
         return false;
     m_position = (UInt32) frame;
     return true;

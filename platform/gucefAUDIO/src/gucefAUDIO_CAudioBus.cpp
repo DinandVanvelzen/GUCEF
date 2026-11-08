@@ -46,6 +46,10 @@ CAudioBus::CAudioBus( const CString& name, CAudioBus* parent )
     , m_parent( parent )
     , m_volume( 1.0f )
     , m_muted( false )
+    , m_effects()
+    , m_sends( GUCEF_NULL )
+    , m_sendCapacity( 0 )
+    , m_meter()
     , m_buffer()
     , m_lastGain( 1.0f )
     , m_gainKnown( false )
@@ -58,6 +62,33 @@ CAudioBus::CAudioBus( const CString& name, CAudioBus* parent )
 CAudioBus::~CAudioBus()
 {GUCEF_TRACE;
 
+    GUCEF_DELETE[] m_sends;
+    m_sends = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioBus::SSend::SSend( void )
+    : target( GUCEF_NULL )
+    , preFader( false )
+    , level( 1.0f )
+    , lastLevel( 1.0f )
+    , levelKnown( false )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioBus::PrepareSends( UInt32 sendCapacity )
+{GUCEF_TRACE;
+
+    if ( sendCapacity == m_sendCapacity )
+        return;
+    GUCEF_DELETE[] m_sends;
+    m_sends = sendCapacity > 0 ? GUCEF_NEW SSend[ sendCapacity ] : GUCEF_NULL;
+    m_sendCapacity = sendCapacity;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -73,8 +104,7 @@ CAudioBus::GetName( void ) const
 
 CAudioBus*
 CAudioBus::GetParent( void ) const
-{GUCEF_TRACE;
-
+{
     return m_parent;
 }
 
@@ -127,8 +157,7 @@ CAudioBus::SetMuted( bool muted )
 
 bool
 CAudioBus::IsMuted( void ) const
-{GUCEF_TRACE;
-
+{
     return m_muted.Load( MT::MEMORDER_RELAXED );
 }
 
@@ -136,8 +165,7 @@ CAudioBus::IsMuted( void ) const
 
 Float32
 CAudioBus::GetEffectiveVolume( void ) const
-{GUCEF_TRACE;
-
+{
     return IsMuted() ? 0.0f : m_volume.Load();
 }
 
@@ -157,6 +185,97 @@ CAudioBus::LinearToDecibels( Float32 linear )
 {GUCEF_TRACE;
 
     return linear <= 0.0f ? -1000.0f : (Float32) ( 20.0 * log10( (Float64) linear ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAudioBus::GetEffectSlotCount( void ) const
+{GUCEF_TRACE;
+
+    return m_effects.GetSlotCapacity();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioBus::SetEffectEnabled( UInt32 slot, bool enabled )
+{GUCEF_TRACE;
+
+    m_effects.SetEnabled( slot, enabled );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioBus::IsEffectEnabled( UInt32 slot ) const
+{GUCEF_TRACE;
+
+    return m_effects.IsEnabled( slot );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioBus::SetEffectMix( UInt32 slot, Float32 wet, Float32 dry )
+{GUCEF_TRACE;
+
+    m_effects.SetMix( slot, wet, dry );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Float32
+CAudioBus::GetEffectWet( UInt32 slot ) const
+{GUCEF_TRACE;
+
+    return m_effects.GetWet( slot );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Float32
+CAudioBus::GetEffectDry( UInt32 slot ) const
+{GUCEF_TRACE;
+
+    return m_effects.GetDry( slot );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAudioBus::GetSendSlotCount( void ) const
+{GUCEF_TRACE;
+
+    return m_sendCapacity;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioBus::SetSendLevel( UInt32 sendIndex, Float32 level )
+{GUCEF_TRACE;
+
+    if ( sendIndex < m_sendCapacity )
+        m_sends[ sendIndex ].level.Store( level < 0.0f ? 0.0f : level );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Float32
+CAudioBus::GetSendLevel( UInt32 sendIndex ) const
+{GUCEF_TRACE;
+
+    return sendIndex < m_sendCapacity ? m_sends[ sendIndex ].level.Load() : 0.0f;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CAudioLevelMeter&
+CAudioBus::GetMeter( void ) const
+{GUCEF_TRACE;
+
+    return m_meter;
 }
 
 

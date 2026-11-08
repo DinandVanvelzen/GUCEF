@@ -128,8 +128,13 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioBuffer
 
     private:
 
+    void RefreshDataBase( void );
+
+    private:
+
     CAudioFormat m_format;
     CORE::CDynamicBuffer m_data;
+    UInt8* m_dataBase;          /**< where the frames start, kept up to date by every change of the buffer: the audio thread reaches the frames without calling the dynamic buffer */
     UInt32 m_frameCount;
 };
 

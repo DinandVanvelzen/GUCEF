@@ -110,6 +110,14 @@ class GUCEF_AUDIO_PUBLIC_CPP CIAudioCodec : public CORE::CICodec
      */
     virtual bool DecodeMetaData( CORE::CIOAccess& encodedInput, CORE::CValueList& metaData ) = 0;
 
+    /**
+     *  Content sniffing: tells how well the data at the current position of the input looks like the format of
+     *  this codec, 'confidence' from 0 (not at all) to 100 (certain). The input position is the same afterwards.
+     *  Returns false when the codec cannot tell, which is what a codec without this ability does. Cheap: reads a
+     *  header, not the whole input. See CAudioCodecRegistry::TryFindCodecForData().
+     */
+    virtual bool Probe( CORE::CIOAccess& encodedInput, UInt32& confidence );
+
     /** True when the codec can write its format */
     virtual bool CanEncode( void ) const;
 

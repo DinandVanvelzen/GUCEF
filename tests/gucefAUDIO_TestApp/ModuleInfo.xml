@@ -18,6 +18,10 @@
         <RuntimeDependencies>
             <RuntimeDependency Name="audiodriverALSA" />
             <RuntimeDependency Name="audiocodecpluginAU" />
+            <RuntimeDependency Name="gucefAUDIO_TestCodecPlugin" />
+            <RuntimeDependency Name="audiocodecpluginFLAC" />
+            <RuntimeDependency Name="audiocodecpluginMP3" />
+            <RuntimeDependency Name="audiocodecpluginOGG" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="emscripten" >

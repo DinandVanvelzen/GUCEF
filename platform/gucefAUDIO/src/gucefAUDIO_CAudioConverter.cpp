@@ -118,7 +118,8 @@ struct SSpeakers
 
 void
 CAudioConverter::ConvertToFloat32( const void* source, TSampleType sourceType, Float32* destination, UInt64 sampleCount )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     switch ( sourceType )
     {
@@ -184,7 +185,8 @@ CAudioConverter::ConvertToFloat32( const void* source, TSampleType sourceType, F
 
 void
 CAudioConverter::ConvertFromFloat32( const Float32* source, void* destination, TSampleType destinationType, UInt64 sampleCount )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     switch ( destinationType )
     {
@@ -247,7 +249,8 @@ CAudioConverter::ConvertFromFloat32( const Float32* source, void* destination, T
 
 void
 CAudioConverter::ConvertSamples( const void* source, TSampleType sourceType, void* destination, TSampleType destinationType, UInt64 sampleCount )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     if ( sourceType == destinationType )
     {
@@ -419,7 +422,8 @@ CAudioConverter::BuildChannelMatrix( const CAudioFormat& source, const CAudioFor
 
 void
 CAudioConverter::RemixChannels( const Float32* source, UInt32 sourceChannels, Float32* destination, UInt32 destinationChannels, UInt64 frameCount, const GUCEF::vector< Float32 >& matrix )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     for ( UInt64 f=0; f<frameCount; ++f )
     {

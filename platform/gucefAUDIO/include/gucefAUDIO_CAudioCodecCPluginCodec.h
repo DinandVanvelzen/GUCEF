@@ -76,6 +76,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioCodecCPluginCodec : public CIAudioCodec
     /** The format and length, from opening the stream, plus whatever the plugin reads as tags */
     virtual bool DecodeMetaData( CORE::CIOAccess& encodedInput, CORE::CValueList& metaData ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Asks the plugin when it has a probe (AUDIOCODECPLUG_Probe). False when it has none, the input position is restored */
+    virtual bool Probe( CORE::CIOAccess& encodedInput, UInt32& confidence ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool CanEncode( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool Encode( const CAudioBuffer& audio, CORE::CIOAccess& encodedOutput, const CORE::CValueList& options = CORE::CValueList() ) GUCEF_VIRTUAL_OVERRIDE;

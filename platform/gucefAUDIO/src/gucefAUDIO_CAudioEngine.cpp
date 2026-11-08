@@ -34,6 +34,11 @@
 #define GUCEF_CORE_CTASKMANAGER_H
 #endif /* GUCEF_CORE_CTASKMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CDENORMALFLUSHSCOPE_H
+#include "gucefCORE_CDenormalFlushScope.h"
+#define GUCEF_CORE_CDENORMALFLUSHSCOPE_H
+#endif /* GUCEF_CORE_CDENORMALFLUSHSCOPE_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -58,6 +63,16 @@
 #include "gucefAUDIO_CAudioConverter.h"
 #define GUCEF_AUDIO_CAUDIOCONVERTER_H
 #endif /* GUCEF_AUDIO_CAUDIOCONVERTER_H ? */
+
+#ifndef GUCEF_AUDIO_CAUDIOEFFECTREGISTRY_H
+#include "gucefAUDIO_CAudioEffectRegistry.h"
+#define GUCEF_AUDIO_CAUDIOEFFECTREGISTRY_H
+#endif /* GUCEF_AUDIO_CAUDIOEFFECTREGISTRY_H ? */
+
+#ifndef GUCEF_AUDIO_CAUDIOBUSROUTING_H
+#include "gucefAUDIO_CAudioBusRouting.h"
+#define GUCEF_AUDIO_CAUDIOBUSROUTING_H
+#endif /* GUCEF_AUDIO_CAUDIOBUSROUTING_H ? */
 
 #include "gucefAUDIO_CAudioEngine.h"
 
@@ -87,11 +102,30 @@ const CORE::CEvent CAudioEngine::DeviceLostEvent = "GUCEF::AUDIO::CAudioEngine::
 
 namespace {
 
+/** The mode the limiter of 'params' works in when it is on, also while it is off */
+TAudioLimiterMode
+LimiterModeWhenEnabled( const CAudioEngineParams& params )
+{
+    if ( params.GetLimiterEnabled() )
+        return params.GetLimiterMode();
+    CAudioEngineParams on( params );
+    on.SetLimiterEnabled( true );
+    return on.GetLimiterMode();
+}
+
 /** The plain pointer of a voice that is held by a shared pointer, which is what the engine tracks voices by */
 CAudioVoice*
 RawVoice( const TAudioVoicePtr& voice )
 {
     TAudioVoicePtr copy( voice );
+    return copy.GetPointerAlways();
+}
+
+/** The same for an effect */
+CAudioEffect*
+RawEffect( const TAudioEffectPtr& effect )
+{
+    TAudioEffectPtr copy( effect );
     return copy.GetPointerAlways();
 }
 
@@ -172,6 +206,134 @@ class CAudioEngineUpdateTask : public CORE::CTaskConsumer
     MT::CTAtomic< bool > m_ended;
 };
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A device reopen on its way: the new device is opened by a pool task (or, where no task could be started, on the owner
+ *  side in Update()), the engine picks it up on the owner side. Shared by the engine and the task, so either can go first.
+ */
+class CAudioEngineReopenRequest
+{
+    public:
+
+    CAudioEngineReopenRequest( const CAudioEngineParams& params, IAudioDeviceCallback* callback )
+        : m_params( params ), m_callback( callback ), m_lock(), m_done( false ), m_opened( false ), m_abandoned( false ), m_device(), m_usedDriverName()
+    {GUCEF_TRACE;
+    }
+
+    const CAudioEngineParams& GetParams( void ) const
+    {GUCEF_TRACE;
+        return m_params;
+    }
+
+    /** Opens the device (not started). Whichever thread does it */
+    void Open( void )
+    {GUCEF_TRACE;
+
+        TAudioDevicePtr device;
+        CString usedDriverName;
+        const bool opened = CAudioGlobal::Instance()->GetAudioDriverRegistry().OpenDevice( m_params.GetDriverName(), m_params.GetDeviceParams(), m_callback, device, usedDriverName ) && !device.IsNULL();
+
+        TAudioDevicePtr unwanted;
+        {
+            MT::CScopeMutex lock( m_lock );
+            if ( m_abandoned )
+                unwanted = device;          // the engine is gone or no longer interested: closed below, outside the lock
+            else
+            {
+                m_device = device;
+                m_usedDriverName = usedDriverName;
+                m_opened = opened;
+            }
+            m_done = true;
+        }
+    }
+
+    bool IsDone( void ) const
+    {GUCEF_TRACE;
+        MT::CScopeMutex lock( m_lock );
+        return m_done;
+    }
+
+    /** Owner side, once done: the device that was opened (null when none) */
+    bool TakeDevice( TAudioDevicePtr& device, CString& usedDriverName )
+    {GUCEF_TRACE;
+        MT::CScopeMutex lock( m_lock );
+        device = m_device;
+        usedDriverName = m_usedDriverName;
+        m_device.Unlink();
+        return m_opened && !device.IsNULL();
+    }
+
+    /** The engine gives up on the request: a device opened later is closed by the opener */
+    void Abandon( void )
+    {GUCEF_TRACE;
+        TAudioDevicePtr unwanted;
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_abandoned = true;
+            unwanted = m_device;
+            m_device.Unlink();
+        }
+    }
+
+    private:
+
+    CAudioEngineParams m_params;
+    IAudioDeviceCallback* m_callback;
+    MT::CMutex m_lock;
+    bool m_done;
+    bool m_opened;
+    bool m_abandoned;
+    TAudioDevicePtr m_device;
+    CString m_usedDriverName;
+};
+
+typedef CORE::CTSharedPtr< CAudioEngineReopenRequest, MT::CMutex > TAudioEngineReopenRequestPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/** One-shot task of the engine's thread pool that opens the device of a reopen request */
+class CAudioEngineReopenTask : public CORE::CTaskConsumer
+{
+    public:
+
+    explicit CAudioEngineReopenTask( const TAudioEngineReopenRequestPtr& request )
+        : CORE::CTaskConsumer(), m_request( request )
+    {GUCEF_TRACE;
+    }
+
+    virtual ~CAudioEngineReopenTask() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+    }
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        return "GUCEF::AUDIO::CAudioEngineReopenTask";
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        static const CORE::CString typeName = "GUCEF::AUDIO::CAudioEngineReopenTask";
+        return typeName;
+    }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_request->Open();
+        return true;            // done
+    }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr, bool ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+    }
+
+    private:
+
+    TAudioEngineReopenRequestPtr m_request;
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -209,6 +371,20 @@ CAudioEngine::CAudioEngine( void )
     , m_buses()
     , m_threaded( false )
     , m_updateTask()
+    , m_routing( GUCEF_NULL )
+    , m_busEntries()
+    , m_effects()
+    , m_voiceEffects()
+    , m_pending()
+    , m_lastToken( 0 )
+    , m_orderTables()
+    , m_freeOrderTables()
+    , m_audioOrderTable( GUCEF_NULL )
+    , m_deviceRunWanted( false )
+    , m_reopenPending( false )
+    , m_reopenOnOwner( false )
+    , m_reopenRequest()
+    , m_reopenSource()
 {GUCEF_TRACE;
 
 }
@@ -261,15 +437,25 @@ CAudioEngine::Initialize( const CAudioEngineParams& params )
 
     // The mixer works in float in the speakers and rate of the device, the conversion to the device sample type is the last step
     m_maxBlock = ( m_params.GetMaxBlockFrames() > 0 ) ? m_params.GetMaxBlockFrames() : 4096;
-    m_mixer = GUCEF_NEW CAudioMixer( m_deviceFormat, m_maxBlock, m_params.GetMaxVoices(), m_params.GetMaxBuses() );
+    m_mixer = GUCEF_NEW CAudioMixer( m_deviceFormat, m_maxBlock, m_params.GetMaxVoices(), m_params.GetMaxBuses(), m_params.GetMaxEffectsPerBus(), m_params.GetMaxSendsPerBus() );
     m_mixer->SetListener( this );
     m_mixer->SetPanLaw( m_params.GetPanLaw() );
-    m_mixer->SetLimiterEnabled( m_params.GetLimiterEnabled() );
-    m_directFloat = SAMPLETYPE_FLOAT32 == m_deviceFormat.GetSampleType();
-    if ( !m_directFloat )
-        m_scratch.assign( (size_t) m_maxBlock * m_deviceFormat.GetChannelCount(), 0.0f );
+    ApplyLimiterParams( m_params );
+    ApplyDeviceFormat( m_deviceFormat );
 
+    // The routing starts with the master bus; every bus and send that is added comes with a new bus order for the mixer
     m_buses.clear();
+    m_routing = GUCEF_NEW CAudioBusRouting( m_mixer->GetMaxBuses() );
+    CAudioBus* master = m_mixer->GetMasterBus();
+    m_routing->AddBus( master, GUCEF_NULL );
+    SBusEntry& masterEntry = m_busEntries[ master ];
+    masterEntry.effects.assign( m_mixer->GetMaxEffectsPerBus(), GUCEF_NULL );
+    masterEntry.sends.assign( m_mixer->GetMaxSendsPerBus(), GUCEF_NULL );
+    masterEntry.sendPreFader.assign( m_mixer->GetMaxSendsPerBus(), 0 );
+    m_layoutApplies.clear();
+    m_audioOrderTable = GUCEF_NULL;
+    m_lastToken = 0;
+    m_reopenPending = false;
     m_initialized = true;
 
     // Threaded: a dedicated task keeps the futures and events moving
@@ -296,7 +482,8 @@ CAudioEngine::Initialize( const CAudioEngineParams& params )
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: initialized with driver \"" + m_usedDriverName + "\", device format " + m_deviceFormat.ToString() +
                       ( m_threaded ? ", threaded" : ", cooperative" ) );
 
-    if ( m_params.GetStartDevice() )
+    m_deviceRunWanted = m_params.GetStartDevice();
+    if ( m_deviceRunWanted )
         m_device->Start();
     return true;
 }
@@ -348,10 +535,21 @@ CAudioEngine::Shutdown( void )
         m_device->Stop();
         m_device.Unlink();
     }
+    AbandonReopen();
 
+    // The audio thread is gone, so everything it might have used can be released here
     CompleteAllPending();
+    for ( TVoiceMap::iterator v=m_voices.begin(); v!=m_voices.end(); ++v )
+        (*v).first->ReleaseEffects();
     m_voices.clear();
+    m_voiceEffects.clear();
+    m_effects.clear();
+    m_busEntries.clear();
     m_buses.clear();
+    m_mixer->SetBusOrder( GUCEF_NULL, 0 );
+    m_audioOrderTable = GUCEF_NULL;
+    FreeOrderTables();
+    GUCEF_DELETE m_routing;     m_routing = GUCEF_NULL;
 
     GUCEF_DELETE m_mixer;       m_mixer = GUCEF_NULL;
     GUCEF_DELETE m_commands;    m_commands = GUCEF_NULL;
@@ -376,6 +574,14 @@ CAudioEngine::CompleteAllPending( void )
         if ( !entry.pauseSource.IsNULL() )  entry.pauseSource->Cancel();
         if ( !entry.endedSource.IsNULL() )  entry.endedSource->Cancel();
     }
+    for ( TPendingMap::iterator i=m_pending.begin(); i!=m_pending.end(); ++i )
+        if ( !(*i).second.IsNULL() )
+            (*i).second->Cancel();
+    m_pending.clear();
+    for ( size_t i=0; i<m_layoutApplies.size(); ++i )
+        if ( !m_layoutApplies[ i ].source.IsNULL() )
+            m_layoutApplies[ i ].source->Cancel();
+    m_layoutApplies.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -396,6 +602,16 @@ CAudioEngine::GetDriverName( void ) const
 
     MT::CScopeMutex lock( m_lock );
     return m_usedDriverName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioEngineParams
+CAudioEngine::GetParams( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_params;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -445,7 +661,10 @@ CAudioEngine::StartDevice( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    return m_initialized && m_device->Start();
+    if ( !m_initialized || !m_device->Start() )
+        return false;
+    m_deviceRunWanted = true;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -455,7 +674,10 @@ CAudioEngine::StopDevice( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    return m_initialized && m_device->Stop();
+    if ( !m_initialized )
+        return false;
+    m_deviceRunWanted = false;
+    return m_device->Stop();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -474,6 +696,15 @@ CAudioBus*
 CAudioEngine::CreateBus( const CString& name, CAudioBus* parent )
 {GUCEF_TRACE;
 
+    return CreateBusInternal( name, parent, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioBus*
+CAudioEngine::CreateBusInternal( const CString& name, CAudioBus* parent, CORE::CFutureResult* future )
+{GUCEF_TRACE;
+
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || m_buses.size() + 1 >= m_params.GetMaxBuses() )
         return GUCEF_NULL;
@@ -487,19 +718,50 @@ CAudioEngine::CreateBus( const CString& name, CAudioBus* parent )
     if ( !known )
         return GUCEF_NULL;
 
-    // The bus is made here and handed over to the audio thread, which links it into the tree. Commands arrive in order,
-    // so a voice that is started on this bus afterwards finds it there
-    TAudioBusPtr bus( GUCEF_NEW CAudioBus( name, parent ) );
-    if ( !m_mixer->PrepareBus( bus.GetPointerAlways() ) )
-        return GUCEF_NULL;
-    SCommand command;
-    command.type = SCommand::COMMAND_ATTACH_BUS;
-    command.bus = bus;
-    if ( !m_commands->Push( command ) )
+    if ( !HasRoomForRequest() )
         return GUCEF_NULL;
 
+    // The bus is made here and handed over to the audio thread, which links it into the tree together with the new bus
+    // order. Commands arrive in order, so a voice that is started on this bus afterwards finds it there. The engine keeps
+    // the bus alive; the command carries a plain pointer
+    TAudioBusPtr bus( GUCEF_NEW CAudioBus( name, parent ) );
+    CAudioBus* raw = bus.GetPointerAlways();
+    if ( !m_mixer->PrepareBus( raw ) || !m_routing->AddBus( raw, parent ) )
+        return GUCEF_NULL;
+    SOrderTable* order = ComputeBusOrder();
+    if ( GUCEF_NULL == order )
+    {
+        m_routing->RemoveBus( raw );
+        return GUCEF_NULL;
+    }
+
+    SCommand command;
+    command.type = SCommand::COMMAND_ATTACH_BUS;
+    command.bus = raw;
+    command.order = order;
+    command.token = NextToken();
+    if ( !m_commands->Push( command ) )
+    {
+        m_routing->RemoveBus( raw );
+        RecycleOrderTable( order );
+        return GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != future )
+    {
+        // a caller that wants to know when the audio thread has the bus
+        TSourcePtr source( GUCEF_NEW CORE::CFutureResultSource() );
+        m_pending[ command.token ] = source;
+        *future = source->GetFuture();
+    }
+    else
+        m_pending[ command.token ] = TSourcePtr();
+
     m_buses.push_back( bus );
-    return bus.GetPointerAlways();
+    SBusEntry& entry = m_busEntries[ raw ];
+    entry.effects.assign( m_mixer->GetMaxEffectsPerBus(), GUCEF_NULL );
+    entry.sends.assign( m_mixer->GetMaxSendsPerBus(), GUCEF_NULL );
+    entry.sendPreFader.assign( m_mixer->GetMaxSendsPerBus(), 0 );
+    return raw;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -525,8 +787,13 @@ TAudioVoicePtr
 CAudioEngine::CreateVoice( const TAudioSourcePtr& source, CAudioBus* bus )
 {GUCEF_TRACE;
 
+    if ( !source.IsNULL() && !source->IsRealtimeSafe() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "AudioEngine: Creating a voice for a source that is not real time safe, it may glitch the audio when it blocks or allocates while being read on the audio thread. Wrap it in a CAudioStream or decode it into a CAudioClip" );
+    }
+
     MT::CScopeMutex lock( m_lock );
-    TAudioVoicePtr voice( GUCEF_NEW CAudioVoice( source ) );
+    TAudioVoicePtr voice( GUCEF_NEW CAudioVoice( source, m_params.GetMaxVoiceEffects(), m_params.GetMaxVoiceSends() ) );
     if ( m_initialized )
         voice->SetBus( GUCEF_NULL != bus ? bus : m_mixer->GetMasterBus() );
     return voice;
@@ -580,7 +847,7 @@ CAudioEngine::Start( const TAudioVoicePtr& voice )
     CAudioVoice* raw = RawVoice( voice );
     if ( GUCEF_NULL == raw->GetBus() )
         raw->SetBus( m_mixer->GetMasterBus() );
-    if ( !m_mixer->PrepareVoice( raw ) )
+    if ( !CheckVoiceRouting( raw ) || !m_mixer->PrepareVoice( raw ) )
         return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
 
     SCommand command;
@@ -588,6 +855,10 @@ CAudioEngine::Start( const TAudioVoicePtr& voice )
     command.voice = raw;
     if ( !m_commands->Push( command ) )
         return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    // from here on the audio thread may use the voice's effects: they are the voice's until it is reported ended
+    for ( UInt32 e=0; e<raw->GetEffectCount(); ++e )
+        m_voiceEffects.insert( raw->GetEffectPointer( e ) );
 
     SVoiceEntry& entry = m_voices[ raw ];
     entry.voice = voice;
@@ -696,6 +967,1295 @@ CAudioEngine::GetEndedResult( const TAudioVoicePtr& voice )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CAudioEngine::HasRoomForRequest( void ) const
+{GUCEF_TRACE;
+
+    // every request makes one event that must not be lost; voices have their own share of the event queue
+    return m_pending.size() < m_maxOutstanding;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAudioEngine::NextToken( void )
+{GUCEF_TRACE;
+
+    ++m_lastToken;
+    if ( 0 == m_lastToken )
+        m_lastToken = 1;            // 0 means "nobody waits"
+    return m_lastToken;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioEngine::SOrderTable*
+CAudioEngine::ComputeBusOrder( void )
+{GUCEF_TRACE;
+
+    SOrderTable* order = GUCEF_NULL;
+    if ( !m_freeOrderTables.empty() )
+    {
+        order = m_freeOrderTables.back();
+        m_freeOrderTables.pop_back();
+    }
+    else
+    {
+        // normally two tables take turns; more only while several routing changes are on their way at once
+        order = GUCEF_NEW SOrderTable();
+        order->buses.assign( m_mixer->GetMaxBuses(), GUCEF_NULL );
+        m_orderTables.push_back( order );
+    }
+
+    if ( !m_routing->ComputeOrder( &order->buses[ 0 ], (UInt32) order->buses.size(), order->count ) )
+    {
+        RecycleOrderTable( order );
+        return GUCEF_NULL;
+    }
+    return order;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::RecycleOrderTable( SOrderTable* order )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != order )
+        m_freeOrderTables.push_back( order );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::FreeOrderTables( void )
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<m_orderTables.size(); ++i )
+        GUCEF_DELETE m_orderTables[ i ];
+    m_orderTables.clear();
+    m_freeOrderTables.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::PushRequest( SCommand& command )
+{GUCEF_TRACE;
+
+    command.token = NextToken();
+    if ( !m_commands->Push( command ) )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+
+    TSourcePtr source( GUCEF_NEW CORE::CFutureResultSource() );
+    m_pending[ command.token ] = source;
+    return source->GetFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioEffectPtr
+CAudioEngine::CreateEffect( const CString& typeName, const CORE::CValueList& options )
+{GUCEF_TRACE;
+
+    CAudioFormat mixFormat;
+    UInt32 maxBlock = 0;
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( !m_initialized )
+            return TAudioEffectPtr();
+        mixFormat = m_mixer->GetMixFormat();
+        maxBlock = m_maxBlock;
+    }
+
+    // made and prepared without the engine lock: preparing allocates and may take a while (a reverb)
+    TAudioEffectPtr effect = CAudioGlobal::Instance()->GetAudioEffectRegistry().CreateEffect( typeName, options );
+    if ( effect.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: no effect of type \"" << typeName << "\" could be made" );
+        return TAudioEffectPtr();
+    }
+    if ( !effect->Prepare( mixFormat, maxBlock ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the effect of type \"" << typeName << "\" could not be prepared for " << mixFormat.ToString() );
+        return TAudioEffectPtr();
+    }
+    return effect;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::InsertEffect( CAudioBus* bus, UInt32 slot, const TAudioEffectPtr& effect )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || effect.IsNULL() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    TBusEntryMap::iterator b = m_busEntries.find( bus );
+    if ( b == m_busEntries.end() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    SBusEntry& busEntry = (*b).second;
+    if ( slot >= busEntry.effects.size() || GUCEF_NULL != busEntry.effects[ slot ] )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    CAudioEffect* raw = RawEffect( effect );
+    if ( m_effects.find( raw ) != m_effects.end() || m_voiceEffects.find( raw ) != m_voiceEffects.end() || !raw->IsPreparedFor( m_mixer->GetMixFormat(), m_maxBlock ) )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( !HasRoomForRequest() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    SCommand command;
+    command.type = SCommand::COMMAND_INSERT_EFFECT;
+    command.bus = bus;
+    command.index = slot;
+    command.effect = raw;
+    CORE::CFutureResult future = PushRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+
+    busEntry.effects[ slot ] = raw;
+    SEffectEntry& entry = m_effects[ raw ];
+    entry.effect = effect;
+    entry.bus = bus;
+    entry.slot = slot;
+    entry.removing = false;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::RemoveEffect( CAudioBus* bus, const TAudioEffectPtr& effect )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || effect.IsNULL() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    TEffectMap::iterator e = m_effects.find( RawEffect( effect ) );
+    if ( e == m_effects.end() || (*e).second.bus != bus || (*e).second.removing )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( !HasRoomForRequest() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    SEffectEntry& entry = (*e).second;
+    SCommand command;
+    command.type = SCommand::COMMAND_REMOVE_EFFECT;
+    command.bus = bus;
+    command.index = entry.slot;
+    command.effect = (*e).first;
+    CORE::CFutureResult future = PushRequest( command );
+    if ( future.HasNoFuture() )
+        return future;
+
+    // the slot is free for a new effect at once: commands are carried out in order. The reference stays until the
+    // audio thread reports it let go of the effect
+    entry.removing = true;
+    m_busEntries[ bus ].effects[ entry.slot ] = GUCEF_NULL;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::AddSend( CAudioBus* from, CAudioBus* to, Float32 level, bool preFader, UInt32* sendIndex )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    TBusEntryMap::iterator b = m_busEntries.find( from );
+    if ( b == m_busEntries.end() || m_busEntries.find( to ) == m_busEntries.end() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    SBusEntry& busEntry = (*b).second;
+
+    UInt32 index = 0;
+    while ( index < busEntry.sends.size() && GUCEF_NULL != busEntry.sends[ index ] )
+        ++index;
+    if ( index >= busEntry.sends.size() || !m_routing->CanAddSend( from, to ) )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( !HasRoomForRequest() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    m_routing->AddSend( from, to );
+    SOrderTable* order = ComputeBusOrder();
+    if ( GUCEF_NULL == order )
+    {
+        m_routing->RemoveSend( from, to );
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    }
+
+    // the level is there before the audio thread sees the send
+    from->SetSendLevel( index, level );
+
+    SCommand command;
+    command.type = SCommand::COMMAND_SET_SEND;
+    command.bus = from;
+    command.target = to;
+    command.index = index;
+    command.preFader = preFader;
+    command.order = order;
+    CORE::CFutureResult future = PushRequest( command );
+    if ( future.HasNoFuture() )
+    {
+        m_routing->RemoveSend( from, to );
+        RecycleOrderTable( order );
+        return future;
+    }
+
+    busEntry.sends[ index ] = to;
+    busEntry.sendPreFader[ index ] = preFader ? 1 : 0;
+    if ( GUCEF_NULL != sendIndex )
+        *sendIndex = index;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::RemoveSend( CAudioBus* from, UInt32 sendIndex )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    TBusEntryMap::iterator b = m_busEntries.find( from );
+    if ( b == m_busEntries.end() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    SBusEntry& busEntry = (*b).second;
+    if ( sendIndex >= busEntry.sends.size() || GUCEF_NULL == busEntry.sends[ sendIndex ] )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    if ( !HasRoomForRequest() )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    CAudioBus* to = busEntry.sends[ sendIndex ];
+    m_routing->RemoveSend( from, to );
+    SOrderTable* order = ComputeBusOrder();
+    if ( GUCEF_NULL == order )
+    {
+        m_routing->AddSend( from, to );
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+    }
+
+    SCommand command;
+    command.type = SCommand::COMMAND_SET_SEND;
+    command.bus = from;
+    command.target = GUCEF_NULL;
+    command.index = sendIndex;
+    command.order = order;
+    CORE::CFutureResult future = PushRequest( command );
+    if ( future.HasNoFuture() )
+    {
+        m_routing->AddSend( from, to );
+        RecycleOrderTable( order );
+        return future;
+    }
+
+    busEntry.sends[ sendIndex ] = GUCEF_NULL;
+    busEntry.sendPreFader[ sendIndex ] = 0;
+    return future;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioEffectPtr
+CAudioEngine::GetBusEffect( const CAudioBus* bus, UInt32 slot ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    TBusEntryMap::const_iterator b = m_busEntries.find( const_cast< CAudioBus* >( bus ) );
+    if ( !m_initialized || b == m_busEntries.end() || slot >= (*b).second.effects.size() || GUCEF_NULL == (*b).second.effects[ slot ] )
+        return TAudioEffectPtr();
+
+    TEffectMap::const_iterator e = m_effects.find( (*b).second.effects[ slot ] );
+    return e == m_effects.end() ? TAudioEffectPtr() : (*e).second.effect;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioBus*
+CAudioEngine::FindBusUnique( const CString& name, bool& ambiguous ) const
+{GUCEF_TRACE;
+
+    ambiguous = false;
+    CAudioBus* found = GUCEF_NULL;
+    CAudioBus* master = m_mixer->GetMasterBus();
+    if ( master->GetName() == name )
+        found = master;
+    for ( size_t i=0; i<m_buses.size(); ++i )
+    {
+        if ( m_buses[ i ]->GetName() == name )
+        {
+            if ( GUCEF_NULL != found )
+                ambiguous = true;
+            found = const_cast< CAudioBus* >( m_buses[ i ].GetPointerAlways() );
+        }
+    }
+    return found;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::GetBusLayout( CAudioBusLayout& layout ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    layout.Clear();
+    if ( !m_initialized )
+        return false;
+
+    GUCEF::vector< CAudioBus* > buses;
+    buses.push_back( m_mixer->GetMasterBus() );
+    for ( size_t i=0; i<m_buses.size(); ++i )
+        buses.push_back( const_cast< CAudioBus* >( m_buses[ i ].GetPointerAlways() ) );
+
+    // a layout names its buses: buses without a name or with the same name cannot be told apart in it
+    for ( size_t i=0; i<buses.size(); ++i )
+    {
+        bool unique = !buses[ i ]->GetName().IsNULLOrEmpty();
+        for ( size_t j=0; unique && j<i; ++j )
+            unique = buses[ j ]->GetName() != buses[ i ]->GetName();
+        if ( !unique )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the buses cannot be described as a layout, bus " << i << " has no name or the name of another bus" );
+            return false;
+        }
+    }
+
+    for ( size_t i=0; i<buses.size(); ++i )
+    {
+        CAudioBus* bus = buses[ i ];
+        CAudioBusLayout::SBus& described = layout.AddBus( bus->GetName(), GUCEF_NULL == bus->GetParent() ? CString::Empty : bus->GetParent()->GetName(), bus->GetVolumeInDecibels(), bus->IsMuted() );
+
+        TBusEntryMap::const_iterator b = m_busEntries.find( bus );
+        if ( b == m_busEntries.end() )
+            continue;
+        const SBusEntry& entry = (*b).second;
+
+        for ( size_t s=0; s<entry.sends.size(); ++s )
+        {
+            if ( GUCEF_NULL == entry.sends[ s ] )
+                continue;
+            described.AddSend( entry.sends[ s ]->GetName(), CAudioBus::LinearToDecibels( bus->GetSendLevel( (UInt32) s ) ), 0 != entry.sendPreFader[ s ] );
+        }
+
+        for ( size_t slot=0; slot<entry.effects.size(); ++slot )
+        {
+            if ( GUCEF_NULL == entry.effects[ slot ] )
+                continue;
+            TEffectMap::const_iterator e = m_effects.find( entry.effects[ slot ] );
+            if ( e == m_effects.end() )
+                continue;
+            const TAudioEffectPtr& effect = (*e).second.effect;
+            CAudioBusLayout::SEffect& capturedEffect = described.AddEffect( (UInt32) slot, effect->GetEffectTypeName() );
+            capturedEffect.enabled = bus->IsEffectEnabled( (UInt32) slot );
+            capturedEffect.wet = bus->GetEffectWet( (UInt32) slot );
+            capturedEffect.dry = bus->GetEffectDry( (UInt32) slot );
+            effect->SaveConfig( capturedEffect.config );
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** What ApplyBusLayout() worked out before it changes anything */
+struct CAudioEngine::SLayoutPlan
+{
+    enum EEffectAction { EFFECT_KEEP = 0, EFFECT_INSERT, EFFECT_REPLACE };
+
+    struct SEffectStep
+    {
+        UInt32 slot;
+        EEffectAction action;
+        TAudioEffectPtr effect;         /**< keep: the effect that is in the slot, insert and replace: the new one, prepared and configured */
+        TAudioEffectPtr oldEffect;      /**< replace: the effect that goes out of the slot */
+        TAudioEffectPtr baseline;       /**< keep: an effect as a new one is, what the parameters that the layout does not name go back to */
+        const CAudioBusLayout::SEffect* wanted;
+        SEffectStep( void ) : slot( 0 ), action( EFFECT_KEEP ), effect(), oldEffect(), wanted( GUCEF_NULL ) {}
+    };
+
+    struct SSendStep
+    {
+        Int32 targetIndex;              /**< index of the target in the layout, -1 for a bus that is not in the layout */
+        CAudioBus* targetBus;           /**< a target the engine has already, null for a bus the layout makes */
+        UInt32 slot;                    /**< kept sends: the slot they are in */
+        const CAudioBusLayout::SSend* wanted;
+        SSendStep( void ) : targetIndex( -1 ), targetBus( GUCEF_NULL ), slot( 0 ), wanted( GUCEF_NULL ) {}
+    };
+
+    struct SBusStep
+    {
+        const CAudioBusLayout::SBus* wanted;
+        CAudioBus* bus;                 /**< the bus of the engine, null for a bus that is to be made, set when it is */
+        bool isNew;
+        Int32 parentIndex;              /**< index of the parent in the layout, -1 for a bus the engine has */
+        CAudioBus* parentBus;           /**< a parent that the engine has already, null when the layout makes it */
+        GUCEF::vector< SEffectStep > effects;
+        GUCEF::vector< TAudioEffectPtr > removedEffects;
+        GUCEF::vector< UInt32 > removedSends;
+        GUCEF::vector< SSendStep > keptSends;
+        GUCEF::vector< SSendStep > addedSends;
+        SBusStep( void ) : wanted( GUCEF_NULL ), bus( GUCEF_NULL ), isNew( false ), parentIndex( -1 ), parentBus( GUCEF_NULL ), effects(), removedEffects(), removedSends(), keptSends(), addedSends() {}
+    };
+
+    GUCEF::vector< SBusStep > buses;
+    GUCEF::vector< UInt32 > createOrder;        /**< indices of the new buses, every one after its parent */
+    UInt32 commandCount;
+
+    SLayoutPlan( void ) : buses(), createOrder(), commandCount( 0 ) {}
+};
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The buses that stand in for the buses a layout makes while its sends are checked for cycles, taken away afterwards */
+class CTemporaryBuses
+{
+    public:
+
+    CTemporaryBuses( void ) : m_buses() {}
+
+    ~CTemporaryBuses()
+    {
+        for ( size_t i=0; i<m_buses.size(); ++i )
+            GUCEF_DELETE m_buses[ i ];
+    }
+
+    CAudioBus* Make( const CString& name, CAudioBus* parent )
+    {
+        CAudioBus* bus = GUCEF_NEW CAudioBus( name, parent );
+        m_buses.push_back( bus );
+        return bus;
+    }
+
+    private:
+
+    CTemporaryBuses( const CTemporaryBuses& src );              /**< not implemented */
+    CTemporaryBuses& operator=( const CTemporaryBuses& src );   /**< not implemented */
+
+    GUCEF::vector< CAudioBus* > m_buses;
+};
+
+/** The construction options in the configuration of an effect, node "Options" */
+void
+OptionsOfConfig( const CORE::CDataNode& config, CORE::CValueList& options )
+{
+    const CORE::CDataNode* node = config.FindChild( "Options" );
+    if ( GUCEF_NULL == node )
+        return;
+    for ( CORE::CDataNode::TAttributeMap::const_iterator a=node->AttributeBegin(); a!=node->AttributeEnd(); ++a )
+        options.Set( (*a).first, (*a).second );
+}
+
+bool
+SameOptions( const CORE::CValueList& a, const CORE::CValueList& b )
+{
+    if ( a.GetKeyCount() != b.GetKeyCount() )
+        return false;
+    for ( UInt32 i=0; i<a.GetKeyCount(); ++i )
+    {
+        const CString key = a.GetKey( i ).AsString();
+        CORE::CVariant other;
+        if ( !b.TryGetValue( key, other ) || other.AsString() != a.GetValueAlways( key, "" ).AsString() )
+            return false;
+    }
+    return true;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::PlanBusLayout( const CAudioBusLayout& layout, SLayoutPlan& plan, CORE::TTaskStatus& refusal )
+{GUCEF_TRACE;
+
+    refusal = CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED;
+
+    const CAudioBusLayout::TBusVector& wantedBuses = layout.GetBuses();
+    const size_t count = wantedBuses.size();
+    CAudioBus* master = m_mixer->GetMasterBus();
+    const CString masterName = master->GetName();
+    const UInt32 maxEffects = m_mixer->GetMaxEffectsPerBus();
+    const UInt32 maxSends = m_mixer->GetMaxSendsPerBus();
+
+    // 1. the buses: names, which ones exist
+    typedef GUCEF::map< CString, size_t > TNameMap;
+    TNameMap indexByName;
+    plan.buses.resize( count );
+    for ( size_t i=0; i<count; ++i )
+    {
+        const CAudioBusLayout::SBus& wanted = wantedBuses[ i ];
+        SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        step.wanted = &wanted;
+        if ( wanted.name.IsNULLOrEmpty() || indexByName.find( wanted.name ) != indexByName.end() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the bus at position " << i << " has no name or a name that is used already" );
+            return false;
+        }
+        indexByName[ wanted.name ] = i;
+
+        bool ambiguous = false;
+        step.bus = FindBusUnique( wanted.name, ambiguous );
+        if ( ambiguous )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, more than one bus of the engine is named \"" << wanted.name << "\"" );
+            return false;
+        }
+        step.isNew = GUCEF_NULL == step.bus;
+    }
+
+    // 2. the parents: they have to exist or be made, and a bus that exists stays where it is
+    UInt32 newCount = 0;
+    for ( size_t i=0; i<count; ++i )
+    {
+        SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        const CAudioBusLayout::SBus& wanted = *step.wanted;
+        if ( step.isNew )
+            ++newCount;
+
+        if ( step.bus == master )
+        {
+            if ( !wanted.parent.IsNULLOrEmpty() )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the master bus has no parent but the layout gives it \"" << wanted.parent << "\"" );
+                return false;
+            }
+            continue;
+        }
+
+        const CString parentName = wanted.parent.IsNULLOrEmpty() ? masterName : wanted.parent;
+        if ( parentName == wanted.name )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, bus \"" << wanted.name << "\" is its own parent" );
+            return false;
+        }
+
+        TNameMap::const_iterator p = indexByName.find( parentName );
+        if ( p != indexByName.end() )
+        {
+            step.parentIndex = (Int32) (*p).second;
+            step.parentBus = plan.buses[ (*p).second ].bus;
+        }
+        else
+        {
+            bool ambiguous = false;
+            step.parentBus = FindBusUnique( parentName, ambiguous );
+            if ( ambiguous || GUCEF_NULL == step.parentBus )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the parent \"" << parentName << "\" of bus \"" << wanted.name << "\" is unknown or not unique" );
+                return false;
+            }
+        }
+
+        if ( !step.isNew && step.parentBus != step.bus->GetParent() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, bus \"" << wanted.name << "\" exists with another parent and a bus cannot be moved" );
+            return false;
+        }
+    }
+
+    // 3. the order in which the new buses are made: parents first
+    {
+        GUCEF::vector< bool > placed( count, false );
+        UInt32 remaining = 0;
+        for ( size_t i=0; i<count; ++i )
+        {
+            placed[ i ] = !plan.buses[ i ].isNew;
+            if ( plan.buses[ i ].isNew )
+                ++remaining;
+        }
+        while ( remaining > 0 )
+        {
+            bool progress = false;
+            for ( size_t i=0; i<count; ++i )
+            {
+                const SLayoutPlan::SBusStep& step = plan.buses[ i ];
+                if ( placed[ i ] || ( step.parentIndex >= 0 && !placed[ (size_t) step.parentIndex ] ) )
+                    continue;
+                plan.createOrder.push_back( (UInt32) i );
+                placed[ i ] = true;
+                --remaining;
+                progress = true;
+            }
+            if ( !progress )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the parents of the new buses form a cycle" );
+                return false;
+            }
+        }
+    }
+    if ( newCount > 0 && m_buses.size() + newCount >= m_params.GetMaxBuses() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, " << newCount << " new buses do not fit in the " << m_params.GetMaxBuses() << " buses of the engine" );
+        return false;
+    }
+    plan.commandCount += newCount;
+
+    // 4. stand-ins for the new buses, so the sends can be checked on a copy of the routing
+    CTemporaryBuses temporaryBuses;
+    GUCEF::vector< CAudioBus* > scratchBus( count, GUCEF_NULL );
+    CAudioBusRouting scratch( m_mixer->GetMaxBuses() );
+    scratch.AddBus( master, GUCEF_NULL );
+    for ( size_t i=0; i<m_buses.size(); ++i )
+    {
+        CAudioBus* existing = const_cast< CAudioBus* >( m_buses[ i ].GetPointerAlways() );
+        scratch.AddBus( existing, existing->GetParent() );
+    }
+    for ( size_t i=0; i<count; ++i )
+        scratchBus[ i ] = plan.buses[ i ].bus;
+    for ( size_t n=0; n<plan.createOrder.size(); ++n )
+    {
+        const size_t i = plan.createOrder[ n ];
+        const SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        CAudioBus* parent = step.parentIndex >= 0 ? scratchBus[ (size_t) step.parentIndex ] : step.parentBus;
+        scratchBus[ i ] = temporaryBuses.Make( step.wanted->name, parent );
+        if ( !scratch.AddBus( scratchBus[ i ], parent ) )
+            return false;
+    }
+
+    // what the buses that the layout does not name send stays as it is
+    {
+        GUCEF::vector< CAudioBus* > existing;
+        existing.push_back( master );
+        for ( size_t i=0; i<m_buses.size(); ++i )
+            existing.push_back( const_cast< CAudioBus* >( m_buses[ i ].GetPointerAlways() ) );
+        for ( size_t i=0; i<existing.size(); ++i )
+        {
+            if ( indexByName.find( existing[ i ]->GetName() ) != indexByName.end() )
+                continue;
+            TBusEntryMap::const_iterator b = m_busEntries.find( existing[ i ] );
+            if ( b == m_busEntries.end() )
+                continue;
+            for ( size_t s=0; s<(*b).second.sends.size(); ++s )
+                if ( GUCEF_NULL != (*b).second.sends[ s ] )
+                    scratch.AddSend( existing[ i ], (*b).second.sends[ s ] );
+        }
+    }
+
+    // 5. effects and sends of every named bus
+    CAudioEffectRegistry& registry = CAudioGlobal::Instance()->GetAudioEffectRegistry();
+    const CAudioFormat mixFormat = m_mixer->GetMixFormat();
+    for ( size_t i=0; i<count; ++i )
+    {
+        SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        const CAudioBusLayout::SBus& wanted = *step.wanted;
+        const SBusEntry* entry = GUCEF_NULL;
+        if ( !step.isNew )
+        {
+            TBusEntryMap::const_iterator b = m_busEntries.find( step.bus );
+            if ( b != m_busEntries.end() )
+                entry = &(*b).second;
+        }
+
+        // effects
+        GUCEF::vector< bool > slotWanted( maxEffects, false );
+        for ( size_t e=0; e<wanted.effects.size(); ++e )
+        {
+            const CAudioBusLayout::SEffect& wantedEffect = wanted.effects[ e ];
+            if ( wantedEffect.slot >= maxEffects || slotWanted[ wantedEffect.slot ] || wantedEffect.typeName.IsNULLOrEmpty() )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, an effect of bus \"" << wanted.name << "\" has no type, a slot beyond the " << maxEffects << " the bus has, or a slot that is used twice" );
+                return false;
+            }
+            slotWanted[ wantedEffect.slot ] = true;
+
+            const CString configType = wantedEffect.config.GetAttributeValueOrChildValueByName( "type" ).AsString();
+            if ( !configType.IsNULLOrEmpty() && configType.Lowercase() != wantedEffect.typeName.Lowercase() )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the effect in slot " << wantedEffect.slot << " of bus \"" << wanted.name << "\" is of type \"" << wantedEffect.typeName << "\" but has the configuration of type \"" << configType << "\"" );
+                return false;
+            }
+
+            SLayoutPlan::SEffectStep effectStep;
+            effectStep.slot = wantedEffect.slot;
+            effectStep.wanted = &wantedEffect;
+
+            TAudioEffectPtr live;
+            if ( GUCEF_NULL != entry && GUCEF_NULL != entry->effects[ wantedEffect.slot ] )
+            {
+                TEffectMap::const_iterator le = m_effects.find( entry->effects[ wantedEffect.slot ] );
+                if ( le != m_effects.end() )
+                    live = (*le).second.effect;
+            }
+
+            CORE::CValueList wantedOptions;
+            OptionsOfConfig( wantedEffect.config, wantedOptions );
+
+            TAudioEffectPtr candidate;
+            bool sameKind = !live.IsNULL() && live->GetEffectTypeName().Lowercase() == wantedEffect.typeName.Lowercase();
+            if ( sameKind )
+            {
+                // made without being prepared: it tells which options the layout's make, and what a new effect is like
+                candidate = registry.CreateEffect( wantedEffect.typeName, wantedOptions );
+                if ( candidate.IsNULL() )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, no effect of type \"" << wantedEffect.typeName << "\" can be made with the options of the layout" );
+                    return false;
+                }
+                CORE::CValueList liveOptions, candidateOptions;
+                live->GetConstructionOptions( liveOptions );
+                candidate->GetConstructionOptions( candidateOptions );
+                sameKind = SameOptions( candidateOptions, liveOptions );
+            }
+
+            if ( sameKind )
+            {
+                effectStep.action = SLayoutPlan::EFFECT_KEEP;
+                effectStep.effect = live;
+                effectStep.baseline = candidate;
+            }
+            else
+            {
+                if ( candidate.IsNULL() )
+                    candidate = registry.CreateEffect( wantedEffect.typeName, wantedOptions );
+                if ( candidate.IsNULL() )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, no effect of type \"" << wantedEffect.typeName << "\" can be made" );
+                    return false;
+                }
+                if ( !candidate->Prepare( mixFormat, m_maxBlock ) )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the effect of type \"" << wantedEffect.typeName << "\" could not be prepared for " << mixFormat.ToString() );
+                    return false;
+                }
+                if ( !candidate->ApplyConfig( wantedEffect.config, GUCEF_NULL ) )
+                    return false;
+                effectStep.action = live.IsNULL() ? SLayoutPlan::EFFECT_INSERT : SLayoutPlan::EFFECT_REPLACE;
+                effectStep.effect = candidate;
+                effectStep.oldEffect = live;
+                plan.commandCount += live.IsNULL() ? 1 : 2;
+            }
+            step.effects.push_back( effectStep );
+        }
+
+        if ( GUCEF_NULL != entry )
+        {
+            for ( size_t slot=0; slot<entry->effects.size(); ++slot )
+            {
+                if ( GUCEF_NULL == entry->effects[ slot ] || ( slot < maxEffects && slotWanted[ slot ] ) )
+                    continue;
+                TEffectMap::const_iterator le = m_effects.find( entry->effects[ slot ] );
+                if ( le != m_effects.end() )
+                {
+                    step.removedEffects.push_back( (*le).second.effect );
+                    ++plan.commandCount;
+                }
+            }
+        }
+
+        // sends
+        if ( wanted.sends.size() > maxSends )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, bus \"" << wanted.name << "\" has " << wanted.sends.size() << " sends and the engine allows " << maxSends << " per bus" );
+            return false;
+        }
+        GUCEF::vector< bool > slotKept( GUCEF_NULL == entry ? 0 : entry->sends.size(), false );
+        for ( size_t s=0; s<wanted.sends.size(); ++s )
+        {
+            const CAudioBusLayout::SSend& wantedSend = wanted.sends[ s ];
+            SLayoutPlan::SSendStep sendStep;
+            sendStep.wanted = &wantedSend;
+
+            TNameMap::const_iterator t = indexByName.find( wantedSend.target );
+            if ( t != indexByName.end() )
+            {
+                sendStep.targetIndex = (Int32) (*t).second;
+                sendStep.targetBus = plan.buses[ (*t).second ].bus;
+            }
+            else
+            {
+                bool ambiguous = false;
+                sendStep.targetBus = FindBusUnique( wantedSend.target, ambiguous );
+                if ( ambiguous || GUCEF_NULL == sendStep.targetBus )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the target \"" << wantedSend.target << "\" of a send of bus \"" << wanted.name << "\" is unknown or not unique" );
+                    return false;
+                }
+            }
+
+            CAudioBus* scratchTarget = sendStep.targetIndex >= 0 ? scratchBus[ (size_t) sendStep.targetIndex ] : sendStep.targetBus;
+            if ( !scratch.AddSend( scratchBus[ i ], scratchTarget ) )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout refused, the send from \"" << wanted.name << "\" to \"" << wantedSend.target << "\" would feed a bus into itself" );
+                return false;
+            }
+
+            // a send of the engine to the same target on the same side of the fader is kept
+            bool kept = false;
+            for ( size_t slot=0; !kept && GUCEF_NULL != entry && slot<entry->sends.size(); ++slot )
+            {
+                if ( !slotKept[ slot ] && GUCEF_NULL != sendStep.targetBus && entry->sends[ slot ] == sendStep.targetBus && ( 0 != entry->sendPreFader[ slot ] ) == wantedSend.preFader )
+                {
+                    slotKept[ slot ] = true;
+                    sendStep.slot = (UInt32) slot;
+                    kept = true;
+                }
+            }
+            if ( kept )
+                step.keptSends.push_back( sendStep );
+            else
+            {
+                step.addedSends.push_back( sendStep );
+                ++plan.commandCount;
+            }
+        }
+        for ( size_t slot=0; slot<slotKept.size(); ++slot )
+        {
+            if ( !slotKept[ slot ] && GUCEF_NULL != entry->sends[ slot ] )
+            {
+                step.removedSends.push_back( (UInt32) slot );
+                ++plan.commandCount;
+            }
+        }
+    }
+
+    // 6. room for the commands
+    if ( m_pending.size() + plan.commandCount > m_maxOutstanding || plan.commandCount > m_commands->GetCapacity() - m_commands->GetSize() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout needs " << plan.commandCount << " commands and the engine has no room for that many right now, try again later" );
+        refusal = CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::ExecuteBusLayout( const CAudioBusLayout& layout, SLayoutPlan& plan, CORE::CFutureResult::TFutureResultVector& parts )
+{GUCEF_TRACE;
+
+    // 1. the new buses, parents first
+    for ( size_t n=0; n<plan.createOrder.size(); ++n )
+    {
+        SLayoutPlan::SBusStep& step = plan.buses[ plan.createOrder[ n ] ];
+        CAudioBus* parent = step.parentIndex >= 0 ? plan.buses[ (size_t) step.parentIndex ].bus : step.parentBus;
+        CORE::CFutureResult made = MakeReadyFuture();
+        step.bus = CreateBusInternal( step.wanted->name, parent, &made );
+        if ( GUCEF_NULL == step.bus )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout: bus \"" << step.wanted->name << "\" could not be made" );
+            return false;
+        }
+        parts.push_back( made );
+    }
+
+    // 2. what is changed without the audio thread
+    for ( size_t i=0; i<plan.buses.size(); ++i )
+    {
+        plan.buses[ i ].bus->SetVolumeInDecibels( plan.buses[ i ].wanted->volumeInDecibels );
+        plan.buses[ i ].bus->SetMuted( plan.buses[ i ].wanted->muted );
+    }
+
+    // 3. effects: out first, so the slots are free for the ones that come in
+    for ( size_t i=0; i<plan.buses.size(); ++i )
+    {
+        SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        for ( size_t r=0; r<step.removedEffects.size(); ++r )
+        {
+            CORE::CFutureResult done = RemoveEffect( step.bus, step.removedEffects[ r ] );
+            if ( done.HasNoFuture() )
+                return false;
+            parts.push_back( done );
+        }
+        for ( size_t e=0; e<step.effects.size(); ++e )
+        {
+            if ( SLayoutPlan::EFFECT_REPLACE == step.effects[ e ].action )
+            {
+                CORE::CFutureResult done = RemoveEffect( step.bus, step.effects[ e ].oldEffect );
+                if ( done.HasNoFuture() )
+                    return false;
+                parts.push_back( done );
+            }
+        }
+        for ( size_t e=0; e<step.effects.size(); ++e )
+        {
+            SLayoutPlan::SEffectStep& effectStep = step.effects[ e ];
+            if ( SLayoutPlan::EFFECT_KEEP == effectStep.action )
+            {
+                if ( !effectStep.effect->ApplyConfig( effectStep.wanted->config, effectStep.baseline.GetPointerAlways() ) )
+                    return false;
+            }
+            else
+            {
+                CORE::CFutureResult done = InsertEffect( step.bus, effectStep.slot, effectStep.effect );
+                if ( done.HasNoFuture() )
+                    return false;
+                parts.push_back( done );
+            }
+            step.bus->SetEffectEnabled( effectStep.slot, effectStep.wanted->enabled );
+            step.bus->SetEffectMix( effectStep.slot, effectStep.wanted->wet, effectStep.wanted->dry );
+        }
+    }
+
+    // 4. sends: all that go before any that come, so the routing is never more than the old and the new together
+    for ( size_t i=0; i<plan.buses.size(); ++i )
+    {
+        SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        for ( size_t r=0; r<step.removedSends.size(); ++r )
+        {
+            CORE::CFutureResult done = RemoveSend( step.bus, step.removedSends[ r ] );
+            if ( done.HasNoFuture() )
+                return false;
+            parts.push_back( done );
+        }
+    }
+    for ( size_t i=0; i<plan.buses.size(); ++i )
+    {
+        SLayoutPlan::SBusStep& step = plan.buses[ i ];
+        for ( size_t k=0; k<step.keptSends.size(); ++k )
+            step.bus->SetSendLevel( step.keptSends[ k ].slot, CAudioBus::DecibelsToLinear( step.keptSends[ k ].wanted->levelInDecibels ) );
+        for ( size_t a=0; a<step.addedSends.size(); ++a )
+        {
+            SLayoutPlan::SSendStep& sendStep = step.addedSends[ a ];
+            CAudioBus* target = sendStep.targetIndex >= 0 ? plan.buses[ (size_t) sendStep.targetIndex ].bus : sendStep.targetBus;
+            CORE::CFutureResult done = AddSend( step.bus, target, CAudioBus::DecibelsToLinear( sendStep.wanted->levelInDecibels ), sendStep.wanted->preFader );
+            if ( done.HasNoFuture() )
+                return false;
+            parts.push_back( done );
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::ApplyBusLayout( const CAudioBusLayout& layout )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    SLayoutPlan plan;
+    CORE::TTaskStatus refusal = CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED;
+    if ( !PlanBusLayout( layout, plan, refusal ) )
+        return MakeFailedFuture( refusal );
+
+    CORE::CFutureResult::TFutureResultVector parts;
+    if ( !ExecuteBusLayout( layout, plan, parts ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a step of a bus layout that was checked beforehand failed, the layout is applied in part" );
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED );
+    }
+    if ( parts.empty() )
+        return MakeReadyFuture();
+
+    SLayoutApply apply;
+    apply.source = TSourcePtr( GUCEF_NEW CORE::CFutureResultSource() );
+    apply.parts = parts;
+    m_layoutApplies.push_back( apply );
+    return apply.source->GetFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::CompleteLayoutApplies( void )
+{GUCEF_TRACE;
+
+    size_t i = 0;
+    while ( i < m_layoutApplies.size() )
+    {
+        SLayoutApply& apply = m_layoutApplies[ i ];
+        bool allReady = true;
+        bool anyFailed = false;
+        for ( size_t p=0; p<apply.parts.size(); ++p )
+        {
+            if ( !apply.parts[ p ].IsReady() )
+            {
+                allReady = false;
+                break;
+            }
+            if ( apply.parts[ p ].HasNoFuture() )
+                anyFailed = true;
+        }
+        if ( !allReady )
+        {
+            ++i;
+            continue;
+        }
+
+        if ( anyFailed )
+            apply.source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the audio thread could not carry out a command of the bus layout" );
+        else
+            apply.source->Complete();
+        m_layoutApplies.erase( m_layoutApplies.begin() + i );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ApplyDeviceFormat( const CAudioFormat& deviceFormat )
+{GUCEF_TRACE;
+
+    m_deviceFormat = deviceFormat;
+    m_directFloat = SAMPLETYPE_FLOAT32 == m_deviceFormat.GetSampleType();
+    if ( !m_directFloat )
+        m_scratch.assign( (size_t) m_maxBlock * m_deviceFormat.GetChannelCount(), 0.0f );
+    else
+        m_scratch.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::PrepareForMixFormat( const CAudioFormat& mixFormat )
+{GUCEF_TRACE;
+
+    // Nothing renders while this runs (both devices are stopped), so memory can be replaced freely
+    m_mixer->SetMixFormat( mixFormat );
+    const CAudioFormat& newMix = m_mixer->GetMixFormat();
+
+    // buses whose attach command is still on its way are prepared as well: they will be mixed in this format
+    for ( size_t b=0; b<m_buses.size(); ++b )
+        m_mixer->PrepareBus( m_buses[ b ].GetPointerAlways() );
+
+    // voices that play, and voices whose start command is still on its way, keep their position
+    for ( TVoiceMap::iterator v=m_voices.begin(); v!=m_voices.end(); ++v )
+    {
+        if ( !m_mixer->ReprepareVoice( (*v).first ) )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a voice cannot be mixed in " << newMix.ToString() << ", it will end" );
+    }
+
+    // effects in slots, and effects on their way into one
+    for ( TEffectMap::iterator e=m_effects.begin(); e!=m_effects.end(); ++e )
+    {
+        CAudioEffect* effect = (*e).first;
+        if ( !effect->Prepare( newMix, m_maxBlock ) )
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: an effect of type \"" << effect->GetEffectTypeName() << "\" could not be prepared for " << newMix.ToString() << ", it passes the audio unchanged" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ApplyLimiterParams( const CAudioEngineParams& params )
+{GUCEF_TRACE;
+
+    // the mode the limiter has when it is on comes first, then whether it is on: a limiter that is off keeps that mode
+    m_mixer->SetLimiterCeilingInDecibels( params.GetLimiterCeilingInDecibels() );
+    m_mixer->SetLimiterLookaheadInMs( params.GetLimiterLookaheadInMs() );
+    m_mixer->SetLimiterReleaseInMs( params.GetLimiterReleaseInMs() );
+    m_mixer->SetLimiterMode( LimiterModeWhenEnabled( params ) );
+    m_mixer->SetLimiterEnabled( params.GetLimiterEnabled() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CAudioEngine::GetMixLatencyInFrames( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_initialized ? m_mixer->GetLatencyInFrames() : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::SwapDevice( TAudioDevicePtr& newDevice, const CString& usedDriverName, const CAudioEngineParams& params )
+{GUCEF_TRACE;
+
+    const CAudioFormat newDeviceFormat = newDevice->GetFormat();
+    if ( !newDeviceFormat.IsValid() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the new audio device reports no usable format, the current device stays in use" );
+        newDevice.Unlink();
+        return false;
+    }
+
+    CAudioFormat newMix( newDeviceFormat );
+    newMix.SetSampleType( SAMPLETYPE_FLOAT32 );
+    const CAudioFormat oldMix = m_mixer->GetMixFormat();
+    const CAudioFormat oldDeviceFormat = m_deviceFormat;
+    const bool mixChanges = !( newMix == oldMix );
+
+    // From here on no render callback runs: the old device is stopped and the new one is not started yet
+    if ( !m_device.IsNULL() )
+        m_device->Stop();
+
+    if ( mixChanges )
+        PrepareForMixFormat( newMix );
+    ApplyDeviceFormat( newDeviceFormat );
+    ApplyLimiterParams( params );
+
+    if ( m_deviceRunWanted && !newDevice->Start() )
+    {
+        // back to the old device, which is still open
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the new audio device could not be started, the previous device is used again" );
+        newDevice.Unlink();
+        if ( mixChanges )
+            PrepareForMixFormat( oldMix );
+        ApplyDeviceFormat( oldDeviceFormat );
+        ApplyLimiterParams( m_params );
+        if ( !m_device.IsNULL() )
+            m_device->Start();
+        return false;
+    }
+
+    // what the reopen does not change is reported, so a caller does not expect it to
+    if ( params.GetMaxVoices() != m_params.GetMaxVoices() || params.GetMaxBuses() != m_params.GetMaxBuses() ||
+         params.GetMaxBlockFrames() != m_params.GetMaxBlockFrames() || params.GetThreadingMode() != m_params.GetThreadingMode() ||
+         params.GetThreadPoolName() != m_params.GetThreadPoolName() || params.GetMaxEffectsPerBus() != m_params.GetMaxEffectsPerBus() ||
+         params.GetMaxSendsPerBus() != m_params.GetMaxSendsPerBus() || params.GetCommandQueueSize() != m_params.GetCommandQueueSize() ||
+         params.GetEventQueueSize() != m_params.GetEventQueueSize() || params.GetMaxVoiceEffects() != m_params.GetMaxVoiceEffects() ||
+         params.GetMaxVoiceSends() != m_params.GetMaxVoiceSends() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a device reopen keeps the capacities, block size, queues and threading the engine was initialized with; the different values asked for are ignored" );
+    }
+
+    TAudioDevicePtr oldDevice = m_device;
+    m_device = newDevice;
+    newDevice.Unlink();
+    m_usedDriverName = usedDriverName;
+    m_params.SetDriverName( params.GetDriverName() );
+    m_params.GetDeviceParams() = params.GetDeviceParams();
+    m_params.GetDeviceParams().SetDirection( AUDIODIRECTION_PLAYBACK );
+    m_params.SetLimiterMode( LimiterModeWhenEnabled( params ) );
+    m_params.SetLimiterEnabled( params.GetLimiterEnabled() );
+    m_params.SetLimiterCeilingInDecibels( params.GetLimiterCeilingInDecibels() );
+    m_params.SetLimiterLookaheadInMs( params.GetLimiterLookaheadInMs() );
+    m_params.SetLimiterReleaseInMs( params.GetLimiterReleaseInMs() );
+
+    // the old device is closed last, when nothing refers to it any more
+    oldDevice.Unlink();
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: device reopened with driver \"" << m_usedDriverName << "\", device format " << m_deviceFormat.ToString() );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::ReopenDevice( const CAudioEngineParams& params )
+{GUCEF_TRACE;
+
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( !m_initialized || m_reopenPending )
+            return false;
+        m_reopenPending = true;
+    }
+
+    // opened on this thread without the engine lock: opening a device can take a while, the audio goes on meanwhile
+    CAudioEngineParams wanted( params );
+    wanted.GetDeviceParams().SetDirection( AUDIODIRECTION_PLAYBACK );
+    TAudioDevicePtr device;
+    CString usedDriverName;
+    const bool opened = CAudioGlobal::Instance()->GetAudioDriverRegistry().OpenDevice( wanted.GetDriverName(), wanted.GetDeviceParams(), this, device, usedDriverName ) && !device.IsNULL();
+
+    MT::CScopeMutex lock( m_lock );
+    m_reopenPending = false;
+    if ( !opened )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the new audio device could not be opened, the current device stays in use" );
+        return false;
+    }
+    if ( !m_initialized )
+        return false;
+    return SwapDevice( device, usedDriverName, wanted );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CAudioEngine::ReopenDeviceAsync( const CAudioEngineParams& params )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_initialized || m_reopenPending )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    CAudioEngineParams wanted( params );
+    wanted.GetDeviceParams().SetDirection( AUDIODIRECTION_PLAYBACK );
+    TAudioEngineReopenRequestPtr request( GUCEF_NEW CAudioEngineReopenRequest( wanted, this ) );
+
+    // the device is opened by a task of the engine's pool. Where none can be started the owner side opens it in Update()
+    bool started = false;
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    CORE::ThreadPoolPtr pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_params.GetThreadPoolName() );
+    if ( !pool.IsNULL() )
+    {
+        CORE::CTSharedPtr< CAudioEngineReopenTask, MT::CMutex > task( GUCEF_NEW CAudioEngineReopenTask( request ) );
+        CORE::CFutureResult taskFuture = pool->StartTaskWithConsumer( task );
+        started = !taskFuture.HasNoFuture();
+    }
+    #endif
+    if ( !started )
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: no task could be started to open the new device, it is opened on the owner side" );
+
+    m_reopenPending = true;
+    m_reopenRequest = request;
+    m_reopenSource = TSourcePtr( GUCEF_NEW CORE::CFutureResultSource() );
+    m_reopenOnOwner = !started;
+    return m_reopenSource->GetFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::FinishReopenWhenOpened( void )
+{GUCEF_TRACE;
+
+    if ( m_reopenRequest.IsNULL() )
+        return;
+    if ( m_reopenOnOwner )
+    {
+        m_reopenOnOwner = false;
+        m_reopenRequest->Open();
+    }
+    if ( !m_reopenRequest->IsDone() )
+        return;
+
+    TAudioEngineReopenRequestPtr request = m_reopenRequest;
+    TSourcePtr source = m_reopenSource;
+    m_reopenRequest.Unlink();
+    m_reopenSource.Unlink();
+    m_reopenPending = false;
+
+    TAudioDevicePtr device;
+    CString usedDriverName;
+    if ( !request->TakeDevice( device, usedDriverName ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the new audio device could not be opened, the current device stays in use" );
+        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the new audio device could not be opened" );
+        return;
+    }
+    if ( SwapDevice( device, usedDriverName, request->GetParams() ) )
+        source->Complete();
+    else
+        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the new audio device could not be used" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::AbandonReopen( void )
+{GUCEF_TRACE;
+
+    if ( !m_reopenRequest.IsNULL() )
+        m_reopenRequest->Abandon();
+    if ( !m_reopenSource.IsNULL() )
+        m_reopenSource->Cancel();
+    m_reopenRequest.Unlink();
+    m_reopenSource.Unlink();
+    m_reopenPending = false;
+    m_reopenOnOwner = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CAudioEngine::SetMasterVolume( Float32 volume )
 {GUCEF_TRACE;
@@ -767,6 +2327,12 @@ CAudioEngine::Update( void )
         }
     }
 
+    // bus layouts whose commands have all been carried out are finished here
+    CompleteLayoutApplies();
+
+    // a device reopen whose new device is open is finished here, on the owner side
+    FinishReopenWhenOpened();
+
     if ( m_deviceLost.Exchange( false ) )
     {
         ++handled;
@@ -778,8 +2344,125 @@ CAudioEngine::Update( void )
 /*-------------------------------------------------------------------------*/
 
 void
+CAudioEngine::CompletePending( UInt32 token, bool success )
+{GUCEF_TRACE;
+
+    TPendingMap::iterator i = m_pending.find( token );
+    if ( i == m_pending.end() )
+        return;
+    TSourcePtr source = (*i).second;
+    m_pending.erase( i );
+    if ( source.IsNULL() )
+        return;
+    if ( success )
+        source->Complete();
+    else
+        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the audio thread could not carry out the command" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::HandleCommandEvent( const SEvent& event )
+{GUCEF_TRACE;
+
+    switch ( event.type )
+    {
+        case SEvent::EVENT_COMMAND_DONE :
+        {
+            CompletePending( event.token, true );
+            break;
+        }
+        case SEvent::EVENT_COMMAND_FAILED :
+        {
+            // an effect that did not get its slot is not used by the audio thread: the engine lets go of it
+            TEffectMap::iterator e = m_effects.find( event.effect );
+            if ( e != m_effects.end() )
+            {
+                TBusEntryMap::iterator b = m_busEntries.find( (*e).second.bus );
+                if ( b != m_busEntries.end() && (*e).second.slot < (*b).second.effects.size() && (*b).second.effects[ (*e).second.slot ] == event.effect )
+                    (*b).second.effects[ (*e).second.slot ] = GUCEF_NULL;
+                m_effects.erase( e );
+            }
+            CompletePending( event.token, false );
+            break;
+        }
+        case SEvent::EVENT_EFFECT_RELEASED :
+        {
+            // the last use by the audio thread is over: the engine's reference goes, here on the owner side
+            TEffectMap::iterator e = m_effects.find( event.effect );
+            if ( e != m_effects.end() )
+            {
+                TAudioEffectPtr effect = (*e).second.effect;
+                m_effects.erase( e );
+                CompletePending( event.token, true );
+                effect.Unlink();
+            }
+            else
+                CompletePending( event.token, true );
+            break;
+        }
+        case SEvent::EVENT_ROUTING_APPLIED :
+        {
+            RecycleOrderTable( event.order );
+            CompletePending( event.token, true );
+            break;
+        }
+        default :
+            break;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::CheckVoiceRouting( CAudioVoice* voice ) const
+{GUCEF_TRACE;
+
+    // what the engine was made for: the voice may have been made with other capacities than those of the engine
+    if ( voice->GetEffectCount() > m_params.GetMaxVoiceEffects() )
+        return false;
+    for ( UInt32 s=0; s<voice->GetMaxSends(); ++s )
+    {
+        CAudioBus* target = voice->GetSendBus( s );
+        if ( GUCEF_NULL == target )
+            continue;
+        if ( s >= m_params.GetMaxVoiceSends() || m_busEntries.find( target ) == m_busEntries.end() )
+            return false;
+    }
+
+    // an effect has one owner at a time: one bus slot or one voice
+    for ( UInt32 e=0; e<voice->GetEffectCount(); ++e )
+    {
+        CAudioEffect* effect = voice->GetEffectPointer( e );
+        if ( m_effects.find( effect ) != m_effects.end() || m_voiceEffects.find( effect ) != m_voiceEffects.end() )
+            return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ReleaseVoiceEffects( CAudioVoice* voice )
+{GUCEF_TRACE;
+
+    for ( UInt32 e=0; e<voice->GetEffectCount(); ++e )
+        m_voiceEffects.erase( voice->GetEffectPointer( e ) );
+    voice->ReleaseEffects();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CAudioEngine::HandleEvent( const SEvent& event )
 {GUCEF_TRACE;
+
+    if ( event.type >= SEvent::EVENT_COMMAND_DONE )
+    {
+        HandleCommandEvent( event );
+        return;
+    }
 
     TVoiceMap::iterator i = m_voices.find( event.voice );
     if ( i == m_voices.end() )
@@ -799,6 +2482,7 @@ CAudioEngine::HandleEvent( const SEvent& event )
         }
         case SEvent::EVENT_VOICE_START_FAILED :
         {
+            ReleaseVoiceEffects( event.voice );
             if ( !entry.startSource.IsNULL() )
                 entry.startSource->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "no free voice in the mixer" );
             if ( !entry.stopSource.IsNULL() )   entry.stopSource->Complete();
@@ -809,6 +2493,8 @@ CAudioEngine::HandleEvent( const SEvent& event )
         }
         case SEvent::EVENT_VOICE_ENDED :
         {
+            // the audio thread has taken the voice out: its effects are let go of here, on the owner side
+            ReleaseVoiceEffects( event.voice );
             TAudioVoicePtr voice = entry.voice;
             if ( !entry.startSource.IsNULL() )  entry.startSource->Complete();
             if ( !entry.stopSource.IsNULL() )   entry.stopSource->Complete();
@@ -851,6 +2537,7 @@ CAudioEngine::WaitFor( const CORE::CFutureResult& future, UInt32 timeoutInMs )
 void
 CAudioEngine::ProcessCommands( void )
 {
+    // Commands hold plain pointers only: popping one copies a few words, no lock, no reference count
     SCommand command;
     while ( m_commands->Pop( command ) )
     {
@@ -867,13 +2554,62 @@ CAudioEngine::ProcessCommands( void )
             case SCommand::COMMAND_ATTACH_BUS :
             {
                 m_mixer->AttachBus( command.bus );
+                ApplyBusOrder( command.order, command.token );
+                break;
+            }
+            case SCommand::COMMAND_INSERT_EFFECT :
+            {
+                SEvent event;
+                event.token = command.token;
+                if ( GUCEF_NULL == m_mixer->GetBusEffect( command.bus, command.index ) && m_mixer->SetBusEffect( command.bus, command.index, command.effect ) )
+                    event.type = SEvent::EVENT_COMMAND_DONE;
+                else
+                {
+                    event.type = SEvent::EVENT_COMMAND_FAILED;
+                    event.effect = command.effect;
+                }
+                PostEvent( event );
+                break;
+            }
+            case SCommand::COMMAND_REMOVE_EFFECT :
+            {
+                if ( m_mixer->GetBusEffect( command.bus, command.index ) == command.effect )
+                    m_mixer->SetBusEffect( command.bus, command.index, GUCEF_NULL );
+                SEvent event;
+                event.type = SEvent::EVENT_EFFECT_RELEASED;
+                event.effect = command.effect;
+                event.token = command.token;
+                PostEvent( event );
+                break;
+            }
+            case SCommand::COMMAND_SET_SEND :
+            {
+                m_mixer->SetBusSend( command.bus, command.index, command.target, command.preFader );
+                ApplyBusOrder( command.order, command.token );
                 break;
             }
             default :
                 break;
         }
-        command = SCommand();       // lets go of the reference to the bus
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::ApplyBusOrder( SOrderTable* order, UInt32 token )
+{
+    // the table that was in use goes back to the owner side, which recycles it
+    SEvent event;
+    event.type = SEvent::EVENT_ROUTING_APPLIED;
+    event.order = m_audioOrderTable;
+    event.token = token;
+    if ( GUCEF_NULL != order )
+    {
+        m_mixer->SetBusOrder( &order->buses[ 0 ], order->count );
+        m_audioOrderTable = order;
+    }
+    PostEvent( event );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -884,6 +2620,14 @@ CAudioEngine::PostEvent( SEvent::EType type, CAudioVoice* voice )
     SEvent event;
     event.type = type;
     event.voice = voice;
+    PostEvent( event );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::PostEvent( const SEvent& event )
+{
     if ( !m_events->Push( event ) )
         m_droppedEvents.FetchAdd( 1, MT::MEMORDER_RELAXED );
 }
@@ -891,8 +2635,11 @@ CAudioEngine::PostEvent( SEvent::EType type, CAudioVoice* voice )
 /*-------------------------------------------------------------------------*/
 
 void
-CAudioEngine::OnRenderAudio( void* buffer, UInt32 frameCount )
+CAudioEngine::OnRenderAudio( void* buffer, UInt32 frameCount ) GUCEF_AUDIO_REALTIME_CONTEXT
 {
+    // denormals are flushed for the duration of the render: a decaying tail must not cost more cpu than an active signal
+    CORE::CDenormalFlushScope denormalFlushScope;
+
     ProcessCommands();
 
     const UInt32 channels = m_deviceFormat.GetChannelCount();

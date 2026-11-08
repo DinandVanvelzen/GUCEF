@@ -40,7 +40,26 @@ IAudioSource::~IAudioSource()
 /*-------------------------------------------------------------------------*/
 
 bool
+IAudioSource::IsRealtimeSafe( void ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 IAudioSource::IsSeekable( void ) const
+{
+    // no trace macro: this runs where the audio is mixed
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IAudioSource::GetMetaData( CORE::CValueList& ) const
 {GUCEF_TRACE;
 
     return false;
@@ -50,7 +69,8 @@ IAudioSource::IsSeekable( void ) const
 
 bool
 IAudioSource::SeekToFrame( UInt64 )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return false;
 }

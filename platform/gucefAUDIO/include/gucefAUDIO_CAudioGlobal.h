@@ -49,6 +49,7 @@ class CGUCEFAUDIOModule;
 class CAudioCodecRegistry;
 class CAudioDriverRegistry;
 class CAudioCodecPluginManager;
+class CAudioEffectRegistry;
 
 /*-------------------------------------------------------------------------*/
 
@@ -71,6 +72,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioGlobal
     /** Loads audio codec plugins with the C interface; their codec types end up in the codec registry */
     CAudioCodecPluginManager& GetAudioCodecPluginManager( void );
 
+    /** All audio effect types by type name. Built-in effects are registered when the module starts, effect plugins add theirs */
+    CAudioEffectRegistry& GetAudioEffectRegistry( void );
+
     private:
     friend class CGUCEFAUDIOModule;
 
@@ -92,6 +96,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioGlobal
     CAudioCodecRegistry* m_audioCodecRegistry;
     CAudioDriverRegistry* m_audioDriverRegistry;
     CAudioCodecPluginManager* m_audioCodecPluginManager;
+    CAudioEffectRegistry* m_audioEffectRegistry;
 
     static CAudioGlobal* g_instance;
 };

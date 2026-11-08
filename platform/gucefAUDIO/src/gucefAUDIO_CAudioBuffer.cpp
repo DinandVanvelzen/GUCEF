@@ -49,6 +49,7 @@ namespace AUDIO {
 CAudioBuffer::CAudioBuffer( void )
     : m_format()
     , m_data()
+    , m_dataBase( GUCEF_NULL )
     , m_frameCount( 0 )
 {GUCEF_TRACE;
 
@@ -59,6 +60,7 @@ CAudioBuffer::CAudioBuffer( void )
 CAudioBuffer::CAudioBuffer( const CAudioFormat& format, UInt32 frameCount )
     : m_format( format )
     , m_data()
+    , m_dataBase( GUCEF_NULL )
     , m_frameCount( 0 )
 {GUCEF_TRACE;
 
@@ -70,6 +72,7 @@ CAudioBuffer::CAudioBuffer( const CAudioFormat& format, UInt32 frameCount )
 CAudioBuffer::CAudioBuffer( const CAudioFormat& format, const void* frames, UInt32 frameCount )
     : m_format( format )
     , m_data()
+    , m_dataBase( GUCEF_NULL )
     , m_frameCount( 0 )
 {GUCEF_TRACE;
 
@@ -82,6 +85,7 @@ CAudioBuffer::CAudioBuffer( const CAudioFormat& format, const void* frames, UInt
 CAudioBuffer::CAudioBuffer( const CAudioBuffer& src )
     : m_format( src.m_format )
     , m_data()
+    , m_dataBase( GUCEF_NULL )
     , m_frameCount( 0 )
 {GUCEF_TRACE;
 
@@ -100,6 +104,7 @@ CAudioBuffer::operator=( const CAudioBuffer& src )
         m_format = src.m_format;
         m_frameCount = 0;
         m_data.Clear( true );
+        RefreshDataBase();
         if ( Resize( src.m_frameCount ) && src.m_frameCount > 0 )
             memcpy( m_data.GetBufferPtr(), src.m_data.GetConstBufferPtr(), (size_t) src.m_frameCount * m_format.GetBytesPerFrame() );
     }
@@ -117,7 +122,8 @@ CAudioBuffer::~CAudioBuffer()
 
 const CAudioFormat&
 CAudioBuffer::GetFormat( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_format;
 }
@@ -126,7 +132,8 @@ CAudioBuffer::GetFormat( void ) const
 
 UInt32
 CAudioBuffer::GetFrameCount( void ) const
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     return m_frameCount;
 }
@@ -164,22 +171,33 @@ CAudioBuffer::GetDurationInSeconds( void ) const
 
 void*
 CAudioBuffer::GetDataPtr( UInt32 frame )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
-    if ( frame > m_frameCount )
+    if ( frame > m_frameCount || GUCEF_NULL == m_dataBase )
         return GUCEF_NULL;
-    return m_data.GetBufferPtr( frame * m_format.GetBytesPerFrame() );
+    return m_dataBase + (size_t) frame * m_format.GetBytesPerFrame();
 }
 
 /*-------------------------------------------------------------------------*/
 
 const void*
 CAudioBuffer::GetDataPtr( UInt32 frame ) const
+{
+    // no trace macro: this runs where the audio is mixed
+
+    if ( frame > m_frameCount || GUCEF_NULL == m_dataBase )
+        return GUCEF_NULL;
+    return m_dataBase + (size_t) frame * m_format.GetBytesPerFrame();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioBuffer::RefreshDataBase( void )
 {GUCEF_TRACE;
 
-    if ( frame > m_frameCount )
-        return GUCEF_NULL;
-    return m_data.GetConstBufferPtr( frame * m_format.GetBytesPerFrame() );
+    m_dataBase = static_cast< UInt8* >( m_data.GetBufferPtr() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -201,6 +219,7 @@ CAudioBuffer::Resize( UInt32 frameCount )
         return false;
     m_data.SetDataSize( (UInt32) newSize );
     m_frameCount = frameCount;
+    RefreshDataBase();
 
     if ( frameCount > oldFrameCount )
         FillSilence( oldFrameCount, frameCount - oldFrameCount );
@@ -215,13 +234,15 @@ CAudioBuffer::Clear( void )
 
     m_data.Clear( true );
     m_frameCount = 0;
+    RefreshDataBase();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
 CAudioBuffer::FillSilence( UInt32 firstFrame, UInt32 count )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     if ( firstFrame >= m_frameCount )
         return;
@@ -230,7 +251,7 @@ CAudioBuffer::FillSilence( UInt32 firstFrame, UInt32 count )
 
     // Unsigned 8 bit audio has its zero point in the middle, every other type has it at zero
     const int silenceByte = ( SAMPLETYPE_UINT8 == m_format.GetSampleType() ) ? 128 : 0;
-    memset( m_data.GetBufferPtr( firstFrame * m_format.GetBytesPerFrame() ), silenceByte, (size_t) count * m_format.GetBytesPerFrame() );
+    memset( m_dataBase + (size_t) firstFrame * m_format.GetBytesPerFrame(), silenceByte, (size_t) count * m_format.GetBytesPerFrame() );
 }
 
 /*-------------------------------------------------------------------------*/

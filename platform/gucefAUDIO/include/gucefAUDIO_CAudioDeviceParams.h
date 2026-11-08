@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CICONFIGURABLE_H
+#include "gucefCORE_CIConfigurable.h"
+#define GUCEF_CORE_CICONFIGURABLE_H
+#endif /* GUCEF_CORE_CICONFIGURABLE_H ? */
+
 #ifndef GUCEF_CORE_CVALUELIST_H
 #include "CValueList.h"
 #define GUCEF_CORE_CVALUELIST_H
@@ -63,9 +68,11 @@ typedef enum EAudioShareMode TAudioShareMode;
  *  so a program that does not care sets nothing. The driver reports what it actually got through the
  *  device it hands back.
  */
-class GUCEF_AUDIO_PUBLIC_CPP CAudioDeviceParams
+class GUCEF_AUDIO_PUBLIC_CPP CAudioDeviceParams : public CORE::CIConfigurable
 {
     public:
+
+    static const CString ConfigSectionName;         /**< "AudioDevice" */
 
     CAudioDeviceParams( void );
 
@@ -73,7 +80,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioDeviceParams
 
     CAudioDeviceParams& operator=( const CAudioDeviceParams& src );
 
-    ~CAudioDeviceParams();
+    virtual ~CAudioDeviceParams() GUCEF_VIRTUAL_OVERRIDE;
 
     /** The device to open as the driver knows it (CAudioDeviceInfo::GetId()), empty for the default device */
     const CString& GetDeviceId( void ) const;
@@ -96,6 +103,34 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioDeviceParams
     /** Settings for one specific driver, as name / value pairs. Drivers ignore what they do not know */
     const CORE::CValueList& GetOptions( void ) const;
     CORE::CValueList& GetOptions( void );
+
+    /** "shared" or "exclusive" */
+    static const char* ShareModeToString( TAudioShareMode shareMode );
+
+    /** The reverse of ShareModeToString() without regard for case. False, and 'shareMode' as it was, for text that is not a share mode */
+    static bool StringToShareMode( const CString& text, TAudioShareMode& shareMode );
+
+    /** "playback" or "capture" */
+    static const char* DirectionToString( TAudioDirection direction );
+
+    /** The reverse of DirectionToString() without regard for case. False, and 'direction' as it was, for text that is not a direction */
+    static bool StringToDirection( const CString& text, TAudioDirection& direction );
+
+    /**
+     *  Writes the section "AudioDevice" (kept when it is there): attributes id, direction, shareMode, bufferFrames and, for
+     *  the preferred format, sampleRate, channels, sampleType and speakerLayout; child "Options" with an attribute per
+     *  driver option. Enumerations are written by name
+     */
+    virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Reads the section from the tree, or the tree itself when it is that section. False when there is no such section.
+     *  What the section does not have keeps its value, names that are not valid are logged and ignored. A child "Options"
+     *  replaces the driver options
+     */
+    virtual bool LoadConfig( const CORE::CDataNode& treeroot ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

@@ -66,6 +66,10 @@ class CAtomicFloat
     Float32 Load( void ) const                      { return FromBits( m_bits.Load( MT::MEMORDER_RELAXED ) ); }
     void Store( Float32 value )                     { m_bits.Store( ToBits( value ), MT::MEMORDER_RELAXED ); }
 
+    /** With an explicit memory order, for values that are published together with other data (see CAudioParameterBlock) */
+    Float32 Load( MT::TMemoryOrder order ) const    { return FromBits( m_bits.Load( order ) ); }
+    void Store( Float32 value, MT::TMemoryOrder order ) { m_bits.Store( ToBits( value ), order ); }
+
     private:
 
     static UInt32 ToBits( Float32 value )           { UInt32 bits; memcpy( &bits, &value, sizeof( bits ) ); return bits; }

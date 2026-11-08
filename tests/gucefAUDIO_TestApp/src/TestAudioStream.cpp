@@ -305,6 +305,7 @@ PerformAudioStreamTests( void )
         AUDIO::CAudioEngineParams params;
         params.SetDriverName( "null" );
         params.SetThreadingMode( AUDIO::AUDIOTHREADING_COOPERATIVE );
+        params.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );     // no delay: the test looks at the output frame by frame
         params.GetDeviceParams().SetBufferSizeInFrames( 256 );
         params.GetDeviceParams().GetOptions().Set( "keepOutput", "true" );
         AUDIO::CAudioEngine engine;

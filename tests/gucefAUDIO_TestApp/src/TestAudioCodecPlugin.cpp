@@ -25,11 +25,17 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 #ifndef GUCEFAUDIO_H
 #include "gucefAUDIO.h"
 #define GUCEFAUDIO_H
 #endif /* GUCEFAUDIO_H ? */
+
+#ifndef GUCEF_AUDIO_CAUDIOCODECCPLUGINCODEC_H
+#include "gucefAUDIO_CAudioCodecCPluginCodec.h"
+#define GUCEF_AUDIO_CAUDIOCODECCPLUGINCODEC_H
+#endif /* GUCEF_AUDIO_CAUDIOCODECCPLUGINCODEC_H ? */
 
 #ifndef GUCEF_AUDIO_CAUDIOCODECPLUGINMANAGER_H
 #include "gucefAUDIO_CAudioCodecPluginManager.h"
@@ -55,6 +61,21 @@
 #include "CDynamicBufferAccess.h"
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
@@ -173,6 +194,234 @@ EncodeDecode( AUDIO::CIAudioCodec& codec, const AUDIO::CAudioBuffer& audio, AUDI
         return false;
     CORE::CDynamicBufferAccess input( file );
     return codec.DecodeAll( input, decoded );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------*/
+
+/** Environment of the test plugin: how it declares its threading, see gucefAUDIO_TestCodecPlugin.c */
+void
+SetTestPluginThreading( const char* mode )
+{
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    _putenv_s( "GUCEF_AUDIOCODECPLUGINAUTEST_THREADING", GUCEF_NULL != mode ? mode : "" );
+    #else
+    if ( GUCEF_NULL != mode )
+        setenv( "GUCEF_AUDIOCODECPLUGINAUTEST_THREADING", mode, 1 );
+    else
+        unsetenv( "GUCEF_AUDIOCODECPLUGINAUTEST_THREADING" );
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char* ExtensionPluginGroup = "audiocodecpluginext";
+
+/** The test variant of the .au plugin: the optional entry points, other type names ("autest", "sndtest") */
+bool
+LoadExtensionPlugin( const char* threadingMode = GUCEF_NULL )
+{
+    SetTestPluginThreading( threadingMode );
+
+    AUDIO::CAudioCodecRegistry::TAudioCodecPtr codec;
+    if ( AUDIO::CAudioGlobal::Instance()->GetAudioCodecRegistry().TryFindCodec( "autest", codec ) )
+        return true;
+
+    CORE::CPluginControl& pluginControl = CORE::CCoreGlobal::Instance()->GetPluginControl();
+    #ifdef GUCEF_DEBUG_MODE
+    const CORE::CString first = "$MODULEDIR$/gucefAUDIO_TestCodecPlugin_d";
+    const CORE::CString second = "$MODULEDIR$/gucefAUDIO_TestCodecPlugin";
+    #else
+    const CORE::CString first = "$MODULEDIR$/gucefAUDIO_TestCodecPlugin";
+    const CORE::CString second = "$MODULEDIR$/gucefAUDIO_TestCodecPlugin_d";
+    #endif
+    return pluginControl.AddPluginFromDir( first, ExtensionPluginGroup, true ) || pluginControl.AddPluginFromDir( second, ExtensionPluginGroup, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+UnloadExtensionPlugin( void )
+{
+    return CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( ExtensionPluginGroup ) &&
+           FindCodec( "autest" ).IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Counts how many reads of the inputs that use it are in progress at the same time */
+class COverlapCounter
+{
+    public:
+
+    COverlapCounter( void ) : m_inside( 0 ), m_maxInside( 0 ), m_reads( 0 ) {}
+
+    /** Called by an input around a read. 'waitForPartner' holds the first read until a second one is inside, or a while has passed */
+    void Enter( bool waitForPartner )
+    {
+        const Int32 now = m_inside.FetchAdd( 1 ) + 1;
+        m_reads.FetchAdd( 1 );
+        Int32 seen = m_maxInside.Load();
+        while ( now > seen && !m_maxInside.CompareExchangeWeak( seen, now ) ) {}
+
+        if ( waitForPartner )
+        {
+            for ( UInt32 i=0; i<250 && m_inside.Load() < 2; ++i )
+                MT::ThreadDelay( 1 );
+        }
+        else
+            MT::ThreadDelay( 1 );
+    }
+
+    void Leave( void ) { m_inside.FetchSub( 1 ); }
+
+    Int32 GetMaxInside( void ) const { return m_maxInside.Load(); }
+
+    private:
+
+    MT::CTAtomic< Int32 > m_inside;
+    MT::CTAtomic< Int32 > m_maxInside;
+    MT::CTAtomic< UInt32 > m_reads;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** An input that reports its reads to a counter, once it is armed (opening a stream reads the header, not counted) */
+class COverlapInput : public CORE::CDynamicBufferAccess
+{
+    public:
+
+    COverlapInput( CORE::CDynamicBuffer& buffer, COverlapCounter& counter )
+        : CORE::CDynamicBufferAccess( buffer ), m_counter( counter ), m_isArmed( false ), m_isFirst( true ) {}
+
+    void Arm( void ) { m_isArmed = true; }
+
+    virtual UInt32 Read( void* dest, UInt32 esize, UInt32 elements ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( !m_isArmed )
+            return CORE::CDynamicBufferAccess::Read( dest, esize, elements );
+
+        m_counter.Enter( m_isFirst );
+        m_isFirst = false;
+        const UInt32 result = CORE::CDynamicBufferAccess::Read( dest, esize, elements );
+        m_counter.Leave();
+        return result;
+    }
+
+    private:
+
+    COverlapCounter& m_counter;
+    bool m_isArmed;
+    bool m_isFirst;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Reads a source to its end on a thread of its own, or until told to stop */
+class CDecodeThread : public MT::CActiveObject
+{
+    public:
+
+    CDecodeThread( const AUDIO::TAudioSourcePtr& source, UInt32 chunkFrames, UInt32 frameBytes )
+        : MT::CActiveObject(), m_source( source ), m_chunkFrames( chunkFrames ), m_frameBytes( frameBytes ), m_data(), done( 0 ), framesRead( 0 ) {}
+
+    virtual bool OnThreadStart( void* ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        CORE::CDynamicBuffer chunk( m_chunkFrames * m_frameBytes, true );
+        while ( !m_source->IsEndOfStream() )
+        {
+            const UInt32 frames = m_source->ReadFrames( chunk.GetBufferPtr(), m_chunkFrames );
+            if ( 0 == frames )
+                break;
+            m_data.Append( chunk.GetConstBufferPtr(), frames * m_frameBytes );
+            framesRead.FetchAdd( frames );
+        }
+        done.Store( 1 );
+        return true;
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    bool WaitForDone( UInt32 timeoutInMs )
+    {
+        for ( UInt32 i=0; i<timeoutInMs && 0 == done.Load(); ++i )
+            MT::ThreadDelay( 1 );
+        return 0 != done.Load();
+    }
+
+    AUDIO::TAudioSourcePtr m_source;
+    UInt32 m_chunkFrames;
+    UInt32 m_frameBytes;
+    CORE::CDynamicBuffer m_data;
+    MT::CTAtomic< UInt32 > done;
+    MT::CTAtomic< UInt32 > framesRead;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** A mono 16 bit big endian .au file of a ramp, with an annotation */
+void
+MakeRampFile( CORE::CDynamicBuffer& file, UInt32 frames, const char* annotation )
+{
+    CORE::CDynamicBuffer samples;
+    for ( UInt32 i=0; i<frames; ++i )
+    {
+        const Int16 value = (Int16) ( ( i * 7 ) % 20000 - 10000 );
+        const UInt8 bytes[ 2 ] = { (UInt8) ( (UInt16) value >> 8 ), (UInt8) ( (UInt16) value & 0xFF ) };
+        samples.Append( bytes, 2 );
+    }
+    MakeAuFile( file, 3, 8000, 1, samples.GetConstBufferPtr(), samples.GetDataSize(), annotation );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Decodes the same file through two sources of the codec at once, one thread each, and reports how many reads
+ *  of the plugin were seen inside it at the same time. False when the decoded audio is not what a single decode gives.
+ */
+bool
+DecodeTwoAtOnce( AUDIO::CAudioCodecRegistry::TAudioCodecPtr codec, Int32& maxOverlap )
+{
+    CORE::CDynamicBuffer file;
+    MakeRampFile( file, 6000, GUCEF_NULL );
+
+    COverlapCounter counter;
+    COverlapInput* inputs[ 2 ];
+    AUDIO::TAudioSourcePtr sources[ 2 ];
+    CDecodeThread* threads[ 2 ];
+    for ( UInt32 i=0; i<2; ++i )
+    {
+        inputs[ i ] = GUCEF_NEW COverlapInput( file, counter );
+        CORE::CIOAccess::IOAccessPtr owner( inputs[ i ] );
+        if ( !codec->OpenSource( owner, sources[ i ] ) )
+            return false;
+        inputs[ i ]->Arm();
+        threads[ i ] = GUCEF_NEW CDecodeThread( sources[ i ], 500, 2 );
+    }
+
+    bool isOk = true;
+    for ( UInt32 i=0; i<2; ++i )
+        isOk = threads[ i ]->Activate() && isOk;
+    for ( UInt32 i=0; i<2; ++i )
+    {
+        isOk = threads[ i ]->WaitForDone( 20000 ) && isOk;
+        threads[ i ]->Deactivate( false, true );
+    }
+
+    for ( UInt32 i=0; i<2; ++i )
+    {
+        isOk = 6000 == threads[ i ]->framesRead.Load() && 12000 == threads[ i ]->m_data.GetDataSize() && isOk;
+        // the samples are the ramp, 16 bit native endian
+        const Int16* samples = (const Int16*) threads[ i ]->m_data.GetConstBufferPtr();
+        for ( UInt32 f=0; f<6000 && isOk; ++f )
+            isOk = samples[ f ] == (Int16) ( ( f * 7 ) % 20000 - 10000 );
+        GUCEF_DELETE threads[ i ];
+    }
+    maxOverlap = counter.GetMaxInside();
+    return isOk;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -399,12 +648,17 @@ PerformAudioCodecPluginTests( void )
         AUDIO::CAudioEngineParams params;
         params.SetDriverName( "null" );
         params.SetThreadingMode( AUDIO::AUDIOTHREADING_COOPERATIVE );
+        params.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );     // no delay: the test looks at the output frame by frame
         params.GetDeviceParams().SetPreferredFormat( AUDIO::CAudioFormat( 22050, 2, AUDIO::SAMPLETYPE_FLOAT32 ) );
         params.GetDeviceParams().SetBufferSizeInFrames( 256 );
         params.GetDeviceParams().GetOptions().Set( "keepOutput", "true" );
         AUDIO::CAudioEngine engine;
         ASSERT_TRUE( engine.Initialize( params ) );
-        AUDIO::TAudioVoicePtr voice = engine.CreateVoice( source );
+        // a plugin source takes the plugin's call lock: never read on the audio thread, so it plays through a stream
+        // that is filled here, on the owner side (a RealtimeSanitizer build fails the render otherwise)
+        AUDIO::CAudioStream* stream = GUCEF_NEW AUDIO::CAudioStream( source, 1000, 1, false );
+        stream->Fill();
+        AUDIO::TAudioVoicePtr voice = engine.CreateVoice( AUDIO::TAudioSourcePtr( stream ) );
         ASSERT_FALSE( voice.IsNULL() );
         CORE::CFutureResult started = engine.Start( voice );
         ASSERT_FALSE( started.HasNoFuture() );
@@ -461,6 +715,315 @@ PerformAudioCodecPluginTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    // ---- the optional additions of the plugin interface: threading model, stream tags and probe ----
+
+    GUCEF_TESTFW_TESTCASE( "CodecPlugin: A plugin without the optional entry points keeps working: one call at a time, no tags, no probe" )
+    try
+    {
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr au = FindCodec( "au" );
+        AUDIO::CAudioCodecPluginManager::TAudioCodecCPluginPtr plugin = AUDIO::CAudioGlobal::Instance()->GetAudioCodecPluginManager().GetPluginForCodecType( "au" );
+        ASSERT_FALSE( au.IsNULL() || plugin.IsNULL() );
+        ASSERT_TRUE( GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK == plugin->GetThreadingModel() );
+        const AUDIO::TGucefAudioCodecPluginApi* api = plugin->GetLinkedApi();
+        ASSERT_TRUE( GUCEF_NULL != api );
+        ASSERT_TRUE( GUCEF_NULL == api->Threading_Model && GUCEF_NULL == api->Src_Meta_Data && GUCEF_NULL == api->Probe );
+
+        CORE::CDynamicBuffer file;
+        MakeRampFile( file, 1000, "LOOPSTART=10" );
+
+        // no tags of the open stream, but the stream itself works
+        CORE::CDynamicBufferAccess input( file );
+        AUDIO::TAudioSourcePtr source;
+        ASSERT_TRUE( au->OpenSource( input, source ) );
+        CORE::CValueList tags;
+        ASSERT_FALSE( source->GetMetaData( tags ) );
+        ASSERT_TRUE( 0 == tags.GetKeyCount() );
+        Int16 frames[ 100 ];
+        ASSERT_TRUE( 100 == source->ReadFrames( frames, 100 ) );
+        ASSERT_TRUE( frames[ 1 ] == (Int16) 7 - 10000 );
+
+        // a source that is not from a plugin has none either
+        AUDIO::CAudioBuffer clipAudio( AUDIO::CAudioFormat( 8000, 1, AUDIO::SAMPLETYPE_INT16 ), 10 );
+        AUDIO::CAudioClip clip( clipAudio );
+        AUDIO::TAudioSourcePtr clipSource = clip.CreateSource();
+        ASSERT_FALSE( clipSource->GetMetaData( tags ) );
+
+        // no probe: the codec cannot tell, says so, and leaves the input where it was
+        CORE::CDynamicBufferAccess probeInput( file );
+        probeInput.Setpos( 5 );
+        UInt32 confidence = 77;
+        ASSERT_FALSE( au->Probe( probeInput, confidence ) );
+        ASSERT_TRUE( 0 == confidence );
+        ASSERT_TRUE( 5 == probeInput.Tell() );
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr found;
+        probeInput.Setpos( 0 );
+        ASSERT_FALSE( AUDIO::CAudioGlobal::Instance()->GetAudioCodecRegistry().TryFindCodecForData( probeInput, found ) );
+        ASSERT_TRUE( 0 == probeInput.Tell() );
+
+        // and the built in codecs have no probe either
+        ASSERT_FALSE( FindCodec( "wav" )->Probe( probeInput, confidence ) );
+
+        // streams of a plugin like this are decoded one at a time
+        Int32 maxOverlap = 0;
+        ASSERT_TRUE( DecodeTwoAtOnce( au, maxOverlap ) );
+        ASSERT_TRUE( 1 == maxOverlap );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CodecPlugin: A plugin with the optional entry points: stream tags are read from the open stream, the probe is used" )
+    try
+    {
+        ASSERT_TRUE( LoadExtensionPlugin() );
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr ext = FindCodec( "autest" );
+        ASSERT_FALSE( ext.IsNULL() );
+        ASSERT_FALSE( FindCodec( "sndtest" ).IsNULL() );
+        AUDIO::CAudioCodecPluginManager::TAudioCodecCPluginPtr plugin = AUDIO::CAudioGlobal::Instance()->GetAudioCodecPluginManager().GetPluginForCodecType( "autest" );
+        ASSERT_FALSE( plugin.IsNULL() );
+        const AUDIO::TGucefAudioCodecPluginApi* api = plugin->GetLinkedApi();
+        ASSERT_TRUE( GUCEF_NULL != api->Threading_Model && GUCEF_NULL != api->Src_Meta_Data && GUCEF_NULL != api->Probe );
+        ASSERT_TRUE( GUCEF_AUDIOCODEC_THREADING_PER_SOURCE == plugin->GetThreadingModel() );
+
+        // the plain plugin is still there and still declares nothing
+        ASSERT_TRUE( GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK == AUDIO::CAudioGlobal::Instance()->GetAudioCodecPluginManager().GetPluginForCodecType( "au" )->GetThreadingModel() );
+
+        CORE::CDynamicBuffer file;
+        MakeRampFile( file, 1000, "LOOPSTART=250\nLoopLength=500\nTITLE=Theme" );
+
+        // tags of the open stream, without opening the input again
+        CORE::CDynamicBufferAccess input( file );
+        AUDIO::TAudioSourcePtr source;
+        ASSERT_TRUE( ext->OpenSource( input, source ) );
+        ASSERT_TRUE( 1000 == source->GetLengthInFrames() );
+        Int16 frames[ 200 ];
+        ASSERT_TRUE( 100 == source->ReadFrames( frames, 100 ) );
+        CORE::CValueList tags;
+        ASSERT_TRUE( source->GetMetaData( tags ) );
+        ASSERT_TRUE( tags.GetValueAlways( "loopstart" ).AsString() == "250" );
+        ASSERT_TRUE( tags.GetValueAlways( "looplength" ).AsString() == "500" );
+        ASSERT_TRUE( tags.GetValueAlways( "title" ).AsString() == "Theme" );
+        ASSERT_TRUE( tags.GetValueAlways( "encoding" ).AsString() == "linear" );
+        ASSERT_TRUE( tags.GetValueAlways( "position" ).AsString() == "100" );        // it is about this stream, as it is now
+        ASSERT_TRUE( tags.GetValueAlways( "comment" ).AsString().HasSubstr( "LOOPSTART=250" ) >= 0 );
+
+        // asking did not disturb the stream
+        ASSERT_TRUE( 100 == source->ReadFrames( frames, 100 ) );
+        ASSERT_TRUE( 200 == source->GetPositionInFrames() );
+        ASSERT_TRUE( frames[ 0 ] == (Int16) ( ( 100 * 7 ) % 20000 - 10000 ) );
+        ASSERT_TRUE( source->SeekToFrame( 0 ) );
+        ASSERT_TRUE( 100 == source->ReadFrames( frames, 100 ) );
+        ASSERT_TRUE( frames[ 99 ] == (Int16) ( ( 99 * 7 ) % 20000 - 10000 ) );
+        tags.Clear();
+        ASSERT_TRUE( source->GetMetaData( tags ) );
+        ASSERT_TRUE( tags.GetValueAlways( "position" ).AsString() == "100" );
+
+        // the whole-input metadata of the codec is unchanged by the additions
+        CORE::CValueList whole;
+        CORE::CDynamicBufferAccess wholeInput( file );
+        ASSERT_TRUE( ext->DecodeMetaData( wholeInput, whole ) );
+        ASSERT_TRUE( whole.GetValueAlways( "frames" ).AsString() == "1000" );
+
+        // the probe: a confident yes for .au data, a clear no for anything else, the input where it was
+        CORE::CDynamicBufferAccess probeInput( file );
+        UInt32 confidence = 0;
+        ASSERT_TRUE( ext->Probe( probeInput, confidence ) );
+        ASSERT_TRUE( 90 == confidence );
+        ASSERT_TRUE( 0 == probeInput.Tell() );
+        probeInput.Setpos( 3 );
+        ASSERT_TRUE( ext->Probe( probeInput, confidence ) );
+        ASSERT_TRUE( 0 == confidence );                                              // from offset 3 it is not the start of a file
+        ASSERT_TRUE( 3 == probeInput.Tell() );
+
+        // content lookup in the registry: finds the codec of a file that has no usable name
+        AUDIO::CAudioCodecRegistry& registry = AUDIO::CAudioGlobal::Instance()->GetAudioCodecRegistry();
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr found;
+        ASSERT_FALSE( registry.TryFindCodecForFilename( "music/theme.dat", found ) );
+        probeInput.Setpos( 0 );
+        confidence = 0;
+        ASSERT_TRUE( registry.TryFindCodecForData( probeInput, found, &confidence ) );
+        ASSERT_TRUE( 90 == confidence );
+        ASSERT_TRUE( found->GetType() == "autest" || found->GetType() == "sndtest" );
+        ASSERT_TRUE( 0 == probeInput.Tell() );
+        AUDIO::CAudioBuffer decoded;
+        ASSERT_TRUE( found->DecodeAll( probeInput, decoded ) );
+        ASSERT_TRUE( 1000 == decoded.GetFrameCount() );
+
+        // nothing that any codec recognises
+        const char notAu[ 32 ] = "RIFF....WAVEfmt ";
+        CORE::CDynamicBuffer junk( notAu, sizeof( notAu ), true );
+        CORE::CDynamicBufferAccess junkInput( junk );
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr none;
+        ASSERT_FALSE( registry.TryFindCodecForData( junkInput, none ) );
+        ASSERT_TRUE( none.IsNULL() );
+        ASSERT_TRUE( 0 == junkInput.Tell() );
+
+        // once the plugin is gone the stream is closed and has no tags, and nothing probes any more
+        source = AUDIO::TAudioSourcePtr();
+        AUDIO::TAudioSourcePtr late;
+        CORE::CDynamicBufferAccess lateInput( file );
+        ASSERT_TRUE( ext->OpenSource( lateInput, late ) );
+        ext = AUDIO::CAudioCodecRegistry::TAudioCodecPtr();
+        found = AUDIO::CAudioCodecRegistry::TAudioCodecPtr();
+        plugin = AUDIO::CAudioCodecPluginManager::TAudioCodecCPluginPtr();
+        ASSERT_TRUE( UnloadExtensionPlugin() );
+        tags.Clear();
+        ASSERT_FALSE( late->GetMetaData( tags ) );
+        ASSERT_TRUE( late->IsEndOfStream() || 0 == late->ReadFrames( frames, 10 ) );
+        ASSERT_FALSE( registry.TryFindCodecForData( probeInput, none ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CodecPlugin: Streams of a plugin that declares per source threading are decoded at the same time" )
+    try
+    {
+        ASSERT_TRUE( LoadExtensionPlugin() );
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr ext = FindCodec( "autest" );
+        ASSERT_FALSE( ext.IsNULL() );
+        ASSERT_TRUE( GUCEF_AUDIOCODEC_THREADING_PER_SOURCE == AUDIO::CAudioGlobal::Instance()->GetAudioCodecPluginManager().GetPluginForCodecType( "autest" )->GetThreadingModel() );
+
+        // two threads, one stream each: both are inside the plugin at the same time, and both decode correctly
+        Int32 maxOverlap = 0;
+        ASSERT_TRUE( DecodeTwoAtOnce( ext, maxOverlap ) );
+        ASSERT_TRUE( 2 == maxOverlap );
+
+        // the same file through the plugin that does not declare it: never two at once
+        ASSERT_TRUE( DecodeTwoAtOnce( FindCodec( "au" ), maxOverlap ) );
+        ASSERT_TRUE( 1 == maxOverlap );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CodecPlugin: The tags of a plugin source are readable through a CAudioStream that wraps it, and a source without tags says so" )
+    try
+    {
+        ASSERT_TRUE( LoadExtensionPlugin() );
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr ext = FindCodec( "autest" );
+        ASSERT_FALSE( ext.IsNULL() );
+
+        CORE::CDynamicBuffer file;
+        MakeRampFile( file, 5000, "LOOPSTART=250\nTITLE=Theme" );
+
+        // by hand and with the read ahead task running: the tags come through either way
+        for ( UInt32 mode=0; mode<2; ++mode )
+        {
+            CORE::CDynamicBufferAccess input( file );
+            AUDIO::TAudioSourcePtr source;
+            ASSERT_TRUE( ext->OpenSource( input, source ) );
+            AUDIO::CAudioStream stream( source, 100, 1, 1 == mode );
+            for ( UInt32 n=0; n<20; ++n )
+            {
+                CORE::CValueList tags;
+                ASSERT_TRUE( stream.GetMetaData( tags ) );
+                ASSERT_TRUE( tags.GetValueAlways( "loopstart" ).AsString() == "250" );
+                ASSERT_TRUE( tags.GetValueAlways( "title" ).AsString() == "Theme" );
+            }
+        }
+
+        // a stream around a source without tags has none either
+        AUDIO::CAudioBuffer clipAudio( AUDIO::CAudioFormat( 8000, 1, AUDIO::SAMPLETYPE_INT16 ), 10 );
+        AUDIO::CAudioClip clip( clipAudio );
+        CORE::CValueList none;
+        ASSERT_FALSE( clip.CreateSource()->GetMetaData( none ) );
+        AUDIO::CAudioStream clipStream( clip.CreateSource(), 100, 1, false );
+        ASSERT_FALSE( clipStream.GetMetaData( none ) );
+        ASSERT_TRUE( 0 == none.GetKeyCount() );
+
+        ASSERT_TRUE( UnloadExtensionPlugin() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CodecPlugin: A plugin that declares one call at a time, or something undefined, stays serialized and still decodes correctly" )
+    try
+    {
+        // "lock" declares GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK, "unknown" a value that does not exist (taken as the same)
+        const char* declared[] = { "lock", "unknown" };
+        for ( UInt32 d=0; d<2; ++d )
+        {
+            ASSERT_TRUE( UnloadExtensionPlugin() );
+            ASSERT_TRUE( LoadExtensionPlugin( declared[ d ] ) );
+            AUDIO::CAudioCodecRegistry::TAudioCodecPtr ext = FindCodec( "autest" );
+            ASSERT_FALSE( ext.IsNULL() );
+            AUDIO::CAudioCodecPluginManager::TAudioCodecCPluginPtr plugin = AUDIO::CAudioGlobal::Instance()->GetAudioCodecPluginManager().GetPluginForCodecType( "autest" );
+            ASSERT_TRUE( GUCEF_NULL != plugin->GetLinkedApi()->Threading_Model );
+            ASSERT_TRUE( GUCEF_AUDIOCODEC_THREADING_PLUGIN_LOCK == plugin->GetThreadingModel() );
+
+            Int32 maxOverlap = 0;
+            ASSERT_TRUE( DecodeTwoAtOnce( ext, maxOverlap ) );
+            ASSERT_TRUE( 1 == maxOverlap );
+
+            // the tags work in this mode too
+            CORE::CDynamicBuffer file;
+            MakeRampFile( file, 100, "LOOPSTART=5" );
+            CORE::CDynamicBufferAccess input( file );
+            AUDIO::TAudioSourcePtr source;
+            ASSERT_TRUE( ext->OpenSource( input, source ) );
+            CORE::CValueList tags;
+            ASSERT_TRUE( source->GetMetaData( tags ) );
+            ASSERT_TRUE( tags.GetValueAlways( "loopstart" ).AsString() == "5" );
+            source = AUDIO::TAudioSourcePtr();
+        }
+
+        ASSERT_TRUE( UnloadExtensionPlugin() );
+        SetTestPluginThreading( GUCEF_NULL );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CodecPlugin: Unloading a per source threading plugin while a thread decodes ends the stream without a crash" )
+    try
+    {
+        ASSERT_TRUE( LoadExtensionPlugin() );
+        AUDIO::CAudioCodecRegistry::TAudioCodecPtr ext = FindCodec( "autest" );
+        ASSERT_FALSE( ext.IsNULL() );
+
+        // long enough that the thread is still reading when the plugin goes: the input makes every read take a moment
+        CORE::CDynamicBuffer file;
+        MakeRampFile( file, 400000, GUCEF_NULL );
+        COverlapCounter counter;
+        COverlapInput* rawInput = GUCEF_NEW COverlapInput( file, counter );
+        CORE::CIOAccess::IOAccessPtr owner( rawInput );
+        AUDIO::TAudioSourcePtr source;
+        ASSERT_TRUE( ext->OpenSource( owner, source ) );
+        rawInput->Arm();
+
+        CDecodeThread* thread = GUCEF_NEW CDecodeThread( source, 200, 2 );
+        ASSERT_TRUE( thread->Activate() );
+        for ( UInt32 i=0; i<2000 && thread->framesRead.Load() < 1000; ++i )
+            MT::ThreadDelay( 1 );
+        ASSERT_TRUE( thread->framesRead.Load() >= 1000 );
+
+        ext = AUDIO::CAudioCodecRegistry::TAudioCodecPtr();
+        ASSERT_TRUE( UnloadExtensionPlugin() );
+        ASSERT_TRUE( thread->WaitForDone( 20000 ) );
+        thread->Deactivate( false, true );
+        ASSERT_TRUE( thread->framesRead.Load() < 400000 );             // it was cut off, not decoded to the end
+        ASSERT_TRUE( source->IsEndOfStream() );
+        GUCEF_DELETE thread;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
+

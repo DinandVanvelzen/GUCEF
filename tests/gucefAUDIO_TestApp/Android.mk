@@ -22,15 +22,34 @@ LOCAL_MODULE := gucefAUDIO_TestApp
 
 LOCAL_SRC_FILES := \
   src/TestAudioAlsa.cpp \
+  src/TestAudioBenchmark.cpp \
+  src/TestAudioBusLayout.cpp \
+  src/TestAudioCodecFlac.cpp \
+  src/TestAudioCodecMp3.cpp \
+  src/TestAudioCodecOgg.cpp \
   src/TestAudioCodecPlugin.cpp \
   src/TestAudioCodecs.cpp \
   src/TestAudioConversion.cpp \
   src/TestAudioDevices.cpp \
+  src/TestAudioDsp.cpp \
+  src/TestAudioEffects.cpp \
+  src/TestAudioBuiltinEffects.cpp \
+  src/TestAudioCompressor.cpp \
+  src/TestAudioDelay.cpp \
+  src/TestAudioEqualizer.cpp \
+  src/TestAudioLimiter.cpp \
   src/TestAudioEngine.cpp \
+  src/TestAudioEngineReopen.cpp \
   src/TestAudioFormat.cpp \
   src/TestAudioMixer.cpp \
+  src/TestAudioRealtime.cpp \
+  src/TestAudioReverb.cpp \
+  src/TestAudioRouting.cpp \
+  src/TestAudioSettings.cpp \
   src/TestAudioStream.cpp \
+  src/TestAudioStreaming.cpp \
   src/TestAudioTestSignals.cpp \
+  src/TestAudioVoiceEffects.cpp \
   src/TestAudioWebAudio.cpp \
   src/gucefAUDIO_TestApp.cpp
 

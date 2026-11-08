@@ -89,6 +89,38 @@ CAudioCodecRegistry::TryFindCodecForFilename( const CString& filename, TAudioCod
     return TryFindCodec( name.CutChars( (UInt32) dot + 1, true ), codec );
 }
 
+bool
+CAudioCodecRegistry::TryFindCodecForData( CORE::CIOAccess& encodedInput, TAudioCodecPtr& codec, UInt32* confidence ) const
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector codecTypes;
+    GetRegisteredObjNames( codecTypes );
+
+    TAudioCodecPtr best;
+    UInt32 bestConfidence = 0;
+    for ( CORE::CString::StringVector::const_iterator i = codecTypes.begin(); i != codecTypes.end(); ++i )
+    {
+        TAudioCodecPtr candidate;
+        if ( !TryLookup( (*i), candidate ) || candidate.IsNULL() )
+            continue;
+
+        UInt32 answer = 0;
+        if ( candidate->Probe( encodedInput, answer ) && answer > bestConfidence )
+        {
+            best = candidate;
+            bestConfidence = answer;
+        }
+    }
+
+    if ( best.IsNULL() )
+        return false;
+
+    codec = best;
+    if ( GUCEF_NULL != confidence )
+        *confidence = bestConfidence;
+    return true;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

@@ -106,6 +106,7 @@ NullParams( AUDIO::TAudioThreadingMode mode = AUDIO::AUDIOTHREADING_COOPERATIVE 
     AUDIO::CAudioEngineParams params;
     params.SetDriverName( "null" );
     params.SetThreadingMode( mode );
+    params.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );     // no delay: the tests look at the output frame by frame
     params.GetDeviceParams().SetBufferSizeInFrames( 256 );
     params.GetDeviceParams().GetOptions().Set( "keepOutput", "true" );
     return params;
@@ -725,6 +726,217 @@ PerformThreadedTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** The parameters of the null device tests with the master limiter as the engine has it by default */
+AUDIO::CAudioEngineParams
+DefaultLimiterParams( void )
+{
+    AUDIO::CAudioEngineParams defaults;
+    AUDIO::CAudioEngineParams params = NullParams();
+    params.SetLimiterMode( defaults.GetLimiterMode() );
+    params.SetLimiterCeilingInDecibels( defaults.GetLimiterCeilingInDecibels() );
+    params.SetLimiterLookaheadInMs( defaults.GetLimiterLookaheadInMs() );
+    params.SetLimiterReleaseInMs( defaults.GetLimiterReleaseInMs() );
+    return params;
+}
+
+/** A mono clip that is silent but for one frame */
+AUDIO::TAudioClipPtr
+MakeImpulse( UInt32 frames, UInt32 at, Float32 value )
+{
+    AUDIO::CAudioBuffer audio( AUDIO::CAudioFormat( 48000, 1, AUDIO::SAMPLETYPE_FLOAT32 ), frames );
+    for ( UInt32 f=0; f<frames; ++f )
+        audio.SetSampleFromFloat( f, 0, f == at ? value : 0.0f );
+    return AUDIO::TAudioClipPtr( GUCEF_NEW AUDIO::CAudioClip( audio ) );
+}
+
+/** A stereo clip of reproducible noise at 'amplitude' */
+AUDIO::TAudioClipPtr
+MakeNoise( UInt32 frames, Float32 amplitude, UInt32 seed )
+{
+    AUDIO::CAudioBuffer audio( AUDIO::CAudioFormat( 48000, 2, AUDIO::SAMPLETYPE_FLOAT32 ), frames );
+    UInt32 state = seed;
+    for ( UInt32 f=0; f<frames; ++f )
+    {
+        for ( UInt32 c=0; c<2; ++c )
+        {
+            state = state * 1664525UL + 1013904223UL;
+            audio.SetSampleFromFloat( f, c, amplitude * (Float32) ( (Float64) ( state >> 8 ) / 8388608.0 - 1.0 ) );
+        }
+    }
+    return AUDIO::TAudioClipPtr( GUCEF_NEW AUDIO::CAudioClip( audio ) );
+}
+
+/** The first frame the null device rendered that is not silent, the frame count when there is none */
+UInt32
+FirstSoundFrame( AUDIO::CAudioEngine& engine )
+{
+    const AUDIO::CAudioBuffer& rendered = Null( engine )->GetRenderedAudio();
+    for ( UInt32 f=0; f<rendered.GetFrameCount(); ++f )
+        for ( UInt32 c=0; c<rendered.GetFormat().GetChannelCount(); ++c )
+            if ( 0.0f != rendered.GetSampleAsFloat( f, c ) )
+                return f;
+    return rendered.GetFrameCount();
+}
+
+/** Largest absolute sample the null device rendered */
+Float32
+RenderedPeak( AUDIO::CAudioEngine& engine )
+{
+    const AUDIO::CAudioBuffer& rendered = Null( engine )->GetRenderedAudio();
+    Float32 peak = 0.0f;
+    for ( UInt32 f=0; f<rendered.GetFrameCount(); ++f )
+        for ( UInt32 c=0; c<rendered.GetFormat().GetChannelCount(); ++c )
+            peak = fabsf( rendered.GetSampleAsFloat( f, c ) ) > peak ? fabsf( rendered.GetSampleAsFloat( f, c ) ) : peak;
+    return peak;
+}
+
+/** Plays a loud mix: noise and constants that add up to several times full level */
+void
+PlayLoudMix( AUDIO::CAudioEngine& engine, UInt32 frames )
+{
+    engine.Play( MakeNoise( frames, 0.9f, 3 ) );
+    engine.Play( MakeNoise( frames, 0.9f, 5 ) );
+    engine.Play( MakeConstant( 48000, 1, frames, 0.7f ) );
+    engine.Play( MakeConstant( 48000, 2, frames, -0.4f ) );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformMasterLimiterTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "AudioEngine: The engine limits in lookahead mode by default: a loud mix stays under the ceiling, the latency is the lookahead" )
+    try
+    {
+        AUDIO::CAudioEngineParams defaults;
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == defaults.GetLimiterMode() && defaults.GetLimiterEnabled() );
+        ASSERT_TRUE( Near( -0.3f, defaults.GetLimiterCeilingInDecibels() ) && Near( 1.5f, defaults.GetLimiterLookaheadInMs() ) && Near( 50.0f, defaults.GetLimiterReleaseInMs() ) );
+
+        AUDIO::CAudioEngine engine;
+        ASSERT_TRUE( 0 == engine.GetMixLatencyInFrames() );                                    // not running
+        ASSERT_TRUE( engine.Initialize( DefaultLimiterParams() ) );
+        ASSERT_TRUE( 48000 == engine.GetMixFormat().GetSampleRate() );
+        ASSERT_TRUE( 72 == engine.GetMixLatencyInFrames() );                                   // 1.5 ms at 48 kHz
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == engine.GetParams().GetLimiterMode() );
+
+        // the latency is what is heard: a click at frame 10 of a sound comes out the lookahead later, unchanged
+        engine.Play( MakeImpulse( 400, 10, 0.5f ) );
+        Run( engine, 512 );
+        ASSERT_TRUE( 10 + 72 == FirstSoundFrame( engine ) );
+        ASSERT_TRUE( 0.5f == Null( engine )->GetRenderedAudio().GetSampleAsFloat( 10 + 72, 0 ) );
+
+        // loud: turned down to the ceiling, never over it, so the clamp after the limiter never cuts anything off
+        Null( engine )->ClearRenderedAudio();
+        PlayLoudMix( engine, 9600 );
+        for ( UInt32 i=0; i<20; ++i )
+            Run( engine, 480 );
+        const Float32 peak = RenderedPeak( engine );
+        const Float64 ceiling = pow( 10.0, -0.3 / 20.0 );
+        ASSERT_TRUE( (Float64) peak <= ceiling && (Float64) peak > 0.9 * ceiling );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: default master limiter, peak of a loud mix " << peak );
+        engine.Shutdown();
+
+        // another lookahead is another latency
+        AUDIO::CAudioEngineParams longer = DefaultLimiterParams();
+        longer.SetLimiterLookaheadInMs( 5.0f );
+        longer.SetLimiterCeilingInDecibels( -3.0f );
+        ASSERT_TRUE( engine.Initialize( longer ) );
+        ASSERT_TRUE( 240 == engine.GetMixLatencyInFrames() );
+        PlayLoudMix( engine, 4800 );
+        for ( UInt32 i=0; i<10; ++i )
+            Run( engine, 480 );
+        ASSERT_TRUE( (Float64) RenderedPeak( engine ) <= pow( 10.0, -3.0 / 20.0 ) );
+        engine.Shutdown();
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioEngine: SetLimiterEnabled keeps working: true is the configured mode, lookahead unless chosen otherwise, false is off" )
+    try
+    {
+        // on the parameters
+        AUDIO::CAudioEngineParams params;
+        params.SetLimiterEnabled( false );
+        ASSERT_TRUE( !params.GetLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_OFF == params.GetLimiterMode() );
+        params.SetLimiterEnabled( true );
+        ASSERT_TRUE( params.GetLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == params.GetLimiterMode() );
+        params.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );
+        ASSERT_TRUE( params.GetLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_INSTANT == params.GetLimiterMode() );
+        params.SetLimiterEnabled( false );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_OFF == params.GetLimiterMode() );
+        params.SetLimiterEnabled( true );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == params.GetLimiterMode() );
+        params.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_OFF );
+        ASSERT_TRUE( !params.GetLimiterEnabled() );
+        params.SetLimiterEnabled( true );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == params.GetLimiterMode() );
+
+        // copies keep all of it
+        params.SetLimiterCeilingInDecibels( -1.0f );
+        params.SetLimiterLookaheadInMs( 2.0f );
+        params.SetLimiterReleaseInMs( 80.0f );
+        params.SetLimiterEnabled( false );
+        AUDIO::CAudioEngineParams copy( params );
+        AUDIO::CAudioEngineParams assigned;
+        assigned = params;
+        for ( UInt32 i=0; i<2; ++i )
+        {
+            AUDIO::CAudioEngineParams& p = 0 == i ? copy : assigned;
+            ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_OFF == p.GetLimiterMode() && Near( -1.0f, p.GetLimiterCeilingInDecibels() ) );
+            ASSERT_TRUE( Near( 2.0f, p.GetLimiterLookaheadInMs() ) && Near( 80.0f, p.GetLimiterReleaseInMs() ) );
+            p.SetLimiterEnabled( true );
+            ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == p.GetLimiterMode() );
+        }
+
+        // on the engine: off lets the loud mix through to the clamp, which cuts it off at full level
+        AUDIO::CAudioEngine engine;
+        AUDIO::CAudioEngineParams off = DefaultLimiterParams();
+        off.SetLimiterEnabled( false );
+        ASSERT_TRUE( engine.Initialize( off ) );
+        ASSERT_TRUE( 0 == engine.GetMixLatencyInFrames() && AUDIO::AUDIOLIMITERMODE_OFF == engine.GetParams().GetLimiterMode() );
+        engine.Play( MakeConstant( 48000, 1, 1000, 0.8f ) );
+        engine.Play( MakeConstant( 48000, 1, 1000, 0.8f ) );
+        Run( engine, 256 );
+        ASSERT_TRUE( 1.0f == Null( engine )->GetRenderedAudio().GetSampleAsFloat( 0, 0 ) );
+        engine.Shutdown();
+
+        // enabled again it is the configured mode: lookahead
+        AUDIO::CAudioEngineParams on = off;
+        on.SetLimiterEnabled( true );
+        ASSERT_TRUE( engine.Initialize( on ) );
+        ASSERT_TRUE( 72 == engine.GetMixLatencyInFrames() && AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == engine.GetParams().GetLimiterMode() );
+        engine.Shutdown();
+
+        // and instant when that was chosen: down to 0.98 at once, no delay
+        AUDIO::CAudioEngineParams instant = DefaultLimiterParams();
+        instant.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );
+        instant.SetLimiterEnabled( false );
+        instant.SetLimiterEnabled( true );
+        ASSERT_TRUE( engine.Initialize( instant ) );
+        ASSERT_TRUE( 0 == engine.GetMixLatencyInFrames() );
+        engine.Play( MakeConstant( 48000, 1, 1000, 0.8f ) );
+        engine.Play( MakeConstant( 48000, 1, 1000, 0.8f ) );
+        Run( engine, 256 );
+        ASSERT_TRUE( Near( 0.98f, Null( engine )->GetRenderedAudio().GetSampleAsFloat( 0, 0 ), 1e-6f ) );
+        engine.Shutdown();
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformAudioEngineTests( void )
 {GUCEF_TRACE;
@@ -740,6 +952,7 @@ PerformAudioEngineTests( void )
     PerformDeviceFormatTests();
     PerformShutdownAndLossTests();
     PerformThreadedTests();
+    PerformMasterLimiterTests();
 }
 
 /*-------------------------------------------------------------------------*/

@@ -80,7 +80,8 @@ CLinearResampler::Configure( UInt32 channelCount, Float64 inputRate, Float64 out
 
 bool
 CLinearResampler::SetRates( Float64 inputRate, Float64 outputRate )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     if ( inputRate <= 0.0 || outputRate <= 0.0 )
         return false;
@@ -92,7 +93,8 @@ CLinearResampler::SetRates( Float64 inputRate, Float64 outputRate )
 
 void
 CLinearResampler::Reset( void )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     m_position = 0.0;
     for ( size_t c=0; c<m_previous.size(); ++c )
@@ -108,7 +110,8 @@ CLinearResampler::Process( const Float32* input          ,
                            Float32* output               ,
                            UInt32 outputFrameCapacity    ,
                            UInt32& outputFramesProduced  )
-{GUCEF_TRACE;
+{
+    // no trace macro: this runs where the audio is mixed
 
     inputFramesConsumed = 0;
     outputFramesProduced = 0;

@@ -258,7 +258,7 @@ PerformBasicMixingTests( void )
     {
         AUDIO::CAudioMixer mixer( MixFormat, 256, 8, 4 );
         ASSERT_FALSE( mixer.IsLimiterEnabled() );
-        mixer.SetLimiterEnabled( true );
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );
         ASSERT_TRUE( mixer.IsLimiterEnabled() );
 
         // music at half level, and a short loud effect on top of it
@@ -794,6 +794,260 @@ PerformLimitTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+namespace {
+
+/** Reproducible noise in -1 .. 1 */
+Float32
+NextNoise( UInt32& state )
+{
+    state = state * 1664525UL + 1013904223UL;
+    return (Float32) ( (Float64) ( state >> 8 ) / 8388608.0 - 1.0 );
+}
+
+/** A stereo clip of noise at 'amplitude', with an occasional full burst so the peaks are sharp */
+AUDIO::TAudioClipPtr
+MakeLoudNoiseClip( UInt32 frames, Float32 amplitude, UInt32 seed )
+{
+    AUDIO::CAudioBuffer audio( MixFormat, frames );
+    UInt32 state = seed;
+    for ( UInt32 f=0; f<frames; ++f )
+    {
+        const Float32 burst = ( f % 997 ) < 3 ? 1.0f : 0.6f;
+        for ( UInt32 c=0; c<2; ++c )
+            audio.SetSampleFromFloat( f, c, amplitude * burst * NextNoise( state ) );
+    }
+    return AUDIO::TAudioClipPtr( GUCEF_NEW AUDIO::CAudioClip( audio ) );
+}
+
+/** A mono clip that is silent but for one frame */
+AUDIO::TAudioClipPtr
+MakeImpulse( UInt32 rate, UInt32 frames, UInt32 at, Float32 value )
+{
+    AUDIO::CAudioBuffer audio( AUDIO::CAudioFormat( rate, 1, AUDIO::SAMPLETYPE_FLOAT32 ), frames );
+    for ( UInt32 f=0; f<frames; ++f )
+        audio.SetSampleFromFloat( f, 0, f == at ? value : 0.0f );
+    return AUDIO::TAudioClipPtr( GUCEF_NEW AUDIO::CAudioClip( audio ) );
+}
+
+/** The frame where a signal first is not silent, 'frames' when it never is */
+UInt32
+FirstSoundFrame( const GUCEF::vector< Float32 >& out, UInt32 channels )
+{
+    const UInt32 frames = (UInt32) ( out.size() / channels );
+    for ( UInt32 f=0; f<frames; ++f )
+        for ( UInt32 c=0; c<channels; ++c )
+            if ( 0.0f != out[ (size_t) f * channels + c ] )
+                return f;
+    return frames;
+}
+
+Float32
+PeakOf( const GUCEF::vector< Float32 >& out )
+{
+    Float32 peak = 0.0f;
+    for ( size_t i=0; i<out.size(); ++i )
+        peak = fabsf( out[ i ] ) > peak ? fabsf( out[ i ] ) : peak;
+    return peak;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformMasterLimiterTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "AudioMixer: The master limiter is off by default; SetLimiterEnabled switches between off and the mode last chosen" )
+    try
+    {
+        AUDIO::CAudioMixer mixer( MixFormat, 256, 8, 4 );
+        ASSERT_TRUE( !mixer.IsLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_OFF == mixer.GetLimiterMode() && 0 == mixer.GetLatencyInFrames() );
+        ASSERT_TRUE( Near( -0.3f, mixer.GetLimiterCeilingInDecibels() ) && Near( 1.5f, mixer.GetLimiterLookaheadInMs() ) && Near( 50.0f, mixer.GetLimiterReleaseInMs() ) );
+
+        // on without a mode chosen is lookahead, as in the engine
+        mixer.SetLimiterEnabled( true );
+        ASSERT_TRUE( mixer.IsLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_LOOKAHEAD == mixer.GetLimiterMode() && 72 == mixer.GetLatencyInFrames() );
+
+        // instant is remembered over off
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );
+        ASSERT_TRUE( mixer.IsLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_INSTANT == mixer.GetLimiterMode() && 0 == mixer.GetLatencyInFrames() );
+        mixer.SetLimiterEnabled( false );
+        ASSERT_TRUE( !mixer.IsLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_OFF == mixer.GetLimiterMode() );
+        mixer.SetLimiterEnabled( true );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == mixer.GetLimiterMode() );
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_OFF );
+        ASSERT_TRUE( !mixer.IsLimiterEnabled() && AUDIO::AUDIOLIMITERMODE_OFF == mixer.GetLimiterMode() );
+        mixer.SetLimiterEnabled( true );
+        ASSERT_TRUE( AUDIO::AUDIOLIMITERMODE_INSTANT == mixer.GetLimiterMode() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioMixer: With the limiter off the master passes unchanged but for the clamp, which counts what it cut off" )
+    try
+    {
+        AUDIO::CAudioMixer mixer( MixFormat, 256, 8, 4 );
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_OFF );
+        const UInt32 frames = 3000;
+        AUDIO::CAudioBuffer audio( MixFormat, frames );
+        for ( UInt32 f=0; f<frames; ++f )
+        {
+            audio.SetSampleFromFloat( f, 0, -1.6f + 3.2f * (Float32) f / (Float32) ( frames - 1 ) );
+            audio.SetSampleFromFloat( f, 1, 0.37f * (Float32) sin( (Float64) f * 0.05 ) );
+        }
+        AUDIO::TAudioVoicePtr voice = MakeVoice( mixer, AUDIO::TAudioClipPtr( GUCEF_NEW AUDIO::CAudioClip( audio ) ) );
+        ASSERT_TRUE( mixer.AddVoice( voice.GetPointerAlways() ) );
+        GUCEF::vector< Float32 > out( (size_t) frames * 2, 123.0f );
+        const UInt32 pieces[ 4 ] = { 1, 37, 256, 999 };
+        UInt32 done = 0;
+        for ( UInt32 p=0; done<frames; ++p )
+        {
+            UInt32 piece = pieces[ p % 4 ];
+            piece = piece < frames - done ? piece : frames - done;
+            mixer.Mix( &out[ (size_t) done * 2 ], piece );
+            done += piece;
+        }
+
+        UInt64 over = 0;
+        for ( UInt32 f=0; f<frames; ++f )
+        {
+            for ( UInt32 c=0; c<2; ++c )
+            {
+                const Float32 in = audio.GetSampleAsFloat( f, c );
+                const Float32 expected = in > 1.0f ? 1.0f : ( in < -1.0f ? -1.0f : in );
+                if ( in > 1.0f || in < -1.0f )
+                    ++over;
+                ASSERT_TRUE( expected == out[ (size_t) f * 2 + c ] );       // bit for bit, no delay
+            }
+        }
+        ASSERT_TRUE( over > 1000 && over == mixer.GetClippedSampleCount() );
+        ASSERT_TRUE( 0 == mixer.GetLimitedFrameCount() && 0 == mixer.GetLatencyInFrames() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioMixer: In lookahead mode a loud mix never goes over the ceiling and the clamp has nothing to cut off" )
+    try
+    {
+        const Float32 ceilings[ 2 ] = { -0.3f, -6.0f };
+        for ( UInt32 run=0; run<2; ++run )
+        {
+            AUDIO::CAudioMixer mixer( MixFormat, 256, 8, 4 );
+            mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD );
+            if ( 1 == run )
+                mixer.SetLimiterCeilingInDecibels( ceilings[ run ] );
+            AUDIO::CAudioBus* music = mixer.CreateBus( "music" );
+            music->SetVolume( 1.5f );
+
+            // four noisy voices: together up to about six times full level
+            AUDIO::TAudioVoicePtr voices[ 4 ];
+            for ( UInt32 v=0; v<4; ++v )
+            {
+                voices[ v ] = MakeVoice( mixer, MakeLoudNoiseClip( 24000, 0.9f, 7 + v ), v < 2 ? music : GUCEF_NULL );
+                ASSERT_TRUE( mixer.AddVoice( voices[ v ].GetPointerAlways() ) );
+            }
+
+            GUCEF::vector< Float32 > out( (size_t) 24000 * 2, 123.0f );
+            const UInt32 pieces[ 5 ] = { 100, 1, 256, 73, 512 };
+            UInt32 done = 0;
+            for ( UInt32 p=0; done<24000; ++p )
+            {
+                UInt32 piece = pieces[ p % 5 ];
+                piece = piece < 24000 - done ? piece : 24000 - done;
+                mixer.Mix( &out[ (size_t) done * 2 ], piece );
+                done += piece;
+            }
+
+            const Float64 ceiling = pow( 10.0, (Float64) ceilings[ run ] / 20.0 );
+            const Float32 peak = PeakOf( out );
+            ASSERT_TRUE( (Float64) peak <= ceiling );
+            ASSERT_TRUE( (Float64) peak > 0.9 * ceiling );                      // turned down to the ceiling, not below it
+            ASSERT_TRUE( 0 == mixer.GetClippedSampleCount() );
+            ASSERT_TRUE( mixer.GetLimitedFrameCount() > 10000 );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AudioMixer: lookahead master limiter at " << ceilings[ run ] << " dB, peak " << peak << ", " << mixer.GetLimitedFrameCount() << " frames limited" );
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioMixer: The latency the mixer reports is the lookahead, and the mix comes out exactly that much later" )
+    try
+    {
+        AUDIO::CAudioMixer mixer( MixFormat, 256, 8, 4 );
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_LOOKAHEAD );
+        ASSERT_TRUE( 72 == mixer.GetLatencyInFrames() );                       // 1.5 ms at 48 kHz
+
+        AUDIO::TAudioVoicePtr voice = MakeVoice( mixer, MakeImpulse( 48000, 1000, 50, 0.5f ) );
+        ASSERT_TRUE( mixer.AddVoice( voice.GetPointerAlways() ) );
+        GUCEF::vector< Float32 > out = MixFrames( mixer, 1000 );
+        ASSERT_TRUE( 50 + 72 == FirstSoundFrame( out, 2 ) );
+        ASSERT_TRUE( 0.5f == out[ ( 50 + 72 ) * 2 ] && 0.5f == out[ ( 50 + 72 ) * 2 + 1 ] && 0.0f == out[ ( 50 + 73 ) * 2 ] );   // unchanged, only later
+        ASSERT_TRUE( 0 == mixer.GetLimitedFrameCount() );
+
+        // another lookahead, and another rate
+        mixer.SetLimiterLookaheadInMs( 3.0f );
+        ASSERT_TRUE( 144 == mixer.GetLatencyInFrames() );
+        AUDIO::TAudioVoicePtr second = MakeVoice( mixer, MakeImpulse( 48000, 1000, 50, 0.5f ) );
+        ASSERT_TRUE( mixer.AddVoice( second.GetPointerAlways() ) );
+        out = MixFrames( mixer, 1000 );
+        ASSERT_TRUE( 50 + 144 == FirstSoundFrame( out, 2 ) );
+
+        ASSERT_TRUE( mixer.SetMixFormat( AUDIO::CAudioFormat( 96000, 2, AUDIO::SAMPLETYPE_FLOAT32 ) ) );
+        ASSERT_TRUE( 288 == mixer.GetLatencyInFrames() );
+        AUDIO::TAudioVoicePtr third = MakeVoice( mixer, MakeImpulse( 96000, 1000, 50, 0.5f ) );
+        ASSERT_TRUE( mixer.AddVoice( third.GetPointerAlways() ) );
+        out = MixFrames( mixer, 1000 );
+        ASSERT_TRUE( 50 + 288 == FirstSoundFrame( out, 2 ) );
+
+        // no latency in the other modes
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );
+        ASSERT_TRUE( 0 == mixer.GetLatencyInFrames() );
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_OFF );
+        ASSERT_TRUE( 0 == mixer.GetLatencyInFrames() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioMixer: Instant mode keeps its ceiling of 0.98 whatever ceiling is set for lookahead mode, also after a format change" )
+    try
+    {
+        AUDIO::CAudioMixer mixer( MixFormat, 256, 8, 4 );
+        mixer.SetLimiterCeilingInDecibels( -6.0f );
+        mixer.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_INSTANT );
+        ASSERT_TRUE( Near( -6.0f, mixer.GetLimiterCeilingInDecibels() ) );
+        AUDIO::TAudioVoicePtr a = MakeVoice( mixer, MakeConstant( 48000, 1, 4000, 0.8f ) );
+        AUDIO::TAudioVoicePtr b = MakeVoice( mixer, MakeConstant( 48000, 1, 4000, 0.8f ) );
+        ASSERT_TRUE( mixer.AddVoice( a.GetPointerAlways() ) && mixer.AddVoice( b.GetPointerAlways() ) );
+        GUCEF::vector< Float32 > out = MixFrames( mixer, 100 );
+        ASSERT_TRUE( Near( 0.98f, out[ 0 ], 1e-6f ) && Near( 0.98f, out[ 199 ], 1e-6f ) );
+
+        ASSERT_TRUE( mixer.SetMixFormat( AUDIO::CAudioFormat( 44100, 2, AUDIO::SAMPLETYPE_FLOAT32 ) ) );
+        out = MixFrames( mixer, 100 );
+        ASSERT_TRUE( Near( 0.98f, out[ 0 ], 1e-6f ) && Near( 0.98f, out[ 199 ], 1e-6f ) );
+        ASSERT_TRUE( 0 == mixer.GetClippedSampleCount() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformAudioMixerTests( void )
 {GUCEF_TRACE;
@@ -807,6 +1061,7 @@ PerformAudioMixerTests( void )
     PerformPanAndChannelTests();
     PerformSpeedAndTimeTests();
     PerformLimitTests();
+    PerformMasterLimiterTests();
 }
 
 /*-------------------------------------------------------------------------*/

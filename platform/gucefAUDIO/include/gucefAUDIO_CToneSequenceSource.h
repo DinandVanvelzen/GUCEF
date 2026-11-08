@@ -105,6 +105,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CToneSequenceSource : public IAudioSource
 
     virtual bool IsEndOfStream( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool IsRealtimeSafe( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool IsSeekable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool SeekToFrame( UInt64 frame ) GUCEF_VIRTUAL_OVERRIDE;

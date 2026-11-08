@@ -61,11 +61,30 @@
 #include "TestAudioTestSignals.h"
 #include "TestAudioAlsa.h"
 #include "TestAudioCodecPlugin.h"
+#include "TestAudioCodecFlac.h"
+#include "TestAudioCodecMp3.h"
+#include "TestAudioCodecOgg.h"
+#include "TestAudioStreaming.h"
+#include "TestAudioBenchmark.h"
 #include "TestAudioWebAudio.h"
 #include "TestAudioStream.h"
 #include "TestAudioDevices.h"
 #include "TestAudioMixer.h"
+#include "TestAudioDsp.h"
 #include "TestAudioEngine.h"
+#include "TestAudioEffects.h"
+#include "TestAudioLimiter.h"
+#include "TestAudioCompressor.h"
+#include "TestAudioEqualizer.h"
+#include "TestAudioDelay.h"
+#include "TestAudioReverb.h"
+#include "TestAudioBuiltinEffects.h"
+#include "TestAudioRouting.h"
+#include "TestAudioEngineReopen.h"
+#include "TestAudioSettings.h"
+#include "TestAudioBusLayout.h"
+#include "TestAudioRealtime.h"
+#include "TestAudioVoiceEffects.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -105,11 +124,30 @@ GUCEF_OSMAIN_BEGIN
         PerformAudioCodecTests();
         PerformAudioDeviceTests();
         PerformAudioMixerTests();
+        PerformAudioDspTests();
         PerformAudioEngineTests();
+        PerformAudioEffectTests();
+        PerformAudioLimiterTests();
+        PerformAudioCompressorTests();
+        PerformAudioEqualizerTests();
+        PerformAudioDelayTests();
+        PerformAudioReverbTests();
+        PerformAudioBuiltinEffectTests();
+        PerformAudioRoutingTests();
+        PerformAudioVoiceEffectsTests();
+        PerformAudioEngineReopenTests();
+        PerformAudioRealtimeTests();
+        PerformAudioSettingsTests();
+        PerformAudioBusLayoutTests();
         PerformAudioStreamTests();
         PerformAudioTestSignalTests();
         PerformAudioAlsaTests();
         PerformAudioCodecPluginTests();
+        PerformAudioCodecFlacTests();
+        PerformAudioCodecMp3Tests();
+        PerformAudioCodecOggTests();
+        PerformAudioStreamingTests();
+        PerformAudioBenchmarkTests();
         PerformAudioWebAudioTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
