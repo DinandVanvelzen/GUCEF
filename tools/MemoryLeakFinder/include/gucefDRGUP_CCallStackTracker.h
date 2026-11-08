@@ -101,8 +101,8 @@ class GUCEF_HIDDEN CCallStackTracker
     void SetLogFilename( const char* filename );
     void SetStackLogOutputToStdOut( void );
     void CloseLogFile( void );
-    void Log( const char* logtype, UInt32 threadID, Int32 stackheight,
-              const char* file,    Int32 line,       UInt32 ticksSpent );
+    void Log( const char* logtype, TThreadId threadID, Int32 stackheight,
+              const char* file,    Int32 line,             UInt32 ticksSpent );
 
     /**
      * RAII scope guard — pushes on construction, pops on destruction.
@@ -160,7 +160,7 @@ class GUCEF_HIDDEN CCallStackTracker
         ~StackTraceInfo( void );
     };
 
-    typedef std::map< UInt32, StackTraceInfo > TThreadIdToCallStackMap;
+    typedef std::map< TThreadId, StackTraceInfo > TThreadIdToCallStackMap;
 
     StackTraceInfo* GetStackTraceInfoForCallingThread( MT::CScopeReaderLock& readerLock );
 

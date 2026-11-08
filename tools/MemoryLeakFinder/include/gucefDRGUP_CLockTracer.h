@@ -163,13 +163,13 @@ class GUCEF_HIDDEN CLockTracer
         TCallStack* m_callstackAtLockCreation;
         TCallStack* m_callstackAtLockObtainment;
         TCallStack* m_callstackAtLockRelease;
-        UInt32      m_threadIdAtLockCreation;
-        UInt32      m_lastCallerThreadIdAtLockObtainment;
-        UInt32      m_lastCallerThreadIdAtLockRelease;
+        TThreadId m_threadIdAtLockCreation;
+        TThreadId m_lastCallerThreadIdAtLockObtainment;
+        TThreadId m_lastCallerThreadIdAtLockRelease;
         Int32       m_lockReentrancyDepth;
         UInt32      m_abandonmentCounter;
         TCallStack* m_lastAbandonedCallstackAtLockObtainment;
-        UInt32      m_lastAbandonedCallerThreadIdAtLockObtainment;
+        TThreadId m_lastAbandonedCallerThreadIdAtLockObtainment;
         bool        m_isLocked;
         bool        m_isExclusivelyLocked;
         UInt32      m_surplusLockReleases;

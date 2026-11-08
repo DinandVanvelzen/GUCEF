@@ -223,7 +223,7 @@ CLockTracer::RegisterExclusiveLockCreation( void* lockId )
 {
     MT::CScopeReaderLock readLock( m_datalock );
 
-    UInt32 callerThreadId = MT::GetCurrentTaskID();
+    const TThreadId callerThreadId = MT::GetCurrentThreadID();
     LockTraceInfo* lockTrace = GetLockTraceInfo( readLock, lockId );
 
     assert( GUCEF_NULL != lockTrace );
@@ -246,7 +246,7 @@ CLockTracer::RegisterExclusiveLockObtained( void* lockId )
 {
     MT::CScopeReaderLock readLock( m_datalock );
 
-    UInt32 callerThreadId = MT::GetCurrentTaskID();
+    const TThreadId callerThreadId = MT::GetCurrentThreadID();
     LockTraceInfo* lockTrace = GetLockTraceInfo( readLock, lockId );
     assert( GUCEF_NULL != lockTrace );
 
@@ -280,7 +280,7 @@ CLockTracer::RegisterExclusiveLockAbandonment( void* lockId )
 {
     MT::CScopeReaderLock readLock( m_datalock );
 
-    UInt32 callerThreadId = MT::GetCurrentTaskID();
+    const TThreadId callerThreadId = MT::GetCurrentThreadID();
     LockTraceInfo* lockTrace = GetLockTraceInfo( readLock, lockId );
     assert( GUCEF_NULL != lockTrace );
 
@@ -319,7 +319,7 @@ CLockTracer::RegisterExclusiveLockReleased( void* lockId )
 {
     MT::CScopeReaderLock readLock( m_datalock );
 
-    UInt32 callerThreadId = MT::GetCurrentTaskID();
+    const TThreadId callerThreadId = MT::GetCurrentThreadID();
     LockTraceInfo* lockTrace = GetLockTraceInfo( readLock, lockId );
     assert( GUCEF_NULL != lockTrace );
 
@@ -368,7 +368,7 @@ CLockTracer::RegisterExclusiveLockDestruction( void* lockId )
 {
     MT::CScopeReaderLock readLock( m_datalock );
 
-    UInt32 callerThreadId = MT::GetCurrentTaskID();
+    const TThreadId callerThreadId = MT::GetCurrentThreadID();
     LockTraceInfo* lockTrace = GetLockTraceInfo( readLock, lockId );
     assert( GUCEF_NULL != lockTrace );
 
@@ -405,15 +405,15 @@ CLockTracer::PrintLockStacks( void* lockId, LockTraceInfo* lockTrace, FILE* dest
 
     fprintf( dest, "------------------------------%s", EOL );
     fprintf( dest, "Trace for lock %p:%s%s", lockId, EOL, EOL );
-    fprintf( dest, "   threadIdAtLockCreation: %d%s", lockTrace->m_threadIdAtLockCreation, EOL );
+    fprintf( dest, "   threadIdAtLockCreation: %llu%s", (unsigned long long) lockTrace->m_threadIdAtLockCreation, EOL );
     fprintf( dest, "   isExclusivelyLocked: %d%s", lockTrace->m_isExclusivelyLocked ? 1 : 0, EOL );
     fprintf( dest, "   isLocked: %d%s", lockTrace->m_isLocked ? 1 : 0, EOL );
-    fprintf( dest, "   lastCallerThreadIdAtLockObtainment: %d%s", lockTrace->m_lastCallerThreadIdAtLockObtainment, EOL );
-    fprintf( dest, "   lastCallerThreadIdAtLockRelease: %d%s", lockTrace->m_lastCallerThreadIdAtLockRelease, EOL );
+    fprintf( dest, "   lastCallerThreadIdAtLockObtainment: %llu%s", (unsigned long long) lockTrace->m_lastCallerThreadIdAtLockObtainment, EOL );
+    fprintf( dest, "   lastCallerThreadIdAtLockRelease: %llu%s", (unsigned long long) lockTrace->m_lastCallerThreadIdAtLockRelease, EOL );
     fprintf( dest, "   lockReentrancyDepth: %d%s", lockTrace->m_lockReentrancyDepth, EOL );
     fprintf( dest, "   surplusLockReleases: %d%s", lockTrace->m_surplusLockReleases, EOL );
     fprintf( dest, "   abandonmentCounter: %d%s", lockTrace->m_abandonmentCounter, EOL );
-    fprintf( dest, "   lastAbandonedCallerThreadIdAtLockObtainment: %d%s", lockTrace->m_lastAbandonedCallerThreadIdAtLockObtainment, EOL );
+    fprintf( dest, "   lastAbandonedCallerThreadIdAtLockObtainment: %llu%s", (unsigned long long) lockTrace->m_lastAbandonedCallerThreadIdAtLockObtainment, EOL );
     fprintf( dest, "------------------------------%s%s", EOL, EOL );
     fprintf( dest, "Stack at lock creation: %s%s", EOL, EOL );
     DRGUP_PrintCallstackCopyTo( lockTrace->m_callstackAtLockCreation, dest );

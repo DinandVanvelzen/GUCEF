@@ -291,7 +291,7 @@ CCallStackTracker::SetStackLogOutputToStdOut( void )
 
 void
 CCallStackTracker::Log( const char* logtype ,
-                        UInt32 threadID     ,
+                        TThreadId threadID,
                         Int32 stackheight   ,
                         const char* file    ,
                         Int32 line          ,
@@ -324,16 +324,16 @@ CCallStackTracker::Log( const char* logtype ,
             if ( !m_logInCsvFormat )
             {
                 if ( ticksSpent > 0 )
-                    fprintf( m_logFile, "Thread %d: %s: %d: %s(%d) (%d ms)%s", threadID, logtype, stackheight, file, line, ticksSpent, EOL );
+                    fprintf( m_logFile, "Thread %llu: %s: %d: %s(%d) (%d ms)%s", (unsigned long long) threadID, logtype, stackheight, file, line, ticksSpent, EOL );
                 else
-                    fprintf( m_logFile, "Thread %d: %s: %d: %s(%d)%s", threadID, logtype, stackheight, file, line, EOL );
+                    fprintf( m_logFile, "Thread %llu: %s: %d: %s(%d)%s", (unsigned long long) threadID, logtype, stackheight, file, line, EOL );
             }
             else
             {
                 if ( ticksSpent > 0 )
-                    fprintf( m_logFile, "%d,%s,%d,%s,%d,%d%s", threadID, logtype, stackheight, file, line, ticksSpent, EOL );
+                    fprintf( m_logFile, "%llu,%s,%d,%s,%d,%d%s", (unsigned long long) threadID, logtype, stackheight, file, line, ticksSpent, EOL );
                 else
-                    fprintf( m_logFile, "%d,%s,%d,%s,%d%s", threadID, logtype, stackheight, file, line, EOL );
+                    fprintf( m_logFile, "%llu,%s,%d,%s,%d%s", (unsigned long long) threadID, logtype, stackheight, file, line, EOL );
             }
             fflush( m_logFile );
         }
@@ -363,7 +363,7 @@ CCallStackTracker::SetStackPopCallback( TStackPopCallback cBack )
 CCallStackTracker::StackTraceInfo*
 CCallStackTracker::GetStackTraceInfoForCallingThread( MT::CScopeReaderLock& readLock )
 {
-    UInt32 threadid = MT::GetCurrentTaskID();
+    const TThreadId threadid = MT::GetCurrentThreadID();
 
     TThreadIdToCallStackMap::iterator i = m_inventory.find( threadid );
     if ( i != m_inventory.end() )
@@ -459,7 +459,7 @@ void
 CCallStackTracker::StackTraceInfo::PrintCallstack( TCallStack& stackToPrint, FILE* dest )
 {
     fprintf( dest, "------------------------------%s", EOL );
-    fprintf( dest, "Callstack for thread %d:%s%s", stackToPrint.threadid, EOL, EOL );
+    fprintf( dest, "Callstack for thread %llu:%s%s", (unsigned long long) stackToPrint.threadid, EOL, EOL );
     fprintf( dest, "stack size = %d%s", stackToPrint.items, EOL );
     fprintf( dest, "------------------------------%s%s", EOL, EOL );
     if ( stackToPrint.items > 0 )
@@ -861,7 +861,7 @@ DRGUP_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
     }
     stack->frames     = frames;
     stack->frameCount = (UInt32) captured;
-    stack->threadId   = (UInt32) GetCurrentThreadId();
+    stack->threadId   = MT::GetCurrentThreadID();   // the identity, on Windows the DWORD of ::GetCurrentThreadId()
     *outStack = stack;
 
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
@@ -889,7 +889,7 @@ DRGUP_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
     }
     stack->frames     = frames;
     stack->frameCount = (UInt32) captured;
-    stack->threadId   = (UInt32) MT::GetCurrentTaskID();
+    stack->threadId   = MT::GetCurrentThreadID();
     *outStack = stack;
 
 #else

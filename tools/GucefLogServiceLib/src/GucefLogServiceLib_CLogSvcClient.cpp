@@ -208,7 +208,7 @@ bool
 CLogSvcClient::OnTaskCycleLogWithoutFormatting( const CORE::TLogMsgType logMsgType ,
                                                 const CORE::Int32 logLevel         ,
                                                 const CORE::CString& logMessage    ,
-                                                const CORE::UInt32 threadId        ,
+                                                const TSystemThreadId threadId     ,
                                                 const CORE::CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -225,7 +225,7 @@ bool
 CLogSvcClient::OnTaskCycleLog( const CORE::TLogMsgType logMsgType ,
                                const CORE::Int32 logLevel         ,
                                const CORE::CString& logMessage    ,
-                               const CORE::UInt32 threadId        ,
+                               const TSystemThreadId threadId     ,
                                const CORE::CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
@@ -233,13 +233,14 @@ CLogSvcClient::OnTaskCycleLog( const CORE::TLogMsgType logMsgType ,
     CORE::Int8 msgHeader[ 24 ];  // 24 = 1+4+1+2+4+4+8
     CORE::UInt32 logMsgLength = logMessage.Length() + 11;
     CORE::UInt64 unixEpochDt = timestamp.ToMillisecondsSinceEpoch(); 
+    CORE::UInt32 wireThreadId = (CORE::UInt32) threadId;   // the wire format carries 32 bits of the operating system's thread id
 
     msgHeader[ 0 ] = (CORE::Int8) LOGSVCMSGTYPE_DELIMITER;   // set delimiter for message: 1 byte
     memcpy( msgHeader+1, &logMsgLength, 4 );                 // set the total message length : 4 bytes
     msgHeader[ 5 ] = (CORE::Int8) LOGSVCMSGTYPE_LOGMSG;      // set TCP msg type: 1 byte
     memcpy( msgHeader+6, &logMsgTypeValue, 2 );              // set log msg type: 2 bytes
     memcpy( msgHeader+8, &logLevel, 4 );                     // set log level: 4 bytes
-    memcpy( msgHeader+12, &threadId, 4 );                    // set thread id: 4 bytes
+    memcpy( msgHeader+12, &wireThreadId, 4 );                // set thread id: 4 bytes
     memcpy( msgHeader+16, &unixEpochDt, 8 );                 // set datetime as unix epoc offset in ms: 8 bytes
 
     if ( m_connectionInitialized )

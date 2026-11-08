@@ -40,6 +40,11 @@
 #define GUCEF_DRGUP_ETYPES_H
 #endif /* GUCEF_DRGUP_ETYPES_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"      /* TThreadId, the thread identity the call stacks are keyed by */
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_DRGUP_MACROS_H
 #include "gucefDRGUP_macros.h"      /* module build configuration */
 #define GUCEF_DRGUP_MACROS_H
@@ -73,7 +78,7 @@ struct SCallStack
     UInt64* entryTickCount;
     UInt32 items;
     UInt32 reservedStacksize;
-    UInt32 threadid;
+    TThreadId threadid;
     UInt8  staticsAreCopied;
 };
 typedef struct SCallStack TCallStack;
@@ -196,7 +201,7 @@ DRGUP_SetStackLoggingInCvsFormat( const UInt32 logAsCvsBool );
 
 typedef void (*TStackPushCallback) ( const char* fileName     ,
                                      const int lineNr         ,
-                                     const UInt32 threadId    ,
+                                     const TThreadId threadId,
                                      const UInt32 stackHeight );
 
 GUCEF_DRGUP_PUBLIC_C void
@@ -206,7 +211,7 @@ DRGUP_SetStackPushCallback( TStackPushCallback callback );
 
 typedef void (*TStackPopCallback) ( const char* fileName     ,
                                     const int lineNr         ,
-                                    const UInt32 threadId    ,
+                                    const TThreadId threadId,
                                     const UInt32 stackHeight ,
                                     const UInt32 ticksSpent  );
 

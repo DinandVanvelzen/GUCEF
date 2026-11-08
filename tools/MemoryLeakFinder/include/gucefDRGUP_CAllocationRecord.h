@@ -103,7 +103,7 @@ struct TRawCallStack
 {
     void**  frames;       /* raw instruction-pointer addresses (malloc'd) */
     UInt32  frameCount;   /* number of captured frames */
-    UInt32  threadId;     /* ID of the thread that captured this stack */
+    TThreadId  threadId;  /* identity of the thread that captured this stack, see TThreadId */
 };
 
 /*-------------------------------------------------------------------------//
