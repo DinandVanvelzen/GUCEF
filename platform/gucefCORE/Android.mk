@@ -128,12 +128,14 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_BrowserLauncher.cpp \
   src/gucefCORE_CASync.cpp \
   src/gucefCORE_CAbstractFactoryBase.cpp \
+  src/gucefCORE_CAbstractFactoryEntryTracker.cpp \
   src/gucefCORE_CAsciiString.cpp \
   src/gucefCORE_CAsciiStringView.cpp \
   src/gucefCORE_CAsyncFileSystemAccessOperation.cpp \
   src/gucefCORE_CAsyncUriResourceRetriever.cpp \
   src/gucefCORE_CAsyncUriRetrievalTask.cpp \
   src/gucefCORE_CBackoffPolicy.cpp \
+  src/gucefCORE_CBasicAbstractFactoryBase.cpp \
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp \
   src/gucefCORE_CBigUnsigned.cpp \
   src/gucefCORE_CBinaryWireReader.cpp \

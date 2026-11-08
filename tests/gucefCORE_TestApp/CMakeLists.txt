@@ -14,6 +14,7 @@
 set( HEADER_FILES 
   include/TestASync.h
   include/TestAbstractFactory.h
+  include/TestAbstractFactoryParity.h
   include/TestAllocationCounter.h
   include/TestAsyncUriResourceRetriever.h
   include/TestBase64Url.h
@@ -130,6 +131,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/TestASync.cpp
   src/TestAbstractFactory.cpp
+  src/TestAbstractFactoryParity.cpp
   src/TestAllocationCounter.cpp
   src/TestAsyncUriResourceRetriever.cpp
   src/TestBase64Url.cpp

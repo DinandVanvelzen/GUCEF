@@ -55,6 +55,7 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestASync.h",
   "include/TestAbstractFactory.h",
+  "include/TestAbstractFactoryParity.h",
   "include/TestAllocationCounter.h",
   "include/TestAsyncUriResourceRetriever.h",
   "include/TestBase64Url.h",
@@ -173,6 +174,7 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/TestASync.cpp",
   "src/TestAbstractFactory.cpp",
+  "src/TestAbstractFactoryParity.cpp",
   "src/TestAllocationCounter.cpp",
   "src/TestAsyncUriResourceRetriever.cpp",
   "src/TestBase64Url.cpp",

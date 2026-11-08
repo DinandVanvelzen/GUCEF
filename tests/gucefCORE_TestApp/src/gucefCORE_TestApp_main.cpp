@@ -1,6 +1,7 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -265,6 +266,11 @@
 #define GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORY_H
 #endif /* GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORY_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORYPARITY_H
+#include "TestAbstractFactoryParity.h"
+#define GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORYPARITY_H
+#endif /* GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORYPARITY_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTASYNC_H
 #include "TestASync.h"
 #define GUCEF_CORE_TESTAPP_TESTASYNC_H
@@ -524,6 +530,7 @@ GUCEF_OSMAIN_BEGIN
         PerformUInt128Tests();
         PerformDecimalTests();
         PerformAbstractFactoryTests();
+        PerformAbstractFactoryParityTests();
         PerformTimestampTests();
         PerformStopwatchTests();
         PerformDateTimeTests();

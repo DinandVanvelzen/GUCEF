@@ -134,12 +134,14 @@ set( HEADER_FILES
   include/gucefCORE_BrowserLauncher.h
   include/gucefCORE_CASync.h
   include/gucefCORE_CAbstractFactoryBase.h
+  include/gucefCORE_CAbstractFactoryEntryTracker.h
   include/gucefCORE_CAsciiString.h
   include/gucefCORE_CAsciiStringView.h
   include/gucefCORE_CAsyncFileSystemAccessOperation.h
   include/gucefCORE_CAsyncUriResourceRetriever.h
   include/gucefCORE_CAsyncUriRetrievalTask.h
   include/gucefCORE_CBackoffPolicy.h
+  include/gucefCORE_CBasicAbstractFactoryBase.h
   include/gucefCORE_CBasicBracketLoggingFormatter.h
   include/gucefCORE_CBigUnsigned.h
   include/gucefCORE_CBinaryWireReader.h
@@ -313,6 +315,9 @@ set( HEADER_FILES
   include/gucefCORE_CString.h
   include/gucefCORE_CSubFileAccess.h
   include/gucefCORE_CSubIOAccess.h
+  include/gucefCORE_CTAbstractFactoryRegistry.h
+  include/gucefCORE_CTBasicAbstractFactory.h
+  include/gucefCORE_CTBasicAbstractFactoryWithParam.h
   include/gucefCORE_CTBasicSharedPtrObjOperators.h
   include/gucefCORE_CTDataNodeSerializableObj.h
   include/gucefCORE_CTEventHandlerFunctor.h
@@ -325,6 +330,7 @@ set( HEADER_FILES
   include/gucefCORE_CTLinkedCloneable.h
   include/gucefCORE_CTMailboxForSharedCloneables.h
   include/gucefCORE_CTMultiRegistry.h
+  include/gucefCORE_CTNotifyingAbstractFactoryRegistry.h
   include/gucefCORE_CTScopedValue.h
   include/gucefCORE_CTWeakPtr.h
   include/gucefCORE_CTableCodecPlugin.h
@@ -541,12 +547,14 @@ set( SOURCE_FILES
   src/gucefCORE_BrowserLauncher.cpp
   src/gucefCORE_CASync.cpp
   src/gucefCORE_CAbstractFactoryBase.cpp
+  src/gucefCORE_CAbstractFactoryEntryTracker.cpp
   src/gucefCORE_CAsciiString.cpp
   src/gucefCORE_CAsciiStringView.cpp
   src/gucefCORE_CAsyncFileSystemAccessOperation.cpp
   src/gucefCORE_CAsyncUriResourceRetriever.cpp
   src/gucefCORE_CAsyncUriRetrievalTask.cpp
   src/gucefCORE_CBackoffPolicy.cpp
+  src/gucefCORE_CBasicAbstractFactoryBase.cpp
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp
   src/gucefCORE_CBigUnsigned.cpp
   src/gucefCORE_CBuiltInCodecs.cpp

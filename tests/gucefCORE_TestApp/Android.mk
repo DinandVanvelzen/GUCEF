@@ -23,6 +23,7 @@ LOCAL_MODULE := gucefCORE_TestApp
 LOCAL_SRC_FILES := \
   src/TestASync.cpp \
   src/TestAbstractFactory.cpp \
+  src/TestAbstractFactoryParity.cpp \
   src/TestAllocationCounter.cpp \
   src/TestAsyncUriResourceRetriever.cpp \
   src/TestBase64Url.cpp \
