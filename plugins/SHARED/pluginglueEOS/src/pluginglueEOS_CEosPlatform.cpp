@@ -166,6 +166,8 @@ CEosPlatform::CEosPlatform( const SEosPlatformShim& shim, const CEosPlatformSett
     , m_settings( settings )
     , m_createdHere( false )
     , m_refCount( 0 )
+    , m_glueState( GLUESTATE_CREATING )
+    , m_glueBusyThreadId( 0 )
     , m_loginState()
     , m_demands()
     , m_nextDemandId( 0 )

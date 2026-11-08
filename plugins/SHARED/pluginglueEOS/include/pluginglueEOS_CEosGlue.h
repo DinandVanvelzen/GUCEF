@@ -55,7 +55,9 @@ namespace EOS {
  *  The one owner of the EOS platform of the process. Plugins that need EOS (the auth plugin, the lobby service, the
  *  P2P channel) acquire the platform here instead of making one: the first acquire makes it (EOS_Initialize,
  *  EOS_Platform_Create), the last release lets it go (EOS_Platform_Release), in between it is ticked from the pulse
- *  generator of the application and everybody sees the same login state.
+ *  generator of the application and everybody sees the same login state. The lock of the glue is a leaf: platforms
+ *  are made, shut down and deleted without it, so it may be taken under any lock (the lock of a DRN node whose channel
+ *  acquires the platform of its user).
  *
  *  Platforms are told apart by the function table that made them: all holders of the real SDK pass no table and get
  *  the platform of the SDK that is compiled in, a test passes its fake. The settings are the keys of the "epic"
@@ -101,11 +103,21 @@ class GUCEF_PLUGINGLUE_EOS_EXPORT_CPP CEosGlue
      *  platform that already exists is shared when the settings are for the same product; settings of another product
      *  are refused.
      *
+     *  One thread at a time makes or lets go of the platform of a table: an acquire while another thread makes it, or
+     *  while its last holder lets it go, waits until it is ready (and shares it) or gone (and makes a new one). So it is
+     *  not called under a lock that the pulses of the application's pulse generator take (the lock of a DRN node);
+     *  AcquirePlatformOfUser() and AddRef() never wait. Called from within the create or release of the same platform
+     *  on its own thread it fails instead of waiting.
+     *
      *  @param settings the settings to make it with, NULL for those of SetSettings()
      */
     CEosPlatform* AcquirePlatform( const SEosPlatformShim* shim, const CEosPlatformSettings* settings, CORE::CString& reason );
 
-    /** Gives the platform of the user that is logged in (empty: the only platform that has a user logged in) and counts the caller as a holder. NULL if there is none or more than one */
+    /**
+     *  Gives the platform of the user that is logged in (empty: the only platform that has a user logged in) and counts
+     *  the caller as a holder. NULL if there is none or more than one. A platform that is being made or let go is not
+     *  handed out; this never waits, so it may be called under any lock
+     */
     CEosPlatform* AcquirePlatformOfUser( const CORE::CString& productUserId, CORE::CString& reason );
 
     /** Counts one more holder of a platform that the caller holds already */
@@ -128,6 +140,10 @@ class GUCEF_PLUGINGLUE_EOS_EXPORT_CPP CEosGlue
     CEosGlue& operator=( const CEosGlue& src );     /**< not implemented */
 
     CEosPlatform* FindPlatform( const SEosPlatformShim& shim ) const;
+
+    void DeletePlatforms( GUCEF::vector< CEosPlatform* >& platforms );
+
+    void ErasePlatform( CEosPlatform* platform );
 
     private:
 

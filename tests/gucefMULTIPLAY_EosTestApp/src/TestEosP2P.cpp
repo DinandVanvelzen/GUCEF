@@ -231,6 +231,59 @@ MakeNodeSettings( void )
     return settings;
 }
 
+/**
+ *  Watches eos-p2p channels and listeners of a node: for every event whether it came in a pulse of the node's pulse
+ *  generator, which the node pulses under its lock (CDRNNode::IsWorkingOnThisThread()), and keeps what was accepted
+ */
+class CNodeChannelWatch : public CORE::CObserver
+{
+    public:
+
+    typedef CORE::CTEventHandlerFunctor< CNodeChannelWatch > TEventCallback;
+
+    DRN::CDRNNode& node;
+    UInt32 accepted;
+    UInt32 packets;
+    UInt32 outsideNodeWork;
+    GUCEF::vector< DRN::CIDRNChannelPtr > channels;
+
+    explicit CNodeChannelWatch( DRN::CDRNNode& n ) : CORE::CObserver(), node( n ), accepted( 0 ), packets( 0 ), outsideNodeWork( 0 ), channels() {}
+    virtual ~CNodeChannelWatch() { UnsubscribeAllFromObserver(); }
+
+    void WatchListener( DRN::CIDRNChannelListener& listener )
+    {
+        TEventCallback acceptedCallback( this, &CNodeChannelWatch::OnAccepted );
+        SubscribeTo( &listener, DRN::CIDRNChannelListener::ChannelAcceptedEvent, acceptedCallback );
+    }
+
+    void WatchChannel( DRN::CIDRNChannel& channel )
+    {
+        TEventCallback packetCallback( this, &CNodeChannelWatch::OnPacket );
+        SubscribeTo( &channel, DRN::CIDRNChannel::PacketReceivedEvent, packetCallback );
+    }
+
+    private:
+
+    void OnAccepted( CORE::CNotifier* /* notifier */, const CORE::CEvent& /* eventId */, CORE::CICloneable* eventData )
+    {
+        ++accepted;
+        if ( !node.IsWorkingOnThisThread() )
+            ++outsideNodeWork;
+        DRN::CIDRNChannelPtr channel = static_cast< DRN::CDRNChannelEventData* >( eventData )->GetData();
+        channels.push_back( channel );
+        WatchChannel( *channel );
+    }
+
+    void OnPacket( CORE::CNotifier* /* notifier */, const CORE::CEvent& /* eventId */, CORE::CICloneable* /* eventData */ )
+    {
+        ++packets;
+        if ( !node.IsWorkingOnThisThread() )
+            ++outsideNodeWork;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
 /** Hosts a session on user a and joins it with user b over the channel; the grid of a is replicated to b while the network misbehaves as set */
 static bool
 ReplicateOverEos( CEosFixture& fixture, const CORE::CString& extraParams, const CORE::CString& socket, CORE::CString& failedStep )
@@ -728,12 +781,85 @@ PerformEosP2PTests( void )
             threaded->SetPulseGenerator( CORE::CPulseGenerator::CreateSharedObj() );
             ASSERT_FALSE( threaded->Connect( MakeEndpointOf( b.Id(), "game", a.Id() ) ) );
 
+            // the pulse generator of a node on a thread of its own: the node's thread is not the one that ticks the platform
+            DRN::CDRNNode threadedNode;
+            DRN::CDRNNodeSettings threadedSettings = MakeNodeSettings();
+            threadedSettings.ownThread = true;
+            ASSERT_TRUE( threadedNode.SetSettings( threadedSettings ) && threadedNode.Start() && threadedNode.IsRunningOwnThread() );
+            TChannelPtr ofThreadedNode = global->GetChannelFactory().Create( "eos-p2p" );
+            ofThreadedNode->SetPulseGenerator( threadedNode.GetWorkPulseGenerator() );
+            ofThreadedNode->SetDrivingPulseGenerator( threadedNode.GetPulseGenerator() );
+            ASSERT_FALSE( ofThreadedNode->Connect( MakeEndpointOf( b.Id(), "game", a.Id() ) ) );
+            ASSERT_FALSE( threadedNode.Listen( MakeEndpointOf( a.Id(), "game", a.Id(), "&acceptAny=1" ) ) );
+            threadedNode.Stop();
+
+            // the pulse generator of a node without a thread of its own: the application's pulses it
+            DRN::CDRNNode node;
+            TChannelPtr ofNode = global->GetChannelFactory().Create( "eos-p2p" );
+            ofNode->SetPulseGenerator( node.GetWorkPulseGenerator() );
+            ofNode->SetDrivingPulseGenerator( node.GetPulseGenerator() );
+            ASSERT_TRUE( node.GetWorkPulseGenerator() != node.GetPulseGenerator() );
+            ASSERT_TRUE( ofNode->Connect( MakeEndpointOf( b.Id(), "game", a.Id() ) ) );
+            ofNode->Close();
+
             // the one that is named works
             TChannelPtr good = global->GetChannelFactory().Create( "eos-p2p" );
             ASSERT_TRUE( good->Connect( MakeEndpointOf( b.Id(), "game", a.Id() ) ) );
             ASSERT_TRUE( good->IsConnected() && good->GetRemoteEndpoint().ToString().HasSubstr( b.Id() ) >= 0 );
             good->Close();
             ASSERT_FALSE( good->IsConnected() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The channels and the listener of a node get the events of the socket in a pulse of the node's pulse generator, under the node lock, not from the tick of the platform" )
+        try
+        {
+            ASSERT_TRUE( LoadTestPlugin( "drnchannelpluginEOSP2P", "eosp2p" ) );
+            DRN::CDRNGlobal* global = DRN::CDRNGlobal::Instance();
+            CEosFixture fixture( 2, false );
+            CP2PUser a( fixture[ 0 ] );
+            CP2PUser b( fixture[ 1 ] );
+            REQUIRE_TRUE( GUCEF_NULL != a.router && GUCEF_NULL != b.router );
+
+            // b listens with a node of its own, a connects with a channel of another node
+            DRN::CDRNNode listeningNode;
+            DRN::CDRNNode connectingNode;
+            CNodeChannelWatch listenerSide( listeningNode );
+            CNodeChannelWatch connectorSide( connectingNode );
+            DRN::CDRNChannelListenerFactory::TProductPtr listener = global->GetChannelListenerFactory().Create( "eos-p2p" );
+            REQUIRE_TRUE( !listener.IsNULL() );
+            listener->SetPulseGenerator( listeningNode.GetWorkPulseGenerator() );
+            listener->SetDrivingPulseGenerator( listeningNode.GetPulseGenerator() );
+            listenerSide.WatchListener( *listener );
+            REQUIRE_TRUE( listener->Listen( MakeEndpointOf( b.Id(), "game", b.Id(), "&acceptAny=1" ) ) );
+
+            TChannelPtr channel = global->GetChannelFactory().Create( "eos-p2p" );
+            channel->SetPulseGenerator( connectingNode.GetWorkPulseGenerator() );
+            channel->SetDrivingPulseGenerator( connectingNode.GetPulseGenerator() );
+            connectorSide.WatchChannel( *channel );
+            REQUIRE_TRUE( channel->Connect( MakeEndpointOf( b.Id(), "game", a.Id() ) ) );
+
+            const char hello[] = "hello";
+            for ( UInt32 i=0; i<5; ++i )
+                ASSERT_TRUE( channel->SendPacket( hello, sizeof( hello ) ) );
+            ASSERT_TRUE( PumpUntilCount( listenerSide.packets, 5, 5000 ) );
+            REQUIRE_TRUE( 1 == listenerSide.accepted && 1 == listenerSide.channels.size() );
+            for ( UInt32 i=0; i<5; ++i )
+                ASSERT_TRUE( listenerSide.channels[ 0 ]->SendPacket( hello, sizeof( hello ) ) );
+            ASSERT_TRUE( PumpUntilCount( connectorSide.packets, 5, 5000 ) );
+
+            // every event came in a pulse of the node's own pulse generator
+            ASSERT_TRUE( 0 == listenerSide.outsideNodeWork && 0 == connectorSide.outsideNodeWork );
+            ASSERT_TRUE( channel->GetPulseGenerator() == connectingNode.GetWorkPulseGenerator() );
+            ASSERT_TRUE( listenerSide.channels[ 0 ]->GetPulseGenerator() == listeningNode.GetWorkPulseGenerator() );
+
+            channel->Close();
+            listenerSide.channels.clear();
+            listener->StopListening();
         }
         catch ( ... )
         {

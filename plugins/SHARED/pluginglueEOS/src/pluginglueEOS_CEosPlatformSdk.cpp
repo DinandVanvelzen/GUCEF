@@ -124,6 +124,7 @@ CEosPlatformSdk::GetPlatformHandle( void )
 struct SSdkState
 {
     MT::CMutex lock;
+    MT::CMutex platformLock;    /**< a leaf: the create, release and adoption of the platform never overlap */
     EOS_HPlatform platform;
     bool ownsPlatform;
     bool initializedSdk;
@@ -136,7 +137,7 @@ struct SSdkState
     GUCEF::vector< SEosP2PEvent > events;
 
     SSdkState( void )
-        : lock(), platform( GUCEF_NULL ), ownsPlatform( false ), initializedSdk( false ), tickedByApplication( false ), localUser( GUCEF_NULL )
+        : lock(), platformLock(), platform( GUCEF_NULL ), ownsPlatform( false ), initializedSdk( false ), tickedByApplication( false ), localUser( GUCEF_NULL )
         , requestNotification( EOS_INVALID_NOTIFICATIONID ), establishedNotification( EOS_INVALID_NOTIFICATIONID )
         , interruptedNotification( EOS_INVALID_NOTIFICATIONID ), closedNotification( EOS_INVALID_NOTIFICATIONID ), events()
     {}
@@ -221,6 +222,7 @@ SdkCreatePlatform( void* context, const SEosPlatformConfig* config, char* errorT
 {GUCEF_TRACE;
 
     SSdkState& state = State();
+    MT::CScopeMutex platformLock( state.platformLock );
     if ( GUCEF_NULL != state.platform )
         return true;
 
@@ -294,6 +296,7 @@ SdkReleasePlatform( void* context )
 {GUCEF_TRACE;
 
     SSdkState& state = State();
+    MT::CScopeMutex platformLock( state.platformLock );
     RemoveNotifications( state );
     if ( state.ownsPlatform && GUCEF_NULL != state.platform )
     {
@@ -753,6 +756,7 @@ CEosPlatformSdk::AdoptPlatform( void* platformHandle, bool tickedByApplication )
 {GUCEF_TRACE;
 
     SSdkState& state = State();
+    MT::CScopeMutex platformLock( state.platformLock );
     if ( GUCEF_NULL == platformHandle || GUCEF_NULL != state.platform )
         return false;
     state.platform = static_cast< EOS_HPlatform >( platformHandle );

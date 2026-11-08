@@ -30,6 +30,16 @@
 #define GUCEF_PLUGINGLUE_EOS_CEOSPLATFORMLEASE_H
 #endif /* GUCEF_PLUGINGLUE_EOS_CEOSPLATFORMLEASE_H ? */
 
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #include "TestEosCommon.h"
 #include "TestEosGlue.h"
 
@@ -137,6 +147,136 @@ class CCounterAtLeast : public CCondition
     UInt32 value;
     CCounterAtLeast( const UInt32& c, UInt32 v ) : counter( c ), value( v ) {}
     virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE { return counter >= value; }
+};
+
+/**
+ *  A platform table of its own whose create or release can be held up in the middle, the way two threads meet in the
+ *  SDK: the SDK made its platform (or is letting it go) and the call has not returned yet
+ */
+class CStallingSdk
+{
+    public:
+
+    MT::CTAtomic< bool > ready;
+    MT::CTAtomic< UInt32 > creates;
+    MT::CTAtomic< UInt32 > releases;
+    MT::CTAtomic< bool > stallCreate;
+    MT::CTAtomic< bool > stallRelease;
+    MT::CTAtomic< bool > stalled;
+    MT::CTAtomic< bool > resume;
+
+    CStallingSdk( void )
+        : ready( false ), creates( 0 ), releases( 0 ), stallCreate( false ), stallRelease( false ), stalled( false ), resume( false )
+    {}
+
+    SEosPlatformShim Shim( void )
+    {
+        SEosPlatformShim shim;
+        shim.context = this;
+        shim.isSdkAvailable = &CStallingSdk::IsAvailable;
+        shim.createPlatform = &CStallingSdk::Create;
+        shim.releasePlatform = &CStallingSdk::Release;
+        shim.isPlatformReady = &CStallingSdk::IsReady;
+        return shim;
+    }
+
+    /** Waits until a create or release stalls; false after the time */
+    bool WaitForStall( UInt32 timeoutInMs )
+    {
+        UInt64 deadline = CEosPlatform::GetMonotonicTimeInMs() + timeoutInMs;
+        while ( !stalled.Load() && CEosPlatform::GetMonotonicTimeInMs() < deadline )
+            MT::ThreadDelay( 1 );
+        return stalled.Load();
+    }
+
+    private:
+
+    static bool IsAvailable( void* ) { return true; }
+
+    static bool Create( void* context, const SEosPlatformConfig*, char*, UInt32 )
+    {
+        CStallingSdk* self = static_cast< CStallingSdk* >( context );
+        self->creates.Store( self->creates.Load() + 1 );
+        self->ready.Store( true );
+        if ( self->stallCreate.Load() )
+        {
+            self->stallCreate.Store( false );
+            self->Stall();
+        }
+        return true;
+    }
+
+    static void Release( void* context )
+    {
+        CStallingSdk* self = static_cast< CStallingSdk* >( context );
+        if ( self->stallRelease.Load() )
+        {
+            self->stallRelease.Store( false );
+            self->Stall();
+        }
+        self->releases.Store( self->releases.Load() + 1 );
+        self->ready.Store( false );
+    }
+
+    static bool IsReady( void* context ) { return static_cast< CStallingSdk* >( context )->ready.Load(); }
+
+    void Stall( void )
+    {
+        stalled.Store( true );
+        while ( !resume.Load() )
+            MT::ThreadDelay( 1 );
+        resume.Store( false );
+        stalled.Store( false );
+    }
+};
+
+/** Acquires or releases a platform of the glue on a thread of its own */
+class CGlueCaller : public MT::CActiveObject
+{
+    public:
+
+    CGlueCaller( const SEosPlatformShim& shim, CEosPlatform* toRelease )
+        : MT::CActiveObject(), m_shim( shim ), m_toRelease( toRelease ), m_platform( GUCEF_NULL ), m_done( false )
+    {}
+
+    virtual bool OnThreadStart( void* ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( GUCEF_NULL != m_toRelease )
+        {
+            CEosGlue::Instance()->ReleasePlatform( m_toRelease );
+        }
+        else
+        {
+            CORE::CString reason;
+            m_platform = CEosGlue::Instance()->AcquirePlatform( &m_shim, GUCEF_NULL, reason );
+        }
+        m_done.Store( true );
+        return true;
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    bool IsDone( void ) const { return m_done.Load(); }
+
+    /** Waits for the call to return; false after the time */
+    bool WaitUntilDone( UInt32 timeoutInMs ) const
+    {
+        UInt64 deadline = CEosPlatform::GetMonotonicTimeInMs() + timeoutInMs;
+        while ( !m_done.Load() && CEosPlatform::GetMonotonicTimeInMs() < deadline )
+            MT::ThreadDelay( 1 );
+        return m_done.Load();
+    }
+
+    CEosPlatform* GetPlatform( void ) const { return m_platform; }
+
+    private:
+
+    SEosPlatformShim m_shim;
+    CEosPlatform* m_toRelease;
+    CEosPlatform* m_platform;
+    MT::CTAtomic< bool > m_done;
 };
 
 /*-------------------------------------------------------------------------//
@@ -611,6 +751,102 @@ PerformEosGlueTests( void )
             // and the others go on
             ASSERT_TRUE( pair.host->SetSetting( "map", "ice" ) );
             ASSERT_TRUE( 1 == fixture.world.FindLobby( lobbyId )->members.size() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Two threads that acquire a platform at the same time get the one platform the SDK made, ready, with both counted; the last release lets it go" )
+        try
+        {
+            EnsureGlueSettings();
+            CEosGlue* glue = CEosGlue::Instance();
+            const UInt32 platformsBefore = glue->GetPlatformCount();
+            CStallingSdk sdk;
+            SEosPlatformShim shim = sdk.Shim();
+
+            // the first one is held up right after the SDK made the platform
+            sdk.stallCreate.Store( true );
+            CGlueCaller first( shim, GUCEF_NULL );
+            REQUIRE_TRUE( first.Activate( GUCEF_NULL, 0, 0 ) );
+            REQUIRE_TRUE( sdk.WaitForStall( 10000 ) );
+
+            // the second one comes in meanwhile; it finds a platform of the SDK that is ready but not yet its holders'
+            CGlueCaller second( shim, GUCEF_NULL );
+            REQUIRE_TRUE( second.Activate( GUCEF_NULL, 0, 0 ) );
+            second.WaitUntilDone( 200 );
+            sdk.resume.Store( true );
+            REQUIRE_TRUE( first.WaitUntilDone( 10000 ) && second.WaitUntilDone( 10000 ) );
+            first.Deactivate( false, true );
+            second.Deactivate( false, true );
+
+            CEosPlatform* platform = first.GetPlatform();
+            REQUIRE_TRUE( GUCEF_NULL != platform );
+            ASSERT_TRUE( second.GetPlatform() == platform );
+            ASSERT_TRUE( 2 == platform->GetRefCount() );
+            ASSERT_TRUE( platform->IsReady() && platform->WasCreatedHere() );
+            ASSERT_TRUE( 1 == sdk.creates.Load() && 0 == sdk.releases.Load() );
+            ASSERT_TRUE( platformsBefore + 1 == glue->GetPlatformCount() );
+
+            glue->ReleasePlatform( platform );
+            ASSERT_TRUE( 0 == sdk.releases.Load() && platform->IsReady() );
+            glue->ReleasePlatform( platform );
+            ASSERT_TRUE( 1 == sdk.releases.Load() && !sdk.ready.Load() );
+            ASSERT_TRUE( platformsBefore == glue->GetPlatformCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A platform acquired while its last holder lets it go is made again and ready, never one the SDK is releasing; the user's platform is not handed out meanwhile" )
+        try
+        {
+            EnsureGlueSettings();
+            CEosGlue* glue = CEosGlue::Instance();
+            const UInt32 platformsBefore = glue->GetPlatformCount();
+            CStallingSdk sdk;
+            SEosPlatformShim shim = sdk.Shim();
+            CORE::CString reason;
+
+            CEosPlatform* last = glue->AcquirePlatform( &shim, GUCEF_NULL, reason );
+            REQUIRE_TRUE( GUCEF_NULL != last );
+            last->SetLoginState( "epic-account-stall", "product-user-stall" );
+
+            // the last holder lets go; the SDK is held up in the middle of the release
+            sdk.stallRelease.Store( true );
+            CGlueCaller releaser( shim, last );
+            REQUIRE_TRUE( releaser.Activate( GUCEF_NULL, 0, 0 ) );
+            REQUIRE_TRUE( sdk.WaitForStall( 10000 ) );
+
+            // the platform of the user is not handed out while it goes, and that answer does not wait
+            CEosPlatform* ofUser = glue->AcquirePlatformOfUser( "product-user-stall", reason );
+            ASSERT_TRUE( GUCEF_NULL == ofUser );
+            if ( GUCEF_NULL != ofUser )
+                glue->ReleasePlatform( ofUser );
+
+            // a new holder comes in meanwhile
+            CGlueCaller next( shim, GUCEF_NULL );
+            REQUIRE_TRUE( next.Activate( GUCEF_NULL, 0, 0 ) );
+            next.WaitUntilDone( 200 );
+            sdk.resume.Store( true );
+            REQUIRE_TRUE( releaser.WaitUntilDone( 10000 ) && next.WaitUntilDone( 10000 ) );
+            releaser.Deactivate( false, true );
+            next.Deactivate( false, true );
+
+            CEosPlatform* platform = next.GetPlatform();
+            REQUIRE_TRUE( GUCEF_NULL != platform );
+            ASSERT_TRUE( 1 == platform->GetRefCount() );
+            ASSERT_TRUE( platform->IsReady() && platform->WasCreatedHere() );
+            ASSERT_TRUE( 2 == sdk.creates.Load() && 1 == sdk.releases.Load() );
+            ASSERT_TRUE( platformsBefore + 1 == glue->GetPlatformCount() );
+
+            glue->ReleasePlatform( platform );
+            ASSERT_TRUE( 2 == sdk.releases.Load() && !sdk.ready.Load() );
+            ASSERT_TRUE( platformsBefore == glue->GetPlatformCount() );
         }
         catch ( ... )
         {

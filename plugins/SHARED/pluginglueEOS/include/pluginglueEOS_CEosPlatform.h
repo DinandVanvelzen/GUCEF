@@ -191,6 +191,14 @@ class GUCEF_PLUGINGLUE_EOS_EXPORT_CPP CEosPlatform : public CORE::CObservingNoti
 
     private:
 
+    /** Where the glue is with the platform; read and written under the lock of the glue only */
+    enum EGlueState
+    {
+        GLUESTATE_CREATING  = 0,    /**< the first holder makes it: who acquires meanwhile waits for it */
+        GLUESTATE_READY     = 1,    /**< made and held */
+        GLUESTATE_RELEASING = 2     /**< the last holder lets it go: who acquires meanwhile waits and makes a new one */
+    };
+
     struct SDemand
     {
         UInt32 id;
@@ -203,6 +211,8 @@ class GUCEF_PLUGINGLUE_EOS_EXPORT_CPP CEosPlatform : public CORE::CObservingNoti
     CEosPlatformSettings m_settings;
     bool m_createdHere;
     UInt32 m_refCount;
+    EGlueState m_glueState;
+    UInt32 m_glueBusyThreadId;
     CEosLoginState m_loginState;
     TDemandVector m_demands;
     UInt32 m_nextDemandId;

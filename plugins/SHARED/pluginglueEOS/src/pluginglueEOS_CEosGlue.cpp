@@ -27,6 +27,11 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -253,42 +258,146 @@ CEosGlue::AcquirePlatform( const SEosPlatformShim* shim, const CEosPlatformSetti
         use = *shim;
     }
 
-    MT::CScopeMutex lock( m_lock );
-
-    // The memory of platforms that were let go
-    for ( size_t i=0; i<g_retiredPlatforms.size(); ++i )
-        GUCEF_DELETE g_retiredPlatforms[ i ];
-    g_retiredPlatforms.clear();
-
-    CEosPlatformSettings useSettings = GUCEF_NULL != settings ? *settings : m_settings;
-    CEosPlatform* existing = FindPlatform( use );
-    if ( GUCEF_NULL != existing )
+    // The lock of the glue is a leaf: platforms are made, shut down and deleted without it, since a platform subscribes
+    // its timer to the pulse generator of the application and lets go of it again, while the channels of a DRN node
+    // ask for their platform under the node lock, which a pulse of that pulse generator takes (gucefDRN design 9.1).
+    // One thread at a time makes or lets go of the platform of a table: it stays registered while that happens, marked,
+    // and whoever acquires it meanwhile waits outside the lock until it is ready or gone. Two creates of the SDK
+    // platform never overlap, and nobody is handed a platform that the SDK is still making or already releasing.
+    const UInt32 thisThread = MT::GetCurrentTaskID();
+    CEosPlatform* candidate = GUCEF_NULL;
+    for ( ;; )
     {
-        if ( useSettings.IsConfigured() && existing->GetSettings().IsConfigured() && !existing->GetSettings().IsSameProduct( useSettings ) )
+        GUCEF::vector< CEosPlatform* > retired;
+        CEosPlatform* existing = GUCEF_NULL;
+        bool registered = false;
+        bool busy = false;
+        bool busyOnThisThread = false;
+        bool refused = false;
+        CEosPlatformSettings useSettings;
         {
-            reason = "The Epic Online Services platform is made for another product, client or sandbox already";
-            return GUCEF_NULL;
+            MT::CScopeMutex lock( m_lock );
+
+            // The memory of platforms that were let go goes below
+            retired.swap( g_retiredPlatforms );
+
+            useSettings = GUCEF_NULL != settings ? *settings : m_settings;
+            existing = FindPlatform( use );
+            if ( GUCEF_NULL != existing )
+            {
+                if ( CEosPlatform::GLUESTATE_READY != existing->m_glueState )
+                {
+                    busy = true;
+                    busyOnThisThread = existing->m_glueBusyThreadId == thisThread;
+                }
+                else
+                if ( useSettings.IsConfigured() && existing->GetSettings().IsConfigured() && !existing->GetSettings().IsSameProduct( useSettings ) )
+                {
+                    reason = "The Epic Online Services platform is made for another product, client or sandbox already";
+                    existing = GUCEF_NULL;
+                    refused = true;
+                }
+                else
+                {
+                    ++existing->m_refCount;
+                }
+            }
+            else
+            if ( GUCEF_NULL != candidate )
+            {
+                // This thread makes it: the platform is registered as being made, who comes after waits for it
+                candidate->m_glueState = CEosPlatform::GLUESTATE_CREATING;
+                candidate->m_glueBusyThreadId = thisThread;
+                candidate->m_refCount = 1;
+                m_platforms.push_back( candidate );
+                registered = true;
+            }
         }
-        ++existing->m_refCount;
-        return existing;
+        DeletePlatforms( retired );
+
+        if ( registered )
+            break;
+        if ( busy )
+        {
+            if ( busyOnThisThread )
+            {
+                // Asked for from within its own create or release: waiting would never end
+                reason = "The Epic Online Services platform is being made or released by this thread";
+                GUCEF_DELETE candidate;
+                return GUCEF_NULL;
+            }
+            MT::ThreadDelay( 1 );
+            continue;
+        }
+        if ( GUCEF_NULL != existing || refused )
+        {
+            // A platform that is there is shared, or refused for another product; a platform made in vain had nothing
+            // of the SDK yet
+            GUCEF_DELETE candidate;
+            return existing;
+        }
+
+        // None yet: one is made outside the lock, then registered if still nobody else did
+        candidate = GUCEF_NEW CEosPlatform( use, useSettings );
     }
 
-    CEosPlatform* platform = GUCEF_NEW CEosPlatform( use, useSettings );
-    if ( !platform->Create( reason ) )
-    {
-        GUCEF_DELETE platform;
-        return GUCEF_NULL;
-    }
-    platform->m_refCount = 1;
-    m_platforms.push_back( platform );
-
-    if ( isDefault )
+    // Only this thread makes the platform of this table now
+    bool created = candidate->Create( reason );
+    if ( created && isDefault )
     {
         SEosP2PShim p2p;
         if ( GetDefaultP2PShim( p2p ) )
-            platform->AttachP2P( p2p );
+            candidate->AttachP2P( p2p );
     }
-    return platform;
+    {
+        MT::CScopeMutex lock( m_lock );
+        candidate->m_glueBusyThreadId = 0;
+        if ( created )
+        {
+            candidate->m_glueState = CEosPlatform::GLUESTATE_READY;
+        }
+        else
+        {
+            candidate->m_refCount = 0;
+            ErasePlatform( candidate );
+        }
+    }
+    if ( !created )
+    {
+        // Whoever waited for it tries itself
+        GUCEF_DELETE candidate;
+        return GUCEF_NULL;
+    }
+    return candidate;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CEosGlue::ErasePlatform( CEosPlatform* platform )
+{GUCEF_TRACE;
+
+    // under the lock of the glue
+    for ( size_t i=0; i<m_platforms.size(); ++i )
+    {
+        if ( m_platforms[ i ] == platform )
+        {
+            m_platforms.erase( m_platforms.begin() + i );
+            return;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CEosGlue::DeletePlatforms( GUCEF::vector< CEosPlatform* >& platforms )
+{GUCEF_TRACE;
+
+    // without the lock of the glue, see AcquirePlatform()
+    for ( size_t i=0; i<platforms.size(); ++i )
+        GUCEF_DELETE platforms[ i ];
+    platforms.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -302,6 +411,9 @@ CEosGlue::AcquirePlatformOfUser( const CORE::CString& productUserId, CORE::CStri
     CEosPlatform* found = GUCEF_NULL;
     for ( size_t i=0; i<m_platforms.size(); ++i )
     {
+        // A platform being made or let go is not handed out: this is asked for under the node lock, so it never waits
+        if ( CEosPlatform::GLUESTATE_READY != m_platforms[ i ]->m_glueState )
+            continue;
         CEosLoginState state = m_platforms[ i ]->GetLoginState();
         if ( !state.IsLoggedIn() )
             continue;
@@ -331,7 +443,7 @@ CEosGlue::AddRef( CEosPlatform* platform )
 
     MT::CScopeMutex lock( m_lock );
     for ( size_t i=0; i<m_platforms.size(); ++i )
-        if ( m_platforms[ i ] == platform )
+        if ( m_platforms[ i ] == platform && CEosPlatform::GLUESTATE_READY == platform->m_glueState )
             ++platform->m_refCount;
 }
 
@@ -344,24 +456,38 @@ CEosGlue::ReleasePlatform( CEosPlatform* platform )
     if ( GUCEF_NULL == platform )
         return;
 
-    MT::CScopeMutex lock( m_lock );
-    for ( size_t i=0; i<m_platforms.size(); ++i )
     {
-        if ( m_platforms[ i ] != platform )
-            continue;
+        MT::CScopeMutex lock( m_lock );
+        bool held = false;
+        for ( size_t i=0; i<m_platforms.size(); ++i )
+        {
+            if ( m_platforms[ i ] == platform )
+            {
+                held = CEosPlatform::GLUESTATE_READY == platform->m_glueState && platform->m_refCount > 0;
+                break;
+            }
+        }
+        if ( !held )
+            return;
         if ( platform->m_refCount > 1 )
         {
             --platform->m_refCount;
             return;
         }
-        platform->m_refCount = 0;
-        m_platforms.erase( m_platforms.begin() + i );
 
-        // The SDK platform goes now, the object when nothing of it is running any more
-        platform->Shutdown();
-        g_retiredPlatforms.push_back( platform );
-        return;
+        // The last holder: the platform stays registered while it goes, so that an acquire meanwhile waits for it
+        // instead of finding the SDK platform that is being released
+        platform->m_refCount = 0;
+        platform->m_glueState = CEosPlatform::GLUESTATE_RELEASING;
+        platform->m_glueBusyThreadId = MT::GetCurrentTaskID();
     }
+
+    // The SDK platform goes now, without the lock of the glue (see AcquirePlatform()), the object when nothing of it is
+    // running any more
+    platform->Shutdown();
+    MT::CScopeMutex lock( m_lock );
+    ErasePlatform( platform );
+    g_retiredPlatforms.push_back( platform );
 }
 
 /*-------------------------------------------------------------------------*/

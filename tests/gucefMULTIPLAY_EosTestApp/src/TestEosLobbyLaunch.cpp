@@ -380,8 +380,8 @@ PerformEosLobbyLaunchTests( void )
             launches.push_back( &three.pair.guestEvents.lastLaunch );
             launches.push_back( &three.thirdEvents.lastLaunch );
             CEosGame game;
-            ASSERT_TRUE( game.Start( launches ) );
-            ASSERT_TRUE( game.failedStep.IsNULLOrEmpty() && 3 == game.sessions.size() );
+            REQUIRE_TRUE( game.Start( launches ) );
+            REQUIRE_TRUE( game.failedStep.IsNULLOrEmpty() && 3 == game.sessions.size() );
 
             DRN::CDRNDataGridSettings settings;
             settings.name = "world";
