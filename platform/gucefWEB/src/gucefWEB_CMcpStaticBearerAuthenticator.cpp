@@ -175,11 +175,16 @@ CMcpStaticBearerAuthenticator::Prepare( CORE::CString& problem )
         bool missing = false;
         if ( CORE::ReadOwnerOnlyFile( m_tokenFile, content, fileProblem, &missing ) )
         {
-            if ( content.GetDataSize() > 0 )
-            {
-                CORE::CString text( static_cast< const char* >( content.GetConstBufferPtr() ), content.GetDataSize() );
-                m_token = text.Trim( true ).Trim( false );
-            }
+            // the token without the white space around it, line endings included: files often end with one
+            const char* text = static_cast< const char* >( content.GetConstBufferPtr() );
+            UInt32 begin = 0;
+            UInt32 end = content.GetDataSize();
+            while ( begin < end && ( ' ' == text[ begin ] || '\t' == text[ begin ] || '\r' == text[ begin ] || '\n' == text[ begin ] ) )
+                ++begin;
+            while ( end > begin && ( ' ' == text[ end-1 ] || '\t' == text[ end-1 ] || '\r' == text[ end-1 ] || '\n' == text[ end-1 ] ) )
+                --end;
+            if ( end > begin )
+                m_token = CORE::CString( text + begin, end - begin );
         }
         else
         if ( !missing )

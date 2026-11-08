@@ -21,6 +21,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -517,6 +519,16 @@ PerformMcpHttpRegistrationTests( void )
             ASSERT_FALSE( second.Authenticate( request, principal, challenge ) );
             ASSERT_TRUE( WEB::CMcpStaticBearerAuthenticator::HasTokenInQuery( "a=1&access_token=x" ) );
             ASSERT_FALSE( WEB::CMcpStaticBearerAuthenticator::HasTokenInQuery( "a=1&b=2" ) );
+            CORE::DeleteFile( tokenFile );
+
+            // a token file written by a tool ends with a line ending, also a Windows one: the token is without it
+            const char* written = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abcde\r\n";
+            CORE::CString writtenProblem;
+            ASSERT_TRUE( CORE::CreateOwnerOnlyFile( tokenFile, written, (UInt32) strlen( written ), writtenProblem ) );
+            WEB::CMcpStaticBearerAuthenticator fromTool;
+            fromTool.SetTokenFile( tokenFile );
+            ASSERT_TRUE( fromTool.Prepare( problem ) );
+            ASSERT_TRUE( "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abcde" == fromTool.GetToken() );
             CORE::DeleteFile( tokenFile );
         }
         catch ( ... )

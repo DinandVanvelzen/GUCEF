@@ -114,7 +114,13 @@ GetYamlCodec( void )
         return yamlCodec;
     }
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Linux networking: Failed to locate a YAML codec" );
+    // asked for every network interface: said once
+    static bool reported = false;
+    if ( !reported )
+    {
+        reported = true;
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Linux networking: No YAML codec is loaded, netplan configuration files are not read" );
+    }
     return yamlCodec;
 }
 
@@ -621,8 +627,6 @@ void
 CLinuxNetworkInterface::FillExtraInfoFromConfig( NetworkConfigDiscoveryCache& cache )
 {GUCEF_TRACE;
 
-    bool discoverySuccess = false;
-
     if ( !cache.performedDiscovery )
     {
         // Linux typically only has 1 global network gateway
@@ -639,13 +643,11 @@ CLinuxNetworkInterface::FillExtraInfoFromConfig( NetworkConfigDiscoveryCache& ca
 
     //  Debian-based systems:
     //     The traditional location is /etc/network/interfaces.
-    TStringToEtcNetworkInterface etcInterfaces;
     if ( cache.performedDiscovery || ParseEtcNetworkInterfacesFile( "/etc/network/interfaces", cache.etcInterfaces ) )
     {
         TStringToEtcNetworkInterface::iterator m = cache.etcInterfaces.find( m_name );
-        if ( m != etcInterfaces.end() )
+        if ( m != cache.etcInterfaces.end() )
         {
-            discoverySuccess = true;
             const EtcNetworkInterface& etcNic = (*m).second;
 
             CIPv4Address nicGateway;
@@ -663,7 +665,6 @@ CLinuxNetworkInterface::FillExtraInfoFromConfig( NetworkConfigDiscoveryCache& ca
         TStringToNetplanConfig::iterator m = cache.netplanInterfaces.find( m_name );
         if ( m != cache.netplanInterfaces.end() )
         {
-            discoverySuccess = true;
             const NetplanConfig& netplanConfig = (*m).second;
 
             m_dhcpUsedforIpv4 = netplanConfig.usesDhcp4;
@@ -683,14 +684,18 @@ CLinuxNetworkInterface::FillExtraInfoFromConfig( NetworkConfigDiscoveryCache& ca
         // @TODO
     }
 
-    CString dhcpLeaseStr = GetDhcpLeaseTimestampFromSystemdJournal( m_name );
-    if ( !dhcpLeaseStr.IsNULLOrEmpty() )
+    // the lease is in the journal of interfaces configured for DHCP only; reading the journal takes long
+    if ( m_dhcpUsedforIpv4 )
     {
-        int fg=0; // @TODO
+        CString dhcpLeaseStr = GetDhcpLeaseTimestampFromSystemdJournal( m_name );
+        if ( !dhcpLeaseStr.IsNULLOrEmpty() )
+        {
+            int fg=0; // @TODO
+        }
     }
 
-    // We need at least one success story before we stop re-doing discovery
-    cache.performedDiscovery = discoverySuccess;
+    // the cache holds every configuration file read above, for all interfaces: they are read once per discovery
+    cache.performedDiscovery = true;
 }
 
 /*-------------------------------------------------------------------------*/
