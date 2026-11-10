@@ -14,7 +14,42 @@
 
 
 if (ANDROID32)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
   )
 
@@ -22,15 +57,171 @@ if (ANDROID32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (LINUX32)
+elseif (EMSCRIPTEN32)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
+    src/gucefGUI_TestApp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
+    src/gucefGUI_TestApp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX32)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
   )
 
@@ -38,7 +229,42 @@ elseif (LINUX32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX64)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
   )
 
@@ -46,7 +272,42 @@ elseif (LINUX64)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN32)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
   )
 
@@ -54,7 +315,42 @@ elseif (WIN32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN64)
+  set( PLATFORM_HEADER_FILES 
+    include/gucefGUI_TestCommon.h
+    include/gucefGUI_TestGridEditSupport.h
+    include/gucefGUI_TestGridSupport.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestAudioSettingsForm.cpp
+    src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
+    src/TestGuiChartMarkers.cpp
+    src/TestGuiCore.cpp
+    src/TestGuiFileDialogs.cpp
+    src/TestGuiFonts.cpp
+    src/TestGuiGridClipboard.cpp
+    src/TestGuiGridEditRender.cpp
+    src/TestGuiGridEditing.cpp
+    src/TestGuiGridFix.cpp
+    src/TestGuiGridLayout.cpp
+    src/TestGuiGridModel.cpp
+    src/TestGuiGridRender.cpp
+    src/TestGuiGridSelection.cpp
+    src/TestGuiInput.cpp
+    src/TestGuiLayout.cpp
+    src/TestGuiMedia.cpp
+    src/TestGuiProperties.cpp
+    src/TestGuiRender.cpp
+    src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
+    src/TestGuiSettings.cpp
+    src/TestGuiUserActionLog.cpp
+    src/TestGuiWidgets.cpp
+    src/TestGuiWindow.cpp
     src/gucefGUI_TestApp.cpp
   )
 
@@ -62,9 +358,6 @@ elseif (WIN64)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
-
-# Make sure the PLATFORM_HEADER_FILES variable is always defined
- set( PLATFORM_HEADER_FILES "" )
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
@@ -74,6 +367,10 @@ if( ANDROID32 )
   set( MODULE_NAME "gucefGUI_TestApp" )
 elseif( ANDROID64 )
   set( MODULE_NAME "gucefGUI_TestApp" )
+elseif( EMSCRIPTEN32 )
+  set( MODULE_NAME "gucefGUI_TestApp" )
+elseif( EMSCRIPTEN64 )
+  set( MODULE_NAME "gucefGUI_TestApp" )
 elseif( LINUX32 )
   set( MODULE_NAME "gucefGUI_TestApp" )
 elseif( LINUX64 )
@@ -87,6 +384,10 @@ if( ANDROID32 )
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 elseif( ANDROID64 )
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
+elseif( EMSCRIPTEN32 )
+  add_executable( ${MODULE_NAME} ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_executable( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX32 )
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX64 )
@@ -98,63 +399,83 @@ elseif( WIN64 )
 endif()
 
 if ( ANDROID32 )
-  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
 endif( ANDROID64 )
 
+if ( EMSCRIPTEN32 )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core fontpluginFREETYPE gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverEmscripten guidriverNull guidriverRmlUI guidriverRmlUIOpenGL inputdriverEMSCRIPTEN )
+  target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core fontpluginFREETYPE gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverEmscripten guidriverNull guidriverRmlUI guidriverRmlUIOpenGL inputdriverEMSCRIPTEN )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core fontpluginFREETYPE gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverEmscripten guidriverNull guidriverRmlUI guidriverRmlUIOpenGL inputdriverEMSCRIPTEN )
+  target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core fontpluginFREETYPE gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverEmscripten guidriverNull guidriverRmlUI guidriverRmlUIOpenGL inputdriverEMSCRIPTEN )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  add_dependencies( ${MODULE_NAME} RmlUI_Core gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO guidriverNull guidriverRmlUI )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGUI_TestApp" )
 endif( WIN64 )
 
 if ( ANDROID32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include include )
 endif( ANDROID64 )
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverEmscripten/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include ../../plugins/INPUT/inputdriverEMSCRIPTEN/include include )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverEmscripten/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include ../../plugins/INPUT/inputdriverEMSCRIPTEN/include include )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/RmlUi/Include ../../dependencies/RmlUi/Include/RmlUi ../../dependencies/RmlUi/Include/RmlUi/Config ../../dependencies/RmlUi/Include/RmlUi/Core ../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../dependencies/RmlUi/Include/RmlUi/Debugger ../../dependencies/RmlUi/Include/RmlUi/Lottie ../../dependencies/RmlUi/Include/RmlUi/Lua ../../dependencies/RmlUi/Include/RmlUi/SVG ../../dependencies/RmlUi/Source/Core ../../dependencies/RmlUi/Source/Core/Elements ../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../dependencies/RmlUi/Source/Core/Layout ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/fontpluginFREETYPE/include ../../plugins/GUI/guidriverNull/include ../../plugins/GUI/guidriverRmlUI/include ../../plugins/GUI/guidriverRmlUIOpenGL/include include )
 endif( WIN64 )
 
 
@@ -167,6 +488,10 @@ endif( WIN64 )
 if (ANDROID32)
 GUCEF_config_app( ${MODULE_NAME} )
 elseif (ANDROID64)
+GUCEF_config_app( ${MODULE_NAME} )
+elseif (EMSCRIPTEN32)
+GUCEF_config_app( ${MODULE_NAME} )
+elseif (EMSCRIPTEN64)
 GUCEF_config_app( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_app( ${MODULE_NAME} )

@@ -43,13 +43,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../../freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../../MyGUIEngine/include
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=MyGUI_OpenGLPlatform -DMODULE_NAME=MyGUI_OpenGLPlatform
+
 
 LOCAL_SHARED_LIBRARIES := \
   MyGUI.Engine
-
-
-LOCAL_LDLIBS := \
-  -lGLESv1_CM
 
 include $(BUILD_STATIC_LIBRARY)
 

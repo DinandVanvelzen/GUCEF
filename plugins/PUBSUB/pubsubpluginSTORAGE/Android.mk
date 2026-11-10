@@ -27,7 +27,12 @@ LOCAL_SRC_FILES := \
   src/pubsubpluginSTORAGE_CStoragePubSubClientConfig.cpp \
   src/pubsubpluginSTORAGE_CStoragePubSubClientTopic.cpp \
   src/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.cpp \
-  src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp
+  src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp \
+  src/pubsubpluginSTORAGE_CStoragePubSubIndexDef.cpp \
+  src/pubsubpluginSTORAGE_CStoragePubSubIndexReader.cpp \
+  src/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.cpp \
+  src/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.cpp \
+  src/pubsubpluginSTORAGE_CStorageReplayTaskData.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
@@ -35,14 +40,13 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefPUBSUB/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefWEB/include
 
-LOCAL_CFLAGS := -DPUBSUBPLUGIN_STORAGE_BUILD_PLUGIN_DLL
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=pubsubpluginSTORAGE -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=pubsubpluginSTORAGE -DPUBSUBPLUGIN_STORAGE_BUILD_PLUGIN_DLL
 
 
 LOCAL_SHARED_LIBRARIES := \

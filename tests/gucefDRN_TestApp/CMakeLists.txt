@@ -15,14 +15,55 @@
 
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
-    include/TestCode_PeerToPeer.h
+    include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
+    include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
+    include/TestDRNHandshake.h
+    include/TestDRNItemProtection.h
+    include/TestDRNLinks.h
+    include/TestDRNLockOrder.h
+    include/TestDRNLossyChannel.h
+    include/TestDRNMemoryChannel.h
+    include/TestDRNPeerLinkTestAccess.h
+    include/TestDRNRelay.h
+    include/TestDRNReplication.h
+    include/TestDRNRpcTransport.h
+    include/TestDRNSecurity.h
+    include/TestDRNSessions.h
+    include/TestDRNStreamResume.h
+    include/TestDRNTablePublisher.h
+    include/TestDRNTableScanThread.h
+    include/TestDRNTestUtils.h
+    include/TestDRNWire.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/TestCode_PeerToPeer.cpp
+    src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
+    src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
+    src/TestDRNHandshake.cpp
+    src/TestDRNItemProtection.cpp
+    src/TestDRNLinks.cpp
+    src/TestDRNLockOrder.cpp
+    src/TestDRNLossyChannel.cpp
+    src/TestDRNMemoryChannel.cpp
+    src/TestDRNRelay.cpp
+    src/TestDRNReplication.cpp
+    src/TestDRNRpcTransport.cpp
+    src/TestDRNSecurity.cpp
+    src/TestDRNSessions.cpp
+    src/TestDRNStreamResume.cpp
+    src/TestDRNTablePublisher.cpp
+    src/TestDRNTestUtils.cpp
+    src/TestDRNWire.cpp
     src/gucefDRN_TestApp.cpp
   )
 
@@ -31,14 +72,55 @@ if (LINUX32)
 
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
-    include/TestCode_PeerToPeer.h
+    include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
+    include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
+    include/TestDRNHandshake.h
+    include/TestDRNItemProtection.h
+    include/TestDRNLinks.h
+    include/TestDRNLockOrder.h
+    include/TestDRNLossyChannel.h
+    include/TestDRNMemoryChannel.h
+    include/TestDRNPeerLinkTestAccess.h
+    include/TestDRNRelay.h
+    include/TestDRNReplication.h
+    include/TestDRNRpcTransport.h
+    include/TestDRNSecurity.h
+    include/TestDRNSessions.h
+    include/TestDRNStreamResume.h
+    include/TestDRNTablePublisher.h
+    include/TestDRNTableScanThread.h
+    include/TestDRNTestUtils.h
+    include/TestDRNWire.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/TestCode_PeerToPeer.cpp
+    src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
+    src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
+    src/TestDRNHandshake.cpp
+    src/TestDRNItemProtection.cpp
+    src/TestDRNLinks.cpp
+    src/TestDRNLockOrder.cpp
+    src/TestDRNLossyChannel.cpp
+    src/TestDRNMemoryChannel.cpp
+    src/TestDRNRelay.cpp
+    src/TestDRNReplication.cpp
+    src/TestDRNRpcTransport.cpp
+    src/TestDRNSecurity.cpp
+    src/TestDRNSessions.cpp
+    src/TestDRNStreamResume.cpp
+    src/TestDRNTablePublisher.cpp
+    src/TestDRNTestUtils.cpp
+    src/TestDRNWire.cpp
     src/gucefDRN_TestApp.cpp
   )
 
@@ -47,14 +129,55 @@ elseif (LINUX64)
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
-    include/TestCode_PeerToPeer.h
+    include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
+    include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
+    include/TestDRNHandshake.h
+    include/TestDRNItemProtection.h
+    include/TestDRNLinks.h
+    include/TestDRNLockOrder.h
+    include/TestDRNLossyChannel.h
+    include/TestDRNMemoryChannel.h
+    include/TestDRNPeerLinkTestAccess.h
+    include/TestDRNRelay.h
+    include/TestDRNReplication.h
+    include/TestDRNRpcTransport.h
+    include/TestDRNSecurity.h
+    include/TestDRNSessions.h
+    include/TestDRNStreamResume.h
+    include/TestDRNTablePublisher.h
+    include/TestDRNTableScanThread.h
+    include/TestDRNTestUtils.h
+    include/TestDRNWire.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/TestCode_PeerToPeer.cpp
+    src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
+    src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
+    src/TestDRNHandshake.cpp
+    src/TestDRNItemProtection.cpp
+    src/TestDRNLinks.cpp
+    src/TestDRNLockOrder.cpp
+    src/TestDRNLossyChannel.cpp
+    src/TestDRNMemoryChannel.cpp
+    src/TestDRNRelay.cpp
+    src/TestDRNReplication.cpp
+    src/TestDRNRpcTransport.cpp
+    src/TestDRNSecurity.cpp
+    src/TestDRNSessions.cpp
+    src/TestDRNStreamResume.cpp
+    src/TestDRNTablePublisher.cpp
+    src/TestDRNTestUtils.cpp
+    src/TestDRNWire.cpp
     src/gucefDRN_TestApp.cpp
   )
 
@@ -63,14 +186,55 @@ elseif (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
-    include/TestCode_PeerToPeer.h
+    include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
+    include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
+    include/TestDRNHandshake.h
+    include/TestDRNItemProtection.h
+    include/TestDRNLinks.h
+    include/TestDRNLockOrder.h
+    include/TestDRNLossyChannel.h
+    include/TestDRNMemoryChannel.h
+    include/TestDRNPeerLinkTestAccess.h
+    include/TestDRNRelay.h
+    include/TestDRNReplication.h
+    include/TestDRNRpcTransport.h
+    include/TestDRNSecurity.h
+    include/TestDRNSessions.h
+    include/TestDRNStreamResume.h
+    include/TestDRNTablePublisher.h
+    include/TestDRNTableScanThread.h
+    include/TestDRNTestUtils.h
+    include/TestDRNWire.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
-    src/TestCode_PeerToPeer.cpp
+    src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
+    src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
+    src/TestDRNHandshake.cpp
+    src/TestDRNItemProtection.cpp
+    src/TestDRNLinks.cpp
+    src/TestDRNLockOrder.cpp
+    src/TestDRNLossyChannel.cpp
+    src/TestDRNMemoryChannel.cpp
+    src/TestDRNRelay.cpp
+    src/TestDRNReplication.cpp
+    src/TestDRNRpcTransport.cpp
+    src/TestDRNSecurity.cpp
+    src/TestDRNSessions.cpp
+    src/TestDRNStreamResume.cpp
+    src/TestDRNTablePublisher.cpp
+    src/TestDRNTestUtils.cpp
+    src/TestDRNWire.cpp
     src/gucefDRN_TestApp.cpp
   )
 
@@ -103,43 +267,43 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefDRN gucefMT )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefDRN gucefMT )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefDRN gucefMT )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefDRN gucefMT )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefDRN gucefMT )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefDRN gucefMT )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefDRN gucefMT )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefDRN gucefMT )
+  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRN_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRN_TestApp" )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefMT/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tests/gucefCOMCORE_TestApp/include ../../tests/gucefCOM_TestApp/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefMT/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tests/gucefCOMCORE_TestApp/include ../../tests/gucefCOM_TestApp/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../tests/gucefCOMCORE_TestApp/include ../../tests/gucefCOM_TestApp/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../tests/gucefCOMCORE_TestApp/include ../../tests/gucefCOM_TestApp/include include )
 endif( WIN64 )
 
 

@@ -1,5 +1,5 @@
 /*
- *  pubsubpluginAWSSQS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SQS
+ *  pubsubpluginAWSSNS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SNS
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
  *
@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPIC_H
-#define PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPIC_H
+#ifndef PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPIC_H
+#define PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPIC_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -30,20 +30,22 @@
 #define GUCEF_CORE_CTIMER_H
 #endif /* GUCEF_CORE_CTIMER_H ? */
 
-#ifndef GUCEF_COMCORE_CHOSTADDRESS_H
-#include "CHostAddress.h"
-#define GUCEF_COMCORE_CHOSTADDRESS_H
-#endif /* GUCEF_COMCORE_CHOSTADDRESS_H ? */
+#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTTOPIC_H
+#include "gucefPUBSUB_CPubSubClientTopic.h"
+#define GUCEF_PUBSUB_CPUBSUBCLIENTTOPIC_H
+#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTTOPIC_H ? */
 
-#ifndef GUCEF_COMCORE_CPUBSUBCLIENTTOPIC_H
-#include "gucefCOMCORE_CPubSubClientTopic.h"
-#define GUCEF_COMCORE_CPUBSUBCLIENTTOPIC_H
-#endif /* GUCEF_COMCORE_CPUBSUBCLIENTTOPIC_H ? */
+#ifndef PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPICCONFIG_H
+#include "pubsubpluginAWSSNS_CAwsSnsPubSubClientTopicConfig.h"
+#define PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPICCONFIG_H
+#endif /* PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPICCONFIG_H ? */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPICCONFIG_H
-#include "pubsubpluginAWSSQS_CAwsSqsPubSubClientTopicConfig.h"
-#define PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPICCONFIG_H
-#endif /* PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPICCONFIG_H ? */
+#include <aws/sns/model/PublishRequest.h>
+#include <aws/sns/model/PublishResult.h>
+#include <aws/sns/model/PublishBatchRequest.h>
+#include <aws/sns/model/PublishBatchRequestEntry.h>
+#include <aws/sns/model/PublishBatchResult.h>
+#include <aws/sns/model/MessageAttributeValue.h>
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -53,7 +55,7 @@
 
 namespace GUCEF {
 namespace PUBSUBPLUGIN {
-namespace AWSSQS {
+namespace AWSSNS {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -61,49 +63,68 @@ namespace AWSSQS {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CAwsSqsPubSubClient;
+class CAwsSnsPubSubClient;
 
 /**
- *  MS Windows AWSSQS implementation of the conceptual pub-sub "topic"
+ *  AWS SNS implementation of the conceptual pub-sub "topic", messages can be published to the topic
  */
-class PUBSUBPLUGIN_AWSSQS_PLUGIN_PRIVATE_CPP CAwsSqsPubSubClientTopic : public COMCORE::CPubSubClientTopic
+class PUBSUBPLUGIN_AWSSNS_PLUGIN_PRIVATE_CPP CAwsSnsPubSubClientTopic : public PUBSUB::CPubSubClientTopic ,
+                                                                        public CORE::CTSharedObjCreator< CAwsSnsPubSubClientTopic, MT::CMutex >
 {
     public:
 
-    CAwsSqsPubSubClientTopic( CAwsSqsPubSubClient* client );
+    CAwsSnsPubSubClientTopic( CAwsSnsPubSubClient* client );
 
-    virtual ~CAwsSqsPubSubClientTopic() GUCEF_VIRTUAL_OVERRIDE;
+    virtual ~CAwsSnsPubSubClientTopic() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual COMCORE::CPubSubClient* GetClient( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual PUBSUB::CPubSubClient* GetClient( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool InitializeConnectivity( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool InitializeConnectivity( bool reset ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool Disconnect( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool IsConnected( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsConnected( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool IsPublishingSupported( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsSubscribed( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool IsSubscribingSupported( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsHealthy( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsPublishingSupported( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsSubscribingSupported( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool Subscribe( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool SubscribeStartingAtBookmark( const COMCORE::CPubSubBookmark& bookmark ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool SubscribeStartingAtBookmark( const PUBSUB::CPubSubBookmark& bookmark ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual COMCORE::CPubSubBookmark GetCurrentBookmark( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual PUBSUB::CPubSubBookmark GetCurrentBookmark( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetTopicName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool Publish( TPublishActionIdVector& publishActionIds, const COMCORE::CBasicPubSubMsg::TBasicPubSubMsgVector& msgs, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual bool Publish( TPublishActionIdVector& publishActionIds, const COMCORE::CIPubSubMsg::TIPubSubMsgConstRawPtrVector& msgs, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual bool Publish( CORE::UInt64& publishActionId, const COMCORE::CIPubSubMsg& msg, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool Publish( TPublishActionIdVector& publishActionIds, const PUBSUB::CBasicPubSubMsg::TBasicPubSubMsgVector& msgs, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool Publish( TPublishActionIdVector& publishActionIds, const PUBSUB::CIPubSubMsg::TIPubSubMsgConstRawPtrVector& msgs, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool Publish( TPublishActionIdVector& publishActionIds, const PUBSUB::CIPubSubMsg::TIPubSubMsgSPtrVector& msgs, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool Publish( CORE::UInt64& publishActionId, const PUBSUB::CIPubSubMsg& msg, bool notify ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool AcknowledgeReceipt( const COMCORE::CIPubSubMsg& msg ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual bool AcknowledgeReceipt( const COMCORE::CPubSubBookmark& bookmark ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool AcknowledgeReceipt( const PUBSUB::CIPubSubMsg& msg ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool AcknowledgeReceipt( const PUBSUB::CPubSubBookmark& bookmark ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool AcknowledgeReceipt( const CORE::CVariant& receipt );
 
-    virtual bool SaveConfig( COMCORE::CPubSubClientTopicConfig& config ) const;
+    virtual bool SaveConfig( PUBSUB::CPubSubClientTopicConfig& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool LoadConfig( const COMCORE::CPubSubClientTopicConfig& config );
+    virtual bool LoadConfig( const PUBSUB::CPubSubClientTopicConfig& config ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void Shutdown( void );
+
+    class TopicMetrics
+    {
+        public:
+
+        TopicMetrics( void );
+
+        CORE::UInt32 snsMessagesPublished;
+        CORE::UInt32 snsPublishErrors;
+    };
 
     void
     OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
@@ -117,50 +138,70 @@ class PUBSUBPLUGIN_AWSSQS_PLUGIN_PRIVATE_CPP CAwsSqsPubSubClientTopic : public C
     
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     protected:
 
-    virtual bool Lock( CORE::UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual MT::TLockStatus Lock( CORE::UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
     void RegisterEventHandlers( void );
 
-    void PrepStorageForReadMsgs( CORE::UInt32 msgCount );
-
-    Aws::String GetSqsQueueUrlForQueueName( const CORE::CString& queueName );
 
     template< class T >
     bool
-    TranslateToSqsMsg( T& sqsMsg, const COMCORE::CIPubSubMsg* msg, CORE::UInt32& msgByteSize );
+    AddAttributesToSnsMsg( T& snsMsg                                          , 
+                           const PUBSUB::CIPubSubMsg::TKeyValuePairs& kvPairs ,
+                           bool addPrefix                                     ,
+                           const CORE::CAsciiString& prefixToAdd              ,
+                           CORE::UInt32& msgByteSize                          );
+
+    template< class T >
+    bool
+    TranslateToSnsMsgOfType( T& snsMsg                      , 
+                             const PUBSUB::CIPubSubMsg* msg , 
+                             CORE::UInt32& msgByteSize      );
+
+    
+    bool
+    TranslateToSnsMsg( Aws::SNS::Model::PublishRequest& snsMsg ,
+                       const PUBSUB::CIPubSubMsg* msg          ,
+                       CORE::UInt32& approxMsgByteSize         );
+
+    bool
+    TranslateToSnsBatchMsg( Aws::SNS::Model::PublishBatchRequestEntry& snsMsg ,
+                            const PUBSUB::CIPubSubMsg* msg                    ,
+                            CORE::UInt64 publishActionId                      ,
+                            CORE::UInt32& approxMsgByteSize                   );
+
+    bool ApplySnsMessageAttributeNameContraints( CORE::CAsciiString& candidateName );
 
     private:
 
-    typedef CORE::CTEventHandlerFunctor< CAwsSqsPubSubClientTopic > TEventCallback;
+    typedef CORE::CTEventHandlerFunctor< CAwsSnsPubSubClientTopic > TEventCallback;
    
 
-    // Types to implement/hook-up topic interface
-    typedef std::vector< COMCORE::CBasicPubSubMsg > TPubSubMsgsVector;
-    typedef std::pair< CORE::CDynamicBuffer, CORE::CDynamicBuffer > TBufferPair;
-    typedef std::vector< TBufferPair > TBufferVector;
-
-    CAwsSqsPubSubClient* m_client;
-    TPubSubMsgsVector m_pubsubMsgs;
-    TMsgsRecievedEventData m_pubsubMsgsRefs;
-    TBufferVector m_pubsubMsgAttribs;
-    COMCORE::CHostAddress m_redisShardHost;
-    CAwsSqsPubSubClientTopicConfig m_config;
+    CAwsSnsPubSubClient* m_client;
+    CAwsSnsPubSubClientTopicConfig m_config;
     MT::CMutex m_lock;
-    Aws::String m_queueUrl;
-    COMCORE::CIPubSubMsg::TIPubSubMsgConstRawPtrVector m_publishBulkMsgRemapStorage;
+    Aws::String m_topicArn;
+    CORE::UInt32 m_snsMaximumMessageSize;
+    TopicMetrics m_metrics;
+    PUBSUB::CIPubSubMsg::TIPubSubMsgConstRawPtrVector m_publishBulkMsgRemapStorage;
     CORE::UInt64 m_currentPublishActionId;
-    CORE::UInt64 m_currentReceiveActionId;
     TPublishActionIdVector m_publishSuccessActionIds;
     TMsgsPublishedEventData m_publishSuccessActionEventData;
     TPublishActionIdVector m_publishFailureActionIds;
     TMsgsPublishFailureEventData m_publishFailureActionEventData;
 };
+
+/*-------------------------------------------------------------------------*/
+
+typedef CAwsSnsPubSubClientTopic::TSharedPtrType        CAwsSnsPubSubClientTopicPtr;
+typedef CAwsSnsPubSubClientTopic::TBasicSharedPtrType   CAwsSnsPubSubClientTopicBasicPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -168,10 +209,10 @@ class PUBSUBPLUGIN_AWSSQS_PLUGIN_PRIVATE_CPP CAwsSqsPubSubClientTopic : public C
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace AWSSQS */
+}; /* namespace AWSSNS */
 }; /* namespace PUBSUBPLUGIN */
 }; /* namespace GUCEF */
 
-/*--------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPIC_H ? */
+#endif /* PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPIC_H ? */

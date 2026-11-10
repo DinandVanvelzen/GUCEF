@@ -42,7 +42,7 @@
 
     #include <Windows.h>
 
-#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     #include <sys/time.h>
 
@@ -137,7 +137,7 @@ CTime::NowUTCTime( void )
     ::GetSystemTime( &systemTime );
     return CTime( (Int8) systemTime.wHour, (Int8) systemTime.wMinute, (Int8) systemTime.wSecond, (Int16) systemTime.wMilliseconds );
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     struct timespec time;
     ::memset( &time, 0, sizeof(time) );
@@ -164,7 +164,7 @@ CTime::NowLocalTime( void )
     ::GetLocalTime( &systemTime );
     return CTime( (Int8) systemTime.wHour, (Int8) systemTime.wMinute, (Int8) systemTime.wSecond, (Int8) systemTime.wMilliseconds );
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     struct timespec time;
     ::memset( &time, 0, sizeof(time) );

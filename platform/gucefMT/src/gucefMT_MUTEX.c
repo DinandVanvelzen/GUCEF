@@ -137,7 +137,9 @@ MutexCreate( void )
     mutex->reentrancyCount = 0;
     mutex->lockedByThread = 0;
 
-    if ( pthread_mutex_init( &mutex->id, &attr ) != 0 )
+    int initResult = pthread_mutex_init( &mutex->id, &attr );
+    pthread_mutexattr_destroy( &attr );
+    if ( initResult != 0 )
     {
         free( mutex );
         return GUCEF_NULL;
@@ -154,7 +156,13 @@ MutexCreate( void )
 void
 MutexDestroy( struct SMutex* mutex )
 {
+    /*
+     *  Waits for a thread that may still hold the lock, then lets go again: a mutex must not be destroyed while
+     *  it is locked. pthreads leaves that undefined and musl (Emscripten) keeps a locked recursive mutex linked in
+     *  the owning thread's list of held mutexes, where the next lock or unlock by that thread writes into freed memory
+     */
     MutexLock( mutex, GUCEF_UINT32MAX );
+    MutexUnlock( mutex );
     
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
@@ -268,9 +276,11 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
     if ( 0 != lockResult ) 
         return GUCEF_MUTEX_OPERATION_FAILED;
     
-    mutex->lockedByThread = callerThreadId;
+    /* same semantics as the Windows implementations: the first lock is not a re-entry */
     if ( callerThreadId == mutex->lockedByThread )             
         ++mutex->reentrancyCount;
+    else
+        mutex->lockedByThread = callerThreadId;
     GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( &mutex->id );
     return GUCEF_MUTEX_OPERATION_SUCCESS;
     

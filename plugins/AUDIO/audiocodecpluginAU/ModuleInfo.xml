@@ -1,0 +1,26 @@
+<ModuleInfoEntry>
+    <Module Name="audiocodecpluginAU" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO codec plugin for Sun/NeXT .au audio</DescriptionHeadline>
+            <DescriptionDetails>Reads and writes .au / .snd files: 8, 16, 24 and 32 bit linear, 32 and 64 bit float, mu-law and A-law. Written in C against the gucefAUDIO codec plugin C interface, it also serves as the reference for that interface.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOCODECPLUGIN_AU_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

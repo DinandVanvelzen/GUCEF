@@ -51,6 +51,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../aws-checksums/include \
   $(MY_MODULE_PATH)/include
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=aws_c_s3 -DMODULE_NAME=aws_c_s3
+
 
 LOCAL_STATIC_LIBRARIES := \
   aws-c-auth \

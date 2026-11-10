@@ -73,6 +73,16 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
+#ifndef GUCEF_TEST_LOG_CAPTURE_H
+#include "gucef_test_log_capture.h"
+#define GUCEF_TEST_LOG_CAPTURE_H
+#endif /* GUCEF_TEST_LOG_CAPTURE_H ? */
+
 #include "TestVariantStream.h"
 
 /*-------------------------------------------------------------------------//
@@ -785,6 +795,28 @@ PerformVariantStreamTests( void )
         ASSERT_TRUE( rnum == num );
     GUCEF_TESTFW_TESTCASE_END
 
+    // Regression: on Linux std::wstring is UTF-32 (4 byte wchar_t) but was treated as UTF-16
+    // and converting a std::wstring to UTF-8 was not implemented at all
+    GUCEF_TESTFW_TESTCASE( "Test 40: std::wstring with a code point outside the BMP" )
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 40: std::wstring with a code point outside the BMP" );
+        CORE::CVariantStream stream;
+        std::wstring wstr = L"Smile \U0001F600 end";
+
+        stream << wstr;
+        ASSERT_TRUE( stream.IsValid() );
+
+        stream.ResetReadPosition();
+        std::wstring rwstr;
+        stream >> rwstr;
+        ASSERT_TRUE( stream.IsValid() );
+        ASSERT_TRUE( rwstr == wstr );
+
+        // the UTF-8 form of U+1F600 is F0 9F 98 80
+        CORE::CString utf8 = CORE::ToString( wstr );
+        ASSERT_TRUE( utf8.HasSubstr( "\xF0\x9F\x98\x80" ) > 0 );
+        ASSERT_TRUE( CORE::ToWString( utf8 ) == wstr );
+    GUCEF_TESTFW_TESTCASE_END
+
     // Test 40: Write and read UTF-16 and UTF-32 strings
     GUCEF_TESTFW_TESTCASE( "Test 40: Write and read UTF-16 and UTF-32 strings" )
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 40: Write and read UTF-16 and UTF-32 strings" );
@@ -805,6 +837,117 @@ PerformVariantStreamTests( void )
             ASSERT_TRUE( stream.IsValid() );
             ASSERT_TRUE( r16str == u16str );
             ASSERT_TRUE( r32str == u32str );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 41: Writing a large stream grows its buffer geometrically, in time linear in the number of values" )
+        try
+        {
+            // a stream of 65536 values grew its buffer by exactly what each value needed: a reallocation per value
+            const UInt32 values = 65536;
+            CORE::CVariantStream stream;
+            UInt32 growths = 0;
+            UInt32 bufferSize = stream.GetBuffer().GetBufferSize();
+            for ( UInt32 i=0; i<values; ++i )
+            {
+                stream << i;
+                if ( stream.GetBuffer().GetBufferSize() != bufferSize )
+                {
+                    bufferSize = stream.GetBuffer().GetBufferSize();
+                    ++growths;
+                }
+            }
+            ASSERT_TRUE( stream.IsValid() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 41: " << values << " values, " << stream.GetDataSize() << " bytes, the buffer grew " << growths << " times to " << bufferSize << " bytes" );
+            ASSERT_TRUE( growths <= 64 );
+            ASSERT_TRUE( bufferSize <= 2 * stream.GetDataSize() + 64 );
+
+            // the values read back as written
+            stream.ResetReadPosition();
+            UInt32 mismatches = 0;
+            for ( UInt32 i=0; i<values; ++i )
+            {
+                UInt32 value = 0;
+                stream >> value;
+                if ( value != i )
+                    ++mismatches;
+            }
+            ASSERT_TRUE( stream.IsValid() && 0 == mismatches );
+
+            // the time to write four times as many values is about four times as long, not sixteen
+            Float64 timesInMs[ 2 ] = { 0.0, 0.0 };
+            const UInt32 counts[ 2 ] = { 16384, 65536 };
+            for ( UInt32 round=0; round<2; ++round )
+            {
+                CORE::CVariantStream timed;
+                const UInt64 start = MT::PrecisionTickCount();
+                for ( UInt32 i=0; i<counts[ round ]; ++i )
+                    timed << i;
+                timesInMs[ round ] = MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start );
+            }
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 41: " << counts[ 0 ] << " values in " << timesInMs[ 0 ] << " ms, " << counts[ 1 ] << " values in " << timesInMs[ 1 ] << " ms" );
+            #if !defined( __SANITIZE_ADDRESS__ ) && !defined( __SANITIZE_THREAD__ )
+            ASSERT_TRUE( timesInMs[ 1 ] < 10.0 * timesInMs[ 0 ] + 50.0 );
+            #endif
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 42: Reading past the end of a stream is its normal end and logs nothing, a value cut short is logged once" )
+        try
+        {
+            TESTFW::CLogTextCapture capture;
+            const CORE::CString serializerLog = "VariantBinarySerializer:Deserialize";
+
+            // past the end, as a caller that reads until the stream says no
+            CORE::CVariantStream stream;
+            stream << (UInt32) 1 << (UInt32) 2 << CORE::CString( "three" );
+            UInt32 a = 0, b = 0;
+            CORE::CString c;
+            stream >> a >> b >> c;
+            ASSERT_TRUE( stream.IsValid() && 1 == a && 2 == b && "three" == c );
+            for ( UInt32 i=0; i<1000; ++i )
+            {
+                UInt32 more = 0;
+                stream >> more;
+            }
+            ASSERT_FALSE( stream.IsValid() );
+
+            // data written after the end was reached is read
+            stream << (UInt32) 4;
+            UInt32 d = 0;
+            stream >> d;
+            ASSERT_TRUE( 4 == d );
+
+            // a string value cut short: the corruption is reported, once for the stream however often it is read
+            CORE::CVariantStream truncated;
+            truncated << CORE::CString( "a value that is cut short" );
+            truncated.GetBuffer().SetDataSize( truncated.GetBuffer().GetDataSize() - 4 );
+            for ( UInt32 i=0; i<1000; ++i )
+            {
+                CORE::CString cut;
+                truncated >> cut;
+            }
+            ASSERT_FALSE( truncated.IsValid() );
+
+            const CORE::CString logged = capture.GetText();
+            UInt32 serializerLines = 0;
+            Int32 at = logged.HasSubstr( serializerLog, 0, true );
+            while ( at >= 0 )
+            {
+                ++serializerLines;
+                at = logged.HasSubstr( serializerLog, at + 1, true );
+            }
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 42: " << serializerLines << " lines of the serializer for 1000 reads past the end and 1000 reads of a cut value" );
+            ASSERT_TRUE( 1 == serializerLines );
+            ASSERT_TRUE( logged.HasSubstr( "Invalid payloadSize", 0, true ) >= 0 );
         }
         catch ( ... )
         {

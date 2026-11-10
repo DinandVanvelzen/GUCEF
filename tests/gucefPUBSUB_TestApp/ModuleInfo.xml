@@ -2,6 +2,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefPUBSUB_TestApp" Platform="All" Type="Executable" Tags="test" >
 		<Dependencies>
+			<Dependency Name="gucefTestHeaders" />
 			<Dependency Name="gucefPUBSUB" />
 			<Dependency Name="gucefVFS" />
 			<Dependency Name="gucefWEB" />
@@ -31,12 +32,18 @@
 			<RuntimeDependency Name="pubsubpluginSTORAGE" />
 			<RuntimeDependency Name="pubsubpluginWEB" />
 			<RuntimeDependency Name="pubsubpluginTEST" />
+			<RuntimeDependency Name="pubsubpluginFIX" />
 		</RuntimeDependencies>
     </Module>
+	<Module Platform="mswin;linux" >
+		<RuntimeDependencies>
+			<RuntimeDependency Name="pubsubpluginAWSSQS" />
+			<RuntimeDependency Name="pubsubpluginAWSSNS" />
+		</RuntimeDependencies>
+	</Module>
 	<Module Platform="mswin" >
 		<RuntimeDependencies>
 			<RuntimeDependency Name="pubsubpluginMSMQ" />
-			<RuntimeDependency Name="pubsubpluginAWSSQS" />
 			<RuntimeDependency Name="MemoryLeakFinder" />
 		</RuntimeDependencies>
 	</Module>	

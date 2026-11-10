@@ -1,20 +1,18 @@
  /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -43,10 +41,6 @@
 #define GUCEF_CORE_CNOTIFYINGMAPEVENTS_H
 #endif /* GUCEF_CORE_CNOTIFYINGMAPEVENTS_H ? */
 
-#ifndef GUCEF_CORE_CFILEURLHANDLER_H
-#include "CFileURLHandler.h"
-#define GUCEF_CORE_CFILEURLHANDLER_H
-#endif /* GUCEF_CORE_CFILEURLHANDLER_H ? */
 
 #ifndef GUCEF_CORE_CONFIGSTORE_H
 #include "CConfigStore.h"               /* centralized configuration management */
@@ -113,10 +107,6 @@
 #define GUCEF_CORE_CNOTIFICATIONIDREGISTRY_H
 #endif /* GUCEF_CORE_CNOTIFICATIONIDREGISTRY_H ? */
 
-#ifndef GUCEF_CORE_CURLHANDLERREGISTRY_H
-#include "CURLHandlerRegistry.h"
-#define GUCEF_CORE_CURLHANDLERREGISTRY_H
-#endif /* GUCEF_CORE_CURLHANDLERREGISTRY_H ? */
 
 #ifndef GUCEF_CORE_CDSTORECODECREGISTRY_H
 #include "CDStoreCodecRegistry.h"
@@ -153,6 +143,11 @@
 #define GUCEF_CORE_CCODECREGISTRY_H
 #endif /* GUCEF_CORE_CCODECREGISTRY_H ? */
 
+#ifndef GUCEF_CORE_CBUILTINCODECS_H
+#include "gucefCORE_CBuiltInCodecs.h"
+#define GUCEF_CORE_CBUILTINCODECS_H
+#endif /* GUCEF_CORE_CBUILTINCODECS_H ? */
+
 #ifndef GUCEF_CORE_CFUNCTIONREGISTRY_H
 #include "gucefCORE_CFunctionRegistry.h"
 #define GUCEF_CORE_CFUNCTIONREGISTRY_H
@@ -178,6 +173,13 @@
 #define GUCEF_CORE_CDATAURIRESOURCEACCESSOR_H
 #endif /* GUCEF_CORE_CDATAURIRESOURCEACCESSOR_H ? */
 
+#ifndef GUCEF_CORE_CASYNCFILESYSTEMACCESSOPERATION_H
+#include "gucefCORE_CAsyncFileSystemAccessOperation.h"
+#include "gucefCORE_CDataTableAsyncOperation.h"
+#include "gucefCORE_CDataTableScanTask.h"
+#define GUCEF_CORE_CASYNCFILESYSTEMACCESSOPERATION_H
+#endif /* GUCEF_CORE_CASYNCFILESYSTEMACCESSOPERATION_H ? */
+
 #ifndef GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H
 #include "gucefCORE_CGlobalDataDrivenDStoreCodecFactory.h"
 #define GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H
@@ -199,12 +201,42 @@
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 
+  #ifndef GUCEF_CORE_CX11CLIPBOARD_H
+  #include "gucefCORE_CX11Clipboard.h"
+  #define GUCEF_CORE_CX11CLIPBOARD_H
+  #endif /* GUCEF_CORE_CX11CLIPBOARD_H ? */
+
   #ifndef GUCEF_CORE_CX11EVENTDISPATCHER_H
   #include "gucefCORE_CX11EventDispatcher.h"
   #define GUCEF_CORE_CX11EVENTDISPATCHER_H
   #endif /* GUCEF_CORE_CX11EVENTDISPATCHER_H ? */
 
 #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ? */
+
+#ifndef GUCEF_CORE_CDATATABLEBUFFERPOOL_H
+#include "gucefCORE_CDataTableBufferPool.h"
+#define GUCEF_CORE_CDATATABLEBUFFERPOOL_H
+#endif /* GUCEF_CORE_CDATATABLEBUFFERPOOL_H ? */
+
+#ifndef GUCEF_CORE_CTABLECODECREGISTRY_H
+#include "gucefCORE_CTableCodecRegistry.h"
+#define GUCEF_CORE_CTABLECODECREGISTRY_H
+#endif /* GUCEF_CORE_CTABLECODECREGISTRY_H ? */
+
+#ifndef GUCEF_CORE_CTABLECODECPLUGINMANAGER_H
+#include "gucefCORE_CTableCodecPluginManager.h"
+#define GUCEF_CORE_CTABLECODECPLUGINMANAGER_H
+#endif /* GUCEF_CORE_CTABLECODECPLUGINMANAGER_H ? */
+
+#ifndef GUCEF_CORE_CSERVICEHEALTHREGISTRY_H
+#include "gucefCORE_CServiceHealthRegistry.h"
+#define GUCEF_CORE_CSERVICEHEALTHREGISTRY_H
+#endif /* GUCEF_CORE_CSERVICEHEALTHREGISTRY_H ? */
+
+#ifndef GUCEF_CORE_CCSVTABLECODEC_H
+#include "gucefCORE_CCsvTableCodec.h"
+#define GUCEF_CORE_CCSVTABLECODEC_H
+#endif /* GUCEF_CORE_CCSVTABLECODEC_H ? */
 
 #include "gucefCORE_CCoreGlobal.h"
 
@@ -237,6 +269,9 @@ CCoreGlobal* CCoreGlobal::g_instance = NULL;
 
 TFileSystemUriResourceAccessorFactory g_fileSystemUriResourceAccessorFactory;
 TDataUriResourceAccessorFactory g_dataUriResourceAccessorFactory;
+TAsyncFileSystemAccessOperationTaskFactory g_asyncFileSystemAccessOperationTaskFactory;
+TDataTableScanTaskFactory g_dataTableScanTaskFactory;
+TDataTableAsyncOperationTaskFactory g_dataTableAsyncOperationTaskFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -333,7 +368,6 @@ CCoreGlobal::Initialize( void )
     CPluginControl::RegisterEvents();
     CStreamerEvents::RegisterEvents();
     CTimer::RegisterEvents();    
-    CIURLEvents::RegisterEvents();
     CNotifyingMapEvents::RegisterEvents();    
     CTaskDelegator::RegisterEvents();
     CTaskConsumer::RegisterEvents();
@@ -363,14 +397,17 @@ CCoreGlobal::Initialize( void )
      *  so that we can use it for the rest of the initialization process and also to make sure it is ready to
      *  receive events from the start of the app lifecycle
      */
+    // The application registers its commands with the system console as part of its construction,
+    // which means the console has to exist before the application does
+    m_sysConsole = GUCEF_NEW CSysConsole();
     m_application = GUCEF_NEW CGUCEFApplication();
     m_application->SetPulseGenerator( m_pulseGenerator );
     m_logManager->SetPulseGenerator( m_pulseGenerator );
+    m_serviceHealthRegistry = GUCEF_NEW CServiceHealthRegistry( m_pulseGenerator );
 
     /*
      *  Instantiate the rest of the singletons
      */    
-    m_sysConsole = GUCEF_NEW CSysConsole();
     m_taskManager = GUCEF_NEW CTaskManager();
     m_dstoreCodecRegistry = GUCEF_NEW CDStoreCodecRegistry();
     m_dataDrivenDStoreCodecFactory = GUCEF_NEW CGlobalDataDrivenDStoreCodecFactory();
@@ -379,24 +416,40 @@ CCoreGlobal::Initialize( void )
     m_dstoreCodecPluginManager = GUCEF_NEW CDStoreCodecPluginManager();
     m_genericPluginManager = GUCEF_NEW CGenericPluginManager();
     m_stdCodecPluginManager = GUCEF_NEW CStdCodecPluginManager();        
-    m_urlHandlerRegistry = GUCEF_NEW CURLHandlerRegistry();
     m_uriResourceAccessorFactory = GUCEF_NEW CUriResourceAccessorFactory();
     m_functionRegistry = GUCEF_NEW CFunctionRegistry();
+    m_dataTableBufferPool = GUCEF_NEW CDataTableBufferPool();
+    m_tableCodecRegistry = GUCEF_NEW CTableCodecRegistry();
+    m_tableCodecPluginManager = GUCEF_NEW CTableCodecPluginManager();
 
     /*
      *      Register some default URI handlers
      */
-    m_urlHandlerRegistry->Register( "file", CURLHandlerRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CFileURLHandler() ) ); // <- legacy version. @deprecated
     m_uriResourceAccessorFactory->RegisterConcreteFactory( CFileSystemUriResourceAccessor::SchemeName, &g_fileSystemUriResourceAccessorFactory );
     m_uriResourceAccessorFactory->RegisterConcreteFactory( CDataUriResourceAccessor::SchemeName, &g_dataUriResourceAccessorFactory );
+
+    /*
+     *      The task of the async operations of IFileSystemAccess
+     */
+    m_taskManager->RegisterTaskConsumerFactory( CAsyncFileSystemAccessOperation::TaskType, &g_asyncFileSystemAccessOperationTaskFactory );
+    m_taskManager->RegisterTaskConsumerFactory( CDataTableScanTask::TaskType, &g_dataTableScanTaskFactory );
+    m_taskManager->RegisterTaskConsumerFactory( CDataTableAsyncOperation::TaskType, &g_dataTableAsyncOperationTaskFactory );
 
     /*
      *      Register some default codecs
      */    
     m_dstoreCodecRegistry->Register( "ini", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CIniDataStoreCodec() ) );
     m_dstoreCodecRegistry->Register( "dnc", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CDataStoreBinaryCodec() ) );
+    m_tableCodecRegistry->Register( "csv", CTableCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CCsvTableCodec() ) );
+
+    /*
+     *      The codecs of gucefCORE itself: portable software and, unless configured off, the crypto of the OS
+     */
+    m_builtInCodecs = GUCEF_NEW CBuiltInCodecs( *m_codecRegistry );
+    m_builtInCodecs->RegisterCodecs();
 
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "gucefCORE Global systems initialized" );
+    m_pluginControl->ListModuleForLinkBack( "gucefCORE" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -404,7 +457,6 @@ CCoreGlobal::Initialize( void )
 CCoreGlobal::CCoreGlobal( void )
     : m_pulseGenerator()
     , m_taskManager( GUCEF_NULL )                
-    , m_urlHandlerRegistry( GUCEF_NULL )         
     , m_dstoreCodecRegistry( GUCEF_NULL )        
     , m_dataDrivenDStoreCodecFactory( GUCEF_NULL )
     , m_exclusiveActivationManager( GUCEF_NULL ) 
@@ -419,8 +471,13 @@ CCoreGlobal::CCoreGlobal( void )
     , m_stdCodecPluginManager( GUCEF_NULL )      
     , m_configStore( GUCEF_NULL )                
     , m_codecRegistry( GUCEF_NULL )
+    , m_builtInCodecs( GUCEF_NULL )
     , m_functionRegistry( GUCEF_NULL )
+    , m_dataTableBufferPool( GUCEF_NULL )
+    , m_tableCodecRegistry( GUCEF_NULL )
+    , m_tableCodecPluginManager( GUCEF_NULL )
     , m_uriResourceAccessorFactory( GUCEF_NULL )
+    , m_serviceHealthRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -436,13 +493,25 @@ CCoreGlobal::~CCoreGlobal()
 
     m_application->Stop( true );
     m_taskManager->RequestAllThreadsToStop( true, false, GUCEF_MT_INFINITE_LOCK_TIMEOUT );
+    m_taskManager->UnregisterTaskConsumerFactory( CAsyncFileSystemAccessOperation::TaskType );
+    m_taskManager->UnregisterTaskConsumerFactory( CDataTableScanTask::TaskType );
+    m_taskManager->UnregisterTaskConsumerFactory( CDataTableAsyncOperation::TaskType );
    
     m_uriResourceAccessorFactory->UnregisterAllConcreteFactories();
-    m_urlHandlerRegistry->UnregisterAll();
+    m_builtInCodecs->UnregisterCodecs();
     m_codecRegistry->UnregisterAll();
     m_dstoreCodecRegistry->UnregisterAll();
+    m_tableCodecRegistry->UnregisterAll();
     m_dataDrivenDStoreCodecFactory->UnregisterAllConcreteFactories();
+    m_pluginControl->UnlistModuleForLinkBack( "gucefCORE" );
     m_pluginControl->UnloadAll();
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+
+    // After the plugins, which may use the clipboard, and before the task manager, with which its thread is registered
+    CX11Clipboard::Deinstance();
+
+    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ? */
    
 
     m_logManager->FlushLogs();
@@ -450,27 +519,41 @@ CCoreGlobal::~CCoreGlobal()
     /*
      *      cleanup all singletons
      *      Take care to deinstance them in the correct order !!!
+     *
+     *      The order of the teardown:
+     *      1. The application stops and every thread of every thread pool ends, without a time limit (above): from
+     *         here on nothing runs on another thread.
+     *      2. What was registered with the global objects goes: task types, URI handlers, codecs, the plugins (above).
+     *      3. The global objects go, each before what it uses: the task manager first (its threads are gone), the
+     *         application, the metrics, the plugin managers and the plugin control, the console, the config store,
+     *         the registries (below).
+     *      4. The logging global goes last. Everything of 1 to 3 may log while it goes: the plugin control says it
+     *         unregisters its modules, the plugin managers and the config store report what they do. A log statement
+     *         after the logging global went would make a new one (CLoggingGlobal::Instance()) that nothing destroys,
+     *         on top of the global objects that are gone.
      */
     GUCEF_DELETE m_taskManager;
     m_taskManager = GUCEF_NULL;
-    GUCEF_DELETE m_urlHandlerRegistry;
-    m_urlHandlerRegistry = GUCEF_NULL;
     GUCEF_DELETE m_uriResourceAccessorFactory;
     m_uriResourceAccessorFactory = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecRegistry;
     m_dstoreCodecRegistry = GUCEF_NULL;
+    GUCEF_DELETE m_tableCodecRegistry;
+    m_tableCodecRegistry = GUCEF_NULL;
     GUCEF_DELETE static_cast< CGlobalDataDrivenDStoreCodecFactory* >( m_dataDrivenDStoreCodecFactory );
     m_dataDrivenDStoreCodecFactory = GUCEF_NULL;
     GUCEF_DELETE m_exclusiveActivationManager;
     m_exclusiveActivationManager = GUCEF_NULL;
+    GUCEF_DELETE m_serviceHealthRegistry;
+    m_serviceHealthRegistry = GUCEF_NULL;
     GUCEF_DELETE m_application;
     m_application = GUCEF_NULL;
-    CLoggingGlobal::Deinstance();
-    m_logManager = GUCEF_NULL;
     GUCEF_DELETE m_metricsClientManager;
     m_metricsClientManager = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecPluginManager;
     m_dstoreCodecPluginManager = GUCEF_NULL;
+    GUCEF_DELETE m_tableCodecPluginManager;
+    m_tableCodecPluginManager = GUCEF_NULL;
     GUCEF_DELETE m_genericPluginManager;
     m_genericPluginManager = GUCEF_NULL;
     GUCEF_DELETE m_stdCodecPluginManager;
@@ -479,6 +562,8 @@ CCoreGlobal::~CCoreGlobal()
     m_pluginControl = GUCEF_NULL;
     GUCEF_DELETE m_sysConsole;
     m_sysConsole = GUCEF_NULL;
+    GUCEF_DELETE m_builtInCodecs;
+    m_builtInCodecs = GUCEF_NULL;
     GUCEF_DELETE m_notificationIdRegistry;
     m_notificationIdRegistry = GUCEF_NULL;
     GUCEF_DELETE m_configStore;
@@ -487,12 +572,18 @@ CCoreGlobal::~CCoreGlobal()
     m_codecRegistry = GUCEF_NULL;
     GUCEF_DELETE m_functionRegistry;
     m_functionRegistry = GUCEF_NULL;
+    GUCEF_DELETE m_dataTableBufferPool;
+    m_dataTableBufferPool = GUCEF_NULL;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     
     CWindowsComponentAccess::Deinstance();
     
     #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
+
+    // last: everything above may log while it goes, see the order at the top of the cleanup
+    CLoggingGlobal::Deinstance();
+    m_logManager = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -601,14 +692,6 @@ CCoreGlobal::GetNotificationIDRegistry( void )
 
 /*-------------------------------------------------------------------------*/
 
-CURLHandlerRegistry&
-CCoreGlobal::GetUrlHandlerRegistry( void )
-{GUCEF_TRACE;
-
-    return *m_urlHandlerRegistry;
-}
-
-/*-------------------------------------------------------------------------*/
 
 CUriResourceAccessorFactory& 
 CCoreGlobal::GetUriResourceAccessorFactory( void )
@@ -673,6 +756,15 @@ CCoreGlobal::GetExclusiveActivationManager( void )
 
 /*-------------------------------------------------------------------------*/
 
+CBuiltInCodecs&
+CCoreGlobal::GetBuiltInCodecs( void )
+{GUCEF_TRACE;
+
+    return *m_builtInCodecs;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CCodecRegistry&
 CCoreGlobal::GetCodecRegistry( void )
 {GUCEF_TRACE;
@@ -687,6 +779,42 @@ CCoreGlobal::GetFunctionRegistry( void )
 {GUCEF_TRACE;
 
     return *m_functionRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataTableBufferPool&
+CCoreGlobal::GetDataTableBufferPool( void )
+{GUCEF_TRACE;
+
+    return *m_dataTableBufferPool;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTableCodecRegistry&
+CCoreGlobal::GetTableCodecRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_tableCodecRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTableCodecPluginManager&
+CCoreGlobal::GetTableCodecPluginManager( void )
+{GUCEF_TRACE;
+
+    return *m_tableCodecPluginManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CServiceHealthRegistry&
+CCoreGlobal::GetServiceHealthRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_serviceHealthRegistry;
 }
 
 /*-------------------------------------------------------------------------//

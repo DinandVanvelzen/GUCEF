@@ -55,7 +55,7 @@ namespace GUIDRIVERANDROIDGLES {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static TAndroidWindowManagerImpPtr androidGlesWindowManager = new CAndroidWindowManagerImp();
+static TAndroidWindowManagerImpPtr androidGlesWindowManager( new CAndroidWindowManagerImp() );
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

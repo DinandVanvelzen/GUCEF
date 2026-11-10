@@ -17,18 +17,36 @@ LOCAL_PATH := $(MY_MODULE_PATH)
 include $(CLEAR_VARS)
 
 @echo Module path: $(MY_MODULE_PATH)
-LOCAL_MODULE := guidriverRocketOpenGL
-LOCAL_MODULE_FILENAME := libguidriverRocketOpenGL
+LOCAL_MODULE := guidriverRmlUIOpenGL
+LOCAL_MODULE_FILENAME := libguidriverRmlUIOpenGL
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  src/guidriverRocketOpenGL_CRocketGuiDriver.cpp \
-  src/guidriverRocketOpenGL_CRocketRenderInterfaceOpenGL.cpp \
-  src/guidriverRocketOpenGL_pluginAPI.cpp
+  src/RmlUi_Renderer_GL3.cpp \
+  src/guidriverRmlUIOpenGL_CGLHookShader.cpp \
+  src/guidriverRmlUIOpenGL_CGLPresenter.cpp \
+  src/guidriverRmlUIOpenGL_CRmlUIGuiDriver.cpp \
+  src/guidriverRmlUIOpenGL_CRmlUIOpenGLContext.cpp \
+  src/guidriverRmlUIOpenGL_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Config \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core/Containers \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core/Elements \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Debugger \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Lottie \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Lua \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/SVG \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core/Elements \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core/FontEngineDefault \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core/Layout \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/config \
@@ -36,40 +54,31 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Controls \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Core \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Core/Python \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Debugger \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Source/Controls \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Source/Core \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefINPUT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
-  $(MY_MODULE_PATH)/../guidriverRocket/include
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../guidriverRmlUI/include
 
-LOCAL_CFLAGS := -DGUIDRIVERROCKETGL_BUILD_MODULE
+LOCAL_CFLAGS := -DGUIDRIVERRMLUIGL_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverRmlUIOpenGL -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverRmlUIOpenGL
 
 
 LOCAL_SHARED_LIBRARIES := \
-  RocketControls \
-  RocketCore \
+  RmlUI_Core \
   gucefCORE \
   gucefGUI \
+  gucefIMAGE \
   gucefINPUT \
   gucefMT \
-  guidriverRocket
-
-
-LOCAL_LDLIBS := \
-  -lEGL \
-  -lGLESv1_CM
+  gucefVFS \
+  guidriverRmlUI
 
 include $(BUILD_SHARED_LIBRARY)
 

@@ -1,0 +1,78 @@
+
+#ifndef NCNN_VULKAN_ACTIVATION_COMP
+#define NCNN_VULKAN_ACTIVATION_COMP
+afp activation_afp(afp v, int activation_type, float activation_param_0, float activation_param_1)
+{
+if (activation_type == 1)
+{
+v = max(v, afp(0.f));
+}
+if (activation_type == 2)
+{
+const afp slope = afp(activation_param_0);
+v = v < afp(0.f) ? v * slope : v;
+}
+if (activation_type == 3)
+{
+const afp const_min = afp(activation_param_0);
+const afp const_max = afp(activation_param_1);
+v = clamp(v, const_min, const_max);
+}
+if (activation_type == 4)
+{
+v = afp(1.f) / (afp(1.f) + exp(-v));
+}
+if (activation_type == 5)
+{
+#if NCNN_moltenvk
+v = v * afp(tanh(float(log(exp(v) + afp(1.f)))));
+#else
+v = v * tanh(log(exp(v) + afp(1.f)));
+#endif
+}
+if (activation_type == 6)
+{
+const afp alpha = afp(activation_param_0);
+const afp beta = afp(activation_param_1);
+v = v * clamp(v * afp(alpha) + afp(beta), afp(0.f), afp(1.f));
+}
+return v;
+}
+afpvec4 activation_afpvec4(afpvec4 v, int activation_type, float activation_param_0, float activation_param_1)
+{
+if (activation_type == 1)
+{
+v = max(v, afp(0.f));
+}
+if (activation_type == 2)
+{
+const afp slope = afp(activation_param_0);
+v = mix(v, v * afp(slope), lessThan(v, afpvec4(0.f)));
+}
+if (activation_type == 3)
+{
+const afp const_min = afp(activation_param_0);
+const afp const_max = afp(activation_param_1);
+v = clamp(v, const_min, const_max);
+}
+if (activation_type == 4)
+{
+v = afp(1.f) / (afp(1.f) + exp(-v));
+}
+if (activation_type == 5)
+{
+#if NCNN_moltenvk
+v = v * afpvec4(tanh(vec4(log(exp(v) + afp(1.f)))));
+#else
+v = v * tanh(log(exp(v) + afp(1.f)));
+#endif
+}
+if (activation_type == 6)
+{
+const afp alpha = afp(activation_param_0);
+const afp beta = afp(activation_param_1);
+v = v * clamp(v * afp(alpha) + afp(beta), afp(0.f), afp(1.f));
+}
+return v;
+}
+#endif 

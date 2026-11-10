@@ -18,6 +18,11 @@ set( HEADER_FILES
   ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubClientTopic.h
   ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.h
   ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.h
+  ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubIndexDef.h
+  ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubIndexReader.h
+  ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.h
+  ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h
+  ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStorageReplayTaskData.h
   ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_config.h
   ../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_macros.h
   include/pubsubpluginTEST.h
@@ -36,6 +41,11 @@ set( SOURCE_FILES
   ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubClientTopic.cpp
   ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.cpp
   ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp
+  ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubIndexDef.cpp
+  ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubIndexReader.cpp
+  ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.cpp
+  ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.cpp
+  ../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStorageReplayTaskData.cpp
   src/pubsubpluginTEST.cpp
   src/pubsubpluginTEST_CTestPubSubClient.cpp
   src/pubsubpluginTEST_CTestPubSubClientConfig.cpp
@@ -61,11 +71,11 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include ../pubsubpluginSTORAGE/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )
@@ -77,11 +87,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin ../../../platform/gucefWEB/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin ../../../platform/gucefWEB/include/mswin )
 endif( WIN64 )
 
 

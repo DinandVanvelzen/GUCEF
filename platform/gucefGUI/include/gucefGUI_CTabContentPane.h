@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_GUI_CWIDGET_H
-#include "gucefGUI_CWidget.h"
-#define GUCEF_GUI_CWIDGET_H
-#endif /* GUCEF_GUI_CWIDGET_H ? */
+#ifndef GUCEF_GUI_CPANEL_H
+#include "gucefGUI_CPanel.h"
+#define GUCEF_GUI_CPANEL_H
+#endif /* GUCEF_GUI_CPANEL_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -48,22 +48,26 @@ namespace GUI {
 
 class CTabControl;
 
-/*-------------------------------------------------------------------------*/
-
-class GUCEF_GUI_PUBLIC_CPP CTabContentPane : public CWidget
-{    
+/** One page of a tab control; the tab control shows the page of the active tab and hides the others */
+class GUCEF_GUI_PUBLIC_CPP CTabContentPane : public CPanel
+{
     public:
-    
+
     CTabContentPane( void );
-    
+
     virtual ~CTabContentPane();
-    
+
     virtual CTabControl* GetParentTabControl( void );
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "TabContentPane"; }
+
+    static CWidget* Create( void );
+
     private:
-    
+
     CTabContentPane( const CTabContentPane& src );
     CTabContentPane& operator=( const CTabContentPane& src );
 };
@@ -78,16 +82,5 @@ class GUCEF_GUI_PUBLIC_CPP CTabContentPane : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CTABCONTENTPANE_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

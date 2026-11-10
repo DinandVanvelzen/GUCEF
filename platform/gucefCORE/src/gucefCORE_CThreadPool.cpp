@@ -150,6 +150,7 @@ CThreadPool::CThreadPool( PulseGeneratorPtr threadPoolPulseContext ,
     , m_allTaskObjs( TTaskObjFreeList::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE )
     , m_freeTaskConsumers()
     , m_taskDedicatedDelegators()
+    , m_retiredDelegators()
     , m_taskGenericDelegators()
     , m_acceptNewWork( true )
     , m_allowAppThreadToWork( false )
@@ -233,8 +234,11 @@ CThreadPool::CarryOutQueuedTasksIfAny( UInt32 maxTasks )
         CTaskPtr task;
         if ( GetQueuedTask( task ) )
         {
-            CSingleTaskDelegator singleTaskExecutor( CreateSharedPtr(), task );
-            singleTaskExecutor.ExecuteTaskFromCallingThread();
+            // The delegator hands out shared pointers to itself while it runs the task (the consumer links back to it),
+            // so it has to be shared pointer owned like the other delegators: one on the stack would be deleted by them
+            CSingleTaskDelegator* rawExecutor = GUCEF_NEW CSingleTaskDelegator( CreateSharedPtr(), task );
+            CTaskDelegatorPtr singleTaskExecutor( rawExecutor->CreateSharedPtr() );
+            rawExecutor->ExecuteTaskFromCallingThread();
         }
         else
         {
@@ -250,13 +254,17 @@ void
 CThreadPool::RemoveDelegator( CNotifier* notifier )
 {GUCEF_TRACE;
 
+    // This runs while we handle the delegator's own event. The delegator references this pool and can hold
+    // the last reference to it, as happens once a pool has been unregistered, so it is retired here instead of
+    // released: releasing it could destroy this pool from within its own event handling
+    // See ReleaseRetiredDelegators()
     MT::CObjectScopeLock lock( this );
     TTaskDelegatorSet::iterator i = m_taskDedicatedDelegators.begin();
     while ( i != m_taskDedicatedDelegators.end() )
     {
         if ( static_cast< const CNotifier* >( (*i).GetPointerAlways() ) == notifier )
         {
-            TTaskDelegatorBasicPtr delegator = (*i);
+            m_retiredDelegators.insert( (*i) );
             m_taskDedicatedDelegators.erase( i );
             return;
         }
@@ -267,12 +275,44 @@ CThreadPool::RemoveDelegator( CNotifier* notifier )
     {
         if ( static_cast< const CNotifier* >( (*i).GetPointerAlways() ) == notifier )
         {
-            TTaskDelegatorBasicPtr delegator = (*i);
+            m_retiredDelegators.insert( (*i) );
             m_taskGenericDelegators.erase( i );
             return;
         }
         ++i;
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPool::ReleaseRetiredDelegators( void )
+{GUCEF_TRACE;
+
+    TTaskDelegatorSet retiredDelegators;
+    {
+        MT::CObjectScopeLock lock( this );
+        retiredDelegators.swap( m_retiredDelegators );
+
+        // A delegator that was set up but not started has no ended thread, it stays
+        TTaskDelegatorSet* delegatorSets[ 2 ] = { &m_taskDedicatedDelegators, &m_taskGenericDelegators };
+        for ( UInt32 s=0; s<2; ++s )
+        {
+            TTaskDelegatorSet& delegators = *delegatorSets[ s ];
+            TTaskDelegatorSet::iterator i = delegators.begin();
+            while ( i != delegators.end() )
+            {
+                if ( !(*i).IsNULL() && (*i)->HasThreadEnded() )
+                {
+                    retiredDelegators.insert( (*i) );
+                    delegators.erase( i++ );
+                    continue;
+                }
+                ++i;
+            }
+        }
+    }
+    // the delegators are released here, outside of our lock
 }
 
 /*-------------------------------------------------------------------------*/
@@ -337,7 +377,7 @@ CThreadPool::OnPumpedNotify( CNotifier* notifier    ,
     else
     if ( CTaskConsumer::TaskStartedEvent == eventid )
     {
-        NotifyObservers( TaskKilledEvent );
+        NotifyObservers( TaskStartedEvent, eventdata );
     }
     else
     if ( CTaskConsumer::TaskStartupFailedEvent == eventid )
@@ -995,6 +1035,27 @@ CThreadPool::UnregisterTaskConsumerFactory( const CString& taskType )
     MT::CObjectScopeLock lock( this );
     m_consumerFactory.UnregisterConcreteFactory( taskType );
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): consumer factory unregistered of type " + taskType );
+    lock.EarlyUnlock();
+
+    ReleaseFreeTaskConsumers( taskType );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPool::ReleaseFreeTaskConsumers( const CString& taskType )
+{GUCEF_TRACE;
+
+    CTaskConsumerPtrSet freeConsumers;
+    {
+        MT::CObjectScopeLock lock( this );
+        TStringToTaskConsumerSetMap::iterator i = m_freeTaskConsumers.find( taskType );
+        if ( i == m_freeTaskConsumers.end() )
+            return;
+        freeConsumers.swap( (*i).second );
+        m_freeTaskConsumers.erase( i );
+    }
+    // the consumers are released here, outside of our lock
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1041,6 +1102,7 @@ CThreadPool::GetOrCreateTaskConsumerOfType( const CString& taskConsumerType ,
         {
             taskConsumer = *freeConsumers.begin();
             freeConsumers.erase( freeConsumers.begin() );
+            taskConsumer->SetThreadPool( CreateBasicSharedPtr() );
             return true;
         }
     }
@@ -1124,6 +1186,9 @@ CFutureResult
 CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
 {GUCEF_TRACE;
 
+    // Our caller holds a reference to us, which makes this a safe point to release delegators whose threads ended
+    ReleaseRetiredDelegators();
+
     // We will need a task object which represents the task to be executed
     // This variant of the function expects things to arrive more pre-baked
     if ( task.IsNULL() || TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED == task->GetTaskStatus() )
@@ -1190,6 +1255,9 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
 
     // Now spawn a task delegator
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Setting up task of type \"" + taskConsumer->GetType() + "\" with ID " + ToString( task->GetTaskId() )  );
+    // The consumer is linked to its task before its thread starts, as GetQueuedTask() does for queued work: everything
+    // that works through the consumer (RequestTaskToStop(), the task id, the status) needs that link from the start
+    taskConsumer->SetCurrentTask( task );
     CTaskDelegatorPtr delegator( ( GUCEF_NEW CSingleTaskDelegator( CreateSharedPtr(), task ) )->CreateSharedPtr() );
     SubscribeTo( delegator.GetPointerAlways() );
 
@@ -1216,6 +1284,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Failed to activate dedicated delegator for task type \"" + taskConsumer->GetType() +
             "\" with task ID " + ToString( task->GetTaskId() )  + " and thread ID " + ToString( delegator->GetThreadID() )  );
 
+        taskConsumer->SetCurrentTask( CTaskPtr() );
         task->SetTaskStatus( TTaskStatus::TASKSTATUS_STARTUP_FAILED );
         return task;
     }
@@ -1230,6 +1299,9 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
                                     CDataNode* taskDataDom         ,
                                     bool consumerWasCreatedByPool  )
 {GUCEF_TRACE;
+
+    // Our caller holds a reference to us, which makes this a safe point to release delegators whose threads ended
+    ReleaseRetiredDelegators();
 
     // We will need a task object which represents the task to be executed
     CTaskPtr task;
@@ -1294,6 +1366,9 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
 
     // Now spawn a task delegator
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Setting up task of type \"" + taskConsumer->GetType() + "\" with ID " + ToString( task->GetTaskId() )  );
+    // The consumer is linked to its task before its thread starts, as GetQueuedTask() does for queued work: everything
+    // that works through the consumer (RequestTaskToStop(), the task id, the status) needs that link from the start
+    taskConsumer->SetCurrentTask( task );
     CTaskDelegatorPtr delegator( ( GUCEF_NEW CSingleTaskDelegator( CreateSharedPtr(), task ) )->CreateSharedPtr() );
     SubscribeTo( delegator.GetPointerAlways() );
     m_taskDedicatedDelegators.insert( delegator );
@@ -1320,6 +1395,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Failed to activate dedicated delegator for task type \"" + taskConsumer->GetType() +
             "\" with task ID " + ToString( task->GetTaskId() )  + " and thread ID " + ToString( delegator->GetThreadID() )  );
 
+        taskConsumer->SetCurrentTask( CTaskPtr() );
         task->SetTaskStatus( TTaskStatus::TASKSTATUS_STARTUP_FAILED );
         return task;
     }
@@ -1371,17 +1447,18 @@ CThreadPool::StartTaskChain( const TTaskPtrVector& tasks )
 
     // Check to see if setup has been performed yet
     // If it was not explicitly invoked yet we will just incorporate the setup step here
+    // The consumer is read while its thread still waits: once it may commence the task can run to its end
     CTaskConsumerPtr taskConsumer = firstTask->GetTaskConsumer();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): First chain task of task type \"" + taskConsumer->GetType() +
+            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
+            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work. There are "
+            + SizeTToString( tasks.size() ) + " tasks in the chain." );
+
     if ( taskConsumer->GetIsInPhasedSetup() )
     {
         // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
         taskConsumer->SetIsInPhasedSetup( false );
     }
-
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): First chain task of task type \"" + taskConsumer->GetType() +
-            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
-            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work. There are "
-            + SizeTToString( tasks.size() ) + " tasks in the chain." );
 
     // We return the last task as that is the task one would wait for to finish the chain
     // any failure earlier in the chain will propagate to the last task as well
@@ -1407,16 +1484,17 @@ CThreadPool::StartTask( CTaskPtr task )
 
     // Check to see if setup has been performed yet
     // If it was not explicitly invoked yet we will just incorporate the setup step here
+    // The consumer is read while its thread still waits: once it may commence the task can run to its end
     CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
+            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
+            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
+
     if ( taskConsumer->GetIsInPhasedSetup() )
     {
         // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
         taskConsumer->SetIsInPhasedSetup( false );
     }
-
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
-            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
-            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
 
     return task;
 }
@@ -1439,17 +1517,30 @@ CThreadPool::StartTaskWithConsumer( CTaskConsumerPtr taskConsumer  ,
     // If it was not explicitly invoked yet we will just incorporate the setup step here
     if ( !taskConsumer->GetIsInPhasedSetup() )
     {
+        // The task is handed back as given by the setup: the consumer only learns about its current task
+        // once the thread of its delegator got to it, which is not necessarily the case yet
         CFutureResult future = SetupSingularTask( taskConsumer, taskData, assumeOwnershipOfTaskData );
         if GUCEF_PREDICT_FALSE( future.HasNoFuture() )
             return future;
+
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
+                "\" with task ID " + ToString( future.GetTaskId() ) + " is instructed to commence work" );
+
+        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
+        taskConsumer->SetIsInPhasedSetup( false );
+        return future;
     }
+
+    // Everything taken from the consumer is taken while its thread still waits: once it may commence the task
+    // can run to its end, after which the consumer no longer refers to it
+    CTaskPtr task = taskConsumer->GetCurrentTask();
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
+            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
+            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
 
     // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
     taskConsumer->SetIsInPhasedSetup( false );
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskConsumer->GetType() +
-            "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
-            ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
-    return taskConsumer->GetCurrentTask();
+    return task;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1479,12 +1570,13 @@ CThreadPool::StartTask( const CString& taskType        ,
     CFutureResult taskFuture = SetupSingularTaskImpl( taskConsumer, taskData, assumeOwnershipOfTaskData, GUCEF_NULL, true );
     if ( taskFuture.HasAFuture() )
     {
-        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
-        taskConsumer->SetIsInPhasedSetup( false );            
+        // The consumer is read while its thread still waits: once it may commence the task can run to its end
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task of task type \"" + taskType +
-                "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
+                "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) +
                 ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work" );
 
+        // IMPORTANT: We remove the flag to signal to the delegator it should commence operations
+        taskConsumer->SetIsInPhasedSetup( false );
         return taskFuture;
     }
     else
@@ -1686,6 +1778,10 @@ CThreadPool::TaskCleanup( CTaskPtr task )
     // Update our 'free lists' administration for the task consumer
     if ( !taskConsumer.IsNULL() && taskConsumer->IsOwnedByThreadPool() )
     {
+        // A consumer references its pool: kept in the free list with that reference it would keep this pool alive
+        // It gets the reference back when it is used again
+        taskConsumer->SetThreadPool( ThreadPoolPtr() );
+
         MT::CObjectScopeLock lock( this );
         m_freeTaskConsumers[ taskConsumer->GetType() ].insert( taskConsumer );
     }
@@ -2015,43 +2111,105 @@ CThreadPool::RequestTaskToStop( CTaskConsumerPtr taskConsumer ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CThreadPool::RequestTaskCancellation( const UInt32 taskId    , 
+CThreadPool::RequestTaskCancellation( const UInt32 taskId    ,
                                       bool callerShouldWait  ,
                                       bool okIfTaskIsUnknown )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeReadOnlyLock readLock( this );
+    CTaskPtr task = GetTaskObjById( taskId );
+    if ( task.IsNULL() )
+    {
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot cancel task with ID " + ToString( taskId ) + ", it is not known to this pool" );
+        return okIfTaskIsUnknown;
+    }
 
-    //TTaskId2TaskPtrMap::const_iterator i = m_inUseTaskObjs.find( taskId );
-    //if ( i != m_inUseTaskObjs.end() )
-    //{
-    //    CTaskPtr primaryTask = (*i).second;
-    //    if ( !primaryTask.IsNULL() )
-    //    {
-    //        CTask::TTaskPtrSet upcomingTasks;
-    //        primaryTask->GetAllUpcomingTasksInChain( upcomingTasks );
-    //        m_taskQueue.Delete( upcomingTasks );
+    // A task which has ended can no longer be cancelled, which is not a problem
+    if ( TaskStatusIsAnEndState( task->GetTaskStatus() ) )
+        return true;
 
-    //        m_inUseTaskObjs.erase( i );
-    //        m_taskQueue.Delete( task ); 
-    //    }
+    // The tasks which come after this one in a chain can no longer run if this one does not finish, they are cancelled with it
+    CTask::TTaskPtrSet upcomingTasks;
+    task->GetAllUpcomingTasksInChain( upcomingTasks );
 
+    typedef GUCEF::set< TIntegerTypeUsedForTaskId > TTaskIdSet;
+    TTaskIdSet idsToCancel;
+    idsToCancel.insert( taskId );
+    for ( CTask::TTaskPtrSet::const_iterator u = upcomingTasks.begin(); u != upcomingTasks.end(); ++u )
+        idsToCancel.insert( (*u)->GetTaskId() );
 
-    //    readLock.EarlyReaderUnlock();
+    // Whatever is still waiting in the queue is taken out of it and will never start
+    TTaskIdSet idsRemovedFromQueue;
+    {
+        MT::CScopeMutex mailboxWriter( m_taskQueue.GetLock() );
 
-    //    if ( !task.IsNULL() )
-    //    {
-    //        taskExists = true;
-    //        CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
-    //        if ( !taskConsumer.IsNULL() )
-    //        {
-    //            TTaskDelegatorBasicPtr delegator = taskConsumer->GetTaskDelegator();
-    //            return delegator;
-    //        }
-    //    }
-    //}
+        TTaskMailbox::iterator i = m_taskQueue.begin( mailboxWriter );
+        while ( i != m_taskQueue.end() )
+        {
+            const CTaskPtr& queuedTask = (*i).eventid;
+            if ( !queuedTask.IsNULL() && idsToCancel.find( queuedTask->GetTaskId() ) != idsToCancel.end() )
+            {
+                idsRemovedFromQueue.insert( queuedTask->GetTaskId() );
+                m_taskQueue.erase( mailboxWriter, i );
+                i = m_taskQueue.begin( mailboxWriter );
+                continue;
+            }
+            ++i;
+        }
+    }
 
-    return false;
+    // A task which is not running does not have a thread which can end it, so we do it here: it is not going to start.
+    // This is the case for the tasks we just took out of the queue and for those waiting for a prerequisite task in a chain.
+    // Anything else is already in the hands of a thread, which will end the task as cancelled when it stops it
+    bool mainTaskEndedHere = false;
+    CTask::TTaskPtrSet endedHere;
+    CTask::TTaskPtrSet toCancel = upcomingTasks;
+    toCancel.insert( task );
+    for ( CTask::TTaskPtrSet::const_iterator t = toCancel.begin(); t != toCancel.end(); ++t )
+    {
+        CTaskPtr candidate = (*t);
+        if ( TaskStatusIsAnEndState( candidate->GetTaskStatus() ) )
+            continue;
+
+        candidate->SetCancellationRequested( true );
+
+        bool wasQueued = idsRemovedFromQueue.find( candidate->GetTaskId() ) != idsRemovedFromQueue.end();
+        if ( wasQueued || TTaskStatus::TASKSTATUS_CHAIN_PREREQ_QUEUED == candidate->GetTaskStatus() )
+        {
+            candidate->SetTaskStatus( TTaskStatus::TASKSTATUS_CANCELLED );
+            endedHere.insert( candidate );
+            if ( candidate->GetTaskId() == taskId )
+                mainTaskEndedHere = true;
+        }
+    }
+
+    for ( CTask::TTaskPtrSet::const_iterator e = endedHere.begin(); e != endedHere.end(); ++e )
+    {
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( (*e)->GetTaskId() ) + " was cancelled before it started" );
+        OnTaskStopped( (*e) );
+    }
+
+    if ( mainTaskEndedHere )
+    {
+        // The task was never given to a thread so the chain can be released as a whole,
+        // when the chain is still running the tasks which are part of it are released when it is done
+        for ( CTask::TTaskPtrSet::const_iterator e = endedHere.begin(); e != endedHere.end(); ++e )
+            TaskCleanup( (*e) );
+        return true;
+    }
+
+    // The task is with a thread already. Only the task is asked to stop, not the thread: the delegator wraps the task
+    // up, which ends it as cancelled, and the thread is then free to carry out other work.
+    // If there is no delegator yet the thread is about to pick the task up and will see it was cancelled
+    bool taskExists = false;
+    TTaskDelegatorBasicPtr delegator = GetDelegatorForTaskId( taskId, taskExists );
+    if ( !delegator.IsNULL() )
+        delegator->CancelCurrentTask( taskId );
+
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Requested task with ID " + ToString( taskId ) + " to cancel" );
+
+    if ( callerShouldWait )
+        task->WaitForTaskToFinish( GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

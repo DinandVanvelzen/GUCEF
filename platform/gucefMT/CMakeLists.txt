@@ -27,11 +27,17 @@ set( HEADER_FILES
   include/gucefMT_CScopeMutex.h
   include/gucefMT_CScopeRwLock.h
   include/gucefMT_CSemaphore.h
+  include/gucefMT_CTAtomic.h
   include/gucefMT_CTMailBox.h
+  include/gucefMT_CTSlotDataExchange.h
+  include/gucefMT_CTSpscQueue.h
   include/gucefMT_DVRWLOCK.h
   include/gucefMT_ETypes.h
   include/gucefMT_LockStatus.h
+  include/gucefMT_SlotDataExchangePolicies.h
   include/gucefMT_ThreadStatus.h
+  include/gucefMT_atomic_backends.h
+  include/gucefMT_atomic_config.h
   include/gucefMT_basicMacros.h
   include/gucefMT_config.h
   include/gucefMT_dvmtoswrap.h
@@ -42,6 +48,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/gucefMT.cpp
   src/gucefMT_CActiveObject.cpp
+  src/gucefMT_CAtomicLockPool.cpp
   src/gucefMT_CCondition.cpp
   src/gucefMT_CGUCEFMTModule.cpp
   src/gucefMT_CICloneable.cpp

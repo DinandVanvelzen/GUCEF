@@ -77,7 +77,7 @@ CPatchSetFileEngine::CPatchSetFileEngine( void )
       m_stopSignalGiven( false )         ,
       m_localRoot()                      ,
       m_tempStorageRoot()                ,
-      m_dataRetriever()                  ,
+      m_retriever()                      ,
       m_fileAccess( NULL )               ,
       m_fileList()                       ,
       m_curFileLocIndex( 0 )             ,
@@ -87,7 +87,7 @@ CPatchSetFileEngine::CPatchSetFileEngine( void )
       m_stopOnReplacementFailure( true )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_dataRetriever );
+    SubscribeTo( &m_retriever );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -99,7 +99,7 @@ CPatchSetFileEngine::CPatchSetFileEngine( const CORE::PulseGeneratorPtr& pulseGe
       m_stopSignalGiven( false )         ,
       m_localRoot()                      ,
       m_tempStorageRoot()                ,
-      m_dataRetriever( pulseGenerator )  ,
+      m_retriever( pulseGenerator )      ,
       m_fileAccess( NULL )               ,
       m_fileList()                       ,
       m_curFileLocIndex( 0 )             ,
@@ -109,7 +109,7 @@ CPatchSetFileEngine::CPatchSetFileEngine( const CORE::PulseGeneratorPtr& pulseGe
       m_stopOnReplacementFailure( true )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_dataRetriever );
+    SubscribeTo( &m_retriever );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -117,6 +117,10 @@ CPatchSetFileEngine::CPatchSetFileEngine( const CORE::PulseGeneratorPtr& pulseGe
 CPatchSetFileEngine::~CPatchSetFileEngine()
 {GUCEF_TRACE;
 
+    // Whatever is retrieving into our file has to stop before the file goes away
+    m_retriever.Cancel( true );
+    delete m_fileAccess;
+    m_fileAccess = NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -213,7 +217,7 @@ CPatchSetFileEngine::ProcessCurrentFile( void )
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): There is already a file with the same name as the new file in the destination folder" );
             
             // The file exists, let's see if it's up to date
-            UInt64 fileSize = CORE::Filesize( filePath.C_String() );
+            UInt64 fileSize = CORE::FileSize( filePath );
             if ( fileSize == curFile->sizeInBytes )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): The old file is the same size as the new file so we will have to do a hash check" );
@@ -305,12 +309,11 @@ CPatchSetFileEngine::ProcessCurrentFile( void )
         if ( m_fileAccess->Opened() && m_fileAccess->IsValid() )
         {
             // We now have write access to our temp new file.
-            // We will now tell our URL buddy to get the file for us
-            m_dataRetriever.GetURL().SetURL( curFile->fileLocations[ 0 ].URL );
-            m_dataRetriever.SetIOAccess( m_fileAccess );
+            // We will now tell our retriever to get the file for us from the first location that works
             while ( m_curFileLocIndex < curFile->fileLocations.size() )
             {
-                if ( m_dataRetriever.GetURL().Activate() )
+                m_currentFileReceivedBytes = 0;
+                if ( m_retriever.Retrieve( CORE::CUri( curFile->fileLocations[ m_curFileLocIndex ].URL ), *m_fileAccess ).HasAFuture() )
                 {
                     // The data retrieval process has now commenced
                     // This is an a-sync operation, we wait for notification
@@ -323,9 +326,9 @@ CPatchSetFileEngine::ProcessCurrentFile( void )
                     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): Failed to retrieve the file" );
                     NotifyObservers( FileRetrievalErrorEvent, CreateEventStatusObj() );
                     
-                    // if we get here then we where unable to activate the given URL
+                    // if we get here then we where unable to start retrieving from the given URL
                     // We will try the next one,.. if there is a next one
-                    if ( m_curFileLocIndex+1 < curFile->fileLocations.size() )
+                    if ( m_curFileLocIndex+1 >= curFile->fileLocations.size() )
                     {
                         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): File processing has been aborted, no alternative download locations remaining" );
                         
@@ -387,9 +390,9 @@ CPatchSetFileEngine::Stop( void )
         
         m_stopSignalGiven = true;
         
-        if ( m_dataRetriever.GetURL().IsActive() )
+        if ( m_retriever.IsBusy() )
         {
-            m_dataRetriever.GetURL().Deactivate();
+            m_retriever.Cancel( true );
         }
     }
 }
@@ -418,18 +421,22 @@ CPatchSetFileEngine::TryNextFileLocation( void )
     {
         // if we get here then we where unable to retrieve the file using the given URL
         // We will try the next one,.. if there is a next one
-        if ( m_curFileLocIndex+1 < curFile.fileLocations.size() )
+        if ( m_curFileLocIndex+1 >= curFile.fileLocations.size() )
         {
             // we ran out of options,.. the end
+            NotifyObservers( FileListProcessingAbortedEvent, CreateEventStatusObj() );
             m_stopSignalGiven = false;
             m_isActive = false;
             return false;
         }
-        
+
         ++m_curFileLocIndex;
-        
+
+        // The progress of the failed attempt does not count and the new attempt starts with an empty file
+        m_totalBytesProcessed -= m_currentFileReceivedBytes;
+        m_currentFileReceivedBytes = 0;
         m_fileAccess->Open();
-        if ( m_dataRetriever.GetURL().Activate() )
+        if ( m_retriever.Retrieve( CORE::CUri( curFile.fileLocations[ m_curFileLocIndex ].URL ), *m_fileAccess ).HasAFuture() )
         {
             // The data retrieval process has now commenced
             // This is an a-sync operation, we wait for notification
@@ -478,25 +485,34 @@ CPatchSetFileEngine::OnNotify( CORE::CNotifier* notifier                 ,
                                             eventid   ,
                                             eventdata );
                                             
-        if ( notifier == &m_dataRetriever )
+        if ( notifier == &m_retriever )
         {
-            if ( eventid == CORE::CURLDataRetriever::URLActivateEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalStartedEvent )
             {
                 m_currentFileReceivedBytes = 0;
                 return;
             }
             else
-            if ( eventid == CORE::CURLDataRetriever::URLDataRecievedEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalProgressEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): Data segment received" );
-                m_totalBytesProcessed = ( m_totalBytesProcessed - m_currentFileReceivedBytes ) + m_dataRetriever.GetTotalBytesReceived();
-                m_currentFileReceivedBytes = m_dataRetriever.GetTotalBytesReceived();
+                const CORE::CAsyncUriResourceRetriever::TRetrievalEventData* progress = static_cast< CORE::CAsyncUriResourceRetriever::TRetrievalEventData* >( eventdata );
+                m_totalBytesProcessed = ( m_totalBytesProcessed - m_currentFileReceivedBytes ) + progress->bytesTransferred;
+                m_currentFileReceivedBytes = progress->bytesTransferred;
                 NotifyObservers( FileRetrievalProgressEvent, CreateEventStatusObj() );
                 return;
             }
             else
-            if ( eventid == CORE::CURLDataRetriever::URLAllDataRecievedEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent )
             {
+                const CORE::CAsyncUriResourceRetriever::TRetrievalEventData* completed = static_cast< CORE::CAsyncUriResourceRetriever::TRetrievalEventData* >( eventdata );
+                m_totalBytesProcessed = ( m_totalBytesProcessed - m_currentFileReceivedBytes ) + completed->bytesTransferred;
+                m_currentFileReceivedBytes = completed->bytesTransferred;
+
+                // The file has to be written completely and released before it can be moved
+                if ( m_fileAccess != NULL )
+                    m_fileAccess->Close();
+
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): All data for the file has been received" );
                 
                 // Check if we stored the file in an alternate location
@@ -517,7 +533,7 @@ CPatchSetFileEngine::OnNotify( CORE::CNotifier* notifier                 ,
                         {
                             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): A file with the same name already exists at the destination location of the new file" );
                             
-                            if ( 0 == CORE::Delete_File( destPath.C_String() ) )
+                            if ( !CORE::DeleteFile( destPath ) )
                             {
                                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): Failed to delete an old file" );
                                 
@@ -540,7 +556,7 @@ CPatchSetFileEngine::OnNotify( CORE::CNotifier* notifier                 ,
                         }
                         
                         // Move the new file to the desired final location
-                        if ( 0 == CORE::Move_File( destPath.C_String(), m_fileAccess->GetFilename().C_String(), 1 ) )
+                        if ( !CORE::MoveFile( m_fileAccess->GetFilename(), destPath, true ) )
                         {
                             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): Failed to move the new file to the location of the old file!" );
                             
@@ -560,7 +576,7 @@ CPatchSetFileEngine::OnNotify( CORE::CNotifier* notifier                 ,
                 ProceedToNextFile();
             }
             else
-            if ( eventid == CORE::CURLDataRetriever::URLDataRetrievalErrorEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent )
             {   
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): Unable to retrieve the file from the current remote file location" );
                 TryNextFileLocation();

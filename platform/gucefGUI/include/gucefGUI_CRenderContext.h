@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_GUI_CWIDGET_H
-#include "gucefGUI_CWidget.h"
-#define GUCEF_GUI_CWIDGET_H
-#endif /* GUCEF_GUI_CWIDGET_H ? */
+#ifndef GUCEF_GUI_CDRAWSURFACE_H
+#include "gucefGUI_CDrawSurface.h"
+#define GUCEF_GUI_CDRAWSURFACE_H
+#endif /* GUCEF_GUI_CDRAWSURFACE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,20 +46,25 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class GUCEF_GUI_PUBLIC_CPP CRenderContext : public CWidget
-{    
+/** A draw surface under its older name; Refresh() commits the drawing */
+class GUCEF_GUI_PUBLIC_CPP CRenderContext : public CDrawSurface
+{
     public:
-    
+
     CRenderContext( void );
-    
+
     virtual ~CRenderContext();
-    
+
     virtual void Refresh( void );
-    
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    static CWidget* Create( void );
+
     private:
-    
+
     CRenderContext( const CRenderContext& src );
-    CRenderContext& operator=( const CRenderContext& src );        
+    CRenderContext& operator=( const CRenderContext& src );
 };
 
 /*-------------------------------------------------------------------------//
@@ -72,16 +77,5 @@ class GUCEF_GUI_PUBLIC_CPP CRenderContext : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CRENDERCONTEXT_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

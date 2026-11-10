@@ -1,0 +1,37 @@
+<ModuleInfoEntry>
+    <Module Name="ncnn" Type="StaticLibrary" Platform="linux;mswin">
+        <ModuleMetaData>
+            <License>BSD-3-Clause</License>
+            <SemVer>2026.5.26.0</SemVer>
+            <DescriptionHeadline>ncnn neural network inference (Tencent), with glslang for its Vulkan compute shaders; x86 SSE2 and Vulkan</DescriptionHeadline>
+        </ModuleMetaData>
+        <Includes Source="Self">
+            <Include Path="." />
+            <Include Path="glslang" />
+            <Include Path="generated" />
+        </Includes>
+        <Preprocessor>
+            <Define String="NCNN_STATIC_DEFINE" />
+            <Define String="ENABLE_SPIRV" />
+            <Define String="ENABLE_OPT=0" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-fopenmp -ffast-math -msse -msse2 -mrecip=none -fvisibility=hidden -fvisibility-inlines-hidden" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux">
+        <Preprocessor>
+            <Define String="GLSLANG_OSINCLUDE_UNIX" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="gomp" />
+            <Dependency Name="pthread" />
+            <Dependency Name="dl" />
+        </Linker>
+    </Module>
+    <Module Platform="mswin">
+        <Preprocessor>
+            <Define String="GLSLANG_OSINCLUDE_WIN32" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

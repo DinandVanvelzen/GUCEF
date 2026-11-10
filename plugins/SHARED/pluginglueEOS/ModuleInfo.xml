@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="pluginglueEOS" Type="SharedLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Shared owner of the Epic Online Services platform for the EOS plugins</DescriptionHeadline>
+            <DescriptionDetails>Makes the EOS platform once for the auth, lobby and P2P plugins (reference counted), ticks it from the pulse generator of the application, keeps who is logged in, and routes the packets and connections of the EOS P2P interface to named sockets. Everything of the SDK goes through function tables, so the library builds and tests without the SDK.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_PLUGINGLUE_EOS_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -18,10 +18,9 @@
  */
 
 /*
- *      This is the main include header for the guceCEGUIOgre library.
- *      It is an optional part of an engine called GUCE.
- *      All classes in this library have to do with providing a GUI backend
- *      based on CEGUI with Ogre doing the rendering.
+ *      This is the main include header for the guidriverRmlUI library:
+ *      the gucefGUI backend that draws with RmlUi, shared by the RmlUi
+ *      renderer drivers (guidriverRmlUIOpenGL ...).
  */
 
 #ifndef GUCEF_guidriverRmlUI_H
@@ -64,100 +63,30 @@
 /---------------------------------------------------------------------------*/
 #ifdef __cplusplus
 
-#ifndef GUCEF_guidriverRmlUI_CFORMBACKENDIMP_H
-#include "guidriverRmlUI_CFormBackendImp.h"
-#define GUCEF_guidriverRmlUI_CFORMBACKENDIMP_H
-#endif /* GUCEF_guidriverRmlUI_CFORMBACKENDIMP_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUI_CRMLUIDRIVER_H
+#include "guidriverRmlUI_CRmlUIDriver.h"
+#define GUCEF_GUIDRIVERRMLUI_CRMLUIDRIVER_H
+#endif /* GUCEF_GUIDRIVERRMLUI_CRMLUIDRIVER_H ? */
 
-#ifndef GUCEF_guidriverRmlUI_CWIDGETIMP_H
-#include "guidriverRmlUI_CWidgetImp.h"
-#define GUCEF_guidriverRmlUI_CWIDGETIMP_H
-#endif /* GUCEF_guidriverRmlUI_CWIDGETIMP_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUI_CRMLUICONTEXT_H
+#include "guidriverRmlUI_CRmlUIContext.h"
+#define GUCEF_GUIDRIVERRMLUI_CRMLUICONTEXT_H
+#endif /* GUCEF_GUIDRIVERRMLUI_CRMLUICONTEXT_H ? */
 
-#ifndef GUCEF_guidriverRmlUI_CBUTTONIMP_H
-#include "guidriverRmlUI_CButtonImp.h"
-#define GUCEF_guidriverRmlUI_CBUTTONIMP_H
-#endif /* GUCEF_guidriverRmlUI_CBUTTONIMP_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUI_CRMLUIWIDGETELEMENT_H
+#include "guidriverRmlUI_CRmlUIWidgetElement.h"
+#define GUCEF_GUIDRIVERRMLUI_CRMLUIWIDGETELEMENT_H
+#endif /* GUCEF_GUIDRIVERRMLUI_CRMLUIWIDGETELEMENT_H ? */
 
-#ifndef GUCEF_guidriverRmlUI_CPUSHBUTTONIMP_H
-#include "guidriverRmlUI_CPushButtonImp.h"
-#define GUCEF_guidriverRmlUI_CPUSHBUTTONIMP_H
-#endif /* GUCEF_guidriverRmlUI_CPUSHBUTTONIMP_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUI_CRMLUIWIDGETHANDLER_H
+#include "guidriverRmlUI_CRmlUIWidgetHandler.h"
+#define GUCEF_GUIDRIVERRMLUI_CRMLUIWIDGETHANDLER_H
+#endif /* GUCEF_GUIDRIVERRMLUI_CRMLUIWIDGETHANDLER_H ? */
 
-#ifndef GUCEF_guidriverRmlUI_CEDITBOXIMP_H
-#include "guidriverRmlUI_CEditboxImp.h"
-#define GUCEF_guidriverRmlUI_CEDITBOXIMP_H
-#endif /* GUCEF_guidriverRmlUI_CEDITBOXIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CLISTBOXIMP_H
-#include "guidriverRmlUI_CListBoxImp.h"
-#define GUCEF_guidriverRmlUI_CLISTBOXIMP_H
-#endif /* GUCEF_guidriverRmlUI_CLISTBOXIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CWINDOWIMP_H
-#include "guidriverRmlUI_CWindowImp.h"
-#define GUCEF_guidriverRmlUI_CWINDOWIMP_H
-#endif /* GUCEF_guidriverRmlUI_CWINDOWIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CIMAGEFRAMEIMP_H
-#include "guidriverRmlUI_CImageFrameImp.h"
-#define GUCEF_guidriverRmlUI_CIMAGEFRAMEIMP_H
-#endif /* GUCEF_guidriverRmlUI_CIMAGEFRAMEIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CHECKBOXIMP_H
-#include "guidriverRmlUI_CCheckboxImp.h"
-#define GUCEF_guidriverRmlUI_CHECKBOXIMP_H
-#endif /* GUCEF_guidriverRmlUI_CHECKBOXIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CLABELIMP_H
-#include "guidriverRmlUI_CLabelImp.h"
-#define GUCEF_guidriverRmlUI_CLABELIMP_H
-#endif /* GUCEF_guidriverRmlUI_CLABELIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CCOMBOBOXIMP_H
-#include "guidriverRmlUI_CComboboxImp.h"
-#define GUCEF_guidriverRmlUI_CCOMBOBOXIMP_H
-#endif /* GUCEF_guidriverRmlUI_CCOMBOBOXIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CTABCONTROLIMP_H
-#include "guidriverRmlUI_CTabControlImp.h"
-#define GUCEF_guidriverRmlUI_CTABCONTROLIMP_H
-#endif /* GUCEF_guidriverRmlUI_CTABCONTROLIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CTABCONTENTPANEIMP_H
-#include "guidriverRmlUI_CTabContentPaneImp.h"
-#define GUCEF_guidriverRmlUI_CTABCONTENTPANEIMP_H
-#endif /* GUCEF_guidriverRmlUI_CTABCONTENTPANEIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CSPINNERIMP_H
-#include "guidriverRmlUI_CSpinnerImp.h"
-#define GUCEF_guidriverRmlUI_CSPINNERIMP_H
-#endif /* GUCEF_guidriverRmlUI_CSPINNERIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CGRIDVIEWIMP_H
-#include "guidriverRmlUI_CGridViewImp.h"
-#define GUCEF_guidriverRmlUI_CGRIDVIEWIMP_H
-#endif /* GUCEF_guidriverRmlUI_CGRIDVIEWIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CFILEOPENDIALOGIMP_H
-#include "guidriverRmlUI_CFileOpenDialogImp.h"
-#define GUCEF_guidriverRmlUI_CFILEOPENDIALOGIMP_H
-#endif /* GUCEF_guidriverRmlUI_CFILEOPENDIALOGIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CFILESAVEDIALOGIMP_H
-#include "guidriverRmlUI_CFileSaveDialogImp.h"
-#define GUCEF_guidriverRmlUI_CFILESAVEDIALOGIMP_H
-#endif /* GUCEF_guidriverRmlUI_CFILESAVEDIALOGIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CFILESYSTEMDIALOGIMP_H
-#include "guidriverRmlUI_CFileSystemDialogImp.h"
-#define GUCEF_guidriverRmlUI_CFILESYSTEMDIALOGIMP_H
-#endif /* GUCEF_guidriverRmlUI_CFILESYSTEMDIALOGIMP_H ? */
-
-#ifndef GUCEF_guidriverRmlUI_CRENDERCONTEXTIMP_H
-#include "guidriverRmlUI_CRenderContextImp.h"
-#define GUCEF_guidriverRmlUI_CRENDERCONTEXTIMP_H
-#endif /* GUCEF_guidriverRmlUI_CRENDERCONTEXTIMP_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUI_CRMLUIFORMBACKEND_H
+#include "guidriverRmlUI_CRmlUIFormBackend.h"
+#define GUCEF_GUIDRIVERRMLUI_CRMLUIFORMBACKEND_H
+#endif /* GUCEF_GUIDRIVERRMLUI_CRMLUIFORMBACKEND_H ? */
 
 #endif /* __cplusplus ? */
 

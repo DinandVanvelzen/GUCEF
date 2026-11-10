@@ -17,33 +17,29 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
  
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEFCORE_H
-#include "gucefCORE.h"          /* GUCEF CORE library API */
-#define GUCEFCORE_H
-#endif /* GUCEFCORE_H ? */
+#ifndef GUCEF_CORE_H
+#include "gucefCORE.h"
+#define GUCEF_CORE_H
+#endif /* GUCEF_CORE_H ? */
 
-#ifndef GUCEFCOMCORE_H
-#include "gucefCOMCORE.h"       /* GUCEF COMCORE library API */
-#define GUCEFCOMCORE_H
-#endif /* GUCEFCOMCORE_H ? */
+#ifndef GUCEF_COMCORE_H
+#include "gucefCOMCORE.h"
+#define GUCEF_COMCORE_H
+#endif /* GUCEF_COMCORE_H ? */
 
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      NAMESPACE                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-using namespace GUCEF;
-using namespace GUCEF::MT;
-using namespace GUCEF::CORE;
-using namespace GUCEF::COMCORE;
+#include "TestCode_DNS.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -51,17 +47,12 @@ using namespace GUCEF::COMCORE;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+using namespace GUCEF;
+using namespace GUCEF::COMCORE;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -73,36 +64,67 @@ void
 PerformDNSTests( void )
 {GUCEF_TRACE;
 
-    // these tests require access to a DNS server!
+    GUCEF_TESTFW_SUITE_SCOPE( "DNS" );
 
-    CHostAddress testDns;       
-    ASSERT_TRUE( testDns.GetHostname().IsNULLOrEmpty() );
-    ASSERT_TRUE( testDns.SetHostnameAndPort( "google.com", 80 ) );
-    ASSERT_TRUE( testDns.GetHostname() == "google.com" );
-    ASSERT_TRUE( testDns.GetPortInHostByteOrder() == 80 );
-    ASSERT_TRUE( testDns.HasDnsBasedHostname() );
-    ASSERT_TRUE( !testDns.IsIPv4Only() );
-    //ASSERT_TRUE( testDns.IsDnsWithIPv4Only() );
+    GUCEF_TESTFW_TESTCASE( "Test: Host addresses hold a host name and a port" )
+        try
+        {
+            // localhost is resolved without the need for a DNS server
+            CHostAddress testDns;
+            ASSERT_TRUE( testDns.GetHostname().IsNULLOrEmpty() );
+            ASSERT_TRUE( testDns.SetHostnameAndPort( "localhost", 80 ) );
+            ASSERT_TRUE( testDns.GetHostname() == "localhost" );
+            ASSERT_TRUE( testDns.GetPortInHostByteOrder() == 80 );
+            ASSERT_TRUE( testDns.HasDnsBasedHostname() );
+            ASSERT_TRUE( !testDns.IsIPv4Only() );
 
-    CORE::GUCEFSetEnv( "test_hostname", "google.com" );
-    CORE::GUCEFSetEnv( "test_port", "80" );
-    testDns.Clear();
-    ASSERT_TRUE( testDns.SetHostnameAndPort( "$ENVVAR:test_hostname$:$ENVVAR:test_port$" ) );
-    ASSERT_TRUE( testDns.GetHostname() == "google.com" );
-    ASSERT_TRUE( testDns.GetPortInHostByteOrder() == 80 );
-    ASSERT_TRUE( testDns.HasDnsBasedHostname() );  // we know we have a DNS not just an IPv4 in string form
-    ASSERT_TRUE( !testDns.IsIPv4Only() );          // we know we have a DNS not just an IPv4 in string form
+            // host name and port given as one string, with environment variables in it
+            CORE::GUCEFSetEnv( "test_hostname", "localhost" );
+            CORE::GUCEFSetEnv( "test_port", "80" );
+            testDns.Clear();
+            ASSERT_TRUE( testDns.SetHostnameAndPort( "$ENVVAR:test_hostname$:$ENVVAR:test_port$" ) );
+            ASSERT_TRUE( testDns.GetHostname() == "localhost" );
+            ASSERT_TRUE( testDns.GetPortInHostByteOrder() == 80 );
+            ASSERT_TRUE( testDns.HasDnsBasedHostname() );  // we know we have a DNS not just an IPv4 in string form
+            ASSERT_TRUE( !testDns.IsIPv4Only() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
-    CDnsCache& dnsCache = CComCoreGlobal::Instance()->GetDnsCache();
-    ASSERT_TRUE( GUCEF_NULL != &dnsCache );
-    CDnsCacheEntryPtr dnsCacheEntry = dnsCache.GetOrAddCacheEntryForDns( "google.com" );
-    ASSERT_TRUE( !dnsCacheEntry.IsNULL() );
-    ASSERT_TRUE( "google.com" == dnsCacheEntry->GetDnsName() );
-    
-    COMCORE::CIPv4Address::TIPv4AddressVector ipv4s;
-    ASSERT_TRUE( dnsCacheEntry->GetIPv4Addresses( ipv4s ) );
-    ASSERT_TRUE( !ipv4s.empty() );
+    GUCEF_TESTFW_TESTCASE( "Test: The DNS cache resolves names" )
+        try
+        {
+            CDnsCache& dnsCache = CComCoreGlobal::Instance()->GetDnsCache();
+            CDnsCacheEntryPtr localEntry = dnsCache.GetOrAddCacheEntryForDns( "localhost" );
+            ASSERT_TRUE( !localEntry.IsNULL() );
+            if ( !localEntry.IsNULL() )
+            {
+                ASSERT_TRUE( "localhost" == localEntry->GetDnsName() );
+                CIPv4Address::TIPv4AddressVector ipv4s;
+                ASSERT_TRUE( localEntry->GetIPv4Addresses( ipv4s ) );
+                ASSERT_TRUE( !ipv4s.empty() );
+            }
 
+            // A public name needs a DNS server, a machine which is offline cannot resolve it which is no failure of the cache
+            CDnsCacheEntryPtr publicEntry = dnsCache.GetOrAddCacheEntryForDns( "google.com" );
+            CIPv4Address::TIPv4AddressVector publicIpv4s;
+            if ( publicEntry.IsNULL() || !publicEntry->GetIPv4Addresses( publicIpv4s ) || publicIpv4s.empty() )
+            {
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DNS test: skipping the public name check, google.com could not be resolved (offline?)" );
+            }
+            else
+            {
+                ASSERT_TRUE( "google.com" == publicEntry->GetDnsName() );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

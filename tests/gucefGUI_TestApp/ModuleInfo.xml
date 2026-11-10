@@ -1,12 +1,18 @@
 <ModuleInfoEntry>
-    <Module Name="gucefGUI_TestApp" Type="Executable" Platform="mswin;linux;android" Tags="test">
+    <Module Name="gucefGUI_TestApp" Type="Executable" Platform="mswin;linux;android;emscripten" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="gucefGUI" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="guidriverNull" />
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="RmlUI_Core" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
@@ -15,10 +21,16 @@
             <Dependency Name="gucefGUI" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="guidriverNull" />
+            <Dependency Name="guidriverRmlUI" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_GUI_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
+    </Module>
+    <Module Platform="mswin;linux;android" >
 		<RuntimeDependencies>
 			<RuntimeDependency Name="vfspluginDVP" />
 			<RuntimeDependency Name="vfspluginITV" />
@@ -34,6 +46,8 @@
 			<RuntimeDependency Name="guidriverOgre" />
 			<RuntimeDependency Name="guidriverRmlUI" />
 			<RuntimeDependency Name="guidriverRmlUIOpenGL" />
+			<RuntimeDependency Name="guidriverNull" />
+			<RuntimeDependency Name="fontpluginFREETYPE" />
 			<RuntimeDependency Name="inputdriverOIS" />
 			<RuntimeDependency Name="imgpluginITV" />
 			<RuntimeDependency Name="imgpluginFreeImage" />
@@ -55,8 +69,24 @@
     <Module Platform="linux" >
 		<RuntimeDependencies>
 			<RuntimeDependency Name="guidriverXWinGL" />
+			<RuntimeDependency Name="guidriverEGL" />
 			<RuntimeDependency Name="inputdriverXWINMSG" />
 		</RuntimeDependencies>
+    </Module>
+    <Module Platform="emscripten" >
+        <Dependencies>
+            <Dependency Name="guidriverRmlUIOpenGL" />
+            <Dependency Name="guidriverEmscripten" />
+            <Dependency Name="inputdriverEMSCRIPTEN" />
+            <Dependency Name="fontpluginFREETYPE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="guidriverRmlUIOpenGL" />
+            <Dependency Name="guidriverEmscripten" />
+            <Dependency Name="inputdriverEMSCRIPTEN" />
+            <Dependency Name="fontpluginFREETYPE" />
+            <Dependency Name="RmlUI_Core" />
+        </Linker>
     </Module>
     <Module Platform="android" >
 		<RuntimeDependencies>

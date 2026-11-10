@@ -43,6 +43,7 @@ files( {
   "include/CGUCEFIMAGEModule.h",
   "include/gucefIMAGE.h",
   "include/gucefIMAGEDLLInit.h",
+  "include/gucefIMAGE_CAsyncImageUpscale.h",
   "include/gucefIMAGE_CGUIImageCodec.h",
   "include/gucefIMAGE_CIImageCodec.h",
   "include/gucefIMAGE_CIMGCodec.h",
@@ -51,8 +52,12 @@ files( {
   "include/gucefIMAGE_CImageCodecPluginManager.h",
   "include/gucefIMAGE_CImageCodecRegistry.h",
   "include/gucefIMAGE_CImageGlobal.h",
+  "include/gucefIMAGE_CImageUpscaler.h",
+  "include/gucefIMAGE_CImageUpscalerRegistry.h",
+  "include/gucefIMAGE_CMmpxImageUpscaler.h",
   "include/gucefIMAGE_CPixel.h",
   "include/gucefIMAGE_CPixelMap.h",
+  "include/gucefIMAGE_CPngImageCodec.h",
   "include/gucefIMAGE_CPluginImageCodecItem.h",
   "include/gucefIMAGE_ETypes.h",
   "include/gucefIMAGE_c_image_tags.h",
@@ -68,6 +73,7 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/CGUCEFIMAGEModule.cpp",
   "src/gucefIMAGE.cpp",
+  "src/gucefIMAGE_CAsyncImageUpscale.cpp",
   "src/gucefIMAGE_CCPluginImageCodecItem.cpp",
   "src/gucefIMAGE_CGUIImageCodec.cpp",
   "src/gucefIMAGE_CIImageCodec.cpp",
@@ -77,8 +83,12 @@ files( {
   "src/gucefIMAGE_CImageCodecPluginManager.cpp",
   "src/gucefIMAGE_CImageCodecRegistry.cpp",
   "src/gucefIMAGE_CImageGlobal.cpp",
+  "src/gucefIMAGE_CImageUpscaler.cpp",
+  "src/gucefIMAGE_CImageUpscalerRegistry.cpp",
+  "src/gucefIMAGE_CMmpxImageUpscaler.cpp",
   "src/gucefIMAGE_CPixel.cpp",
-  "src/gucefIMAGE_CPixelMap.cpp"
+  "src/gucefIMAGE_CPixelMap.cpp",
+  "src/gucefIMAGE_CPngImageCodec.cpp"
  } )
 
 

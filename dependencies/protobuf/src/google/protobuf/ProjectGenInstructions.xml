@@ -1,5 +1,6 @@
 <PROJECTGENERATOR>
     <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="." TYPE="INCLUDEDIR" />
         <ITEM NAME="*" TYPE="DIR" />
 		<ITEM NAME="*" TYPE="FILE" />
     </EXCLUDES>

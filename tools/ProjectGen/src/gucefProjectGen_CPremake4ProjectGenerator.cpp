@@ -548,6 +548,13 @@ GeneratePremake4ModuleIncludesSection( const CModuleInfoPtr& moduleInfo ,
     TStringSetMap::const_iterator n = moduleInfo->GetIncludeDirs().begin();
     while ( n != moduleInfo->GetIncludeDirs().end() )
     {
+        if ( moduleInfo->IsIncludeDirExcludedFromSearchPaths( (*n).first ) )
+        {
+            // Per the processing instructions this dir is not to be used as an include search path
+            ++n;
+            continue;
+        }
+
         CORE::CString includeDir = ConvertEnvVarStrings( (*n).first ).ReplaceChar( '\\', '/' );
         if ( 0 != includeDir.Length() )
         {

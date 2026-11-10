@@ -53,6 +53,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #ifndef VFSPLUGIN_ZIP_CZIPIOACCESSS_H
 #include "vfspluginZIP_CZipIOAccess.h"
 #define VFSPLUGIN_ZIP_CZIPIOACCESSS_H
@@ -126,13 +131,56 @@ getZzipErrorDescription( zzip_error_t zzipError )
 
 /*-------------------------------------------------------------------------*/
 
-CZIPArchive::CZIPArchive( void )
+/** A path in the archive with '/' between its parts and none at its start or end */
+static CORE::CString
+NormalizeZipPath( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    CORE::CString result = path.ReplaceChar( '\\', '/' );
+    while ( result.Length() > 0 && '/' == result[ 0 ] )
+        result = result.CutChars( 1, true );
+    while ( result.Length() > 0 && '/' == result[ result.Length()-1 ] )
+        result = result.CutChars( 1, false );
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The last part of a path in the archive */
+static CORE::CString
+LastPathSegment( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    Int32 separator = path.HasChar( '/', false );
+    if ( separator < 0 )
+        return path;
+    return path.CutChars( (UInt32) separator + 1, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The path of the folder a path in the archive is in, empty at the root */
+static CORE::CString
+ParentPath( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    Int32 separator = path.HasChar( '/', false );
+    if ( separator < 0 )
+        return CORE::CString();
+    return path.SubstrFromRange( 0, (UInt32) separator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CZIPArchive::CZIPArchive( void )
     : CArchive()        ,
       m_archiveName()   ,
       m_archivePath()   ,
       m_zipRoot( NULL ) ,
-      m_fileList()
-{GUCEF_TRACE;
+      m_fileList()      ,
+      m_dirs()          ,
+      m_lowercaseDirs()
+{GUCEF_TRACE;
 
 }
 
@@ -222,32 +270,75 @@ CZIPArchive::StoreAsFile( const CORE::CString& filepath    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CZIPArchive::GetFileList( TStringVector& outputList                   ,
-                          const CORE::CString& mountLocation          , 
-                          const CORE::CString& archiveLocation        ,
-                          bool recursive                              ,
-                          bool includePathInFilename                  ,
-                          const CORE::CString::StringSet& nameFilters ,
-                          UInt32 maxListEntries                       ) const
-{GUCEF_TRACE;
-
-    // @TODO
-}
+CZIPArchive::GetFileList( TStringVector& outputList                   ,
+                          const CORE::CString& mountLocation          , 
+                          const CORE::CString& archiveLocation        ,
+                          bool recursive                              ,
+                          bool includePathInFilename                  ,
+                          const CORE::CString::StringSet& nameFilters ,
+                          UInt32 maxListEntries                       ) const
+{GUCEF_TRACE;
+
+    // the location is matched ignoring case, as the files are
+    CORE::CString location = NormalizeZipPath( archiveLocation ).Lowercase();
+    CORE::CString prefix = location.IsNULLOrEmpty() ? CORE::CString() : location + '/';
+
+    TZipEntryVector::const_iterator i = m_fileList.begin();
+    while ( i != m_fileList.end() && outputList.size() < maxListEntries )
+    {
+        const TZipEntry& entry = (*i);
+        ++i;
+        if ( entry.isDir )
+            continue;
+        CORE::CString path = NormalizeZipPath( entry.path );
+        if ( !prefix.IsNULLOrEmpty() && 0 != path.Lowercase().HasSubstr( prefix, true ) )
+            continue;
+        CORE::CString remainder = path.CutChars( prefix.Length(), true );
+        if ( !recursive && remainder.HasChar( '/' ) >= 0 )
+            continue;
+        CORE::CString filename = LastPathSegment( path );
+        if ( !VFS::CVFS::FilterValidation( filename, nameFilters ) )
+            continue;
+        if ( includePathInFilename )
+            outputList.push_back( CORE::CombinePath( mountLocation, path ).ReplaceChar( '\\', '/' ) );
+        else
+            outputList.push_back( filename );
+    }
+}
 
 /*-------------------------------------------------------------------------*/
 
 void
-CZIPArchive::GetDirList( TStringVector& outputList                   ,
-                         const CORE::CString& mountLocation          , 
-                         const CORE::CString& archiveLocation        ,
-                         bool recursive                              ,
-                         bool includeParentDirInName                 ,
-                         const CORE::CString::StringSet& nameFilters ,
-                         UInt32 maxListEntries                       ) const
-{GUCEF_TRACE;
-
-    // @TODO
-}
+CZIPArchive::GetDirList( TStringVector& outputList                   ,
+                         const CORE::CString& mountLocation          , 
+                         const CORE::CString& archiveLocation        ,
+                         bool recursive                              ,
+                         bool includeParentDirInName                 ,
+                         const CORE::CString::StringSet& nameFilters ,
+                         UInt32 maxListEntries                       ) const
+{GUCEF_TRACE;
+
+    CORE::CString location = NormalizeZipPath( archiveLocation ).Lowercase();
+    CORE::CString prefix = location.IsNULLOrEmpty() ? CORE::CString() : location + '/';
+
+    TDirSet::const_iterator i = m_dirs.begin();
+    while ( i != m_dirs.end() && outputList.size() < maxListEntries )
+    {
+        const CORE::CString& path = (*i);
+        ++i;
+        if ( !prefix.IsNULLOrEmpty() && 0 != path.Lowercase().HasSubstr( prefix, true ) )
+            continue;
+        CORE::CString remainder = path.CutChars( prefix.Length(), true );
+        if ( remainder.IsNULLOrEmpty() || ( !recursive && remainder.HasChar( '/' ) >= 0 ) )
+            continue;
+        if ( !VFS::CVFS::FilterValidation( LastPathSegment( path ), nameFilters ) )
+            continue;
+        if ( includeParentDirInName )
+            outputList.push_back( CORE::CombinePath( mountLocation, path ).ReplaceChar( '\\', '/' ) + '/' );
+        else
+            outputList.push_back( remainder + '/' );
+    }
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -260,13 +351,14 @@ CZIPArchive::GetFileMetaData( const VFS::CString& filePath      ,
     
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CZIPArchive: request for file size for file: " +  filePath );
     
-    if ( NULL != m_zipRoot )
-    {
-        // Get uncompressed size too
-        ZZIP_STAT zstat;
-        zzip_dir_stat( m_zipRoot, filePath.C_String(), &zstat, ZZIP_CASEINSENSITIVE );
-
-        metaData.resourceExists = true;
+    if ( NULL != m_zipRoot )
+    {
+        // Get uncompressed size too
+        ZZIP_STAT zstat;
+        if ( ZZIP_NO_ERROR != zzip_dir_stat( m_zipRoot, filePath.C_String(), &zstat, ZZIP_CASEINSENSITIVE ) )
+            return false;
+
+        metaData.resourceExists = true;
         metaData.resourceSizeInBytes = zstat.st_size;
         metaData.hasResourceSizeInBytes = true;
         metaData.name = zstat.d_name;
@@ -293,10 +385,14 @@ CZIPArchive::FileExists( const VFS::CString& filePath ) const
 /*-------------------------------------------------------------------------*/
 
 bool 
-CZIPArchive::DirExists( const VFS::CString& dirPath ) const
-{GUCEF_TRACE;
-
-    ZZIP_STAT zstat;
+CZIPArchive::DirExists( const VFS::CString& dirPath ) const
+{GUCEF_TRACE;
+
+    // also the folders that only exist in the paths of files, which have no entry of their own
+    if ( m_lowercaseDirs.find( NormalizeZipPath( dirPath ).Lowercase() ) != m_lowercaseDirs.end() )
+        return true;
+
+    ZZIP_STAT zstat;
     int res = zzip_dir_stat( m_zipRoot, dirPath.C_String(), &zstat, ZZIP_CASEINSENSITIVE );
 
     return (res == ZZIP_NO_ERROR);
@@ -311,10 +407,11 @@ CZIPArchive::GetFileSize( const VFS::CString& filePath ) const
     if ( NULL != m_zipRoot )
     {
         // Get uncompressed size too
-        ZZIP_STAT zstat;
-        zzip_dir_stat( m_zipRoot, filePath.C_String(), &zstat, ZZIP_CASEINSENSITIVE );
-
-        return zstat.st_size;
+        ZZIP_STAT zstat;
+        if ( ZZIP_NO_ERROR != zzip_dir_stat( m_zipRoot, filePath.C_String(), &zstat, ZZIP_CASEINSENSITIVE ) )
+            return 0;
+
+        return zstat.st_size;
     }
     return 0;
 }
@@ -342,6 +439,10 @@ CZIPArchive::LoadFile( const VFS::CString& file      ,
     // Get non const access, no worries, it wont be changed
     ZZIP_DIR* zipRoot = const_cast< ZZIP_DIR* >( m_zipRoot );
 
+    // opening reads the entry through the handle that the open files share
+    MT::CMutex& zipLock = const_cast< MT::CMutex& >( m_zipLock );
+    MT::CScopeMutex lock( zipLock );
+
     // Format not used here (always binary)
     ZZIP_FILE* zipFile = zzip_file_open( zipRoot, file.C_String(), ZZIP_ONLYZIP | ZZIP_CASELESS );
     if ( NULL == zipFile )
@@ -358,7 +459,7 @@ CZIPArchive::LoadFile( const VFS::CString& file      ,
     ZZIP_STAT zstat;
     zzip_dir_stat( zipRoot, file.C_String(), &zstat, ZZIP_CASEINSENSITIVE );
 
-    CORE::IOAccessPtr fileAccess( GUCEF_NEW CZipIOAccess( zipFile, zstat.st_size ) );
+    CORE::IOAccessPtr fileAccess( GUCEF_NEW CZipIOAccess( zipFile, zstat.st_size, zipLock ) );
 
     // We will not load anything in memory for now (ignore memLoadSize)
     return fileAccess;
@@ -444,6 +545,9 @@ CZIPArchive::LoadArchive( const VFS::CArchiveSettings& settings )
             return false;
         }
 
+        m_archiveName = settings.GetArchiveName();
+        m_archivePath = settings.GetArchivePath();
+
         // Cache names
         ZZIP_DIRENT zzipEntry;
         while ( zzip_dir_read( m_zipRoot, &zzipEntry ) )
@@ -469,10 +573,21 @@ CZIPArchive::LoadArchive( const VFS::CArchiveSettings& settings )
                 info.isDir = false;
             }
 
-            m_fileList.push_back( info );
-        }
-    }
-    return true;
+            m_fileList.push_back( info );
+
+            // the folders of the entry: those above it, and itself when it is one
+            CORE::CString folder = NormalizeZipPath( info.path );
+            if ( !info.isDir )
+                folder = ParentPath( folder );
+            while ( !folder.IsNULLOrEmpty() && m_dirs.find( folder ) == m_dirs.end() )
+            {
+                m_dirs.insert( folder );
+                m_lowercaseDirs.insert( folder.Lowercase() );
+                folder = ParentPath( folder );
+            }
+        }
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -494,10 +609,13 @@ CZIPArchive::UnloadArchive( void )
 
     if ( NULL != m_zipRoot )
     {
+        MT::CScopeMutex lock( m_zipLock );
         zzip_dir_close( m_zipRoot );
         m_zipRoot = NULL;
 
-        m_fileList.clear();
+        m_fileList.clear();
+        m_dirs.clear();
+        m_lowercaseDirs.clear();
     }
     return true;
 }

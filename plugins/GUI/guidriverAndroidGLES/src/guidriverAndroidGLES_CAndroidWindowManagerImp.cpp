@@ -83,8 +83,8 @@ CAndroidWindowManagerImp::CreateWindowContext( const GUI::CString& title        
                                                const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
-    TAndroidGLESWindowContextPtr windowContext = new CAndroidGLESWindowContext();
-    if ( windowContext->Initialize( settings ) )
+    TAndroidGLESWindowContextPtr windowContext( new CAndroidGLESWindowContext() );
+    if ( windowContext->Initialize( title, settings, params ) )
     {
         return windowContext;
     }
@@ -130,7 +130,10 @@ CAndroidWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowCont
                                               const GUI::CVideoSettings& settings   )
 {GUCEF_TRACE;
 
-    return false;
+    CAndroidGLESWindowContext* glesContext = static_cast< CAndroidGLESWindowContext* >( windowContext.GetPointerAlways() );
+    if ( GUCEF_NULL == glesContext )
+        return false;
+    return glesContext->ApplyVideoSettings( settings );
 }
 
 /*-------------------------------------------------------------------------//

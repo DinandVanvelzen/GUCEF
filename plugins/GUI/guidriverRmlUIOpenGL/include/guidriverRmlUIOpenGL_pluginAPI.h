@@ -1,5 +1,5 @@
 /*
- *  guidriverRocketOpenGL: module providing a GUI backend using Rocket and OpenGL
+ *  guidriverRmlUIOpenGL: module providing a GUI backend using RmlUi and OpenGL
  *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_PLUGINAPI_H
-#define GUCEF_GUIDRIVERROCKETGL_PLUGINAPI_H
+#ifndef GUCEF_GUIDRIVERRMLUIGL_PLUGINAPI_H
+#define GUCEF_GUIDRIVERRMLUIGL_PLUGINAPI_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,10 +31,20 @@
 #define GUCEF_CORE_ESTRUCTS_H
 #endif /* GUCEF_CORE_ESTRUCTS_H ? */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_MACROS_H
-#include "guidriverRocketOpenGL_macros.h"
-#define GUCEF_GUIDRIVERROCKETGL_MACROS_H
-#endif /* GUCEF_GUIDRIVERROCKETGL_MACROS_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUIGL_MACROS_H
+#include "guidriverRmlUIOpenGL_macros.h"
+#define GUCEF_GUIDRIVERRMLUIGL_MACROS_H
+#endif /* GUCEF_GUIDRIVERRMLUIGL_MACROS_H ? */
+
+/*
+ *  On the web there is no loading of modules: the plugin is linked into the application and its entry points get
+ *  unique names (guidriverRmlUIOpenGL_GUCEFPlugin_Load ...), which the application calls itself
+ */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+  #define GUIDRIVERRMLUIGL_ENTRY( func ) guidriverRmlUIOpenGL_##func
+#else
+  #define GUIDRIVERRMLUIGL_ENTRY( func ) func
+#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -44,7 +54,7 @@
 
 #ifdef __cplusplus
 namespace GUCEF {
-namespace GUIDRIVERROCKETGL {
+namespace GUIDRIVERRMLUIGL {
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -62,28 +72,28 @@ extern "C" {
 
 /*-------------------------------------------------------------------------*/
 
-GUIDRIVERROCKETGL_PUBLIC_C CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUIDRIVERRMLUIGL_PUBLIC_C CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_Load )( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
 
-GUIDRIVERROCKETGL_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUIDRIVERRMLUIGL_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_Unload )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
 
-GUIDRIVERROCKETGL_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetVersion( CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUIDRIVERRMLUIGL_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_GetVersion )( CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
 
-GUIDRIVERROCKETGL_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUIDRIVERRMLUIGL_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_GetCopyright )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
 
-GUIDRIVERROCKETGL_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUIDRIVERRMLUIGL_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_GetDescription )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/                 
 
@@ -98,13 +108,13 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 //-------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
-}; /* namespace GUIDRIVERROCKETGL */
+}; /* namespace GUIDRIVERRMLUIGL */
 }; /* namespace GUCEF */
 #endif /* __cplusplus */
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_GUIDRIVERROCKETGL_PLUGINAPI_H ? */
+#endif /* GUCEF_GUIDRIVERRMLUIGL_PLUGINAPI_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

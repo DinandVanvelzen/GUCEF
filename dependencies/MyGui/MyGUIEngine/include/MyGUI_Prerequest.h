@@ -47,7 +47,10 @@
 			#endif
 		#endif
 	#else
-		#define nullptr 0
+		// DV edit: only needed for compilers from before C++11, nullptr is a keyword since
+		#if !defined( __cplusplus ) || ( __cplusplus < 201103L )
+			#define nullptr 0
+		#endif
 	#endif
 #endif
 

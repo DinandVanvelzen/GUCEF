@@ -1,0 +1,57 @@
+#version 450
+layout(constant_id = 0) const int region_type = 0;
+layout(constant_id = 1) const int local_size = 0;
+layout(constant_id = 2) const float alpha = 0;
+layout(constant_id = 3) const float beta = 0;
+layout(constant_id = 4) const float bias_constant = 0;
+#define shape_constant_id_offset 5
+layout(constant_id = shape_constant_id_offset + 0) const int dims = 0;
+layout(constant_id = shape_constant_id_offset + 1) const int w = 0;
+layout(constant_id = shape_constant_id_offset + 2) const int h = 0;
+layout(constant_id = shape_constant_id_offset + 3) const int c = 0;
+layout(constant_id = shape_constant_id_offset + 4) const int cstep = 0;
+layout(constant_id = shape_constant_id_offset + 5) const int outdims = 0;
+layout(constant_id = shape_constant_id_offset + 6) const int outw = 0;
+layout(constant_id = shape_constant_id_offset + 7) const int outh = 0;
+layout(constant_id = shape_constant_id_offset + 8) const int outc = 0;
+layout(constant_id = shape_constant_id_offset + 9) const int outcstep = 0;
+layout(binding = 0) readonly buffer square_workspace { float square_workspace_data[]; };
+layout(binding = 1) buffer bottom_top_blob { sfpvec4 bottom_top_blob_data[]; };
+layout(push_constant) uniform parameter
+{
+int dims;
+int w;
+int h;
+int c;
+int cstep;
+int outdims;
+int outw;
+int outh;
+int outc;
+int outcstep;
+} p;
+void main()
+{
+int gx = int(gl_GlobalInvocationID.x);
+int gy = int(gl_GlobalInvocationID.y);
+int gz = int(gl_GlobalInvocationID.z);
+if (gx >= psc(outw) || gy >= psc(outh) || gz >= psc(outc))
+return;
+vec4 sum = vec4(0.f);
+ivec4 z4 = gz * 4 + ivec4(0, 1, 2, 3);
+ivec4 v_offset = z4 * psc(cstep) + gy * psc(w) + gx;
+for (int z = 0; z < local_size; z++)
+{
+sum.r += square_workspace_data[v_offset.r];
+sum.g += square_workspace_data[v_offset.g];
+sum.b += square_workspace_data[v_offset.b];
+sum.a += square_workspace_data[v_offset.a];
+v_offset += psc(cstep);
+}
+const float alpha_div_size = alpha / local_size;
+afpvec4 scale = afpvec4(pow(bias_constant + alpha_div_size * sum, vec4(-beta)));
+int gi = gz * psc(outcstep) + gy * psc(outw) + gx;
+afpvec4 v = buffer_ld4(bottom_top_blob_data, gi);
+v *= scale;
+buffer_st4(bottom_top_blob_data, gi, v);
+}

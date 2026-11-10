@@ -84,6 +84,9 @@ namespace CORE {
 
 GUCEF_IMPLEMENT_MSGEXCEPTION( CDynamicBuffer, EIllegalCast );
 
+const UInt32 CDynamicBuffer::DefaultGeometricGrowthPercentage;
+const UInt32 CDynamicBuffer::DefaultGrowthBlockSize;
+
 /*-------------------------------------------------------------------------*/
 
 CDynamicBuffer::CDynamicBuffer( void ) GUCEF_NOEXCEPT
@@ -91,6 +94,8 @@ CDynamicBuffer::CDynamicBuffer( void ) GUCEF_NOEXCEPT
     , _buffer( NULL )              
     , _bsize( 0 )                 
     , _autoenlarge( true )        
+    , m_growthStrategy( GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
     , m_dataSize( 0 )             
     , m_linked( false )
 {GUCEF_TRACE;
@@ -104,6 +109,8 @@ CDynamicBuffer::CDynamicBuffer( bool autoenlarge )
     , _buffer( NULL )              
     , _bsize( 0 )                 
     , _autoenlarge( autoenlarge ) 
+    , m_growthStrategy( GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
     , m_dataSize( 0 )             
     , m_linked( false )
 {GUCEF_TRACE;
@@ -117,6 +124,8 @@ CDynamicBuffer::CDynamicBuffer( CIOAccess& ioAccess )
     , _buffer( NULL )              
     , _bsize( 0 )                 
     , _autoenlarge( true )        
+    , m_growthStrategy( GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
     , m_dataSize( 0 )             
     , m_linked( false )
 {GUCEF_TRACE;
@@ -130,6 +139,8 @@ CDynamicBuffer::CDynamicBuffer( UInt32 initialsize ,
                                 bool autoenlarge   )
     : CICloneable()
     , _autoenlarge( autoenlarge ) 
+    , m_growthStrategy( GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
     , _buffer( NULL )             
     , _bsize( 0 )                 
     , m_dataSize( 0 )             
@@ -155,6 +166,8 @@ CDynamicBuffer::CDynamicBuffer( const CDynamicBuffer &src ,
     , _bsize( 0 )                      
     , m_dataSize( 0 )                  
     , _autoenlarge( src._autoenlarge ) 
+    , m_growthStrategy( src.m_growthStrategy )
+    , m_growthStrategyParam( src.m_growthStrategyParam )
     , m_linked( false )
 {GUCEF_TRACE;
 
@@ -204,6 +217,8 @@ CDynamicBuffer::CDynamicBuffer( const char* externalBuffer    ,
     , _bsize( 0 )          
     , m_dataSize( 0 )      
     , _autoenlarge( true ) 
+    , m_growthStrategy( GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
     , m_linked( false )
 {GUCEF_TRACE;
 
@@ -222,6 +237,8 @@ CDynamicBuffer::CDynamicBuffer( CDynamicBuffer&& src ) GUCEF_NOEXCEPT
     , _bsize( src._bsize )          
     , m_dataSize( src.m_dataSize )      
     , _autoenlarge( src._autoenlarge ) 
+    , m_growthStrategy( src.m_growthStrategy )
+    , m_growthStrategyParam( src.m_growthStrategyParam )
     , m_linked( src.m_linked )
 {GUCEF_TRACE;
 
@@ -230,6 +247,8 @@ CDynamicBuffer::CDynamicBuffer( CDynamicBuffer&& src ) GUCEF_NOEXCEPT
     src._bsize = 0;
     src.m_dataSize = 0;
     src._autoenlarge = true;
+    src.m_growthStrategy = GROWTHSTRATEGY_EXACT;
+    src.m_growthStrategyParam = 0;
     src.m_linked = false;
 }
 
@@ -425,6 +444,10 @@ CDynamicBuffer::operator=( CDynamicBuffer&& src ) GUCEF_NOEXCEPT
         src.m_linked = false;
         _autoenlarge = src._autoenlarge;
         src._autoenlarge = true;
+        m_growthStrategy = src.m_growthStrategy;
+        src.m_growthStrategy = GROWTHSTRATEGY_EXACT;
+        m_growthStrategyParam = src.m_growthStrategyParam;
+        src.m_growthStrategyParam = 0;
         _buffer = src._buffer;
         src._buffer = GUCEF_NULL;
         _bsize = src._bsize;
@@ -560,6 +583,85 @@ CDynamicBuffer::GetAutoEnlarge( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CDynamicBuffer::SetGrowthStrategy( TGrowthStrategy strategy, UInt32 strategyParam )
+{GUCEF_TRACE;
+
+    m_growthStrategy = strategy;
+    m_growthStrategyParam = strategyParam;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDynamicBuffer::TGrowthStrategy
+CDynamicBuffer::GetGrowthStrategy( void ) const
+{GUCEF_TRACE;
+
+    return m_growthStrategy;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CDynamicBuffer::GetGrowthStrategyParam( void ) const
+{GUCEF_TRACE;
+
+    return m_growthStrategyParam;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDynamicBuffer::EnsureBufferSizeForGrowth( UInt32 requiredSize )
+{GUCEF_TRACE;
+
+    return EnsureBufferSizeForGrowth( requiredSize, m_growthStrategy, m_growthStrategyParam );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDynamicBuffer::EnsureBufferSizeForGrowth( UInt32 requiredSize, TGrowthStrategy strategy, UInt32 strategyParam )
+{GUCEF_TRACE;
+
+    if ( requiredSize <= _bsize )
+        return true;
+    if ( !_autoenlarge )
+        return false;
+
+    UInt64 newSize = requiredSize;
+    switch ( strategy )
+    {
+        case GROWTHSTRATEGY_GEOMETRIC:
+        {
+            const UInt64 percentage = 0 != strategyParam ? strategyParam : DefaultGeometricGrowthPercentage;
+            const UInt64 grown = (UInt64) _bsize + ( ( (UInt64) _bsize * percentage ) / 100 );
+            if ( grown > newSize )
+                newSize = grown;
+            break;
+        }
+        case GROWTHSTRATEGY_BLOCKS:
+        {
+            const UInt64 blockSize = 0 != strategyParam ? strategyParam : DefaultGrowthBlockSize;
+            newSize = ( ( newSize + blockSize - 1 ) / blockSize ) * blockSize;
+            break;
+        }
+        case GROWTHSTRATEGY_EXACT:
+        default:
+        {
+            break;
+        }
+    }
+
+    // The buffer size is a 32 bit value, growth beyond what was asked for is capped there
+    if ( newSize > GUCEF_UINT32MAX )
+        newSize = GUCEF_UINT32MAX;
+
+    return SetBufferSize( (UInt32) newSize, false, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CDynamicBuffer::LoadContentFromFile( const CString& filePath   ,
                                      const UInt32 offsetInFile ,
@@ -678,7 +780,7 @@ CDynamicBuffer::CopyFrom( UInt32 destinationOffset   ,
     {
         if ( _autoenlarge )
         {
-            if ( !SetBufferSize( destinationOffset+size ) )
+            if ( !EnsureBufferSizeForGrowth( destinationOffset+size ) )
             {
                 return 0;
             }
@@ -906,19 +1008,27 @@ CDynamicBuffer::Append( const void* data                            ,
 
     if ( appendToLogicalData )
     {
-        if ( SetBufferSize( m_dataSize + size, false, true ) )
+        if ( EnsureBufferSizeForGrowth( m_dataSize + size ) )
         {
-            memcpy( _buffer + m_dataSize, data, size );
+            // nothing to copy may come as a null pointer, to a buffer that has no memory yet
+            if ( size > 0 )
+                memcpy( _buffer + m_dataSize, data, size );
             m_dataSize += size;
             return size;
         }
     }
     else
     {
+        // This appends after the end of the buffer and makes the whole buffer data, so it always grows exactly:
+        // room left over by a growth strategy would become data
+        if ( !_autoenlarge )
+            return 0;
+
         UInt32 oldBufferSize = _bsize;
         if ( SetBufferSize( oldBufferSize + size, false, true ) )
         {
-            memcpy( _buffer + oldBufferSize, data, size );
+            if ( size > 0 )
+                memcpy( _buffer + oldBufferSize, data, size );
             m_dataSize = _bsize;
             return size;
         }
@@ -1173,20 +1283,11 @@ CDynamicBuffer::Downshift( const UInt32 bytesToWipe )
     if ( bytesToWipe > m_dataSize )
         return false;
 
-    UInt32 offset = 0;
-    UInt32 remnant = m_dataSize;
-    while ( remnant > 0 )
-    {
-        UInt32 toWipe = bytesToWipe;
-        if ( toWipe > remnant )
-            toWipe = remnant;
-
-        memcpy( _buffer+offset, _buffer+offset+bytesToWipe, toWipe );
-
-        remnant -= toWipe;
-        offset += toWipe;    
-    }
-    m_dataSize -= bytesToWipe;
+    // Only the data after the wiped bytes moves, the ranges may overlap
+    UInt32 remnant = m_dataSize - bytesToWipe;
+    if ( remnant > 0 )
+        memmove( _buffer, _buffer+bytesToWipe, remnant );
+    m_dataSize = remnant;
 
     return true;
 }
@@ -1236,6 +1337,14 @@ CDynamicBuffer::Swap( CDynamicBuffer& other )
     bool tempAutoEnlarge = _autoenlarge;
     _autoenlarge = other._autoenlarge;
     other._autoenlarge = tempAutoEnlarge;
+
+    TGrowthStrategy tempGrowthStrategy = m_growthStrategy;
+    m_growthStrategy = other.m_growthStrategy;
+    other.m_growthStrategy = tempGrowthStrategy;
+
+    UInt32 tempGrowthStrategyParam = m_growthStrategyParam;
+    m_growthStrategyParam = other.m_growthStrategyParam;
+    other.m_growthStrategyParam = tempGrowthStrategyParam;
 
     Int8* tempBuffer = _buffer;
     _buffer = other._buffer;
@@ -1505,7 +1614,7 @@ CDynamicBuffer::AppendPrintf( const char* format, ... )
     UInt32 neededBufferSize = writeOffset + (UInt32) requiredSize + 1;
     if ( neededBufferSize > _bsize )
     {
-        if ( !SetBufferSize( neededBufferSize, false ) )
+        if ( !EnsureBufferSizeForGrowth( neededBufferSize ) )
             return -1;
     }
 

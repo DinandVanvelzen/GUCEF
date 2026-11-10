@@ -8,7 +8,7 @@
             <Define String="FT_DVEDIT_BUILD_DLL" />
         </Preprocessor>
     </Module>
-    <Module Platform="linux;mswin">
+    <Module Platform="linux;mswin;emscripten">
         <Dependencies>
             <Dependency Name="zlib" />
         </Dependencies>

@@ -41,6 +41,16 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
+#ifndef GUCEF_CORE_CDOCUMENTSTREAMWRITER_H
+#include "gucefCORE_CDocumentStreamWriter.h"
+#define GUCEF_CORE_CDOCUMENTSTREAMWRITER_H
+#endif /* GUCEF_CORE_CDOCUMENTSTREAMWRITER_H ? */
+
+#ifndef GUCEF_CORE_CIDOCUMENTPARSERCALLBACKS_H
+#include "gucefCORE_CIDocumentParserCallbacks.h"
+#define GUCEF_CORE_CIDOCUMENTPARSERCALLBACKS_H
+#endif /* GUCEF_CORE_CIDOCUMENTPARSERCALLBACKS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -120,6 +130,39 @@ class GUCEF_CORE_PUBLIC_CPP CDStoreCodec : public CICloneable
      */
     virtual bool BuildDataTree( CDataNode* treeroot ,
                                 CIOAccess* file     ) = 0;
+
+    /**
+     *      Creates a writer which stores a document node by node to the given output,
+     *      instead of from a complete tree held in memory. See CDocumentStreamWriter.
+     *
+     *      The default implementation gathers the document in memory and stores it with StoreDataTree()
+     *      when the writer is closed. Codecs which can write as they go override this.
+     *
+     *      @param output access to the resource to which the document will be written, must outlive the writer
+     *      @return the writer or a NULL pointer if the output could not be opened for writing
+     */
+    virtual CDocumentStreamWriterPtr CreateDocumentWriter( CIOAccess& output );
+
+    /**
+     *      Parses the given input and reports its content as it is encountered via the given callbacks,
+     *      instead of building a complete tree in memory. Nodes, attributes and values are reported
+     *      in document order.
+     *
+     *      The default implementation builds the tree with BuildDataTree() and then reports it.
+     *      Codecs which can parse as they go override this.
+     *
+     *      @param input media independent access to the data source from which the document is read
+     *      @param callbacks receiver of the document content
+     *      @return whether parsing the input was successful
+     */
+    virtual bool ParseDocument( CIOAccess& input                     ,
+                                CIDocumentParserCallbacks& callbacks );
+
+    /**
+     *      Reports the given tree via the given callbacks in the same way ParseDocument() does
+     */
+    static void ReportDataTree( const CDataNode& tree                ,
+                                CIDocumentParserCallbacks& callbacks );
 
     /**
      *      Returns the name of the codec

@@ -182,9 +182,25 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
         const CHostAddress* host;
         void* replyBuffer;
         UInt32 echoSize;
+
+        // attributes used by the POSIX implementation
+        int socketFd;
+        bool isRawSocket;
+        bool hasStopped;
+        UInt16 sequence;
     };
     typedef struct SPingEntry TPingEntry;
     typedef GUCEF::map< CHostAddress, TPingEntry > TPingCounters;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+
+    void InitializePosixPingEntries( void );
+    void SendPosixPing( TPingEntry& entry );
+    bool ReceivePosixPingReply( TPingEntry& entry, UInt32& roundTripTimeInMs );
+    void StopPosixPingEntry( TPingEntry& entry );
+    void CleanupPosixPingEntries( void );
+
+    #endif
 
     void* m_platformData;
     bool m_notDone;

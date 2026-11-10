@@ -1,20 +1,18 @@
 /*
- *  gucefVFS: GUCEF module implementing a Virtual File System
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  gucefGUI: GUCEF module providing a uniform interface towards GUI backends
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -43,12 +41,30 @@
 #define GUCEF_VFS_CVFSGLOBAL_H
 #endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
 
+#ifndef GUCEF_VFS_CVFS_H
+#include "gucefVFS_CVFS.h"
+#define GUCEF_VFS_CVFS_H
+#endif /* GUCEF_VFS_CVFS_H ? */
+
 #ifndef GUCEF_GUI_H
 #include "gucefGUI.h"
 #define GUCEF_GUI_H
 #endif /* GUCEF_GUI_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefGUI_CGuiGlobal.h"
+
+#include "gucefGUI_CWidgetTypeRegistry.h"
+#include "gucefGUI_CFontRasterizerRegistry.h"
+#include "gucefGUI_StandardWidgetTypes.h"
+#include "gucefGUI_CSettingsForm.h"
+#include "gucefGUI_CVideoSettingsForm.h"
+#include "gucefGUI_CDeveloperConsoleForm.h"
+#include "gucefGUI_CFileSystemDialogForm.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -126,7 +142,10 @@ CGuiGlobal::Initialize( void )
     CCheckbox::RegisterEvents();
     CCombobox::RegisterEvents();
     CEditbox::RegisterEvents();
-    CFileSystemDialog::RegisterEvents();
+    CSecretInput::RegisterEvents();
+    CMessageBoxForm::RegisterEvents();
+    CPathFieldForm::RegisterEvents();
+    CFileSystemDialogForm::RegisterEvents();
     CGridView::RegisterEvents();
     CLabel::RegisterEvents();
     CListbox::RegisterEvents();
@@ -134,22 +153,39 @@ CGuiGlobal::Initialize( void )
     CSpinner::RegisterEvents();
     CTabControl::RegisterEvents();
     CTextbox::RegisterEvents();
+    CSettingsPageForm::RegisterEvents();
+    CSettingsForm::RegisterEvents();
+    CVideoSettingsForm::RegisterEvents();
+    CDeveloperConsoleForm::RegisterEvents();
     CGUIManager::RegisterEvents();
 
     /*
      *      Instantiate all singletons
      */
+    m_widgetTypeRegistry = new CWidgetTypeRegistry();
+    RegisterStandardWidgetTypes( *m_widgetTypeRegistry );
+    m_fontRasterizerRegistry = new CFontRasterizerRegistry();
+    CSettingsForm::RegisterStandardPages();
+
     m_windowManager = new CWindowManager();
     m_guiManager = new CGUIManager();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefGUI Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefGUI" );
 }
+
+/*-------------------------------------------------------------------------*/
+
+const CString CGuiGlobal::DataMountPoint = "gucefGUI";
+const CString CGuiGlobal::DefaultUiFontPath = "gucefGUI/fonts/NotoSans-Regular.ttf";
 
 /*-------------------------------------------------------------------------*/
 
 CGuiGlobal::CGuiGlobal( void )
     : m_windowManager( NULL ) ,
-      m_guiManager( NULL )
+      m_guiManager( NULL )    ,
+      m_widgetTypeRegistry( NULL ) ,
+      m_fontRasterizerRegistry( NULL )
 {GUCEF_TRACE;
 
 }
@@ -160,6 +196,7 @@ CGuiGlobal::~CGuiGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefGUI global systems" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefGUI" );
 
     /*
      *      cleanup all singletons
@@ -169,6 +206,11 @@ CGuiGlobal::~CGuiGlobal()
     m_guiManager = NULL;
     delete m_windowManager;
     m_windowManager = NULL;
+    CSettingsForm::UnregisterStandardPages();
+    delete m_fontRasterizerRegistry;
+    m_fontRasterizerRegistry = NULL;
+    delete m_widgetTypeRegistry;
+    m_widgetTypeRegistry = NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -187,6 +229,42 @@ CGuiGlobal::GetGuiManager( void )
 {GUCEF_TRACE;
 
     return *m_guiManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWidgetTypeRegistry&
+CGuiGlobal::GetWidgetTypeRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_widgetTypeRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CFontRasterizerRegistry&
+CGuiGlobal::GetFontRasterizerRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_fontRasterizerRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGuiGlobal::MountData( void )
+{GUCEF_TRACE;
+
+    return MountModuleData( DataMountPoint );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGuiGlobal::MountModuleData( const CString& moduleName )
+{GUCEF_TRACE;
+
+    return VFS::CVfsGlobal::Instance()->GetVfs().MountModuleData( moduleName );
 }
 
 /*-------------------------------------------------------------------------//

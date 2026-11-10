@@ -2,26 +2,39 @@
 <ModuleInfoEntry>
     <Module Name="gucefCORE_TestApp" Platform="All" Type="Executable" Tags="test" >
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
-			<Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCORE" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
-			<Dependency Name="gucefCORE" />
-		</Linker>
+            <Dependency Name="gucefCORE" />
+        </Linker>
         <Preprocessor>
             <Define String="GUCEF_CORE_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
-		<RuntimeDependencies>
-			<RuntimeDependency Name="dstorepluginJSONPARSER" />
-			<RuntimeDependency Name="dstorepluginPARSIFALXML" />
-			<RuntimeDependency Name="dstorepluginYAML" />
-			<RuntimeDependency Name="dstorepluginPROTOBUF" />
-		</RuntimeDependencies>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+            <RuntimeDependency Name="dstorepluginYAML" />
+            <RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="dstorepluginPROTOBUF" />
+            <RuntimeDependency Name="gucefCORE_TestPlugin" />
+        </RuntimeDependencies>
     </Module>
-	<Module Platform="mswin" >
-		<RuntimeDependencies>
-			<RuntimeDependency Name="MemoryLeakFinder" />
-		</RuntimeDependencies>
-	</Module>	
+    <Module Platform="linux" >
+        <Linker>
+            <Dependency Name="X11" Scope="private" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="codecspluginOPENSSL" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="MemoryLeakFinder" />
+        </RuntimeDependencies>
+    </Module>   
 </ModuleInfoEntry>

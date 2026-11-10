@@ -25,7 +25,7 @@
 
 #include <malloc.h>             /* memory management */
 #include <stdio.h>              /* standard I/O utils */
-#define __STDC_WANT_LIB_EXT1__
+#define __STDC_WANT_LIB_EXT1__ 1
 #include <string.h>             /* standard string utils */
 #include <assert.h>
 #include <limits.h>
@@ -70,6 +70,11 @@
 #include "dvcppfileutils.h"
 #define GUCEF_CORE_DVCPPFILEUTILS_H
 #endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
+#ifndef GUCEF_CORE_CPROCESS_H
+#include "gucefCORE_CProcess.h"
+#define GUCEF_CORE_CPROCESS_H
+#endif /* GUCEF_CORE_CPROCESS_H ? */
 
 #ifndef GUCEF_CORE_GUCEF_ESSENTIALS_H
 #include "gucef_essentials.h"
@@ -293,7 +298,7 @@ Get_Current_Dir( char* dest_buffer, UInt32 buf_length )
 
     return _getcwd( dest_buffer, buf_length );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     /*
      *	This call can actually fail: if another process has succeeded
@@ -325,7 +330,7 @@ Max_Dir_Length( void )
 
     return MAX_PATH;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     return PATH_MAX;
 
@@ -349,7 +354,7 @@ Max_Filename_Length( void )
 
     return _MAX_FNAME;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     return NAME_MAX+1;
 
@@ -399,91 +404,10 @@ Remove_Directory( const char *dir  ,
                   UInt32 del_files )
 {GUCEF_TRACE;
 
-    if ( del_files )
-    {
-        /*
-         *      The user wishes to delete the directory even if the
-         *      directory is not empty. We will proceed to delete all
-         *      files in the directory first.
-         */
-        struct SDI_Data* ddata = DI_First_Dir_Entry( dir );
-        UInt32 more = 1;
-        if ( GUCEF_NULL == ddata )
-            return 0;
-
-        while ( more )
-        {
-            if ( DI_Is_It_A_File( ddata ) )
-            {
-                /*
-                 *      Attempt to delete the file we found in
-                 *      the directory.
-                 */
-                if ( !Delete_File( DI_Name( ddata ) ) )
-                    return 0;
-            }
-            else
-            {
-                /*
-                 *      Attempt to delete the directory we found
-                 *      and all files inside it.
-                 */
-                size_t nameLength = strlen( DI_Name( ddata ) );
-                size_t dirLength = strlen( dir );
-                size_t subDirBufferLength = dirLength + nameLength + 1;
-
-                char* subdir = (char*) calloc( subDirBufferLength, 1 );
-                if ( GUCEF_NULL != subdir )
-                {
-                    #if defined( __STDC_LIB_EXT1__ ) || defined( __STDC_WANT_SECURE_LIB__ )
-                    strcpy_s( subdir, subDirBufferLength, dir );
-                    #else
-                    strcpy( subdir, dir );
-                    #endif
-                    Append_To_Path( subdir, subDirBufferLength, DI_Name( ddata ) );
-                    if ( !Remove_Directory( subdir, del_files ) )
-                    {
-                        free( subdir );
-                        return 0;
-                    }
-                    free( subdir );
-                }
-            }
-
-            /*
-             *      Itterate to next directory entry
-             */
-            more = DI_Next_Dir_Entry( ddata );
-        }
-
-        /*
-         *      Clean-up our dir itterator
-         */
-        DI_Cleanup( ddata );
-    }
-
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-
-    /*
-     *      Attempt to remove the directory itself. We can call the WIN32
-     *      function directly here because it won't delete any files in the
-     *      dir.
-     */
-
-    return RemoveDirectory( dir );
-
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-
-    return 0 == rmdir( dir ) ? 1 : 0;
-
-    #else
-
-    /*
-     *      Not implemented for your O/S
-     */
-    return 0;
-
-    #endif
+    // map to C++ version
+    if ( GUCEF_NULL == dir )
+        return 0;
+    return DeleteDir( dir, 0 != del_files ) ? 1 : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -542,12 +466,17 @@ Module_Path( char *dest, UInt32 dest_size )
     return (path);
     }
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     pid_t pid = getpid();
 
     char linkStr[ 24 ];
     sprintf( linkStr, "%s%d%s", "/proc/", pid, "/exe\0" );
+
+    // Without a result the caller must not be left with whatever happened to be in the buffer, for example
+    // on platforms like WebAssembly that have no process image to look up
+    if ( dest_size > 0 )
+        dest[ 0 ] = '\0';
 
     int ch = readlink( linkStr, dest, dest_size );
     if ( -1 != ch )
@@ -578,7 +507,7 @@ Delete_File( const char *filename )
 
     return DeleteFileA( filename );
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     return 0 == remove( filename ) ? 1 : 0;
 
@@ -723,8 +652,8 @@ Move_File( const char* dst, const char* src, char overwriteFlag )
 
     try
     {
-        // map to C++ version
-        return CORE::MoveFile( CString( dst ), CString( src ), 0 != overwriteFlag ) ? 1 : 0;
+        // map to C++ version, which takes the path to move from first
+        return CORE::MoveFile( CString( src ), CString( dst ), 0 != overwriteFlag ) ? 1 : 0;
     }
     catch ( const std::exception& )
     {
@@ -801,6 +730,13 @@ Execute_Program( const char *filename ,
 
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
+        // Like on Windows the program is started and left to run on its own, we do not wait for it
+        CORE::CProcess::TStringVector args;
+        if ( NULL != cmdline )
+            args = CORE::CProcess::SplitCommandLine( cmdline );
+
+        CORE::CProcess process;
+        return process.Launch( filename, args, CORE::CString::Empty, CORE::CProcess::TStringMap(), true ) ? 1 : 0;
 
         #endif
     }
@@ -1029,7 +965,7 @@ Get_Modification_Time( const char* path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     struct stat buf;
 
@@ -1066,7 +1002,7 @@ Get_Creation_Time( const char* path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     struct stat buf;
 

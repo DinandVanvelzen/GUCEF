@@ -46,6 +46,11 @@ files( {
   "include/pubsubpluginSTORAGE_CStoragePubSubClientTopic.h",
   "include/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.h",
   "include/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.h",
+  "include/pubsubpluginSTORAGE_CStoragePubSubIndexDef.h",
+  "include/pubsubpluginSTORAGE_CStoragePubSubIndexReader.h",
+  "include/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.h",
+  "include/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h",
+  "include/pubsubpluginSTORAGE_CStorageReplayTaskData.h",
   "include/pubsubpluginSTORAGE_config.h",
   "include/pubsubpluginSTORAGE_macros.h"
  } )
@@ -60,7 +65,12 @@ files( {
   "src/pubsubpluginSTORAGE_CStoragePubSubClientConfig.cpp",
   "src/pubsubpluginSTORAGE_CStoragePubSubClientTopic.cpp",
   "src/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.cpp",
-  "src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp"
+  "src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp",
+  "src/pubsubpluginSTORAGE_CStoragePubSubIndexDef.cpp",
+  "src/pubsubpluginSTORAGE_CStoragePubSubIndexReader.cpp",
+  "src/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.cpp",
+  "src/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.cpp",
+  "src/pubsubpluginSTORAGE_CStorageReplayTaskData.cpp"
  } )
 
 
@@ -68,10 +78,10 @@ configuration( {} )
 includedirs( { "../../../common/include", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefPUBSUB/include", "../../../platform/gucefVFS/include", "../../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../../platform/gucefCORE/include/android" } )
+includedirs( { "../../../platform/gucefCOMCORE/include/android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../../platform/gucefCORE/include/android" } )
+includedirs( { "../../../platform/gucefCOMCORE/include/android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../../platform/gucefCOMCORE/include/linux", "../../../platform/gucefCORE/include/linux" } )

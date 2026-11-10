@@ -31,7 +31,6 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Android \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src \
@@ -46,17 +45,20 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefINPUT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
   $(MY_MODULE_PATH)/../guidriverCEGUI/include
 
-LOCAL_CFLAGS := -DGUCEF_GUIDRIVERCEGUIOGRE_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_GUIDRIVERCEGUIOGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverCEGUIOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverCEGUIOgre
 
 
 LOCAL_SHARED_LIBRARIES := \

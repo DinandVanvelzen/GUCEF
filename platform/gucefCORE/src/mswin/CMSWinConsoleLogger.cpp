@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -63,6 +61,11 @@
 
 #include "CMSWinConsoleLogger.h"
 
+#ifndef GUCEF_CORE_CSTANDARDOUTPUTWRITER_H
+#include "gucefCORE_CStandardOutputWriter.h"
+#define GUCEF_CORE_CSTANDARDOUTPUTWRITER_H
+#endif /* GUCEF_CORE_CSTANDARDOUTPUTWRITER_H ? */
+
 #ifdef GUCEF_MSWIN_BUILD
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -79,19 +82,27 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CMSWinConsoleLogger::CMSWinConsoleLogger( void )
-    : CIConsoleLogger()
+CMSWinConsoleLogger::CMSWinConsoleLogger( bool ownWindow )
+    : CIConsoleLogger()
     , m_minimalLogLevel( LOGLEVEL_BELOW_NORMAL )
     , m_formatForUiPurpose( false )
     , m_consoleHandle( NULL )
-    , m_ownedConsole( false )
+    , m_ownedConsole( false )
+    , m_leftParentConsole( false )
     , m_originalConsoleAttribs( FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE )
     , m_logFormatter( CCoreGlobal::Instance()->GetLogManager().CreateDefaultLoggingFormatter() )
 {GUCEF_TRACE;
 
-    HWND consoleWindow = ::GetConsoleWindow();
-    if ( NULL == consoleWindow )
-    {
+    HWND consoleWindow = ::GetConsoleWindow();
+    if ( NULL != consoleWindow && ownWindow )
+    {
+        // a process has one console: the one it was started from is let go for a window of its own
+        ::FreeConsole();
+        m_leftParentConsole = true;
+        consoleWindow = NULL;
+    }
+    if ( NULL == consoleWindow )
+    {
         ::AllocConsole();
         m_ownedConsole = true;
     }
@@ -116,8 +127,10 @@ CMSWinConsoleLogger::~CMSWinConsoleLogger()
     CCoreGlobal::Instance()->GetLogManager().RemoveLogger( this );
     FlushLog();
 
-    if ( m_ownedConsole )
-        ::FreeConsole();
+    if ( m_ownedConsole )
+        ::FreeConsole();
+    if ( m_leftParentConsole )
+        ::AttachConsole( ATTACH_PARENT_PROCESS );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -172,6 +185,11 @@ CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
                           const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
+    // stdout carries a protocol from the claim on: the console of stdout is not written to then, also when this
+    // logger was made before the claim
+    if ( CStandardOutputWriter::IsClaimed() )
+        return;
+
     if ( !m_formatForUiPurpose )
     {
         if ( logLevel >= m_minimalLogLevel )
@@ -209,6 +227,11 @@ CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                            const UInt32 threadId        ,
                                            const CTimestamp& timestamp  )
 {GUCEF_TRACE;
+
+    // stdout carries a protocol from the claim on: the console of stdout is not written to then, also when this
+    // logger was made before the claim
+    if ( CStandardOutputWriter::IsClaimed() )
+        return;
 
     if ( !m_formatForUiPurpose )
     {

@@ -38,10 +38,10 @@
 #define GUCEF_CORE_CFORWARDINGNOTIFIER_H
 #endif /* GUCEF_CORE_CFORWARDINGNOTIFIER_H ? */
 
-#ifndef GUCEF_CORE_CURL_H
-#include "CURL.h"
-#define GUCEF_CORE_CURL_H
-#endif /* GUCEF_CORE_CURL_H ? */
+#ifndef GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#include "gucefCORE_CAsyncUriResourceRetriever.h"
+#define GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#endif /* GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H ? */
 
 #ifndef GUCEF_CORE_CICONFIGURABLE_H
 #include "gucefCORE_CIConfigurable.h"
@@ -176,8 +176,8 @@ class GUCEF_PATCHER_EXPORT_CPP CPatchEngine : public CORE::CForwardingNotifier ,
     private:
     
     CPatchListEngine* m_patchListEngine;
-    CORE::CURL m_url;
-    CORE::CDynamicBuffer m_listDataBuffer;
+    CORE::CDynamicBuffer m_listDataBuffer;          /**< destination of the patch list retrieval, must outlive the retriever */
+    CORE::CAsyncUriResourceRetriever m_retriever;
     bool m_isActive;
     bool m_stopSignalGiven;
     CPatchConfig m_config;

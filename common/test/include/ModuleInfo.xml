@@ -1,0 +1,4 @@
+<ModuleInfoEntry>
+    <Module Name="gucefTestHeaders" Type="HeaderIncludeLocation" Platform="All" Tags="test">
+    </Module>
+</ModuleInfoEntry>

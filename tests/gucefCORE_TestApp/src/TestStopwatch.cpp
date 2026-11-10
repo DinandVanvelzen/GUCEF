@@ -63,8 +63,8 @@ using namespace GUCEF;
 // Helper function to create a small delay
 static void SmallDelay( void )
 {
-    volatile int dummy = 0;
-    for ( int i = 0; i < 500000; ++i ) { dummy += i; }
+    volatile UInt32 dummy = 0;      // unsigned: the sum wraps around, as a signed one may not
+    for ( UInt32 i = 0; i < 500000; ++i ) { dummy += i; }
 }
 
 /*-------------------------------------------------------------------------*/

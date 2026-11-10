@@ -1,0 +1,32 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverEmscripten" Type="StaticLibrary" Platform="emscripten" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>Window driver for web browsers: the canvas of the page with a WebGL 2 context</DescriptionHeadline>
+            <DescriptionDetails>For WebAssembly builds made with Emscripten. Linked into the application, which calls the prefixed plugin entry points to register the window manager backend "Emscripten".</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefGUI" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="-sMAX_WEBGL_VERSION=2" />
+            <Dependency Name="-sMIN_WEBGL_VERSION=2" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVEREMSCRIPTEN_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

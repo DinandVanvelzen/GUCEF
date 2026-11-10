@@ -603,46 +603,26 @@ if (EMSCRIPTEN32)
     Source/LibWebP/src/dec/dec.webp.c
     Source/LibWebP/src/demux/demux.demux.c
     Source/LibWebP/src/dsp/dsp.alpha_processing.c
-    Source/LibWebP/src/dsp/dsp.alpha_processing_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.alpha_processing_sse2.c
     Source/LibWebP/src/dsp/dsp.argb.c
-    Source/LibWebP/src/dsp/dsp.argb_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.argb_sse2.c
     Source/LibWebP/src/dsp/dsp.cost.c
-    Source/LibWebP/src/dsp/dsp.cost_mips32.c
-    Source/LibWebP/src/dsp/dsp.cost_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.cost_sse2.c
     Source/LibWebP/src/dsp/dsp.cpu.c
     Source/LibWebP/src/dsp/dsp.dec.c
     Source/LibWebP/src/dsp/dsp.dec_clip_tables.c
-    Source/LibWebP/src/dsp/dsp.dec_mips32.c
-    Source/LibWebP/src/dsp/dsp.dec_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.dec_neon.c
     Source/LibWebP/src/dsp/dsp.dec_sse2.c
     Source/LibWebP/src/dsp/dsp.enc.c
     Source/LibWebP/src/dsp/dsp.enc_avx2.c
-    Source/LibWebP/src/dsp/dsp.enc_mips32.c
-    Source/LibWebP/src/dsp/dsp.enc_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.enc_neon.c
     Source/LibWebP/src/dsp/dsp.enc_sse2.c
     Source/LibWebP/src/dsp/dsp.filters.c
-    Source/LibWebP/src/dsp/dsp.filters_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.filters_sse2.c
     Source/LibWebP/src/dsp/dsp.lossless.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips32.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.lossless_neon.c
     Source/LibWebP/src/dsp/dsp.lossless_sse2.c
     Source/LibWebP/src/dsp/dsp.rescaler.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips32.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.upsampling.c
-    Source/LibWebP/src/dsp/dsp.upsampling_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.upsampling_neon.c
     Source/LibWebP/src/dsp/dsp.upsampling_sse2.c
     Source/LibWebP/src/dsp/dsp.yuv.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips32.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.yuv_sse2.c
     Source/LibWebP/src/enc/enc.alpha.c
     Source/LibWebP/src/enc/enc.analysis.c
@@ -1389,46 +1369,26 @@ elseif (EMSCRIPTEN64)
     Source/LibWebP/src/dec/dec.webp.c
     Source/LibWebP/src/demux/demux.demux.c
     Source/LibWebP/src/dsp/dsp.alpha_processing.c
-    Source/LibWebP/src/dsp/dsp.alpha_processing_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.alpha_processing_sse2.c
     Source/LibWebP/src/dsp/dsp.argb.c
-    Source/LibWebP/src/dsp/dsp.argb_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.argb_sse2.c
     Source/LibWebP/src/dsp/dsp.cost.c
-    Source/LibWebP/src/dsp/dsp.cost_mips32.c
-    Source/LibWebP/src/dsp/dsp.cost_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.cost_sse2.c
     Source/LibWebP/src/dsp/dsp.cpu.c
     Source/LibWebP/src/dsp/dsp.dec.c
     Source/LibWebP/src/dsp/dsp.dec_clip_tables.c
-    Source/LibWebP/src/dsp/dsp.dec_mips32.c
-    Source/LibWebP/src/dsp/dsp.dec_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.dec_neon.c
     Source/LibWebP/src/dsp/dsp.dec_sse2.c
     Source/LibWebP/src/dsp/dsp.enc.c
     Source/LibWebP/src/dsp/dsp.enc_avx2.c
-    Source/LibWebP/src/dsp/dsp.enc_mips32.c
-    Source/LibWebP/src/dsp/dsp.enc_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.enc_neon.c
     Source/LibWebP/src/dsp/dsp.enc_sse2.c
     Source/LibWebP/src/dsp/dsp.filters.c
-    Source/LibWebP/src/dsp/dsp.filters_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.filters_sse2.c
     Source/LibWebP/src/dsp/dsp.lossless.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips32.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.lossless_neon.c
     Source/LibWebP/src/dsp/dsp.lossless_sse2.c
     Source/LibWebP/src/dsp/dsp.rescaler.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips32.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.upsampling.c
-    Source/LibWebP/src/dsp/dsp.upsampling_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.upsampling_neon.c
     Source/LibWebP/src/dsp/dsp.upsampling_sse2.c
     Source/LibWebP/src/dsp/dsp.yuv.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips32.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.yuv_sse2.c
     Source/LibWebP/src/enc/enc.alpha.c
     Source/LibWebP/src/enc/enc.analysis.c
@@ -2175,46 +2135,26 @@ elseif (LINUX32)
     Source/LibWebP/src/dec/dec.webp.c
     Source/LibWebP/src/demux/demux.demux.c
     Source/LibWebP/src/dsp/dsp.alpha_processing.c
-    Source/LibWebP/src/dsp/dsp.alpha_processing_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.alpha_processing_sse2.c
     Source/LibWebP/src/dsp/dsp.argb.c
-    Source/LibWebP/src/dsp/dsp.argb_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.argb_sse2.c
     Source/LibWebP/src/dsp/dsp.cost.c
-    Source/LibWebP/src/dsp/dsp.cost_mips32.c
-    Source/LibWebP/src/dsp/dsp.cost_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.cost_sse2.c
     Source/LibWebP/src/dsp/dsp.cpu.c
     Source/LibWebP/src/dsp/dsp.dec.c
     Source/LibWebP/src/dsp/dsp.dec_clip_tables.c
-    Source/LibWebP/src/dsp/dsp.dec_mips32.c
-    Source/LibWebP/src/dsp/dsp.dec_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.dec_neon.c
     Source/LibWebP/src/dsp/dsp.dec_sse2.c
     Source/LibWebP/src/dsp/dsp.enc.c
     Source/LibWebP/src/dsp/dsp.enc_avx2.c
-    Source/LibWebP/src/dsp/dsp.enc_mips32.c
-    Source/LibWebP/src/dsp/dsp.enc_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.enc_neon.c
     Source/LibWebP/src/dsp/dsp.enc_sse2.c
     Source/LibWebP/src/dsp/dsp.filters.c
-    Source/LibWebP/src/dsp/dsp.filters_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.filters_sse2.c
     Source/LibWebP/src/dsp/dsp.lossless.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips32.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.lossless_neon.c
     Source/LibWebP/src/dsp/dsp.lossless_sse2.c
     Source/LibWebP/src/dsp/dsp.rescaler.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips32.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.upsampling.c
-    Source/LibWebP/src/dsp/dsp.upsampling_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.upsampling_neon.c
     Source/LibWebP/src/dsp/dsp.upsampling_sse2.c
     Source/LibWebP/src/dsp/dsp.yuv.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips32.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.yuv_sse2.c
     Source/LibWebP/src/enc/enc.alpha.c
     Source/LibWebP/src/enc/enc.analysis.c
@@ -2961,46 +2901,26 @@ elseif (LINUX64)
     Source/LibWebP/src/dec/dec.webp.c
     Source/LibWebP/src/demux/demux.demux.c
     Source/LibWebP/src/dsp/dsp.alpha_processing.c
-    Source/LibWebP/src/dsp/dsp.alpha_processing_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.alpha_processing_sse2.c
     Source/LibWebP/src/dsp/dsp.argb.c
-    Source/LibWebP/src/dsp/dsp.argb_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.argb_sse2.c
     Source/LibWebP/src/dsp/dsp.cost.c
-    Source/LibWebP/src/dsp/dsp.cost_mips32.c
-    Source/LibWebP/src/dsp/dsp.cost_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.cost_sse2.c
     Source/LibWebP/src/dsp/dsp.cpu.c
     Source/LibWebP/src/dsp/dsp.dec.c
     Source/LibWebP/src/dsp/dsp.dec_clip_tables.c
-    Source/LibWebP/src/dsp/dsp.dec_mips32.c
-    Source/LibWebP/src/dsp/dsp.dec_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.dec_neon.c
     Source/LibWebP/src/dsp/dsp.dec_sse2.c
     Source/LibWebP/src/dsp/dsp.enc.c
     Source/LibWebP/src/dsp/dsp.enc_avx2.c
-    Source/LibWebP/src/dsp/dsp.enc_mips32.c
-    Source/LibWebP/src/dsp/dsp.enc_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.enc_neon.c
     Source/LibWebP/src/dsp/dsp.enc_sse2.c
     Source/LibWebP/src/dsp/dsp.filters.c
-    Source/LibWebP/src/dsp/dsp.filters_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.filters_sse2.c
     Source/LibWebP/src/dsp/dsp.lossless.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips32.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.lossless_neon.c
     Source/LibWebP/src/dsp/dsp.lossless_sse2.c
     Source/LibWebP/src/dsp/dsp.rescaler.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips32.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.upsampling.c
-    Source/LibWebP/src/dsp/dsp.upsampling_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.upsampling_neon.c
     Source/LibWebP/src/dsp/dsp.upsampling_sse2.c
     Source/LibWebP/src/dsp/dsp.yuv.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips32.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.yuv_sse2.c
     Source/LibWebP/src/enc/enc.alpha.c
     Source/LibWebP/src/enc/enc.analysis.c
@@ -3747,46 +3667,26 @@ elseif (WIN32)
     Source/LibWebP/src/dec/dec.webp.c
     Source/LibWebP/src/demux/demux.demux.c
     Source/LibWebP/src/dsp/dsp.alpha_processing.c
-    Source/LibWebP/src/dsp/dsp.alpha_processing_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.alpha_processing_sse2.c
     Source/LibWebP/src/dsp/dsp.argb.c
-    Source/LibWebP/src/dsp/dsp.argb_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.argb_sse2.c
     Source/LibWebP/src/dsp/dsp.cost.c
-    Source/LibWebP/src/dsp/dsp.cost_mips32.c
-    Source/LibWebP/src/dsp/dsp.cost_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.cost_sse2.c
     Source/LibWebP/src/dsp/dsp.cpu.c
     Source/LibWebP/src/dsp/dsp.dec.c
     Source/LibWebP/src/dsp/dsp.dec_clip_tables.c
-    Source/LibWebP/src/dsp/dsp.dec_mips32.c
-    Source/LibWebP/src/dsp/dsp.dec_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.dec_neon.c
     Source/LibWebP/src/dsp/dsp.dec_sse2.c
     Source/LibWebP/src/dsp/dsp.enc.c
     Source/LibWebP/src/dsp/dsp.enc_avx2.c
-    Source/LibWebP/src/dsp/dsp.enc_mips32.c
-    Source/LibWebP/src/dsp/dsp.enc_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.enc_neon.c
     Source/LibWebP/src/dsp/dsp.enc_sse2.c
     Source/LibWebP/src/dsp/dsp.filters.c
-    Source/LibWebP/src/dsp/dsp.filters_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.filters_sse2.c
     Source/LibWebP/src/dsp/dsp.lossless.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips32.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.lossless_neon.c
     Source/LibWebP/src/dsp/dsp.lossless_sse2.c
     Source/LibWebP/src/dsp/dsp.rescaler.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips32.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.upsampling.c
-    Source/LibWebP/src/dsp/dsp.upsampling_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.upsampling_neon.c
     Source/LibWebP/src/dsp/dsp.upsampling_sse2.c
     Source/LibWebP/src/dsp/dsp.yuv.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips32.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.yuv_sse2.c
     Source/LibWebP/src/enc/enc.alpha.c
     Source/LibWebP/src/enc/enc.analysis.c
@@ -4533,46 +4433,26 @@ elseif (WIN64)
     Source/LibWebP/src/dec/dec.webp.c
     Source/LibWebP/src/demux/demux.demux.c
     Source/LibWebP/src/dsp/dsp.alpha_processing.c
-    Source/LibWebP/src/dsp/dsp.alpha_processing_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.alpha_processing_sse2.c
     Source/LibWebP/src/dsp/dsp.argb.c
-    Source/LibWebP/src/dsp/dsp.argb_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.argb_sse2.c
     Source/LibWebP/src/dsp/dsp.cost.c
-    Source/LibWebP/src/dsp/dsp.cost_mips32.c
-    Source/LibWebP/src/dsp/dsp.cost_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.cost_sse2.c
     Source/LibWebP/src/dsp/dsp.cpu.c
     Source/LibWebP/src/dsp/dsp.dec.c
     Source/LibWebP/src/dsp/dsp.dec_clip_tables.c
-    Source/LibWebP/src/dsp/dsp.dec_mips32.c
-    Source/LibWebP/src/dsp/dsp.dec_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.dec_neon.c
     Source/LibWebP/src/dsp/dsp.dec_sse2.c
     Source/LibWebP/src/dsp/dsp.enc.c
     Source/LibWebP/src/dsp/dsp.enc_avx2.c
-    Source/LibWebP/src/dsp/dsp.enc_mips32.c
-    Source/LibWebP/src/dsp/dsp.enc_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.enc_neon.c
     Source/LibWebP/src/dsp/dsp.enc_sse2.c
     Source/LibWebP/src/dsp/dsp.filters.c
-    Source/LibWebP/src/dsp/dsp.filters_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.filters_sse2.c
     Source/LibWebP/src/dsp/dsp.lossless.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips32.c
-    Source/LibWebP/src/dsp/dsp.lossless_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.lossless_neon.c
     Source/LibWebP/src/dsp/dsp.lossless_sse2.c
     Source/LibWebP/src/dsp/dsp.rescaler.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips32.c
-    Source/LibWebP/src/dsp/dsp.rescaler_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.upsampling.c
-    Source/LibWebP/src/dsp/dsp.upsampling_mips_dsp_r2.c
-    Source/LibWebP/src/dsp/dsp.upsampling_neon.c
     Source/LibWebP/src/dsp/dsp.upsampling_sse2.c
     Source/LibWebP/src/dsp/dsp.yuv.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips32.c
-    Source/LibWebP/src/dsp/dsp.yuv_mips_dsp_r2.c
     Source/LibWebP/src/dsp/dsp.yuv_sse2.c
     Source/LibWebP/src/enc/enc.alpha.c
     Source/LibWebP/src/enc/enc.analysis.c
@@ -4736,9 +4616,9 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 
 if( EMSCRIPTEN32 )
-  set( MODULE_NAME "" )
+  set( MODULE_NAME "FreeImage" )
 elseif( EMSCRIPTEN64 )
-  set( MODULE_NAME "" )
+  set( MODULE_NAME "FreeImage" )
 elseif( LINUX32 )
   set( MODULE_NAME "FreeImage" )
 elseif( LINUX64 )
@@ -4765,25 +4645,37 @@ endif()
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "FREEIMAGE_EXPORTS;LIBRAW_LIBRARY_BUILD;LIBRAW_NODLL;MODULE_NAME=FreeImage;NO_JASPER;OPJ_STATIC;USE_JPIP;ZENO_STATIC" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DISABLE_PERF_MEASUREMENT;FREEIMAGE_EXPORTS;LIBRAW_LIBRARY_BUILD;LIBRAW_NODLL;MODULE_NAME=FreeImage;NO_JASPER;OPJ_STATIC;USE_JPIP;ZENO_STATIC;__ANSI__" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14;-Wno-narrowing> )
+endif()
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "FREEIMAGE_EXPORTS;LIBRAW_LIBRARY_BUILD;LIBRAW_NODLL;MODULE_NAME=FreeImage;NO_JASPER;OPJ_STATIC;USE_JPIP;ZENO_STATIC" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DISABLE_PERF_MEASUREMENT;FREEIMAGE_EXPORTS;LIBRAW_LIBRARY_BUILD;LIBRAW_NODLL;MODULE_NAME=FreeImage;NO_JASPER;OPJ_STATIC;USE_JPIP;ZENO_STATIC;__ANSI__" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14;-Wno-narrowing> )
+endif()
 endif( LINUX64 )
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "FREEIMAGE_EXPORTS;LIBRAW_LIBRARY_BUILD;LIBRAW_NODLL;MODULE_NAME=FreeImage;NO_JASPER;OPJ_STATIC;USE_JPIP;ZENO_STATIC;_CRT_SECURE_NO_WARNINGS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14;-Wno-narrowing> )
+endif()
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "FREEIMAGE_EXPORTS;LIBRAW_LIBRARY_BUILD;LIBRAW_NODLL;MODULE_NAME=FreeImage;NO_JASPER;OPJ_STATIC;USE_JPIP;ZENO_STATIC;_CRT_SECURE_NO_WARNINGS" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14;-Wno-narrowing> )
+endif()
 endif( WIN64 )
 
 if ( EMSCRIPTEN32 )

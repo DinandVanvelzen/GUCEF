@@ -1,0 +1,34 @@
+<ModuleInfoEntry>
+    <Module Name="imgupscalepluginNCNN" Type="SharedLibrary" Platform="linux;mswin" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>Image upscaler "realesrgan": Real-ESRGAN neural networks on ncnn, with Vulkan or on the CPU</DescriptionHeadline>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="ncnn" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="ncnn" />
+        </Linker>
+        <Preprocessor>
+            <Define String="IMGUPSCALEPLUGINNCNN_BUILD_MODULE" />
+            <Define String="NCNN_STATIC_DEFINE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

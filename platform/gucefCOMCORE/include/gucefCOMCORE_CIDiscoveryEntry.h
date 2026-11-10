@@ -42,6 +42,16 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
+#ifndef GUCEF_CORE_CDATETIME_H
+#include "gucefCORE_CDateTime.h"
+#define GUCEF_CORE_CDATETIME_H
+#endif /* GUCEF_CORE_CDATETIME_H ? */
+
 #ifndef GUCEF_COMCORE_CHOSTADDRESS_H
 #include "CHostAddress.h"
 #define GUCEF_COMCORE_CHOSTADDRESS_H
@@ -124,6 +134,63 @@ class GUCEF_COMCORE_EXPORT_CPP CIDiscoveryEntry
 
     virtual bool GetCapabilities( CORE::CString& capability ) const = 0;
 
+    /**
+     *  The type of the advertised service, for example _gucef-game._udp
+     */
+    virtual bool SetServiceType( const CORE::CString& serviceType ) = 0;
+
+    virtual const CORE::CString& GetServiceType( void ) const = 0;
+
+    /**
+     *  The human readable name of the advertised instance
+     */
+    virtual bool SetInstanceName( const CORE::CString& instanceName ) = 0;
+
+    virtual const CORE::CString& GetInstanceName( void ) const = 0;
+
+    /**
+     *  The advertised data. Keep it small: discovery over UDP has to fit it in one datagram (under 1 KB)
+     */
+    virtual bool SetAttributes( const CORE::CValueList& attributes ) = 0;
+
+    virtual const CORE::CValueList& GetAttributes( void ) const = 0;
+
+    /**
+     *  Where the service can be reached, each as scheme://host:port
+     *  A host of 0.0.0.0 is replaced by the address the advertisement came from when it is received
+     */
+    virtual bool SetEndpoints( const CORE::CString::StringVector& endpoints ) = 0;
+
+    virtual const CORE::CString::StringVector& GetEndpoints( void ) const = 0;
+
+    /**
+     *  How long the entry stays valid without being heard again
+     */
+    virtual bool SetTtlInSecs( UInt32 ttlInSecs ) = 0;
+
+    virtual UInt32 GetTtlInSecs( void ) const = 0;
+
+    /**
+     *  When the entry was last heard, UTC
+     */
+    virtual bool SetLastSeen( const CORE::CDateTime& lastSeen ) = 0;
+
+    virtual const CORE::CDateTime& GetLastSeen( void ) const = 0;
+
+    /**
+     *  The name of the discovery client that found the entry
+     */
+    virtual bool SetSourceClientName( const CORE::CString& clientName ) = 0;
+
+    virtual const CORE::CString& GetSourceClientName( void ) const = 0;
+
+    /**
+     *  The identity of the entry across clients and updates: the service type plus the application instance id,
+     *  or plus the instance name when there is no application instance id
+     */
+    CORE::CString GetEntryKey( void ) const;
+
+    static CORE::CString MakeEntryKey( const CORE::CString& serviceType, const CORE::CString& instanceId );
 };
 
 typedef CORE::CTSharedPtr< CIDiscoveryEntry, MT::CMutex > CIDiscoveryEntryPtr;

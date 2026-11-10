@@ -176,8 +176,7 @@ CAndroidSystemLogger::~CAndroidSystemLogger()
     CCoreGlobal::Instance()->GetLogManager().RemoveLogger( this );
     FlushLog();
 
-    delete m_logFormatter;
-    m_logFormatter = GUCEF_NULL;
+    m_logFormatter.Unlink();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -230,7 +229,7 @@ CAndroidSystemLogger::Log( const TLogMsgType logMsgType     ,
                            const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
-    Log( logMsgType, logLevel, logMessage.AsString(), threadId, timestamp );
+    Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -243,7 +242,7 @@ CAndroidSystemLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                             const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
-    LogWithoutFormatting( logMsgType, logLevel, logMessage.AsString(), threadId, timestamp );
+    LogWithoutFormatting( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/

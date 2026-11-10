@@ -18,6 +18,11 @@ set( HEADER_FILES
   include/pubsubpluginSTORAGE_CStoragePubSubClientTopic.h
   include/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.h
   include/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.h
+  include/pubsubpluginSTORAGE_CStoragePubSubIndexDef.h
+  include/pubsubpluginSTORAGE_CStoragePubSubIndexReader.h
+  include/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.h
+  include/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h
+  include/pubsubpluginSTORAGE_CStorageReplayTaskData.h
   include/pubsubpluginSTORAGE_config.h
   include/pubsubpluginSTORAGE_macros.h
 )
@@ -29,6 +34,11 @@ set( SOURCE_FILES
   src/pubsubpluginSTORAGE_CStoragePubSubClientTopic.cpp
   src/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.cpp
   src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp
+  src/pubsubpluginSTORAGE_CStoragePubSubIndexDef.cpp
+  src/pubsubpluginSTORAGE_CStoragePubSubIndexReader.cpp
+  src/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.cpp
+  src/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.cpp
+  src/pubsubpluginSTORAGE_CStorageReplayTaskData.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -49,11 +59,11 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )

@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #include "gucefMT_CICloneable.h"
 
 /*-------------------------------------------------------------------------//
@@ -68,6 +70,27 @@ CICloneable::operator=( const CICloneable& src )
     {
     }
     return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CICloneable::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CICloneable::IsCloneableType( const char* typeName ) const
+{GUCEF_TRACE;
+
+    const char* ownName = GetCloneableTypeName();
+    if ( GUCEF_NULL == ownName || GUCEF_NULL == typeName )
+        return false;
+    return ownName == typeName || 0 == strcmp( ownName, typeName );
 }
 
 /*-------------------------------------------------------------------------//

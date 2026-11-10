@@ -60,10 +60,4 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../curl/include", "../curl/include/curl", "../curl/lib", "../curl/lib/vauth", "../curl/lib/vquic", "../curl/lib/vssh", "../curl/lib/vtls", "include", "include/aws", "include/aws/http", "include/aws/lambda-runtime", "include/aws/logging", "src" } )
-
-configuration( { "WIN32" } )
-includedirs( { "../curl/lib" } )
-
-configuration( { "WIN64" } )
-includedirs( { "../curl/lib" } )
+includedirs( { "../curl/include", "../curl/lib", "include", "include/aws", "include/aws/http", "include/aws/lambda-runtime", "include/aws/logging", "src" } )

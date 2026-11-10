@@ -210,6 +210,31 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
     bool AcknowledgeReceipt( CIPubSubMsg::TNoLockSharedPtr& msg );
 
     /**
+     *  Called by a topic on this side when it needs out-of-band replay of stored messages.
+     *  Delegates to the flow router which coordinates with the persistence side.
+     *  Returns true if the replay was successfully initiated and assigns replayRequestIdOut.
+     */
+    bool OnReplayRequested( CPubSubClientTopic*    requestingTopic    ,
+                            const CPubSubBookmark& startBookmark      ,
+                            const CPubSubBookmark& endBookmark        ,
+                            CORE::UInt64&          replayRequestIdOut );
+
+    /**
+     *  Called by the replay task consumer for each batch of replayed messages.
+     *  Routes the messages directly to the requesting topic.
+     */
+    bool OnReplayMsgsReceived( CORE::UInt64                                replayRequestId ,
+                               CPubSubClientTopic*                         requestingTopic ,
+                               const CPubSubClientTopic::TPubSubMsgsRefVector& msgs        );
+
+    /**
+     *  Called by the flow router when a replay initiated by this side has completed.
+     *  Forwards the completion notification to the requesting topic.
+     */
+    void OnReplayComplete( CORE::UInt64        replayRequestId ,
+                           CPubSubClientTopic* requestingTopic );
+
+    /**
      *  Provides access to the current instantiation of the underlying pubsub client for this side
      *  Note that the lifecycle of the client is controlled by the side hence it is possible the underlying instance will be swapped out
      */

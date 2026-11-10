@@ -26,13 +26,12 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefVFS/include
 
-LOCAL_CFLAGS := -DITVEXPORTER_BUILD_MODULE
+LOCAL_CFLAGS := -DITVEXPORTER_BUILD_MODULE -DMODULE_CONSENSUS_NAME=itvExporter -DMODULE_NAME=itvExporter
 
 
 LOCAL_SHARED_LIBRARIES := \

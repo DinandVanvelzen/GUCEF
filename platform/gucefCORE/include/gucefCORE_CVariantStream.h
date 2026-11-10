@@ -34,6 +34,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_SFINAE_H
+#include "gucef_SFINAE.h"
+#define GUCEF_SFINAE_H
+#endif /* GUCEF_SFINAE_H ? */
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"
 #define GUCEF_CORE_MACROS_H
@@ -124,6 +129,33 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CVariantStream& operator<<( Int64 data );
     CVariantStream& operator<<( UInt64 data );
     CVariantStream& operator<<( Float32 data );
+
+    /**
+     *  The types long and unsigned long are not always the same type as one of the fixed width integers:
+     *  for example size_t is an unsigned long on 32 bit WebAssembly, which is a different type than UInt32.
+     *  Without these two the call would be ambiguous between all the integer overloads.
+     */
+    template < typename T >
+    typename ::GUCEF::EnableIf< ::GUCEF::TypesAreExactlySame< T, long >::value &&
+                               !::GUCEF::TypesAreExactlySame< long, Int32 >::value &&
+                               !::GUCEF::TypesAreExactlySame< long, Int64 >::value, CVariantStream& >::type
+    operator<<( T data )
+    {
+        if ( sizeof( long ) > 4 )
+            return operator<<( static_cast< Int64 >( data ) );
+        return operator<<( static_cast< Int32 >( data ) );
+    }
+
+    template < typename T >
+    typename ::GUCEF::EnableIf< ::GUCEF::TypesAreExactlySame< T, unsigned long >::value &&
+                               !::GUCEF::TypesAreExactlySame< unsigned long, UInt32 >::value &&
+                               !::GUCEF::TypesAreExactlySame< unsigned long, UInt64 >::value, CVariantStream& >::type
+    operator<<( T data )
+    {
+        if ( sizeof( unsigned long ) > 4 )
+            return operator<<( static_cast< UInt64 >( data ) );
+        return operator<<( static_cast< UInt32 >( data ) );
+    }
     CVariantStream& operator<<( Float64 data );
     CVariantStream& operator<<( const char* data );
     CVariantStream& operator<<( const CAsciiString& data );
@@ -220,12 +252,14 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CDynamicBuffer& GetBuffer( void );
 
     /**
-     *  Returns whether the stream is in a valid state (last operation succeeded)
+     *  Returns whether the stream is in a valid state: no operation failed since the stream was made, cleared or its
+     *  valid state was reset. A read at the end of the data fails as well: reading until this says false is the normal
+     *  way to read a stream to its end
      */
     bool IsValid( void ) const;
 
     /**
-     *  Resets the valid state (useful after handling an error)
+     *  Resets the valid state (useful after handling an error); a value that could not be read is tried again
      */
     void ResetValidState( void );
 
@@ -274,10 +308,19 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
 
     private:
 
+    /**
+     *  Reads the value at the read position. False at the end of the data (the normal end of reading, not logged)
+     *  and for a value that cannot be read (logged by the serializer once: the same value is not read again until
+     *  data is added, the stream is reset or ResetValidState() is called). Either makes the stream invalid.
+     */
+    bool ReadVariant( CVariant& var, bool linkWherePossible );
+
     CDynamicBuffer* m_buffer;
     UInt32 m_writePosition;
     UInt32 m_readPosition;
     bool m_isValid;
+    UInt32 m_failedReadPosition;    /**< where the last read failed on a value that was there, GUCEF_UINT32MAX for none */
+    UInt32 m_failedReadDataSize;    /**< the data size at that failed read: data added since makes the value worth another read */
 };
 
 /*-------------------------------------------------------------------------//

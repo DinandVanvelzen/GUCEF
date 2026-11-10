@@ -114,7 +114,9 @@ enum ESpecialDirs
     SPECIALDIR_MY_RECENT_DIR     ,
     SPECIALDIR_MY_SEARCHES_DIR   ,
     SPECIALDIR_MY_FAVORITES_DIR  ,
-    SPECIALDIR_MY_DOWNLOADS_DIR 
+    SPECIALDIR_MY_DOWNLOADS_DIR  ,
+    SPECIALDIR_CACHE_DIR         ,  /**< per user data that can be made again: Local AppData on Windows, $XDG_CACHE_HOME (~/.cache) on Linux */
+    SPECIALDIR_APP_CONFIG_DIR       /**< per user settings of applications: Roaming AppData (%APPDATA%) on Windows, $XDG_CONFIG_HOME (~/.config) on Linux */
 };
 typedef enum ESpecialDirs TSpecialDirs;
 

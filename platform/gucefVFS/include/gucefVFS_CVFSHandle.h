@@ -97,6 +97,16 @@ class GUCEF_VFS_PUBLIC_CPP CVFSHandle
 
     const CString& GetFilePath( void ) const;
 
+    /**
+     *  The full path within the VFS under which the resource was requested, like "/disc/data/file.res".
+     *  This is set by the VFS when it hands out the resource, and is empty for resources that are
+     *  created by other means. Unlike the file path, which each archive type fills in as it sees fit,
+     *  this path can be used to find other resources in the VFS, for example files that sit next to it.
+     */
+    const CString& GetVfsPath( void ) const;
+
+    void SetVfsPath( const CString& vfsPath );
+
     bool IsLoadedInMemory( void ) const;
 
     private:
@@ -111,6 +121,7 @@ class GUCEF_VFS_PUBLIC_CPP CVFSHandle
     CORE::IOAccessPtr m_fileAccess;
     CString m_filename;
     CString m_filePath;
+    CString m_vfsPath;
 };
 
 /*-------------------------------------------------------------------------*/

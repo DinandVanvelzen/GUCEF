@@ -306,6 +306,10 @@ CWin32GLWindowContext::Initialize( const GUI::CString& title                ,
 
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+        ApplySwapInterval( videoSettings.GetVSyncState() );
+        if ( videoSettings.GetFullscreenState() )
+            m_window.SetFullscreenStatus( true );
+
         // Grab the main app pulse generator and set the update interval for the context to the desired refresh rate
         CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator(); 
         pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
@@ -328,6 +332,36 @@ CWin32GLWindowContext::MakeCurrent( void )
         return false;
 	}
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "Win32GLWindowContext: Made context " + CORE::PointerToString( m_renderContext ) + " active for device context " + CORE::PointerToString( m_deviceContext ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWin32GLWindowContext::ApplySwapInterval( bool vsync )
+{GUCEF_TRACE;
+
+    typedef BOOL ( WINAPI *TSwapIntervalEXT )( int );
+    TSwapIntervalEXT swapIntervalEXT = (TSwapIntervalEXT) wglGetProcAddress( "wglSwapIntervalEXT" );
+    if ( NULL == swapIntervalEXT )
+        return false;
+    return FALSE != swapIntervalEXT( vsync ? 1 : 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWin32GLWindowContext::ApplyVideoSettings( const GUI::CVideoSettings& videoSettings )
+{GUCEF_TRACE;
+
+    if ( NULL == m_window.GetHwnd() || NULL == m_renderContext )
+        return false;
+    if ( !MakeCurrent() )
+        return false;
+    ApplySwapInterval( videoSettings.GetVSyncState() );
+    m_window.SetFullscreenStatus( videoSettings.GetFullscreenState() );
+    if ( !videoSettings.GetFullscreenState() && videoSettings.GetResolutionWidthInPixels() > 0 && videoSettings.GetResolutionHeightInPixels() > 0 )
+        m_window.ClientAreaResize( (int) videoSettings.GetResolutionWidthInPixels(), (int) videoSettings.GetResolutionHeightInPixels() );
     return true;
 }
 

@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -157,6 +157,7 @@ CIMGCodec::Encode( const CImage& inputImage       ,
         TImageInfo imageInfo;
         imageInfo.version = GUCEF_IMAGE_TIMAGEINFO_VERSION;
         imageInfo.nrOfFramesInImage = inputImage.GetFrameCount();
+        imageInfo.loopCount = inputImage.GetLoopCount();
 
         // write header
         bufferAccess.Write( &imageInfo, sizeof( TImageInfo ), 1 );
@@ -172,6 +173,7 @@ CIMGCodec::Encode( const CImage& inputImage       ,
         {   
             mipMapList = &inputImage.GetFrame( frameNr );
             frameInfo.nrOfMipmapLevels = static_cast< UInt32 >( mipMapList->size() );
+            frameInfo.frameDurationInMs = inputImage.GetFrameDurationInMs( frameNr );
             bufferAccess.Write( &frameInfo, sizeof( TImageFrameInfo ), 1 );
             
             // Now we add the info for each mipmap level
@@ -199,7 +201,8 @@ CIMGCodec::Encode( const CImage& inputImage       ,
         }
         
         // We have now merged all the image object data into a single buffer using the decoded 'ImageCodec' format
-        // It is time to perform the actual Encode()   
+        // It is time to perform the actual Encode(), which reads the buffer from its start
+        bufferAccess.Setpos( 0 );
         return Encode( bufferAccess  ,
                        encodedOutput );
     }
@@ -227,7 +230,7 @@ CIMGCodec::Decode( CORE::CIOAccess& encodedInput ,
         // Fill our header from the buffer
         TImageInfo imageInfo;
         bytesRead = bufferAccess.Read( &imageInfo, sizeof( TImageInfo ), 1 );
-        if ( bytesRead !=  sizeof( TImageInfo ) ) return false;
+        if ( bytesRead != 1 ) return false;   // Read() returns the number of elements read, not bytes
         
         // Check the header version for compatibility
         if ( imageInfo.version != GUCEF_IMAGE_TIMAGEINFO_VERSION ) return false;
@@ -244,7 +247,7 @@ CIMGCodec::Decode( CORE::CIOAccess& encodedInput ,
             bytesRead = bufferAccess.Read( currentFrame, sizeof( TImageFrameInfo ), 1 );
             
             // Sanity check 
-            if ( ( bytesRead != sizeof( TImageFrameInfo ) )                       ||
+            if ( ( bytesRead != 1 )                                                 ||
                  ( currentFrame->version != GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION )  )
             {
                 delete []imageFrameInfo;
@@ -259,7 +262,7 @@ CIMGCodec::Decode( CORE::CIOAccess& encodedInput ,
                 bytesRead = bufferAccess.Read( mipMapLevel, sizeof( TImageMipMapLevelInfo ), 1 );
                 
                 // Sanity check
-                if ( ( bytesRead != sizeof( TImageMipMapLevelInfo ) )                      ||
+                if ( ( bytesRead != 1 )                                                ||
                      ( mipMapLevel->version != GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION )  )
                 {
                     for ( UInt32 m=0; m<n; ++m ) delete []imageFrameInfo[ m ].mipmapLevel;
@@ -272,6 +275,7 @@ CIMGCodec::Decode( CORE::CIOAccess& encodedInput ,
         // Now we can read all the pixel data
         CImage::TFrameList frameList;
         CImage::TMipMapList mipMapList;
+        std::vector< UInt32 > frameDurations;
         UInt64 bufferOffset = bufferAccess.Tell();        
         char* pixelBuffer = static_cast< char* >( outputBuffer.GetBufferPtr() ) + bufferOffset;
         for ( UInt32 i=0; i<imageInfo.nrOfFramesInImage; ++i )
@@ -333,6 +337,7 @@ CIMGCodec::Decode( CORE::CIOAccess& encodedInput ,
             
             // Add the frame with all it's mipmap levels to the frame list
             frameList.push_back( mipMapList );
+            frameDurations.push_back( currentFrame->frameDurationInMs );
             mipMapList.clear();
             
             // Clean up our info storage
@@ -344,6 +349,9 @@ CIMGCodec::Decode( CORE::CIOAccess& encodedInput ,
         
         // Assign the parsed data to the output image object
         outputImage.Assign( frameList );
+        outputImage.SetLoopCount( imageInfo.loopCount );
+        for ( UInt32 i=0; i<frameDurations.size(); ++i )
+            outputImage.SetFrameDurationInMs( i, frameDurations[ i ] );
         return true;
     }
     

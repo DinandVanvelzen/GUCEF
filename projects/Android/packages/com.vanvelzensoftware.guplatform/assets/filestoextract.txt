@@ -23,15 +23,10 @@ libs/armeabi/libgucefVFS.so
 libs/armeabi/libguidriverAndroidGLES.so
 libs/armeabi/libguidriverMyGUI.so
 libs/armeabi/libguidriverMyGUIOpenGL.so
-libs/armeabi/libguidriverRocket.so
-libs/armeabi/libguidriverRocketOpenGL.so
 libs/armeabi/libinputdriverNANDROID.so
 libs/armeabi/liblibparsifal.so
 libs/armeabi/libminiupnpc.so
 libs/armeabi/libMyGUI.Engine.so
-libs/armeabi/libRocketControls.so
-libs/armeabi/libRocketCore.so
-libs/armeabi/libRocketDebugger.so
 libs/armeabi/libvfspluginDVP.so
 libs/armeabi/libvfspluginVP.so
 libs/armeabi/libvfspluginZIP.so

@@ -80,6 +80,8 @@ GUCEF_IMPLEMENT_MSGEXCEPTION( CImage, EInvalidIndex );
 
 CImage::CImage( void )
     : m_frameList()
+    , m_frameDurationsInMs()
+    , m_loopCount( 0 )
     , m_metaData()
 {GUCEF_TRACE;
 
@@ -89,6 +91,8 @@ CImage::CImage( void )
 
 CImage::CImage( const TFrameList& frameList )
     : m_frameList( frameList )
+    , m_frameDurationsInMs( frameList.size(), 0 )
+    , m_loopCount( 0 )
     , m_metaData()
 {GUCEF_TRACE;
 
@@ -98,22 +102,28 @@ CImage::CImage( const TFrameList& frameList )
 
 CImage::CImage( const TMipMapList& mipmapList )
     : m_frameList()
+    , m_frameDurationsInMs()
+    , m_loopCount( 0 )
     , m_metaData()
 {GUCEF_TRACE;
 
     m_frameList.push_back( mipmapList );
+    m_frameDurationsInMs.push_back( 0 );
 }
 
 /*--------------------------------------------------------------------------*/
 
 CImage::CImage( const TPixelMapPtr& pixelMapPtr )
     : m_frameList()
+    , m_frameDurationsInMs()
+    , m_loopCount( 0 )
     , m_metaData()
 {GUCEF_TRACE;
 
     TMipMapList mipmapList;
     mipmapList.push_back( pixelMapPtr );
     m_frameList.push_back( mipmapList );
+    m_frameDurationsInMs.push_back( 0 );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -127,6 +137,7 @@ CImage::Assign( const TFrameList& frameList )
 
     // Assign the image data
     m_frameList = frameList;
+    m_frameDurationsInMs.assign( frameList.size(), 0 );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -140,6 +151,7 @@ CImage::Assign( const TMipMapList& mipmapList )
 
     // Assign the image data
     m_frameList.push_back( mipmapList );
+    m_frameDurationsInMs.push_back( 0 );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -155,6 +167,7 @@ CImage::Assign( const TPixelMapPtr& pixelMapPtr )
     TMipMapList mipmapList;
     mipmapList.push_back( pixelMapPtr );
     m_frameList.push_back( mipmapList );
+    m_frameDurationsInMs.push_back( 0 );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -168,6 +181,8 @@ CImage::Assign( const TImage& cStyleImage )
 
     // Assign the image data
     UInt32 frameCount = cStyleImage.imageInfo.nrOfFramesInImage;
+    if ( cStyleImage.imageInfo.version >= 2 )
+        m_loopCount = cStyleImage.imageInfo.loopCount;
     for ( UInt32 i=0; i<frameCount; ++i )
     {
         const TImageFrame* frame = &cStyleImage.frames[ i ];
@@ -184,6 +199,7 @@ CImage::Assign( const TImage& cStyleImage )
         }
 
         m_frameList.push_back( mipmapList );
+        m_frameDurationsInMs.push_back( frame->frameInfo.version >= 2 ? frame->frameInfo.frameDurationInMs : 0 );
     }
 }
 
@@ -197,6 +213,7 @@ CImage::CreateCStyleAccess( void ) const
     cStyleImage->version = GUCEF_IMAGE_TIMAGE_VERSION;
     cStyleImage->imageInfo.nrOfFramesInImage = (UInt32) m_frameList.size();
     cStyleImage->imageInfo.version = GUCEF_IMAGE_TIMAGEINFO_VERSION;
+    cStyleImage->imageInfo.loopCount = m_loopCount;
     cStyleImage->frames = new TImageFrame[ m_frameList.size() ];
 
     TFrameList::const_iterator n = m_frameList.begin();
@@ -208,6 +225,7 @@ CImage::CreateCStyleAccess( void ) const
         frame->version = GUCEF_IMAGE_TIMAGEFRAME_VERSION;
         frame->frameInfo.version = GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION;
         frame->frameInfo.nrOfMipmapLevels = (UInt32) cppFrame.size();
+        frame->frameInfo.frameDurationInMs = m_frameDurationsInMs[ i ];
         frame->mipmapLevel = new TImageMipMapLevel[ frame->frameInfo.nrOfMipmapLevels ];
 
         TMipMapList::const_iterator m = cppFrame.begin();
@@ -252,21 +270,25 @@ CImage::FreeCStyleAccess( TImage* cStyleImage ) const
 /*--------------------------------------------------------------------------*/
 
 void
-CImage::AddFrame( TMipMapList& imageFrame )
+CImage::AddFrame( TMipMapList& imageFrame         ,
+                  const UInt32 frameDurationInMs  )
 {GUCEF_TRACE;
 
     m_frameList.push_back( imageFrame );
+    m_frameDurationsInMs.push_back( frameDurationInMs );
 }
 
 /*--------------------------------------------------------------------------*/
 
 void
-CImage::AddFrame( TPixelMapPtr& imageFrame )
+CImage::AddFrame( TPixelMapPtr& imageFrame        ,
+                  const UInt32 frameDurationInMs  )
 {GUCEF_TRACE;
 
     TMipMapList mipMapList;
     mipMapList.push_back( imageFrame );
     m_frameList.push_back( mipMapList );
+    m_frameDurationsInMs.push_back( frameDurationInMs );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -296,6 +318,7 @@ CImage::SetFrame( TMipMapList& imageFrame           ,
     if ( frameIndex == m_frameList.size() )
     {
         m_frameList.push_back( imageFrame );
+        m_frameDurationsInMs.push_back( 0 );
     }
     else
     {
@@ -342,6 +365,8 @@ CImage::Clear( void )
     // Because we are using shared pointers all we have to do is clear the list
     // this will cause things to be de-allocated as needed
     m_frameList.clear();
+    m_frameDurationsInMs.clear();
+    m_loopCount = 0;
 
     m_metaData.Clear();
 }
@@ -411,6 +436,77 @@ CImage::GetFrame( const UInt32 frameIndex /* = 0 */ ) const
     }
 
     GUCEF_EMSGTHROW( EInvalidIndex, "CImage::GetFrame(): Invalid frame or mipmap index" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CImage::GetFrameDurationInMs( const UInt32 frameIndex /* = 0 */ ) const
+{GUCEF_TRACE;
+
+    if ( frameIndex < m_frameDurationsInMs.size() )
+        return m_frameDurationsInMs[ frameIndex ];
+
+    GUCEF_EMSGTHROW( EInvalidIndex, "CImage::GetFrameDurationInMs(): Invalid frame index" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CImage::SetFrameDurationInMs( const UInt32 frameIndex   ,
+                              const UInt32 durationInMs )
+{GUCEF_TRACE;
+
+    if ( frameIndex < m_frameDurationsInMs.size() )
+    {
+        m_frameDurationsInMs[ frameIndex ] = durationInMs;
+        return;
+    }
+
+    GUCEF_EMSGTHROW( EInvalidIndex, "CImage::SetFrameDurationInMs(): Invalid frame index" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CImage::GetTotalDurationInMs( void ) const
+{GUCEF_TRACE;
+
+    UInt32 totalDurationInMs = 0;
+    std::vector< UInt32 >::const_iterator i = m_frameDurationsInMs.begin();
+    while ( i != m_frameDurationsInMs.end() )
+    {
+        totalDurationInMs += (*i);
+        ++i;
+    }
+    return totalDurationInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CImage::IsAnimation( void ) const
+{GUCEF_TRACE;
+
+    return m_frameList.size() > 1 && GetTotalDurationInMs() > 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CImage::GetLoopCount( void ) const
+{GUCEF_TRACE;
+
+    return m_loopCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CImage::SetLoopCount( const UInt32 loopCount )
+{GUCEF_TRACE;
+
+    m_loopCount = loopCount;
 }
 
 /*-------------------------------------------------------------------------*/

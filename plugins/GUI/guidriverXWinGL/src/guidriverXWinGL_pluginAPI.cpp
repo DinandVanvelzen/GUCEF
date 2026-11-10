@@ -55,7 +55,7 @@ namespace GUIDRIVERXWINGL {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static TXWinGLWindowManagerImpPtr xwinGlWindowManager = new CXWinGLWindowManagerImp();
+static TXWinGLWindowManagerImpPtr xwinGlWindowManager( new CXWinGLWindowManagerImp() );
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

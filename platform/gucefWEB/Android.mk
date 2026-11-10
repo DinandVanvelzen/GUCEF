@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
   src/gucefWEB.cpp \
   src/gucefWEB_CAsyncHttpServerRequestHandler.cpp \
   src/gucefWEB_CAsyncHttpServerResponseHandler.cpp \
+  src/gucefWEB_CChromeDevToolsClient.cpp \
   src/gucefWEB_CCodecBasedHTTPServerResource.cpp \
   src/gucefWEB_CConfigurableHttpServerResource.cpp \
   src/gucefWEB_CDataNodeSerializableHttpServerResource.cpp \
@@ -36,17 +37,38 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CGlobalHttpCodecLinks.cpp \
   src/gucefWEB_CHTTPClient.cpp \
   src/gucefWEB_CHTTPServer.cpp \
-  src/gucefWEB_CHTTPURLHandler.cpp \
+  src/gucefWEB_CHttpClientBackendRequestBase.cpp \
+  src/gucefWEB_CHttpClientBackendSelection.cpp \
+  src/gucefWEB_CHttpClientRequestOptions.cpp \
+  src/gucefWEB_CHttpClientRequestRunner.cpp \
+  src/gucefWEB_CHttpClientRequestTask.cpp \
   src/gucefWEB_CHttpCodecLinks.cpp \
+  src/gucefWEB_CHttpCookieJar.cpp \
   src/gucefWEB_CHttpEncodingTypes.cpp \
+  src/gucefWEB_CHttpLogRedaction.cpp \
   src/gucefWEB_CHttpMimeTypes.cpp \
+  src/gucefWEB_CHttpProxyEnvironment.cpp \
   src/gucefWEB_CHttpRequestData.cpp \
   src/gucefWEB_CHttpResponseData.cpp \
+  src/gucefWEB_CHttpServerExchange.cpp \
+  src/gucefWEB_CHttpUriResourceAccessor.cpp \
   src/gucefWEB_CIHTTPServerResource.cpp \
   src/gucefWEB_CIHTTPServerRouter.cpp \
   src/gucefWEB_CIHTTPServerRouterController.cpp \
+  src/gucefWEB_CIHttpClientBackend.cpp \
   src/gucefWEB_CIHttpServerRequestHandler.cpp \
+  src/gucefWEB_CIMcpHttpAuthenticator.cpp \
+  src/gucefWEB_CIrcWebSocketTransport.cpp \
+  src/gucefWEB_CJsonRpcClient.cpp \
+  src/gucefWEB_CJsonRpcServer.cpp \
+  src/gucefWEB_CMcpHttpExchangeChannel.cpp \
+  src/gucefWEB_CMcpHttpTransportSettings.cpp \
+  src/gucefWEB_CMcpStaticBearerAuthenticator.cpp \
+  src/gucefWEB_CMcpStreamableHttpTransport.cpp \
   src/gucefWEB_CModule.cpp \
+  src/gucefWEB_CNativeHttpClientBackend.cpp \
+  src/gucefWEB_CServiceHealthHttpEndpoints.cpp \
+  src/gucefWEB_CSseEventWriter.cpp \
   src/gucefWEB_CStdParamParser.cpp \
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp \
   src/gucefWEB_CTDataNodeSerializableMapHttpServerResource.cpp \
@@ -54,7 +76,13 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CTaskDataCollectionServerResource.cpp \
   src/gucefWEB_CTaskManagerServerResource.cpp \
   src/gucefWEB_CVfsHttpServerResource.cpp \
-  src/gucefWEB_CWebGlobal.cpp
+  src/gucefWEB_CWebGlobal.cpp \
+  src/gucefWEB_CWebSocketClient.cpp \
+  src/gucefWEB_CWebSocketConnection.cpp \
+  src/gucefWEB_CWebSocketFrameCodec.cpp \
+  src/gucefWEB_CWebSocketHandshake.cpp \
+  src/gucefWEB_CWebSocketMessageParser.cpp \
+  src/gucefWEB_CWebSocketServer.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
@@ -62,12 +90,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include
 
-LOCAL_CFLAGS := -DGUCEF_WEB_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_WEB_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefWEB -DMODULE_NAME=gucefWEB -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \

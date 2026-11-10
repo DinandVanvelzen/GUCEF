@@ -46,28 +46,53 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  A button with text, a picture per state, or both. Properties: Text, Font, TextColour,
+ *  NormalImage, HoverImage, PushedImage, DisabledImage, ClickSound (an id the application plays
+ *  on ActivatedEvent, gucefGUI only carries it).
+ */
 class GUCEF_GUI_PUBLIC_CPP CButton : public CWidget
 {
     public:
-    
+
     static const CORE::CEvent ButtonDownEvent;
     static const CORE::CEvent ButtonUpEvent;
-    static const CORE::CEvent ButtonClickedEvent;
-    
+    static const CORE::CEvent ButtonClickedEvent;   /**< together with ActivatedEvent, for older code */
+
     static void RegisterEvents( void );
-    
+
     public:
-    
+
     CButton( void );
-    
+
+    CButton( const CString& widgetTypeName );
+
     virtual ~CButton();
-    
+
     virtual bool SetButtonText( const CString& newText );
-    
+
     virtual bool GetButtonText( CString& text ) const;
-    
+
+    /** The picture for the current state: disabled, pushed (pressed and hovered), hover, else normal; a missing one falls back to NormalImage */
+    CString GetCurrentImage( void ) const;
+
+    virtual bool GetNaturalSize( Int32& width, Int32& height ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsActivatable( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Button"; }
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
     CButton( const CButton& src );
     CButton& operator=( const CButton& src );
 };
@@ -82,16 +107,5 @@ class GUCEF_GUI_PUBLIC_CPP CButton : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CBUTTON_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

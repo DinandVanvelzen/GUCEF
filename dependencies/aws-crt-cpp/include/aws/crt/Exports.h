@@ -30,6 +30,10 @@
 #    endif // AWS_CRT_CPP_USE_IMPORT_EXPORT
 
 #else // defined (USE_WINDOWS_DLL_SEMANTICS) || defined (WIN32)
+/* DV edit: upstream builds with default symbol visibility, ours hides symbols by default */
+#    if defined(__GNUC__) || defined(__clang__)
+#        pragma GCC visibility push(default)
+#    endif
 #    if ((__GNUC__ >= 4) || defined(__clang__)) && defined(AWS_CRT_CPP_USE_IMPORT_EXPORT) &&                           \
         defined(AWS_CRT_CPP_EXPORTS)
 #        define AWS_CRT_CPP_API __attribute__((visibility("default")))

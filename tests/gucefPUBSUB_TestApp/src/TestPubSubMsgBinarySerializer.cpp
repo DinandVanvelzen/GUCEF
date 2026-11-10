@@ -63,7 +63,7 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-typedef std::vector< CORE::CDynamicBuffer >         TDynamicBufferVector;
+typedef GUCEF::vector< CORE::CDynamicBuffer >       TDynamicBufferVector;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

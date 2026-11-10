@@ -102,9 +102,17 @@ class GUCEF_CORE_PUBLIC_CPP CSysConsole : public CGloballyConfigurable  ,
                         const CString& path      ,
                         const CString& function  );
 
+    /** Takes away the alias with the given name; 'path' and 'function' are only used in the log */
     bool UnregisterAlias( const CString& aliasname ,
                           const CString& path      ,
                           const CString& function  );
+
+    /** Takes away every command of the handler, for a handler that is about to be destroyed */
+    void UnregisterCmdsOfHandler( CISysConsoleCmdHandler* cmdhandler );
+
+    /** Whether a command with the given name is registered at the given path */
+    bool HasCmd( const CString& path    ,
+                 const CString& command ) const;
 
     /**
      *      Attempts to store the given tree in the file
@@ -152,6 +160,9 @@ class GUCEF_CORE_PUBLIC_CPP CSysConsole : public CGloballyConfigurable  ,
 
     CString::StringVector GetCmdList( const CSysConsoleClient* client ) const;
 
+    CString::StringVector GetCompletions( const CSysConsoleClient* client ,
+                                          const CString& partialName      ) const;
+
     void InitClient( CSysConsoleClient* client );
 
     void UnregClient( CSysConsoleClient* client );
@@ -177,20 +188,33 @@ class GUCEF_CORE_PUBLIC_CPP CSysConsole : public CGloballyConfigurable  ,
 
     CSysConsole& operator=( const CSysConsole& src );
 
-    struct SCmdChannel* FindChannel( struct SCmdChannel* curchannel ,
-                                     const CString& name            );
+    /** Splits a path on '\\' and '/' into its directory names, resolving "." and ".." against 'basePath' */
+    static bool ResolvePath( const CString& basePath         ,
+                             const CString& path             ,
+                             CString::StringVector& segments );
 
-    struct SCmdChannel* BuildTree( struct SCmdChannel* curchannel ,
-                                   const CString& path            );
+    static CString JoinPath( const CString::StringVector& segments );
 
-    void DelTree( struct SCmdChannel* tree );
+    struct SCmdChannel* FindChannel( const CString::StringVector& segments ) const;
 
-    struct SCmdChannel* WalkTree( struct SCmdChannel* curchannel ,
-                                  const CString& path            ,
-                                  CString& leftover              );
+    struct SCmdChannel* FindOrAddChannel( const CString::StringVector& segments );
 
-    struct SFunctionHook* FindFunction( const struct SCmdChannel* curchannel ,
-                                        const CString& functionname          );
+    static struct SCmdChannel* FindChildChannel( const struct SCmdChannel* curchannel ,
+                                                 const CString& name                  );
+
+    static struct SFunctionHook* FindFunction( const struct SCmdChannel* curchannel ,
+                                               const CString& functionname          );
+
+    /** Every place in the tree that has a command with the given name, as paths */
+    void FindFunctionPaths( const struct SCmdChannel* curchannel ,
+                            const CString& curPath               ,
+                            const CString& functionname          ,
+                            CString::StringVector& paths         ) const;
+
+    void RemoveHandler( struct SCmdChannel* curchannel        ,
+                        const CISysConsoleCmdHandler* handler );
+
+    static void DelTree( struct SCmdChannel* tree );
 
     TAliasData* FindAliasFunction( const CString& aliasname );
 
@@ -199,7 +223,7 @@ class GUCEF_CORE_PUBLIC_CPP CSysConsole : public CGloballyConfigurable  ,
                               const CString::StringVector& args ,
                               CString::StringVector& resultdata ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CDataNode m_root;
+    struct SCmdChannel* m_root;
     TAliasList m_aliases;
     MT::CMutex m_datalock;
 };

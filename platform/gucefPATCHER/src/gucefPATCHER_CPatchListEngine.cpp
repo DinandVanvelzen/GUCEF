@@ -77,8 +77,8 @@ CPatchListEngine::CPatchListEngine( const CORE::PulseGeneratorPtr& pulseGenerato
       CPatchSetEngineEvents()                                   ,
       CPatchListEngineEvents()                                  ,
       m_patchSetEngine( new CPatchSetEngine( pulseGenerator ) ) ,
-      m_url()                                                   ,
       m_setDataBuffer()                                         ,
+      m_retriever( pulseGenerator )                             ,
       m_patchList()                                             ,
       m_setIndex( 0 )                                           ,
       m_setLocIndex( 0 )                                        ,
@@ -105,8 +105,8 @@ CPatchListEngine::CPatchListEngine( void )
       CPatchSetEngineEvents()                   ,
       CPatchListEngineEvents()                  ,
       m_patchSetEngine( new CPatchSetEngine() ) ,
-      m_url()                                   ,
       m_setDataBuffer()                         ,
+      m_retriever()                             ,
       m_patchList()                             ,
       m_setIndex( 0 )                           ,
       m_setLocIndex( 0 )                        ,
@@ -160,7 +160,7 @@ CPatchListEngine::Initialize( void )
     AddForwardingForEvent( FileListProcessingCompleteEvent, EVENTORIGINFILTER_UNMODIFIED );
     AddForwardingForEvent( FileListProcessingAbortedEvent, EVENTORIGINFILTER_UNMODIFIED );
 
-    SubscribeTo( &m_url );
+    SubscribeTo( &m_retriever );
 
     // Subscribe to all events from the patch set engine
     // This should allow us to receive all events that we wish to forward
@@ -228,12 +228,9 @@ CPatchListEngine::ObtainCurrentPatchSet( void )
         // Make sure the buffer is cleared
         m_setDataBuffer.Clear();
 
-        // Set the URL for the current set location
-        m_url.SetURL( setLocation->URL );
-
-        // Now we try and obtain it
+        // Now we try and obtain the patch set from the URL of the current set location
         NotifyObservers( PatchSetRetrievalStartedEvent, CreateEventStatusObj() );
-        if ( !m_url.Activate() )
+        if ( !m_retriever.Retrieve( CORE::CUri( setLocation->URL ), m_setDataBuffer ).HasAFuture() )
         {
             NotifyObservers( PatchSetRetrievalFailedEvent, CreateEventStatusObj() );
             return false;
@@ -308,7 +305,7 @@ CPatchListEngine::Stop( void )
     {
         m_stopSignalGiven = true;
 
-        m_url.Deactivate();
+        m_retriever.Cancel( true );
         m_patchSetEngine->Stop();
     }
 }
@@ -478,23 +475,17 @@ CPatchListEngine::OnNotify( CORE::CNotifier* notifier                 ,
             }
         }
         else
-        if ( notifier == &m_url )
+        if ( notifier == &m_retriever )
         {
-            if ( eventid == CORE::CURL::URLDataRecievedEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalProgressEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchListEngine: Patch set data received" );
 
-                // Translate event data
-                const CORE::CDynamicBuffer& buffer = ( static_cast< CORE::CURL::TURLDataRecievedEventData* >( eventdata ) )->GetData();
-
-                // Append the data to our buffer
-                m_setDataBuffer.Append( buffer.GetConstBufferPtr() ,
-                                        buffer.GetDataSize()       );
-
+                // The data itself is already in our buffer
                 NotifyObservers( PatchSetDataRecievedEvent, CreateEventStatusObj() );
             }
             else
-            if ( eventid == CORE::CURL::URLAllDataRecievedEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent )
             {
                 // The retrieval process of the patch set has been completed
                 NotifyObservers( PatchSetRetrievalCompletedEvent, CreateEventStatusObj() );
@@ -503,7 +494,7 @@ CPatchListEngine::OnNotify( CORE::CNotifier* notifier                 ,
                 ProcessRecievedPatchSet();
             }
             else
-            if ( eventid == CORE::CURL::URLDeactivateEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalCancelledEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchListEngine: Aborting patch list processing" );
 
@@ -513,7 +504,7 @@ CPatchListEngine::OnNotify( CORE::CNotifier* notifier                 ,
                 NotifyObservers( PatchListProcessingAbortedEvent, CreateEventStatusObj() );
             }
             else
-            if ( eventid == CORE::CURL::URLDataRetrievalErrorEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchListEngine: Patch set data retrieval error" );
 

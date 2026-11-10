@@ -12,15 +12,20 @@
 
 workspace( "GUCEF_exe_FileReplacer" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "ANDROID"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )
@@ -40,6 +45,11 @@ filter "ARDUINO"
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )
 
+filter "EMSCRIPTEN"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
 filter "EMSCRIPTEN32"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -55,12 +65,47 @@ filter "IOS"
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )
 
+filter "IPHONE"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "IPHONEOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "LINUX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
 filter "LINUX32"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )
 
 filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "MAC"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "MACOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "MACOSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "MSWIN"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )
@@ -76,6 +121,11 @@ filter "WIN32"
   include( "tools/FileReplacer" )
 
 filter "WIN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "WINDOWS"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )

@@ -42,6 +42,8 @@
 #define GUCEF_PLUGINGLUE_AWSSDK_CLOGGINGADAPTER_H
 #endif /* GUCEF_PLUGINGLUE_AWSSDK_CLOGGINGADAPTER_H ? */
 
+#include <stdlib.h>
+
 #include "pluginglueAWSSDK_CAwsSdkGlobal.h"
 
 #ifndef GUCEF_DYNNEWOFF_H
@@ -108,8 +110,22 @@ CAwsSdkGlobal::Deinstance( void )
 /*-------------------------------------------------------------------------*/
 
 void
+CAwsSdkGlobal::ShutdownAtProcessExit( void )
+{GUCEF_TRACE;
+
+    Deinstance();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CAwsSdkGlobal::InitializeBeforeConfig( void )
 {GUCEF_TRACE;
+
+    // The SDK is initialized once, either when the configuration is loaded or the first time something needs the
+    // SDK without a configuration having been loaded (which is fine since everything has defaults)
+    if ( m_isAwsApiInitialized )
+        return;
 
     try
     {
@@ -123,7 +139,19 @@ CAwsSdkGlobal::InitializeBeforeConfig( void )
 
         m_defaultClientConfig = CClientConfigurationPtr( GUCEF_NEW CClientConfiguration( "DefaultClientConfig." ) );
         m_credsProvider = std::make_shared< CCredentialsProviderAdapter >();
-        
+        m_isAwsApiInitialized = true;
+
+        // The AWS SDK has static objects (such as its metadata client) which need the SDK to still be around when
+        // they are destroyed at process exit. Library unload notifications come too late for that since they run after
+        // all static objects are gone, so we shut down from an exit handler. Handlers run in reverse order of registration
+        // which means this one runs before the static objects of the libraries that were loaded before this point
+        static bool exitHandlerRegistered = false;
+        if ( !exitHandlerRegistered )
+        {
+            exitHandlerRegistered = true;
+            atexit( &CAwsSdkGlobal::ShutdownAtProcessExit );
+        }
+
         GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "AwsSdkGlobal:InitializeBeforeConfig: successfully completed" );
     }
     catch ( const std::exception& e )
@@ -208,6 +236,7 @@ CAwsSdkGlobal::CAwsSdkGlobal( void )
     , m_awsSdkOptions()
     , m_credsProvider()
     , m_defaultClientConfig()
+    , m_isAwsApiInitialized( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -222,6 +251,7 @@ CAwsSdkGlobal::CAwsSdkGlobal( const CAwsSdkGlobal& src )
     , m_awsSdkOptions( src.m_awsSdkOptions )
     , m_credsProvider( src.m_credsProvider )
     , m_defaultClientConfig( src.m_defaultClientConfig )
+    , m_isAwsApiInitialized( src.m_isAwsApiInitialized )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -234,7 +264,8 @@ CAwsSdkGlobal::~CAwsSdkGlobal()
 
     try
     {
-        Aws::ShutdownAPI( m_awsSdkOptions );
+        if ( m_isAwsApiInitialized )
+            Aws::ShutdownAPI( m_awsSdkOptions );
         GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "AwsSdkGlobal systems shutdown completed" );
     }
     catch ( const std::exception& e )
@@ -271,6 +302,7 @@ CAwsSdkGlobal::CredentialsProviderPtr
 CAwsSdkGlobal::GetCredentialsProvider( void )
 {GUCEF_TRACE;
 
+    InitializeBeforeConfig();
     return m_credsProvider;   
 }
 
@@ -280,6 +312,7 @@ const Aws::Client::ClientConfiguration&
 CAwsSdkGlobal::GetDefaultAwsClientConfig( void )
 {GUCEF_TRACE;
  
+    InitializeBeforeConfig();
     return *m_defaultClientConfig;
 }
 

@@ -13,6 +13,9 @@
         </Preprocessor>
     </Module>
     <Module Platform="Linux">
+        <Preprocessor>
+            <Define String="_GNU_SOURCE" />
+        </Preprocessor>
         <Linker>
             <Dependency Name="dl" />
 	   <Dependency Name="atomic" />

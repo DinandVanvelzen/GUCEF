@@ -26,12 +26,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/ 
 
-#include <vector>
-
 #ifndef GUCEF_GUI_MACROS_H
 #include "gucefGUI_macros.h"
 #define GUCEF_GUI_MACROS_H
 #endif /* GUCEF_GUI_MACROS_H ? */
+
+#ifndef GUCEF_GUI_TYPES_H
+#include "gucefGUI_Types.h"
+#define GUCEF_GUI_TYPES_H
+#endif /* GUCEF_GUI_TYPES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -52,6 +55,11 @@ class CVideoSettings;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The display modes a display offers. Where the platform tells: MS Windows, Linux with X11 (through XRandR when
+ *  the system has it), the web (the screen the browser is on). On Android the window always covers the screen
+ *  and the system picks its mode: there are no options to retrieve.
+ */
 class GUCEF_GUI_PUBLIC_CPP CVideoOptions
 {
     public:
@@ -64,7 +72,7 @@ class GUCEF_GUI_PUBLIC_CPP CVideoOptions
         UInt32 frequency;     /**< display frequency in frames per second */
     };
     typedef struct SDisplayMode TDisplayMode;
-    typedef std::vector< TDisplayMode > TDisplayModeVector;
+    typedef GUCEF::vector< TDisplayMode > TDisplayModeVector;
     
     CVideoOptions( void );
     
@@ -87,8 +95,46 @@ class GUCEF_GUI_PUBLIC_CPP CVideoOptions
                                        TDisplayModeVector& modes   ) const;
     
     void Clear( void );
-    
+
+    /** Adds a mode, a mode that is there already is not added again */
+    void AddDisplayMode( const TDisplayMode& displayMode );
+
+    /**
+     *  The usual game resolutions this display can show, smallest first. In a window: those that fit in the
+     *  largest display mode (all of them when there are no modes). In full screen: those the display has as
+     *  a mode, at the highest frequency it has for them. The largest mode of the display is always in the list, also when it is a size
+     *  that is not a usual one, like that of a super wide display.
+     */
+    void GetCommonResolutions( bool fullscreen, TDisplayModeVector& resolutions ) const;
+
+    /** The usual game resolutions, from 640 x 480 up to 5120 x 2160 and including the wide displays, smallest first */
+    static const TDisplayModeVector& GetCommonGameResolutions( void );
+
+    /**
+     *  A source of display modes besides that of the platform, for a window system that sees the monitors in a way of its own
+     *  (Wayland: the monitors the compositor tells of). A window driver registers one under its name; the application selects
+     *  the one of the window system it uses. When the selected source has nothing, or none is selected, the platform is asked.
+     */
+    struct SDisplayModeSource
+    {
+        bool ( *retrieveOptions )( CVideoOptions& options );
+        bool ( *retrieveCurrentMode )( TDisplayMode& displayMode );
+    };
+
+    static void RegisterDisplayModeSource( const CString& name, const SDisplayModeSource& source );
+
+    static void UnregisterDisplayModeSource( const CString& name );
+
+    /** The source RetrieveOptionsFromOS() and RetrieveCurrentDisplayModeFromOS() ask first, by name; empty for the platform only */
+    static void SelectDisplayModeSource( const CString& name );
+
+    static CString GetSelectedDisplayModeSource( void );
+
+    /** The display modes of the main display; false when there is no display to ask */
     static bool RetrieveOptionsFromOS( CVideoOptions& options );
+
+    /** The mode the main display is in; false when there is no display to ask */
+    static bool RetrieveCurrentDisplayModeFromOS( TDisplayMode& displayMode );
         
     private:
 

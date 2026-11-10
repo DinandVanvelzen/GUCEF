@@ -88,12 +88,12 @@ CEvent::CEvent( const CORE::CString& eventName ) GUCEF_NOEXCEPT
 #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
 
 CEvent::CEvent( CEvent&& src ) GUCEF_NOEXCEPT
-    : m_eventID( src.m_eventID )     ,
+    : m_eventID( src.m_eventID.Load( MT::MEMORDER_RELAXED ) ) ,
       m_eventName( GUCEF_MOVE( src.m_eventName ) )
 {GUCEF_TRACE;
 
     // reset source to default constructor values
-    src.m_eventID = 0;
+    src.m_eventID.Store( 0, MT::MEMORDER_RELAXED );
 }
 
 #endif /* GUCEF_RVALUE_REFERENCES_SUPPORTED ? */
@@ -111,7 +111,7 @@ CEvent::CEvent( const UInt32 eventID     ,
 /*-------------------------------------------------------------------------*/
 
 CEvent::CEvent( const CEvent& src ) GUCEF_NOEXCEPT
-    : m_eventID( src.m_eventID )   ,
+    : m_eventID( src.m_eventID.Load( MT::MEMORDER_RELAXED ) ) ,
       m_eventName( src.m_eventName )
 {GUCEF_TRACE;
 
@@ -133,7 +133,7 @@ CEvent::operator=( const CEvent& src )
     if ( &src != this )
     {
         m_eventName = src.m_eventName;
-        m_eventID = src.m_eventID;
+        m_eventID.Store( src.m_eventID.Load( MT::MEMORDER_RELAXED ), MT::MEMORDER_RELAXED );
     }
     return *this;
 }
@@ -147,7 +147,7 @@ CEvent::operator=( const CORE::CString& eventName )
     if ( eventName != m_eventName )
     {
         m_eventName = eventName;
-        m_eventID = 0;    // <- Wait for delayed initialization
+        m_eventID.Store( 0, MT::MEMORDER_RELAXED );    // <- Wait for delayed initialization
     }
     return *this;
 }
@@ -161,7 +161,7 @@ CEvent::operator=( const char* eventName )
     if ( eventName != m_eventName )
     {
         m_eventName = eventName;
-        m_eventID = 0;    // <- Wait for delayed initialization
+        m_eventID.Store( 0, MT::MEMORDER_RELAXED );    // <- Wait for delayed initialization
     }
     return *this;
 }
@@ -172,10 +172,10 @@ bool
 CEvent::operator==( const CEvent& other ) const
 {GUCEF_TRACE;
 
-    // If you hit the asserts below then the event object was not initialized
-    assert( m_eventID > 0 );
-    assert( other.m_eventID > 0 );
-    return m_eventID == other.m_eventID;
+    // An event that has a name resolves its id on first use, see EnsureInitialized()
+    EnsureInitialized();
+    other.EnsureInitialized();
+    return m_eventID.Load( MT::MEMORDER_RELAXED ) == other.m_eventID.Load( MT::MEMORDER_RELAXED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -202,10 +202,10 @@ bool
 CEvent::operator!=( const CEvent& other ) const
 {GUCEF_TRACE;
 
-    // If you hit the asserts below then the event object was not initialized
-    assert( m_eventID > 0 );
-    assert( other.m_eventID > 0 );
-    return m_eventID != other.m_eventID;
+    // An event that has a name resolves its id on first use, see EnsureInitialized()
+    EnsureInitialized();
+    other.EnsureInitialized();
+    return m_eventID.Load( MT::MEMORDER_RELAXED ) != other.m_eventID.Load( MT::MEMORDER_RELAXED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -214,10 +214,10 @@ bool
 CEvent::operator<( const CEvent& other ) const
 {GUCEF_TRACE;
 
-    // If you hit the asserts below then the event object was not initialized
-    assert( m_eventID > 0 );
-    assert( other.m_eventID > 0 );
-    return m_eventID < other.m_eventID;
+    // An event that has a name resolves its id on first use, see EnsureInitialized()
+    EnsureInitialized();
+    other.EnsureInitialized();
+    return m_eventID.Load( MT::MEMORDER_RELAXED ) < other.m_eventID.Load( MT::MEMORDER_RELAXED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -226,9 +226,8 @@ UInt32
 CEvent::GetID( void ) const
 {GUCEF_TRACE;
 
-    // If you hit the asserts below then the event object was not initialized
-    assert( m_eventID > 0 );
-    return m_eventID;
+    EnsureInitialized();
+    return m_eventID.Load( MT::MEMORDER_RELAXED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -247,9 +246,9 @@ CEvent::Initialize( void ) const
 {GUCEF_TRACE;
 
     // For performance reasons we don't perform the lookup again on a non-zero id
-    // Since this is for performance only we don't need to worry about thread safety on
-    // the branch as a race condition merely results in an extra lookup
-    if ( 0 == m_eventID )
+    // Threads that find the id missing at the same time each look it up and store the same value, an atomic one:
+    // only the id is stored, the name is the key of the lookup and stays as it is, other threads may be reading it
+    if ( 0 == m_eventID.Load( MT::MEMORDER_RELAXED ) )
     {
         /*
          *  In this rare occasion a const_cast is legit since we are preforming
@@ -258,8 +257,24 @@ CEvent::Initialize( void ) const
          *  The fact that we cannot initialize objects right from the start
          *  while allowing event objects to be defined globally is an implementation level problem.
          */
-        const_cast< CEvent& >( *this ) = CORE::CCoreGlobal::Instance()->GetNotificationIDRegistry().Lookup( m_eventName, true );
+        CEvent registered( CORE::CCoreGlobal::Instance()->GetNotificationIDRegistry().Lookup( m_eventName, true ) );
+        const_cast< CEvent& >( *this ).m_eventID.Store( registered.m_eventID.Load( MT::MEMORDER_RELAXED ), MT::MEMORDER_RELAXED );
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CEvent::EnsureInitialized( void ) const
+{GUCEF_TRACE;
+
+    // Events are mostly static objects a module registers when it loads. When that registration runs before the static
+    // event objects are constructed (the order of static initialization between source files is not defined) their
+    // construction leaves them without an id again. An event that has a name can always find its id, so it does here.
+    // If you hit the assert below then the event object was never given a name
+    if ( 0 == m_eventID.Load( MT::MEMORDER_RELAXED ) && !m_eventName.IsNULLOrEmpty() )
+        Initialize();
+    assert( m_eventID.Load( MT::MEMORDER_RELAXED ) > 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -268,7 +283,7 @@ bool
 CEvent::IsInitialized( void ) const
 {GUCEF_TRACE;
 
-    return m_eventID > 0;
+    return m_eventID.Load( MT::MEMORDER_RELAXED ) > 0;
 }
 
 /*-------------------------------------------------------------------------//

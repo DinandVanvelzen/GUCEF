@@ -1,0 +1,31 @@
+<ModuleInfoEntry>
+    <Module Name="audiocodecpluginMP3" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO codec plugin for MP3 audio</DescriptionHeadline>
+            <DescriptionDetails>Reads MP3 files (MPEG 1, 2 and 2.5 layer III). Decoding is done by dr_mp3, sample exact seeking included, with an optional seek table made when the file is opened, and gapless playback when the file has a LAME tag. Tags are the ID3v2 text frames and the ID3v1 fields. Decoding only. Written in C against the gucefAUDIO codec plugin C interface.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="dr_libs" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOCODECPLUGIN_MP3_BUILD_MODULE" />
+        </Preprocessor>
+        <!-- the decoder runs optimised in debug builds too: unoptimised it is many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

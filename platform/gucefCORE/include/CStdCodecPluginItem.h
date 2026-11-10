@@ -57,48 +57,70 @@ class CStdCodecPlugin;
 /*-------------------------------------------------------------------------*/
 
 /**
- *  class used to redirect from the codec interface to a codec plugin
- *  interface. 
+ *  A codec of a plugin: redirects the codec interface to the functions of its TCodecPluginLink.
+ *  Parameters reach the plugin as a variant map, its status and error text come back as the last status.
  */
 class GUCEF_CORE_PUBLIC_CPP CStdCodecPluginItem : public CICodec
 {
     public:
-    
+
     virtual bool Encode( CIOAccess& source ,
-                         CIOAccess& dest   );
+                         CIOAccess& dest   ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool Decode( CIOAccess& source ,  
-                         CIOAccess& dest   );
-                         
-    virtual CICloneable* Clone( void ) const;
-    
-    virtual CString GetType( void ) const;
-    
-    virtual CString GetFamilyName( void ) const;
+    virtual bool Decode( CIOAccess& source ,
+                         CIOAccess& dest   ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual const CString& GetClassTypeName( void ) const;
+    virtual bool Encode( CIOAccess& source          ,
+                         CIOAccess& dest            ,
+                         const CValueList& params   ) GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:    
-    friend class CStdCodecPlugin;
-    
-    CStdCodecPluginItem( void* pluginData             ,
-                         TCodecPluginLink* pluginLink );
-    
-    virtual ~CStdCodecPluginItem();
-    
-    TCodecPluginLink* GetCodecPluginLink( void ) const;
-    
+    virtual bool Decode( CIOAccess& source          ,
+                         CIOAccess& dest            ,
+                         const CValueList& params   ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void GetParameterInfo( CCodecParameterInfoList& info ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** An instance of the plugin when it offers them, else the default instance. Keeps the plugin loaded */
+    virtual bool CreateInstance( const CValueList& params       ,
+                                 CICodecInstancePtr& instance   ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual UInt32 GetCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual CString GetFamilyName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The link of the codec as the host read it: what the plugin's struct did not cover is zero */
+    const TCodecPluginLink& GetCodecPluginLink( void ) const;
+
     void* GetPluginData( void ) const;
 
+    protected:
+    friend class CStdCodecPlugin;
+
+    CStdCodecPluginItem( CStdCodecPlugin* plugin          ,
+                         void* pluginData                 ,
+                         const TCodecPluginLink& link     );
+
+    CStdCodecPluginItem( const CStdCodecPluginItem& src );
+
+    virtual ~CStdCodecPluginItem() GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
-    CStdCodecPluginItem( const CStdCodecPluginItem& src );              /**< not implemented */
     CStdCodecPluginItem& operator=( const CStdCodecPluginItem& src );   /**< not implemented */
-    
+
+    bool Run( bool encode, CIOAccess& source, CIOAccess& dest, const CValueList* params );
+
     private:
-    
-    TCodecPluginLink* m_codecLink;
+
+    TCodecPluginLink m_codecLink;
     void* m_pluginData;
+    CStdCodecPlugin* m_plugin;
 };
 
 /*-------------------------------------------------------------------------//

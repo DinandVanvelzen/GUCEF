@@ -135,7 +135,9 @@ CTaskConsumer::SetIsInPhasedSetup( bool inPhasedSetup )
             currentTask->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP );
         }
     }
-    m_inPhasedSetup = inPhasedSetup;    
+    // Clearing the flag is the go signal for the delegator thread which waits on it: releasing it publishes all
+    // setup done before, including what the user did between SetupSingularTask() and the start, to that thread
+    m_inPhasedSetup.Store( inPhasedSetup, MT::MEMORDER_RELEASE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -144,7 +146,7 @@ bool
 CTaskConsumer::GetIsInPhasedSetup( void ) const
 {GUCEF_TRACE;
 
-    return m_inPhasedSetup;
+    return m_inPhasedSetup.Load( MT::MEMORDER_ACQUIRE );
 }
 
 /*-------------------------------------------------------------------------*/

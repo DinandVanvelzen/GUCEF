@@ -62,7 +62,6 @@ LOCAL_SRC_FILES := \
   src/GUILayout_xmlHandler.cpp \
   src/GeometryBuffer.cpp \
   src/GlobalEventSet.cpp \
-  src/IconvStringTranscoder.cpp \
   src/Image.cpp \
   src/ImageCodec.cpp \
   src/ImageManager.cpp \
@@ -194,7 +193,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../pcre \
   $(MY_MODULE_PATH)/include
 
-LOCAL_CFLAGS := -DCEGUIBASE_EXPORTS
+LOCAL_CFLAGS := -DCEGUIBASE_EXPORTS -DMODULE_CONSENSUS_NAME=CEGUI -DMODULE_NAME=CEGUI
 
 
 LOCAL_SHARED_LIBRARIES := \

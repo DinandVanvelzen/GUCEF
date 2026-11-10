@@ -1,0 +1,14 @@
+common/include/*
+common/test/include/*
+platform/gucefAUDIO/*
+platform/gucefCORE/*
+platform/gucefGUI/*
+platform/gucefIMAGE/*
+platform/gucefINPUT/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefVIDEO/*
+plugins/GUI/guidriverWAYLAND/*
+plugins/INPUT/inputdriverWAYLAND/*
+plugins/SHARED/pluginglueWAYLAND/*
+tests/gucefGUI_WaylandTestApp/*

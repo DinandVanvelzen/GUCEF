@@ -89,20 +89,22 @@ CDownloadsManager::CDownloadsManager( void )
       m_patchEngineConfigTemplatePath( "Products/PatchConfigTemplate.xml" ) ,
       m_patchEngineConfigTemplateCodec( "xml" )                             ,
       m_patchManager()                                                      ,
-      m_adListUrlRetiever()                                                 ,
+      m_adListUrl()                                                         ,
+      m_adListBuffer( true )                                                ,
+      m_adListRetriever()                                                   ,
       m_resumeDownloadsOnStartup( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
 
     TEventCallback callback( this, &CDownloadsManager::OnADListRetrievalEvent );
-    SubscribeTo( &m_adListUrlRetiever                                    ,
-                 GUCEF::CORE::CURLDataRetriever::URLAllDataRecievedEvent ,
-                 callback                                                );
+    SubscribeTo( &m_adListRetriever                                           ,
+                 GUCEF::CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent ,
+                 callback                                                         );
     TEventCallback callback2( this, &CDownloadsManager::OnADListRetrievalEvent );
-    SubscribeTo( &m_adListUrlRetiever                                       ,
-                 GUCEF::CORE::CURLDataRetriever::URLDataRetrievalErrorEvent ,
-                 callback2                                                  );
+    SubscribeTo( &m_adListRetriever                                        ,
+                 GUCEF::CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent ,
+                 callback2                                                     );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -118,21 +120,12 @@ bool
 CDownloadsManager::ObtainAvailableDownloadsList( const CString& listUrl )
 {GUCEF_TRACE;
 
-    // Check if we need to allocate storage
-    if ( NULL == m_adListUrlRetiever.GetIOAccess() )
-    {
-        GUCEF::CORE::CDynamicBuffer* listBuffer = new GUCEF::CORE::CDynamicBuffer( true );
-        GUCEF::CORE::CDynamicBufferAccess* bufferAccess = new GUCEF::CORE::CDynamicBufferAccess( listBuffer, true );
+    if ( m_adListRetriever.IsBusy() )
+        return false;
 
-        m_adListUrlRetiever.SetIOAccess( bufferAccess );
-    }
-
-    GUCEF::CORE::CURL& url = m_adListUrlRetiever.GetURL();
-    if ( url.SetURL( listUrl ) )
-    {
-        return url.Activate();
-    }
-    return false;
+    m_adListUrl = listUrl;
+    m_adListBuffer.Clear();
+    return m_adListRetriever.Retrieve( GUCEF::CORE::CUri( m_adListUrl ), m_adListBuffer ).HasAFuture();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -141,16 +134,11 @@ void
 CDownloadsManager::RefreshAvailableDownloadsList( void )
 {GUCEF_TRACE;
 
-    // Check if we need to allocate storage
-    if ( NULL == m_adListUrlRetiever.GetIOAccess() )
-    {
-        GUCEF::CORE::CDynamicBuffer* listBuffer = new GUCEF::CORE::CDynamicBuffer( true );
-        GUCEF::CORE::CDynamicBufferAccess* bufferAccess = new GUCEF::CORE::CDynamicBufferAccess( listBuffer, true );
+    if ( m_adListRetriever.IsBusy() || m_adListUrl.IsNULLOrEmpty() )
+        return;
 
-        m_adListUrlRetiever.SetIOAccess( bufferAccess );
-    }
-
-    m_adListUrlRetiever.GetURL().Refresh();
+    m_adListBuffer.Clear();
+    m_adListRetriever.Retrieve( GUCEF::CORE::CUri( m_adListUrl ), m_adListBuffer );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -221,10 +209,9 @@ CDownloadsManager::OnADListRetrievalEvent( GUCEF::CORE::CNotifier* notifier    ,
                                            GUCEF::CORE::CICloneable* eventdata )
 {GUCEF_TRACE;
 
-    if ( GUCEF::CORE::CURLDataRetriever::URLAllDataRecievedEvent == eventid )
+    if ( GUCEF::CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent == eventid )
     {
-        GUCEF::CORE::CIOAccess* access = m_adListUrlRetiever.GetIOAccess();
-        access->Setpos( 0 );
+        // The list is in m_adListBuffer
     //
     //    GUCEF::CORE::CDataNode dataTree;
     //    if ( GUCE::CORE::LoadDataTree( *access   ,
@@ -241,7 +228,7 @@ CDownloadsManager::OnADListRetrievalEvent( GUCEF::CORE::CNotifier* notifier    ,
     //    }
     }
     else
-    if ( GUCEF::CORE::CURLDataRetriever::URLDataRetrievalErrorEvent == eventid )
+    if ( GUCEF::CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent == eventid )
     {
 
     }
@@ -254,7 +241,7 @@ CDownloadsManager::SaveConfig( GUCEF::CORE::CDataNode& node ) const
 {GUCEF_TRACE;
 
     GUCEF::CORE::CDataNode* n = node.Structure( "GU%CORE%CDownloadsManager", '%' );
-    n->SetAttribute( "AvailableDownloadsListURL", m_adListUrlRetiever.GetURL().GetURL() );
+    n->SetAttribute( "AvailableDownloadsListURL", m_adListUrl );
     n->SetAttribute( "ResumeDownloadsOnStartup", GUCEF::CORE::BoolToString( m_resumeDownloadsOnStartup ) );
     return true;
 }
@@ -272,7 +259,7 @@ CDownloadsManager::LoadConfig( const GUCEF::CORE::CDataNode& node )
         att = n->GetAttribute( "AvailableDownloadsListURL" );
         if ( NULL != att )
         {
-            m_adListUrlRetiever.GetURL().SetURL( att->second );
+            m_adListUrl = att->second;
         }
         att = n->GetAttribute( "ResumeDownloadsOnStartup" );
         if ( NULL != att )
@@ -292,8 +279,6 @@ CDownloadsManager::OnNotify( GUCEF::CORE::CNotifier* notifier    ,
 
 {GUCEF_TRACE;
 
-    GUCEF::PATCHER::CPatchSetDirEngineEvents::DirProcessingStartedEvent.GetID();// == eventid;
-    GUCEF::PATCHER::CPatchEngine::PatchListDataReceivedEvent == eventid;
     if ( GUCEF::PATCHER::CPatchManager::PatchTaskStartedEvent == eventid )
     {
        // const CString& taskName = static_cast< GUCEF::PATCHER::CPatchManager::TPatchTaskStartedEventData* >( eventdata )->GetData();

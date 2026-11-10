@@ -40,6 +40,10 @@
 #define GUCEF_BASICHELPERS_H
 #endif /* GUCEF_BASICHELPERS_H ? */
 
+#if defined(__cplusplus) && ( (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1800) )
+#include <type_traits>      /* std::is_trivially_destructible, used by IsTriviallyDestructible below */
+#endif
+
 #if defined(__cplusplus)
 /*-------------------------------------------------------------------------//
 //                                                                         //

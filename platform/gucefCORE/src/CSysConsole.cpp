@@ -77,9 +77,9 @@ namespace CORE {
 
 struct CSysConsole::SFunctionHook
 {
-        CString name;
-        CString::StringVector argdefs;
-        CISysConsoleCmdHandler* handler;
+    CString name;
+    CString::StringVector argdefs;
+    CISysConsoleCmdHandler* handler;
 };
 typedef struct CSysConsole::SFunctionHook TFunctionHook;
 
@@ -87,13 +87,58 @@ typedef struct CSysConsole::SFunctionHook TFunctionHook;
 
 struct CSysConsole::SCmdChannel
 {
-        CString name;
-        GUCEF::vector< struct CSysConsole::SCmdChannel* > channels;
-        GUCEF::vector< TFunctionHook* > functions;
-        struct SCmdChannel* parent;
-        UInt32 views;
+    CString name;
+    GUCEF::vector< struct CSysConsole::SCmdChannel* > channels;
+    GUCEF::vector< TFunctionHook* > functions;
+    struct SCmdChannel* parent;
 };
 typedef struct CSysConsole::SCmdChannel TCmdChannel;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      UTILITIES                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The names of every command in the tree */
+void
+CollectFunctionNames( const TCmdChannel* channel, GUCEF::set< CString >& names )
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<channel->functions.size(); ++i )
+        names.insert( channel->functions[ i ]->name );
+    for ( size_t i=0; i<channel->channels.size(); ++i )
+        CollectFunctionNames( channel->channels[ i ], names );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Takes away channels without commands and sub channels, from the given one up to (not including) the root */
+void
+PruneEmptyChannels( TCmdChannel* channel )
+{GUCEF_TRACE;
+
+    while ( GUCEF_NULL != channel && GUCEF_NULL != channel->parent &&
+            channel->functions.empty() && channel->channels.empty() )
+    {
+        TCmdChannel* parent = channel->parent;
+        GUCEF::vector< TCmdChannel* >& siblings = parent->channels;
+        for ( size_t i=0; i<siblings.size(); ++i )
+        {
+            if ( siblings[ i ] == channel )
+            {
+                siblings.erase( siblings.begin() + i );
+                break;
+            }
+        }
+        GUCEF_DELETE channel;
+        channel = parent;
+    }
+}
+
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -102,12 +147,14 @@ typedef struct CSysConsole::SCmdChannel TCmdChannel;
 //-------------------------------------------------------------------------*/
 
 CSysConsole::CSysConsole( void )
-    : CGloballyConfigurable( false )  
+    : CGloballyConfigurable( false )
     , CISysConsoleCmdHandler()
-    , m_root( "root" )
+    , m_root( GUCEF_NEW TCmdChannel() )
     , m_aliases()
     , m_datalock()
 {GUCEF_TRACE;
+
+    m_root->parent = GUCEF_NULL;
 
     /*
      *      The first functions are registered by the console
@@ -137,9 +184,10 @@ CSysConsole::~CSysConsole()
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_datalock );
-    
+
     m_aliases.clear();
-    m_root.Clear();
+    DelTree( m_root );
+    m_root = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -148,46 +196,111 @@ void
 CSysConsole::DelTree( TCmdChannel* tree )
 {GUCEF_TRACE;
 
-        GUCEF::vector<TCmdChannel*>& array = tree->channels;
-        TCmdChannel* chentry;
-        for ( UInt32 i=0; i<array.size(); ++i )
-        {
-                chentry = array[ i ];
-                DelTree( chentry );
-                GUCEF_DELETE chentry;
-        }
-        array.clear();
-        
-        GUCEF::vector<TFunctionHook*>& farray = tree->functions;
-        TFunctionHook* fhook = NULL;
-        for ( UInt32 i=0; i<farray.size(); ++i )
-        {
-                fhook = farray[ i ];
-                GUCEF_DELETE fhook;
-        }
-        farray.clear();
+    if ( GUCEF_NULL == tree )
+        return;
+    for ( size_t i=0; i<tree->channels.size(); ++i )
+        DelTree( tree->channels[ i ] );
+    tree->channels.clear();
+    for ( size_t i=0; i<tree->functions.size(); ++i )
+        GUCEF_DELETE tree->functions[ i ];
+    tree->functions.clear();
+    GUCEF_DELETE tree;
+}
 
-        GUCEF_DELETE tree; // is this safe ?
+/*-------------------------------------------------------------------------*/
+
+bool
+CSysConsole::ResolvePath( const CString& basePath         ,
+                          const CString& path             ,
+                          CString::StringVector& segments )
+{GUCEF_TRACE;
+
+    segments.clear();
+    CString thePath = path.ReplaceChar( '/', '\\' );
+    if ( thePath.IsNULLOrEmpty() || '\\' != thePath[ 0 ] )
+        segments = basePath.ReplaceChar( '/', '\\' ).ParseElements( '\\', false );
+
+    CString::StringVector elements = thePath.ParseElements( '\\', false );
+    for ( size_t i=0; i<elements.size(); ++i )
+    {
+        const CString& element = elements[ i ];
+        if ( "." == element )
+            continue;
+        if ( ".." == element )
+        {
+            if ( segments.empty() )
+                return false;
+            segments.pop_back();
+            continue;
+        }
+        segments.push_back( element );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CSysConsole::JoinPath( const CString::StringVector& segments )
+{GUCEF_TRACE;
+
+    CString path;
+    for ( size_t i=0; i<segments.size(); ++i )
+    {
+        if ( i > 0 )
+            path += '\\';
+        path += segments[ i ];
+    }
+    return path;
 }
 
 /*-------------------------------------------------------------------------*/
 
 struct CSysConsole::SCmdChannel*
-CSysConsole::FindChannel( struct SCmdChannel* curchannel ,
-                          const CString& name            )
+CSysConsole::FindChildChannel( const struct SCmdChannel* curchannel ,
+                               const CString& name                  )
 {GUCEF_TRACE;
 
-    const GUCEF::vector< TCmdChannel* >& channels = curchannel->channels;
-    TCmdChannel* chentry;
-    for ( UInt32 i=0; i<channels.size(); ++i )
+    for ( size_t i=0; i<curchannel->channels.size(); ++i )
     {
-        chentry = channels[ i ];
-        if ( chentry->name == name )
-        {
-            return chentry;
-        }
+        if ( curchannel->channels[ i ]->name == name )
+            return curchannel->channels[ i ];
     }
-    return NULL;
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+struct CSysConsole::SCmdChannel*
+CSysConsole::FindChannel( const CString::StringVector& segments ) const
+{GUCEF_TRACE;
+
+    TCmdChannel* channel = m_root;
+    for ( size_t i=0; i<segments.size() && GUCEF_NULL != channel; ++i )
+        channel = FindChildChannel( channel, segments[ i ] );
+    return channel;
+}
+
+/*-------------------------------------------------------------------------*/
+
+struct CSysConsole::SCmdChannel*
+CSysConsole::FindOrAddChannel( const CString::StringVector& segments )
+{GUCEF_TRACE;
+
+    TCmdChannel* channel = m_root;
+    for ( size_t i=0; i<segments.size(); ++i )
+    {
+        TCmdChannel* child = FindChildChannel( channel, segments[ i ] );
+        if ( GUCEF_NULL == child )
+        {
+            child = GUCEF_NEW TCmdChannel();
+            child->name = segments[ i ];
+            child->parent = channel;
+            channel->channels.push_back( child );
+        }
+        channel = child;
+    }
+    return channel;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -197,17 +310,30 @@ CSysConsole::FindFunction( const struct SCmdChannel* curchannel ,
                            const CString& funcname              )
 {GUCEF_TRACE;
 
-        const GUCEF::vector< TFunctionHook* >& commands = curchannel->functions;
-        TFunctionHook* cmdentry = 0;
-        for ( UInt32 i=0; i<commands.size(); ++i )
-        {
-                cmdentry = commands[ i ];
-                if ( cmdentry->name == funcname )
-                {
-                        return cmdentry;
-                }
-        }
-        return NULL;
+    for ( size_t i=0; i<curchannel->functions.size(); ++i )
+    {
+        if ( curchannel->functions[ i ]->name == funcname )
+            return curchannel->functions[ i ];
+    }
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSysConsole::FindFunctionPaths( const struct SCmdChannel* curchannel ,
+                                const CString& curPath               ,
+                                const CString& functionname          ,
+                                CString::StringVector& paths         ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != FindFunction( curchannel, functionname ) )
+        paths.push_back( curPath );
+    for ( size_t i=0; i<curchannel->channels.size(); ++i )
+    {
+        const TCmdChannel* child = curchannel->channels[ i ];
+        FindFunctionPaths( child, curPath.IsNULLOrEmpty() ? child->name : curPath + '\\' + child->name, functionname, paths );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -219,36 +345,27 @@ CSysConsole::RegisterCmd( const CString& path                ,
                           CISysConsoleCmdHandler* cmdhandler )
 {GUCEF_TRACE;
 
-    // We dont allow spaces in function names
-    if ( functionname.HasChar( ' ', true ) >= 0 )
+    // a name is one word, without path separators
+    if ( GUCEF_NULL == cmdhandler || functionname.IsNULLOrEmpty() ||
+         functionname.HasChar( ' ', true ) >= 0 || functionname.HasChar( '\\', true ) >= 0 || functionname.HasChar( '/', true ) >= 0 )
+        return false;
+
+    CString::StringVector segments;
+    if ( !ResolvePath( CString::Empty, path, segments ) )
         return false;
 
     MT::CScopeMutex lock( m_datalock );
-    
-    CString thepath( path.ReplaceChar( '/', '\\' ) );
-    CDataNode* channel = m_root.Structure( thepath, '\\' );    
-    if ( GUCEF_NULL == channel )
-        return false;
-    
-    CDataNode* functionsRoot = channel->FindOrAddChild( "__functions" );
-    if ( GUCEF_NULL == channel )
-        return false;
 
-    CDataNode* functionNode = functionsRoot->FindOrAddChild( functionname );
-    if ( GUCEF_NULL == channel )
-        return false;
-
-    CDataNode* argsNode = functionNode->FindOrAddChild( "__args" );
-    if ( GUCEF_NULL == channel )
-        return false;
-
-    CString::StringVector::const_iterator i = args.begin();
-    while ( i != args.end() )
+    TCmdChannel* channel = FindOrAddChannel( segments );
+    TFunctionHook* hook = FindFunction( channel, functionname );
+    if ( GUCEF_NULL == hook )
     {
-        argsNode->FindOrAddChild( (*i) );
-        ++i;
+        hook = GUCEF_NEW TFunctionHook();
+        hook->name = functionname;
+        channel->functions.push_back( hook );
     }
-
+    hook->argdefs = args;
+    hook->handler = cmdhandler;
     return true;
 }
 
@@ -259,10 +376,87 @@ CSysConsole::UnregisterCmd( const CString& path         ,
                             const CString& functionname )
 {GUCEF_TRACE;
 
-    CString functionPath = CombinePath( path, "__functions" );
-    functionPath = CombinePath( functionPath, functionname );
+    CString::StringVector segments;
+    if ( !ResolvePath( CString::Empty, path, segments ) )
+        return;
 
-    m_root.DelSubTree( functionPath, '\\' );
+    MT::CScopeMutex lock( m_datalock );
+
+    TCmdChannel* channel = FindChannel( segments );
+    if ( GUCEF_NULL == channel )
+        return;
+    for ( size_t i=0; i<channel->functions.size(); ++i )
+    {
+        if ( channel->functions[ i ]->name == functionname )
+        {
+            GUCEF_DELETE channel->functions[ i ];
+            channel->functions.erase( channel->functions.begin() + i );
+            break;
+        }
+    }
+    PruneEmptyChannels( channel );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSysConsole::RemoveHandler( struct SCmdChannel* curchannel        ,
+                            const CISysConsoleCmdHandler* handler )
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<curchannel->functions.size(); )
+    {
+        if ( curchannel->functions[ i ]->handler == handler )
+        {
+            GUCEF_DELETE curchannel->functions[ i ];
+            curchannel->functions.erase( curchannel->functions.begin() + i );
+        }
+        else
+            ++i;
+    }
+
+    // the children first (bottom up), children left empty go
+    for ( size_t i=0; i<curchannel->channels.size(); )
+    {
+        TCmdChannel* child = curchannel->channels[ i ];
+        RemoveHandler( child, handler );
+        if ( child->functions.empty() && child->channels.empty() )
+        {
+            curchannel->channels.erase( curchannel->channels.begin() + i );
+            GUCEF_DELETE child;
+        }
+        else
+            ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSysConsole::UnregisterCmdsOfHandler( CISysConsoleCmdHandler* cmdhandler )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == cmdhandler )
+        return;
+
+    MT::CScopeMutex lock( m_datalock );
+    RemoveHandler( m_root, cmdhandler );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CSysConsole::HasCmd( const CString& path    ,
+                     const CString& command ) const
+{GUCEF_TRACE;
+
+    CString::StringVector segments;
+    if ( !ResolvePath( CString::Empty, path, segments ) )
+        return false;
+
+    MT::CScopeMutex lock( m_datalock );
+    const TCmdChannel* channel = FindChannel( segments );
+    return GUCEF_NULL != channel && GUCEF_NULL != FindFunction( channel, command );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -271,9 +465,8 @@ void
 CSysConsole::InitClient( CSysConsoleClient* client )
 {GUCEF_TRACE;
 
-        //MT::CScopeMutex scopeLock( _datalock );
-        //client->channel = _root;
-        //++_root->views;
+    // a client starts at the root
+    client->_path.Clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -282,13 +475,7 @@ void
 CSysConsole::UnregClient( CSysConsoleClient* client )
 {GUCEF_TRACE;
 
-        //_datalock.Lock();
-        //TCmdChannel* channel = static_cast< TCmdChannel* >( client->channel );
-
-        ////++_root->views;
-
-        //// makeme
-        //_datalock.Unlock();
+    // clients keep no data in the console
 }
 
 /*-------------------------------------------------------------------------*/
@@ -297,14 +484,7 @@ void
 CSysConsole::LeaveDir( CSysConsoleClient* client )
 {GUCEF_TRACE;
 
-        //_datalock.Lock();
-        //TCmdChannel* curchannel = static_cast< TCmdChannel* >( client->channel );
-        //if ( curchannel->parent )
-        //{
-        //        client->channel = curchannel->parent;
-        //        --static_cast< TCmdChannel* >( client->channel )->views;
-        //}
-        //_datalock.Unlock();
+    JumpTo( client, ".." );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -314,21 +494,9 @@ CSysConsole::EnterDir( CSysConsoleClient* client ,
                        const CString& dirname    )
 {GUCEF_TRACE;
 
-        //_datalock.Lock();
-        //TCmdChannel* channel = FindChannel( static_cast< TCmdChannel* >( client->channel ) ,
-        //                                    dirname                                        );
-        //if ( channel )
-        //{
-        //        client->channel = channel;
-        //        client->_path += ( '\\' + dirname );
-
-        //        ++channel->views;
-
-        //        _datalock.Unlock();
-        //        return true;
-        //}
-        //_datalock.Unlock();
+    if ( dirname.IsNULLOrEmpty() || '\\' == dirname[ 0 ] || '/' == dirname[ 0 ] )
         return false;
+    return JumpTo( client, dirname );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -338,100 +506,18 @@ CSysConsole::JumpTo( CSysConsoleClient* client ,
                      const CString& path       )
 {GUCEF_TRACE;
 
-    // sanity check on the input
-    if ( client == NULL || path.Length() == 0 ) return false;
+    if ( GUCEF_NULL == client || path.IsNULLOrEmpty() )
+        return false;
 
-    //_datalock.Lock();
+    CString::StringVector segments;
+    if ( !ResolvePath( client->_path, path, segments ) )
+        return false;
 
-    //CString thePath( path );
-    //struct SCmdChannel* channel = NULL;
-
-    //// Check if we should jump from the root or from the client's current dir
-    //if ( path[ 0 ] == '\\' )
-    //{
-    //    // we start jumping from the root
-    //    channel = _root;
-
-    //    // Set the client dir to root
-    //    client->channel = channel;
-    //    client->_path = "";
-
-    //    if ( path.Length() == 1 )
-    //    {
-    //        client->channel = channel;
-    //        _datalock.Unlock();
-    //        return true;
-    //    }
-    //    else
-    //    {
-    //        thePath = thePath.CutChars( 1, true );
-    //    }
-    //}
-    //else
-    //{
-    //    // we start jumping from the client's current dir
-    //    channel = static_cast< TCmdChannel* >( client->channel );
-    //}
-
-    //CString clientPath;
-    //CString dirname = thePath.SubstrToChar( '\\' );
-
-    //// Loop trough all the directories in the path
-    //while ( thePath.Length() > 0 )
-    //{
-    //    channel = FindChannel( channel ,
-    //                           dirname );
-
-    //    if ( channel != NULL )
-    //    {
-    //        if ( thePath.Length() > dirname.Length() )
-    //        {
-    //            // there are more sub dirs, prepare for another loop
-    //            thePath = thePath.CutChars( dirname.Length()+1, true );
-    //            dirname = thePath.SubstrToChar( '\\' );
-    //            if ( clientPath.Length() > 0 )
-    //            {
-    //                clientPath += '\\' + dirname;
-    //            }
-    //            else
-    //            {
-    //                clientPath = dirname;
-    //            }
-    //        }
-    //        else
-    //        {
-    //            // have have processed the last sub dir
-    //            client->channel = channel;
-    //            if ( clientPath.Length() > 0 )
-    //            {
-    //                client->_path += clientPath + '\\' + dirname;
-    //            }
-    //            else
-    //            {
-    //                if ( client->_path.Length() > 0 )
-    //                {
-    //                    client->_path += '\\' + dirname;
-    //                }
-    //                else
-    //                {
-    //                    client->_path = dirname;
-    //                }
-    //            }
-    //            _datalock.Unlock();
-    //            return true;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        // the path is invalid
-    //        _datalock.Unlock();
-    //        return false;
-    //    }
-    //}
-
-    //// If we get here then the input was most likely invalid
-    //_datalock.Unlock();
-    return false;
+    MT::CScopeMutex lock( m_datalock );
+    if ( GUCEF_NULL == FindChannel( segments ) )
+        return false;
+    client->_path = JoinPath( segments );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -445,7 +531,7 @@ CSysConsole::FindAliasFunction( const CString& aliasname )
     {
         return &(*i).second;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -457,66 +543,104 @@ CSysConsole::Execute( CSysConsoleClient* client            ,
                       CString::StringVector& resultdata    )
 {GUCEF_TRACE;
 
-        //_datalock.Lock();
-
-        ///*
-        // *      First check the alias list
-        // */
-        //TAliasData* ad = FindAliasFunction( funcname );
-        //if ( ad != NULL )
-        //{
-        //    // Jump to the path represented by the alias
-        //    if ( JumpTo( client, ad->path ) )
-        //    {
-        //        // Execute the actual function based on the alias
-        //        bool success = Execute( client       ,
-        //                                ad->function ,
-        //                                arglist      ,
-        //                                resultdata   );
-        //        _datalock.Lock();
-        //        return success;
-        //    }
-
-        //    _datalock.Lock();
-        //    return false;
-        //}
-
-        ///*
-        // *      Now check the functions in the client's current namespace dir
-        // */
-        //TFunctionHook* func = FindFunction( static_cast< TCmdChannel* >( client->channel ) ,
-        //                                    funcname                                       );
-
-        //if ( func )
-        //{
-        //    if ( arglist.size() == func->argdefs.size() )
-        //    {
-        //        if ( func->handler->OnSysConsoleCommand( client->_path ,
-        //                                                 funcname      ,
-        //                                                 arglist       ,
-        //                                                 resultdata    ) )
-        //        {
-        //            _datalock.Unlock();
-        //            return true;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        resultdata.push_back( "ERROR> Expected " + UInt32ToString( (UInt32) func->argdefs.size() ) + " values" );
-        //        resultdata.push_back( UInt32ToString( (UInt32) arglist.size() ) + " values were entered" );
-
-        //        if ( func->argdefs.size() > 0 )
-        //        {
-        //            resultdata.push_back( "Expected values are:" );
-        //            for ( UInt32 i=0; i<func->argdefs.size(); ++i )
-        //            {
-        //                resultdata.push_back( "   " + func->argdefs[ i ] );
-        //            }
-        //        }
-        //    }
-        //}
-        //_datalock.Unlock();
+    if ( funcname.IsNULLOrEmpty() )
         return false;
+
+    const CString clientPath = GUCEF_NULL != client ? client->_path : CString::Empty;
+    CISysConsoleCmdHandler* handler = GUCEF_NULL;
+    CString handlerPath;
+    CString handlerFunction;
+    {
+        MT::CScopeMutex lock( m_datalock );
+
+        // which command: an alias, a path to a command, a command of the current dir, or one by name anywhere
+        const TFunctionHook* function = GUCEF_NULL;
+        CString::StringVector segments;
+        const TAliasData* alias = FindAliasFunction( funcname );
+        if ( GUCEF_NULL != alias )
+        {
+            if ( ResolvePath( CString::Empty, alias->path, segments ) )
+            {
+                const TCmdChannel* channel = FindChannel( segments );
+                if ( GUCEF_NULL != channel )
+                    function = FindFunction( channel, alias->function );
+            }
+            if ( GUCEF_NULL == function )
+            {
+                resultdata.push_back( "ERROR> The alias \"" + funcname + "\" refers to \"" + alias->path + '\\' + alias->function + "\" which does not exist" );
+                return false;
+            }
+        }
+        else
+        {
+            CString name = funcname.ReplaceChar( '/', '\\' );
+            Int32 lastSeparator = name.HasChar( '\\', false );
+            if ( lastSeparator >= 0 )
+            {
+                // dir\name relative to the current dir, \dir\name and \name from the root
+                const CString dirPart = 0 == lastSeparator ? CString( "\\" ) : name.SubstrFromRange( 0, (UInt32) lastSeparator );
+                const CString functionPart = name.SubstrFromRange( (UInt32) lastSeparator + 1, name.Length() );
+                if ( ResolvePath( clientPath, dirPart, segments ) )
+                {
+                    const TCmdChannel* channel = FindChannel( segments );
+                    if ( GUCEF_NULL != channel )
+                        function = FindFunction( channel, functionPart );
+                }
+            }
+            else
+            {
+                if ( ResolvePath( clientPath, CString::Empty, segments ) )
+                {
+                    const TCmdChannel* channel = FindChannel( segments );
+                    if ( GUCEF_NULL != channel )
+                        function = FindFunction( channel, name );
+                }
+                if ( GUCEF_NULL == function )
+                {
+                    CString::StringVector paths;
+                    FindFunctionPaths( m_root, CString::Empty, name, paths );
+                    if ( paths.size() > 1 )
+                    {
+                        resultdata.push_back( "ERROR> \"" + name + "\" is the name of more than one command, give one of these:" );
+                        for ( size_t i=0; i<paths.size(); ++i )
+                            resultdata.push_back( "   \\" + paths[ i ] + '\\' + name );
+                        return false;
+                    }
+                    if ( 1 == paths.size() && ResolvePath( CString::Empty, paths[ 0 ], segments ) )
+                        function = FindFunction( FindChannel( segments ), name );
+                }
+            }
+            if ( GUCEF_NULL == function )
+            {
+                resultdata.push_back( "ERROR> Unknown command \"" + funcname + "\"" );
+                return false;
+            }
+        }
+
+        // the values: as many as the command has, or at least all but the last when the last takes the rest ("...")
+        const size_t defined = function->argdefs.size();
+        const bool takesTheRest = defined > 0 && function->argdefs[ defined-1 ].HasSubstr( "...", false ) >= 0;
+        const bool valuesFit = takesTheRest ? arglist.size() >= defined-1 : arglist.size() == defined;
+        if ( !valuesFit )
+        {
+            resultdata.push_back( "ERROR> Expected " + ToString( (UInt32) defined ) + " values" );
+            resultdata.push_back( ToString( (UInt32) arglist.size() ) + " values were entered" );
+            if ( defined > 0 )
+            {
+                resultdata.push_back( "Expected values are:" );
+                for ( size_t i=0; i<defined; ++i )
+                    resultdata.push_back( "   " + function->argdefs[ i ] );
+            }
+            return false;
+        }
+
+        handler = function->handler;
+        handlerPath = JoinPath( segments );
+        handlerFunction = function->name;
+    }
+
+    // the handler runs outside of the lock: it may use the console itself
+    return handler->OnSysConsoleCommand( handlerPath, handlerFunction, arglist, resultdata );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -525,13 +649,16 @@ CString::StringVector
 CSysConsole::GetDirList( const CSysConsoleClient* client ) const
 {GUCEF_TRACE;
 
-    //MT::CScopeMutex scopeLock( _datalock );
-    //GUCEF::vector< TCmdChannel* >& channels = static_cast< TCmdChannel* >( client->channel )->channels;
     CString::StringVector list;
-    //for ( UInt32 i=0; i<channels.size(); ++i )
-    //{
-    //        list.push_back( channels[ i ]->name );
-    //}
+    CString::StringVector segments;
+    if ( GUCEF_NULL == client || !ResolvePath( client->_path, CString::Empty, segments ) )
+        return list;
+
+    MT::CScopeMutex lock( m_datalock );
+    const TCmdChannel* channel = FindChannel( segments );
+    if ( GUCEF_NULL != channel )
+        for ( size_t i=0; i<channel->channels.size(); ++i )
+            list.push_back( channel->channels[ i ]->name );
     return list;
 }
 
@@ -541,14 +668,48 @@ CString::StringVector
 CSysConsole::GetCmdList( const CSysConsoleClient* client ) const
 {GUCEF_TRACE;
 
-    //MT::CScopeMutex scopeLock( _datalock );
-    //GUCEF::vector< TFunctionHook* >& functions = static_cast< TCmdChannel* >( client->channel )->functions;
     CString::StringVector list;
-    //for ( UInt32 i=0; i<functions.size(); ++i )
-    //{
-    //        list.push_back( functions[ i ]->name );
-    //}
+    CString::StringVector segments;
+    if ( GUCEF_NULL == client || !ResolvePath( client->_path, CString::Empty, segments ) )
+        return list;
+
+    MT::CScopeMutex lock( m_datalock );
+    const TCmdChannel* channel = FindChannel( segments );
+    if ( GUCEF_NULL != channel )
+        for ( size_t i=0; i<channel->functions.size(); ++i )
+            list.push_back( channel->functions[ i ]->name );
     return list;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString::StringVector
+CSysConsole::GetCompletions( const CSysConsoleClient* client ,
+                             const CString& partialName      ) const
+{GUCEF_TRACE;
+
+    // aliases, commands by name anywhere, and the dirs of the current dir, that start with what was typed
+    GUCEF::set< CString > candidates;
+    MT::CScopeMutex lock( m_datalock );
+
+    for ( TAliasList::const_iterator i=m_aliases.begin(); i!=m_aliases.end(); ++i )
+        candidates.insert( (*i).first );
+    CollectFunctionNames( m_root, candidates );
+
+    CString::StringVector segments;
+    if ( GUCEF_NULL != client && ResolvePath( client->_path, CString::Empty, segments ) )
+    {
+        const TCmdChannel* channel = FindChannel( segments );
+        if ( GUCEF_NULL != channel )
+            for ( size_t i=0; i<channel->channels.size(); ++i )
+                candidates.insert( channel->channels[ i ]->name + '\\' );
+    }
+
+    CString::StringVector matches;
+    for ( GUCEF::set< CString >::const_iterator i=candidates.begin(); i!=candidates.end(); ++i )
+        if ( partialName.IsNULLOrEmpty() || (*i).StartsWith( partialName ) )
+            matches.push_back( (*i) );
+    return matches;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -559,32 +720,26 @@ CSysConsole::RegisterAlias( const CString& aliasname ,
                             const CString& function  )
 {GUCEF_TRACE;
 
-    //_datalock.Lock();
+    if ( aliasname.IsNULLOrEmpty() || aliasname.HasChar( ' ', true ) >= 0 || function.IsNULLOrEmpty() )
+        return false;
 
-    //// First make sure the alias is unique and not already registered
-    //TAliasList::iterator i = _aliases.find( aliasname );
-    //if ( i != _aliases.end() )
-    //{
-    //    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Failed to register alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\" because an alias with the given name already exists" );
+    MT::CScopeMutex lock( m_datalock );
 
-    //    _datalock.Unlock();
-    //    return false;
-    //}
+    // an alias name is unique
+    TAliasList::iterator i = m_aliases.find( aliasname );
+    if ( i != m_aliases.end() )
+    {
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Failed to register alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\" because an alias with the given name already exists" );
+        return false;
+    }
 
-    //// if we get here then the alias does not exist yet and can be registered
-    //TAliasData ad;
-    //ad.function = function;
-    //ad.path = path;
+    TAliasData ad;
+    ad.function = function;
+    ad.path = path.ReplaceChar( '/', '\\' );
+    m_aliases[ aliasname ] = ad;
 
-    //_aliases.insert( std::pair< CString, TAliasData >( aliasname, ad ) );
-
-    //_datalock.Unlock();
-
-    //GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Registered alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\"" );
-    //return true;
-
-
-    return false;
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Registered alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\"" );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -595,22 +750,17 @@ CSysConsole::UnregisterAlias( const CString& aliasname ,
                               const CString& function  )
 {GUCEF_TRACE;
 
-    //_datalock.Lock();
+    MT::CScopeMutex lock( m_datalock );
 
-    //// First make sure the alias is actually registered
-    //TAliasList::iterator i = _aliases.find( aliasname );
-    //if ( i != _aliases.end() )
-    //{
-    //    // delete the alias entry
-    //    _aliases.erase( i );
-    //    _datalock.Unlock();
-    //    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Unregistered alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\"" );
-    //    return true;
-    //}
+    TAliasList::iterator i = m_aliases.find( aliasname );
+    if ( i != m_aliases.end() )
+    {
+        m_aliases.erase( i );
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Unregistered alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\"" );
+        return true;
+    }
 
-    //// Unable to find the alias
-    //_datalock.Unlock();
-    //GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Failed to unregister alias \"" + aliasname + "\" for path \"" + path + "\" and function \"" + function + "\" because an alias with the given name cannot be found" );
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "SysConsole: Failed to unregister alias \"" + aliasname + "\" because an alias with the given name cannot be found" );
     return false;
 }
 
@@ -635,11 +785,11 @@ CSysConsole::OnSysConsoleCommand( const CString& path               ,
     }
     if ( command == "UnregisterAlias" )
     {
-        if ( args.size() >= 3 )
+        if ( args.size() >= 1 )
         {
-            return UnregisterAlias( args[ 0 ] ,
-                                    args[ 1 ] ,
-                                    args[ 2 ] );
+            return UnregisterAlias( args[ 0 ]      ,
+                                    CString::Empty ,
+                                    CString::Empty );
         }
         return false;
     }

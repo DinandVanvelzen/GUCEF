@@ -12,19 +12,23 @@
 
 workspace( "GUCEF_tag_platform" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "platform/gucefAUDIO" )
+  include( "platform/gucefAUTH" )
+  include( "platform/gucefAUTHGUI" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefDRN" )
+  include( "platform/gucefGAMEGUI" )
   include( "platform/gucefGUI" )
   include( "platform/gucefIMAGE" )
   include( "platform/gucefINPUT" )
@@ -38,7 +42,10 @@ filter "ALL"
   include( "platform/gucefPUBSUB" )
   include( "platform/gucefSMDRN" )
   include( "platform/gucefVFS" )
+  include( "platform/gucefVIDEO" )
   include( "platform/gucefWEB" )
+
+filter "ANDROID"
 
 filter "ANDROID32"
 
@@ -46,18 +53,36 @@ filter "ANDROID64"
 
 filter "ARDUINO"
 
+filter "EMSCRIPTEN"
+
 filter "EMSCRIPTEN32"
 
 filter "EMSCRIPTEN64"
 
 filter "IOS"
 
+filter "IPHONE"
+
+filter "IPHONEOS"
+
+filter "LINUX"
+
 filter "LINUX32"
 
 filter "LINUX64"
+
+filter "MAC"
+
+filter "MACOS"
+
+filter "MACOSX"
+
+filter "MSWIN"
 
 filter "OSX"
 
 filter "WIN32"
 
 filter "WIN64"
+
+filter "WINDOWS"

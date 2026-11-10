@@ -63,10 +63,10 @@ configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../GucefLogServiceLib/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )

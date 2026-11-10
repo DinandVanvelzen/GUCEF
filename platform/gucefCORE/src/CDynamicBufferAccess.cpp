@@ -59,6 +59,9 @@ CDynamicBufferAccess::CDynamicBufferAccess( void )
     , m_carat( 0 )     
     , m_deleteBufferUponDestruction( false )
     , m_bufferWasConst( false )
+    , m_hasOwnGrowthStrategy( false )
+    , m_growthStrategy( CDynamicBuffer::GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
 
 }
@@ -73,6 +76,9 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer* buffer              
     , m_carat( 0 )                                                 
     , m_deleteBufferUponDestruction( deleteBufferUponDestruction )
     , m_bufferWasConst( false )
+    , m_hasOwnGrowthStrategy( false )
+    , m_growthStrategy( CDynamicBuffer::GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
         
     assert( m_buffer != NULL );                    
@@ -87,9 +93,50 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer& buffer )
     , m_carat( 0 )                                                 
     , m_deleteBufferUponDestruction( false )
     , m_bufferWasConst( false )
+    , m_hasOwnGrowthStrategy( false )
+    , m_growthStrategy( CDynamicBuffer::GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
 
     assert( m_buffer != NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer* buffer                              ,
+                                            const bool deleteBufferUponDestruction              ,
+                                            const CDynamicBuffer::TGrowthStrategy growthStrategy ,
+                                            const UInt32 growthStrategyParam                    )
+    : CIOAccess()
+    , CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >( this )
+    , m_buffer( buffer )
+    , m_carat( 0 )
+    , m_deleteBufferUponDestruction( deleteBufferUponDestruction )
+    , m_bufferWasConst( false )
+    , m_hasOwnGrowthStrategy( true )
+    , m_growthStrategy( growthStrategy )
+    , m_growthStrategyParam( growthStrategyParam )
+{GUCEF_TRACE;
+
+    assert( m_buffer != NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer& buffer                              ,
+                                            const CDynamicBuffer::TGrowthStrategy growthStrategy ,
+                                            const UInt32 growthStrategyParam                    )
+    : CIOAccess()
+    , CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >( this )
+    , m_buffer( &buffer )
+    , m_carat( 0 )
+    , m_deleteBufferUponDestruction( false )
+    , m_bufferWasConst( false )
+    , m_hasOwnGrowthStrategy( true )
+    , m_growthStrategy( growthStrategy )
+    , m_growthStrategyParam( growthStrategyParam )
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -101,6 +148,9 @@ CDynamicBufferAccess::CDynamicBufferAccess( const CDynamicBuffer& buffer )
     , m_carat( 0 )                                                 
     , m_deleteBufferUponDestruction( false )
     , m_bufferWasConst( true )
+    , m_hasOwnGrowthStrategy( false )
+    , m_growthStrategy( CDynamicBuffer::GROWTHSTRATEGY_EXACT )
+    , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
 
     assert( m_buffer != NULL );
@@ -243,7 +293,9 @@ CDynamicBufferAccess::ReadLine( void )
         ++m_carat;
     }
     
-    m_carat = m_buffer->GetDataSize();
+    // at the end of the data, or left where it is when that is beyond it
+    if ( m_carat < m_buffer->GetDataSize() )
+        m_carat = m_buffer->GetDataSize();
     return returnString;
 }
 
@@ -270,7 +322,9 @@ CDynamicBufferAccess::ReadString( void )
         ++m_carat;
     }
     
-    m_carat = m_buffer->GetDataSize();
+    // at the end of the data, or left where it is when that is beyond it
+    if ( m_carat < m_buffer->GetDataSize() )
+        m_carat = m_buffer->GetDataSize();
     return returnString;
 }
 
@@ -307,30 +361,19 @@ CDynamicBufferAccess::Seek( Int64 offset ,
 
     switch ( origin )
     {
+        // As fseek(): before the start fails, beyond the end is allowed. Reads there return nothing and a write
+        // there first fills the gap with zeros. The position is 32 bits, as the buffer
         case SEEK_CUR :
         {
-            Int64 carat = m_carat + offset;
-            if ( ( carat <= (Int32)m_buffer->GetDataSize() ) &&
-                 ( carat >= 0                              )  )
-            {
-                m_carat = (UInt32) carat;
-                return 0;
-            }
-            return -1;
+            return SetCarat( (Int64) m_carat + offset ) ? 0 : -1;
         }
         case SEEK_SET :
         {
-            if ( offset <= (Int32)m_buffer->GetDataSize() )
-            {
-                m_carat = (UInt32) offset;
-                return 0;
-            }
-            return -1;
-        }        
+            return SetCarat( offset ) ? 0 : -1;
+        }
         case SEEK_END :
         {
-            m_carat = m_buffer->GetDataSize();
-            return 0;
+            return SetCarat( (Int64) m_buffer->GetDataSize() + offset ) ? 0 : -1;
         }
         default :
         {
@@ -341,19 +384,26 @@ CDynamicBufferAccess::Seek( Int64 offset ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDynamicBufferAccess::SetCarat( Int64 position )
+{GUCEF_TRACE;
+
+    if ( position < 0 || position > (Int64) GUCEF_UINT32MAX )
+        return false;
+    m_carat = (UInt64) position;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32 
 CDynamicBufferAccess::Setpos( UInt64 position )
 {GUCEF_TRACE;
 
-    if ( position < m_buffer->GetDataSize() )
-    {
-        m_carat = (UInt32) position;
-    }
-    else
-    {
-        m_carat = m_buffer->GetDataSize();
-    }
-    return m_carat;
+    // as fsetpos(): 0 on success, any position the buffer can address, also beyond the data
+    if ( position > GUCEF_UINT32MAX )
+        return 1;
+    return SetCarat( (Int64) position ) ? 0 : 1;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -408,6 +458,19 @@ CDynamicBufferAccess::Write( const void* srcdata ,
 
     if ( IsWriteable() )
     {
+        if ( m_hasOwnGrowthStrategy )
+            m_buffer->EnsureBufferSizeForGrowth( m_carat + esize*elements, m_growthStrategy, m_growthStrategyParam );
+
+        // A write beyond the data fills the gap with zeros first, as a file does
+        static const UInt8 zeros[ 256 ] = { 0 };
+        while ( m_buffer->GetDataSize() < m_carat )
+        {
+            const UInt32 gap = (UInt32) m_carat - m_buffer->GetDataSize();
+            const UInt32 chunk = gap < sizeof( zeros ) ? gap : (UInt32) sizeof( zeros );
+            if ( chunk != m_buffer->CopyFrom( m_buffer->GetDataSize(), chunk, zeros ) )
+                return 0;
+        }
+
         UInt32 bytesWritten = m_buffer->CopyFrom( m_carat        , 
                                                   esize*elements ,
                                                   srcdata        );
@@ -415,6 +478,35 @@ CDynamicBufferAccess::Write( const void* srcdata ,
         return bytesWritten / esize;
     }
     return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDynamicBufferAccess::SetGrowthStrategy( CDynamicBuffer::TGrowthStrategy growthStrategy, UInt32 growthStrategyParam )
+{GUCEF_TRACE;
+
+    m_hasOwnGrowthStrategy = true;
+    m_growthStrategy = growthStrategy;
+    m_growthStrategyParam = growthStrategyParam;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDynamicBufferAccess::UseBufferGrowthStrategy( void )
+{GUCEF_TRACE;
+
+    m_hasOwnGrowthStrategy = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDynamicBufferAccess::HasOwnGrowthStrategy( void ) const
+{GUCEF_TRACE;
+
+    return m_hasOwnGrowthStrategy;
 }
 
 /*-------------------------------------------------------------------------*/

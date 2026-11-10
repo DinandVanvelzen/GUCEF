@@ -107,6 +107,12 @@ class GUCEF_CORE_PUBLIC_CPP CXTermConsoleLogger : public CIConsoleLogger
     CXTermConsoleLogger& operator=( const CXTermConsoleLogger& src );
     CXTermConsoleLogger( const CXTermConsoleLogger& src );
 
+    /**
+     *  Checks whether the xterm is still there to receive our output
+     *  If the xterm process exited it is reaped and the logger disables itself
+     */
+    bool IsTerminalAttached( void );
+
     private:
 
     Int32 m_minimalLogLevel;

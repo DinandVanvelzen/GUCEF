@@ -36,6 +36,11 @@
 #define GUCEF_GUI_MACROS_H
 #endif /* GUCEF_GUI_MACROS_H ? */
 
+#ifndef GUCEF_GUI_TYPES_H
+#include "gucefGUI_Types.h"
+#define GUCEF_GUI_TYPES_H
+#endif /* GUCEF_GUI_TYPES_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -53,6 +58,8 @@ namespace GUI {
 
 class CWindowManager;
 class CGUIManager;
+class CWidgetTypeRegistry;
+class CFontRasterizerRegistry;
 
 /*-------------------------------------------------------------------------*/
 
@@ -68,6 +75,29 @@ class GUCEF_GUI_PUBLIC_CPP CGuiGlobal
     CWindowManager& GetWindowManager( void );
 
     CGUIManager& GetGuiManager( void );
+
+    /** The widget types gucefGUI knows, with their properties */
+    CWidgetTypeRegistry& GetWidgetTypeRegistry( void );
+
+    /** The font rasterizers the loaded plugins provide */
+    CFontRasterizerRegistry& GetFontRasterizerRegistry( void );
+
+    /** Where MountData() mounts the data files gucefGUI comes with in the VFS */
+    static const CString DataMountPoint;
+
+    /** The user interface font gucefGUI comes with (Noto Sans, SIL Open Font License), a VFS path */
+    static const CString DefaultUiFontPath;
+
+    /**
+     *  Mounts the data files gucefGUI comes with, read only, at DataMountPoint in the VFS. They are in
+     *  $MODULEDIR$/../data/gucefGUI, on the web at /data/gucefGUI.
+     *
+     *  @return true when they are mounted, also when they already were
+     */
+    bool MountData( void );
+
+    /** Mounts the data files of a module in the VFS, see VFS::CVFS::MountModuleData() */
+    static bool MountModuleData( const CString& moduleName );
 
     private:
     friend class CModule;
@@ -86,6 +116,8 @@ class GUCEF_GUI_PUBLIC_CPP CGuiGlobal
 
     CWindowManager* m_windowManager;
     CGUIManager* m_guiManager;
+    CWidgetTypeRegistry* m_widgetTypeRegistry;
+    CFontRasterizerRegistry* m_fontRasterizerRegistry;
 
     static CGuiGlobal* g_instance;
     static MT::CMutex g_datalock;

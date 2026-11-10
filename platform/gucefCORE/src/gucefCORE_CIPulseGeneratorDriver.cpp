@@ -81,6 +81,15 @@ CIPulseGeneratorDriver::operator=( const CIPulseGeneratorDriver& src )
 /*--------------------------------------------------------------------------*/
 
 void
+CIPulseGeneratorDriver::QueueImmediatePulse( CPulseGenerator& pulseGenerator )
+{GUCEF_TRACE;
+
+    RequestImmediatePulse( pulseGenerator );
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
 CIPulseGeneratorDriver::SendDriverPulse( CPulseGenerator& pulseGenerator )
 {GUCEF_TRACE;
 

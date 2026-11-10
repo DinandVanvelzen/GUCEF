@@ -92,7 +92,7 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowManagerImp : public GUI::CWindowMa
 
 /*-------------------------------------------------------------------------*/
 
-typedef CORE::CTSharedPtr< CXWinGLWindowManagerImp > TXWinGLWindowManagerImpPtr;
+typedef CORE::CTSharedPtr< CXWinGLWindowManagerImp, MT::CMutex > TXWinGLWindowManagerImpPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

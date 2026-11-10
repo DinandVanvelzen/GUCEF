@@ -218,7 +218,6 @@ set( SOURCE_FILES
   GeometryBoxShadow.cpp
   Log.cpp
   LogDefault.cpp
-  RmlUiMath.cpp
   Memory.cpp
   MeshUtilities.cpp
   ObserverPtr.cpp
@@ -246,6 +245,7 @@ set( SOURCE_FILES
   RenderInterfaceCompatibility.cpp
   RenderManager.cpp
   RenderManagerAccess.cpp
+  RmlUiMath.cpp
   ScrollController.cpp
   Spritesheet.cpp
   Stream.cpp

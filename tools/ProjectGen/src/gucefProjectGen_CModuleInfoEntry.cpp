@@ -675,11 +675,18 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     if ( moduleInfo->GetIncludeDirs().size() > 0 )
     {
        CORE::CDataNode includesInfoNode( "Includes" );
-        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo->GetIncludeDirs().size() ) );
+        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo->GetIncludeDirs().size() - moduleInfo->GetIncludeDirsExcludedFromSearchPaths().size() ) );
         includesInfoNode.SetAttribute( "Source", "Self" );
         TStringSetMap::const_iterator n = moduleInfo->GetIncludeDirs().begin();
         while ( n != moduleInfo->GetIncludeDirs().end() )
         {
+            if ( moduleInfo->IsIncludeDirExcludedFromSearchPaths( (*n).first ) )
+            {
+                // These are listed in their own section below
+                ++n;
+                continue;
+            }
+
             CORE::CString includeDir = (*n).first.ReplaceChar( '\\', '/' );
             if ( 0 != includeDir.Length() )
             {
@@ -705,6 +712,27 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
             }
             ++n;
         }
+        moduleInfoNode.AddChild( includesInfoNode );
+        includesInfoNode.DelSubTree();
+    }
+
+    // Add the include dirs whose headers are part of the module but which are not to be used as include search paths
+    if ( moduleInfo->GetIncludeDirsExcludedFromSearchPaths().size() > 0 )
+    {
+        CORE::CDataNode includesInfoNode( "Includes" );
+        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo->GetIncludeDirsExcludedFromSearchPaths().size() ) );
+        includesInfoNode.SetAttribute( "Source", "ExcludedFromSearchPaths" );
+        TStringSet::const_iterator q = moduleInfo->GetIncludeDirsExcludedFromSearchPaths().begin();
+        while ( q != moduleInfo->GetIncludeDirsExcludedFromSearchPaths().end() )
+        {
+            CORE::CDataNode includeNode;
+            includeNode.SetName( "Include" );
+            includeNode.SetAttribute( "Path", (*q) );
+
+            includesInfoNode.AddChild( includeNode );
+            ++q;
+        }
+
         moduleInfoNode.AddChild( includesInfoNode );
         includesInfoNode.DelSubTree();
     }
@@ -1835,7 +1863,8 @@ CModuleInfoEntry::GetIncludeDirsForPlatform( const CORE::CString& platformName ,
         while ( i != includes.end() )
         {
             const CORE::CString& subPath = (*i).first;
-            subDirPaths.insert( subPath );
+            if ( !moduleInfo->IsIncludeDirExcludedFromSearchPaths( subPath ) )
+                subDirPaths.insert( subPath );
             ++i;
         }
 
@@ -1852,7 +1881,8 @@ CModuleInfoEntry::GetIncludeDirsForPlatform( const CORE::CString& platformName ,
             while ( i != includes.end() )
             {
                 const CORE::CString& subPath = (*i).first;
-                subDirPaths.insert( subPath );
+                if ( !moduleInfo->IsIncludeDirExcludedFromSearchPaths( subPath ) )
+                    subDirPaths.insert( subPath );
                 ++i;
             }
 

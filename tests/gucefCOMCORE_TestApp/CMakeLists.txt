@@ -14,16 +14,52 @@
 set( HEADER_FILES 
   include/TestCode_ClientServer.h
   include/TestCode_DNS.h
+  include/TestCode_Discovery.h
   include/TestCode_PingTest.h
+  include/TestCode_Pump.h
   include/TestCode_SimpleTCPClient.h
+  include/TestCode_TlsClient.h
+  include/TestCode_TlsLayer.h
+  include/TestCode_TlsOpenSsl.h
+  include/TestDatabaseClient.h
+  include/TestDatabaseClientFake.h
+  include/TestNoTlsProvider.h
+  include/TestRpcAllocationCounter.h
+  include/TestRpcCodec.h
+  include/TestRpcConformance.h
+  include/TestRpcContract.h
+  include/TestRpcEndpoint.h
+  include/TestRpcEndpointFixture.h
+  include/TestRpcLifecycle.h
+  include/TestRpcLossyTransport.h
+  include/TestRpcNotesService.h
+  include/TestRpcPerf.h
+  include/TestRpcSession.h
+  include/TestSocketReadiness.h
+  include/TestTcpSocketThreads.h
+  include/TestRpcSupport.h
+  include/TestRpcTransportSuite.h
 )
 
 set( SOURCE_FILES 
   src/TestCode_ClientServer.cpp
   src/TestCode_DNS.cpp
+  src/TestCode_Discovery.cpp
   src/TestCode_PingTest.cpp
   src/TestCode_SimpleTCPClient.cpp
+  src/TestCode_TlsLayer.cpp
+  src/TestCode_TlsOpenSsl.cpp
+  src/TestRpcCodec.cpp
+  src/TestRpcContract.cpp
+  src/TestRpcEndpoint.cpp
+  src/TestRpcLifecycle.cpp
+  src/TestRpcPerf.cpp
+  src/TestRpcSession.cpp
+  src/TestSocketReadiness.cpp
+  src/TestTcpSocketThreads.cpp
   src/gucefCOMCORE_TestApp.cpp
+  src/TestDatabaseClient.cpp
+  src/TestDatabaseClientFake.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -45,14 +81,14 @@ add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefCOMCORE_TestApp;MODULE_NAME=gucefCOMCORE_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )

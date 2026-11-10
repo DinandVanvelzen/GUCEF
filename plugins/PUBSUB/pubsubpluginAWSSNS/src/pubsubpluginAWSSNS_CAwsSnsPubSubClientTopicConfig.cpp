@@ -1,5 +1,5 @@
 /*
- *  pubsubpluginAWSSQS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SQS
+ *  pubsubpluginAWSSNS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SNS
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
  *
@@ -27,7 +27,7 @@
 #define GUCEF_CORE_METRICSMACROS_H
 #endif /* GUCEF_CORE_METRICSMACROS_H ? */
 
-#include "pubsubpluginAWSSQS_CAwsSqsPubSubClientTopicConfig.h"
+#include "pubsubpluginAWSSNS_CAwsSnsPubSubClientTopicConfig.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -37,7 +37,7 @@
 
 namespace GUCEF {
 namespace PUBSUBPLUGIN {
-namespace AWSSQS {
+namespace AWSSNS {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,20 +45,45 @@ namespace AWSSQS {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CAwsSqsPubSubClientTopicConfig::CAwsSqsPubSubClientTopicConfig( void )
-    : COMCORE::CPubSubClientTopicConfig()
-    , topicNameIsQueueName( false )
-    , tryToUseSendMessageBatch( false )
+CAwsSnsPubSubClientTopicConfig::CAwsSnsPubSubClientTopicConfig( void )
+    : PUBSUB::CPubSubClientTopicConfig()
+    , CORE::CTSharedObjCreator< CAwsSnsPubSubClientTopicConfig, MT::CMutex >( this )
+    , createTopicIfMissing( false )
+    , tryToUsePublishBatch( false )
+    , addPrefixWhenSendingKvPairs( false )
+    , kvPairPrefixToAddOnSend()
+    , addPrefixWhenSendingMetaDataKvPairs( false )
+    , metaDatakvPairPrefixToAddOnSend()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CAwsSqsPubSubClientTopicConfig::CAwsSqsPubSubClientTopicConfig( const COMCORE::CPubSubClientTopicConfig& genericConfig )
-    : COMCORE::CPubSubClientTopicConfig( genericConfig )
-    , topicNameIsQueueName( false )
-    , tryToUseSendMessageBatch( false )
+CAwsSnsPubSubClientTopicConfig::CAwsSnsPubSubClientTopicConfig( const CAwsSnsPubSubClientTopicConfig& src )
+    : PUBSUB::CPubSubClientTopicConfig( src )
+    , CORE::CTSharedObjCreator< CAwsSnsPubSubClientTopicConfig, MT::CMutex >( this )
+    , createTopicIfMissing( src.createTopicIfMissing )
+    , tryToUsePublishBatch( src.tryToUsePublishBatch )
+    , addPrefixWhenSendingKvPairs( src.addPrefixWhenSendingKvPairs )
+    , kvPairPrefixToAddOnSend( src.kvPairPrefixToAddOnSend )
+    , addPrefixWhenSendingMetaDataKvPairs( src.addPrefixWhenSendingMetaDataKvPairs )
+    , metaDatakvPairPrefixToAddOnSend( src.metaDatakvPairPrefixToAddOnSend )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAwsSnsPubSubClientTopicConfig::CAwsSnsPubSubClientTopicConfig( const PUBSUB::CPubSubClientTopicConfig& genericConfig )
+    : PUBSUB::CPubSubClientTopicConfig( genericConfig )
+    , CORE::CTSharedObjCreator< CAwsSnsPubSubClientTopicConfig, MT::CMutex >( this )
+    , createTopicIfMissing( false )
+    , tryToUsePublishBatch( false )
+    , addPrefixWhenSendingKvPairs( false )
+    , kvPairPrefixToAddOnSend()
+    , addPrefixWhenSendingMetaDataKvPairs( false )
+    , metaDatakvPairPrefixToAddOnSend()
 {GUCEF_TRACE;
 
     LoadCustomConfig( genericConfig.customConfig );  
@@ -66,7 +91,7 @@ CAwsSqsPubSubClientTopicConfig::CAwsSqsPubSubClientTopicConfig( const COMCORE::C
 
 /*-------------------------------------------------------------------------*/
 
-CAwsSqsPubSubClientTopicConfig::~CAwsSqsPubSubClientTopicConfig()
+CAwsSnsPubSubClientTopicConfig::~CAwsSnsPubSubClientTopicConfig()
 {GUCEF_TRACE;
 
 }
@@ -74,24 +99,41 @@ CAwsSqsPubSubClientTopicConfig::~CAwsSqsPubSubClientTopicConfig()
 /*-------------------------------------------------------------------------*/
 
 bool
-CAwsSqsPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
+CAwsSnsPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
         
-    topicNameIsQueueName = config.GetAttributeValueOrChildValueByName( "topicNameIsQueueName" ).AsBool( topicNameIsQueueName, true );
-    tryToUseSendMessageBatch = config.GetAttributeValueOrChildValueByName( "tryToUseSendMessageBatch" ).AsBool( tryToUseSendMessageBatch, true );
-    
+    createTopicIfMissing = config.GetAttributeValueOrChildValueByName( "createTopicIfMissing" ).AsBool( createTopicIfMissing, true );
+    tryToUsePublishBatch = config.GetAttributeValueOrChildValueByName( "tryToUsePublishBatch" ).AsBool( tryToUsePublishBatch, true );
+    addPrefixWhenSendingKvPairs = config.GetAttributeValueOrChildValueByName( "addPrefixWhenSendingKvPairs" ).AsBool( addPrefixWhenSendingKvPairs, true );
+    kvPairPrefixToAddOnSend = config.GetAttributeValueOrChildValueByName( "kvPairPrefixToAddOnSend" ).AsAsciiString( kvPairPrefixToAddOnSend, true );
+    addPrefixWhenSendingMetaDataKvPairs = config.GetAttributeValueOrChildValueByName( "addPrefixWhenSendingMetaDataKvPairs" ).AsBool( addPrefixWhenSendingMetaDataKvPairs, true );
+    metaDatakvPairPrefixToAddOnSend = config.GetAttributeValueOrChildValueByName( "metaDatakvPairPrefixToAddOnSend" ).AsAsciiString( metaDatakvPairPrefixToAddOnSend, true );    
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CAwsSqsPubSubClientTopicConfig& 
-CAwsSqsPubSubClientTopicConfig::operator=( const COMCORE::CPubSubClientTopicConfig& src )
+bool 
+CAwsSnsPubSubClientTopicConfig::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
     {
-        COMCORE::CPubSubClientTopicConfig::operator=( src );
+        PUBSUB::CPubSubClientTopicConfig::operator=( src );
+        return LoadCustomConfig( src.customConfig );    
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAwsSnsPubSubClientTopicConfig& 
+CAwsSnsPubSubClientTopicConfig::operator=( const PUBSUB::CPubSubClientTopicConfig& src )
+{GUCEF_TRACE;
+
+    if ( &src != this )
+    {
+        PUBSUB::CPubSubClientTopicConfig::operator=( src );
         LoadCustomConfig( src.customConfig );    
     }
     return *this;
@@ -99,17 +141,30 @@ CAwsSqsPubSubClientTopicConfig::operator=( const COMCORE::CPubSubClientTopicConf
 
 /*-------------------------------------------------------------------------*/
 
-CAwsSqsPubSubClientTopicConfig& 
-CAwsSqsPubSubClientTopicConfig::operator=( const CAwsSqsPubSubClientTopicConfig& src )
+CAwsSnsPubSubClientTopicConfig& 
+CAwsSnsPubSubClientTopicConfig::operator=( const CAwsSnsPubSubClientTopicConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
     {
-        COMCORE::CPubSubClientTopicConfig::operator=( src );
-        topicNameIsQueueName = src.topicNameIsQueueName;
-        tryToUseSendMessageBatch = src.tryToUseSendMessageBatch;
+        PUBSUB::CPubSubClientTopicConfig::operator=( src );
+        createTopicIfMissing = src.createTopicIfMissing;
+        tryToUsePublishBatch = src.tryToUsePublishBatch;
+        addPrefixWhenSendingKvPairs = src.addPrefixWhenSendingKvPairs;
+        kvPairPrefixToAddOnSend = src.kvPairPrefixToAddOnSend;
+        addPrefixWhenSendingMetaDataKvPairs = src.addPrefixWhenSendingMetaDataKvPairs;
+        metaDatakvPairPrefixToAddOnSend = src.metaDatakvPairPrefixToAddOnSend;
     }
     return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CICloneable* 
+CAwsSnsPubSubClientTopicConfig::Clone( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CAwsSnsPubSubClientTopicConfig( *this );
 }
 
 /*-------------------------------------------------------------------------//
@@ -118,7 +173,7 @@ CAwsSqsPubSubClientTopicConfig::operator=( const CAwsSqsPubSubClientTopicConfig&
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace AWSSQS */
+}; /* namespace AWSSNS */
 }; /* namespace PUBSUBPLUGIN */
 }; /* namespace GUCEF */
 

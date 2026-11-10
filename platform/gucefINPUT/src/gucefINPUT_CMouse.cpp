@@ -35,6 +35,7 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#include "gucefINPUT_CMouseVariableChangedEventData.h"
 #include "gucefINPUT_CMouse.h"
 
 /*-------------------------------------------------------------------------//
@@ -57,6 +58,7 @@ const CORE::CEvent CMouse::MouseMovedEvent = "GUCEF::INPUT::CMouse::MouseMovedEv
 const CORE::CEvent CMouse::MouseClickedEvent = "GUCEF::INPUT::CMouse::MouseClickedEvent";
 const CORE::CEvent CMouse::MouseDoubleClickedEvent = "GUCEF::INPUT::CMouse::MouseDoubleClickedEvent";
 const CORE::CEvent CMouse::MouseTrippleClickedEvent = "GUCEF::INPUT::CMouse::MouseTrippleClickedEvent";
+const CORE::CEvent CMouse::MouseVariableChangedEvent = "GUCEF::INPUT::CMouse::MouseVariableChangedEvent";
 
 const char* CMouse::DeviceType = "GUCEF::INPUT::CMouse";
 
@@ -75,6 +77,7 @@ CMouse::RegisterEvents( void )
     MouseClickedEvent.Initialize();
     MouseDoubleClickedEvent.Initialize();
     MouseTrippleClickedEvent.Initialize();
+    MouseVariableChangedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -173,9 +176,11 @@ CMouse::SetButtonState( const Int32 contextId    ,
                         const bool pressedState  )
 {GUCEF_TRACE;
 
+    if ( buttonIndex >= m_buttonStates.size() )
+        m_buttonStates.resize( buttonIndex + 1, false );
     m_buttonStates[ buttonIndex ] = pressedState;
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Setting state of button " + CORE::Int32ToString( buttonIndex ) + " to " + CORE::BoolToString( pressedState ) + " on mouse " + CORE::Int32ToString( m_deviceID ) );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "Setting state of button " << buttonIndex << " to " << CORE::BoolToString( pressedState ) << " on mouse " << m_deviceID );
 
     CMouseButtonEventData eData( contextId, m_deviceID, buttonIndex, pressedState, m_xPos, m_yPos );
     NotifyObservers( MouseButtonEvent, &eData );
@@ -197,6 +202,19 @@ CMouse::SetMousePos( const Int32 contextId ,
 
     CMouseMovedEventData eData( contextId, m_deviceID, m_xPos, m_yPos, m_prevXPos, m_prevYPos );
     NotifyObservers( MouseMovedEvent, &eData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMouse::SetVariable( const Int32 contextId      ,
+                     const UInt32 variableIndex ,
+                     const Int32 value          ,
+                     const Int32 valueDelta     )
+{GUCEF_TRACE;
+
+    CMouseVariableChangedEventData eData( contextId, m_deviceID, variableIndex, value, valueDelta );
+    NotifyObservers( MouseVariableChangedEvent, &eData );
 }
 
 /*-------------------------------------------------------------------------*/

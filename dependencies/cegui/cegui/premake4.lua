@@ -35,8 +35,8 @@ links( { "freetype", "pcre" } )
 
 configuration( {} )
 defines( { "CEGUIBASE_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI", "MODULE_NAME=CEGUI" } )
-  links( { "Dbghelp", "Winmm" } )
-  links( { "Dbghelp", "Winmm" } )
+  links( { "Dbghelp.lib", "Winmm.lib" } )
+  links( { "Dbghelp.lib", "Winmm.lib" } )
 
 
 configuration( {} )

@@ -210,14 +210,11 @@ set( SOURCE_FILES
   IlmBase/IlmThread/IlmThread.cpp
   IlmBase/IlmThread/IlmThreadMutex.cpp
   IlmBase/IlmThread/IlmThreadMutexPosix.cpp
-  IlmBase/IlmThread/IlmThreadMutexWin32.cpp
   IlmBase/IlmThread/IlmThreadPool.cpp
   IlmBase/IlmThread/IlmThreadPosix.cpp
   IlmBase/IlmThread/IlmThreadSemaphore.cpp
   IlmBase/IlmThread/IlmThreadSemaphorePosix.cpp
   IlmBase/IlmThread/IlmThreadSemaphorePosixCompat.cpp
-  IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp
-  IlmBase/IlmThread/IlmThreadWin32.cpp
   IlmBase/Imath/ImathBox.cpp
   IlmBase/Imath/ImathColorAlgo.cpp
   IlmBase/Imath/ImathFun.cpp
@@ -330,11 +327,32 @@ set( SOURCE_FILES
   OpenEXR/IlmImfUtil/ImfSampleCountChannel.cpp
 )
 
+
+
+if (WIN32)
+  set( PLATFORM_SOURCE_FILES 
+    IlmBase/IlmThread/IlmThreadMutexWin32.cpp
+    IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp
+    IlmBase/IlmThread/IlmThreadWin32.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (WIN64)
+  set( PLATFORM_SOURCE_FILES 
+    IlmBase/IlmThread/IlmThreadMutexWin32.cpp
+    IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp
+    IlmBase/IlmThread/IlmThreadWin32.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+endif ()
+
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
  set( PLATFORM_HEADER_FILES "" )
-
-# Make sure the PLATFORM_SOURCE_FILES variable is always defined
- set( PLATFORM_SOURCE_FILES "" )
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
@@ -344,6 +362,17 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} zlib )
 target_link_libraries( ${MODULE_NAME} PRIVATE zlib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OpenEXR;MODULE_NAME=OpenEXR" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++14> )
+endif()
+
+if ( LINUX32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE pthread )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE pthread )
+endif( LINUX64 )
 
 if ( WIN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "HALF_EXPORTS;IEX_EXPORTS;ILMIMF_EXPORTS;ILMTHREAD_EXPORTS;IMATH_EXPORTS;OPENEXR_DLL" )

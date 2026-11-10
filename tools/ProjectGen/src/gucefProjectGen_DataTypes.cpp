@@ -42,6 +42,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #ifndef GUCEF_CORE_CPLUGINCONTROL_H
 #include "CPluginControl.h"
 #define GUCEF_CORE_CPLUGINCONTROL_H
@@ -450,9 +455,17 @@ StringToLinkedDependencyScope( const CORE::CString& linkedDependencyScopeStr )
 
 /*-------------------------------------------------------------------------*/
 
+// Serializes the lazy XML codec lookup and plugin load, which can be invoked concurrently
+static MT::CMutex g_xmlDStoreCodecLock;
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CDStoreCodecRegistry::TDStoreCodecPtr
 GetXmlDStoreCodec( void )
 {GUCEF_TRACE;
+
+    // This is used concurrently from the module processing tasks: serialize the lazy lookup/plugin load
+    MT::CScopeMutex lock( g_xmlDStoreCodecLock );
 
     static CORE::CDStoreCodecRegistry::TDStoreCodecPtr codecPtr;
     if ( codecPtr.IsNULL() )
@@ -988,6 +1001,24 @@ MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
             // definition for which a build order must be set
             return false;
         }
+        else
+        if ( !allPlatformsInfo.IsNULL() && allPlatformsInfo->buildOrder > -1 )
+        {
+            // Only the 'all' platform is defined which is fine: the module is generic code which can be built
+            // for any platform, so it applies to the target platform as is
+            mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *allPlatformsInfo );
+            return true;
+        }
+        else
+        if ( !targetPlatformInfo.IsNULL() && targetPlatformInfo->buildOrder > -1 )
+        {
+            // Only the target platform is defined, the module is not available for all platforms
+            // but it is for this one. Without a name of its own it has that of the module's named definition
+            mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *targetPlatformInfo );
+            if ( mergedModuleInfo->name.IsNULLOrEmpty() )
+                mergedModuleInfo->name = moduleInfoEntry->GetConsensusName();
+            return true;
+        }
     }
 
     // This module should not be used since it doesn't have platform specific info
@@ -1154,6 +1185,7 @@ MergeDirProcessingInstructions( TDirProcessingInstructions& mergedInstructions  
     MergeStringVectorMap( mergedInstructions.dirExcludeList, newInstructions.dirExcludeList, caseSensitive );
     MergeStringVectorMap( mergedInstructions.dirIncludeList, newInstructions.dirIncludeList, caseSensitive );
     MergeStringVectorMap( mergedInstructions.fileExcludeList, newInstructions.fileExcludeList, caseSensitive );
+    MergeStringVectorMap( mergedInstructions.includeDirExcludeList, newInstructions.includeDirExcludeList, caseSensitive );
     MergeStringVectorMap( mergedInstructions.fileIncludeList, newInstructions.fileIncludeList, caseSensitive );
     MergeStringVectorMap( mergedInstructions.fileIncludeList, newInstructions.fileIncludeList, caseSensitive );
     totalSuccess = MergePlatformDefinitionMap( mergedInstructions.platforms, newInstructions.platforms, caseSensitive ) && totalSuccess;
@@ -1280,11 +1312,63 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
             if ( MODULETYPE_UNDEFINED != platformModuleInfo->moduleType )
             {
-                moduleMap[ platformName ] = ((*i).second);
+                if ( platformModuleInfo->name.IsNULLOrEmpty() )
+                {
+                    // a platform definition without a name of its own has that of the module's named definition
+                    CModuleInfoPtr namedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *platformModuleInfo );
+                    namedModuleInfo->name = moduleInfoEntry->GetConsensusName();
+                    moduleMap[ platformName ] = namedModuleInfo;
+                }
+                else
+                {
+                    moduleMap[ platformName ] = platformModuleInfo;
+                }
             }
             ++i;
         }
     }
+}
+
+/*---------------------------------------------------------------------------*/
+
+namespace {
+
+bool
+IsBuiltModuleType( const TModuleType moduleType )
+{GUCEF_TRACE;
+
+    return ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
+           ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
+           ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
+           ( MODULETYPE_BINARY_PACKAGE != moduleType )            &&
+           ( MODULETYPE_UNDEFINED != moduleType );
+}
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+IsModuleBuiltForPlatform( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                          const CORE::CString& targetPlatform        )
+{GUCEF_TRACE;
+
+    if ( moduleInfoEntry.IsNULL() )
+        return false;
+    if ( IsBuiltModuleType( moduleInfoEntry->GetModuleType( targetPlatform ) ) )
+        return true;
+    if ( KnownPlatforms::AllPlatforms != targetPlatform )
+        return false;
+
+    // for all platforms: built for any of them
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().begin();
+    while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        if ( IsBuiltModuleType( (*i).second->moduleType ) )
+            return true;
+        ++i;
+    }
+    return false;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1697,20 +1781,46 @@ HasPlatformDefinition( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
 /*--------------------------------------------------------------------------*/
 
+static CORE::CString::StringSet
+CreateKnownLicenseFiles( void )
+{
+    CORE::CString::StringSet licenseFiles;
+    licenseFiles.insert( "license" );
+    licenseFiles.insert( "license.txt" );
+    licenseFiles.insert( "copying" );
+    licenseFiles.insert( "copying.lesser" );
+    return licenseFiles;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static CORE::CString::StringSet
+CreateKnownSemVerFiles( void )
+{
+    CORE::CString::StringSet semverFiles;
+    semverFiles.insert( "semver" );
+    semverFiles.insert( "semver.txt" );
+    semverFiles.insert( "version" );
+    semverFiles.insert( "version.txt" );
+    semverFiles.insert( "version-semver" );
+    semverFiles.insert( "version-semver.txt" );
+    return semverFiles;
+}
+
+/*--------------------------------------------------------------------------*/
+
+// Initialized at module load time, before any of the concurrent module processing tasks run
+static const CORE::CString::StringSet g_knownLicenseFiles = CreateKnownLicenseFiles();
+static const CORE::CString::StringSet g_knownSemVerFiles = CreateKnownSemVerFiles();
+
+/*--------------------------------------------------------------------------*/
+
 const CORE::CString::StringSet&
 GetKnownLicenseFiles( void )
 {GUCEF_TRACE;
 
-    static CORE::CString::StringSet licenseFiles;
-
-    if ( licenseFiles.empty() )
-    {
-        licenseFiles.insert( "license" );
-        licenseFiles.insert( "license.txt" );
-        licenseFiles.insert( "copying" );
-        licenseFiles.insert( "copying.lesser" );
-    }
-    return licenseFiles;
+    // Note: the set is created at module load time since this is used concurrently from the module processing tasks
+    return g_knownLicenseFiles;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1980,18 +2090,8 @@ const CORE::CString::StringSet&
 GetKnownSemVerFiles( void )
 {GUCEF_TRACE;
 
-    static CORE::CString::StringSet semverFiles;
-
-    if ( semverFiles.empty() )
-    {
-        semverFiles.insert( "semver" );
-        semverFiles.insert( "semver.txt" );
-        semverFiles.insert( "version" );
-        semverFiles.insert( "version.txt" );
-        semverFiles.insert( "version-semver" );
-        semverFiles.insert( "version-semver.txt" );
-    }
-    return semverFiles;
+    // Note: the set is created at module load time since this is used concurrently from the module processing tasks
+    return g_knownSemVerFiles;
 }
 
 /*---------------------------------------------------------------------------*/

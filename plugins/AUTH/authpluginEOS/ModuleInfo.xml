@@ -1,0 +1,35 @@
+<ModuleInfoEntry>
+    <Module Name="authpluginEOS" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUTH plugin for logging in with Epic Online Services</DescriptionHeadline>
+            <DescriptionDetails>Persistent auth, account portal and device code logins through the Epic Online Services SDK, and verification of Epic id tokens through the OIDC engine of gucefAUTH. The platform is shared with the other EOS plugins through pluginglueEOS. Without the SDK in the build (see CEosSdk) the provider is registered but never available.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="pluginglueEOS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="pluginglueEOS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUTHPLUGIN_EOS_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

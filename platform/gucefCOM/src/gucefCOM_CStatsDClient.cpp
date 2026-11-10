@@ -701,8 +701,10 @@ CStatsDClient::LoadConfig( const CORE::CDataNode& treeroot )
     }
     else
     {
+        // The section is optional: without it there is nothing for this client in the config and it is not a failure of the config,
+        // otherwise every application that has this module could only start with a StatsDClient section
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "StatsDClient:LoadConfig(): Could not find StatsDClient config, StatsD functionality will not be available" );
-        return false;
+        return true;
     }
 
     // (Re?)Open to make settings effective

@@ -30,19 +30,22 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../platform/gucefAUDIO/include \
+  $(MY_MODULE_PATH)/../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../platform/gucefINPUT/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefPATCHER/include \
-  $(MY_MODULE_PATH)/../../platform/gucefVFS/include
+  $(MY_MODULE_PATH)/../../platform/gucefVFS/include \
+  $(MY_MODULE_PATH)/../../platform/gucefVIDEO/include \
+  $(MY_MODULE_PATH)/../../platform/gucefVIDEO/include/c_api
 
-LOCAL_CFLAGS := -DGUCEF_PATCHERAPP_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_PATCHERAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefPATCHERAPP -DMODULE_NAME=gucefPATCHERAPP
 
 
 LOCAL_SHARED_LIBRARIES := \

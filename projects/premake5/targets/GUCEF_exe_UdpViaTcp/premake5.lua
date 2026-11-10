@@ -12,15 +12,29 @@
 
 workspace( "GUCEF_exe_UdpViaTcp" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "ANDROID"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
@@ -76,6 +90,20 @@ filter "ARDUINO"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "tools/UdpViaTcp" )
 
+filter "EMSCRIPTEN"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
 filter "EMSCRIPTEN32"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
@@ -118,6 +146,48 @@ filter "IOS"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "tools/UdpViaTcp" )
 
+filter "IPHONE"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "IPHONEOS"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "LINUX"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
 filter "LINUX32"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
@@ -133,6 +203,62 @@ filter "LINUX32"
   include( "tools/UdpViaTcp" )
 
 filter "LINUX64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "MAC"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "MACOS"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "MACOSX"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "MSWIN"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
@@ -175,6 +301,20 @@ filter "WIN32"
   include( "tools/UdpViaTcp" )
 
 filter "WIN64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefVFS" )
+  include( "platform/gucefWEB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/UdpViaTcp" )
+
+filter "WINDOWS"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )

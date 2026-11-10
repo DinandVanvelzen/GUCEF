@@ -37,6 +37,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../tolua/src/lib \
   $(MY_MODULE_PATH)/src
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=toluapp -DMODULE_NAME=toluapp
+
 
 LOCAL_SHARED_LIBRARIES := \
   lua \

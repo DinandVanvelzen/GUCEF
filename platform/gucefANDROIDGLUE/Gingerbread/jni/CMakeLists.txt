@@ -62,11 +62,11 @@ if ( ANDROID64 )
 endif( ANDROID64 )
 
 if ( ANDROID32 )
-  include_directories( ../../.. ../../../../common/include ../../../gucefCORE ../../../gucefCORE/include ../../../gucefCORE/include/android ../../../gucefCORE/include/c_api ../../../gucefLOADER/include ../../../gucefMT ../../../gucefMT/include )
+  include_directories( ../../.. ../../../../common/include ../../../gucefCORE ../../../gucefCORE/include ../../../gucefCORE/include/android ../../../gucefCORE/include/c_api ../../../gucefCORE/src ../../../gucefLOADER/include ../../../gucefMT ../../../gucefMT/include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../.. ../../../../common/include ../../../gucefCORE ../../../gucefCORE/include ../../../gucefCORE/include/android ../../../gucefCORE/include/c_api ../../../gucefLOADER/include ../../../gucefMT ../../../gucefMT/include )
+  include_directories( ../../.. ../../../../common/include ../../../gucefCORE ../../../gucefCORE/include ../../../gucefCORE/include/android ../../../gucefCORE/include/c_api ../../../gucefCORE/src ../../../gucefLOADER/include ../../../gucefMT ../../../gucefMT/include )
 endif( ANDROID64 )
 
 

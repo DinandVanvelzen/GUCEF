@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_CORE_CTASKMANAGER_H
 #include "gucefCORE_CTaskManager.h"
 #define GUCEF_CORE_CTASKMANAGER_H
@@ -58,10 +63,6 @@
 #define GUCEF_VFS_CVFS_H
 #endif /* GUCEF_VFS_CVFS_H ? */
 
-#ifndef GUCEF_VFS_CVFSURLHANDLER_H
-#include "gucefVFS_CVFSURLHandler.h"     /* URL handler for URL's with protocol "vfs" */
-#define GUCEF_VFS_CVFSURLHANDLER_H
-#endif /* GUCEF_VFS_CVFSURLHANDLER_H ? */
 
 #ifndef GUCEF_VFS_CVFSURIRESOURCEACCESSOR_H
 #include "gucefVFS_CVfsUriResourceAccessor.h"
@@ -175,9 +176,9 @@ CVfsGlobal::Initialize( void )
     /*
      *      register all codecs/handlers/notifiers
      */
-    CVFSURLHandler::Register();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefVFS Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefVFS" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -194,11 +195,11 @@ CVfsGlobal::~CVfsGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefVFS global systems" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefVFS" );
 
-    /* 
+    /*
      *  Unregister handlers
      */
-    CVFSURLHandler::Unregister();
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncVfsOperation::TaskType ); 
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CVfsUriResourceAccessor::SchemeName );
 

@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="fontpluginFREETYPE" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>Font rasterizer for TrueType and OpenType fonts using FreeType</DescriptionHeadline>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="freetype" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="freetype" />
+        </Linker>
+        <Preprocessor>
+            <Define String="FONTPLUGINFREETYPE_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -650,7 +650,8 @@ CTokenizer::ParseTokensAndGroups( const CString& inputString                    
         errors.push_back( "No valid group found in input string but grouping tokens are present" );
         return false;
     }    
-    Int32Pair& firstGroup = matchedGroupTokenPairs[ groupIndex ];
+    // Note: this must be a copy, not a reference: matchedGroupTokenPairs can be reassigned below which frees its storage
+    Int32Pair firstGroup = matchedGroupTokenPairs[ groupIndex ];
 
     if ( firstGroup.first > 0 || firstGroup.second < ((Int32) stringToParse.Length())-1 )
     {

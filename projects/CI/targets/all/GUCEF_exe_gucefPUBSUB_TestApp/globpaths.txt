@@ -1,5 +1,6 @@
 /*
 common/include/*
+common/test/include/*
 dependencies//*
 platform/gucefCOM/*
 platform/gucefCORE/*

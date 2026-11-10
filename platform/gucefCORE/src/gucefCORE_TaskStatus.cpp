@@ -110,6 +110,9 @@ namespace CORE {
     if ( 0 == strcmp( taskStatusStr, "KILLED" ) )
         return ETaskStatus::TASKSTATUS_KILLED; 
 
+    if ( 0 == strcmp( taskStatusStr, "CANCELLED" ) )
+        return ETaskStatus::TASKSTATUS_CANCELLED;
+
     if ( 0 == strcmp( taskStatusStr, "FINISHED" ) )
         return ETaskStatus::TASKSTATUS_FINISHED;        
 
@@ -154,6 +157,7 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_RESUMED: return "RESUMED";
         case ETaskStatus::TASKSTATUS_STOPPED: return "STOPPED";
         case ETaskStatus::TASKSTATUS_KILLED: return "KILLED";
+        case ETaskStatus::TASKSTATUS_CANCELLED: return "CANCELLED";
         case ETaskStatus::TASKSTATUS_FINISHED: return "FINISHED";
 
         default:
@@ -183,6 +187,7 @@ TaskStatusIsAnEndState( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_STARTUP_FAILED:
         case ETaskStatus::TASKSTATUS_STOPPED:
         case ETaskStatus::TASKSTATUS_KILLED:
+        case ETaskStatus::TASKSTATUS_CANCELLED:
         case ETaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN:
         case ETaskStatus::TASKSTATUS_FINISHED:
             return true;

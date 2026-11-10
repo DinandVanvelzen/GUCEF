@@ -46,28 +46,39 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** Text. Properties: Text, Font, TextColour, HTextAlign, VTextAlign, WordWrap, BackgroundColour */
 class GUCEF_GUI_PUBLIC_CPP CLabel : public CWidget
 {
     public:
 
     static const CORE::CEvent TextChangedEvent;
-    
+
     static void RegisterEvents( void );
-    
+
     public:
-    
+
     CLabel( void );
-    
+
     virtual ~CLabel();
-    
+
     virtual bool SetText( const CString& text );
-    
+
     virtual bool GetText( CString& text ) const;
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
+    CString GetText( void ) const;
+
+    virtual bool GetNaturalSize( Int32& width, Int32& height ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
     CLabel( const CLabel& src );
     CLabel& operator=( const CLabel& src );
 };
@@ -82,16 +93,5 @@ class GUCEF_GUI_PUBLIC_CPP CLabel : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CLABEL_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

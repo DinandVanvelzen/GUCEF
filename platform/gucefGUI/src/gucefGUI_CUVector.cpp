@@ -80,7 +80,7 @@ CUVector&
 CUVector::operator=( const CUVector& src )
 {GUCEF_TRACE;
     
-    if ( this == &src )
+    if ( this != &src )
     {
         m_x = src.m_x;
         m_y = src.m_y;
@@ -142,6 +142,31 @@ CUVector::GetY( void ) const
 {GUCEF_TRACE;
 
     return m_y;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CUVector::ToString( void ) const
+{GUCEF_TRACE;
+
+    return m_x.ToString() + ' ' + m_y.ToString();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUVector::FromString( const CString& str, CUVector& vec )
+{GUCEF_TRACE;
+
+    CString::StringVector parts = str.Trim( true ).Trim( false ).ParseElements( ' ', false );
+    if ( 2 != parts.size() )
+        return false;
+    CUDim x, y;
+    if ( !CUDim::FromString( parts[ 0 ], x ) || !CUDim::FromString( parts[ 1 ], y ) )
+        return false;
+    vec = CUVector( x, y );
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

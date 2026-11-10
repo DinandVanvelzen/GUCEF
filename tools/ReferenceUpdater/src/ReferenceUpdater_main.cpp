@@ -29,6 +29,11 @@
 #define GUCEF_CORE_DVFILEUTILS_H
 #endif /* GUCEF_CORE_DVFILEUTILS_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #ifndef GUCEF_CORE_DVSTRUTILS_H
 #include "dvstrutils.h"
 #define GUCEF_CORE_DVSTRUTILS_H
@@ -613,7 +618,7 @@ DeleteFileBackup( const CORE::CString& filepath )
     CORE::CString newFilepath = filepath + ".backup";
     if ( CORE::FileExists( newFilepath ) )
     {
-        if ( 0 != CORE::Delete_File( newFilepath.C_String() ) )
+        if ( CORE::DeleteFile( newFilepath ) )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "File \"" + newFilepath + "\" has been deleted" );
             return true;
@@ -635,8 +640,7 @@ UndoRenameFileAsBackup( const CORE::CString& filepath )
 
     CORE::CString newFilepath = filepath + ".backup";
      
-    if ( 0 != CORE::Move_File( filepath.C_String()    , 
-                               newFilepath.C_String() ) )
+    if ( CORE::MoveFile( newFilepath, filepath, true ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "File \"" + filepath + "\" has been renamed to \"" + newFilepath + "\"" );
         return true;
@@ -655,8 +659,7 @@ RenameFileAsBackup( const CORE::CString& filepath )
 {GUCEF_TRACE;
 
     CORE::CString newFilepath = filepath + ".backup";     
-    if ( 0 != CORE::Move_File( newFilepath.C_String() , 
-                               filepath.C_String()    ) )
+    if ( CORE::MoveFile( filepath, newFilepath, true ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "File \"" + filepath + "\" has been renamed to \"" + newFilepath + "\"" );
         return true;

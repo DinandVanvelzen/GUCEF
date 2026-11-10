@@ -241,6 +241,7 @@ CStoragePubSubClient::GetSupportedFeatures( PUBSUB::CPubSubClientFeatures& featu
     features.supportsGlobPatternTopicNames = true;      // We support generating topics from VFS directory name matching using glob patterns
     features.supportsSubscriptionMsgArrivalDelayRequests = false;
     features.supportsSubscriptionEndOfDataEvent = true; // we support sending these at the end of every request fullfillment or when we run out of requests to fullfill
+    features.supportsReplay = true;                     // We support replaying stored messages starting at a given key value via RequestReplay() and the sidecar index
 
     features.supportsBookmarkingConcept = true;         // We can create a reference to the storage location plus offset
     features.supportsAutoBookmarking = false;           // Currently we do 'forget' where we are if the app crashes

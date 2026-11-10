@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_GUI_CWIDGET_H
-#include "gucefGUI_CWidget.h"
-#define GUCEF_GUI_CWIDGET_H
-#endif /* GUCEF_GUI_CWIDGET_H ? */
+#ifndef GUCEF_GUI_CBUTTON_H
+#include "gucefGUI_CButton.h"
+#define GUCEF_GUI_CBUTTON_H
+#endif /* GUCEF_GUI_CBUTTON_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,29 +46,41 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class GUCEF_GUI_PUBLIC_CPP CCheckbox : public CWidget
+/** A button that toggles its Checked property when activated; CheckedImage is shown while checked */
+class GUCEF_GUI_PUBLIC_CPP CCheckbox : public CButton
 {
     public:
 
     static const CORE::CEvent BoxCheckedEvent;
     static const CORE::CEvent BoxUncheckedEvent;
-    
+
     static void RegisterEvents( void );
-    
+
     public:
-    
+
     CCheckbox( void );
-    
+
     virtual ~CCheckbox();
-    
+
     virtual bool SetCheckedState( const bool isChecked );
-    
+
     virtual bool GetCheckedState( void ) const;
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Checkbox"; }
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
     CCheckbox( const CCheckbox& src );
     CCheckbox& operator=( const CCheckbox& src );
 };
@@ -83,16 +95,5 @@ class GUCEF_GUI_PUBLIC_CPP CCheckbox : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CCHECKBOX_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

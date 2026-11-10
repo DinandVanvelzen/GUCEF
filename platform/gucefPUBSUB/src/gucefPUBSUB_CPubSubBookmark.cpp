@@ -48,6 +48,7 @@ CPubSubBookmark::CPubSubBookmark( void )
     : m_bmType( BOOKMARK_TYPE_NOT_INITIALIZED )
     , m_bmData()
     , m_bmDt()
+    , m_bmKeyField()
 {GUCEF_TRACE;
 
 }
@@ -58,41 +59,45 @@ CPubSubBookmark::CPubSubBookmark( TBookmarkType bmType )
     : m_bmType( bmType )
     , m_bmData()
     , m_bmDt()
+    , m_bmKeyField()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CPubSubBookmark::CPubSubBookmark( TBookmarkType bmType         , 
+CPubSubBookmark::CPubSubBookmark( TBookmarkType bmType         ,
                                   const CORE::CVariant& bmData )
     : m_bmType( bmType )
     , m_bmData( bmData )
     , m_bmDt()
+    , m_bmKeyField()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CPubSubBookmark::CPubSubBookmark( TBookmarkType bmType         , 
+CPubSubBookmark::CPubSubBookmark( TBookmarkType bmType         ,
                                   const CORE::CVariant& bmData ,
                                   const CORE::CDateTime& bmDt  )
     : m_bmType( bmType )
     , m_bmData( bmData )
     , m_bmDt( bmDt )
+    , m_bmKeyField()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CPubSubBookmark::CPubSubBookmark( const CPubSubBookmark& src  , 
+CPubSubBookmark::CPubSubBookmark( const CPubSubBookmark& src  ,
                                   bool linkIfPossible         ,
                                   const CORE::CDateTime& bmDt )
     : m_bmType( src.m_bmType )
     , m_bmData( src.m_bmData, linkIfPossible )
     , m_bmDt( bmDt )
+    , m_bmKeyField( src.m_bmKeyField )
 {GUCEF_TRACE;
 
 }
@@ -112,9 +117,10 @@ CPubSubBookmark::operator=( const CPubSubBookmark& src )
 
     if ( this != &src )
     {
-        m_bmType = src.m_bmType;
-        m_bmData = src.m_bmData;
-        m_bmDt = src.m_bmDt;
+        m_bmType     = src.m_bmType;
+        m_bmData     = src.m_bmData;
+        m_bmDt       = src.m_bmDt;
+        m_bmKeyField = src.m_bmKeyField;
     }
     return *this;
 }
@@ -152,7 +158,8 @@ CPubSubBookmark::GetBookmarkTypeName( void ) const
         case BOOKMARK_TYPE_MSG_INDEX:           return "BOOKMARK_TYPE_MSG_INDEX";
         case BOOKMARK_TYPE_MSG_DATETIME:        return "BOOKMARK_TYPE_MSG_DATETIME";
         case BOOKMARK_TYPE_TOPIC_INDEX:         return "BOOKMARK_TYPE_TOPIC_INDEX";
-        
+        case BOOKMARK_TYPE_INDEX_KEY_VALUE:     return "BOOKMARK_TYPE_INDEX_KEY_VALUE";
+
         default:
         case BOOKMARK_TYPE_NOT_INITIALIZED:     return "BOOKMARK_TYPE_NOT_INITIALIZED";
     }
@@ -212,6 +219,8 @@ CPubSubBookmark::ToString( void ) const
     // Since a bookmark is a simple combo of a few basic fields we can just use a CSV approach
     // Keep in mind this also relies on Base64 encoding of BLOBs and such by the variant
 
+    if ( m_bmType == BOOKMARK_TYPE_INDEX_KEY_VALUE )
+        return m_bmDt.ToIso8601DateTimeString( false, true ) + ',' + CORE::ToString( m_bmType ) + ',' + m_bmKeyField + '=' + m_bmData.AsString();
     return m_bmDt.ToIso8601DateTimeString( false, true ) + ',' + CORE::ToString( m_bmType ) + ',' + m_bmData.AsString();
 }
 
@@ -223,11 +232,42 @@ CPubSubBookmark::LinkTo( const CPubSubBookmark& srcBookmark )
 
     if ( this != &srcBookmark )
     {
-        m_bmType = srcBookmark.m_bmType;
+        m_bmType     = srcBookmark.m_bmType;
         m_bmData.LinkTo( srcBookmark.m_bmData );
-        m_bmDt = srcBookmark.m_bmDt;
+        m_bmDt       = srcBookmark.m_bmDt;
+        m_bmKeyField = srcBookmark.m_bmKeyField;
     }
     return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPubSubBookmark::SetBookmarkKeyField( const CORE::CString& keyField )
+{GUCEF_TRACE;
+
+    m_bmKeyField = keyField;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CPubSubBookmark::GetBookmarkKeyField( void ) const
+{GUCEF_TRACE;
+
+    return m_bmKeyField;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPubSubBookmark
+CPubSubBookmark::MakeIndexKeyValueBookmark( const CORE::CString& keyField ,
+                                            const CORE::CVariant& value   )
+{GUCEF_TRACE;
+
+    CPubSubBookmark bm( BOOKMARK_TYPE_INDEX_KEY_VALUE, value );
+    bm.m_bmKeyField = keyField;
+    return bm;
 }
 
 /*-------------------------------------------------------------------------//

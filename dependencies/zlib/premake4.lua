@@ -13,10 +13,10 @@
 
 
 configuration( { "EMSCRIPTEN32" } )
-  project( "" )
+  project( "zlib" )
 
 configuration( { "EMSCRIPTEN64" } )
-  project( "" )
+  project( "zlib" )
 
 configuration( { "LINUX32" } )
   project( "zlib" )
@@ -87,19 +87,19 @@ kind( "SharedLib" )
   
 
 configuration( { LINUX32 } )
-defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
   
 
 configuration( { LINUX64 } )
-defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
   
 
 configuration( { WIN32 } )
-defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
   
 
 configuration( { WIN64 } )
-defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZZIP_HAVE_STDINT_H" } )
 
 
 configuration( { "EMSCRIPTEN32" } )
@@ -107,13 +107,13 @@ configuration( { "EMSCRIPTEN32" } )
     files( {
       "crc32.h",
       "deflate.h",
+      "gzguts.h",
       "inffast.h",
       "inffixed.h",
       "inflate.h",
       "inftrees.h",
       "trees.h",
       "zconf.h",
-      "zconf.in.h",
       "zlib.h",
       "zutil.h"
     } )
@@ -124,7 +124,10 @@ configuration( { "EMSCRIPTEN32" } )
       "compress.c",
       "crc32.c",
       "deflate.c",
-      "gzio.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
       "infback.c",
       "inffast.c",
       "inflate.c",
@@ -141,13 +144,13 @@ configuration( { "EMSCRIPTEN64" } )
     files( {
       "crc32.h",
       "deflate.h",
+      "gzguts.h",
       "inffast.h",
       "inffixed.h",
       "inflate.h",
       "inftrees.h",
       "trees.h",
       "zconf.h",
-      "zconf.in.h",
       "zlib.h",
       "zutil.h"
     } )
@@ -158,7 +161,10 @@ configuration( { "EMSCRIPTEN64" } )
       "compress.c",
       "crc32.c",
       "deflate.c",
-      "gzio.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
       "infback.c",
       "inffast.c",
       "inflate.c",
@@ -175,13 +181,13 @@ configuration( { "LINUX32" } )
     files( {
       "crc32.h",
       "deflate.h",
+      "gzguts.h",
       "inffast.h",
       "inffixed.h",
       "inflate.h",
       "inftrees.h",
       "trees.h",
       "zconf.h",
-      "zconf.in.h",
       "zlib.h",
       "zutil.h"
     } )
@@ -192,7 +198,10 @@ configuration( { "LINUX32" } )
       "compress.c",
       "crc32.c",
       "deflate.c",
-      "gzio.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
       "infback.c",
       "inffast.c",
       "inflate.c",
@@ -209,13 +218,13 @@ configuration( { "LINUX64" } )
     files( {
       "crc32.h",
       "deflate.h",
+      "gzguts.h",
       "inffast.h",
       "inffixed.h",
       "inflate.h",
       "inftrees.h",
       "trees.h",
       "zconf.h",
-      "zconf.in.h",
       "zlib.h",
       "zutil.h"
     } )
@@ -226,7 +235,10 @@ configuration( { "LINUX64" } )
       "compress.c",
       "crc32.c",
       "deflate.c",
-      "gzio.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
       "infback.c",
       "inffast.c",
       "inflate.c",
@@ -243,13 +255,13 @@ configuration( { "WIN32" } )
     files( {
       "crc32.h",
       "deflate.h",
+      "gzguts.h",
       "inffast.h",
       "inffixed.h",
       "inflate.h",
       "inftrees.h",
       "trees.h",
       "zconf.h",
-      "zconf.in.h",
       "zlib.h",
       "zutil.h"
     } )
@@ -260,7 +272,10 @@ configuration( { "WIN32" } )
       "compress.c",
       "crc32.c",
       "deflate.c",
-      "gzio.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
       "infback.c",
       "inffast.c",
       "inflate.c",
@@ -277,13 +292,13 @@ configuration( { "WIN64" } )
     files( {
       "crc32.h",
       "deflate.h",
+      "gzguts.h",
       "inffast.h",
       "inffixed.h",
       "inflate.h",
       "inftrees.h",
       "trees.h",
       "zconf.h",
-      "zconf.in.h",
       "zlib.h",
       "zutil.h"
     } )
@@ -294,7 +309,10 @@ configuration( { "WIN64" } )
       "compress.c",
       "crc32.c",
       "deflate.c",
-      "gzio.c",
+      "gzclose.c",
+      "gzlib.c",
+      "gzread.c",
+      "gzwrite.c",
       "infback.c",
       "inffast.c",
       "inflate.c",

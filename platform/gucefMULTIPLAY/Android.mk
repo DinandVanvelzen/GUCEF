@@ -22,29 +22,120 @@ LOCAL_MODULE_FILENAME := libgucefMULTIPLAY
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  src/gucefMULTIPLAY_CMultiPlayControl.cpp \
+  src/gucefMULTIPLAY.cpp \
+  src/gucefMULTIPLAY_CAsyncLobby.cpp \
+  src/gucefMULTIPLAY_CAsyncLobbyListingProvider.cpp \
+  src/gucefMULTIPLAY_CAsyncLobbyService.cpp \
+  src/gucefMULTIPLAY_CAsyncLobbyView.cpp \
+  src/gucefMULTIPLAY_CAuthIdentityProvider.cpp \
+  src/gucefMULTIPLAY_CChatMessage.cpp \
+  src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp \
+  src/gucefMULTIPLAY_CGameAdvertiser.cpp \
+  src/gucefMULTIPLAY_CGameBrowser.cpp \
+  src/gucefMULTIPLAY_CGameListingEntry.cpp \
+  src/gucefMULTIPLAY_CGameListingFilter.cpp \
+  src/gucefMULTIPLAY_CGucefLobby.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyAuthenticator.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyProtocol.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyRelayAuthenticator.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyServer.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyServerApp.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyService.cpp \
+  src/gucefMULTIPLAY_CHttpListListingProvider.cpp \
+  src/gucefMULTIPLAY_CIAsyncLobbyBackend.cpp \
+  src/gucefMULTIPLAY_CIChatService.cpp \
+  src/gucefMULTIPLAY_CIClientIntegrity.cpp \
+  src/gucefMULTIPLAY_CIGameListingProvider.cpp \
+  src/gucefMULTIPLAY_CIIdentityProvider.cpp \
+  src/gucefMULTIPLAY_CILobby.cpp \
+  src/gucefMULTIPLAY_CILobbyService.cpp \
+  src/gucefMULTIPLAY_CIMatchAlertSink.cpp \
+  src/gucefMULTIPLAY_CIMatchClock.cpp \
+  src/gucefMULTIPLAY_CIMatchPackageVerifier.cpp \
+  src/gucefMULTIPLAY_CIMatchProvider.cpp \
+  src/gucefMULTIPLAY_CInAppMatchAlertSink.cpp \
+  src/gucefMULTIPLAY_CIrcChatService.cpp \
+  src/gucefMULTIPLAY_CLanListingProvider.cpp \
+  src/gucefMULTIPLAY_CLaunchDescription.cpp \
+  src/gucefMULTIPLAY_CLinkProof.cpp \
+  src/gucefMULTIPLAY_CLobbyChatService.cpp \
+  src/gucefMULTIPLAY_CLobbyCreateParams.cpp \
+  src/gucefMULTIPLAY_CLobbyPresentation.cpp \
+  src/gucefMULTIPLAY_CLobbyRules.cpp \
+  src/gucefMULTIPLAY_CLobbyServiceListingProvider.cpp \
+  src/gucefMULTIPLAY_CLobbySettingsSchema.cpp \
+  src/gucefMULTIPLAY_CLobbyState.cpp \
+  src/gucefMULTIPLAY_CLocalIdentityProvider.cpp \
+  src/gucefMULTIPLAY_CMatchAcceptance.cpp \
+  src/gucefMULTIPLAY_CMatchAlert.cpp \
+  src/gucefMULTIPLAY_CMatchAlertRouter.cpp \
+  src/gucefMULTIPLAY_CMatchBinaryReader.cpp \
+  src/gucefMULTIPLAY_CMatchBinaryWriter.cpp \
+  src/gucefMULTIPLAY_CMatchBook.cpp \
+  src/gucefMULTIPLAY_CMatchBookChange.cpp \
+  src/gucefMULTIPLAY_CMatchChainVerifier.cpp \
+  src/gucefMULTIPLAY_CMatchContainer.cpp \
+  src/gucefMULTIPLAY_CMatchDecisionEvidence.cpp \
+  src/gucefMULTIPLAY_CMatchDecisionResult.cpp \
+  src/gucefMULTIPLAY_CMatchDecisionVerifier.cpp \
+  src/gucefMULTIPLAY_CMatchDraftBoard.cpp \
+  src/gucefMULTIPLAY_CMatchDraftTally.cpp \
+  src/gucefMULTIPLAY_CMatchEntry.cpp \
+  src/gucefMULTIPLAY_CMatchId.cpp \
+  src/gucefMULTIPLAY_CMatchInfo.cpp \
+  src/gucefMULTIPLAY_CMatchLink.cpp \
+  src/gucefMULTIPLAY_CMatchOperationResult.cpp \
+  src/gucefMULTIPLAY_CMatchPackage.cpp \
+  src/gucefMULTIPLAY_CMatchParticipant.cpp \
+  src/gucefMULTIPLAY_CMatchPreview.cpp \
+  src/gucefMULTIPLAY_CMatchProposal.cpp \
+  src/gucefMULTIPLAY_CMatchProviderState.cpp \
+  src/gucefMULTIPLAY_CMatchRecord.cpp \
+  src/gucefMULTIPLAY_CMatchRoster.cpp \
+  src/gucefMULTIPLAY_CMatchRosterEntry.cpp \
+  src/gucefMULTIPLAY_CMatchSigning.cpp \
+  src/gucefMULTIPLAY_CMatchStore.cpp \
+  src/gucefMULTIPLAY_CMatchSystemClock.cpp \
+  src/gucefMULTIPLAY_CMatchTextArmor.cpp \
+  src/gucefMULTIPLAY_CMatchTurnEventData.cpp \
+  src/gucefMULTIPLAY_CMatchUpdate.cpp \
+  src/gucefMULTIPLAY_CMatchVote.cpp \
+  src/gucefMULTIPLAY_CModule.cpp \
+  src/gucefMULTIPLAY_CMultiplayGlobal.cpp \
   src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp \
+  src/gucefMULTIPLAY_CPingService.cpp \
+  src/gucefMULTIPLAY_CPlayerIdentity.cpp \
+  src/gucefMULTIPLAY_CPlayerIdentitySigner.cpp \
+  src/gucefMULTIPLAY_CPlayerReport.cpp \
   src/gucefMULTIPLAY_CServerList.cpp \
-  src/gucefMULTIPLAY_CServerListProvider.cpp
+  src/gucefMULTIPLAY_CServerListProvider.cpp \
+  src/gucefMULTIPLAY_CTokenBucket.cpp \
+  src/gucefMULTIPLAY_MatchTypes.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../gucefAUTH/include \
   $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../gucefMT/include
+  $(MY_MODULE_PATH)/../gucefDRN/include \
+  $(MY_MODULE_PATH)/../gucefMT/include \
+  $(MY_MODULE_PATH)/../gucefVFS/include \
+  $(MY_MODULE_PATH)/../gucefWEB/include
 
-LOCAL_CFLAGS := -DGUCEFMULTIPLAY_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEFMULTIPLAY_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMULTIPLAY -DMODULE_NAME=gucefMULTIPLAY -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefAUTH \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
-  gucefMT
+  gucefDRN \
+  gucefMT \
+  gucefWEB
 
 include $(BUILD_SHARED_LIBRARY)
 

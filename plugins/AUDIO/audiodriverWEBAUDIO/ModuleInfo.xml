@@ -1,0 +1,29 @@
+<ModuleInfoEntry>
+    <Module Name="audiodriverWEBAUDIO" Type="StaticLibrary" Platform="emscripten" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO driver plugin for the Web Audio API in browsers</DescriptionHeadline>
+            <DescriptionDetails>Plays audio in the browser through a Web Audio context, for WebAssembly builds made with Emscripten. Linked into the application, which calls the prefixed plugin entry points to register the driver.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIODRIVER_WEBAUDIO_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

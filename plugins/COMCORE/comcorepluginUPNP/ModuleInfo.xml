@@ -1,0 +1,20 @@
+<ModuleInfoEntry>
+    <Module Name="comcorepluginUPNP" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="miniupnpc" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="miniupnpc" />
+        </Linker>
+        <Preprocessor>
+            <Define String="COMCOREPLUGIN_UPNP_BUILD_PLUGIN_DLL" />
+            <Define String="STATICLIB" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

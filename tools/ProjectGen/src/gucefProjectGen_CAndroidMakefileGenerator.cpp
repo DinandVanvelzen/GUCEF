@@ -149,6 +149,13 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     firstLoop = true;
     while ( i != moduleInfo.GetIncludeDirs().end() )
     {
+        if ( moduleInfo.IsIncludeDirExcludedFromSearchPaths( (*i).first ) )
+        {
+            // Per the processing instructions this dir is not to be used as an include search path
+            ++i;
+            continue;
+        }
+
         if ( !firstLoop )
         {
             includeFilesSection += " \\\n";

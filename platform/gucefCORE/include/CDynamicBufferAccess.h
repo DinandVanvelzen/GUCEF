@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CIOACCESS_H
 #endif /* GUCEF_CORE_CIOACCESS_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -48,7 +53,6 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CDynamicBuffer;
 
 /*-------------------------------------------------------------------------*/
 
@@ -65,6 +69,19 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBufferAccess : public CIOAccess ,
                           const bool deleteBufferUponDestruction = false );
 
     CDynamicBufferAccess( CDynamicBuffer& buffer );
+
+    /**
+     *  As the constructors above, writes grow the buffer with the given strategy instead of the buffer's own
+     *  See CDynamicBuffer::EGrowthStrategy, the buffer's own setting is left as it is
+     */
+    CDynamicBufferAccess( CDynamicBuffer* buffer                              ,
+                          const bool deleteBufferUponDestruction              ,
+                          const CDynamicBuffer::TGrowthStrategy growthStrategy ,
+                          const UInt32 growthStrategyParam = 0                );
+
+    CDynamicBufferAccess( CDynamicBuffer& buffer                              ,
+                          const CDynamicBuffer::TGrowthStrategy growthStrategy ,
+                          const UInt32 growthStrategyParam = 0                );
     
     CDynamicBufferAccess( const CDynamicBuffer& buffer );
 
@@ -85,6 +102,17 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBufferAccess : public CIOAccess ,
                  bool deleteBufferUponDestruction );
 
     void Unlink( void );
+
+    /**
+     *  Writes grow the buffer with this strategy instead of the buffer's own, see CDynamicBuffer::EGrowthStrategy
+     *  A stream of small writes typically wants GROWTHSTRATEGY_GEOMETRIC. The buffer's own setting is left as it is
+     */
+    void SetGrowthStrategy( CDynamicBuffer::TGrowthStrategy growthStrategy, UInt32 growthStrategyParam = 0 );
+
+    /** Writes grow the buffer with the buffer's own strategy again, the default */
+    void UseBufferGrowthStrategy( void );
+
+    bool HasOwnGrowthStrategy( void ) const;
     
     /**
      *      open the resource for I/O
@@ -180,10 +208,18 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBufferAccess : public CIOAccess ,
 
     private:
 
+    /** Moves to a position the buffer can address (0 to 4 GB), also beyond the data. False when it cannot */
+    bool SetCarat( Int64 position );
+
+    private:
+
     UInt64 m_carat;
     CDynamicBuffer* m_buffer;
     bool m_deleteBufferUponDestruction;
     bool m_bufferWasConst;
+    bool m_hasOwnGrowthStrategy;                        /**< whether writes grow the buffer with the strategy below or with the buffer's own */
+    CDynamicBuffer::TGrowthStrategy m_growthStrategy;
+    UInt32 m_growthStrategyParam;
 };
 
 /*-------------------------------------------------------------------------*/

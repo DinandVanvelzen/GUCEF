@@ -242,6 +242,16 @@ class GUCEF_INPUT_PUBLIC_CPP CInputController : public CORE::CTSGNotifier
                               const KeyCode keyCode ,
                               const bool keyPressed );
 
+    void SetMouseVariable( const Int32 contextId      ,
+                           const Int32 deviceID       ,
+                           const UInt32 variableIndex ,
+                           const Int32 value          ,
+                           const Int32 valueDelta     );
+
+    void SetKeyboardText( const Int32 contextId ,
+                          const Int32 deviceID  ,
+                          const CString& text   );
+
     void AddMouse( CInputDriver* inputDriver, const Int32 deviceID );
     
     void RemoveMouse( const Int32 deviceID );
@@ -266,7 +276,7 @@ class GUCEF_INPUT_PUBLIC_CPP CInputController : public CORE::CTSGNotifier
         
     static CInputController* m_instance;
     
-    TIdGenerator m_idGenerator;
+    TIdGenerator::TNumericIDGeneratorTypedPtr m_idGenerator;   /**< shared: the ids of the contexts refer to it */
     TContextSet m_contextSet;
     TKeyboardMap m_keyboardMap;
     TMouseMap m_mouseMap;    

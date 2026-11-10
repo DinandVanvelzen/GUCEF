@@ -54,6 +54,18 @@
   #define GUCEF_COMCORE_ICMPAPI_H
   #endif /* GUCEF_COMCORE_ICMPAPI_H ? */
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+
+  #include <errno.h>
+  #include <fcntl.h>
+  #include <string.h>
+  #include <unistd.h>
+  #include <vector>
+  #include <sys/types.h>
+  #include <sys/socket.h>
+  #include <netinet/in.h>
+  #include <netinet/ip_icmp.h>
+
 #endif
 
 #include "gucefCOMCORE_CPingTaskConsumer.h"
@@ -437,6 +449,17 @@ CPingTaskConsumer::OnTaskEnding( CORE::CTaskPtr task ,
                                  bool willBeForced   )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+
+    // A ping sequence which is stopped before it is done still ends with a stopped event for each host
+    TPingCounters::iterator i = m_pingCounters.begin();
+    while ( i != m_pingCounters.end() )
+    {
+        StopPosixPingEntry( (*i).second );
+        ++i;
+    }
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/
@@ -445,6 +468,10 @@ void
 CPingTaskConsumer::OnTaskEnded( CORE::CTaskPtr task ,
                                 bool wasForced      )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    CleanupPosixPingEntries();
+    #endif
 
     CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
@@ -598,12 +625,299 @@ CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
     return true;
 }
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+
+/**
+ *  The ICMP echo implementation for POSIX like platforms.
+ *  It uses an unprivileged ICMP socket (SOCK_DGRAM), which the kernel allows for processes of a group in
+ *  net.ipv4.ping_group_range, and falls back to a raw socket for processes that have the privilege for it.
+ *  Everything is non-blocking: every task cycle sends the pings which are due, looks for replies and for timeouts.
+ */
+
+/*-------------------------------------------------------------------------*/
+
+static UInt32
+TicksToMilliSecs( UInt64 ticks )
+{
+    UInt64 ticksPerSecond = MT::PrecisionTimerResolution();
+    return 0 == ticksPerSecond ? 0 : (UInt32) ( ticks * 1000 / ticksPerSecond );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static UInt16
+CalculateIcmpChecksum( const UInt8* data, UInt32 length )
+{
+    UInt32 sum = 0;
+    for ( UInt32 i=0; i+1<length; i+=2 )
+        sum += (UInt32) ( ( data[ i ] << 8 ) | data[ i+1 ] );
+    if ( length % 2 )
+        sum += (UInt32) ( data[ length-1 ] << 8 );
+    while ( sum >> 16 )
+        sum = ( sum & 0xFFFF ) + ( sum >> 16 );
+    return (UInt16) ~sum;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingTaskConsumer::InitializePosixPingEntries( void )
+{GUCEF_TRACE;
+
+    const TStringVector& hosts = m_taskData->GetRemoteHosts();
+    for ( UInt32 i=0; i<hosts.size(); ++i )
+    {
+        CHostAddress host;
+        host.SetHostname( hosts[ i ] );
+
+        TPingEntry pingEntry;
+        pingEntry.pingCount = 0;
+        pingEntry.ticksAtLastPing = 0;
+        pingEntry.areWeWaitingForPingResult = false;
+        pingEntry.echoSize = m_taskData->GetBytesToSend();
+        pingEntry.replyBuffer = GUCEF_NULL;
+        pingEntry.taskConsumer = this;
+        pingEntry.host = GUCEF_NULL;
+        pingEntry.socketFd = -1;
+        pingEntry.isRawSocket = false;
+        pingEntry.hasStopped = false;
+        pingEntry.sequence = 0;
+
+        m_pingCounters.insert( std::pair< CHostAddress, TPingEntry >( host, pingEntry ) );
+        TPingCounters::iterator n = m_pingCounters.find( host );
+        TPingEntry& entry = (*n).second;
+        entry.host = &(*n).first;
+
+        // A host which does not resolve to an IPv4 address cannot be pinged
+        if ( 0 == entry.host->GetRandomIPv4Address().GetAddress() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Cannot ping " + hosts[ i ] + " since it has no IPv4 address" );
+            CEchoReceivedEventData eventData( *entry.host, entry.echoSize, 0 );
+            NotifyObservers( PingFailedEvent, &eventData );
+            StopPosixPingEntry( entry );
+            continue;
+        }
+
+        entry.socketFd = socket( AF_INET, SOCK_DGRAM, IPPROTO_ICMP );
+        if ( entry.socketFd < 0 && ( EACCES == errno || EPERM == errno || EPROTONOSUPPORT == errno ) )
+        {
+            entry.socketFd = socket( AF_INET, SOCK_RAW, IPPROTO_ICMP );
+            entry.isRawSocket = entry.socketFd >= 0;
+        }
+        if ( entry.socketFd < 0 )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Unable to create an ICMP socket, error " + CORE::Int32ToString( errno ) +
+                ". On Linux unprivileged pings need your group to be in net.ipv4.ping_group_range, otherwise the process needs CAP_NET_RAW" );
+            CEchoReceivedEventData eventData( *entry.host, entry.echoSize, 0 );
+            NotifyObservers( PingFailedEvent, &eventData );
+            StopPosixPingEntry( entry );
+            continue;
+        }
+
+        int flags = fcntl( entry.socketFd, F_GETFL, 0 );
+        if ( flags >= 0 )
+            fcntl( entry.socketFd, F_SETFL, flags | O_NONBLOCK );
+
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Initialized ping counter for " + entry.host->GetHostname() );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingTaskConsumer::SendPosixPing( TPingEntry& entry )
+{GUCEF_TRACE;
+
+    UInt32 packetSize = (UInt32) sizeof( struct icmphdr ) + m_taskData->GetBytesToSend();
+    std::vector< UInt8 > packet( packetSize, (UInt8) 'x' );
+
+    ++entry.sequence;
+    struct icmphdr* header = reinterpret_cast< struct icmphdr* >( &packet[ 0 ] );
+    header->type = ICMP_ECHO;
+    header->code = 0;
+    header->checksum = 0;
+    header->un.echo.id = htons( (UInt16) ( getpid() & 0xFFFF ) );     // the kernel assigns its own for unprivileged sockets
+    header->un.echo.sequence = htons( entry.sequence );
+    header->checksum = htons( CalculateIcmpChecksum( &packet[ 0 ], packetSize ) );
+
+    struct sockaddr_in target;
+    memset( &target, 0, sizeof( target ) );
+    target.sin_family = AF_INET;
+    target.sin_addr.s_addr = entry.host->GetRandomIPv4Address().GetAddress();
+
+    entry.ticksAtLastPing = MT::PrecisionTickCount();
+    ++entry.pingCount;
+
+    if ( (ssize_t) packetSize != sendto( entry.socketFd, &packet[ 0 ], packetSize, 0, (struct sockaddr*) &target, sizeof( target ) ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Failed to send a ping to " + entry.host->GetHostname() + ", error " + CORE::Int32ToString( errno ) );
+        CEchoReceivedEventData eventData( *entry.host, entry.echoSize, 0 );
+        NotifyObservers( PingFailedEvent, &eventData );
+        return;
+    }
+    entry.areWeWaitingForPingResult = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPingTaskConsumer::ReceivePosixPingReply( TPingEntry& entry, UInt32& roundTripTimeInMs )
+{GUCEF_TRACE;
+
+    // room for the IP header of raw sockets, the ICMP header and the payload of the echo
+    std::vector< UInt8 > buffer( 128 + sizeof( struct icmphdr ) + entry.echoSize );
+
+    while ( true )
+    {
+        ssize_t received = recvfrom( entry.socketFd, &buffer[ 0 ], buffer.size(), 0, GUCEF_NULL, GUCEF_NULL );
+        if ( received < 0 )
+            return false;       // nothing (more) to read right now
+        
+        // a raw socket gives us the IP header as well
+        size_t offset = 0;
+        if ( entry.isRawSocket )
+        {
+            if ( received < 1 )
+                continue;
+            offset = (size_t) ( buffer[ 0 ] & 0x0F ) * 4;
+        }
+        if ( (size_t) received < offset + sizeof( struct icmphdr ) )
+            continue;
+
+        const struct icmphdr* header = reinterpret_cast< const struct icmphdr* >( &buffer[ offset ] );
+        if ( ICMP_ECHOREPLY != header->type || ntohs( header->un.echo.sequence ) != entry.sequence )
+            continue;
+        if ( entry.isRawSocket && ntohs( header->un.echo.id ) != (UInt16) ( getpid() & 0xFFFF ) )
+            continue;       // a reply to a ping of another process
+
+        roundTripTimeInMs = TicksToMilliSecs( MT::PrecisionTickCount() - entry.ticksAtLastPing );
+        return true;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingTaskConsumer::StopPosixPingEntry( TPingEntry& entry )
+{GUCEF_TRACE;
+
+    if ( entry.hasStopped )
+        return;
+    entry.hasStopped = true;
+
+    if ( entry.socketFd >= 0 )
+    {
+        close( entry.socketFd );
+        entry.socketFd = -1;
+    }
+    entry.areWeWaitingForPingResult = false;
+
+    if ( GUCEF_NULL != entry.host )
+    {
+        CEchoReceivedEventData eventData( *entry.host, entry.echoSize, 0 );
+        NotifyObservers( PingStoppedEvent, &eventData );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingTaskConsumer::CleanupPosixPingEntries( void )
+{GUCEF_TRACE;
+
+    TPingCounters::iterator i = m_pingCounters.begin();
+    while ( i != m_pingCounters.end() )
+    {
+        if ( (*i).second.socketFd >= 0 )
+            close( (*i).second.socketFd );
+        ++i;
+    }
+    m_pingCounters.clear();
+    m_taskData = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
+{GUCEF_TRACE;
+
+    if ( task.IsNULL() )
+        return true; // no task to process, nothing to do
+
+    if ( GUCEF_NULL == m_taskData )
+    {
+        m_taskData = static_cast< CPingTaskData* >( task->GetTaskData() );
+        if ( GUCEF_NULL == m_taskData )
+            return true;
+        InitializePosixPingEntries();
+    }
+
+    bool allDone = true;
+    TPingCounters::iterator i = m_pingCounters.begin();
+    while ( i != m_pingCounters.end() )
+    {
+        TPingEntry& entry = (*i).second;
+        ++i;
+        if ( entry.hasStopped )
+            continue;
+
+        UInt32 maxPings = m_taskData->GetMaxPings() < 1 ? 0 : (UInt32) m_taskData->GetMaxPings();
+
+        // Give a ping the time to complete
+        if ( entry.areWeWaitingForPingResult )
+        {
+            UInt32 roundTripTime = 0;
+            if ( ReceivePosixPingReply( entry, roundTripTime ) )
+            {
+                entry.areWeWaitingForPingResult = false;
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Ping response recieved from " + entry.host->GetHostname() + " with RTT " + CORE::UInt32ToString( roundTripTime ) );
+                CEchoReceivedEventData eventData( *entry.host, entry.echoSize, roundTripTime );
+                NotifyObservers( PingReponseEvent, &eventData );
+            }
+            else
+            if ( TicksToMilliSecs( MT::PrecisionTickCount() - entry.ticksAtLastPing ) > m_taskData->GetTimeout() )
+            {
+                entry.areWeWaitingForPingResult = false;
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Ping timed out to " + entry.host->GetHostname() );
+                CEchoReceivedEventData eventData( *entry.host, entry.echoSize, m_taskData->GetTimeout() );
+                NotifyObservers( PingTimeoutEvent, &eventData );
+            }
+        }
+        else
+        if ( 0 == maxPings || entry.pingCount < maxPings )
+        {
+            // Make sure we wait the desired time before sending out another ping
+            if ( 0 == entry.pingCount || TicksToMilliSecs( MT::PrecisionTickCount() - entry.ticksAtLastPing ) >= m_taskData->GetMinimalPingDelta() )
+            {
+                if ( 0 == entry.pingCount )
+                {
+                    CEchoReceivedEventData eventData( *entry.host, entry.echoSize, 0 );
+                    NotifyObservers( PingStartedEvent, &eventData );
+                }
+                SendPosixPing( entry );
+            }
+        }
+
+        // When all the pings that were asked for have been dealt with this host is done
+        if ( !entry.areWeWaitingForPingResult && 0 != maxPings && entry.pingCount >= maxPings )
+            StopPosixPingEntry( entry );
+        else
+            allDone = false;
+    }
+
+    if ( !allDone )
+        RequestTaskCycleDelayInMs( 5 );
+    return allDone;
+}
+
 #else
 
 bool
 CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
+    // pinging is not implemented for this platform yet
     return true;
 }
 

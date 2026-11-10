@@ -78,11 +78,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( LINUX32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 

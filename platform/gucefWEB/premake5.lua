@@ -35,6 +35,8 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS" } )
 
 configuration( {} )
 defines( { "GUCEF_WEB_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefWEB", "MODULE_NAME=gucefWEB", "MODULE_SEMVER=0_1_0_0" } )
+  links( { "winhttp.lib" } )
+  links( { "winhttp.lib" } )
 
 
 configuration( {} )
@@ -43,6 +45,7 @@ files( {
   "include/gucefWEB.h",
   "include/gucefWEB_CAsyncHttpServerRequestHandler.h",
   "include/gucefWEB_CAsyncHttpServerResponseHandler.h",
+  "include/gucefWEB_CChromeDevToolsClient.h",
   "include/gucefWEB_CCodecBasedHTTPServerResource.h",
   "include/gucefWEB_CConfigurableHttpServerResource.h",
   "include/gucefWEB_CDataNodeSerializableHttpServerResource.h",
@@ -54,17 +57,40 @@ files( {
   "include/gucefWEB_CGlobalHttpCodecLinks.h",
   "include/gucefWEB_CHTTPClient.h",
   "include/gucefWEB_CHTTPServer.h",
-  "include/gucefWEB_CHTTPURLHandler.h",
+  "include/gucefWEB_CHttpClientBackendRequestBase.h",
+  "include/gucefWEB_CHttpClientBackendSelection.h",
+  "include/gucefWEB_CHttpClientRequestOptions.h",
+  "include/gucefWEB_CHttpClientRequestRunner.h",
+  "include/gucefWEB_CHttpClientRequestTask.h",
   "include/gucefWEB_CHttpCodecLinks.h",
+  "include/gucefWEB_CHttpCookieJar.h",
   "include/gucefWEB_CHttpEncodingTypes.h",
+  "include/gucefWEB_CHttpLogRedaction.h",
   "include/gucefWEB_CHttpMimeTypes.h",
+  "include/gucefWEB_CHttpProxyEnvironment.h",
   "include/gucefWEB_CHttpRequestData.h",
   "include/gucefWEB_CHttpResponseData.h",
+  "include/gucefWEB_CHttpServerExchange.h",
+  "include/gucefWEB_CHttpUriResourceAccessor.h",
   "include/gucefWEB_CIHTTPServerResource.h",
   "include/gucefWEB_CIHTTPServerRouter.h",
   "include/gucefWEB_CIHTTPServerRouterController.h",
+  "include/gucefWEB_CIHttpClientBackend.h",
+  "include/gucefWEB_CIHttpRequestTakeoverHandler.h",
   "include/gucefWEB_CIHttpServerRequestHandler.h",
+  "include/gucefWEB_CIMcpHttpAuthenticator.h",
+  "include/gucefWEB_CIWebSocketUpgradeHandler.h",
+  "include/gucefWEB_CIrcWebSocketTransport.h",
+  "include/gucefWEB_CJsonRpcClient.h",
+  "include/gucefWEB_CJsonRpcServer.h",
+  "include/gucefWEB_CMcpHttpExchangeChannel.h",
+  "include/gucefWEB_CMcpHttpTransportSettings.h",
+  "include/gucefWEB_CMcpStaticBearerAuthenticator.h",
+  "include/gucefWEB_CMcpStreamableHttpTransport.h",
   "include/gucefWEB_CModule.h",
+  "include/gucefWEB_CNativeHttpClientBackend.h",
+  "include/gucefWEB_CServiceHealthHttpEndpoints.h",
+  "include/gucefWEB_CSseEventWriter.h",
   "include/gucefWEB_CStdParamParser.h",
   "include/gucefWEB_CTConfigurableMapHttpServerResource.h",
   "include/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.h",
@@ -74,9 +100,16 @@ files( {
   "include/gucefWEB_CTaskManagerServerResource.h",
   "include/gucefWEB_CVfsHttpServerResource.h",
   "include/gucefWEB_CWebGlobal.h",
+  "include/gucefWEB_CWebSocketClient.h",
+  "include/gucefWEB_CWebSocketConnection.h",
+  "include/gucefWEB_CWebSocketFrameCodec.h",
+  "include/gucefWEB_CWebSocketHandshake.h",
+  "include/gucefWEB_CWebSocketMessageParser.h",
+  "include/gucefWEB_CWebSocketServer.h",
   "include/gucefWEB_ETypes.h",
   "include/gucefWEB_HTTPCode.h",
   "include/gucefWEB_ViewTypes.h",
+  "include/gucefWEB_WebSocketTypes.h",
   "include/gucefWEB_config.h",
   "include/gucefWEB_macros.h"
  } )
@@ -89,6 +122,7 @@ files( {
   "src/gucefWEB.cpp",
   "src/gucefWEB_CAsyncHttpServerRequestHandler.cpp",
   "src/gucefWEB_CAsyncHttpServerResponseHandler.cpp",
+  "src/gucefWEB_CChromeDevToolsClient.cpp",
   "src/gucefWEB_CCodecBasedHTTPServerResource.cpp",
   "src/gucefWEB_CConfigurableHttpServerResource.cpp",
   "src/gucefWEB_CDataNodeSerializableHttpServerResource.cpp",
@@ -100,17 +134,38 @@ files( {
   "src/gucefWEB_CGlobalHttpCodecLinks.cpp",
   "src/gucefWEB_CHTTPClient.cpp",
   "src/gucefWEB_CHTTPServer.cpp",
-  "src/gucefWEB_CHTTPURLHandler.cpp",
+  "src/gucefWEB_CHttpClientBackendRequestBase.cpp",
+  "src/gucefWEB_CHttpClientBackendSelection.cpp",
+  "src/gucefWEB_CHttpClientRequestOptions.cpp",
+  "src/gucefWEB_CHttpClientRequestRunner.cpp",
+  "src/gucefWEB_CHttpClientRequestTask.cpp",
   "src/gucefWEB_CHttpCodecLinks.cpp",
+  "src/gucefWEB_CHttpCookieJar.cpp",
   "src/gucefWEB_CHttpEncodingTypes.cpp",
+  "src/gucefWEB_CHttpLogRedaction.cpp",
   "src/gucefWEB_CHttpMimeTypes.cpp",
+  "src/gucefWEB_CHttpProxyEnvironment.cpp",
   "src/gucefWEB_CHttpRequestData.cpp",
   "src/gucefWEB_CHttpResponseData.cpp",
+  "src/gucefWEB_CHttpServerExchange.cpp",
+  "src/gucefWEB_CHttpUriResourceAccessor.cpp",
   "src/gucefWEB_CIHTTPServerResource.cpp",
   "src/gucefWEB_CIHTTPServerRouter.cpp",
   "src/gucefWEB_CIHTTPServerRouterController.cpp",
+  "src/gucefWEB_CIHttpClientBackend.cpp",
   "src/gucefWEB_CIHttpServerRequestHandler.cpp",
+  "src/gucefWEB_CIMcpHttpAuthenticator.cpp",
+  "src/gucefWEB_CIrcWebSocketTransport.cpp",
+  "src/gucefWEB_CJsonRpcClient.cpp",
+  "src/gucefWEB_CJsonRpcServer.cpp",
+  "src/gucefWEB_CMcpHttpExchangeChannel.cpp",
+  "src/gucefWEB_CMcpHttpTransportSettings.cpp",
+  "src/gucefWEB_CMcpStaticBearerAuthenticator.cpp",
+  "src/gucefWEB_CMcpStreamableHttpTransport.cpp",
   "src/gucefWEB_CModule.cpp",
+  "src/gucefWEB_CNativeHttpClientBackend.cpp",
+  "src/gucefWEB_CServiceHealthHttpEndpoints.cpp",
+  "src/gucefWEB_CSseEventWriter.cpp",
   "src/gucefWEB_CStdParamParser.cpp",
   "src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp",
   "src/gucefWEB_CTDataNodeSerializableMapHttpServerResource.cpp",
@@ -118,18 +173,50 @@ files( {
   "src/gucefWEB_CTaskDataCollectionServerResource.cpp",
   "src/gucefWEB_CTaskManagerServerResource.cpp",
   "src/gucefWEB_CVfsHttpServerResource.cpp",
-  "src/gucefWEB_CWebGlobal.cpp"
+  "src/gucefWEB_CWebGlobal.cpp",
+  "src/gucefWEB_CWebSocketClient.cpp",
+  "src/gucefWEB_CWebSocketConnection.cpp",
+  "src/gucefWEB_CWebSocketFrameCodec.cpp",
+  "src/gucefWEB_CWebSocketHandshake.cpp",
+  "src/gucefWEB_CWebSocketMessageParser.cpp",
+  "src/gucefWEB_CWebSocketServer.cpp"
  } )
+
+
+
+configuration( { "WIN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/mswin/gucefWEB_CWinHttpClientBackend.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/mswin/gucefWEB_CWinHttpClientBackend.cpp"
+    } )
+
+
+
+configuration( { "WIN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/mswin/gucefWEB_CWinHttpClientBackend.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/mswin/gucefWEB_CWinHttpClientBackend.cpp"
+    } )
 
 
 configuration( {} )
 includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "../gucefVFS/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
@@ -138,7 +225,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "include/mswin" } )

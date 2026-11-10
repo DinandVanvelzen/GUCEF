@@ -29,12 +29,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../common/include \
   $(MY_MODULE_PATH)/../../../dependencies/flic \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEF_CODECPLUGIN_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_CODECPLUGIN_BUILD_MODULE -DMODULE_CONSENSUS_NAME=imgpluginFLIC -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=imgpluginFLIC
 
 
 LOCAL_STATIC_LIBRARIES := \

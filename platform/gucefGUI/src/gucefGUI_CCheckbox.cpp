@@ -40,12 +40,12 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CEvent CCheckbox::BoxCheckedEvent = "GUCEF::GUI::CCombobox::BoxCheckedEvent";
-const CORE::CEvent CCheckbox::BoxUncheckedEvent = "GUCEF::GUI::CCombobox::BoxUncheckedEvent";
+const CORE::CEvent CCheckbox::BoxCheckedEvent = "GUCEF::GUI::CCheckbox::BoxCheckedEvent";
+const CORE::CEvent CCheckbox::BoxUncheckedEvent = "GUCEF::GUI::CCheckbox::BoxUncheckedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -60,7 +60,7 @@ CCheckbox::RegisterEvents( void )
 /*-------------------------------------------------------------------------*/
 
 CCheckbox::CCheckbox( void )
-    : CWidget( "Checkbox" )
+    : CButton( "Checkbox" )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -71,16 +71,16 @@ CCheckbox::CCheckbox( void )
 CCheckbox::~CCheckbox()
 {GUCEF_TRACE;
 
+
 }
 
 /*-------------------------------------------------------------------------*/
 
-const CString&
-CCheckbox::GetClassTypeName( void ) const
+CWidget*
+CCheckbox::Create( void )
 {GUCEF_TRACE;
 
-    static CString typeName = "GUCEF::GUI::CCheckbox";
-    return typeName;
+    return GUCEF_NEW CCheckbox();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -89,17 +89,55 @@ bool
 CCheckbox::SetCheckedState( const bool isChecked )
 {GUCEF_TRACE;
 
-    return false;
+    return SetBoolProperty( EWidgetProperty_Checked, isChecked );
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
 bool
 CCheckbox::GetCheckedState( void ) const
 {GUCEF_TRACE;
 
-    return false;
+    return GetBoolProperty( EWidgetProperty_Checked );
 }
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCheckbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData )
+{GUCEF_TRACE;
+
+    if ( ActivatedEvent == eventId )
+    {
+        ChangeValueByUser( EWidgetProperty_Checked, GetCheckedState() ? "false" : "true" );
+        NotifyObservers( ButtonClickedEvent );
+        return true;
+    }
+    return CButton::OnDefaultAction( eventId, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCheckbox::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
+{GUCEF_TRACE;
+
+    if ( property == EWidgetProperty_Checked )
+        NotifyObservers( GetCheckedState() ? BoxCheckedEvent : BoxUncheckedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CCheckbox::GetClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    static const CString classTypeName = "GUCEF::GUI::CCheckbox";
+    return classTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -45,13 +45,14 @@ namespace PUBSUB {
 //-------------------------------------------------------------------------*/
 
 CPubSubFlowRouteTopicConfig::CPubSubFlowRouteTopicConfig( void )
-    : CORE::CIConfigurable() 
+    : CORE::CIConfigurable()
     , CORE::CTSharedObjCreator< CPubSubFlowRouteTopicConfig, MT::CMutex >( this )
     , fromSideTopicName()
     , toSideTopicName()
     , failoverSideTopicName()
     , spilloverSideTopicName()
     , deadLetterSideTopicName()
+    , persistenceSideTopicName()
 {GUCEF_TRACE;
 
 }
@@ -59,13 +60,14 @@ CPubSubFlowRouteTopicConfig::CPubSubFlowRouteTopicConfig( void )
 /*-------------------------------------------------------------------------*/
 
 CPubSubFlowRouteTopicConfig::CPubSubFlowRouteTopicConfig( const CPubSubFlowRouteTopicConfig& src )
-    : CORE::CIConfigurable( src ) 
+    : CORE::CIConfigurable( src )
     , CORE::CTSharedObjCreator< CPubSubFlowRouteTopicConfig, MT::CMutex >( this )
     , fromSideTopicName( src.fromSideTopicName )
     , toSideTopicName( src.toSideTopicName )
     , failoverSideTopicName( src.failoverSideTopicName )
     , spilloverSideTopicName( src.spilloverSideTopicName )
     , deadLetterSideTopicName( src.deadLetterSideTopicName )
+    , persistenceSideTopicName( src.persistenceSideTopicName )
 {GUCEF_TRACE;
 
 }
@@ -91,6 +93,7 @@ CPubSubFlowRouteTopicConfig::operator=( const CPubSubFlowRouteTopicConfig& src )
         failoverSideTopicName = src.failoverSideTopicName;
         spilloverSideTopicName = src.spilloverSideTopicName;
         deadLetterSideTopicName = src.deadLetterSideTopicName;
+        persistenceSideTopicName = src.persistenceSideTopicName;
     }
     return *this;
 }
@@ -108,6 +111,7 @@ CPubSubFlowRouteTopicConfig::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "failoverSideTopicName", failoverSideTopicName ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "spilloverSideTopicName", spilloverSideTopicName ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "deadLetterSideTopicName", deadLetterSideTopicName ) && totalSuccess;
+    totalSuccess = cfg.SetAttribute( "persistenceSideTopicName", persistenceSideTopicName ) && totalSuccess;
 
     return totalSuccess;
 }
@@ -120,11 +124,12 @@ CPubSubFlowRouteTopicConfig::LoadConfig( const CORE::CDataNode& cfg )
 
     bool totalSuccess = true;
 
-    fromSideTopicName = cfg.GetAttributeValueOrChildValueByName( "fromSideTopicName" ).AsString( fromSideTopicName, true ); 
-    toSideTopicName = cfg.GetAttributeValueOrChildValueByName( "toSideTopicName" ).AsString( toSideTopicName, true ); 
-    failoverSideTopicName = cfg.GetAttributeValueOrChildValueByName( "failoverSideTopicName" ).AsString( failoverSideTopicName, true ); 
-    spilloverSideTopicName = cfg.GetAttributeValueOrChildValueByName( "spilloverSideTopicName" ).AsString( spilloverSideTopicName, true ); 
-    deadLetterSideTopicName = cfg.GetAttributeValueOrChildValueByName( "deadLetterSideTopicName" ).AsString( deadLetterSideTopicName, true ); 
+    fromSideTopicName = cfg.GetAttributeValueOrChildValueByName( "fromSideTopicName" ).AsString( fromSideTopicName, true );
+    toSideTopicName = cfg.GetAttributeValueOrChildValueByName( "toSideTopicName" ).AsString( toSideTopicName, true );
+    failoverSideTopicName = cfg.GetAttributeValueOrChildValueByName( "failoverSideTopicName" ).AsString( failoverSideTopicName, true );
+    spilloverSideTopicName = cfg.GetAttributeValueOrChildValueByName( "spilloverSideTopicName" ).AsString( spilloverSideTopicName, true );
+    deadLetterSideTopicName = cfg.GetAttributeValueOrChildValueByName( "deadLetterSideTopicName" ).AsString( deadLetterSideTopicName, true );
+    persistenceSideTopicName = cfg.GetAttributeValueOrChildValueByName( "persistenceSideTopicName" ).AsString( persistenceSideTopicName, true );
 
     return totalSuccess;
 }
@@ -149,11 +154,13 @@ CPubSubFlowRouteConfig::CPubSubFlowRouteConfig( void )
     , failoverSideId()
     , spilloverBufferSideId()
     , deadLetterSideId()
+    , persistenceSideId()
     , topicAssociations()
     , toSideTopicsAutoMatchFromSide( false )
     , failoverSideTopicsAutoMatchFromSide( false )
     , spilloverSideTopicsAutoMatchFromSide( false )
     , deadLetterSideTopicsAutoMatchFromSide( false )
+    , persistenceSideTopicsAutoMatchFromSide( false )
     , preferFromTopicThreadForDestination( false )
     , egressAllDiscoveredSpilloverTopicsOnStart( true )
     , autoAssociateTopicsAnyToAnyAcrossSides( false )
@@ -171,11 +178,13 @@ CPubSubFlowRouteConfig::CPubSubFlowRouteConfig( const CPubSubFlowRouteConfig& sr
     , failoverSideId( src.failoverSideId )
     , spilloverBufferSideId( src.spilloverBufferSideId )
     , deadLetterSideId( src.deadLetterSideId )
+    , persistenceSideId( src.persistenceSideId )
     , topicAssociations( src.topicAssociations )
     , toSideTopicsAutoMatchFromSide( src.toSideTopicsAutoMatchFromSide )
     , failoverSideTopicsAutoMatchFromSide( src.failoverSideTopicsAutoMatchFromSide )
     , spilloverSideTopicsAutoMatchFromSide( src.spilloverSideTopicsAutoMatchFromSide )
     , deadLetterSideTopicsAutoMatchFromSide( src.deadLetterSideTopicsAutoMatchFromSide )
+    , persistenceSideTopicsAutoMatchFromSide( src.persistenceSideTopicsAutoMatchFromSide )
     , preferFromTopicThreadForDestination( src.preferFromTopicThreadForDestination )
     , egressAllDiscoveredSpilloverTopicsOnStart( src.egressAllDiscoveredSpilloverTopicsOnStart )
     , autoAssociateTopicsAnyToAnyAcrossSides( src.autoAssociateTopicsAnyToAnyAcrossSides )
@@ -204,11 +213,13 @@ CPubSubFlowRouteConfig::operator=( const CPubSubFlowRouteConfig& src )
         failoverSideId = src.failoverSideId;
         spilloverBufferSideId = src.spilloverBufferSideId;
         deadLetterSideId = src.deadLetterSideId;
+        persistenceSideId = src.persistenceSideId;
         topicAssociations = src.topicAssociations;
         toSideTopicsAutoMatchFromSide = src.toSideTopicsAutoMatchFromSide;
         failoverSideTopicsAutoMatchFromSide = src.failoverSideTopicsAutoMatchFromSide;
         spilloverSideTopicsAutoMatchFromSide = src.spilloverSideTopicsAutoMatchFromSide;
         deadLetterSideTopicsAutoMatchFromSide = src.deadLetterSideTopicsAutoMatchFromSide;
+        persistenceSideTopicsAutoMatchFromSide = src.persistenceSideTopicsAutoMatchFromSide;
         preferFromTopicThreadForDestination = src.preferFromTopicThreadForDestination;
         egressAllDiscoveredSpilloverTopicsOnStart = src.egressAllDiscoveredSpilloverTopicsOnStart;
         autoAssociateTopicsAnyToAnyAcrossSides = src.autoAssociateTopicsAnyToAnyAcrossSides;
@@ -228,11 +239,13 @@ CPubSubFlowRouteConfig::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "failoverSideId", failoverSideId ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "spilloverBufferSideId", spilloverBufferSideId ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "deadLetterSideId", deadLetterSideId ) && totalSuccess;
+    totalSuccess = cfg.SetAttribute( "persistenceSideId", persistenceSideId ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "toSideTopicsAutoMatchFromSide", toSideTopicsAutoMatchFromSide ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "failoverSideTopicsAutoMatchFromSide", failoverSideTopicsAutoMatchFromSide ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "spilloverSideTopicsAutoMatchFromSide", spilloverSideTopicsAutoMatchFromSide ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "deadLetterSideTopicsAutoMatchFromSide", deadLetterSideTopicsAutoMatchFromSide ) && totalSuccess;
-    totalSuccess = cfg.SetAttribute( "preferFromTopicThreadForDestination", preferFromTopicThreadForDestination ) && totalSuccess; 
+    totalSuccess = cfg.SetAttribute( "persistenceSideTopicsAutoMatchFromSide", persistenceSideTopicsAutoMatchFromSide ) && totalSuccess;
+    totalSuccess = cfg.SetAttribute( "preferFromTopicThreadForDestination", preferFromTopicThreadForDestination ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "egressAllDiscoveredSpilloverTopicsOnStart", egressAllDiscoveredSpilloverTopicsOnStart ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "autoAssociateTopicsAnyToAnyAcrossSides", autoAssociateTopicsAnyToAnyAcrossSides ) && totalSuccess;
     
@@ -262,15 +275,17 @@ CPubSubFlowRouteConfig::LoadConfig( const CORE::CDataNode& cfg )
 
     bool totalSuccess = true;
 
-    fromSideId = cfg.GetAttributeValueOrChildValueByName( "fromSideId" ).AsString( fromSideId, true ); 
-    toSideId = cfg.GetAttributeValueOrChildValueByName( "toSideId" ).AsString( toSideId, true ); 
-    failoverSideId = cfg.GetAttributeValueOrChildValueByName( "failoverSideId" ).AsString( failoverSideId, true ); 
-    spilloverBufferSideId = cfg.GetAttributeValueOrChildValueByName( "spilloverBufferSideId" ).AsString( spilloverBufferSideId, true ); 
-    deadLetterSideId = cfg.GetAttributeValueOrChildValueByName( "deadLetterSideId" ).AsString( deadLetterSideId, true ); 
-    toSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "toSideTopicsAutoMatchFromSide" ).AsBool( toSideTopicsAutoMatchFromSide, true ); 
-    failoverSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "failoverSideTopicsAutoMatchFromSide" ).AsBool( failoverSideTopicsAutoMatchFromSide, true ); 
-    spilloverSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "spilloverSideTopicsAutoMatchFromSide" ).AsBool( spilloverSideTopicsAutoMatchFromSide, true ); 
+    fromSideId = cfg.GetAttributeValueOrChildValueByName( "fromSideId" ).AsString( fromSideId, true );
+    toSideId = cfg.GetAttributeValueOrChildValueByName( "toSideId" ).AsString( toSideId, true );
+    failoverSideId = cfg.GetAttributeValueOrChildValueByName( "failoverSideId" ).AsString( failoverSideId, true );
+    spilloverBufferSideId = cfg.GetAttributeValueOrChildValueByName( "spilloverBufferSideId" ).AsString( spilloverBufferSideId, true );
+    deadLetterSideId = cfg.GetAttributeValueOrChildValueByName( "deadLetterSideId" ).AsString( deadLetterSideId, true );
+    persistenceSideId = cfg.GetAttributeValueOrChildValueByName( "persistenceSideId" ).AsString( persistenceSideId, true );
+    toSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "toSideTopicsAutoMatchFromSide" ).AsBool( toSideTopicsAutoMatchFromSide, true );
+    failoverSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "failoverSideTopicsAutoMatchFromSide" ).AsBool( failoverSideTopicsAutoMatchFromSide, true );
+    spilloverSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "spilloverSideTopicsAutoMatchFromSide" ).AsBool( spilloverSideTopicsAutoMatchFromSide, true );
     deadLetterSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "deadLetterSideTopicsAutoMatchFromSide" ).AsBool( deadLetterSideTopicsAutoMatchFromSide, true );
+    persistenceSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "persistenceSideTopicsAutoMatchFromSide" ).AsBool( persistenceSideTopicsAutoMatchFromSide, true );
     preferFromTopicThreadForDestination = cfg.GetAttributeValueOrChildValueByName( "preferFromTopicThreadForDestination" ).AsBool( preferFromTopicThreadForDestination, true );
     egressAllDiscoveredSpilloverTopicsOnStart = cfg.GetAttributeValueOrChildValueByName( "egressAllDiscoveredSpilloverTopicsOnStart" ).AsBool( egressAllDiscoveredSpilloverTopicsOnStart, true );
     autoAssociateTopicsAnyToAnyAcrossSides = cfg.GetAttributeValueOrChildValueByName( "autoAssociateTopicsAnyToAnyAcrossSides" ).AsBool( autoAssociateTopicsAnyToAnyAcrossSides, true );
@@ -313,10 +328,11 @@ bool
 CPubSubFlowRouteConfig::IsAnyAutoTopicMatchingNeeded( void ) const
 {GUCEF_TRACE;
 
-    return toSideTopicsAutoMatchFromSide        ||
-           failoverSideTopicsAutoMatchFromSide  ||
-           spilloverSideTopicsAutoMatchFromSide ||
-           deadLetterSideTopicsAutoMatchFromSide;
+    return toSideTopicsAutoMatchFromSide          ||
+           failoverSideTopicsAutoMatchFromSide    ||
+           spilloverSideTopicsAutoMatchFromSide   ||
+           deadLetterSideTopicsAutoMatchFromSide  ||
+           persistenceSideTopicsAutoMatchFromSide;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -410,9 +426,16 @@ CPubSubFlowRouteConfig::FindOrCreateTopicAssociation( const CORE::CString& fromT
                 if ( deadLetterSideTopicsAutoMatchFromSide && !deadLetterSideId.IsNULLOrEmpty() )
                 {
                     if( !templateTopicRouteConfig->deadLetterSideTopicName.IsNULLOrEmpty() && templateTopicRouteConfig->deadLetterSideTopicName != templateTopicRouteConfig->fromSideTopicName )
-                        topicRouteConfig->deadLetterSideTopicName = templateTopicRouteConfig->deadLetterSideTopicName;    
+                        topicRouteConfig->deadLetterSideTopicName = templateTopicRouteConfig->deadLetterSideTopicName;
                     else
                         topicRouteConfig->deadLetterSideTopicName = fromTopicName;
+                }
+                if ( persistenceSideTopicsAutoMatchFromSide && !persistenceSideId.IsNULLOrEmpty() )
+                {
+                    if( !templateTopicRouteConfig->persistenceSideTopicName.IsNULLOrEmpty() && templateTopicRouteConfig->persistenceSideTopicName != templateTopicRouteConfig->fromSideTopicName )
+                        topicRouteConfig->persistenceSideTopicName = templateTopicRouteConfig->persistenceSideTopicName;
+                    else
+                        topicRouteConfig->persistenceSideTopicName = fromTopicName;
                 }
 
                 topicAssociations.push_back( topicRouteConfig );
@@ -431,13 +454,15 @@ CPubSubFlowRouteConfig::FindOrCreateTopicAssociation( const CORE::CString& fromT
             // Once initialized we respect the state as-is but at init the other config plays a role in the manner of initialization
         
             if ( toSideTopicsAutoMatchFromSide && !toSideId.IsNULLOrEmpty() && topicRouteConfig->toSideTopicName.IsNULLOrEmpty() )
-                topicRouteConfig->toSideTopicName = fromTopicName;    
+                topicRouteConfig->toSideTopicName = fromTopicName;
             if ( failoverSideTopicsAutoMatchFromSide && !failoverSideId.IsNULLOrEmpty() && topicRouteConfig->failoverSideTopicName.IsNULLOrEmpty() )
-                topicRouteConfig->failoverSideTopicName = fromTopicName; 
+                topicRouteConfig->failoverSideTopicName = fromTopicName;
             if ( spilloverSideTopicsAutoMatchFromSide && !spilloverBufferSideId.IsNULLOrEmpty() && topicRouteConfig->spilloverSideTopicName.IsNULLOrEmpty() )
-                topicRouteConfig->spilloverSideTopicName = fromTopicName; 
+                topicRouteConfig->spilloverSideTopicName = fromTopicName;
             if ( deadLetterSideTopicsAutoMatchFromSide && !deadLetterSideId.IsNULLOrEmpty() && topicRouteConfig->deadLetterSideTopicName.IsNULLOrEmpty() )
-                topicRouteConfig->deadLetterSideTopicName = fromTopicName; 
+                topicRouteConfig->deadLetterSideTopicName = fromTopicName;
+            if ( persistenceSideTopicsAutoMatchFromSide && !persistenceSideId.IsNULLOrEmpty() && topicRouteConfig->persistenceSideTopicName.IsNULLOrEmpty() )
+                topicRouteConfig->persistenceSideTopicName = fromTopicName;
 
             topicAssociations.push_back( topicRouteConfig );
         }

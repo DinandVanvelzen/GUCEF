@@ -46,6 +46,26 @@
 #define GUCEF_CORE_CUTF32STRING_H
 #endif /* GUCEF_CORE_CUTF32STRING_H ? */
 
+#ifndef GUCEF_CORE_CASCIISTRING_VIEW_H
+#include "gucefCORE_CAsciiStringView.h"
+#define GUCEF_CORE_CASCIISTRING_VIEW_H
+#endif /* GUCEF_CORE_CASCIISTRING_VIEW_H ? */
+
+#ifndef GUCEF_CORE_CUTF8STRING_VIEW_H
+#include "gucefCORE_CUtf8StringView.h"
+#define GUCEF_CORE_CUTF8STRING_VIEW_H
+#endif /* GUCEF_CORE_CUTF8STRING_VIEW_H ? */
+
+#ifndef GUCEF_CORE_CUTF16STRING_VIEW_H
+#include "gucefCORE_CUtf16StringView.h"
+#define GUCEF_CORE_CUTF16STRING_VIEW_H
+#endif /* GUCEF_CORE_CUTF16STRING_VIEW_H ? */
+
+#ifndef GUCEF_CORE_CUTF32STRING_VIEW_H
+#include "gucefCORE_CUtf32StringView.h"
+#define GUCEF_CORE_CUTF32STRING_VIEW_H
+#endif /* GUCEF_CORE_CUTF32STRING_VIEW_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -64,6 +84,7 @@ namespace CORE {
 #if ( GUCEF_DEFAULT_STRING_FORMAT == GUCEF_DATATYPE_ASCII_STRING )
 
 typedef CAsciiString                          CString;
+typedef CAsciiStringView                      CStringView;
 typedef CAsciiString::StringSet               CStringSet;
 typedef CAsciiString::StringVector            CStringVector;
 typedef CAsciiString::StringMap               CStringMap;
@@ -87,6 +108,7 @@ typedef CAsciiString::StringUMapUMapUMapSet   CStringUMapUMapUMapSet;
 #elif ( GUCEF_DEFAULT_STRING_FORMAT == GUCEF_DATATYPE_UTF8_STRING )
 
 typedef CUtf8String                          CString;
+typedef CUtf8StringView                      CStringView;
 typedef CUtf8String::StringSet               CStringSet;
 typedef CUtf8String::StringVector            CStringVector;
 typedef CUtf8String::StringMap               CStringMap;
@@ -113,6 +135,7 @@ typedef CUtf8String::StringUMapUMapUMapSet   CStringUMapUMapUMapSet;
  *  UTF-16 string container typedefs — always available regardless of the CString default
  */
 typedef CUtf16String                          CString;
+typedef CUtf16StringView                      CStringView;
 typedef CUtf16String::StringSet               CStringSet;
 typedef CUtf16String::StringVector            CStringVector;
 typedef CUtf16String::StringMap               CStringMap;
@@ -133,6 +156,7 @@ typedef CUtf16String::StringUMapUMapSet       CStringUMapUMapSet;
  *  UTF-32 string container typedefs — always available regardless of the CString default
  */
 typedef CUtf32String                          CString;
+typedef CUtf32StringView                      CStringView;
 typedef CUtf32String::StringSet               CStringSet;
 typedef CUtf32String::StringVector            CStringVector;
 typedef CUtf32String::StringMap               CStringMap;

@@ -73,7 +73,9 @@
 			<Define String="AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR" /> 			
 			<Define String="_POSIX_C_SOURCE=200809L" /> 
 			<Define String="_XOPEN_SOURCE=500" /> 
-			<Define String="PLATFORM_LINUX" /> 			
+			<Define String="PLATFORM_LINUX" /> 
+			<Define String="BYO_CRYPTO" /> <!-- must match aws-c-io, s2n is not available -->			
+			<Define String="AWS_CRT_CPP_USE_IMPORT_EXPORT" /> <!-- without it the API macro does not export the symbols from the shared library -->
         </Preprocessor>
     </Module>
     <Module Platform="android">

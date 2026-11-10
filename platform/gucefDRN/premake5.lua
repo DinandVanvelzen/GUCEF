@@ -29,8 +29,8 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB" } )
 
 
 configuration( {} )
@@ -41,16 +41,81 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/gucefDRN.h",
-  "include/gucefDRN_CDRNData.h",
-  "include/gucefDRN_CDRNDataGroup.h",
-  "include/gucefDRN_CDRNDataGroupProperties.h",
+  "include/gucefDRN_CDRNAnonymousAuthenticator.h",
+  "include/gucefDRN_CDRNApplicationNotifier.h",
+  "include/gucefDRN_CDRNBanList.h",
+  "include/gucefDRN_CDRNBulkTransfer.h",
+  "include/gucefDRN_CDRNClock.h",
+  "include/gucefDRN_CDRNConnector.h",
+  "include/gucefDRN_CDRNCrypto.h",
+  "include/gucefDRN_CDRNDataGrid.h",
+  "include/gucefDRN_CDRNDataGridPendingWrite.h",
+  "include/gucefDRN_CDRNDataGridSettings.h",
+  "include/gucefDRN_CDRNDataGridTable.h",
+  "include/gucefDRN_CDRNDataGridTableSettings.h",
+  "include/gucefDRN_CDRNDataItem.h",
   "include/gucefDRN_CDRNDataStream.h",
+  "include/gucefDRN_CDRNDataStreamSettings.h",
+  "include/gucefDRN_CDRNDatabaseClient.h",
+  "include/gucefDRN_CDRNEndpoint.h",
+  "include/gucefDRN_CDRNEndpointList.h",
+  "include/gucefDRN_CDRNGlobal.h",
+  "include/gucefDRN_CDRNLatencyInfo.h",
+  "include/gucefDRN_CDRNLatencyMeter.h",
+  "include/gucefDRN_CDRNLinkMonitor.h",
+  "include/gucefDRN_CDRNLinkReliability.h",
   "include/gucefDRN_CDRNNode.h",
+  "include/gucefDRN_CDRNNodeSettings.h",
+  "include/gucefDRN_CDRNNodeTask.h",
+  "include/gucefDRN_CDRNNodePulseDriver.h",
+  "include/gucefDRN_CDRNPacketCodec.h",
+  "include/gucefDRN_CDRNPacketProtection.h",
   "include/gucefDRN_CDRNPeerLink.h",
-  "include/gucefDRN_CDRNPeerLinkData.h",
+  "include/gucefDRN_CDRNPublishedColumn.h",
+  "include/gucefDRN_CDRNPublishedTable.h",
+  "include/gucefDRN_CDRNPublishedTableMeta.h",
+  "include/gucefDRN_CDRNPublishedTableSchema.h",
+  "include/gucefDRN_CDRNPublishedTableSettings.h",
+  "include/gucefDRN_CDRNReachabilityManager.h",
+  "include/gucefDRN_CDRNRelayChannel.h",
+  "include/gucefDRN_CDRNRelayService.h",
+  "include/gucefDRN_CDRNReplicator.h",
+  "include/gucefDRN_CDRNRpcSessionComponent.h",
+  "include/gucefDRN_CDRNRpcTransport.h",
+  "include/gucefDRN_CDRNRpcTransportListener.h",
+  "include/gucefDRN_CDRNRpcTransportSettings.h",
+  "include/gucefDRN_CDRNSecurityPolicy.h",
+  "include/gucefDRN_CDRNSession.h",
+  "include/gucefDRN_CDRNSessionRecorder.h",
+  "include/gucefDRN_CDRNSessionRegistry.h",
+  "include/gucefDRN_CDRNSessionSettings.h",
+  "include/gucefDRN_CDRNSharedSecretAuthenticator.h",
+  "include/gucefDRN_CDRNStreamFramer.h",
+  "include/gucefDRN_CDRNStreamGapInfo.h",
+  "include/gucefDRN_CDRNSubscribeOptions.h",
+  "include/gucefDRN_CDRNTablePublisher.h",
+  "include/gucefDRN_CDRNTablePublisherSettings.h",
+  "include/gucefDRN_CDRNTablePublisherUpdateScope.h",
+  "include/gucefDRN_CDRNTcpChannel.h",
+  "include/gucefDRN_CDRNTcpChannelListener.h",
+  "include/gucefDRN_CDRNTokenAuthenticator.h",
+  "include/gucefDRN_CDRNUdpChannel.h",
+  "include/gucefDRN_CDRNUdpChannelListener.h",
+  "include/gucefDRN_CDRNVariantCodec.h",
+  "include/gucefDRN_CDRNVotePolicy.h",
+  "include/gucefDRN_CDRNWebSocketChannel.h",
+  "include/gucefDRN_CDRNWebSocketChannelListener.h",
+  "include/gucefDRN_CDRNWireReader.h",
+  "include/gucefDRN_CDRNWireWriter.h",
   "include/gucefDRN_CGUCEFDRNModule.h",
-  "include/gucefDRN_CIDRNPeerLinkCrypter.h",
-  "include/gucefDRN_CIDRNPeerValidator.h",
+  "include/gucefDRN_CIDRNAccessPolicy.h",
+  "include/gucefDRN_CIDRNAuthenticator.h",
+  "include/gucefDRN_CIDRNBanList.h",
+  "include/gucefDRN_CIDRNChannel.h",
+  "include/gucefDRN_CIDRNChannelListener.h",
+  "include/gucefDRN_CIDRNLatencyMeter.h",
+  "include/gucefDRN_CIDRNSessionComponent.h",
+  "include/gucefDRN_CIDRNWriteValidator.h",
   "include/gucefDRN_DRNProtocol.h",
   "include/gucefDRN_ETypes.h",
   "include/gucefDRN_config.h",
@@ -63,26 +128,92 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/gucefDRN.cpp",
-  "src/gucefDRN_CDRNDataGroup.cpp",
-  "src/gucefDRN_CDRNDataGroupProperties.cpp",
+  "src/gucefDRN_CDRNAnonymousAuthenticator.cpp",
+  "src/gucefDRN_CDRNApplicationNotifier.cpp",
+  "src/gucefDRN_CDRNBanList.cpp",
+  "src/gucefDRN_CDRNBulkTransfer.cpp",
+  "src/gucefDRN_CDRNClock.cpp",
+  "src/gucefDRN_CDRNConnector.cpp",
+  "src/gucefDRN_CDRNCrypto.cpp",
+  "src/gucefDRN_CDRNDataGrid.cpp",
+  "src/gucefDRN_CDRNDataGridPendingWrite.cpp",
+  "src/gucefDRN_CDRNDataGridSettings.cpp",
+  "src/gucefDRN_CDRNDataGridTable.cpp",
+  "src/gucefDRN_CDRNDataGridTableSettings.cpp",
+  "src/gucefDRN_CDRNDataItem.cpp",
   "src/gucefDRN_CDRNDataStream.cpp",
+  "src/gucefDRN_CDRNDataStreamSettings.cpp",
+  "src/gucefDRN_CDRNDatabaseClient.cpp",
+  "src/gucefDRN_CDRNEndpoint.cpp",
+  "src/gucefDRN_CDRNEndpointList.cpp",
+  "src/gucefDRN_CDRNGlobal.cpp",
+  "src/gucefDRN_CDRNLatencyInfo.cpp",
+  "src/gucefDRN_CDRNLatencyMeter.cpp",
+  "src/gucefDRN_CDRNLinkMonitor.cpp",
+  "src/gucefDRN_CDRNLinkReliability.cpp",
   "src/gucefDRN_CDRNNode.cpp",
+  "src/gucefDRN_CDRNNodeSettings.cpp",
+  "src/gucefDRN_CDRNNodeTask.cpp",
+  "src/gucefDRN_CDRNNodePulseDriver.cpp",
+  "src/gucefDRN_CDRNPacketCodec.cpp",
+  "src/gucefDRN_CDRNPacketProtection.cpp",
   "src/gucefDRN_CDRNPeerLink.cpp",
-  "src/gucefDRN_CDRNPeerLinkData.cpp",
+  "src/gucefDRN_CDRNPublishedColumn.cpp",
+  "src/gucefDRN_CDRNPublishedTable.cpp",
+  "src/gucefDRN_CDRNPublishedTableMeta.cpp",
+  "src/gucefDRN_CDRNPublishedTableSchema.cpp",
+  "src/gucefDRN_CDRNPublishedTableSettings.cpp",
+  "src/gucefDRN_CDRNReachabilityManager.cpp",
+  "src/gucefDRN_CDRNRelayChannel.cpp",
+  "src/gucefDRN_CDRNRelayService.cpp",
+  "src/gucefDRN_CDRNReplicator.cpp",
+  "src/gucefDRN_CDRNRpcSessionComponent.cpp",
+  "src/gucefDRN_CDRNRpcTransport.cpp",
+  "src/gucefDRN_CDRNRpcTransportListener.cpp",
+  "src/gucefDRN_CDRNRpcTransportSettings.cpp",
+  "src/gucefDRN_CDRNSecurityPolicy.cpp",
+  "src/gucefDRN_CDRNSession.cpp",
+  "src/gucefDRN_CDRNSessionRecorder.cpp",
+  "src/gucefDRN_CDRNSessionRegistry.cpp",
+  "src/gucefDRN_CDRNSessionSettings.cpp",
+  "src/gucefDRN_CDRNSharedSecretAuthenticator.cpp",
+  "src/gucefDRN_CDRNStreamFramer.cpp",
+  "src/gucefDRN_CDRNStreamGapInfo.cpp",
+  "src/gucefDRN_CDRNSubscribeOptions.cpp",
+  "src/gucefDRN_CDRNTablePublisher.cpp",
+  "src/gucefDRN_CDRNTablePublisherSettings.cpp",
+  "src/gucefDRN_CDRNTablePublisherUpdateScope.cpp",
+  "src/gucefDRN_CDRNTcpChannel.cpp",
+  "src/gucefDRN_CDRNTcpChannelListener.cpp",
+  "src/gucefDRN_CDRNTokenAuthenticator.cpp",
+  "src/gucefDRN_CDRNUdpChannel.cpp",
+  "src/gucefDRN_CDRNUdpChannelListener.cpp",
+  "src/gucefDRN_CDRNVariantCodec.cpp",
+  "src/gucefDRN_CDRNVotePolicy.cpp",
+  "src/gucefDRN_CDRNWebSocketChannel.cpp",
+  "src/gucefDRN_CDRNWebSocketChannelListener.cpp",
+  "src/gucefDRN_CDRNWireReader.cpp",
+  "src/gucefDRN_CDRNWireWriter.cpp",
   "src/gucefDRN_CGUCEFDRNModule.cpp",
-  "src/gucefDRN_CIDRNPeerLinkCrypter.cpp",
-  "src/gucefDRN_CIDRNPeerValidator.cpp"
+  "src/gucefDRN_CIDRNAccessPolicy.cpp",
+  "src/gucefDRN_CIDRNAuthenticator.cpp",
+  "src/gucefDRN_CIDRNBanList.cpp",
+  "src/gucefDRN_CIDRNChannel.cpp",
+  "src/gucefDRN_CIDRNChannelListener.cpp",
+  "src/gucefDRN_CIDRNLatencyMeter.cpp",
+  "src/gucefDRN_CIDRNSessionComponent.cpp",
+  "src/gucefDRN_CIDRNWriteValidator.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "../gucefVFS/include", "../gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
@@ -91,7 +222,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "../gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "../gucefWEB/include/mswin" } )

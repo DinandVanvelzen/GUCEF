@@ -36,30 +36,55 @@ namespace GUI {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 CRenderContext::CRenderContext( void )
-    : CWidget( "RenderContext" )
+    : CDrawSurface( "RenderContext" )
 {GUCEF_TRACE;
+
 
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
 CRenderContext::~CRenderContext()
 {GUCEF_TRACE;
 
+
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
+CWidget*
+CRenderContext::Create( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CRenderContext();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CRenderContext::Refresh( void )
 {GUCEF_TRACE;
 
+    Commit();
 }
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CRenderContext::GetClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    static const CString classTypeName = "GUCEF::GUI::CRenderContext";
+    return classTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

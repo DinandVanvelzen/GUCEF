@@ -78,8 +78,11 @@ class GUCEF_GUI_PUBLIC_CPP CGUIDriver : public CORE::CObservingNotifier    ,
 
     public:
     
-    typedef std::set< CString > TStringSet;
-    typedef std::set< TGuiContextPtr > TGUIContextSet;
+    typedef GUCEF::set< CString > TStringSet;
+    typedef GUCEF::set< TGuiContextPtr > TGUIContextSet;
+
+    /** The version of the driver interface this gucefGUI was built with; a driver of another version is refused */
+    static const UInt32 InterfaceVersion;
 
     virtual ~CGUIDriver();
     
@@ -102,6 +105,20 @@ class GUCEF_GUI_PUBLIC_CPP CGUIDriver : public CORE::CObservingNotifier    ,
     virtual TStringSet GetAvailableFonts( void ) = 0;
 
     virtual bool LoadFontFromAsset( const CString& assetPath ) = 0;
+
+    /** The handler for a widget type, NULL when the driver has none (the context then tries the base types) */
+    virtual CWidgetHandler* GetWidgetHandler( const CString& widgetType );
+
+    /**
+     *  What the driver supports beyond widget handlers, for editors and tests, for example
+     *  "Render", "CaptureFrame", "BitmapFonts", "VectorFonts", "NativeLayouts", "DrawSurface", "DynamicImages"
+     */
+    virtual TStringSet GetCapabilities( void );
+
+    bool HasCapability( const CString& capability );
+
+    /** The driver interface version the driver was built with; drivers return CGUIDriver::InterfaceVersion */
+    virtual UInt32 GetInterfaceVersion( void ) const;
     
     protected:
     

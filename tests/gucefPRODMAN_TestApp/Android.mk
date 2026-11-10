@@ -21,18 +21,22 @@ LOCAL_MODULE := gucefPRODMAN_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestProductListRetrieval.cpp \
   src/gucefPRODMAN_TestApp.cpp
 
 LOCAL_C_INCLUDES := \
+  $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefPATCHER/include \
   $(MY_MODULE_PATH)/../../platform/gucefPRODMAN/include
+
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=gucefPRODMAN_TestApp -DMODULE_NAME=gucefPRODMAN_TestApp
 
 
 LOCAL_SHARED_LIBRARIES := \

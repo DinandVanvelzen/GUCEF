@@ -83,6 +83,32 @@ CFutureResult::CFutureResult( CFutureResult&& src ) GUCEF_NOEXCEPT
 
 /*-------------------------------------------------------------------------*/
 
+CFutureResult&
+CFutureResult::operator=( const CFutureResult& src )
+{GUCEF_TRACE;
+
+    if ( &src != this )
+        m_task = src.m_task;
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CFutureResult&
+CFutureResult::operator=( CFutureResult&& src ) GUCEF_NOEXCEPT
+{GUCEF_TRACE;
+
+    if ( &src != this )
+        m_task = GUCEF_MOVE( src.m_task );
+    return *this;
+}
+
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 const CFutureResult&
 CFutureResult::Await( Int32 timeoutInMs ) const
 {GUCEF_TRACE;

@@ -35,6 +35,11 @@
 #define GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #include "CNotificationIDRegistry.h"
 #include "CNotifier.h"
 
@@ -87,18 +92,30 @@ void
 CObserver::SignalUpcomingObserverDestruction( void )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
-
     /*
      *  Neatly un-subscribe from all notifiers
+     *
+     *  The list of notifiers has a lock of its own, a leaf: it is only held while the list itself is looked at or
+     *  changed, never while a notifier is called. Notifiers change the list through LinkTo() and UnlinkFrom() on
+     *  whatever thread subscribes or unsubscribes, while holding their own lock. Calling a notifier while holding
+     *  the list lock would be the opposite order: a deadlock when the notifier is busy on another thread. The
+     *  notifier takes its lock to remove us, which waits for a delivery in progress, and has us updated through
+     *  UnlinkFrom().
      */
-    TNotifierList listcopy( m_notifiers );
+    TNotifierList listcopy;
+    {
+        MT::CScopeMutex lock( m_notifiersLock );
+        listcopy = m_notifiers;
+    }
+
     TNotifierList::iterator i( listcopy.begin() );
     while ( i != listcopy.end() )
     {
         (*i)->OnObserverDestroy( this );
         ++i;
     }
+
+    MT::CScopeMutex lock( m_notifiersLock );
     m_notifiers.clear();
 }
 
@@ -128,12 +145,15 @@ void
 CObserver::UnsubscribeAllFromObserver( void )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
-
     /*
      *  Neatly un-subscribe from all notifiers
+     *  The list lock is not held while calling a notifier, see SignalUpcomingObserverDestruction()
      */
-    TNotifierList listcopy( m_notifiers );
+    TNotifierList listcopy;
+    {
+        MT::CScopeMutex lock( m_notifiersLock );
+        listcopy = m_notifiers;
+    }
     TNotifierList::iterator i( listcopy.begin() );
     while ( i != listcopy.end() )
     {
@@ -201,7 +221,7 @@ CObserver::LinkTo( CNotifier* notifier )
 
     if ( GUCEF_NULL != notifier )
     {
-        CObserverScopeLock lock( this );
+        MT::CScopeMutex lock( m_notifiersLock );
         m_notifiers.insert( notifier );
     }
 }
@@ -212,7 +232,7 @@ void
 CObserver::UnlinkFrom( CNotifier* notifier )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
+    MT::CScopeMutex lock( m_notifiersLock );
     m_notifiers.erase( notifier );
 }
 
@@ -222,10 +242,15 @@ UInt32
 CObserver::GetSubscriptionCount( void )
 {GUCEF_TRACE;
 
+    // the notifiers are asked outside the list lock, see SignalUpcomingObserverDestruction()
+    TNotifierList listcopy;
+    {
+        MT::CScopeMutex lock( m_notifiersLock );
+        listcopy = m_notifiers;
+    }
     UInt32 subscriptionCount( 0 );
-    CObserverScopeReadOnlyLock lock( this );
-    TNotifierList::const_iterator i( m_notifiers.begin() );
-    while ( i != m_notifiers.end() )
+    TNotifierList::const_iterator i( listcopy.begin() );
+    while ( i != listcopy.end() )
     {
         subscriptionCount += (*i)->GetSubscriptionCountForObserver( this );
         ++i;
@@ -239,7 +264,7 @@ UInt32
 CObserver::GetNotifierCount( void ) const
 {GUCEF_TRACE;
 
-    CObserverScopeReadOnlyLock lock( this );
+    MT::CScopeMutex lock( m_notifiersLock );
     return (UInt32) m_notifiers.size();
 }
 

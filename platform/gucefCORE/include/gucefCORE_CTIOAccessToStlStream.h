@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <sstream>
 
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"         
@@ -58,6 +59,25 @@ namespace CORE {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  Provides the argument for constructing the STL stream base class without a buffer
+ *  std::iostream takes a streambuf pointer but std::stringstream has no such constructor: passing NULL to it
+ *  would select the std::string constructor which is undefined behaviour (newer standard libraries throw)
+ */
+template< typename stl_stream_type >
+struct CTStlStreamNoBufferCtorArg
+{
+    static std::streambuf* Get( void ) { return GUCEF_NULL; }
+};
+
+template<>
+struct CTStlStreamNoBufferCtorArg< std::stringstream >
+{
+    static std::ios_base::openmode Get( void ) { return std::ios_base::in | std::ios_base::out; }
+};
+
+/*-------------------------------------------------------------------------*/
 
 /**
  *  Class template for redirecting STL stream operations to IOAccess operations
@@ -108,7 +128,7 @@ typedef CIOAccessToStlCharStream                                                
 
 template< typename stl_stream_type, typename io_streambuff_adapter_type >
 CTIOAccessToStlStream< stl_stream_type, io_streambuff_adapter_type >::CTIOAccessToStlStream( void )
-    : stl_stream_type( GUCEF_NULL )
+    : stl_stream_type( CTStlStreamNoBufferCtorArg< stl_stream_type >::Get() )
     , m_stlAdapter()
 {GUCEF_TRACE;
 
@@ -118,7 +138,7 @@ CTIOAccessToStlStream< stl_stream_type, io_streambuff_adapter_type >::CTIOAccess
 
 template< typename stl_stream_type, typename io_streambuff_adapter_type >
 CTIOAccessToStlStream< stl_stream_type, io_streambuff_adapter_type >::CTIOAccessToStlStream( CIOAccess& access )
-    : stl_stream_type( GUCEF_NULL )
+    : stl_stream_type( CTStlStreamNoBufferCtorArg< stl_stream_type >::Get() )
     , m_stlAdapter()
 {GUCEF_TRACE;
 

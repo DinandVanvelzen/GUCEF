@@ -1,0 +1,29 @@
+<ModuleInfoEntry>
+    <Module Name="vfspluginCUEBIN" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>LGPL</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Generic GUCEF VFS plugin for CD images described by a CUE sheet (BIN/CUE)</DescriptionHeadline>
+            <DescriptionDetails>Mounts a .cue sheet with its BIN file(s): the file system of the first data track (read through the iso9660 archive type of vfspluginISO9660) and the audio tracks as CDDA/TRACKnn.WAV. Raw 2352 byte and cooked 2048 byte sectors, MODE1 and MODE2. Own implementation.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_VFSPLUGIN_CUEBIN_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

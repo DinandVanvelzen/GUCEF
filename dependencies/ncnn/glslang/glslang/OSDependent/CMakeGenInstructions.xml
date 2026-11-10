@@ -1,0 +1,11 @@
+<PROJECTGENERATOR>
+  <INCLUDES PLATFORM="linux">
+    <ITEM NAME="Unix" />
+  </INCLUDES>
+  <INCLUDES PLATFORM="android">
+    <ITEM NAME="Unix" />
+  </INCLUDES>
+  <INCLUDES PLATFORM="mswin">
+    <ITEM NAME="Windows" />
+  </INCLUDES>
+</PROJECTGENERATOR>

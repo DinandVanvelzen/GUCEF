@@ -38,7 +38,7 @@
 #include "Core/ID.h"
 #include "Core/Input.h"
 #include "Core/Log.h"
-#include "Core/Math.h"
+#include "Core/RmlUiMath.h"
 #include "Core/Mesh.h"
 #include "Core/MeshUtilities.h"
 #include "Core/NumericValue.h"

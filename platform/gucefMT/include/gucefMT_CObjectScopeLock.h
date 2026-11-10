@@ -122,6 +122,7 @@ class GUCEF_MT_PUBLIC_CPP CObjectScopeLock
     private:
     const CILockable* m_lockableObject;
     bool m_isLocked;
+    bool m_unlockNeeded;    /**< whether an actual lock was obtained, not the case for LOCKSTATUS_NOT_APPLICABLE */
 
     CObjectScopeLock( const CObjectScopeLock& src );              /* Copying doesnt make sense */
     CObjectScopeLock& operator=( const CObjectScopeLock& src );   /* Copying doesnt make sense */

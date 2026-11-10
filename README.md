@@ -76,12 +76,21 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - gucefCORE: Library with functionality that is core to the way functionality build on the platform operates such as the plugin/logging/metrics/eventing/etc systems
 - gucefIMAGE: Optional library used when building software that utilizes digital images
 - gucefVFS: Optional library used when building software that performs more complex file system style I/O beyond just basic access. VFS = Virtual File System.
-- gucefCOMCORE: Optional library used when building software that performs basic networking
-- gucefCOM: Optional library used when building software that performs networking and uses fairly industry standard functionality such as StatsD
-- gucefWEB: Optional library used when building software that performs Internet/Web style networking
+- gucefCOMCORE: Optional library used when building software that performs basic networking: sockets, discovery and a TLS client layer with pluggable providers
+- gucefCOM: Optional library used when building software that performs networking and uses fairly industry standard functionality such as StatsD, service discovery (mDNS, SSDP), round trip probes, port mapping, STUN, IRC and mail (a MIME mail model, SMTP, POP3 and IMAP clients with STARTTLS and OAuth2 capable authentication)
+- gucefWEB: Optional library used when building software that performs Internet/Web style networking: HTTP and HTTPS client and server, WebSockets and JSON-RPC
 - gucefPUBSUB: Optional library used when building software that uses publish/subscribe concepts
-- gucefGUI: Optional library used when a GUI is needed. Main focus is on GUIs within the context of rendering not OS native GUIs
+- gucefGUI: Optional library used when a GUI is needed. Main focus is on GUIs within the context of rendering not OS native GUIs: widgets, themes, forms, windows and scroll panels on top of window and render drivers
+- gucefGAMEGUI: Optional library with prebaked GUI forms for rapid game development such as server browser, lobby, chat, player profile and turn wait forms, bound to the gucefMULTIPLAY interfaces
+- gucefAUDIO: Optional library used when audio playback, mixing and decoding is needed. Drivers and codecs come as plugins
+- gucefVIDEO: Optional library used when video decoding and playback is needed. Codecs come as plugins
 - gucefINPUT: Optional library used when support for human input devices is needed.
+- gucefAUTH: Optional library used when players, tools or services need to log in with an external identity provider (OAuth2 / OpenID Connect, OpenID 2.0, platform SDKs via plugins) and link several accounts to one identity
+- gucefAUTHGUI: Optional library with the user interface for logging in with external identities and the account page of settings, on top of gucefGUI
+- gucefDRN: Optional library used when building networked applications on data replication: sessions over pluggable channels with encrypted, authenticated links
+- gucefSMDRN: Optional library with sector managed DRN
+- gucefMULTIPLAY: Optional library used when building multiplayer: game listings, lobbies, chat, ping, player identity and bans over DRN, with lobby services chosen by name and a lobby server, and matches in progress for turn-based play over any carrier: signed turns and decisions, a match book with your turn notifications, and providers chosen by name
+- gucefPRODMAN: Optional library for product management
 - gucefLOADER: Optional library used when dynamically loading multiple GUCEF platform versions dynamically 
 - gucefPATCHER: Optional library used when support is needed for auto-patching functionality vs an end-user manually downloading updates
 - gucefMATH: Optional library used when performing math calculations via OO concepts
@@ -92,21 +101,56 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - dstorepluginJSONPARSER: gucefCORE plugin: Adds DStore (DataNode) codec support for JSON. Uses the json-parser and json-builder dependency libraries
 - dstorepluginYAML: gucefCORE plugin: Adds DStore (DataNode) codec support for YAML. Uses the libyaml dependency library
 - codecspluginZLIB: gucefCORE plugin: Adds codec support for zlib/gzip/deflate/crc32/adler32
+- codecspluginMONOCYPHER: gucefCORE plugin: Adds codec support for authenticated encryption, key agreement, signatures, hashing and key derivation using the Monocypher dependency library. Works on every platform
+- codecspluginOPENSSL: gucefCORE plugin: Adds the same kind of crypto codecs using the OpenSSL libcrypto of the system
+- dstorepluginPROTOBUF: gucefCORE plugin: Adds DStore (DataNode) codec support for protobuf using libprotobuf
 - codecspluginSTBRUMMEHASH: gucefCORE plugin: Adds codec support for CRC32/MD5/SHA1/SHA3/SHA256/Keccak
 - imgpluginDEVIL: gucefIMAGE plugin: Adds digital image management functionality sourced from the DEVIL image dependency library. Supports various image codecs.
 - imgpluginFLIC: gucefIMAGE plugin: Adds image codec support for the FLIC format
 - imgpluginFreeImage: gucefIMAGE plugin: Adds digital image management functionality sourced from the FreeImage image dependency library. Supports various image codecs.
-- imgpluginITV: gucefIMAGE plugin: Adds image codec support for the reverse engineered ITV format
+- imgpluginITV: gucefIMAGE plugin: Adds image codec support for the ITV image format
+- imgupscalepluginNCNN: gucefIMAGE plugin: Upscales pictures with Real-ESRGAN neural networks running on ncnn
+- audiocodecpluginAU: gucefAUDIO plugin: Adds codec support for Sun/NeXT .au audio
+- audiodriverALSA: gucefAUDIO plugin: Audio driver for ALSA on Linux
+- audiodriverWASAPI: gucefAUDIO plugin: Audio driver for WASAPI on Windows
+- audiodriverAAUDIO: gucefAUDIO plugin: Audio driver for AAudio on Android
+- audiodriverWEBAUDIO: gucefAUDIO plugin: Audio driver for the Web Audio API in browsers (Emscripten)
+- videocodecpluginSMK: gucefVIDEO plugin: Adds codec support for Smacker video
+- videocodecpluginWEBM: gucefVIDEO plugin: Adds codec support for WebM video (VP8 / VP9 with Opus)
 - vfspluginAWSS3: gucefVFS plugin: Adds VFS backend for mounting and using AWS S3 as part of the virtual filesystem
 - vfspluginDVP: gucefVFS plugin: Obsolete VFS backend for mounting and using DVP archive files as part of the virtual filesystem
-- vfspluginITV: gucefVFS plugin: VFS backend for mounting and using reverse engineered ITV archive files as part of the virtual filesystem
+- vfspluginCUEBIN: gucefVFS plugin: VFS backend for CD images described by a CUE sheet (BIN/CUE)
+- vfspluginISO9660: gucefVFS plugin: VFS backend for ISO 9660 disc images
+- vfspluginLIBARCHIVE: gucefVFS plugin: VFS backend for archives handled by libarchive
+- vfspluginITV: gucefVFS plugin: VFS backend for mounting and using ITV archive files as part of the virtual filesystem
 - vfspluginVP: gucefVFS plugin: VFS backend for mounting and using 'Violation Pack' archive files as part of the virtual filesystem such as used by the games Decent and FreeSpace
 - vfspluginZIP: gucefVFS plugin: VFS backend for mounting and using zlib compatible archive files as part of the virtual filesystem such as .gz and .zip
 - inputdriverDIRECTINPUT8: gucefINPUT plugin: Adds an input driver for input device interaction via Microsoft DirectInput 8
 - inputdriverMSWINMSG: gucefINPUT plugin: Adds an input driver for input device interaction via Microsoft Windows Win32 API messages
 - inputdriverNANDROID: gucefINPUT plugin: Adds an input driver for input device interaction via native Android APIs
 - inputdriverOIS: gucefINPUT plugin: Adds an input driver for input device interaction via the OIS dependency library
+- inputdriverWAYLAND: gucefINPUT plugin: Adds an input driver for the pointer and keyboard of a Wayland seat, for the windows of guidriverWAYLAND
+- inputdriverEMSCRIPTEN: gucefINPUT plugin: Adds an input driver for web browsers: mouse, wheel, keys and text of a page
 - inputdriverXWINMSG: gucefINPUT plugin: Adds an input driver for input device interaction via the X-Windowing messaging system for Linux
+- guidriverNull: gucefGUI plugin: GUI driver that keeps the widgets but draws nothing, for tests and tools
+- guidriverEGL: gucefGUI plugin: Window driver giving offscreen OpenGL windows through EGL, for tests, tools and headless runs
+- guidriverXWinGL: gucefGUI plugin: Window driver with OpenGL for X11
+- guidriverWAYLAND: gucefGUI plugin: Window driver for Wayland: native windows with OpenGL through EGL
+- guidriverWin32, guidriverWin32GL, guidriverWin32D3D9: gucefGUI plugins: Window drivers for Windows, plain, with OpenGL and with Direct3D 9
+- guidriverAndroidGLES: gucefGUI plugin: Window driver for Android with GLES
+- guidriverEmscripten: gucefGUI plugin: Window driver for web browsers: a canvas with WebGL 2
+- guidriverRmlUI, guidriverRmlUIOpenGL: gucefGUI plugins: GUI backend using RmlUi, drawing with OpenGL 3.3, OpenGL ES 3 or WebGL 2
+- guidriverCEGUI, guidriverMyGUI, guidriverOgre and their OpenGL and Ogre variants: gucefGUI plugins: Glue modules for the CEGUI, MyGUI and Ogre GUI backends
+- fontpluginFREETYPE: gucefGUI plugin: Rasterizes TrueType and OpenType fonts with FreeType
+- httpclientpluginCURL: gucefWEB plugin: Adds a HTTP client backend using libcurl
+- authpluginSTEAM: gucefAUTH plugin: Logging in with the Steam client and Steam OpenID
+- authpluginEOS: gucefAUTH plugin: Logging in with Epic Online Services
+- authpluginANDROID: gucefAUTH plugin: Logging in on Android devices (Play Games, Credential Manager, Login with Amazon, Custom Tabs)
+- lobbyservicepluginEOS: gucefMULTIPLAY plugin: Lobby service for lobbies on Epic Online Services
+- drnchannelpluginEOSP2P: gucefDRN plugin: Channel that moves DRN packets over the Epic Online Services P2P interface
+- pluginglueAWSSDK, pluginglueEOS, pluginglueWAYLAND: Shared libraries that own what several plugins share: the AWS SDK, the Epic Online Services platform and the connection to the Wayland compositor
+- pubsubpluginFIX: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for the FIX protocol
+- pubsubpluginTEST: gucefPUBSUB plugin: Adds integration and system tests
 - pubsubpluginAWSSNS: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for AWS's SNS service. Uses the AWS C++ SDK.
 - pubsubpluginAWSSQS: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for AWS's SQS service. Uses the AWS C++ SDK.
 - pubsubpluginKAFKA: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for Kafka streams. Uses the RdKafka dependency library.
@@ -117,7 +161,8 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - pubsubpluginWEB: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for Web concepts like HTTP/REST/WebSockets
 - ProjectGenDependsFilter: ProjectGen plugin: Allows filtering of libraries in a repo based on a depends.exe tool output report
 - ProjectGenVSImporter: ProjectGen plugin: Imports Visual Studio project files to generate a ModuleInfo.xml starting point for a new repo
-- comcorepluginDBL: gucefCOMCORE plugin which attempts to provide information from the reverse engineered Myricom DBL network driver
+- comcorepluginDBL: gucefCOMCORE plugin which attempts to provide information from the Myricom DBL network driver
+- comcorepluginUPNP: gucefCOMCORE plugin: Port mapping with UPnP IGD through miniupnpc
 - comcorepluginGEOOSM: gucefCOMCORE plugin which adds Open Street Maps based geo location lookup capabilities
 
 ## Contained Services
@@ -136,10 +181,16 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - UdpTransformer: Service which takes ingress UDP and performs a simplistic transform followed by a retransmission
 - MsmqMetrics: Agent service which gathers information on MSMQ queues and subsequently gathers and transmits metrics for said queues
 
+## Contained Applications
+- gucefLOBBYSERVER: Standalone lobby server for gucefMULTIPLAY, the same server that can be embedded in a game
+- gucefPATCHERAPP: Patcher application built on gucefPATCHER
+- gucefPRODMANAPP: Product management application built on gucefPRODMAN
+
 ## Contained Tools
 - ProjectGenerator: Tool to auto generate various project/module files and different logical views of the same mono-repo
 - DCSBruteInstaller: Tool to leverage a combo of some hardware and this software to brute force crack the codes in a DCS home alarm panel
-- itvExporter: Reverse engineered export tool for assets contained in a classic game
+- AncestryDotComBackup: Tool for a lossless backup of an Ancestry.com family tree
+- itvExporter: export tool for assets in the ITV data formats
 - GucefArchiver: Basic archiver tool that leverages the VFS and its plugins
 - HDFiller: As the name suggests, it fills your hard drive. Intended for test scenarios.
 - PubSubStorageTool: Tool to manipulate storage files produced by the pubsub storage plugin
@@ -153,9 +204,6 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - IN PROGRESS: Add web assembly support via emscripten
 - IN PROGRESS: Add support for 'static' plugins (needed for monolithic WASM builds)
 
-- Short term: Add basic websocket support native to the platform
-- Short term: Add proper parameter support for codecs
-- Short term: Add StringView support
 - Short term: Complete initial pass at pubsub2pubsub 'web' plugin
 - Short term: Complete initial pass at pubsub2pubsub 'aws sns' plugin
 - Short term: Complete initial pass at pubsub2pubsub 'aws sqs' plugin
@@ -173,7 +221,7 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - Mid term: Complete renaming platform source files to all have module prefix
 - Mid term: Remove dead code as part of a larger revitalization effort of projects contained within the mono-repo. Determine which other apps contained herein is worth saving.
 - Mid term: Recreate the platform console client functionality
-- Mid term: Add native secure socket support for the supported platforms
+- Mid term: Complete native secure socket support: a TLS client layer with an OpenSSL provider exists, still needed are the Windows (SChannel), Android and Apple providers, the server side, a browser backend and IPv6
 - Mid term: Add OTEL support to gucefCOM
 - Long term: rename gucefCOM to gucefCOMM
 - Long term: Add Jenkins CI support via ProjectGen's CI Helper backend

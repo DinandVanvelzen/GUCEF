@@ -1,6 +1,6 @@
 /*
  *  gucefPRODMAN_TestApp: Application for testing gucefPRODMAN
- *  Copyright (C) 2002 - 2012.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,23 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#define GUCEF_TESTFW_IMPL
+
+#ifndef GUCEF_MACROS_H
+#include "gucef_macros.h"
+#define GUCEF_MACROS_H
+#endif /* GUCEF_MACROS_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -43,15 +60,10 @@
 #define GUCEF_CORE_DVOSWRAP_H
 #endif /* GUCEF_CORE_DVOSWRAP_H ? */
 
-#ifndef GUCEF_CORE_CONFIGSTORE_H
-#include "CConfigStore.h"
-#define GUCEF_CORE_CONFIGSTORE_H
-#endif /* GUCEF_CORE_CONFIGSTORE_H ? */
-
-#ifndef GUCEF_CORE_CPLATFORMNATIVECONSOLEWINDOW_H
-#include "gucefCORE_CPlatformNativeConsoleWindow.h"
-#define GUCEF_CORE_CPLATFORMNATIVECONSOLEWINDOW_H
-#endif /* GUCEF_CORE_CPLATFORMNATIVECONSOLEWINDOW_H ? */
+#ifndef GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
+#include "gucefCORE_CPlatformNativeConsoleLogger.h"
+#define GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
+#endif /* GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H ? */
 
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
@@ -68,13 +80,10 @@
 #define GUCEF_PRODMAN_CPRODMANGLOBAL_H
 #endif /* GUCEF_PRODMAN_CPRODMANGLOBAL_H ? */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      NAMESPACE                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-using namespace GUCEF;
+#ifndef GUCEF_PRODMAN_TESTAPP_TESTPRODUCTLISTRETRIEVAL_H
+#include "TestProductListRetrieval.h"
+#define GUCEF_PRODMAN_TESTAPP_TESTPRODUCTLISTRETRIEVAL_H
+#endif /* GUCEF_PRODMAN_TESTAPP_TESTPRODUCTLISTRETRIEVAL_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,58 +91,43 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/*
- *      Application entry point
- */
 GUCEF_OSMAIN_BEGIN
 {GUCEF_TRACE;
 
-    #ifdef GUCEF_GUI_DEBUG_MODE
-    //CORE::GUCEF_LogStackToStdOut();
-    //CORE::GUCEF_SetStackLogging( 1 );
-    #endif /* GUCEF_GUI_DEBUG_MODE ? */
+    using namespace GUCEF;
 
     try
     {
         // Initialize systems
-        GUCEF::CORE::CCoreGlobal::Instance();
-        GUCEF::COMCORE::CComCoreGlobal::Instance();
-        GUCEF::PRODMAN::CProdManGlobal::Instance();
+        CORE::CCoreGlobal::Instance();
+        COMCORE::CComCoreGlobal::Instance();
+        PRODMAN::CProdManGlobal::Instance();
 
-        // setup file logger
-        CORE::CString logFilename = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
-        CORE::AppendToPath( logFilename, "gucefGUI_TestApp_Log.txt" );
+        CORE::CString logFilename = CORE::RelativePath( "$CURWORKDIR$" );
+        CORE::AppendToPath( logFilename, "gucefPRODMAN_TestApp_Log.txt" );
         CORE::CFileAccess logFileAccess( logFilename, "w" );
 
         CORE::CStdLogger logger( logFileAccess );
         CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( &logger );
 
-        // setup console logger
-        CORE::CPlatformNativeConsoleLogger consoleOut;
-        CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( consoleOut.GetLogger() );
+        CORE::CPlatformNativeConsoleLogger console;
+        if ( GUCEF_APP_TYPE == GUCEF_APP_TYPE_CONSOLE )
+            CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
-        // flush startup log entries
-        CORE::CCoreGlobal::Instance()->GetLogManager().FlushBootstrapLogEntriesToLogs();
+        GUCEF_TESTFW_INIT( "gucefPRODMAN_TestApp" );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
-        // Create console window for easy test interaction
-        CORE::CPlatformNativeConsoleWindow consoleWindow;
-        consoleWindow.CreateConsole();
+        PerformProductListRetrievalTests();
 
+        CORE::CLogStreamScope::FlushLogs();
 
-        PRODMAN::CProductManager& productManager = PRODMAN::CProdManGlobal::Instance()->GetProductManager();
-
-
-
-        CORE::CCoreGlobal::Instance()->GetLogManager().ClearLoggers();
-        return 1;
+        CORE::CString xmlPath = CORE::RelativePath( "$CURWORKDIR$" );
+        CORE::AppendToPath( xmlPath, "gucefPRODMAN_TestApp_Results.xml" );
+        GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
+        return GUCEF_TESTFW_EXITCODE;
     }
     catch ( ... )
     {
-        #ifdef GUCEF_GUI_DEBUG_MODE
-        CORE::GUCEF_PrintCallstack();
-        CORE::GUCEF_DumpCallstack( "gucefPRODMAN_TestApp_callstack.txt" );
-        #endif /* GUCEF_GUI_DEBUG_MODE ? */
-
         CORE::ShowErrorMessage( "Unknown exception"                                                                 ,
                                 "Unhandled exception during program execution, the application will now terminate"  );
     }
@@ -149,5 +143,7 @@ GUCEF_OSMAIN_END
 
 - 10-12-2006
         - Dinand: Added this comment section
+- 2026
+        - Ported to the reporting test framework, with product list retrieval tests
 
 ---------------------------------------------------------------------------*/

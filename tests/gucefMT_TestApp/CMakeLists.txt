@@ -11,14 +11,24 @@
 
 # Configuration for module: gucefMT_TestApp
 
-set( HEADER_FILES
+set( HEADER_FILES 
+  include/TestAtomic.h
   include/TestMutex.h
   include/TestReaderWriterLock.h
+  include/TestSemaphore.h
+  include/TestSlotDataExchange.h
+  include/TestSpscQueue.h
+  include/TestThreadData.h
 )
 
-set( SOURCE_FILES
+set( SOURCE_FILES 
+  src/TestAtomic.cpp
   src/TestMutex.cpp
   src/TestReaderWriterLock.cpp
+  src/TestSemaphore.cpp
+  src/TestSlotDataExchange.cpp
+  src/TestSpscQueue.cpp
+  src/TestThreadData.cpp
   src/gucefMT_TestApp.cpp
 )
 
@@ -41,7 +51,7 @@ add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_MT_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefMT_TestApp;MODULE_NAME=gucefMT_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

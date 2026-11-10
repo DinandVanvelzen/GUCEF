@@ -46,7 +46,8 @@ CVFSHandle::CVFSHandle( CORE::IOAccessPtr fileAccess  ,
     : m_fileAccess( fileAccess ) ,
       m_filename( filename )     ,
       m_bufferPtr()              ,
-      m_filePath( filePath )
+      m_filePath( filePath )     ,
+      m_vfsPath()
 {GUCEF_TRACE;
 
 }
@@ -60,7 +61,8 @@ CVFSHandle::CVFSHandle( CORE::IOAccessPtr fileAccess  ,
     : m_fileAccess( fileAccess ) ,
       m_filename( filename )     ,
       m_bufferPtr( bufferPtr )   ,
-      m_filePath( filePath )
+      m_filePath( filePath )     ,
+      m_vfsPath()
 {GUCEF_TRACE;
 
 }
@@ -89,6 +91,24 @@ CVFSHandle::GetFilePath( void ) const
 {GUCEF_TRACE;
 
     return m_filePath;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CVFSHandle::GetVfsPath( void ) const
+{GUCEF_TRACE;
+
+    return m_vfsPath;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVFSHandle::SetVfsPath( const CORE::CString& vfsPath )
+{GUCEF_TRACE;
+
+    m_vfsPath = vfsPath;
 }
 
 /*-------------------------------------------------------------------------*/

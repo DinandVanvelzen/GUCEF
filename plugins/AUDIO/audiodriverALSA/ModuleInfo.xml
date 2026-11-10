@@ -1,0 +1,29 @@
+<ModuleInfoEntry>
+    <Module Name="audiodriverALSA" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO driver plugin for ALSA on Linux</DescriptionHeadline>
+            <DescriptionDetails>Plays audio through ALSA. libasound is loaded when the plugin loads, so building it needs no ALSA development files.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIODRIVER_ALSA_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

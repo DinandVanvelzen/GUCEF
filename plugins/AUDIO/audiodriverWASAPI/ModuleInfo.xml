@@ -1,0 +1,30 @@
+<ModuleInfoEntry>
+    <Module Name="audiodriverWASAPI" Type="SharedLibrary" Platform="mswin" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO driver plugin for WASAPI on Windows</DescriptionHeadline>
+            <DescriptionDetails>Plays audio through WASAPI, the audio interface of Windows Vista and newer, in shared mode with event driven buffering.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="ole32" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIODRIVER_WASAPI_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

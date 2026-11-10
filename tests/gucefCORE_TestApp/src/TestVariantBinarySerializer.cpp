@@ -23,6 +23,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_CORE_CDYNAMICBUFFER_H
 #include "CDynamicBuffer.h"
 #define GUCEF_CORE_CDYNAMICBUFFER_H
@@ -238,6 +240,113 @@ PerformVariantBinarySerializerTests( void )
         ASSERT_TRUE( var2 == blob );
         ASSERT_TRUE( var2.UsesDynamicMemory() );
         ASSERT_TRUE( var == var2 );        
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Regression: memory address variants were serialized by reading sizeof(void*) bytes at the address
+    // they point to instead of the address itself
+    GUCEF_TESTFW_TESTCASE( "Test: Pointer variant round trip serializes the address itself" )
+    try
+    {
+        Int32 pointee = 42;
+        CORE::CVariant var( static_cast< void* >( &pointee ) );
+        CORE::CDynamicBuffer buffer( true );
+        UInt32 bytesWritten = 0;
+        ASSERT_TRUE( CORE::CVariantBinarySerializer::Serialize( var, 0, buffer, bytesWritten ) );
+
+        CORE::CVariant var2;
+        UInt32 bytesRead = 0;
+        ASSERT_TRUE( CORE::CVariantBinarySerializer::Deserialize( var2, 0, buffer, false, bytesRead ) );
+        ASSERT_TRUE( bytesRead == bytesWritten );
+        ASSERT_TRUE( var2.GetTypeId() == var.GetTypeId() );
+        ASSERT_TRUE( var2.AsVoidPtr() == static_cast< const void* >( &pointee ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Values in a serialized stream follow each other without padding, so most of them sit at offsets their type cannot
+    // be read from through a pointer of that type (undefined behaviour, a fault on CPUs that require alignment): the
+    // reads have to copy. Seen as misaligned loads by UBSan before they did
+    GUCEF_TESTFW_TESTCASE( "Test: Variants are read back from any offset in the buffer" )
+    try
+    {
+        CORE::CVariant values[ 8 ];
+        values[ 0 ] = CORE::CVariant( (Int8) -3 );
+        values[ 1 ] = CORE::CVariant( (Int32) -123456 );
+        values[ 2 ] = CORE::CVariant( (UInt64) 0x0123456789ABCDEFULL );
+        values[ 3 ] = CORE::CVariant( (Float64) 2.5 );
+        values[ 4 ] = CORE::CVariant( CORE::CString( "abc" ) );
+        values[ 5 ] = CORE::CVariant( (UInt16) 0xBEEF );
+        values[ 6 ] = CORE::CVariant( (UInt32) 0xCAFEBABE );
+        values[ 7 ] = CORE::CVariant( (Int64) -9876543210LL );
+
+        CORE::CDynamicBuffer buffer( true );
+        const UInt8 lead = 0x55;
+        buffer.Append( &lead, 1 );                      // the first value starts at an odd offset
+        UInt32 offset = 1;
+        for ( UInt32 i=0; i<8; ++i )
+        {
+            UInt32 bytesWritten = 0;
+            ASSERT_TRUE( CORE::CVariantBinarySerializer::Serialize( values[ i ], offset, buffer, bytesWritten ) );
+            offset += bytesWritten;
+        }
+
+        offset = 1;
+        for ( UInt32 i=0; i<8; ++i )
+        {
+            CORE::CVariant read;
+            UInt32 bytesRead = 0;
+            ASSERT_TRUE( CORE::CVariantBinarySerializer::Deserialize( read, offset, buffer, false, bytesRead ) );
+            ASSERT_TRUE( read == values[ i ] );
+            offset += bytesRead;
+        }
+        ASSERT_TRUE( offset == buffer.GetDataSize() );
+
+        // and the buffer's own typed read
+        ASSERT_TRUE( 0x55 == buffer.ReadValue< UInt8 >( 0 ) );
+        UInt32 expected = 0;
+        memcpy( &expected, static_cast< const UInt8* >( buffer.GetConstBufferPtr() ) + 1, sizeof( expected ) );
+        ASSERT_TRUE( expected == buffer.ReadValue< UInt32 >( 1 ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Regression: VOID variants could be serialized but not deserialized, they are used as stream segment end markers
+    GUCEF_TESTFW_TESTCASE( "Test: VOID variant round trip" )
+    try
+    {
+        CORE::CVariant voidVar;
+        voidVar.SetVoidType();
+        CORE::CVariant afterVoid( (Int32) 7 );
+
+        CORE::CDynamicBuffer buffer( true );
+        UInt32 bytesWritten = 0;
+        ASSERT_TRUE( CORE::CVariantBinarySerializer::Serialize( voidVar, 0, buffer, bytesWritten ) );
+        UInt32 secondOffset = bytesWritten;
+        bytesWritten = 0;
+        ASSERT_TRUE( CORE::CVariantBinarySerializer::Serialize( afterVoid, secondOffset, buffer, bytesWritten ) );
+
+        CORE::CVariant var2;
+        UInt32 bytesRead = 0;
+        ASSERT_TRUE( CORE::CVariantBinarySerializer::Deserialize( var2, 0, buffer, false, bytesRead ) );
+        ASSERT_TRUE( var2.IsVoid() );
+        ASSERT_TRUE( bytesRead == secondOffset );
+
+        // the data after the VOID must be readable as well
+        CORE::CVariant var3;
+        bytesRead = 0;
+        ASSERT_TRUE( CORE::CVariantBinarySerializer::Deserialize( var3, secondOffset, buffer, false, bytesRead ) );
+        ASSERT_TRUE( var3.AsInt32() == 7 );
     }
     catch( ... )
     {

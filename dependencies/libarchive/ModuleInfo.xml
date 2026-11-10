@@ -1,0 +1,27 @@
+<ModuleInfoEntry>
+    <Module Name="libarchive" Type="StaticLibrary" Platform="All">
+        <Preprocessor>
+            <Define String="HAVE_CONFIG_H" />
+            <Define String="LIBARCHIVE_STATIC" />
+            <Define String="__LIBARCHIVE_BUILD" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="mswin;linux">
+        <Linker>
+            <Dependency Name="zlib" />
+        </Linker>
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+    </Module>
+    <Module Platform="mswin">
+        <Linker>
+            <Dependency Name="Bcrypt.lib" Scope="private" />
+        </Linker>
+    </Module>
+    <Module Platform="android">
+        <Linker>
+            <Dependency Name="z" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

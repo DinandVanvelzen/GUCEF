@@ -53,7 +53,7 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/* 
+/*
  *  Mandatory generic plugin API functions
  */
 typedef Int32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TGUCEFGENERICPLUGFPTR_Load ) ( UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
@@ -61,6 +61,20 @@ typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TGUCEFGENERICPLUGFPTR_Unload ) ( vo
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TGUCEFGENERICPLUGFPTR_GetVersion ) ( TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TGUCEFGENERICPLUGFPTR_GetCopyright ) ( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TGUCEFGENERICPLUGFPTR_GetDescription ) ( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*
+ *  Optional generic plugin API functions
+ */
+
+/**
+ *  Optional export: returns a comma-separated list of LinkBack module names this plugin
+ *  depends on (e.g. "gucefMT,gucefCORE,gucefPUBSUB").
+ *  When present, the returned list supplements or overrides any LinkBackModules value
+ *  specified in the plugin's metadata configuration.
+ *  The returned pointer must remain valid for the lifetime of the loaded module.
+ *  No spaces should be used in the list.
+ */
+typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TGUCEFGENERICPLUGFPTR_GetLinkBackModuleDependencies ) ( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

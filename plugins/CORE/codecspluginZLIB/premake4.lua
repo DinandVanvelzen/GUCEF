@@ -39,7 +39,7 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "gucefCORE", "gucefMT", "zlib" } )
+links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
@@ -47,9 +47,15 @@ defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=codecsplugin
   links( { "z" } )
   links( { "z" } )
   
+configuration( { EMSCRIPTEN32 } )
+links( { "zlib" } )
+  
 
 configuration( { EMSCRIPTEN32 } )
 defines( { "MODULE_API_PREFIX=codecspluginZLIB" } )
+  
+configuration( { EMSCRIPTEN64 } )
+links( { "zlib" } )
   
 
 configuration( { EMSCRIPTEN64 } )

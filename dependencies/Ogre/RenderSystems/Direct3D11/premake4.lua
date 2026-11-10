@@ -45,20 +45,20 @@ configuration( { WIN64 } )
 kind( "SharedLib" )
   
 configuration( { WIN32 } )
-links( { "Direct3D11", "Ogre" } )
+links( { "Ogre" } )
   links( { "Ogre", "d3d11", "d3dcompiler", "d3dx11" } )
   
 
 configuration( { WIN32 } )
-defines( { "OGRED3DENGINEDLL_EXPORTS ", "_USRDLL " } )
+defines( { "MODULE_NAME=OgreRenderSystem_Direct3D11", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
   
 configuration( { WIN64 } )
-links( { "Direct3D11", "Ogre" } )
+links( { "Ogre" } )
   links( { "Ogre", "d3d11", "d3dcompiler", "d3dx11" } )
   
 
 configuration( { WIN64 } )
-defines( { "OGRED3DENGINEDLL_EXPORTS ", "_USRDLL " } )
+defines( { "MODULE_NAME=OgreRenderSystem_Direct3D11", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
 
 
 configuration( { "WIN32" } )
@@ -216,7 +216,7 @@ configuration( {} )
 includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../external", "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../external", "include" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "include" } )

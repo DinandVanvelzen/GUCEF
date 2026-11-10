@@ -48,6 +48,11 @@
 #define GUCEF_CORE_DVFILEUTILS_H
 #endif /* GUCEF_CORE_DVFILEUTILS_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CONSTANTS                                                          //
@@ -232,7 +237,7 @@ GUCEF_OSMAIN_BEGIN
             GUCEF::CORE::CString destPath = argList.GetKey( i );
             if ( GUCEF::CORE::FileExists( destPath ) )
             {
-                if ( 0 == GUCEF::CORE::Delete_File( destPath.C_String() ) )
+                if ( !GUCEF::CORE::DeleteFile( destPath ) )
                 {
                     printf( GUCEF::CORE::CString( "ERROR: Failed to delete file: " + destPath ).C_String() );
 
@@ -250,7 +255,7 @@ GUCEF_OSMAIN_BEGIN
 
             // Move the new file to the desired final location
             GUCEF::CORE::CString originPath = argList.GetValue( i );
-            if ( 0 == GUCEF::CORE::Move_File( destPath.C_String(), originPath.C_String() ) )
+            if ( !GUCEF::CORE::MoveFile( originPath, destPath, true ) )
             {
                 printf( GUCEF::CORE::CString( "ERROR: Failed to move file: " + originPath + " -> " + destPath ).C_String() );
 

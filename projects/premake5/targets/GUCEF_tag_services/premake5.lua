@@ -12,15 +12,16 @@
 
 workspace( "GUCEF_tag_services" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "apps/gucefLOBBYSERVER" )
   include( "dependencies/aws-cpp-sdk-core" )
   include( "dependencies/aws-cpp-sdk-s3" )
   include( "dependencies/aws-cpp-sdk-sqs" )
@@ -43,20 +44,26 @@ filter "ALL"
   include( "dependencies/libparsifal" )
   include( "dependencies/librdkafka" )
   include( "dependencies/libyaml" )
+  include( "dependencies/minizip" )
+  include( "dependencies/monocypher" )
   include( "dependencies/protobuf/src" )
   include( "dependencies/redis-plus-plus/src/sw/redis++" )
   include( "dependencies/stbrumme-hash-library" )
   include( "dependencies/zziplib" )
+  include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefDRN" )
   include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
+  include( "platform/gucefMULTIPLAY" )
   include( "platform/gucefPUBSUB" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
   include( "plugins/COMCORE/comcorepluginDBL" )
   include( "plugins/COMCORE/comcorepluginGEOOSM" )
+  include( "plugins/CORE/codecspluginMONOCYPHER" )
   include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
   include( "plugins/CORE/codecspluginZLIB" )
   include( "plugins/CORE/dstorepluginJSONPARSER" )
@@ -64,6 +71,7 @@ filter "ALL"
   include( "plugins/CORE/dstorepluginPROTOBUF" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/PUBSUB/pubsubpluginAWSSQS" )
+  include( "plugins/PUBSUB/pubsubpluginFIX" )
   include( "plugins/PUBSUB/pubsubpluginKAFKA" )
   include( "plugins/PUBSUB/pubsubpluginREDISCLUSTER" )
   include( "plugins/PUBSUB/pubsubpluginSTORAGE" )
@@ -90,11 +98,15 @@ filter "ALL"
   include( "tools/udp2redis" )
   include( "tools/udp2rediscluster" )
 
+filter "ANDROID"
+
 filter "ANDROID32"
 
 filter "ANDROID64"
 
 filter "ARDUINO"
+
+filter "EMSCRIPTEN"
 
 filter "EMSCRIPTEN32"
   include( "dependencies/zlib" )
@@ -106,6 +118,12 @@ filter "EMSCRIPTEN64"
 
 filter "IOS"
 
+filter "IPHONE"
+
+filter "IPHONEOS"
+
+filter "LINUX"
+
 filter "LINUX32"
   include( "dependencies/FreeImage" )
   include( "dependencies/zlib" )
@@ -115,6 +133,14 @@ filter "LINUX64"
   include( "dependencies/FreeImage" )
   include( "dependencies/zlib" )
   include( "plugins/IMAGE/imgpluginFreeImage" )
+
+filter "MAC"
+
+filter "MACOS"
+
+filter "MACOSX"
+
+filter "MSWIN"
 
 filter "OSX"
 
@@ -133,3 +159,5 @@ filter "WIN64"
   include( "plugins/PUBSUB/pubsubpluginMSMQ" )
   include( "tools/MemoryLeakFinder" )
   include( "tools/msmqMetrics" )
+
+filter "WINDOWS"

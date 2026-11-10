@@ -30,10 +30,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefPATCHER/include
+
+LOCAL_CFLAGS := -DARCHIVEDIFFLIB_BUILD_MODULE -DMODULE_CONSENSUS_NAME=ArchiveDiffLib -DMODULE_NAME=ArchiveDiffLib
 
 
 LOCAL_SHARED_LIBRARIES := \

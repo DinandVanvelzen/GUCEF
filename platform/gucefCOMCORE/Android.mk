@@ -37,6 +37,12 @@ LOCAL_SRC_FILES := \
   src/dvwinsock.c \
   src/gucefCOMCORE.cpp \
   src/gucefCOMCORE_CComCoreGlobal.cpp \
+  src/gucefCOMCORE_CDatabaseClientBase.cpp \
+  src/gucefCOMCORE_CDatabaseClientOperation.cpp \
+  src/gucefCOMCORE_CDatabaseClientSettings.cpp \
+  src/gucefCOMCORE_CDatabaseTableResult.cpp \
+  src/gucefCOMCORE_CDiscoveryClientBase.cpp \
+  src/gucefCOMCORE_CDiscoveryEntry.cpp \
   src/gucefCOMCORE_CDiscoveryManager.cpp \
   src/gucefCOMCORE_CDnsCache.cpp \
   src/gucefCOMCORE_CDnsCacheEntry.cpp \
@@ -44,6 +50,7 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CDnsResolver.cpp \
   src/gucefCOMCORE_CGeoLocationLookupService.cpp \
   src/gucefCOMCORE_CICommunicationInterface.cpp \
+  src/gucefCOMCORE_CIDatabaseClient.cpp \
   src/gucefCOMCORE_CIDiscovery.cpp \
   src/gucefCOMCORE_CIDiscoveryCapability.cpp \
   src/gucefCOMCORE_CIDiscoveryClient.cpp \
@@ -52,24 +59,87 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CIMessage.cpp \
   src/gucefCOMCORE_CIMessageTransformer.cpp \
   src/gucefCOMCORE_CINetworkInterface.cpp \
+  src/gucefCOMCORE_CIPortMapper.cpp \
   src/gucefCOMCORE_CIPv4Address.cpp \
   src/gucefCOMCORE_CIPv4Info.cpp \
   src/gucefCOMCORE_CIPv6Address.cpp \
   src/gucefCOMCORE_CIPv6Info.cpp \
+  src/gucefCOMCORE_CIRpcAccessPolicy.cpp \
+  src/gucefCOMCORE_CIRpcMethodHandler.cpp \
+  src/gucefCOMCORE_CIRpcServiceImpl.cpp \
+  src/gucefCOMCORE_CIRpcStream.cpp \
+  src/gucefCOMCORE_CIRpcTransport.cpp \
+  src/gucefCOMCORE_CIRpcTransportListener.cpp \
+  src/gucefCOMCORE_CIRttProbe.cpp \
   src/gucefCOMCORE_CMessageSerializer.cpp \
+  src/gucefCOMCORE_COpenSslTlsProvider.cpp \
+  src/gucefCOMCORE_COpenSslTlsProviderAbi.cpp \
+  src/gucefCOMCORE_COpenSslTlsProviderSession.cpp \
   src/gucefCOMCORE_CPingTaskConsumer.cpp \
+  src/gucefCOMCORE_CPortMappingResult.cpp \
+  src/gucefCOMCORE_CRpcBuiltInContracts.cpp \
+  src/gucefCOMCORE_CRpcCallOptions.cpp \
+  src/gucefCOMCORE_CRpcCallResult.cpp \
+  src/gucefCOMCORE_CRpcCallTask.cpp \
+  src/gucefCOMCORE_CRpcClientStream.cpp \
+  src/gucefCOMCORE_CRpcCompatibilityReport.cpp \
+  src/gucefCOMCORE_CRpcContract.cpp \
+  src/gucefCOMCORE_CRpcContractBuilder.cpp \
+  src/gucefCOMCORE_CRpcContractCompatibility.cpp \
+  src/gucefCOMCORE_CRpcContractHash.cpp \
+  src/gucefCOMCORE_CRpcContractRegistry.cpp \
+  src/gucefCOMCORE_CRpcDurableRequestTable.cpp \
+  src/gucefCOMCORE_CRpcEndpoint.cpp \
+  src/gucefCOMCORE_CRpcEndpointLink.cpp \
+  src/gucefCOMCORE_CRpcEndpointSettings.cpp \
+  src/gucefCOMCORE_CRpcEnumDescriptor.cpp \
+  src/gucefCOMCORE_CRpcFieldDescriptor.cpp \
+  src/gucefCOMCORE_CRpcFrameCodec.cpp \
+  src/gucefCOMCORE_CRpcFrameEventData.cpp \
+  src/gucefCOMCORE_CRpcHost.cpp \
+  src/gucefCOMCORE_CRpcHostSettings.cpp \
+  src/gucefCOMCORE_CRpcLoopbackTransport.cpp \
+  src/gucefCOMCORE_CRpcLoopbackTransportListener.cpp \
+  src/gucefCOMCORE_CRpcMessage.cpp \
+  src/gucefCOMCORE_CRpcMessageCodec.cpp \
+  src/gucefCOMCORE_CRpcMetadata.cpp \
+  src/gucefCOMCORE_CRpcMethodDescriptor.cpp \
+  src/gucefCOMCORE_CRpcMethodRef.cpp \
+  src/gucefCOMCORE_CRpcPrincipal.cpp \
+  src/gucefCOMCORE_CRpcProtocolTask.cpp \
+  src/gucefCOMCORE_CRpcReflectionService.cpp \
+  src/gucefCOMCORE_CRpcRequestId.cpp \
+  src/gucefCOMCORE_CRpcRequestStatus.cpp \
+  src/gucefCOMCORE_CRpcRoleAccessPolicy.cpp \
+  src/gucefCOMCORE_CRpcServerCall.cpp \
+  src/gucefCOMCORE_CRpcServiceDescriptor.cpp \
+  src/gucefCOMCORE_CRpcServiceImpl.cpp \
+  src/gucefCOMCORE_CRpcServiceSet.cpp \
+  src/gucefCOMCORE_CRpcSession.cpp \
+  src/gucefCOMCORE_CRpcStatus.cpp \
+  src/gucefCOMCORE_CRpcTransportProfile.cpp \
+  src/gucefCOMCORE_CRpcTransportProperties.cpp \
+  src/gucefCOMCORE_CRpcTypeDescriptor.cpp \
   src/gucefCOMCORE_CSerialPort.cpp \
+  src/gucefCOMCORE_CSocketReadinessWaiter.cpp \
+  src/gucefCOMCORE_CTlsClientConnection.cpp \
+  src/gucefCOMCORE_CTlsProviderRegistry.cpp \
+  src/gucefCOMCORE_CTlsSettings.cpp \
+  src/gucefCOMCORE_ITlsProvider.cpp \
+  src/gucefCOMCORE_ITlsSession.cpp \
+  src/gucefCOMCORE_RpcEventData.cpp \
+  src/gucefCOMCORE_RpcTypes.cpp \
+  src/gucefCOMCORE_TlsTypes.cpp \
   src/socketutils.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEF_COMCORE_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_COMCORE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefCOMCORE -DMODULE_NAME=gucefCOMCORE -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \

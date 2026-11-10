@@ -309,7 +309,7 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         ::memset( &time, 0, sizeof(time) );
         time.tm_year = datetime.GetYear() - 1900;
         time.tm_mon = datetime.GetMonth() - 1;
-        time.tm_mday = datetime.GetDay() - 1;
+        time.tm_mday = datetime.GetDay();          // both are 1 based
         time.tm_hour = datetime.GetHours();
         time.tm_min = datetime.GetMinutes();
         time.tm_sec = datetime.GetSeconds();
@@ -321,7 +321,9 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         struct ::tm time;
         DateTimeToTm( datetime, time );  // <- this converts keeping the timezone intact with gmtoff
 
-        tspec.tv_sec = ::timegm( &time ) - time.tm_gmtoff; // <- this converts to UTC
+        // timegm() normalizes the struct which resets tm_gmtoff, so take the offset first
+        long gmtOffsetInSecs = time.tm_gmtoff;
+        tspec.tv_sec = ::timegm( &time ) - gmtOffsetInSecs; // <- this converts to UTC
         tspec.tv_nsec = datetime.GetMilliseconds() * 1000000;
     }
 
@@ -331,7 +333,7 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         ::gmtime_r( &tspec.tv_sec, &utcTime );
         datetime.Set( (Int16) utcTime.tm_year+1900,
                       (UInt8) utcTime.tm_mon+1,
-                      (UInt8) utcTime.tm_mday+1,
+                      (UInt8) utcTime.tm_mday,
                       (UInt8) utcTime.tm_hour,
                       (UInt8) utcTime.tm_min,
                       (UInt8) utcTime.tm_sec,
@@ -348,7 +350,7 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         ::localtime_r( &time.tv_sec, &hereTime );
         return CDateTime( (Int16) hereTime.tm_year+1900,
                           (UInt8) hereTime.tm_mon+1,
-                          (UInt8) hereTime.tm_mday+1,
+                          (UInt8) hereTime.tm_mday,
                           (UInt8) hereTime.tm_hour,
                           (UInt8) hereTime.tm_min,
                           (UInt8) hereTime.tm_sec,
@@ -365,7 +367,7 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         ::gmtime_r( &time.tv_sec, &utcTime );
         return CDateTime( (Int16) utcTime.tm_year+1900,
                           (UInt8) utcTime.tm_mon+1,
-                          (UInt8) utcTime.tm_mday+1,
+                          (UInt8) utcTime.tm_mday,
                           (UInt8) utcTime.tm_hour,
                           (UInt8) utcTime.tm_min,
                           (UInt8) utcTime.tm_sec,
@@ -422,8 +424,9 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         struct ::timespec tspecB;
         DateTimeToTimespec( datetimeB, tspecB );
 
-        Int64 deltaSecs = tspecA.tv_sec - tspecB.tv_sec;
-        Int64 deltaNanoSecs = tspecA.tv_nsec - tspecB.tv_nsec;
+        // Difference from A towards B: positive if B is later than A, same as the Windows implementation
+        Int64 deltaSecs = (Int64) tspecB.tv_sec - (Int64) tspecA.tv_sec;
+        Int64 deltaNanoSecs = (Int64) tspecB.tv_nsec - (Int64) tspecA.tv_nsec;
         return ( deltaSecs * 1000 ) + ( deltaNanoSecs / 1000000 );
     }
 

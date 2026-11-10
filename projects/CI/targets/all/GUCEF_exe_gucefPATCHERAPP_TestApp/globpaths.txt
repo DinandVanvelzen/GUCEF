@@ -1,3 +1,9 @@
 common/include/*
-platform/*
+common/test/include/*
+dependencies/libparsifal/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefPATCHER/*
+plugins/CORE/dstorepluginPARSIFALXML/*
 tests/gucefPATCHERAPP_TestApp/*

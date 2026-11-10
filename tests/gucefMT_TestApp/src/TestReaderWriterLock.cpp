@@ -23,8 +23,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <vector>
-
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
 #define GUCEF_MT_DVMTOSWRAP_H
@@ -100,7 +98,7 @@ class CTestWriter : public MT::CActiveObject
 
     typedef MT::CReadWriteLock::TRWLockStates                           TRWLockStates;
     typedef CORE::CTSharedPtr< MT::CScopeWriterLock, MT::CNoLock >      CScopeWriterLockPtr;
-    typedef std::vector< CScopeWriterLockPtr >                          TScopeWriterLockVector;
+    typedef GUCEF::vector< CScopeWriterLockPtr >                          TScopeWriterLockVector;
 
     CTestWriter( void );
 
@@ -141,7 +139,7 @@ class CTestReader : public MT::CActiveObject
 
     typedef MT::CReadWriteLock::TRWLockStates                           TRWLockStates;
     typedef CORE::CTSharedPtr< MT::CScopeReaderLock, MT::CNoLock >      CScopeReaderLockPtr;
-    typedef std::vector< CScopeReaderLockPtr >                          TScopeReaderLockVector;
+    typedef GUCEF::vector< CScopeReaderLockPtr >                          TScopeReaderLockVector;
 
     CTestReader( void );
 
@@ -184,8 +182,8 @@ class CTestReaderAndWriter : public MT::CActiveObject
     typedef CORE::CTSharedPtr< MT::CScopeReaderLock, MT::CNoLock >      CScopeReaderLockPtr;
     typedef CORE::CTSharedPtr< MT::CScopeWriterLock, MT::CNoLock >      CScopeWriterLockPtr;
     typedef std::pair< CScopeReaderLockPtr, CScopeWriterLockPtr >       TReadWriteScopeLockPtrs;
-    typedef std::vector< TReadWriteScopeLockPtrs >                      TScopeReaderWriterLockVector;
-    typedef std::vector< bool >                                         TBoolVector;
+    typedef GUCEF::vector< TReadWriteScopeLockPtrs >                      TScopeReaderWriterLockVector;
+    typedef GUCEF::vector< bool >                                         TBoolVector;
 
     CTestReaderAndWriter( void );
 
@@ -225,9 +223,9 @@ class CRwLockTestData
 {
     public:
 
-    typedef std::vector< CTestWriter >              TTestWriterVector;
-    typedef std::vector< CTestReader >              TTestReaderVector;
-    typedef std::vector< CTestReaderAndWriter >     TTestReaderAndWriterVector;
+    typedef GUCEF::vector< CTestWriter >              TTestWriterVector;
+    typedef GUCEF::vector< CTestReader >              TTestReaderVector;
+    typedef GUCEF::vector< CTestReaderAndWriter >     TTestReaderAndWriterVector;
 
     Float64 ticksPerMs;
     
@@ -1868,7 +1866,7 @@ void
 PerformReaderWriterLockSingleThreadTests_SingleReaderWriterReentrant( bool writersHavePriority, bool usingScopeObjects )
 {GUCEF_TRACE;
 
-    typedef std::vector< bool >     TBoolVector;
+    typedef GUCEF::vector< bool >     TBoolVector;
     try
     {       
         CRwLockTestData testData( writersHavePriority, usingScopeObjects );
@@ -2414,7 +2412,7 @@ void
 PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionReentrantRandom( bool writersHavePriority, bool usingScopeObjects )
 {GUCEF_TRACE;
 
-    typedef std::vector< bool >     TBoolVector;
+    typedef GUCEF::vector< bool >     TBoolVector;
     try
     {       
         CRwLockTestData testData( writersHavePriority, usingScopeObjects );

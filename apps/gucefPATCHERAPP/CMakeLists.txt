@@ -43,14 +43,14 @@ add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefI
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefPATCHER )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_PATCHERAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefPATCHERAPP;MODULE_NAME=gucefPATCHERAPP" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../../platform/gucefVFS/include include )
+include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api include )
 
 if ( ANDROID32 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )

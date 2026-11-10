@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -37,6 +37,11 @@
 #define GUCEF_IMAGE_CGUIIMAGECODEC_H
 #endif /* GUCEF_IMAGE_CGUIIMAGECODEC_H ? */
 
+#ifndef GUCEF_IMAGE_CPNGIMAGECODEC_H
+#include "gucefIMAGE_CPngImageCodec.h"
+#define GUCEF_IMAGE_CPNGIMAGECODEC_H
+#endif /* GUCEF_IMAGE_CPNGIMAGECODEC_H ? */
+
 #ifndef GUCEF_IMAGE_CIMAGECODECREGISTRY_H
 #include "gucefIMAGE_CImageCodecRegistry.h"
 #define GUCEF_IMAGE_CIMAGECODECREGISTRY_H
@@ -47,7 +52,32 @@
 #define GUCEF_IMAGE_CIMAGECODECPLUGINMANAGER_H
 #endif /* GUCEF_IMAGE_CIMAGECODECPLUGINMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefIMAGE_CImageGlobal.h"
+
+#ifndef GUCEF_IMAGE_CIMAGEUPSCALERREGISTRY_H
+#include "gucefIMAGE_CImageUpscalerRegistry.h"
+#define GUCEF_IMAGE_CIMAGEUPSCALERREGISTRY_H
+#endif /* GUCEF_IMAGE_CIMAGEUPSCALERREGISTRY_H ? */
+
+#ifndef GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H
+#include "gucefIMAGE_CMmpxImageUpscaler.h"
+#define GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H
+#endif /* GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H ? */
+
+#ifndef GUCEF_IMAGE_CASYNCIMAGEUPSCALE_H
+#include "gucefIMAGE_CAsyncImageUpscale.h"
+#define GUCEF_IMAGE_CASYNCIMAGEUPSCALE_H
+#endif /* GUCEF_IMAGE_CASYNCIMAGEUPSCALE_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -65,6 +95,8 @@ namespace IMAGE {
 //-------------------------------------------------------------------------*/
 
 CImageGlobal* CImageGlobal::g_instance = NULL;
+
+TAsyncImageUpscaleTaskFactory g_asyncImageUpscaleTaskFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -121,17 +153,30 @@ CImageGlobal::Initialize( void )
     // Register the dummy codec for our native format
     registry->Register( "gui", CORE::CCodecRegistry::TICodecTypedPtr( new CGUIImageCodec() ) );
 
+    // The built-in PNG encoder, with the priority of portable software so a "png" codec of an image plugin takes its place
+    // while that plugin is loaded. It is not put in the image codec registry, where it would keep plugins from registering "png"
+    m_pngCodec = CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CPngImageCodec() );
+    codecRegistry.RegisterCodec( m_pngCodec, CORE::CCodecRegistry::SoftwareCodecPriority );
+
     m_imageCodecRegistry = new CImageCodecRegistry();
+    m_imageUpscalerRegistry = new CImageUpscalerRegistry();
+    m_mmpxUpscaler = new CMmpxImageUpscaler();
+    m_imageUpscalerRegistry->Register( m_mmpxUpscaler );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncImageUpscale::TaskType, &g_asyncImageUpscaleTaskFactory );
     m_imageCodecPluginManager = new CImageCodecPluginManager();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefIMAGE Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefIMAGE" );
 }
 
 /*-------------------------------------------------------------------------*/
 
 CImageGlobal::CImageGlobal( void )
     : m_imageCodecPluginManager( NULL ) ,
-      m_imageCodecRegistry( NULL )
+      m_imageCodecRegistry( NULL )      ,
+      m_imageUpscalerRegistry( NULL )   ,
+      m_mmpxUpscaler( NULL )            ,
+      m_pngCodec()
 {GUCEF_TRACE;
 
 }
@@ -142,7 +187,8 @@ CImageGlobal::~CImageGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefIMAGE global systems" );
-        
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefIMAGE" );
+
     CORE::CCodecRegistry& codecRegistry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
     CORE::CCodecRegistry::TCodecFamilyRegistryPtr registry;
     
@@ -153,11 +199,22 @@ CImageGlobal::~CImageGlobal()
         // unregister the dummy codec for our native format
         registry->Unregister( "gui" );
     }
+    if ( !m_pngCodec.IsNULL() )
+    {
+        codecRegistry.UnregisterCodec( m_pngCodec );
+        m_pngCodec.Unlink();
+    }
+
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncImageUpscale::TaskType );
 
     delete m_imageCodecPluginManager;
     m_imageCodecPluginManager = NULL;
     delete m_imageCodecRegistry;
     m_imageCodecRegistry = NULL;
+    delete m_imageUpscalerRegistry;
+    m_imageUpscalerRegistry = NULL;
+    delete m_mmpxUpscaler;
+    m_mmpxUpscaler = NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -176,6 +233,15 @@ CImageGlobal::GetImageCodecRegistry( void )
 {GUCEF_TRACE;
 
     return *m_imageCodecRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CImageUpscalerRegistry&
+CImageGlobal::GetImageUpscalerRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_imageUpscalerRegistry;
 }
 
 /*-------------------------------------------------------------------------//

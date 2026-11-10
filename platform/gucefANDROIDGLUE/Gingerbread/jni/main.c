@@ -26,6 +26,8 @@
 #include <string.h>
 #include <dlfcn.h>              /* dynamic linking utilities */
 #include <stdio.h>
+#include <stdlib.h>             /* malloc, free */
+#include <stdarg.h>             /* va_list */
 
 #include <android/log.h>
 #include <android/asset_manager.h>

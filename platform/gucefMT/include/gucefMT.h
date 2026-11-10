@@ -149,7 +149,7 @@
 #endif /* GUCEF_MT_CREADWRITELOCK_H ? */
 
 /*
- *      Wrapper class for SDL semaphore's.
+ *      Counting semaphore.
  *      The usage of this class allows you to forgo having to type the same
  *      tests and allocation/de-allocation code all the time.
  */

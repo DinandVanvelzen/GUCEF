@@ -703,10 +703,12 @@ endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_GNU_SOURCE" )
 endif( LINUX32 )
 
 if ( LINUX64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_GNU_SOURCE" )
 endif( LINUX64 )
 
 include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../include include include/Hash include/Threading src src/nedmalloc src/stbi )

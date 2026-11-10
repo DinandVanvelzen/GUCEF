@@ -24,6 +24,7 @@
 //-------------------------------------------------------------------------*/
 
 #ifndef GUCEF_VFS_CVFSGLOBAL_H
+#include "dvcppstringutils.h"
 #include "gucefVFS_CVfsGlobal.h"
 #define GUCEF_VFS_CVFSGLOBAL_H
 #endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
@@ -83,7 +84,7 @@ CFormEx::LoadLayout( CORE::CIOAccess& layoutStorage )
 {GUCEF_TRACE;
 
     m_isReloadable = false;
-    m_layoutFile = NULL;
+    m_layoutFile.Clear();
     return CForm::LoadLayout( layoutStorage );
 }
 
@@ -126,7 +127,8 @@ CFormEx::LoadLayoutUsingVfs( const CString& filename )
     VFS::TBasicVfsResourcePtr file = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( filename );
     if ( !file.IsNULL() )
     {
-        if ( LoadLayout( *file->GetAccess() ) )
+        // the name of the file picks the codec
+        if ( CForm::LoadLayout( *file->GetAccess(), CORE::ExtractFileExtention( filename ).Lowercase() ) )
         {
             m_layoutFile = filename;
             m_isReloadable = true;
@@ -146,7 +148,7 @@ CFormEx::SaveLayoutUsingVfs( const CString& filename )
     VFS::TBasicVfsResourcePtr file = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( filename, "wb", true );
     if ( !file.IsNULL() )
     {
-        return CForm::SaveLayout( *file->GetAccess() );
+        return CForm::SaveLayout( *file->GetAccess(), CORE::ExtractFileExtention( filename ).Lowercase() );
     }
     return false;
 }

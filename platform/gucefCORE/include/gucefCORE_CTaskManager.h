@@ -67,6 +67,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 class CTaskDelegator;
+class CTaskManagerTestAccess;
 
 /*-------------------------------------------------------------------------*/
 
@@ -115,6 +116,15 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
 
     static const CString ClassTypeName;
     static const CString DefaultThreadPoolName; 
+
+    /**
+     *  Name of the pseudo thread pool that tracks threads GUCEF did not create. The task manager is the one place
+     *  that knows every thread of the process, and some threads are made by the operating system or a driver
+     *  (audio device callbacks are the typical case). Such a thread announces itself with RegisterExternalThread()
+     *  (or the CExternalThreadScope helper) and shows up in the thread and pool info like any other thread.
+     *  Nothing is ever scheduled on this pool: GetThreadPool() does not return it and tasks cannot be queued to it.
+     */
+    static const CString ExternalThreadPoolName;
 
     ThreadPoolPtr GetThreadPool( const CString& threadPoolName = DefaultThreadPoolName ) const;
 
@@ -215,6 +225,20 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     CIDataNodeSerializableTaskDataBasicPtr CreateCustomTaskDataForTaskTypeIfAvailable( const CString& taskType, const CString& threadPoolName = CString::Empty ) const;
     
     UInt32 GetGlobalNrOfActiveThreads( void ) const;
+
+    /**
+     *  Announces the calling thread as an external thread. The thread is known under the given name from now on.
+     *  Registering the same thread again just counts, it has to be unregistered as many times as it was registered.
+     */
+    bool RegisterExternalThread( const CString& threadName );
+
+    /**
+     *  Removes the calling thread from the external threads (one registration)
+     */
+    bool UnregisterExternalThread( void );
+
+    UInt32 GetNrOfExternalThreads( void ) const;
+
 
     UInt32 GetGlobalMinNrOfDesiredWorkerThreads( void ) const;
 
@@ -317,6 +341,14 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     void SetTaskIdRecycleCheckThreshold( UInt32 threshold );
 
     UInt32 GetTaskIdRecycleCheckThreshold( void ) const;
+
+    /**
+     *  Whether a task delegator can end its wait between cycles on a pulse request of another thread, which takes a
+     *  working MT::CSemaphore. Probed once per process, at the first call. When the semaphore does not work a warning
+     *  is logged once and the delegators wait between their cycles with a plain delay: they take pulse requests of
+     *  other threads at their next cycle, within their minimal cycle delta.
+     */
+    static bool IsTaskDelegatorWakeUpAvailable( void );
     
     protected:
 
@@ -353,6 +385,15 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     void ReleaseGlobalTaskId( CTask::TTaskId& taskId );
 
     private:
+    friend class CTaskManagerTestAccess;
+
+    /**
+     *  Test seam: what IsTaskDelegatorWakeUpAvailable() answers from now on, for the delegators made from then on:
+     *  1 available, -1 not available (the fallback of a build whose semaphore does not work), 0 the outcome of the probe
+     */
+    static void OverrideTaskDelegatorWakeUpAvailability( Int32 availability );
+
+    private:
     friend class CCoreGlobal;
 
     CTaskManager( void );
@@ -378,10 +419,24 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     typedef CTask::TTaskIdGenerator TTaskIdGenerator;
     typedef CTEventHandlerFunctor< CTaskManager > TEventCallback;
 
+    struct SExternalThread
+    {
+        CString name;
+        UInt32 registrations;
+        SExternalThread( void ) : name(), registrations( 0 ) {}
+    };
+    typedef GUCEF::map< UInt32, SExternalThread > TExternalThreadMap;
+
+
+    void MakeExternalThreadInfo( UInt32 threadId, const SExternalThread& thread, CThreadInfo& info ) const;
+    void GetExternalThreadPoolInfo( CThreadPoolInfo& info ) const;
+
     TTaskIdGenerator::TNumericIDGeneratorTypedPtr m_taskIdGenerator;
     TAbstractTaskConsumerFactory m_consumerFactory;
     TAbstractTaskDataFactory m_taskDataFactory;
     ThreadPoolMap m_threadPools;
+
+    TExternalThreadMap m_externalThreads;
     UInt32 m_desiredGlobalNrOfThreads;
     Int32 m_activeGlobalNrOfThreads;
 };

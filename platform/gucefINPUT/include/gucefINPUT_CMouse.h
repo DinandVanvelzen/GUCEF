@@ -70,6 +70,7 @@ class GUCEF_INPUT_PUBLIC_CPP CMouse : public CAbstractInputDevice
     static const CORE::CEvent MouseClickedEvent;        /**< send when a mouse button is clicked and released within a set interval */
     static const CORE::CEvent MouseDoubleClickedEvent;  /**< send when a mouse button is clicked and released twice within a set interval */
     static const CORE::CEvent MouseTrippleClickedEvent; /**< send when a mouse button is clicked and released three times within a set interval */
+    static const CORE::CEvent MouseVariableChangedEvent; /**< send when a variable of the mouse changed (the wheel), data = CMouseVariableChangedEventData */
     
     static void RegisterEvents( void );
 
@@ -77,6 +78,17 @@ class GUCEF_INPUT_PUBLIC_CPP CMouse : public CAbstractInputDevice
     
     public:
     
+    /** The variables a mouse can report through MouseVariableChangedEvent */
+    enum EMouseVariable
+    {
+        MOUSEVARIABLE_WHEEL             = 0 ,   /**< the wheel: the delta is in notches, away from the user (up) is positive */
+        MOUSEVARIABLE_HORIZONTAL_WHEEL  = 1     /**< tilting the wheel or a second wheel: right is positive */
+    };
+
+    /*
+     *  Button indices are the same for every driver: 0 left, 1 right, 2 middle, 3 and 4 the side buttons
+     */
+
     typedef std::vector< bool > TButtonStates;
     
     bool IsButtonPressed( const UInt32 buttonIndex ) const;
@@ -112,6 +124,11 @@ class GUCEF_INPUT_PUBLIC_CPP CMouse : public CAbstractInputDevice
     void SetMousePos( const Int32 contextId ,
                       const UInt32 xPos     ,
                       const UInt32 yPos     );
+
+    void SetVariable( const Int32 contextId      ,
+                      const UInt32 variableIndex ,
+                      const Int32 value          ,
+                      const Int32 valueDelta     );
                          
     void ResetMouseStates( void );
        

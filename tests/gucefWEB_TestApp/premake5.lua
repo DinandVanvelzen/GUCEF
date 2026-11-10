@@ -46,8 +46,23 @@ defines( { "MODULE_CONSENSUS_NAME=gucefWEB_TestApp", "MODULE_NAME=gucefWEB_TestA
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/TestChromeDevTools.h",
   "include/TestCode_CHTTPClient.h",
-  "include/TestCode_CHTTPServer.h"
+  "include/TestCode_CHTTPServer.h",
+  "include/TestHttpClient.h",
+  "include/TestHttpHeaderParsing.h",
+  "include/TestHttpLogRedaction.h",
+  "include/TestHttpProxy.h",
+  "include/TestHttpRawClient.h",
+  "include/TestHttpRedaction.h",
+  "include/TestHttpServerBind.h",
+  "include/TestHttpServerBody.h",
+  "include/TestIrcWebSocket.h",
+  "include/TestJsonRpcWebSocket.h",
+  "include/TestMcpStreamableHttp.h",
+  "include/TestServiceHealthHttpEndpoints.h",
+  "include/TestWebSocket.h",
+  "include/TestWebSocketCodec.h"
  } )
 
 
@@ -55,20 +70,33 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestChromeDevTools.cpp",
   "src/TestCode_CHTTPClient.cpp",
   "src/TestCode_CHTTPServer.cpp",
+  "src/TestHttpClient.cpp",
+  "src/TestHttpHeaderParsing.cpp",
+  "src/TestHttpLogRedaction.cpp",
+  "src/TestHttpRedaction.cpp",
+  "src/TestHttpServerBind.cpp",
+  "src/TestHttpServerBody.cpp",
+  "src/TestIrcWebSocket.cpp",
+  "src/TestJsonRpcWebSocket.cpp",
+  "src/TestMcpStreamableHttp.cpp",
+  "src/TestServiceHealthHttpEndpoints.cpp",
+  "src/TestWebSocket.cpp",
+  "src/TestWebSocketCodec.cpp",
   "src/gucefWEB_TestApp_main.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
@@ -77,7 +105,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )

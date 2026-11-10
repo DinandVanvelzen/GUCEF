@@ -109,22 +109,11 @@ LOCAL_SRC_FILES := \
   google/protobuf/util/internal/utility.cc
 
 LOCAL_C_INCLUDES := \
-  $(MY_MODULE_PATH)/google/protobuf \
-  $(MY_MODULE_PATH)/google/protobuf/compiler \
-  $(MY_MODULE_PATH)/google/protobuf/io \
-  $(MY_MODULE_PATH)/google/protobuf/stubs \
-  $(MY_MODULE_PATH)/google/protobuf/util \
-  $(MY_MODULE_PATH)/google/protobuf/util/internal \
   $(MY_MODULE_PATH)/ \
   $(MY_MODULE_PATH)/../src \
   $(MY_MODULE_PATH)/google
 
-LOCAL_CFLAGS := -DLIBPROTOBUF_EXPORTS -DLIBPROTOC_EXPORTS -DPROTOBUF_USE_DLLS
-
-
-LOCAL_LDLIBS := \
-  -llog \
-  -lz
+LOCAL_CFLAGS := -DLIBPROTOBUF_EXPORTS -DLIBPROTOC_EXPORTS -DMODULE_CONSENSUS_NAME=libprotobuf -DMODULE_NAME=libprotobuf -DPROTOBUF_USE_DLLS
 
 include $(BUILD_SHARED_LIBRARY)
 

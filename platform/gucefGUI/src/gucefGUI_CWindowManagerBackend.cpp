@@ -89,6 +89,24 @@ CWindowManagerBackend::RegisterEvents( void )
 
 /*-------------------------------------------------------------------------*/
         
+bool
+CWindowManagerBackend::IsAvailable( void ) const
+{GUCEF_TRACE;
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CWindowManagerBackend::GetAvailabilityDescription( void ) const
+{GUCEF_TRACE;
+
+    return CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
 TWindowContextPtr
 CWindowManagerBackend::CreateWindowContextViaConfig( const GUCEF::CORE::CDataNode& params ,
                                                      const CString& title      /* = "" */ )

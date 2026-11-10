@@ -31,6 +31,9 @@
             <Dependency Name="z" />
         </Linker>
     </Module>
-    <Module Type="StaticLibrary" Platform="emscripten" >
-    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+    </Module>
 </ModuleInfoEntry>

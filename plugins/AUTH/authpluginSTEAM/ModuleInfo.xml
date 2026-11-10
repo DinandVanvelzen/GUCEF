@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="authpluginSTEAM" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUTH plugin for logging in with the Steam client</DescriptionHeadline>
+            <DescriptionDetails>Silent login with a Steam ticket and verification of tickets at the Steam Web API. The Steam runtime library is loaded when it is needed, so building the plugin needs neither the Steamworks SDK nor Steam.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUTHPLUGIN_STEAM_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

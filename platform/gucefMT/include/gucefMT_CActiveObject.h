@@ -50,6 +50,11 @@
 #define GUCEF_MT_THREADSTATUS_H
 #endif /* GUCEF_MT_THREADSTATUS_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -87,6 +92,12 @@ class GUCEF_MT_PUBLIC_CPP CActiveObject : public virtual MT::CILockable
      *  Flag that indicates whether the thread is active
      */
     bool IsActive( void ) const;
+
+    /**
+     *  Flag that indicates whether the thread of the last activation has ended, which stays set until the next activation
+     *  Unlike !IsActive() this is not the case for an object which was never activated
+     */
+    bool HasThreadEnded( void ) const;
 
     /**
      *  Flag that indicates whether the thread has been asked to gracefully deactivate
@@ -221,15 +232,26 @@ class GUCEF_MT_PUBLIC_CPP CActiveObject : public virtual MT::CILockable
     bool CallOnThreadStartedWithTimeout( Int32 maxRetries, void* taskData );
     bool CallOnThreadEndingWithTimeout( Int32 maxRetries, void* taskData, bool willBeForced );
 
+    /**
+     *  OnThreadEnded() is delivered exactly once per activation: either by the thread itself when it ends
+     *  gracefully or by Deactivate() when it did not get to (killed, or still running after the wait)
+     *  Returns true for the single caller which should deliver it
+     */
+    bool ClaimThreadEndedNotification( void );
+
     private:
     CActiveObject& operator=( const CActiveObject& src );
     static Int32 GUCEF_CALLSPEC_PREFIX OnActivate( void* thisobject ) GUCEF_CALLSPEC_SUFFIX;
 
     struct SThreadData* _td;
     void* m_threadData;
-    bool m_isDeactivationRequested;
-    bool _suspend;
-    bool _active;
+    // The state flags are read and written by the object's thread and by the threads that control it, so they are
+    // atomics: besides the value itself this orders, for example, everything the thread did before it cleared
+    // _active before whatever an observer of IsActive() == false does next, such as destroying the object
+    CTAtomic< bool > m_isDeactivationRequested;
+    CTAtomic< bool > _suspend;
+    CTAtomic< bool > _active;
+    bool m_threadEndedNotified;
     CMutex m_datalock;
 };
 

@@ -173,6 +173,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPing : public CORE::CTSGNotifier
     void* m_osData;
     void* m_userData;
     UInt32 m_taskId;
+    UInt32 m_stoppedHostCount;
     CPingTaskConsumerPtr m_pingTaskConsumer;
 };
 

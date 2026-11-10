@@ -12,15 +12,24 @@
 
 workspace( "GUCEF_exe_SVNMagicMerge" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "ANDROID"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -56,6 +65,15 @@ filter "ARDUINO"
   include( "tools/ArchiveDiffLib" )
   include( "tools/SVNMagicMerge" )
 
+filter "EMSCRIPTEN"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
 filter "EMSCRIPTEN32"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
@@ -83,6 +101,33 @@ filter "IOS"
   include( "tools/ArchiveDiffLib" )
   include( "tools/SVNMagicMerge" )
 
+filter "IPHONE"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "IPHONEOS"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "LINUX"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
 filter "LINUX32"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
@@ -93,6 +138,42 @@ filter "LINUX32"
   include( "tools/SVNMagicMerge" )
 
 filter "LINUX64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "MAC"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "MACOS"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "MACOSX"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "MSWIN"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -120,6 +201,15 @@ filter "WIN32"
   include( "tools/SVNMagicMerge" )
 
 filter "WIN64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "WINDOWS"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

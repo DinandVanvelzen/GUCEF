@@ -131,7 +131,10 @@ CWin32GLWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowCont
                                               const GUI::CVideoSettings& settings   )
 {GUCEF_TRACE;
 
-    return false;
+    CWin32GLWindowContext* glContext = static_cast< CWin32GLWindowContext* >( windowContext.GetPointerAlways() );
+    if ( NULL == glContext )
+        return false;
+    return glContext->ApplyVideoSettings( settings );
 }
 
 /*-------------------------------------------------------------------------//

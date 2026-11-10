@@ -29,8 +29,8 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
-links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
@@ -41,37 +41,13 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/guidriverRmlUI.h",
-  "include/guidriverRmlUI_CButtonImp.h",
-  "include/guidriverRmlUI_CCheckboxImp.h",
-  "include/guidriverRmlUI_CComboboxImp.h",
-  "include/guidriverRmlUI_CDataManager.h",
-  "include/guidriverRmlUI_CEditboxImp.h",
-  "include/guidriverRmlUI_CFileOpenDialogImp.h",
-  "include/guidriverRmlUI_CFileSaveDialogImp.h",
-  "include/guidriverRmlUI_CFileSystemDialogImp.h",
-  "include/guidriverRmlUI_CFormBackendImp.h",
-  "include/guidriverRmlUI_CGUIContext.h",
-  "include/guidriverRmlUI_CGridViewImp.h",
-  "include/guidriverRmlUI_CImageFrameImp.h",
-  "include/guidriverRmlUI_CInputAdapter.h",
-  "include/guidriverRmlUI_CLabelImp.h",
-  "include/guidriverRmlUI_CListBoxImp.h",
-  "include/guidriverRmlUI_CMemoboxImp.h",
-  "include/guidriverRmlUI_CMenuBarImp.h",
-  "include/guidriverRmlUI_CPopupMenuImp.h",
-  "include/guidriverRmlUI_CProgressBarImp.h",
-  "include/guidriverRmlUI_CPushButtonImp.h",
-  "include/guidriverRmlUI_CRenderContextImp.h",
-  "include/guidriverRmlUI_CRocketStreamAdapter.h",
-  "include/guidriverRmlUI_CRocketSystemInterface.h",
-  "include/guidriverRmlUI_CRocketVFSInterface.h",
-  "include/guidriverRmlUI_CSpinnerImp.h",
-  "include/guidriverRmlUI_CTabContentPaneImp.h",
-  "include/guidriverRmlUI_CTabControlImp.h",
-  "include/guidriverRmlUI_CTreeviewImp.h",
-  "include/guidriverRmlUI_CVFSInfoProvider.h",
-  "include/guidriverRmlUI_CWidgetImp.h",
-  "include/guidriverRmlUI_CWindowImp.h",
+  "include/guidriverRmlUI_CRmlUIContext.h",
+  "include/guidriverRmlUI_CRmlUIDriver.h",
+  "include/guidriverRmlUI_CRmlUIFormBackend.h",
+  "include/guidriverRmlUI_CRmlUISystemInterface.h",
+  "include/guidriverRmlUI_CRmlUIVFSInterface.h",
+  "include/guidriverRmlUI_CRmlUIWidgetElement.h",
+  "include/guidriverRmlUI_CRmlUIWidgetHandler.h",
   "include/guidriverRmlUI_ETypes.h",
   "include/guidriverRmlUI_config.h",
   "include/guidriverRmlUI_macros.h",
@@ -84,45 +60,19 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/guidriverRmlUI.cpp",
-  "src/guidriverRmlUI_CButtonImp.cpp",
-  "src/guidriverRmlUI_CCheckboxImp.cpp",
-  "src/guidriverRmlUI_CComboboxImp.cpp",
-  "src/guidriverRmlUI_CDataManager.cpp",
-  "src/guidriverRmlUI_CEditboxImp.cpp",
-  "src/guidriverRmlUI_CFileOpenDialogImp.cpp",
-  "src/guidriverRmlUI_CFileSaveDialogImp.cpp",
-  "src/guidriverRmlUI_CFileSystemDialogImp.cpp",
-  "src/guidriverRmlUI_CFormBackendImp.cpp",
-  "src/guidriverRmlUI_CGUIContext.cpp",
-  "src/guidriverRmlUI_CGridViewImp.cpp",
-  "src/guidriverRmlUI_CIOAccessToRocketStreamAdapter.cpp",
-  "src/guidriverRmlUI_CImageFrameImp.cpp",
-  "src/guidriverRmlUI_CInputAdapter.cpp",
-  "src/guidriverRmlUI_CLabelImp.cpp",
-  "src/guidriverRmlUI_CListboxImp.cpp",
-  "src/guidriverRmlUI_CMemoboxImp.cpp",
-  "src/guidriverRmlUI_CMenuBarImp.cpp",
-  "src/guidriverRmlUI_CPopupMenuImp.cpp",
-  "src/guidriverRmlUI_CProgressBarImp.cpp",
-  "src/guidriverRmlUI_CPushButtonImp.cpp",
-  "src/guidriverRmlUI_CRenderContextImp.cpp",
-  "src/guidriverRmlUI_CRocketInputAdapter.cpp",
-  "src/guidriverRmlUI_CRocketStreamAdapter.cpp",
-  "src/guidriverRmlUI_CRocketSystemInterface.cpp",
-  "src/guidriverRmlUI_CRocketVFSInterface.cpp",
-  "src/guidriverRmlUI_CSpinnerImp.cpp",
-  "src/guidriverRmlUI_CTabContentPaneImp.cpp",
-  "src/guidriverRmlUI_CTabControlImp.cpp",
-  "src/guidriverRmlUI_CTreeviewImp.cpp",
-  "src/guidriverRmlUI_CVFSInfoProvider.cpp",
-  "src/guidriverRmlUI_CWidgetImp.cpp",
-  "src/guidriverRmlUI_CWindowImp.cpp",
+  "src/guidriverRmlUI_CRmlUIContext.cpp",
+  "src/guidriverRmlUI_CRmlUIDriver.cpp",
+  "src/guidriverRmlUI_CRmlUIFormBackend.cpp",
+  "src/guidriverRmlUI_CRmlUISystemInterface.cpp",
+  "src/guidriverRmlUI_CRmlUIVFSInterface.cpp",
+  "src/guidriverRmlUI_CRmlUIWidgetElement.cpp",
+  "src/guidriverRmlUI_CRmlUIWidgetHandler.cpp",
   "src/guidriverRmlUI_pluginAPI.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/RmlUi/Include", "../../../dependencies/RmlUi/Include/RmlUi", "../../../dependencies/RmlUi/Include/RmlUi/Config", "../../../dependencies/RmlUi/Include/RmlUi/Core", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../../dependencies/RmlUi/Include/RmlUi/Lua", "../../../dependencies/RmlUi/Include/RmlUi/SVG", "../../../dependencies/RmlUi/Source/Core", "../../../dependencies/RmlUi/Source/Core/Elements", "../../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../../dependencies/RmlUi/Source/Core/Layout", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/RmlUi/Include", "../../../dependencies/RmlUi/Include/RmlUi", "../../../dependencies/RmlUi/Include/RmlUi/Config", "../../../dependencies/RmlUi/Include/RmlUi/Core", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../../dependencies/RmlUi/Include/RmlUi/Lua", "../../../dependencies/RmlUi/Include/RmlUi/SVG", "../../../dependencies/RmlUi/Source/Core", "../../../dependencies/RmlUi/Source/Core/Elements", "../../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../../dependencies/RmlUi/Source/Core/Layout", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )

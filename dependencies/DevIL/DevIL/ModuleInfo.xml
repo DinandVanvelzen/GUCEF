@@ -30,5 +30,8 @@
             <Define String="MNG_USE_DLL" />
             <Define String="JAS_DLL" />
         </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=gnu++14" />
+        </Compiler>
     </Module>
 </ModuleInfoEntry>

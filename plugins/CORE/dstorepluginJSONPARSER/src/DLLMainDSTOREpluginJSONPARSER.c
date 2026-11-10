@@ -80,6 +80,7 @@ struct SDestFileData
     json_value* jsonDoc;
     json_value* currentJsonNode;
     char activeNodeIsValueNode;
+    const char* pendingObjectName;  /* an object with one attribute: a value of the parent, or an object with one member */
     char* processingBuffer;
     size_t processingBufferSize;
 };
@@ -105,7 +106,7 @@ typedef struct SSrcFileData TSrcFileData;
 #if ( !defined stricmp )
   #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #define stricmp   _stricmp
-  #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+  #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     #define stricmp   strcasecmp
   #endif
 #endif
@@ -330,6 +331,7 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
 {
     TDestFileData* fd = (TDestFileData*)*filedata;
     fd->activeNodeIsValueNode = 0;
+    fd->pendingObjectName = GUCEF_NULL;
 
     if ( GUCEF_NULL == fd->currentJsonNode )
     {
@@ -353,9 +355,16 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
         if ( nodeType == GUCEF_DATATYPE_OBJECT )
         {
             if ( 1 != attscount || 0 != haschildren )
+            {
                 childNode = json_object_new( attscount + haschildren );
+            }
             else
+            {
+                /* the one attribute decides: without a name it is the value of the node, a member of the parent;
+                   with a name the node is an object with that one member */
                 fd->activeNodeIsValueNode = 1;
+                fd->pendingObjectName = GUCEF_NULL != nodename ? nodename : "noname";
+            }
         }
 
         if ( GUCEF_NULL != childNode )
@@ -403,6 +412,7 @@ DSTOREPLUG_End_Node_Store( void** plugdata      ,
     if ( ( GUCEF_NULL != fd->currentJsonNode ) && ( 0 == fd->activeNodeIsValueNode ) )
         fd->currentJsonNode = fd->currentJsonNode->parent;
     fd->activeNodeIsValueNode = 0;
+    fd->pendingObjectName = GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -433,6 +443,20 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
     {
         nodename = "noname";
     }
+
+    /* an object with one named attribute is an object after all: make it and put the attribute in it */
+    if ( GUCEF_NULL != fd->pendingObjectName && GUCEF_NULL != attname )
+    {
+        json_value* objectNode = json_object_new( 1 );
+        if ( fd->currentJsonNode->type == json_object )
+            json_object_push( fd->currentJsonNode, fd->pendingObjectName, objectNode );
+        else
+        if ( fd->currentJsonNode->type == json_array )
+            json_array_push( fd->currentJsonNode, objectNode );
+        fd->currentJsonNode = objectNode;
+        fd->activeNodeIsValueNode = 0;
+    }
+    fd->pendingObjectName = GUCEF_NULL;
 
     switch ( attvalue->containedType )
     {
@@ -642,11 +666,9 @@ DSTOREPLUG_Src_File_Open( void** plugdata  ,
                           void** filedata  ,
                           TIOAccess* file  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    TSrcFileData* sd = GUCEF_NULL;
-    *plugdata = GUCEF_NULL;
-    *codecdata = GUCEF_NULL;
-
-    sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
+    /* plugdata and codecdata belong to the module and the codec, not to this read: documents are read on several
+       threads at once, so they are left as they are */
+    TSrcFileData* sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
     if ( GUCEF_NULL != sd )
     {
         memset( sd, 0, sizeof( TSrcFileData ) );

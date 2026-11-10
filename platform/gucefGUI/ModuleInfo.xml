@@ -18,12 +18,18 @@
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" Scope="public" />
             <Dependency Name="gucefCORE" Scope="public" />
             <Dependency Name="gucefVFS" Scope="public" />
             <Dependency Name="gucefIMAGE" Scope="public" />
+            <Dependency Name="gucefINPUT" Scope="public" />
+            <Dependency Name="gucefAUDIO" Scope="public" />
+            <Dependency Name="gucefVIDEO" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_GUI_BUILD_MODULE" />

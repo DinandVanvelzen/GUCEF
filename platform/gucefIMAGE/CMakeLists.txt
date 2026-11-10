@@ -15,6 +15,7 @@ set( HEADER_FILES
   include/CGUCEFIMAGEModule.h
   include/gucefIMAGE.h
   include/gucefIMAGEDLLInit.h
+  include/gucefIMAGE_CAsyncImageUpscale.h
   include/gucefIMAGE_CGUIImageCodec.h
   include/gucefIMAGE_CIImageCodec.h
   include/gucefIMAGE_CIMGCodec.h
@@ -23,9 +24,13 @@ set( HEADER_FILES
   include/gucefIMAGE_CImageCodecPluginManager.h
   include/gucefIMAGE_CImageCodecRegistry.h
   include/gucefIMAGE_CImageGlobal.h
+  include/gucefIMAGE_CImageUpscaler.h
+  include/gucefIMAGE_CImageUpscalerRegistry.h
+  include/gucefIMAGE_CMmpxImageUpscaler.h
   include/gucefIMAGE_CPixel.h
   include/gucefIMAGE_CPixelMap.h
   include/gucefIMAGE_CPluginImageCodecItem.h
+  include/gucefIMAGE_CPngImageCodec.h
   include/gucefIMAGE_ETypes.h
   include/gucefIMAGE_c_image_tags.h
   include/gucefIMAGE_c_imagedata.h
@@ -36,6 +41,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/CGUCEFIMAGEModule.cpp
   src/gucefIMAGE.cpp
+  src/gucefIMAGE_CAsyncImageUpscale.cpp
   src/gucefIMAGE_CCPluginImageCodecItem.cpp
   src/gucefIMAGE_CGUIImageCodec.cpp
   src/gucefIMAGE_CIImageCodec.cpp
@@ -45,8 +51,12 @@ set( SOURCE_FILES
   src/gucefIMAGE_CImageCodecPluginManager.cpp
   src/gucefIMAGE_CImageCodecRegistry.cpp
   src/gucefIMAGE_CImageGlobal.cpp
+  src/gucefIMAGE_CImageUpscaler.cpp
+  src/gucefIMAGE_CImageUpscalerRegistry.cpp
+  src/gucefIMAGE_CMmpxImageUpscaler.cpp
   src/gucefIMAGE_CPixel.cpp
   src/gucefIMAGE_CPixelMap.cpp
+  src/gucefIMAGE_CPngImageCodec.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -66,7 +76,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )

@@ -2,7 +2,6 @@
     <Module Name="zlib" Type="SharedLibrary" Platform="linux;mswin">
         <Preprocessor>
             <Define String="ZLIB_DLL" />
-            <Define String="ZLIB_INTERNAL" />
             <Define String="ZZIP_HAVE_STDINT_H" />
         </Preprocessor>
     </Module>

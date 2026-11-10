@@ -1,4 +1,5 @@
 common/include/*
+common/test/include/*
 dependencies/DevIL/DevIL/*
 dependencies/FreeImage/*
 dependencies/Little-CMS/*
@@ -11,16 +12,19 @@ dependencies/libmng/*
 dependencies/libparsifal/*
 dependencies/libpng/*
 dependencies/libsquish/*
+dependencies/ncnn/*
 dependencies/openexr/*
 dependencies/tiff/libtiff/*
 dependencies/zlib/*
 platform/gucefCORE/*
 platform/gucefIMAGE/*
 platform/gucefMT/*
+platform/gucefVFS/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFLIC/*
 plugins/IMAGE/imgpluginFreeImage/*
 plugins/IMAGE/imgpluginITV/*
+plugins/IMAGE/imgupscalepluginNCNN/*
 tests/gucefIMAGE_TestApp/*

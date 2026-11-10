@@ -23,7 +23,9 @@ LOCAL_MODULE_FILENAME := libgucefLOADER
 
 LOCAL_SRC_FILES := \
   ../gucefCORE/src/CDynamicBuffer.cpp \
+  ../gucefCORE/src/CDynamicBufferAccess.cpp \
   ../gucefCORE/src/CException.cpp \
+  ../gucefCORE/src/CFileAccess.cpp \
   ../gucefCORE/src/CICloneable.cpp \
   ../gucefCORE/src/CIOAccess.cpp \
   ../gucefCORE/src/CMsgException.cpp \
@@ -38,23 +40,38 @@ LOCAL_SRC_FILES := \
   ../gucefCORE/src/dvmd5utils.c \
   ../gucefCORE/src/dvstrutils.cpp \
   ../gucefCORE/src/gucefCORE_CAsciiString.cpp \
+  ../gucefCORE/src/gucefCORE_CDataTableValues.cpp \
+  ../gucefCORE/src/gucefCORE_CDecimal.cpp \
+  ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp \
   ../gucefCORE/src/gucefCORE_CDate.cpp \
   ../gucefCORE/src/gucefCORE_CDateTime.cpp \
   ../gucefCORE/src/gucefCORE_CIDate.cpp \
   ../gucefCORE/src/gucefCORE_CITime.cpp \
+  ../gucefCORE/src/gucefCORE_CProcess.cpp \
+  ../gucefCORE/src/gucefCORE_StdoutClaim.cpp \
+  ../gucefCORE/src/gucefCORE_CProcessPipe.cpp \
+  ../gucefCORE/src/gucefCORE_CRandom.cpp \
   ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp \
   ../gucefCORE/src/gucefCORE_CTime.cpp \
+  ../gucefCORE/src/gucefCORE_CTimestamp.cpp \
+  ../gucefCORE/src/gucefCORE_CUtf16String.cpp \
+  ../gucefCORE/src/gucefCORE_CUtf32String.cpp \
   ../gucefCORE/src/gucefCORE_CUtf8String.cpp \
   ../gucefCORE/src/gucefCORE_CVariant.cpp \
+  ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp \
   ../gucefCORE/src/md5.c \
   ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c \
   ../gucefMT/src/gucefMT_CICloneable.cpp \
   ../gucefMT/src/gucefMT_CILockable.cpp \
   ../gucefMT/src/gucefMT_CMutex.cpp \
+  ../gucefMT/src/gucefMT_CNoLock.cpp \
+  ../gucefMT/src/gucefMT_CObjectScopeLock.cpp \
+  ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp \
   ../gucefMT/src/gucefMT_CScopeMutex.cpp \
+  ../gucefMT/src/gucefMT_LockStatus.cpp \
+  ../gucefMT/src/gucefMT_MUTEX.c \
   ../gucefMT/src/gucefMT_ThreadStatus.cpp \
   ../gucefMT/src/gucefMT_dvmtoswrap.c \
-  ../gucefMT/src/gucefMT_mutex.c \
   src/gucefLOADER.cpp
 
 LOCAL_C_INCLUDES := \
@@ -66,17 +83,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMT \
   $(MY_MODULE_PATH)/../gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEF_CORE_EMBED_CODE -DGUCEF_LOADER_BUILD_MODULE -DGUCEF_MT_EMBED_CODE -DGUCEF_NO_LOGGING
-
-
-LOCAL_LDLIBS := \
-  -ldl \
-  -llog
+LOCAL_CFLAGS := -DGUCEF_CORE_EMBED_CODE -DGUCEF_LOADER_BUILD_MODULE -DGUCEF_MT_EMBED_CODE -DGUCEF_NO_LOGGING -DMODULE_CONSENSUS_NAME=gucefLOADER -DMODULE_NAME=gucefLOADER -DMODULE_SEMVER=0_1_0_0
 
 include $(BUILD_SHARED_LIBRARY)
 

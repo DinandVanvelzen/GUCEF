@@ -111,6 +111,14 @@ class GUCEF_CORE_PUBLIC_CPP CMsWin32Window : public COSWindow
     void SendToForegound( void );
 
     void GrabFocus( void );
+
+    /**
+     *  Full screen: a window without borders that covers the monitor it is on. Going back restores the
+     *  style and the place the window had before.
+     */
+    void SetFullscreenStatus( bool fullscreen );
+
+    bool GetFullscreenStatus( void ) const;
     
     bool GetWindowAreaPosition( int& x, int& y ) const;
     
@@ -184,6 +192,9 @@ class GUCEF_CORE_PUBLIC_CPP CMsWin32Window : public COSWindow
     
     HWND m_hwnd;
     WNDPROC m_orgWinProc;
+    bool m_isFullscreen;
+    LONG_PTR m_windowedStyle;   /**< the style before going full screen */
+    RECT m_windowedRect;        /**< the window area before going full screen */
 };
 
 /*-------------------------------------------------------------------------//

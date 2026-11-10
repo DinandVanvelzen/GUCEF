@@ -1,6 +1,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefPRODMAN_TestApp" Type="Executable" Platform="All" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
@@ -17,5 +18,8 @@
             <Dependency Name="gucefPATCHER" />
             <Dependency Name="gucefPRODMAN" />
         </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+        </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

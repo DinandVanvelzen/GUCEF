@@ -31,6 +31,11 @@
 #define GUCEF_CORE_CILOGGER_H
 #endif /* GUCEF_CORE_CILOGGER_H ? */
 
+#ifndef GUCEF_CORE_CILOGGINGFORMATTER_H
+#include "gucefCORE_CILoggingFormatter.h"
+#define GUCEF_CORE_CILOGGINGFORMATTER_H
+#endif /* GUCEF_CORE_CILOGGINGFORMATTER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -47,9 +52,6 @@ namespace CORE {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-class CString;
-class CILoggingFormatter;
 
 /*-------------------------------------------------------------------------*/
 
@@ -120,7 +122,7 @@ class GUCEF_CORE_PUBLIC_CPP CAndroidSystemLogger : public CILogger
     CString m_tag;
     void* m_logFunc;
     Int32 m_minimalLogLevel;
-    CILoggingFormatter* m_logFormatter;
+    TLoggingFormatterPtr m_logFormatter;
 };
 
 /*-------------------------------------------------------------------------//

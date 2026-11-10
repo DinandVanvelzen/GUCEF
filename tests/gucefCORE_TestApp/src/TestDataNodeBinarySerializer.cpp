@@ -256,6 +256,47 @@ PerformDataNodeBinarySerializerTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test 5: A DOM read from and written to buffer positions that are not aligned for its integer fields" )
+        try
+        {
+            // a node of an odd sized name and value, attributes and children: every count and type field it has lands on
+            // an odd address when the DOM starts one byte into the buffer, as it does inside a larger message
+            CORE::CDataNode dom1;
+            dom1.SetName( "odd" );
+            dom1.SetValue( "x" );
+            ASSERT_TRUE( dom1.SetAttribute( "a", "bcd" ) );
+            ASSERT_TRUE( dom1.SetAttribute( "ef", 7 ) );
+            CORE::CDataNode* child = dom1.AddChild( "c", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( GUCEF_NULL != child );
+            if ( GUCEF_NULL != child )
+            {
+                ASSERT_TRUE( child->SetAttribute( "k", "v" ) );
+                ASSERT_TRUE( GUCEF_NULL != child->AddChild( "leaf" ) );
+            }
+
+            CORE::CDataNodeBinarySerializerOptions options;
+            for ( UInt32 start=1; start<4; ++start )
+            {
+                CORE::CDynamicBuffer buffer;
+                UInt8 prefix[ 3 ] = { 0xA5, 0xA5, 0xA5 };
+                buffer.CopyFrom( start, prefix );
+                UInt32 bytesWritten = 0;
+                ASSERT_TRUE( CORE::CDataNodeBinarySerializer::Serialize( options, dom1, start, buffer, bytesWritten ) );
+                ASSERT_TRUE( bytesWritten + start == buffer.GetDataSize() );
+
+                CORE::CDataNode dom2;
+                UInt32 bytesRead = 0;
+                ASSERT_TRUE( CORE::CDataNodeBinarySerializer::Deserialize( options, false, dom2, start, buffer, bytesRead ) );
+                ASSERT_TRUE( bytesRead == bytesWritten );
+                ASSERT_TRUE( dom1 == dom2 );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CDataNodeBinarySerializer TESTS COMPLETED" );
 }

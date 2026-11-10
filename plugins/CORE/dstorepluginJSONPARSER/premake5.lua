@@ -73,6 +73,9 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
+configuration( { "ANDROID" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/android" } )
 
@@ -80,6 +83,9 @@ configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ARDUINO" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
+configuration( { "EMSCRIPTEN" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
 configuration( { "EMSCRIPTEN32" } )
@@ -91,11 +97,32 @@ includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json
 configuration( { "IOS" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
+configuration( { "IPHONE" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
+configuration( { "IPHONEOS" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
+configuration( { "LINUX" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
 configuration( { "LINUX32" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "LINUX64" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/linux" } )
+
+configuration( { "MAC" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
+configuration( { "MACOS" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
+configuration( { "MACOSX" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
+
+configuration( { "MSWIN" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
 configuration( { "OSX" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
@@ -105,3 +132,6 @@ includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json
 
 configuration( { "WIN64" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+
+configuration( { "WINDOWS" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )

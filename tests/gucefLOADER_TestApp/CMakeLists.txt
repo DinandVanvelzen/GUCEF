@@ -36,6 +36,10 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../common/include ../../platform ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include )
 
+if ( ANDROID )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( ANDROID )
+
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( ANDROID32 )
@@ -47,6 +51,10 @@ endif( ANDROID64 )
 if ( ARDUINO )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( ARDUINO )
+
+if ( EMSCRIPTEN )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( EMSCRIPTEN )
 
 if ( EMSCRIPTEN32 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
@@ -60,6 +68,18 @@ if ( IOS )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( IOS )
 
+if ( IPHONE )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( LINUX )
+
 if ( LINUX32 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
 endif( LINUX32 )
@@ -67,6 +87,22 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
 endif( LINUX64 )
+
+if ( MAC )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( MSWIN )
 
 if ( OSX )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
@@ -79,6 +115,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( WINDOWS )
 
 
 

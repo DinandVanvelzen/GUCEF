@@ -1,0 +1,12 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="IlmThreadMutexWin32.cpp" TYPE="FILE" />
+        <ITEM NAME="IlmThreadSemaphoreWin32.cpp" TYPE="FILE" />
+        <ITEM NAME="IlmThreadWin32.cpp" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="mswin">
+        <ITEM NAME="IlmThreadMutexWin32.cpp" TYPE="FILE" />
+        <ITEM NAME="IlmThreadSemaphoreWin32.cpp" TYPE="FILE" />
+        <ITEM NAME="IlmThreadWin32.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

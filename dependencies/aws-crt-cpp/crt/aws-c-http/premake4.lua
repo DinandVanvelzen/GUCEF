@@ -35,6 +35,14 @@ links( { "aws-c-common", "aws-c-compression", "aws-c-io" } )
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=aws_c_http", "MODULE_NAME=aws_c_http" } )
+  
+
+configuration( { LINUX32 } )
+defines( { "BYO_CRYPTO" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "BYO_CRYPTO" } )
 
 
 configuration( {} )

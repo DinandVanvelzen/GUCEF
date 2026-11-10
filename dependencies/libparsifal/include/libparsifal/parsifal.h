@@ -52,7 +52,7 @@
 #if !( defined(PARSIFAL_LINUX_BUILD) || defined(PARSIFAL_MSWIN_BUILD) )
   #if defined( WIN32 ) || defined( _WIN32 )
     #define PARSIFAL_MSWIN_BUILD
-  #elif defined( linux )
+  #elif defined( linux ) || defined( __linux__ ) || defined( __EMSCRIPTEN__ )
     #define PARSIFAL_LINUX_BUILD
   #else
     #error Cannot automaticly detect your operating system, please define
@@ -62,6 +62,10 @@
 #ifdef PARSIFAL_MSWIN_BUILD
     #define PARSIFAL_EXPORT __declspec( dllexport )
     #define PARSIFAL_IMPORT __declspec( dllimport )
+#elif defined( __GNUC__ ) && ( __GNUC__ >= 4 )
+    /* GUCEF builds use -fvisibility=hidden with GCC/Clang, as such exports must be explicitly marked */
+    #define PARSIFAL_EXPORT __attribute__ ((visibility("default")))
+    #define PARSIFAL_IMPORT
 #else
     #define PARSIFAL_EXPORT
     #define PARSIFAL_IMPORT

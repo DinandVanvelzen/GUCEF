@@ -34,6 +34,14 @@ defines( { "FT2_BUILD_LIBRARY", "FT_CONFIG_OPTION_SYSTEM_ZLIB", "FT_CONFIG_OPTIO
   links( { "z" } )
   links( { "z" } )
   
+configuration( { EMSCRIPTEN32 } )
+links( { "zlib" } )
+  links( { "zlib" } )
+  
+configuration( { EMSCRIPTEN64 } )
+links( { "zlib" } )
+  links( { "zlib" } )
+  
 configuration( { LINUX32 } )
 links( { "zlib" } )
   links( { "zlib" } )
@@ -149,6 +157,7 @@ files( {
   "src/base/ftbitmap.c",
   "src/base/ftglyph.c",
   "src/base/ftinit.c",
+  "src/base/ftmm.c",
   "src/base/ftsystem.c",
   "src/bdf/bdf.c",
   "src/cache/ftcache.c",
@@ -179,6 +188,44 @@ files( {
 
 
 
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
 configuration( { "ANDROID32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
@@ -187,6 +234,7 @@ configuration( { "ANDROID32" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -224,6 +272,7 @@ configuration( { "ANDROID64" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -261,6 +310,45 @@ configuration( { "ARDUINO" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -298,6 +386,7 @@ configuration( { "EMSCRIPTEN32" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -335,6 +424,7 @@ configuration( { "EMSCRIPTEN64" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -372,6 +462,7 @@ configuration( { "GLX" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -409,6 +500,7 @@ configuration( { "GTK" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -446,6 +538,121 @@ configuration( { "IOS" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -483,6 +690,7 @@ configuration( { "LINUX32" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -520,6 +728,159 @@ configuration( { "LINUX64" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "MAC" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "MSWIN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -557,6 +918,7 @@ configuration( { "NACL" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -594,6 +956,7 @@ configuration( { "OSX" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -631,6 +994,7 @@ configuration( { "POSIX" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -668,6 +1032,7 @@ configuration( { "SDL" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -705,6 +1070,7 @@ configuration( { "SYMBIAN" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -742,6 +1108,7 @@ configuration( { "UNIX" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -779,6 +1146,7 @@ configuration( { "WIN32" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -816,6 +1184,45 @@ configuration( { "WIN64" } )
       "src/base/ftbitmap.c",
       "src/base/ftglyph.c",
       "src/base/ftinit.c",
+      "src/base/ftmm.c",
+      "src/base/ftsystem.c",
+      "src/bdf/bdf.c",
+      "src/cache/ftcache.c",
+      "src/cff/cff.c",
+      "src/cid/cidgload.c",
+      "src/cid/cidload.c",
+      "src/cid/cidobjs.c",
+      "src/cid/cidparse.c",
+      "src/cid/cidriver.c",
+      "src/gxvalid/gxvalid.c",
+      "src/gzip/ftgzip.c",
+      "src/lzw/ftlzw.c",
+      "src/otvalid/otvalid.c",
+      "src/pcf/pcf.c",
+      "src/pfr/pfr.c",
+      "src/psaux/psaux.c",
+      "src/pshinter/pshinter.c",
+      "src/psnames/psnames.c",
+      "src/raster/raster.c",
+      "src/sfnt/sfnt.c",
+      "src/smooth/ftgrays.c",
+      "src/smooth/ftsmooth.c",
+      "src/truetype/truetype.c",
+      "src/type1/type1.c",
+      "src/type42/type42.c"
+    } )
+
+
+
+configuration( { "WINDOWS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/autofit/autofit.c",
+      "src/base/ftbase.c",
+      "src/base/ftbitmap.c",
+      "src/base/ftglyph.c",
+      "src/base/ftinit.c",
+      "src/base/ftmm.c",
       "src/base/ftsystem.c",
       "src/bdf/bdf.c",
       "src/cache/ftcache.c",
@@ -846,6 +1253,12 @@ configuration( { "WIN64" } )
 
 configuration( {} )
 includedirs( { "src", "include", "include/freetype", "include/freetype/config", "include/freetype/internal", "include/freetype/internal/services", "src/winfonts" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )

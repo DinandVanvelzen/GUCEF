@@ -24,20 +24,21 @@ LOCAL_MODULE_FILENAME := libvfspluginZIP
 LOCAL_SRC_FILES := \
   src/vfspluginZIP.cpp \
   src/vfspluginZIP_CZIPArchive.cpp \
+  src/vfspluginZIP_CZipArchiveWriter.cpp \
   src/vfspluginZIP_CZipIOAccess.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/minizip \
   $(MY_MODULE_PATH)/../../../dependencies/zziplib \
   $(MY_MODULE_PATH)/../../../dependencies/zziplib/zzip \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include
 
-LOCAL_CFLAGS := -DGUCEF_VFSPLUGIN_ZIP_BUILD_MODULE -DZZIP_HAVE_STDINT_H
+LOCAL_CFLAGS := -DGUCEF_VFSPLUGIN_ZIP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=vfspluginZIP -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=vfspluginZIP -DZZIP_HAVE_STDINT_H
 
 
 LOCAL_SHARED_LIBRARIES := \
@@ -47,8 +48,8 @@ LOCAL_SHARED_LIBRARIES := \
   zziplib
 
 
-LOCAL_LDLIBS := \
-  -lz
+LOCAL_STATIC_LIBRARIES := \
+  minizip
 
 include $(BUILD_SHARED_LIBRARY)
 

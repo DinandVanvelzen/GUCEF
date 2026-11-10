@@ -526,10 +526,17 @@ CUri::ParseUriInStringForm( const CString& uriInStringForm )
                 }                
             }
 
+            // An empty authority, as in "file:///dir/file", is allowed. It leaves the path, with its leading slash,
+            // which is how a uri without authority holds an absolute path.
+            bool hasEmptyAuthority = m_authorityHost.IsNULLOrEmpty() && authoritySegmentEndDelimiter == authorityDelimiter+2;
+
             // Since we had an authority segment at minimum we should have a hostname
-            if ( m_authorityHost.IsNULLOrEmpty() )
+            if ( m_authorityHost.IsNULLOrEmpty() && !hasEmptyAuthority )
                 passedSanityCheck = false;
-        
+
+            if ( hasEmptyAuthority )
+                --authoritySegmentEndDelimiter; // the path keeps its leading slash, the code below skips one character
+
             Int32 queryDelimiter = uriInStringForm.HasChar( '?', authoritySegmentEndDelimiter+1, true );
             if ( queryDelimiter > 0 )
             {

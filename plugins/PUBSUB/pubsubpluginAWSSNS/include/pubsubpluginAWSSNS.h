@@ -1,5 +1,5 @@
 /*
- *  pubsubpluginAWSSQS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SQS
+ *  pubsubpluginAWSSNS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SNS
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
  *
@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_H
-#define PUBSUBPLUGIN_AWSSQS_H
+#ifndef PUBSUBPLUGIN_AWSSNS_H
+#define PUBSUBPLUGIN_AWSSNS_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -30,10 +30,10 @@
 #define GUCEF_CORE_ESTRUCTS_H
 #endif /* GUCEF_CORE_ESTRUCTS_H ? */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_MACROS_H
-#include "pubsubpluginAWSSQS_macros.h"
-#define PUBSUBPLUGIN_AWSSQS_MACROS_H
-#endif /* PUBSUBPLUGIN_AWSSQS_MACROS_H ? */
+#ifndef PUBSUBPLUGIN_AWSSNS_MACROS_H
+#include "pubsubpluginAWSSNS_macros.h"
+#define PUBSUBPLUGIN_AWSSNS_MACROS_H
+#endif /* PUBSUBPLUGIN_AWSSNS_MACROS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -44,7 +44,7 @@
 #ifdef __cplusplus
 namespace GUCEF {
 namespace PUBSUBPLUGIN {
-namespace AWSSQS {
+namespace AWSSNS {
 #endif /* __cplusplus */
 
 /*-------------------------------------------------------------------------//
@@ -64,30 +64,35 @@ extern "C" {
 
 /*---------------------------------------------------------------------------*/
 
-PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_C CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
+PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
+PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetVersion( CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
-/*---------------------------------------------------------------------------*/                 
+/*--------------------------------------------------------------------------*/
+
+PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
    }
@@ -100,11 +105,11 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 //-------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
-}; /* namespace AWSSQS */
+}; /* namespace AWSSNS */
 }; /* namespace PUBSUBPLUGIN */
 }; /* namespace GUCEF */
 #endif /* __cplusplus */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_AWSSQS_H ? */
+#endif /* PUBSUBPLUGIN_AWSSNS_H ? */

@@ -11,7 +11,12 @@
 
 # Configuration for module: gucefPRODMAN_TestApp
 
+set( HEADER_FILES 
+  include/TestProductListRetrieval.h
+)
+
 set( SOURCE_FILES 
+  src/TestProductListRetrieval.cpp
   src/gucefPRODMAN_TestApp.cpp
 )
 
@@ -34,14 +39,14 @@ add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPA
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefPRODMAN )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefPRODMAN_TestApp;MODULE_NAME=gucefPRODMAN_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../../platform/gucefPRODMAN/include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../../platform/gucefPRODMAN/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )

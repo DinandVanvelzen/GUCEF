@@ -76,7 +76,8 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubBookmark
         BOOKMARK_TYPE_MSG_ID              ,
         BOOKMARK_TYPE_MSG_INDEX           ,
         BOOKMARK_TYPE_MSG_DATETIME        ,
-        BOOKMARK_TYPE_TOPIC_INDEX  
+        BOOKMARK_TYPE_TOPIC_INDEX         ,
+        BOOKMARK_TYPE_INDEX_KEY_VALUE         /**< position identified by a named index field and its value; use GetBookmarkKeyField() for the field name and GetBookmarkData() for the value */
     };
     typedef enum EBookmarkType TBookmarkType;
 
@@ -106,10 +107,30 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubBookmark
     CORE::CString GetBookmarkTypeName( void ) const;
 
     void SetBookmarkData( const CORE::CVariant& bmData );
-    
+
     const CORE::CVariant& GetBookmarkData( void ) const;
 
     CORE::CVariant& GetBookmarkData( void );
+
+    /**
+     *  For BOOKMARK_TYPE_INDEX_KEY_VALUE: sets the named index field (e.g. "mk:fix_seq_num").
+     *  Has no meaning for other bookmark types.
+     */
+    void SetBookmarkKeyField( const CORE::CString& keyField );
+
+    /**
+     *  For BOOKMARK_TYPE_INDEX_KEY_VALUE: returns the named index field.
+     *  Returns an empty string for other bookmark types.
+     */
+    const CORE::CString& GetBookmarkKeyField( void ) const;
+
+    /**
+     *  Factory: constructs a BOOKMARK_TYPE_INDEX_KEY_VALUE bookmark from a field name and value.
+     *  The value is stored as-is in bmData; use any CVariant type (UInt64, CString, etc.).
+     *  A NOT_INITIALIZED bookmark with an empty key field represents "no bound" (from beginning / to end).
+     */
+    static CPubSubBookmark MakeIndexKeyValueBookmark( const CORE::CString& keyField  ,
+                                                      const CORE::CVariant& value    );
 
     /**
      *  Gets the bookmark's timestamp
@@ -138,9 +159,10 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubBookmark
 
     private:
 
-    TBookmarkType m_bmType;
-    CORE::CVariant m_bmData;
+    TBookmarkType   m_bmType;
+    CORE::CVariant  m_bmData;
     CORE::CDateTime m_bmDt;
+    CORE::CString   m_bmKeyField;   /**< index field name; only meaningful for BOOKMARK_TYPE_INDEX_KEY_VALUE */
 };
 
 /*-------------------------------------------------------------------------*/

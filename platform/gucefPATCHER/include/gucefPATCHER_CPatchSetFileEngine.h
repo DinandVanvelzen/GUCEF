@@ -31,7 +31,8 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
-#include "CURLDataRetriever.h"
+#include "CObservingNotifier.h"
+#include "gucefCORE_CAsyncUriResourceRetriever.h"
 #include "CFileAccess.h"
 
 #include "gucefPATCHER_CPatchSetFileEngineEvents.h"
@@ -105,8 +106,8 @@ class GUCEFPATCHER_EXPORT_CPP CPatchSetFileEngine : public CORE::CObservingNotif
     UInt32 m_curFileLocIndex;
     TFileList m_fileList;
     
-    CORE::CFileAccess* m_fileAccess;
-    CORE::CURLDataRetriever m_dataRetriever;
+    CORE::CFileAccess* m_fileAccess;                    /**< destination of the file retrieval, must outlive the retriever */
+    CORE::CAsyncUriResourceRetriever m_retriever;
     
     bool m_isActive;
     bool m_stopSignalGiven;

@@ -31,6 +31,16 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_CSEMAPHORE_H
+#include "gucefMT_CSemaphore.h"
+#define GUCEF_MT_CSEMAPHORE_H
+#endif /* GUCEF_MT_CSEMAPHORE_H ? */
+
 #ifndef GUCEF_MT_CACTIVEOBJECT_H
 #include "gucefMT_CActiveObject.h"
 #define GUCEF_MT_CACTIVEOBJECT_H
@@ -143,6 +153,14 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     CTaskPtr GetCurrentTask( void ) const;
 
+    /**
+     *  Asks the delegator to stop working on the task with the given id, if that is the task it is carrying out now.
+     *  Only the task ends: the consumer is given the chance to wrap up (OnTaskEnding / OnTaskEnded) and the task ends as
+     *  cancelled, after which the thread of the delegator is free to pick up other work.
+     *  @return true if the task is being carried out by this delegator
+     */
+    bool CancelCurrentTask( UInt32 taskId );
+
     UInt32 GetCurrentTaskId( void ) const;
 
     /**
@@ -201,6 +219,9 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     virtual bool ProcessTask( CTaskPtr task );
 
+    /** whether the task being carried out has to stop: the thread is shutting down or the task itself was cancelled */
+    bool IsStopOfCurrentTaskRequested( void ) const;
+
     virtual void TaskCleanup( CTaskPtr task );
 
     /**
@@ -238,6 +259,25 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Takes the cycle delay asked for through the pulse requests, on the delegator thread that uses it */
+    void ApplyRequestedPulseDelta( void );
+
+    /**
+     *  Ends a wait of the delegator thread between its cycles, for a pulse request made on another thread.
+     *  The delegator thread itself looks at the requests before it waits, its own requests need no wake-up.
+     */
+    void WakeUp( void );
+
+    /**
+     *  Waits on the delegator thread until the next pulse time window of its pulse generator, as
+     *  CPulseGenerator::WaitTillNextPulseWindow() does, or until a pulse request of another thread ends the wait
+     *  (WakeUp()), whichever comes first.
+     */
+    void WaitTillNextPulseWindowOrWakeUp( CPulseGenerator& pulseGenerator          ,
+                                          UInt32 forcedMinimalDeltaInMilliSecs     ,
+                                          UInt32 desiredMaximumDeltaInMilliSecs    ,
+                                          UInt32* elapsedTimeInMilliSecs           );
+
     protected:
 
     CTaskDelegator( const ThreadPoolPtr& threadPool ,
@@ -249,10 +289,16 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     ThreadPoolPtr m_threadPool;
     bool m_consumerBusy;
-    bool m_sendRegularPulses;
-    Int32 m_immediatePulseTickets;
-    Int32 m_immediatePulseTicketMax;
-    UInt32 m_taskRequestedCycleDelayInMs;
+    MT::CTAtomic< bool > m_cancelCurrentTask;   /**< set when the task which is being carried out is asked to stop (from any thread), the thread itself carries on */
+    MT::CTAtomic< bool > m_sendRegularPulses;               /**< pulse requests come from any thread, the delegator thread reads them */
+    MT::CTAtomic< Int32 > m_immediatePulseTickets;
+    MT::CTAtomic< Int32 > m_immediatePulseTicketMax;
+    MT::CTAtomic< UInt32 > m_taskRequestedCycleDelayInMs;
+    MT::CTAtomic< UInt32 > m_requestedPulseDeltaInMs;       /**< the cycle delay asked for, applied on the delegator thread, 0 = none */
+    MT::CTAtomic< UInt32 > m_driverTaskId;  /**< MT::GetCurrentTaskID() of the delegator thread, 0 before it runs and once it ended */
+    MT::CTAtomic< bool > m_driverThreadEnded;   /**< set when the delegator thread ended, cleared when it starts */
+    MT::CSemaphore* m_wakeUpSignal;         /**< posted to end the delegator thread's wait between cycles, counts at most 1; NULL without a working semaphore (CTaskManager::IsTaskDelegatorWakeUpAvailable()) */
+    MT::CTAtomic< bool > m_wakeUpPosted;    /**< whether m_wakeUpSignal holds a post the delegator thread did not take yet */
 };
 
 /*-------------------------------------------------------------------------*/

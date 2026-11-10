@@ -1,0 +1,8 @@
+<ModuleInfoEntry>
+    <Module Name="monocypher" Type="StaticLibrary" Platform="All">
+        <Preprocessor>
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
+</ModuleInfoEntry>

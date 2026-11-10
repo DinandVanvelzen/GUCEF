@@ -41,15 +41,7 @@ add_dependencies( ${MODULE_NAME} curl )
 target_link_libraries( ${MODULE_NAME} PUBLIC curl )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_lambda_runtime;MODULE_NAME=aws_lambda_runtime" )
 
-include_directories( ../curl/include ../curl/include/curl ../curl/lib ../curl/lib/vauth ../curl/lib/vquic ../curl/lib/vssh ../curl/lib/vtls include include/aws include/aws/http include/aws/lambda-runtime include/aws/logging src )
-
-if ( WIN32 )
-  include_directories( ../curl/lib )
-endif( WIN32 )
-
-if ( WIN64 )
-  include_directories( ../curl/lib )
-endif( WIN64 )
+include_directories( ../curl/include ../curl/lib include include/aws include/aws/http include/aws/lambda-runtime include/aws/logging src )
 
 
 

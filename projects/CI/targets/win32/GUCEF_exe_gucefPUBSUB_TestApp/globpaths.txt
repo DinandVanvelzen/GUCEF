@@ -1,5 +1,6 @@
 common/include/*
 dependencies/aws-cpp-sdk-core/*
+dependencies/aws-cpp-sdk-sns/*
 dependencies/aws-cpp-sdk-sqs/*
 dependencies/aws-crt-cpp/*
 dependencies/curl/*
@@ -12,6 +13,7 @@ platform/gucefMT/src//*
 platform/gucefPUBSUB/include/*
 platform/gucefVFS/include/*
 platform/gucefWEB/include/*
+plugins/PUBSUB/pubsubpluginAWSSNS/*
 plugins/PUBSUB/pubsubpluginAWSSQS/*
 plugins/PUBSUB/pubsubpluginMSMQ/*
 plugins/SHARED/pluginglueAWSSDK/*

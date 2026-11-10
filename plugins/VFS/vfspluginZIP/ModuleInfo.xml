@@ -5,12 +5,14 @@
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="zziplib" />
+            <Dependency Name="minizip" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="zziplib" />
+            <Dependency Name="minizip" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_VFSPLUGIN_ZIP_BUILD_MODULE" />
@@ -30,6 +32,9 @@
             <Dependency Name="z" />
         </Linker>
     </Module>
-    <Module Type="StaticLibrary" Platform="emscripten" >
-    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+    </Module>
 </ModuleInfoEntry>

@@ -48,6 +48,11 @@
 #define GUCEF_PRODMAN_CCODECBASEDPRODUCTINFOLISTPROVIDER_H
 #endif /* GUCEF_PRODMAN_CCODECBASEDPRODUCTINFOLISTPROVIDER_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefPRODMAN_CProdManGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -116,6 +121,7 @@ CProdManGlobal::Initialize( void )
     m_productInfoListProviderRegistry->RegisterProvider( "CodecBased", CProductInfoListProviderPtr( new CCodecBasedProductInfoListProvider() ) );
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefPRODMAN Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefPRODMAN" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -132,7 +138,8 @@ CProdManGlobal::~CProdManGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefPRODMAN global systems" );
-        
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefPRODMAN" );
+
     delete m_productManager;
     m_productManager = NULL;
     delete m_productInfoListProviderRegistry;

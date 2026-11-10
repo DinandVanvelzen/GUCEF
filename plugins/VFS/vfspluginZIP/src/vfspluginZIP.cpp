@@ -43,6 +43,11 @@
 #define GUCEF_VFSPLUGIN_ZIP_CZIPARCHIVE_H
 #endif /* GUCEF_VFSPLUGIN_ZIP_CZIPARCHIVE_H ? */
 
+#ifndef VFSPLUGIN_ZIP_CZIPARCHIVEWRITER_H
+#include "vfspluginZIP_CZipArchiveWriter.h"
+#define VFSPLUGIN_ZIP_CZIPARCHIVEWRITER_H
+#endif /* VFSPLUGIN_ZIP_CZIPARCHIVEWRITER_H ? */
+
 #include "vfspluginZIP.h"
 
 /*-------------------------------------------------------------------------//
@@ -62,6 +67,7 @@ namespace ZIP {
 //-------------------------------------------------------------------------*/
 
 typedef CORE::CTFactory< VFS::CArchive, CZIPArchive, MT::CMutex > TZIPArchiveFactory;
+typedef CORE::CTFactory< VFS::CIArchiveWriter, CZipArchiveWriter, MT::CMutex > TZipArchiveWriterFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -69,7 +75,10 @@ typedef CORE::CTFactory< VFS::CArchive, CZIPArchive, MT::CMutex > TZIPArchiveFac
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static TZIPArchiveFactory zipArchiveFactory;
+// Created when the plugin is loaded and destroyed when it is unloaded:
+// as static objects they could be destroyed at process exit while still registered with the VFS
+static TZIPArchiveFactory* zipArchiveFactory = GUCEF_NULL;
+static TZipArchiveWriterFactory* zipArchiveWriterFactory = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -81,9 +90,22 @@ CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( CZIPArchive::ZipArchiveTypeName, zipArchiveFactory );
-    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "pk3", zipArchiveFactory );
-    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "jar", zipArchiveFactory );
+    if ( GUCEF_NULL == zipArchiveFactory )
+        zipArchiveFactory = GUCEF_NEW TZIPArchiveFactory();
+    if ( GUCEF_NULL == zipArchiveWriterFactory )
+        zipArchiveWriterFactory = GUCEF_NEW TZipArchiveWriterFactory();
+
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( CZIPArchive::ZipArchiveTypeName, *zipArchiveFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "pk3", *zipArchiveFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "jar", *zipArchiveFactory );
+
+    // the files each type opens, for applications that offer every archive the VFS can open
+    VFS::CVfsGlobal::Instance()->GetVfs().SetArchiveTypeFileExtensions( CZIPArchive::ZipArchiveTypeName, CORE::CString( "zip" ).ParseUniqueElements( ';', false ) );
+    VFS::CVfsGlobal::Instance()->GetVfs().SetArchiveTypeFileExtensions( "pk3", CORE::CString( "pk3" ).ParseUniqueElements( ';', false ) );
+    VFS::CVfsGlobal::Instance()->GetVfs().SetArchiveTypeFileExtensions( "jar", CORE::CString( "jar" ).ParseUniqueElements( ';', false ) );
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveWriterFactory( CZIPArchive::ZipArchiveTypeName, *zipArchiveWriterFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveWriterFactory( "pk3", *zipArchiveWriterFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveWriterFactory( "jar", *zipArchiveWriterFactory );
 
     return 1;
 }
@@ -94,9 +116,19 @@ void GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( CZIPArchive::ZipArchiveTypeName );
+    // Note: no static objects of this module are used here since at process exit they can already be destroyed
+    // by the time the plugin is unloaded, so the type names are spelled out
+    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( "zip" );
     VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( "pk3" );
     VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( "jar" );
+    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveWriterFactory( "zip" );
+    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveWriterFactory( "pk3" );
+    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveWriterFactory( "jar" );
+
+    GUCEF_DELETE zipArchiveFactory;
+    zipArchiveFactory = GUCEF_NULL;
+    GUCEF_DELETE zipArchiveWriterFactory;
+    zipArchiveWriterFactory = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -127,6 +159,15 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     return "Generic GUCEF plugin for VFS \"ZIP\" archives using zziplib and zlib";
+}
+
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefCORE,gucefVFS";
 }
 
 /*-------------------------------------------------------------------------//

@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
@@ -55,10 +60,10 @@ class CNotificationIDRegistry;
  *  Used to identify an event within the GUCEF event system.
  *
  *  For performance reasons numeric ID's are used for event comparison
- *  operations. Note that a call must be made to Initialize() before the
- *  event object is used. This initialization procedure is required to give you
- *  the performance required plus the ability to define event objects as global
- *  variables.
+ *  operations. Initialize() gives the event its id; modules call it for their events when they load. This
+ *  initialization procedure is required to give you the performance required plus the ability to define event
+ *  objects as global variables. An event that has a name but no id yet (for instance a global that was constructed
+ *  after its module registered it) finds its id on first use in a comparison or GetID().
  */
 class GUCEF_CORE_PUBLIC_CPP CEvent
 {
@@ -113,6 +118,9 @@ class GUCEF_CORE_PUBLIC_CPP CEvent
 
     bool IsInitialized( void ) const;
 
+    /** Initializes the event if it has a name but no id yet; comparisons and GetID() do this themselves */
+    void EnsureInitialized( void ) const;
+
     private:
     friend class CNotificationIDRegistry;
 
@@ -121,7 +129,7 @@ class GUCEF_CORE_PUBLIC_CPP CEvent
 
     private:
 
-    UInt32 m_eventID;
+    MT::CTAtomic< UInt32 > m_eventID;   /**< found on first use by whichever thread uses the event, always the same value for a name */
     CString m_eventName;
 };
 

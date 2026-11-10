@@ -1,20 +1,18 @@
 /*
  *  gucefVFS: GUCEF module implementing a Virtual File System
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_VFS_CFILESYSTEMARCHIVE_H
@@ -110,6 +108,11 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
     virtual bool MoveFile( const CString& oldFilePath ,
                            const CString& newFilePath ,
                            const bool overwrite       ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** CORE::MoveFileAtomically: a rename within the file system, never a copy */
+    virtual bool MoveFileAtomically( const CString& oldFilePath ,
+                                     const CString& newFilePath ,
+                                     const bool overwrite       ) GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool FileExists( const CString& filePath ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -165,6 +168,12 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
      *  Redirects to O/S filesystem implementation.
      */
     virtual bool TryResolveSpecialDir( CORE::TSpecialDirs dir, CString& resolvedPath ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool CreateDir( const CString& dirPath ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool DeleteDir( const CString& dirPath, bool deleteContents ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool MoveDir( const CString& oldDirPath, const CString& newDirPath ) GUCEF_VIRTUAL_OVERRIDE;
     
     const CString& GetRootDir( void ) const;
 
@@ -181,6 +190,11 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
                            const CORE::CEvent& eventId               ,
                            CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
     
+    private:
+
+    /** Whether a path of the archive stays in it: no ".." segment takes it out of the root */
+    static bool IsWithinArchive( const CString& archivePath );
+
     private:
 
     CORE::CString GetVfsPathForFileSystemPath( const CORE::CString& fsPath ) const;
@@ -205,10 +219,17 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
                                        const UInt32 memLoadSize = 0            ,
                                        const bool overwrite = false            );
 
+    /**
+     *  Takes the files the archive changes out of the memory cache of small files, so the next read loads them from
+     *  disk. Handles that are open keep the buffer they have. With asDirectory every file below the path goes
+     */
+    void ForgetCachedFiles( const CString& fsPath, bool asDirectory ) const;
+
     private:
     typedef CORE::CTSharedPtr< CORE::CDynamicBuffer, MT::CMutex > TDynamicBufferPtr;
     typedef std::map< CString, TDynamicBufferPtr >                TFileMemCache;
     
+    mutable MT::CMutex m_diskCacheLock;     /**< guards m_diskCacheList: files are opened and released on any thread */
     TFileMemCache m_diskCacheList;
     CString m_rootDir;
     CString m_archiveName;

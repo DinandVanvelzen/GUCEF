@@ -135,8 +135,8 @@ PerformTimestampTests( void )
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             
             // Small delay to ensure different timestamps
-            volatile int dummy = 0;
-            for ( int i = 0; i < 100000; ++i ) { dummy += i; }
+            volatile UInt32 dummy = 0;      // unsigned: the sum wraps around, as a signed one may not
+            for ( UInt32 i = 0; i < 100000; ++i ) { dummy += i; }
             
             CORE::CTimestamp ts2 = CORE::CTimestamp::NowUTCTime();
             

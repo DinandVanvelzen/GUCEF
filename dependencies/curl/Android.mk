@@ -24,36 +24,51 @@ LOCAL_MODULE_FILENAME := libcurl
 LOCAL_SRC_FILES := \
   lib/altsvc.c \
   lib/amigaos.c \
-  lib/asyn-ares.c \
-  lib/asyn-thread.c \
-  lib/base64.c \
+  lib/api.c \
+  lib/bufq.c \
+  lib/bufref.c \
+  lib/cf-h1-proxy.c \
+  lib/cf-h2-proxy.c \
+  lib/cf-haproxy.c \
+  lib/cf-https-connect.c \
+  lib/cf-ip-happy.c \
+  lib/cf-recvbuf.c \
+  lib/cf-setup.c \
+  lib/cf-socket.c \
+  lib/cfilters.c \
   lib/conncache.c \
   lib/connect.c \
   lib/content_encoding.c \
   lib/cookie.c \
+  lib/creds.c \
+  lib/cshutdn.c \
   lib/curl_addrinfo.c \
-  lib/curl_ctype.c \
-  lib/curl_des.c \
+  lib/curl_ed25519.c \
   lib/curl_endian.c \
   lib/curl_fnmatch.c \
+  lib/curl_fopen.c \
   lib/curl_get_line.c \
   lib/curl_gethostname.c \
   lib/curl_gssapi.c \
   lib/curl_memrchr.c \
-  lib/curl_multibyte.c \
   lib/curl_ntlm_core.c \
-  lib/curl_ntlm_wb.c \
-  lib/curl_path.c \
   lib/curl_range.c \
-  lib/curl_rtmp.c \
   lib/curl_sasl.c \
+  lib/curl_sha512_256.c \
+  lib/curl_share.c \
   lib/curl_sspi.c \
   lib/curl_threads.c \
+  lib/curl_trc.c \
+  lib/cw-out.c \
+  lib/cw-pause.c \
   lib/dict.c \
-  lib/doh.c \
-  lib/dotdot.c \
+  lib/dllmain.c \
+  lib/dynhds.c \
   lib/easy.c \
+  lib/easygetopt.c \
+  lib/easyoptions.c \
   lib/escape.c \
+  lib/fake_addrinfo.c \
   lib/file.c \
   lib/fileinfo.c \
   lib/formdata.c \
@@ -63,82 +78,101 @@ LOCAL_SRC_FILES := \
   lib/getinfo.c \
   lib/gopher.c \
   lib/hash.c \
+  lib/headers.c \
   lib/hmac.c \
-  lib/hostasyn.c \
-  lib/hostcheck.c \
-  lib/hostip.c \
-  lib/hostip4.c \
-  lib/hostip6.c \
-  lib/hostsyn.c \
+  lib/hsts.c \
   lib/http.c \
+  lib/http1.c \
   lib/http2.c \
+  lib/http_aws_sigv4.c \
   lib/http_chunks.c \
   lib/http_digest.c \
+  lib/http_httpsig.c \
   lib/http_negotiate.c \
   lib/http_ntlm.c \
   lib/http_proxy.c \
+  lib/idn.c \
   lib/if2ip.c \
   lib/imap.c \
-  lib/inet_ntop.c \
-  lib/inet_pton.c \
-  lib/krb5.c \
   lib/ldap.c \
   lib/llist.c \
+  lib/macos.c \
   lib/md4.c \
   lib/md5.c \
   lib/memdebug.c \
   lib/mime.c \
   lib/mprintf.c \
+  lib/mqtt.c \
   lib/multi.c \
+  lib/multi_ev.c \
+  lib/multi_ntfy.c \
   lib/netrc.c \
-  lib/non-ascii.c \
-  lib/nonblock.c \
-  lib/nwlib.c \
-  lib/nwos.c \
   lib/openldap.c \
   lib/parsedate.c \
+  lib/peer.c \
   lib/pingpong.c \
   lib/pop3.c \
   lib/progress.c \
+  lib/protocol.c \
+  lib/proxy.c \
   lib/psl.c \
+  lib/ptrarray.c \
   lib/rand.c \
-  lib/rename.c \
+  lib/ratelimit.c \
+  lib/request.c \
   lib/rtsp.c \
-  lib/security.c \
   lib/select.c \
   lib/sendf.c \
   lib/setopt.c \
   lib/sha256.c \
-  lib/share.c \
   lib/slist.c \
-  lib/smb.c \
   lib/smtp.c \
   lib/socketpair.c \
   lib/socks.c \
   lib/socks_gssapi.c \
   lib/socks_sspi.c \
-  lib/speedcheck.c \
   lib/splay.c \
   lib/strcase.c \
-  lib/strdup.c \
+  lib/strequal.c \
   lib/strerror.c \
-  lib/strtok.c \
-  lib/strtoofft.c \
-  lib/system_win32.c \
   lib/telnet.c \
   lib/tftp.c \
-  lib/timeval.c \
+  lib/thrdpool.c \
+  lib/thrdqueue.c \
   lib/transfer.c \
+  lib/u32_ptrset.c \
+  lib/u8_strset.c \
+  lib/uint-bset.c \
+  lib/uint-spbset.c \
+  lib/uint-table.c \
   lib/url.c \
   lib/urlapi.c \
   lib/version.c \
-  lib/warnless.c \
-  lib/wildcard.c \
-  lib/x509asn1.c \
+  lib/ws.c \
+  lib/curlx/base64.c \
+  lib/curlx/basename.c \
+  lib/curlx/dynbuf.c \
+  lib/curlx/inet_ntop.c \
+  lib/curlx/inet_pton.c \
+  lib/curlx/multibyte.c \
+  lib/curlx/nonblock.c \
+  lib/curlx/snprintf.c \
+  lib/curlx/strcopy.c \
+  lib/curlx/strdup.c \
+  lib/curlx/strerr.c \
+  lib/curlx/strparse.c \
+  lib/curlx/timediff.c \
+  lib/curlx/timeval.c \
+  lib/curlx/version_win32.c \
+  lib/curlx/wait.c \
+  lib/curlx/warnless.c \
+  lib/curlx/win32-fopen.c \
+  lib/curlx/winapi.c \
   lib/vauth/cleartext.c \
   lib/vauth/cram.c \
   lib/vauth/digest.c \
   lib/vauth/digest_sspi.c \
+  lib/vauth/gsasl.c \
   lib/vauth/krb5_gssapi.c \
   lib/vauth/krb5_sspi.c \
   lib/vauth/ntlm.c \
@@ -147,35 +181,49 @@ LOCAL_SRC_FILES := \
   lib/vauth/spnego_gssapi.c \
   lib/vauth/spnego_sspi.c \
   lib/vauth/vauth.c \
-  lib/vquic/ngtcp2.c \
-  lib/vquic/quiche.c \
+  lib/vdns/asyn-ares.c \
+  lib/vdns/asyn-base.c \
+  lib/vdns/asyn-thrdd.c \
+  lib/vdns/cf-dns.c \
+  lib/vdns/dnscache.c \
+  lib/vdns/doh.c \
+  lib/vdns/hostip.c \
+  lib/vdns/hostip4.c \
+  lib/vdns/hostip6.c \
+  lib/vdns/httpsrr.c \
+  lib/vquic/capsule.c \
+  lib/vquic/cf-capsule.c \
+  lib/vquic/cf-ngtcp2-cmn.c \
+  lib/vquic/cf-ngtcp2-proxy.c \
+  lib/vquic/cf-ngtcp2.c \
+  lib/vquic/cf-quiche.c \
+  lib/vquic/vquic-tls.c \
+  lib/vquic/vquic.c \
   lib/vssh/libssh.c \
   lib/vssh/libssh2.c \
-  lib/vssh/wolfssh.c \
-  lib/vtls/bearssl.c \
-  lib/vtls/gskit.c \
+  lib/vssh/vssh.c \
+  lib/vtls/apple.c \
+  lib/vtls/cipher_suite.c \
   lib/vtls/gtls.c \
+  lib/vtls/hostcheck.c \
+  lib/vtls/keylog.c \
   lib/vtls/mbedtls.c \
-  lib/vtls/mbedtls_threadlock.c \
-  lib/vtls/mesalink.c \
-  lib/vtls/nss.c \
   lib/vtls/openssl.c \
+  lib/vtls/rustls.c \
   lib/vtls/schannel.c \
   lib/vtls/schannel_verify.c \
-  lib/vtls/sectransp.c \
   lib/vtls/vtls.c \
-  lib/vtls/wolfssl.c
+  lib/vtls/vtls_config.c \
+  lib/vtls/vtls_scache.c \
+  lib/vtls/vtls_spack.c \
+  lib/vtls/wolfssl.c \
+  lib/vtls/x509asn1.c
 
 LOCAL_C_INCLUDES := \
-  $(MY_MODULE_PATH)/include/curl \
   $(MY_MODULE_PATH)/lib \
-  $(MY_MODULE_PATH)/lib/vauth \
-  $(MY_MODULE_PATH)/lib/vquic \
-  $(MY_MODULE_PATH)/lib/vssh \
-  $(MY_MODULE_PATH)/lib/vtls \
   $(MY_MODULE_PATH)/include
 
-LOCAL_CFLAGS := -DBUILDING_LIBCURL -DHAVE_BUILTIN_CPU_SUPPORTS
+LOCAL_CFLAGS := -DBUILDING_LIBCURL -DMODULE_CONSENSUS_NAME=curl -DMODULE_NAME=curl
 
 include $(BUILD_SHARED_LIBRARY)
 

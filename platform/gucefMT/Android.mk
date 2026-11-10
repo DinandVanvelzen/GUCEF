@@ -24,6 +24,7 @@ LOCAL_MODULE_FILENAME := libgucefMT
 LOCAL_SRC_FILES := \
   src/gucefMT.cpp \
   src/gucefMT_CActiveObject.cpp \
+  src/gucefMT_CAtomicLockPool.cpp \
   src/gucefMT_CCondition.cpp \
   src/gucefMT_CGUCEFMTModule.cpp \
   src/gucefMT_CICloneable.cpp \
@@ -48,7 +49,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include
 
-LOCAL_CFLAGS := -DGUCEF_MT_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_MT_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMT -DMODULE_NAME=gucefMT -DMODULE_SEMVER=0_1_0_0
 
 include $(BUILD_SHARED_LIBRARY)
 

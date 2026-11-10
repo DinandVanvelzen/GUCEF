@@ -12,17 +12,24 @@
 # Configuration for module: guidriverRmlUIOpenGL
 
 set( HEADER_FILES 
+  include/RmlUi_Include_GL3.h
+  include/RmlUi_Renderer_GL3.h
   include/guidriverRmlUIOpenGL.h
-  include/guidriverRmlUIOpenGL_CRocketGuiDriver.h
-  include/guidriverRmlUIOpenGL_CRocketRenderInterfaceOpenGL.h
+  include/guidriverRmlUIOpenGL_CGLHookShader.h
+  include/guidriverRmlUIOpenGL_CGLPresenter.h
+  include/guidriverRmlUIOpenGL_CRmlUIGuiDriver.h
+  include/guidriverRmlUIOpenGL_CRmlUIOpenGLContext.h
   include/guidriverRmlUIOpenGL_config.h
   include/guidriverRmlUIOpenGL_macros.h
   include/guidriverRmlUIOpenGL_pluginAPI.h
 )
 
 set( SOURCE_FILES 
-  src/guidriverRmlUIOpenGL_CRocketGuiDriver.cpp
-  src/guidriverRmlUIOpenGL_CRocketRenderInterfaceOpenGL.cpp
+  src/RmlUi_Renderer_GL3.cpp
+  src/guidriverRmlUIOpenGL_CGLHookShader.cpp
+  src/guidriverRmlUIOpenGL_CGLPresenter.cpp
+  src/guidriverRmlUIOpenGL_CRmlUIGuiDriver.cpp
+  src/guidriverRmlUIOpenGL_CRmlUIOpenGLContext.cpp
   src/guidriverRmlUIOpenGL_pluginAPI.cpp
 )
 
@@ -37,17 +44,25 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "guidriverRmlUIOpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} RmlUI_Core gucefCORE gucefGUI gucefINPUT gucefMT guidriverRmlUI )
-target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core gucefCORE gucefGUI gucefINPUT gucefMT guidriverRmlUI )
+add_dependencies( ${MODULE_NAME} RmlUI_Core gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverRmlUI )
+target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverRmlUI )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERRMLUIGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRmlUIOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverRmlUIOpenGL" )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM )
+  target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv3 )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM )
+  target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv3 )
 endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE -sMAX_WEBGL_VERSION=2 -sMIN_WEBGL_VERSION=2 )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE -sMAX_WEBGL_VERSION=2 -sMIN_WEBGL_VERSION=2 )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE GL )
@@ -65,7 +80,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32.lib )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../dependencies/RmlUi/Include ../../../dependencies/RmlUi/Include/RmlUi ../../../dependencies/RmlUi/Include/RmlUi/Config ../../../dependencies/RmlUi/Include/RmlUi/Core ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../../dependencies/RmlUi/Include/RmlUi/Debugger ../../../dependencies/RmlUi/Include/RmlUi/Lottie ../../../dependencies/RmlUi/Include/RmlUi/Lua ../../../dependencies/RmlUi/Include/RmlUi/SVG ../../../dependencies/RmlUi/Source/Core ../../../dependencies/RmlUi/Source/Core/Elements ../../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../../dependencies/RmlUi/Source/Core/Layout ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverRmlUI/include include )
+include_directories( ../../../common/include ../../../dependencies/RmlUi/Include ../../../dependencies/RmlUi/Include/RmlUi ../../../dependencies/RmlUi/Include/RmlUi/Config ../../../dependencies/RmlUi/Include/RmlUi/Core ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../../dependencies/RmlUi/Include/RmlUi/Debugger ../../../dependencies/RmlUi/Include/RmlUi/Lottie ../../../dependencies/RmlUi/Include/RmlUi/Lua ../../../dependencies/RmlUi/Include/RmlUi/SVG ../../../dependencies/RmlUi/Source/Core ../../../dependencies/RmlUi/Source/Core/Elements ../../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../../dependencies/RmlUi/Source/Core/Layout ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverRmlUI/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )

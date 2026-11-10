@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Header.h"
-#include "Types.h"
 #include <type_traits>
+
+// DV edit: the types header includes the vector and matrix headers, which use what is declared below. A compiler that checks
+// templates when they are defined, instead of when they are used, needs that to be known first, so the types come last.
 
 namespace Rml {
 
@@ -215,3 +217,5 @@ namespace Math {
 
 } // namespace Math
 } // namespace Rml
+
+#include "Types.h"

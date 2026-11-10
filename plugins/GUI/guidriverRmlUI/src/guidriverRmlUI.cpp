@@ -32,7 +32,7 @@
 //-------------------------------------------------------------------------*/
 
 const char*
-GUCE_MYGUIOGRE_ModuleCompileTimeStamp( void )
+GUCEF_guidriverRmlUI_ModuleCompileTimeStamp( void )
 {
     return __TIMESTAMP__;
 }

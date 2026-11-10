@@ -12,15 +12,20 @@
 
 workspace( "GUCEF_exe_FileDiff" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "ANDROID"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )
@@ -40,6 +45,11 @@ filter "ARDUINO"
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )
 
+filter "EMSCRIPTEN"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
 filter "EMSCRIPTEN32"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -55,12 +65,47 @@ filter "IOS"
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )
 
+filter "IPHONE"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "IPHONEOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "LINUX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
 filter "LINUX32"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )
 
 filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "MAC"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "MACOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "MACOSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "MSWIN"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )
@@ -76,6 +121,11 @@ filter "WIN32"
   include( "tools/FileDiff" )
 
 filter "WIN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "WINDOWS"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )

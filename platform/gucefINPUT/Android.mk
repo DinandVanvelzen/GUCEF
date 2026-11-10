@@ -37,20 +37,21 @@ LOCAL_SRC_FILES := \
   src/gucefINPUT_CKeyModStateChangedEventData.cpp \
   src/gucefINPUT_CKeyStateChangedEventData.cpp \
   src/gucefINPUT_CKeyboard.cpp \
+  src/gucefINPUT_CKeyboardTextEventData.cpp \
   src/gucefINPUT_CMouse.cpp \
   src/gucefINPUT_CMouseButtonEventData.cpp \
   src/gucefINPUT_CMouseMovedEventData.cpp \
+  src/gucefINPUT_CMouseVariableChangedEventData.cpp \
   src/gucefINPUT_keyboard.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEFINPUT_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEFINPUT_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefINPUT -DMODULE_NAME=gucefINPUT -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \

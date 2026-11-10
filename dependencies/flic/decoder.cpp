@@ -45,12 +45,19 @@ bool Decoder::readHeader(Header& header)
   if (magic == FLC_MAGIC_NUMBER) {
     // Offset to the first and second frame
     m_file->seek(80);
-    m_offsetFrame1 = read32();
-    m_offsetFrame2 = read32();
+    uint32_t offsetFrame1 = read32();
+    uint32_t offsetFrame2 = read32();
+
+    // Some producers store offsets here that are not relative to the start of
+    // the FLIC data (for example the absolute position in a resource archive).
+    // Only trust an offset if a frame header is actually found there, otherwise
+    // fall back to the regular sequential layout.
+    m_offsetFrame1 = isFrameHeaderAt(offsetFrame1) ? offsetFrame1 : 0;
+    m_offsetFrame2 = isFrameHeaderAt(offsetFrame2) ? offsetFrame2 : 0;
   }
 
   if (header.width == 0) header.width = 320;
-  if (header.height == 0) header.width = 200;
+  if (header.height == 0) header.height = 200;
 
   m_width = header.width;
   m_height = header.height;
@@ -76,8 +83,8 @@ bool Decoder::readFrame(Frame& frame)
   uint32_t frameStartPos = m_file->tell();
   uint32_t frameSize = read32();
   uint16_t magic = read16();
-  assert(magic == FLI_FRAME_MAGIC_NUMBER);
-  (void)magic;
+  if (magic != FLI_FRAME_MAGIC_NUMBER)
+    return false;
 
   uint16_t chunks = read16();
   for (int i=0; i<8; ++i)       // Padding
@@ -104,7 +111,7 @@ void Decoder::readChunk(Frame& frame)
     case FLI_LC_CHUNK:        readLcChunk(frame);           break;
     case FLI_BLACK_CHUNK:     readBlackChunk(frame);        break;
     case FLI_BRUN_CHUNK:      readBrunChunk(frame);         break;
-    case FLI_COPY_CHUNK:      readCopyChunk(frame);         break;
+    case FLI_COPY_CHUNK:      readCopyChunk(frame, chunkSize > 6 ? chunkSize-6 : 0); break;
     default:
       // Ignore all other kind of chunks
       break;
@@ -119,16 +126,28 @@ void Decoder::readBlackChunk(Frame& frame)
             frame.pixels+frame.rowstride*m_height, 0);
 }
 
-void Decoder::readCopyChunk(Frame& frame)
+void Decoder::readCopyChunk(Frame& frame, uint32_t dataSize)
 {
-  assert(m_width == 320 && m_height == 200);
-  if (m_width == 320 && m_height == 200) {
-    for (int y=0; y<200; ++y) {
-      uint8_t* it = frame.pixels + y*frame.rowstride;
-      for (int x=0; x<320; ++x, ++it)
-        *it = m_file->read8();
-    }
+  // The chunk holds the raw pixels of the whole frame, top to bottom. Some
+  // producers write fewer bytes than width*height, in that case the remaining
+  // pixels are left as they were in the previous frame.
+  uint32_t remaining = dataSize;
+  for (int y=0; y<m_height && remaining > 0; ++y) {
+    uint8_t* it = frame.pixels + y*frame.rowstride;
+    for (int x=0; x<m_width && remaining > 0; ++x, ++it, --remaining)
+      *it = m_file->read8();
   }
+}
+
+bool Decoder::isFrameHeaderAt(uint32_t pos)
+{
+  if (pos == 0)
+    return false;
+  m_file->seek(pos);
+  if (!m_file->ok())
+    return false;
+  read32(); // frame size
+  return m_file->ok() && read16() == FLI_FRAME_MAGIC_NUMBER;
 }
 
 void Decoder::readColorChunk(Frame& frame, bool oldColorChunk)

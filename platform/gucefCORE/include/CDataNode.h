@@ -71,6 +71,8 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CValueList;
+
 /**
  *      Simple datanode class.
  *      Can be used to build a tree of data with each tree node
@@ -317,6 +319,70 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
 
     bool GetValuesOfChildByName( const CString& name           ,
                                  CString::StringSet& outValues ) const;
+
+    /**
+     *  Stores the strings, in order, as the values of the children of the child node with the given name (an array node
+     *  when it has to be made): the form GetValuesOfChildByName() reads back and that survives every data tree codec
+     *
+     *  @param name the name of the child node that holds the values
+     *  @param values the strings to store
+     *  @param linkIfPossible whether the values are linked and not copied
+     *  @param childName the name of each value node, none by default
+     *  @return whether the child node could be found or made
+     */
+    bool SetValuesOfChildByName( const CString& name                  ,
+                                 const CString::StringVector& values  ,
+                                 bool linkIfPossible = false          ,
+                                 const CString& childName = CString::Empty );
+
+    /**
+     *  Reads the values of the children of the child node with the given name as strings, in the order of the children.
+     *  This is what SetValuesOfChildByName() stores. Children that are arrays and children without a value are skipped.
+     *
+     *  @param name the name of the child node that holds the values
+     *  @param outValues receives the strings: it is cleared first, so it is empty when there is no such child node
+     *  @return whether the child node exists
+     */
+    bool GetValuesOfChildByName( const CString& name              ,
+                                 CString::StringVector& outValues ) const;
+
+    /**
+     *  Reads a list of strings the way a configuration gives one: as the values of the children of a child node (an array,
+     *  what SetValuesOfChildByName() stores), or as one text, the value of an attribute or of a child node with the given
+     *  name, in which the elements are separated by the separator ("a, b, c"). The elements lose their surrounding blanks
+     *  and empty elements are left out. Attributes have priority over children, as with GetAttributeValueOrChildValueByName().
+     *
+     *  @param name the name of the attribute or child node
+     *  @param outValues receives the strings: it is cleared first, so it is empty when the node does not mention the list
+     *  @param separator the character that separates the elements of a text
+     *  @return false when there is neither an attribute nor a child node with the given name
+     */
+    bool GetStringListByName( const CString& name              ,
+                              CString::StringVector& outValues ,
+                              char separator = ','             ) const;
+
+    /**
+     *  Stores the pairs of a value list as the attributes of the child node with the given name, one attribute per key
+     *  with the first value of the key (an object node when it has to be made): the form that survives every data tree
+     *  codec, JSON included. GetAttributesOfChildByName() reads it back.
+     *
+     *  @param name the name of the child node that holds the attributes
+     *  @param values the pairs to store
+     *  @return whether the child node could be found or made
+     */
+    bool SetAttributesOfChildByName( const CString& name      ,
+                                     const CValueList& values );
+
+    /**
+     *  Reads the attributes of the child node with the given name as the pairs of a value list: what
+     *  SetAttributesOfChildByName() stores.
+     *
+     *  @param name the name of the child node that holds the attributes
+     *  @param outValues receives the pairs: it is emptied first, so it is empty when there is no such child node
+     *  @return whether the child node exists
+     */
+    bool GetAttributesOfChildByName( const CString& name ,
+                                     CValueList& outValues ) const;
 
 
     bool SetMappedValuesOfChildByName( const CString& name                  ,

@@ -77,6 +77,7 @@ CPubSubClient::CPubSubClient( const CORE::PulseGeneratorPtr& pulseGenerator )
     : CORE::CTSGNotifier( pulseGenerator, true, false )
     , CORE::CIConfigurable()
     , m_opaqueUserData( GUCEF_NULL )
+    , m_parentSide( GUCEF_NULL )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -88,6 +89,7 @@ CPubSubClient::CPubSubClient( void )
     : CORE::CTSGNotifier( CORE::PulseGeneratorPtr(), true, false )
     , CORE::CIConfigurable()
     , m_opaqueUserData( GUCEF_NULL )
+    , m_parentSide( GUCEF_NULL )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -99,6 +101,7 @@ CPubSubClient::CPubSubClient( const CPubSubClient& src )
     : CORE::CTSGNotifier( src )
     , CORE::CIConfigurable( src )
     , m_opaqueUserData( src.m_opaqueUserData )
+    , m_parentSide( src.m_parentSide )
 {GUCEF_TRACE;
 
 }
@@ -422,6 +425,25 @@ CPubSubClient::GetOpaqueUserData( void ) const
 {GUCEF_TRACE;
 
     return m_opaqueUserData;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPubSubClient::SetParentSide( CPubSubClientSide* parentSide )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    m_parentSide = parentSide;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPubSubClientSide*
+CPubSubClient::GetParentSide( void ) const
+{GUCEF_TRACE;
+
+    return m_parentSide;
 }
 
 /*-------------------------------------------------------------------------*/

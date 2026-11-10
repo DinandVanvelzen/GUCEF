@@ -65,6 +65,33 @@ files( {
 
 
 
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
 configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -120,6 +147,33 @@ configuration( { "ANDROID64" } )
 
 
 configuration( { "ARDUINO" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "alloc.h",
@@ -281,6 +335,87 @@ configuration( { "IOS" } )
 
 
 
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -309,6 +444,114 @@ configuration( { "LINUX32" } )
 
 
 configuration( { "LINUX64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "MAC" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "MSWIN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "alloc.h",
@@ -525,6 +768,33 @@ configuration( { "WIN32" } )
 
 
 configuration( { "WIN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "WINDOWS" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "alloc.h",

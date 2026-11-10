@@ -3,6 +3,7 @@
         <Dependencies>
             <Dependency Name="RmlUI_Core" />
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefCORE" />
@@ -11,6 +12,7 @@
         <Linker>
             <Dependency Name="RmlUI_Core" />
             <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefCORE" />

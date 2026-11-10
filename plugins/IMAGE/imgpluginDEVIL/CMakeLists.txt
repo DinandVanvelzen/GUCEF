@@ -110,9 +110,9 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 
 if( EMSCRIPTEN32 )
-  set( MODULE_NAME "" )
+  set( MODULE_NAME "imgpluginDEVIL" )
 elseif( EMSCRIPTEN64 )
-  set( MODULE_NAME "" )
+  set( MODULE_NAME "imgpluginDEVIL" )
 elseif( LINUX32 )
   set( MODULE_NAME "imgpluginDEVIL" )
 elseif( LINUX64 )

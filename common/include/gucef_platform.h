@@ -168,6 +168,35 @@
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Whether the target CPU needs multi-byte values at addresses aligned to their natural alignment
+ *
+ *  0: the hardware performs unaligned loads and stores of plain scalars (x86, x86-64, ARM64 on normal memory,
+ *     wasm where alignment is only a performance hint, 8-bit AVR which has no alignment)
+ *  1: an unaligned access can fault or misbehave (32-bit ARM: LDRD, LDM and VFP loads also on ARMv7), and the
+ *     value for a CPU that is not recognised
+ *
+ *  Whatever the CPU, accessing an unaligned object through a typed pointer is undefined behaviour in C and C++:
+ *  code that may see unaligned data reads it with memcpy. This define is meant for code that would pay in memory
+ *  or speed only to satisfy the CPU, for example padding between blocks of a pool allocator.
+ *  Define it as 1 when building to align on every CPU, for example for builds with -fsanitize=alignment.
+ */
+#ifndef GUCEF_CPU_REQUIRES_ALIGNED_ACCESS
+#   if defined( GUCEF_CPU_ARCHITECTURE ) && ( ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_X86 )        || \
+                                              ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_AMD64 )      || \
+                                              ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_ARM64 )      || \
+                                              ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_WASM )       || \
+                                              ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_ATMEGA328P ) || \
+                                              ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_ATMEGA2560 ) || \
+                                              ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_ATMEGA4809 ) )
+#       define GUCEF_CPU_REQUIRES_ALIGNED_ACCESS    0
+#   else
+#       define GUCEF_CPU_REQUIRES_ALIGNED_ACCESS    1
+#   endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 
 /*
  *  O/S Platform detection

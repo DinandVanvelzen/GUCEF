@@ -1,5 +1,5 @@
 /*
- *  pubsubpluginAWSSQS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SQS
+ *  pubsubpluginAWSSNS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SNS
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
  *
@@ -22,27 +22,27 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COMCORE_CPUBSUBCLIENTFACTORY_H
-#include "gucefCOMCORE_CPubSubClientFactory.h"
-#define GUCEF_COMCORE_CPUBSUBCLIENTFACTORY_H
-#endif /* GUCEF_COMCORE_CPUBSUBCLIENTFACTORY_H ? */
+#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTFACTORY_H
+#include "gucefPUBSUB_CPubSubClientFactory.h"
+#define GUCEF_PUBSUB_CPUBSUBCLIENTFACTORY_H
+#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTFACTORY_H ? */
 
-#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
-#include "gucefCOMCORE_CComCoreGlobal.h"
-#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
-#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+#ifndef GUCEF_PUBSUB_CPUBSUBGLOBAL_H
+#include "gucefPUBSUB_CPubSubGlobal.h"
+#define GUCEF_PUBSUB_CPUBSUBGLOBAL_H
+#endif /* GUCEF_PUBSUB_CPUBSUBGLOBAL_H ? */
 
 #ifndef GUCEF_PLUGINGLUE_AWSSDK_CAWSSDKGLOBAL_H
 #include "pluginglueAWSSDK_CAwsSdkGlobal.h"
 #define GUCEF_PLUGINGLUE_AWSSDK_CAWSSDKGLOBAL_H
 #endif /* GUCEF_PLUGINGLUE_AWSSDK_CAWSSDKGLOBAL_H ? */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENT_H
-#include "pubsubpluginAWSSQS_CAwsSqsPubSubClient.h"
-#define PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENT_H
-#endif /* PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENT_H ? */
+#ifndef PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENT_H
+#include "pubsubpluginAWSSNS_CAwsSnsPubSubClient.h"
+#define PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENT_H
+#endif /* PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENT_H ? */
 
-#include "pubsubpluginAWSSQS.h"
+#include "pubsubpluginAWSSNS.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -52,7 +52,7 @@
 
 namespace GUCEF {
 namespace PUBSUBPLUGIN {
-namespace AWSSQS {
+namespace AWSSNS {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -60,7 +60,7 @@ namespace AWSSQS {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-typedef CORE::CTFactoryWithParam< COMCORE::CPubSubClient, CAwsSqsPubSubClient, COMCORE::CPubSubClientConfig >    TAwsSqsPubSubClientFactory;
+typedef CORE::CTFactoryWithParam< PUBSUB::CPubSubClient, CAwsSnsPubSubClient, PUBSUB::CPubSubClientConfig, MT::CMutex >    TAwsSnsPubSubClientFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -68,7 +68,7 @@ typedef CORE::CTFactoryWithParam< COMCORE::CPubSubClient, CAwsSqsPubSubClient, C
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-TAwsSqsPubSubClientFactory g_awsSqsClusterPubSubClientFactory;
+TAwsSnsPubSubClientFactory g_awsSnsClusterPubSubClientFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -80,14 +80,14 @@ CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load called on COMCORE pubsub plugin AWSSQS" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load called on PUBSUB plugin AWSSNS" );
     
     // Make sure the AWS glue library is initialized
     PLUGINGLUE::AWSSDK::CAwsSdkGlobal::Instance();
     
-    COMCORE::CComCoreGlobal::Instance()->GetPubSubClientFactory().RegisterConcreteFactory( CAwsSqsPubSubClient::TypeName, &g_awsSqsClusterPubSubClientFactory );
+    PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().RegisterConcreteFactory( CAwsSnsPubSubClient::TypeName, &g_awsSnsClusterPubSubClientFactory );
     
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load finished for COMCORE pubsub plugin AWSSQS" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load finished for PUBSUB plugin AWSSNS" );
     return 1;
 }
 
@@ -97,11 +97,11 @@ void GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload called on COMCORE pubsub plugin AWSSQS" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload called on PUBSUB plugin AWSSNS" );
 
-    COMCORE::CComCoreGlobal::Instance()->GetPubSubClientFactory().UnregisterConcreteFactory( CAwsSqsPubSubClient::TypeName );
+    PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().UnregisterConcreteFactory( CAwsSnsPubSubClient::TypeName );
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload finished for COMCORE pubsub plugin AWSSQS" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload finished for PUBSUB plugin AWSSNS" );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -134,7 +134,16 @@ const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    return "Generic GUCEF plugin for COMCORE \"AWS's SQS\" pubsub connectivity";
+    return "Generic GUCEF plugin for PUBSUB \"AWS's SNS\" connectivity";
+}
+
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefCORE,gucefPUBSUB";
 }
 
 /*-------------------------------------------------------------------------//
@@ -143,7 +152,7 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace AWSSQS */
+}; /* namespace AWSSNS */
 }; /* namespace PUBSUBPLUGIN */
 }; /* namespace GUCEF */
 

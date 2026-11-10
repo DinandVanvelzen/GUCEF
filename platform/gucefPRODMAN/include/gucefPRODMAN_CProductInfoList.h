@@ -38,6 +38,11 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_PRODMAN_CPRODUCTINFO_H
 #include "gucefPRODMAN_CProductInfo.h"
 #define GUCEF_PRODMAN_CPRODUCTINFO_H

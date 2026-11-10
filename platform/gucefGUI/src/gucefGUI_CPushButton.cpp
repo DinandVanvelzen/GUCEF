@@ -36,36 +36,15 @@ namespace GUI {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-const CORE::CEvent CPushButton::ButtonDownEvent = "GUCEF::GUI::CPushButton::ButtonDownEvent";
-const CORE::CEvent CPushButton::ButtonUpEvent = "GUCEF::GUI::CPushButton::ButtonUpEvent";
-const CORE::CEvent CPushButton::ButtonClickedEvent = "GUCEF::GUI::CPushButton::ButtonClickedEvent";
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      UTILITIES                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-    
-void
-CPushButton::RegisterEvents( void )
-{GUCEF_TRACE;
-
-    ButtonDownEvent.Initialize();
-    ButtonUpEvent.Initialize();
-    ButtonClickedEvent.Initialize();
-}
-
-/*-------------------------------------------------------------------------*/
 
 CPushButton::CPushButton( void )
-    : CWidget( "PushButton" )
+    : CButton( "PushButton" )
 {GUCEF_TRACE;
 
-    RegisterEvents();
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -73,23 +52,30 @@ CPushButton::CPushButton( void )
 CPushButton::~CPushButton()
 {GUCEF_TRACE;
 
+
 }
 
 /*-------------------------------------------------------------------------*/
-    
-bool
-CPushButton::SetButtonText( const CString& newText )
-{
-    return false;
+
+CWidget*
+CPushButton::Create( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CPushButton();
 }
 
 /*-------------------------------------------------------------------------*/
-    
-bool
-CPushButton::GetButtonText( CString& text ) const
-{
-    return false;
+
+const CString&
+CPushButton::GetClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    static const CString classTypeName = "GUCEF::GUI::CPushButton";
+    return classTypeName;
 }
+
+/*-------------------------------------------------------------------------*/
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

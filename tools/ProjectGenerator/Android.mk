@@ -21,17 +21,18 @@ LOCAL_MODULE := ProjectGenerator
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/ProjectGenerator.cpp \
   src/main.cpp
 
 LOCAL_C_INCLUDES := \
+  $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../ProjectGen/include
 
-LOCAL_CFLAGS := -DGUCEF_PROJECTGENERATOR_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_PROJECTGENERATOR_BUILD_MODULE -DMODULE_CONSENSUS_NAME=ProjectGenerator -DMODULE_NAME=ProjectGenerator
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+	<Module Name="AncestryDotComBackup" Platform="All" Type="Executable" Tags="tools" >
+		<Dependencies>
+			<Dependency Name="AncestryDotComBackupLib" />
+			<Dependency Name="gucefVFS" />
+			<Dependency Name="gucefWEB" />
+			<Dependency Name="gucefCOMCORE" />
+			<Dependency Name="gucefCORE" />
+			<Dependency Name="gucefMT" />
+		</Dependencies>
+		<Linker>
+			<Dependency Name="AncestryDotComBackupLib" />
+			<Dependency Name="gucefVFS" />
+			<Dependency Name="gucefWEB" />
+			<Dependency Name="gucefCOMCORE" />
+			<Dependency Name="gucefCORE" />
+			<Dependency Name="gucefMT" />
+		</Linker>
+		<RuntimeDependencies>
+            <RuntimeDependency Name="vfspluginLIBARCHIVE" />
+			<RuntimeDependency Name="dstorepluginJSONPARSER" />
+			<RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
+			<RuntimeDependency Name="codecspluginZLIB" />
+			<RuntimeDependency Name="httpclientpluginCURL" />
+		</RuntimeDependencies>
+	</Module>
+</ModuleInfoEntry>

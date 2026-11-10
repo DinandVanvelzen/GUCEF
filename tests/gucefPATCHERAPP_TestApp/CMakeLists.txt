@@ -11,7 +11,12 @@
 
 # Configuration for module: gucefPATCHERAPP_TestApp
 
+set( HEADER_FILES 
+  include/TestPatchEngine.h
+)
+
 set( SOURCE_FILES 
+  src/TestPatchEngine.cpp
   src/gucefPATCHERAPP_TestApp.cpp
 )
 
@@ -30,54 +35,44 @@ if ( WIN32 )
 else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} gucefLOADER )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefLOADER )
+add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefPATCHERAPP_TestApp;MODULE_NAME=gucefPATCHERAPP_TestApp" )
 
-include_directories( ../../common/include ../../platform ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include )
-
-if ( ANDROID32 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( ANDROID32 )
-
-if ( ANDROID64 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( ANDROID64 )
-
-if ( ARDUINO )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( ARDUINO )
-
-if ( EMSCRIPTEN32 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( EMSCRIPTEN32 )
-
-if ( EMSCRIPTEN64 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( EMSCRIPTEN64 )
-
-if ( IOS )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( IOS )
-
-if ( LINUX32 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
-endif( LINUX32 )
-
-if ( LINUX64 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
-endif( LINUX64 )
-
-if ( OSX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( OSX )
-
 if ( WIN32 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin )
+  add_dependencies( ${MODULE_NAME} gucefLOADER )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefLOADER )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin )
+  add_dependencies( ${MODULE_NAME} gucefLOADER )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefLOADER )
+endif( WIN64 )
+
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include include )
+
+if ( ANDROID32 )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
+
+if ( LINUX32 )
+  include_directories( ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include/linux )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  include_directories( ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include/linux )
+endif( LINUX64 )
+
+if ( WIN32 )
+  include_directories( ../../common/include ../../platform ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
+endif( WIN32 )
+
+if ( WIN64 )
+  include_directories( ../../common/include ../../platform ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
 
 

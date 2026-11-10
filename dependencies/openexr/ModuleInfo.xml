@@ -8,6 +8,14 @@
         </Linker>
         <Preprocessor>
         </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=gnu++14" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux">
+        <Linker>
+            <Dependency Name="pthread" Scope="private" />
+        </Linker>
     </Module>
     <Module Platform="mswin">
         <Preprocessor>

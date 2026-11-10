@@ -12,15 +12,21 @@
 
 workspace( "GUCEF_exe_ServerPortExtender" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "ANDROID"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -44,6 +50,12 @@ filter "ARDUINO"
   include( "platform/gucefMT" )
   include( "tools/ServerPortExtender" )
 
+filter "EMSCRIPTEN"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
 filter "EMSCRIPTEN32"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -62,6 +74,24 @@ filter "IOS"
   include( "platform/gucefMT" )
   include( "tools/ServerPortExtender" )
 
+filter "IPHONE"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "IPHONEOS"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "LINUX"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
 filter "LINUX32"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -69,6 +99,30 @@ filter "LINUX32"
   include( "tools/ServerPortExtender" )
 
 filter "LINUX64"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "MAC"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "MACOS"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "MACOSX"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "MSWIN"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -87,6 +141,12 @@ filter "WIN32"
   include( "tools/ServerPortExtender" )
 
 filter "WIN64"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "WINDOWS"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )

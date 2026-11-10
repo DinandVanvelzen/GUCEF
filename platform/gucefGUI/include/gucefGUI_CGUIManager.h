@@ -94,8 +94,6 @@ class GUCEF_GUI_PUBLIC_CPP CGUIManager : public CORE::CObservingNotifier
     TGuiContextPtr CreateGUIContext( const CString& guiDriverName    ,
                                      TWindowContextPtr windowContext );
     
-    void DestroyGUIContext( CIGUIContext* context );
-    
     void RegisterGenericFormFactory( const CString& formTypeName   ,
                                      TConcreteFormFactory* factory );
     
@@ -108,9 +106,8 @@ class GUCEF_GUI_PUBLIC_CPP CGUIManager : public CORE::CObservingNotifier
     // creates a generic form, this form will have to context
     // associated with it. It is recommended to create forms
     // via the gui context
+    // the form goes away when the last reference to it is dropped
     CFormPtr CreateGenericForm( const CString& formTypeName );
-    
-    void DestroyGenericForm( CForm* genericForm );
     
     void RegisterGUIDriver( const CString& guiDriverName, CGUIDriver* guiDriver );
     
@@ -146,7 +143,7 @@ class GUCEF_GUI_PUBLIC_CPP CGUIManager : public CORE::CObservingNotifier
                                       
     private:
     
-    typedef std::map< CString, CGUIDriver* > TGUIDriverMap;
+    typedef GUCEF::map< CString, CGUIDriver* > TGUIDriverMap;
     
     CFormFactory m_genericFormFactory;
     TGUIDriverMap m_guiDrivers;

@@ -28,6 +28,7 @@
             <Dependency Name="Ws2_32.lib" Scope="private" />
 			<Dependency Name="PowrProf.lib" Scope="private" />
 			<Dependency Name="Shlwapi.lib" Scope="private" />
+			<Dependency Name="Bcrypt.lib" Scope="private" />
         </Linker>
     </Module>  
     <Module Platform="linux">
@@ -72,6 +73,7 @@
             <Dependency Name="Ws2_32.lib" Scope="private" />
 			<Dependency Name="PowrProf.lib" Scope="private" />
 			<Dependency Name="Shlwapi.lib" Scope="private" />
+			<Dependency Name="Bcrypt.lib" Scope="private" />
         </Linker>
     </Module>  
     <Module Platform="Linux">

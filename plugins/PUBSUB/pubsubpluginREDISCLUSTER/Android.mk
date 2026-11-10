@@ -55,7 +55,6 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefPUBSUB/include \
@@ -65,7 +64,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../tools/redisinfo \
   $(MY_MODULE_PATH)/../../../tools/redisinfo/include
 
-LOCAL_CFLAGS := -DPUBSUBPLUGIN_REDISCLUSTER_BUILD_PLUGIN_DLL
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=pubsubpluginREDISCLUSTER -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=pubsubpluginREDISCLUSTER -DPUBSUBPLUGIN_REDISCLUSTER_BUILD_PLUGIN_DLL
 
 
 LOCAL_SHARED_LIBRARIES := \

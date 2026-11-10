@@ -245,7 +245,7 @@ CWidgetImp< BaseClass >::Hook( CEGUI::Window* window )
 
     m_window = window;
     m_window->setUserData( this );
-    SetImplementationPtr( m_window );
+    this->SetImplementationPtr( m_window );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -287,7 +287,7 @@ CWidgetImp< BaseClass >::GetChildWidget( const CString& widgetName )
         return NULL;
     }
     
-    return static_cast< CWidget* >( childWidget->getUserData() );
+    return static_cast< GUI::CWidget* >( childWidget->getUserData() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -539,7 +539,7 @@ CWidgetImp< BaseClass >::GetParentWidget( void )
     CEGUI::Window* parent = m_window->getParent();
     if ( NULL != parent )
     {
-        return static_cast< CWidget* >( parent->getUserData() );
+        return static_cast< GUI::CWidget* >( parent->getUserData() );
     }
     return NULL;
 }
@@ -556,7 +556,7 @@ CWidgetImp< BaseClass >::GetChildWidgetSet( TWidgetSet& childSet )
         CEGUI::Window* childWindow = m_window->getChildAtIdx( i );
         if ( NULL != childWindow )
         {
-            GUCEF::GUI::CWidget* wrapWindow = static_cast< CWidget* >( childWindow->getUserData() );
+            GUCEF::GUI::CWidget* wrapWindow = static_cast< GUI::CWidget* >( childWindow->getUserData() );
             if ( NULL != wrapWindow )
             {
                 childSet.insert( wrapWindow );
@@ -694,7 +694,7 @@ bool
 CWidgetImp< BaseClass >::OnMouseDown( const CEGUI::EventArgs& e )
 {GUCEF_TRACE;
 
-    NotifyObservers( MouseDownEvent );
+    this->NotifyObservers( BaseClass::MouseDownEvent );
     return true;
 }
 
@@ -705,7 +705,7 @@ bool
 CWidgetImp< BaseClass >::OnMouseUp( const CEGUI::EventArgs& e )
 {GUCEF_TRACE;
 
-    NotifyObservers( MouseUpEvent );
+    this->NotifyObservers( BaseClass::MouseUpEvent );
     return true;
 }
 /*-------------------------------------------------------------------------//

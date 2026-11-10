@@ -27,6 +27,7 @@
 
 #ifndef GUCEF_CORE_DVFILEUTILS_H
 #include "dvfileutils.h"       /* cross-platform file utils */
+#include "dvcppfileutils.h"    /* cross-platform C++ file utils */
 #define GUCEF_CORE_DVFILEUTILS_H
 #endif /* GUCEF_CORE_DVFILEUTILS_H ? */
 
@@ -82,7 +83,7 @@ CSubFileAccess::Load( const CString& file ,
     if ( NULL != m_file )
     {
         fseek( m_file, (long) m_offset, SEEK_SET );
-        m_totalSize = Filesize( m_filename.C_String() );
+        m_totalSize = FileSize( m_filename );
         return true;
     }                
     return false;
@@ -107,7 +108,7 @@ CSubFileAccess::Open( void )
     m_file = fopen( m_filename.C_String() ,
                     "rb"                  );
     fseek( m_file, (long) m_offset, SEEK_SET );
-    m_totalSize = Filesize( m_filename.C_String() );
+    m_totalSize = FileSize( m_filename );
 }
 
 /*-------------------------------------------------------------------------*/

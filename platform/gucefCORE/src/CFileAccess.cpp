@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -51,9 +49,33 @@
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #include <io.h>
     #include <fcntl.h>
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #include <sys/types.h>
+    #include <sys/stat.h>          /* needed for _fstat64() */
+    #define GUCEF_FILEACCESS_POSIX_LIKE_FSTAT
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+       ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+       ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
     #include <stdlib.h>
     #include <stdio.h>
+    #include <unistd.h>            /* needed for fsync() */
+    #include <fcntl.h>             /* needed for F_FULLFSYNC on the Apple platforms */
+    #include <sys/stat.h>          /* needed for fstat() */
+    #define GUCEF_FILEACCESS_POSIX_LIKE_FSTAT
+#endif
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      MACROS                                                             //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+// Offset capable (64 bit where the platform allows) stdio positioning
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    #define GUCEF_FILEACCESS_FSEEK( file, offset, origin )  _fseeki64( (file), (__int64) (offset), (origin) )
+    #define GUCEF_FILEACCESS_FTELL( file )                  _ftelli64( (file) )
+#else
+    #define GUCEF_FILEACCESS_FSEEK( file, offset, origin )  fseeko( (file), (off_t) (offset), (origin) )
+    #define GUCEF_FILEACCESS_FTELL( file )                  ftello( (file) )
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -70,6 +92,40 @@ namespace CORE {
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  Determines the size of an open file: of the file the stream has open, never of a path (which may name another file
+ *  by now, after a replace by rename). From the descriptor (fstat) for a regular file, else by seeking to the end of the
+ *  stream with the position restored. A stream that was written to must be flushed first.
+ */
+static UInt64
+GetSizeOfOpenFile( FILE* file )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == file )
+        return 0;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    struct _stat64 info;
+    if ( 0 == _fstat64( _fileno( file ), &info ) && 0 != ( info.st_mode & _S_IFREG ) )
+        return info.st_size > 0 ? (UInt64) info.st_size : 0;
+    #elif defined( GUCEF_FILEACCESS_POSIX_LIKE_FSTAT )
+    struct stat info;
+    if ( 0 == fstat( fileno( file ), &info ) && S_ISREG( info.st_mode ) )
+        return info.st_size > 0 ? (UInt64) info.st_size : 0;
+    #endif
+
+    fflush( file );
+    const Int64 originalPos = (Int64) GUCEF_FILEACCESS_FTELL( file );
+    if ( originalPos < 0 || 0 != GUCEF_FILEACCESS_FSEEK( file, 0, SEEK_END ) )
+        return 0;
+
+    const Int64 size = (Int64) GUCEF_FILEACCESS_FTELL( file );
+    GUCEF_FILEACCESS_FSEEK( file, originalPos, SEEK_SET );
+    return size > 0 ? (UInt64) size : 0;
+}
+
+/*-------------------------------------------------------------------------*/
 
 CFileAccess::CFileAccess( void )
     : CIOAccess()    
@@ -192,8 +248,9 @@ CFileAccess::Open( const CString& file ,
 
     if ( _writeable )
     {
+        // Note that an empty path means the file is in the current working directory
         CString path = StripFilename( m_filename );
-        if ( !DirExists( path ) )
+        if ( !path.IsNULLOrEmpty() && !DirExists( path ) )
         {
             if ( !CreateDirs( path ) )
             {
@@ -235,8 +292,9 @@ CFileAccess::Open( const CString& file               ,
 
     if ( _writeable )
     {
+        // Note that an empty path means the file is in the current working directory
         CString path = StripFilename( file );
-        if ( !CreateDirs( path ) )
+        if ( !path.IsNULLOrEmpty() && !DirExists( path ) && !CreateDirs( path ) )
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "FileAccess:Open: Failed to recursively create directories" );
             return false;
@@ -356,6 +414,69 @@ CFileAccess::Open( const CString& file               ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CFileAccess::OpenFromFileDescriptor( int fd             ,
+                                     const char* mode   ,
+                                     bool takeOwnership )
+{GUCEF_TRACE;
+
+    Close();
+
+    m_filename.Clear();
+    m_mode = mode;
+    _readable = ( strchr( mode, 'r' ) != GUCEF_NULL ) || ( strchr( mode, 'a' ) != GUCEF_NULL );
+    _writeable = ( strchr( mode, 'w' ) != GUCEF_NULL ) || ( strchr( mode, 'a' ) != GUCEF_NULL );
+    _size = 0;
+
+    if ( fd < 0 )
+        return false;
+
+    int useFd = fd;
+    if ( !takeOwnership )
+    {
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+        useFd = _dup( fd );
+        #else
+        useFd = dup( fd );
+        #endif
+
+        if ( useFd < 0 )
+        {
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "FileAccess:OpenFromFileDescriptor: Failed to duplicate file descriptor " << fd );
+            return false;
+        }
+    }
+
+    errno = 0;
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    m_file = _fdopen( useFd, mode );
+    #else
+    m_file = fdopen( useFd, mode );
+    #endif
+
+    if ( GUCEF_NULL == m_file )
+    {
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "FileAccess:OpenFromFileDescriptor: Failed to open file descriptor " << fd << " using mode=" << mode << " error=" << GetErrorString( errno ) );
+
+        // Only the duplicate is ours to clean up, the original is the caller's
+        if ( !takeOwnership )
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+            _close( useFd );
+            #else
+            close( useFd );
+            #endif
+        }
+        return false;
+    }
+
+    if ( _readable )
+        _size = GetSizeOfOpenFile( m_file );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void 
 CFileAccess::Close( void )
 {GUCEF_TRACE;
@@ -402,7 +523,8 @@ CFileAccess::Tell( void ) const
 
     if ( GUCEF_NULL != m_file )
     {
-        return ftell( m_file );
+        const Int64 pos = (Int64) GUCEF_FILEACCESS_FTELL( m_file );
+        return pos < 0 ? 0 : (UInt64) pos;
     }
     return 0;
 }
@@ -416,9 +538,9 @@ CFileAccess::Seek( Int64 offset ,
 
     if ( GUCEF_NULL != m_file )
     {
-        return fseek( m_file ,
-                      (long)offset ,
-                      origin );
+        return GUCEF_FILEACCESS_FSEEK( m_file   ,
+                                       offset   ,
+                                       origin   );
     }
     return 0;
 }
@@ -431,9 +553,9 @@ CFileAccess::Setpos( UInt64 position )
 
     if ( GUCEF_NULL != m_file )
     {
-        return fseek( m_file    ,
-                      (long)position  ,
-                      SEEK_SET  );
+        return GUCEF_FILEACCESS_FSEEK( m_file    ,
+                                       position  ,
+                                       SEEK_SET  );
     }
     return 0;
 }
@@ -526,6 +648,10 @@ bool
 CFileAccess::IsValid( void )
 {GUCEF_TRACE;
     
+    // A file opened from a descriptor has no name to check, the open stream is the proof
+    if ( m_filename.IsNULLOrEmpty() )
+        return GUCEF_NULL != m_file;
+
     return FileExists( m_filename );
 }
 
@@ -537,11 +663,11 @@ CFileAccess::GetSize( void ) const
         
     if ( GUCEF_NULL != m_file )
     {        
-        if ( m_file && _writeable )
-        {
-            fflush( m_file );       
-        }
-        return FileSize( m_filename );
+        if ( _writeable )
+            fflush( m_file );
+
+        // the open file, as fstat() gives it, also when the path names another file by now (as ftell() would answer)
+        return GetSizeOfOpenFile( m_file );
     }
     return 0;
 }
@@ -560,11 +686,48 @@ CFileAccess::Flush( void )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CFileAccess::Sync( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_file )
+        return false;
+
+    if ( 0 != fflush( m_file ) )
+        return false;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    return 0 == _commit( _fileno( m_file ) );
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    return 0 == fsync( fileno( m_file ) );
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    // fsync() on the Apple platforms only hands the data to the drive, F_FULLFSYNC asks the drive to write its cache
+    // to the medium; file systems that do not support it fail the call, fsync() is the best they offer then
+    const int fd = fileno( m_file );
+    return 0 == fcntl( fd, F_FULLFSYNC ) || 0 == fsync( fd );
+
+    #else
+
+    GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "CFileAccess::Sync: Platform has no supported implementation" );
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
 CICloneable* 
 CFileAccess::Clone( void ) const
 {GUCEF_TRACE;
 
-    if ( IsReadable() )
+    // Without a path (opened from a descriptor) we cannot open a separate access with its own file offset
+    if ( IsReadable() && !m_filename.IsNULLOrEmpty() )
     {
         return GUCEF_NEW CFileAccess( m_filename, "rb" );
     }

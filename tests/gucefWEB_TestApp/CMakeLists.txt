@@ -12,13 +12,41 @@
 # Configuration for module: gucefWEB_TestApp
 
 set( HEADER_FILES 
+  include/TestChromeDevTools.h
   include/TestCode_CHTTPClient.h
   include/TestCode_CHTTPServer.h
+  include/TestHttpClient.h
+  include/TestHttpHeaderParsing.h
+  include/TestHttpLogRedaction.h
+  include/TestHttpProxy.h
+  include/TestHttpRawClient.h
+  include/TestHttpRedaction.h
+  include/TestHttpServerBind.h
+  include/TestHttpServerBody.h
+  include/TestIrcWebSocket.h
+  include/TestJsonRpcWebSocket.h
+  include/TestMcpStreamableHttp.h
+  include/TestServiceHealthHttpEndpoints.h
+  include/TestWebSocket.h
+  include/TestWebSocketCodec.h
 )
 
 set( SOURCE_FILES 
+  src/TestChromeDevTools.cpp
   src/TestCode_CHTTPClient.cpp
   src/TestCode_CHTTPServer.cpp
+  src/TestHttpClient.cpp
+  src/TestHttpHeaderParsing.cpp
+  src/TestHttpLogRedaction.cpp
+  src/TestHttpRedaction.cpp
+  src/TestHttpServerBind.cpp
+  src/TestHttpServerBody.cpp
+  src/TestIrcWebSocket.cpp
+  src/TestJsonRpcWebSocket.cpp
+  src/TestMcpStreamableHttp.cpp
+  src/TestServiceHealthHttpEndpoints.cpp
+  src/TestWebSocket.cpp
+  src/TestWebSocketCodec.cpp
   src/gucefWEB_TestApp_main.cpp
 )
 
@@ -41,14 +69,14 @@ add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefWE
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefWEB_TestApp;MODULE_NAME=gucefWEB_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../platform/gucefCORE/include/android )
+  include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )
@@ -60,11 +88,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin ../../platform/gucefWEB/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin ../../platform/gucefWEB/include/mswin )
 endif( WIN64 )
 
 

@@ -274,7 +274,11 @@ struct SContextData
     UInt32 keyModState;
     Int32 mouseXPos;
     Int32 mouseYPos;
-    UInt32 mouseWheelPos;
+    Int32 mouseWheelPos;           /* the wheel in notches */
+    Int32 mouseWheelRemainder;     /* wheel movement short of a notch (high resolution wheels) */
+    Int32 mouseHWheelPos;
+    Int32 mouseHWheelRemainder;
+    WCHAR highSurrogate;           /* the first half of a character outside the BMP typed in two WM_CHAR messages */
     BYTE doGrab;           /* grab the cursor and confine it to the window ? */
     BYTE showCursor;       /* show the O/S cursor ? */
          
@@ -373,7 +377,7 @@ void
 UpdateKeyModState( TContextData* data )
 {         
     GetKeyState( VK_SHIFT ) & 0x80 ? GUCEF_SETBITXON( data->keyModState, KEYMOD_SHIFT_BIT ) : GUCEF_SETBITXOFF( data->keyModState, KEYMOD_SHIFT_BIT );
-    GetKeyState( VK_MENU ) & 0x80 ? GUCEF_SETBITXON( data->keyModState, KEYMOD_META_BIT ) : GUCEF_SETBITXOFF( data->keyModState, KEYMOD_META_BIT );
+    GetKeyState( VK_MENU ) & 0x80 ? GUCEF_SETBITXON( data->keyModState, KEYMOD_ALT_BIT ) : GUCEF_SETBITXOFF( data->keyModState, KEYMOD_ALT_BIT );
     GetKeyState( VK_CONTROL ) & 0x80 ? GUCEF_SETBITXON( data->keyModState, KEYMOD_CTRL_BIT ) : GUCEF_SETBITXOFF( data->keyModState, KEYMOD_CTRL_BIT );     
 }
 
@@ -719,6 +723,105 @@ MapKeyScanCode( const WPARAM wparam, const LPARAM lparam )
 
 /*---------------------------------------------------------------------------*/
 
+#ifndef WM_MOUSEHWHEEL
+#define WM_MOUSEHWHEEL  0x020E
+#endif
+
+/*---------------------------------------------------------------------------*/
+
+/* Passes a typed character on as UTF-8 text; 'unit' is a UTF-16 code unit of a WM_CHAR of a unicode window */
+static void
+SendTypedCharacter( TContextData* data, WCHAR unit )
+{
+    if ( GUCEF_NULL == data->callbacks.onKeyboardText )
+        return;
+
+    UInt32 codePoint = unit;
+    if ( unit >= 0xD800 && unit <= 0xDBFF )
+    {
+        data->highSurrogate = unit;
+        return;
+    }
+    if ( unit >= 0xDC00 && unit <= 0xDFFF )
+    {
+        if ( 0 == data->highSurrogate )
+            return;
+        codePoint = 0x10000 + ( ( (UInt32) data->highSurrogate - 0xD800 ) << 10 ) + ( (UInt32) unit - 0xDC00 );
+    }
+    data->highSurrogate = 0;
+
+    /* control characters (Return, Backspace, Escape, Tab, Delete) are keys, not text */
+    if ( codePoint < 32 || 127 == codePoint )
+        return;
+
+    char utf8[ 5 ];
+    if ( codePoint < 0x80 )
+    {
+        utf8[ 0 ] = (char) codePoint;
+        utf8[ 1 ] = 0;
+    }
+    else
+    if ( codePoint < 0x800 )
+    {
+        utf8[ 0 ] = (char) ( 0xC0 | ( codePoint >> 6 ) );
+        utf8[ 1 ] = (char) ( 0x80 | ( codePoint & 0x3F ) );
+        utf8[ 2 ] = 0;
+    }
+    else
+    if ( codePoint < 0x10000 )
+    {
+        utf8[ 0 ] = (char) ( 0xE0 | ( codePoint >> 12 ) );
+        utf8[ 1 ] = (char) ( 0x80 | ( ( codePoint >> 6 ) & 0x3F ) );
+        utf8[ 2 ] = (char) ( 0x80 | ( codePoint & 0x3F ) );
+        utf8[ 3 ] = 0;
+    }
+    else
+    {
+        utf8[ 0 ] = (char) ( 0xF0 | ( codePoint >> 18 ) );
+        utf8[ 1 ] = (char) ( 0x80 | ( ( codePoint >> 12 ) & 0x3F ) );
+        utf8[ 2 ] = (char) ( 0x80 | ( ( codePoint >> 6 ) & 0x3F ) );
+        utf8[ 3 ] = (char) ( 0x80 | ( codePoint & 0x3F ) );
+        utf8[ 4 ] = 0;
+    }
+    data->callbacks.onKeyboardText( data->callbacks.userData, KEYBOARD_DEVICEID, utf8 );
+}
+
+/*---------------------------------------------------------------------------*/
+
+/* Turns wheel movement in WHEEL_DELTA units into whole notches and reports those as mouse variable 'variable' */
+static void
+SendWheel( TContextData* data, UInt32 variable, Int32 wheelDelta, Int32& remainder, Int32& position )
+{
+    remainder += wheelDelta;
+    Int32 notches = remainder / WHEEL_DELTA;
+    if ( 0 == notches )
+        return;
+    remainder -= notches * WHEEL_DELTA;
+    position += notches;
+    data->callbacks.onMouseVarChanged( data->callbacks.userData, MOUSE_DEVICEID, variable, position, notches );
+}
+
+/*---------------------------------------------------------------------------*/
+
+/* Passes a side button (WM_XBUTTONDOWN / WM_XBUTTONUP) on as button 3 or 4 */
+static void
+SendSideButton( TContextData* data, WPARAM wparam, LPARAM lparam, bool pressed )
+{
+    Int32 xPos = GET_X_LPARAM( lparam );
+    Int32 yPos = GET_Y_LPARAM( lparam );
+    data->callbacks.onMouseMove( data->callbacks.userData, MOUSE_DEVICEID, xPos, yPos, xPos - data->mouseXPos, yPos - data->mouseYPos );
+    data->mouseXPos = xPos;
+    data->mouseYPos = yPos;
+
+    UInt32 button = XBUTTON1 == GET_XBUTTON_WPARAM( wparam ) ? 3 : 4;
+    if ( pressed )
+        data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, button );
+    else
+        data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, button );
+}
+
+/*---------------------------------------------------------------------------*/
+
 LRESULT
 InputDriverProcessMSWINMSG( HWND whnd     , 
                             UINT message  , 
@@ -732,10 +835,24 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
     {
         case WM_CHAR :
         {
-            /* 
-             *      the key down & action has been translated into a char
-             *      In ASCII mode we should only use this
+            /*
+             *      the key down & action has been translated into a char: this is the text the user typed
+             *      A unicode window gets UTF-16 code units, others a character of the ANSI code page
              */
+            if ( ::GetFocus() == data->hWnd )
+            {
+                if ( ::IsWindowUnicode( data->hWnd ) )
+                {
+                    SendTypedCharacter( data, (WCHAR) wparam );
+                }
+                else
+                {
+                    char ansi = (char) wparam;
+                    WCHAR wide[ 2 ] = { 0, 0 };
+                    if ( 1 == ::MultiByteToWideChar( CP_ACP, 0, &ansi, 1, wide, 2 ) )
+                        SendTypedCharacter( data, wide[ 0 ] );
+                }
+            }
             break;
         }
         case WM_POWER :
@@ -763,7 +880,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                 case VK_MENU :
                 {
                     /* this is the alt key */
-                    GUCEF_SETBITXOFF( data->keyModState, KEYMOD_META_BIT );
+                    GUCEF_SETBITXOFF( data->keyModState, KEYMOD_ALT_BIT );
                     break;                                        
                 } 
                 case VK_CONTROL :
@@ -779,7 +896,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                     data->mouseXPos = xPos;
                     data->mouseYPos = yPos;  
                         
-                    data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 4 );
+                    data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 3 );
                     break;
                 }
                 case VK_XBUTTON2 :
@@ -790,7 +907,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                     data->mouseXPos = xPos;
                     data->mouseYPos = yPos;  
                         
-                    data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 5 );
+                    data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 4 );
                     break;
                 }                                                               
                 default :
@@ -837,7 +954,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                 }
                 case VK_MENU :
                 {
-                    GUCEF_SETBITXON( data->keyModState, KEYMOD_META_BIT );
+                    GUCEF_SETBITXON( data->keyModState, KEYMOD_ALT_BIT );
                     break;                                        
                 } 
                 case VK_CONTROL :
@@ -853,7 +970,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                     data->mouseXPos = xPos;
                     data->mouseYPos = yPos;  
                         
-                    data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 4 );
+                    data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 3 );
                     break;
                 }
                 case VK_XBUTTON2 :
@@ -864,7 +981,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                     data->mouseXPos = xPos;
                     data->mouseYPos = yPos;  
                         
-                    data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 5 );
+                    data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 4 );
                     break;
                 }
                 default :
@@ -889,21 +1006,36 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
             break;
         }
         case WM_MOUSEWHEEL :
+        case WM_MOUSEHWHEEL :
         {
             if ( ::GetFocus() == data->hWnd )
             {
-                UInt32 zDelta = (short)HIWORD(wparam);
-                        
-                UInt32 xPos = GET_X_LPARAM( lparam );
-                UInt32 yPos = GET_Y_LPARAM( lparam );
-                data->callbacks.onMouseMove( data->callbacks.userData, MOUSE_DEVICEID, xPos, yPos, xPos - data->mouseXPos, yPos - data->mouseYPos );
-                data->mouseXPos = xPos;
-                data->mouseYPos = yPos;  
+                /* the wheel messages have the pointer in screen coordinates */
+                POINT pos;
+                pos.x = GET_X_LPARAM( lparam );
+                pos.y = GET_Y_LPARAM( lparam );
+                ::ScreenToClient( data->hWnd, &pos );
+                data->callbacks.onMouseMove( data->callbacks.userData, MOUSE_DEVICEID, pos.x, pos.y, pos.x - data->mouseXPos, pos.y - data->mouseYPos );
+                data->mouseXPos = pos.x;
+                data->mouseYPos = pos.y;
 
-                //zDelta = GET_WHEEL_DELTA_WPARAM( wParam ); // macro in MSDN but unknown                        
-                data->callbacks.onMouseVarChanged( data->callbacks.userData, MOUSE_DEVICEID, 0, data->mouseWheelPos, zDelta );
-                data->mouseWheelPos += zDelta;
+                /* away from the user and tilting right are positive */
+                Int32 wheelDelta = (short) HIWORD( wparam );
+                if ( WM_MOUSEWHEEL == message )
+                    SendWheel( data, 0, wheelDelta, data->mouseWheelRemainder, data->mouseWheelPos );
+                else
+                    SendWheel( data, 1, wheelDelta, data->mouseHWheelRemainder, data->mouseHWheelPos );
             }
+            break;
+        }
+        case WM_XBUTTONDOWN :
+        {
+            SendSideButton( data, wparam, lparam, true );
+            break;
+        }
+        case WM_XBUTTONUP :
+        {
+            SendSideButton( data, wparam, lparam, false );
             break;
         }
         case WM_LBUTTONDOWN :
@@ -936,7 +1068,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
             data->mouseXPos = xPos;
             data->mouseYPos = yPos;  
                         
-            data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 1 );
+            data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 2 );
             break;
         }
         case WM_MBUTTONUP :
@@ -947,7 +1079,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
             data->mouseXPos = xPos;
             data->mouseYPos = yPos; 
                         
-            data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 1 );
+            data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 2 );
             break;
         }                                 
         case WM_RBUTTONDOWN :
@@ -958,7 +1090,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
             data->mouseXPos = xPos;
             data->mouseYPos = yPos;  
                         
-            data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 2 );
+            data->callbacks.onMouseButtonDown( data->callbacks.userData, MOUSE_DEVICEID, 1 );
             break;
         }
         case WM_RBUTTONUP :
@@ -969,7 +1101,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
             data->mouseXPos = xPos;
             data->mouseYPos = yPos; 
                         
-            data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 2 );
+            data->callbacks.onMouseButtonUp( data->callbacks.userData, MOUSE_DEVICEID, 1 );
             break;   
         }                
         case WM_ACTIVATE :
@@ -1108,6 +1240,11 @@ INPUTDRIVERPLUG_CreateContext( void* plugdata                   ,
     data->inUse = 1;              /* we are using this context */
     data->doGrab = 0;             /* default win32 is no input cursor grabbing */
     data->showCursor = 1;         /* default win32 is to always show the cursor */
+    data->mouseWheelPos = 0;
+    data->mouseWheelRemainder = 0;
+    data->mouseHWheelPos = 0;
+    data->mouseHWheelRemainder = 0;
+    data->highSurrogate = 0;
         
     /* 
         *      get the window handle, this is always passed for MSWIN input drivers 

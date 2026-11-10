@@ -64,7 +64,8 @@ class GUCEF_CORE_PUBLIC_CPP CMSWinConsoleLogger : public CIConsoleLogger
 {
     public:
 
-    CMSWinConsoleLogger( void );
+    /** @param ownWindow  a console window of its own, also when the application has the console it was started from */
+    explicit CMSWinConsoleLogger( bool ownWindow = false );
 
     virtual ~CMSWinConsoleLogger();
 
@@ -114,7 +115,8 @@ class GUCEF_CORE_PUBLIC_CPP CMSWinConsoleLogger : public CIConsoleLogger
     Int32 m_minimalLogLevel;
     bool m_formatForUiPurpose;
     HANDLE m_consoleHandle;
-    bool m_ownedConsole;
+    bool m_ownedConsole;
+    bool m_leftParentConsole;      /**< the console the application was started from was let go for one of its own */
     WORD m_originalConsoleAttribs;
     TLoggingFormatterPtr m_logFormatter;
 };

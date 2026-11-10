@@ -12,9 +12,9 @@
 
 workspace( "GUCEF_tag_obsolete" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
@@ -22,17 +22,27 @@ workspace( "GUCEF_tag_obsolete" )
 
 filter "ALL"
 
+filter "ANDROID"
+
 filter "ANDROID32"
 
 filter "ANDROID64"
 
 filter "ARDUINO"
 
+filter "EMSCRIPTEN"
+
 filter "EMSCRIPTEN32"
 
 filter "EMSCRIPTEN64"
 
 filter "IOS"
+
+filter "IPHONE"
+
+filter "IPHONEOS"
+
+filter "LINUX"
 
 filter "LINUX32"
   include( "platform/gucefCORE" )
@@ -43,6 +53,14 @@ filter "LINUX64"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/CMakeListGenerator" )
+
+filter "MAC"
+
+filter "MACOS"
+
+filter "MACOSX"
+
+filter "MSWIN"
 
 filter "OSX"
 
@@ -55,3 +73,5 @@ filter "WIN64"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/CMakeListGenerator" )
+
+filter "WINDOWS"

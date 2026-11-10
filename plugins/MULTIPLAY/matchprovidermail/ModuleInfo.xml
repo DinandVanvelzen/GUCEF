@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="matchprovidermail" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefMULTIPLAY match provider plugin that carries matches between players as e-mail</DescriptionHeadline>
+            <DescriptionDetails>The match provider mail: matches between participants who each have an ordinary mailbox, without a server of ours. Every participant signs what they send, turns travel as mail with an attachment or as encoded text in the body, are received over IMAP (IDLE or polling) or POP3 and are applied only after the signatures, the chain of revisions and the game's own replay check agree.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_MULTIPLAYPLUGIN_MAIL_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

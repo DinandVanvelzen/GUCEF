@@ -189,6 +189,23 @@ CAsyncVfsOperation::OnTaskCycle( CORE::CTaskPtr task )
             if ( !NotifyObservers( AsyncVfsOperationCompletedEvent, &syncCallResult ) ) return true;
             break;
         }
+        case ASYNCVFSOPERATIONTYPE_MOVEFILE:
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncVfsOperation(" + CORE::PointerToString( this ) + "):OnTaskCycle: Async invocation of MoveFile" );
+
+            CMoveFileTaskData* specificSyncCallData = static_cast< CMoveFileTaskData* >( syncCallData );
+            bool success = CVfsGlobal::Instance()->GetVfs().MoveFile( specificSyncCallData->originalFilepath ,
+                                                                      specificSyncCallData->newFilepath      ,
+                                                                      specificSyncCallData->overwrite        );
+
+            syncCallResult.successState = success;
+            syncCallResult.durationInMilliSecs = (UInt32) startTime.CORE::CDateTime::GetTimeDifferenceInMillisecondsToNow();
+
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncVfsOperation(" + CORE::PointerToString( this ) + "):OnTaskCycle: Completed Async invocation of MoveFile" );
+
+            if ( !NotifyObservers( AsyncVfsOperationCompletedEvent, &syncCallResult ) ) return true;
+            break;
+        }
         case ASYNCVFSOPERATIONTYPE_COPYFILECONTENT:
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncVfsOperation(" + CORE::PointerToString( this ) + "):OnTaskCycle: Async invocation of CopyFileContent" );

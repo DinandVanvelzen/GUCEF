@@ -1,0 +1,35 @@
+<ModuleInfoEntry>
+    <Module Name="opus" Type="StaticLibrary" Platform="linux;mswin;android">
+        <ModuleMetaData>
+            <License>BSD-3-Clause</License>
+            <SemVer>1.5.2.0</SemVer>
+            <DescriptionHeadline>libopus (Xiph.Org): the Opus audio encoder and decoder, floating point C build</DescriptionHeadline>
+            <DescriptionDetails>The CELT, SILK (floating point) and Opus sources of opus v1.5.2 as listed in its *_sources.mk, without the platform optimisations and without the neural network extensions (DRED, OSCE).</DescriptionDetails>
+        </ModuleMetaData>
+        <Includes Source="Self">
+            <Include Path="include" />
+            <Include Path="celt" />
+            <Include Path="silk" />
+            <Include Path="silk/float" />
+            <Include Path="." />
+        </Includes>
+        <Preprocessor>
+            <Define String="OPUS_BUILD" />
+            <Define String="USE_ALLOCA" />
+        </Preprocessor>
+        <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux;android">
+        <Preprocessor>
+            <Define String="HAVE_ALLOCA_H" />
+            <Define String="HAVE_LRINT" />
+            <Define String="HAVE_LRINTF" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="m" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

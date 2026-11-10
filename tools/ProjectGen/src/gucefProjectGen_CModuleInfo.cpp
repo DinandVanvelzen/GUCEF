@@ -85,6 +85,7 @@ CModuleInfo::CModuleInfo( void )
     , m_namesOfLogicalDependencies()
     , m_includeDirs()
     , m_sourceDirs()
+    , m_includeDirsExcludedFromSearchPaths()
 {GUCEF_TRACE;
 
 }
@@ -112,6 +113,7 @@ CModuleInfo::CModuleInfo( const CModuleInfo& src )
     , m_namesOfLogicalDependencies( src.m_namesOfLogicalDependencies )
     , m_includeDirs( src.m_includeDirs )
     , m_sourceDirs( src.m_sourceDirs )
+    , m_includeDirsExcludedFromSearchPaths( src.m_includeDirsExcludedFromSearchPaths )
 {GUCEF_TRACE;
 
 }
@@ -141,6 +143,7 @@ CModuleInfo::CModuleInfo( CModuleInfo&& src ) GUCEF_NOEXCEPT
     , m_namesOfLogicalDependencies( GUCEF_MOVE( src.m_namesOfLogicalDependencies ) )
     , m_includeDirs( GUCEF_MOVE( src.m_includeDirs ) )
     , m_sourceDirs( GUCEF_MOVE( src.m_sourceDirs ) )
+    , m_includeDirsExcludedFromSearchPaths( GUCEF_MOVE( src.m_includeDirsExcludedFromSearchPaths ) )
 {GUCEF_TRACE;
 
 }
@@ -181,6 +184,7 @@ CModuleInfo::Clear( void )
     m_namesOfLogicalDependencies.clear();
     m_includeDirs.clear();
     m_sourceDirs.clear();
+    m_includeDirsExcludedFromSearchPaths.clear();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -212,6 +216,7 @@ CModuleInfo::Merge( CModuleInfoPtr moduleInfoToMergeIn ,
 
     MergeStringSetMap( m_includeDirs, moduleInfoToMergeIn->m_includeDirs, true );
     MergeStringSetMap( m_sourceDirs, moduleInfoToMergeIn->m_sourceDirs, true );
+    MergeStringSet( m_includeDirsExcludedFromSearchPaths, moduleInfoToMergeIn->m_includeDirsExcludedFromSearchPaths, true );
 
     MergeStringSet( tags, moduleInfoToMergeIn->tags, true );
     MergeStringSet( m_namesOfDependencies, moduleInfoToMergeIn->m_namesOfDependencies, true );
@@ -364,6 +369,19 @@ CModuleInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
                 CORE::CString path = includeNode->GetAttributeValue( "Path" );
 
                 dependencyIncludeDirs.insert( path );
+                ++n;
+            }
+        }
+        else
+        if ( source == "excludedfromsearchpaths" )
+        {
+            // Include dirs whose headers are part of the module but which are not to be used as include search paths
+            CORE::CDataNode::TConstDataNodeSet includes = includesNode->FindChildrenOfType( "Include" );
+            CORE::CDataNode::TConstDataNodeSet::iterator n = includes.begin();
+            while ( n != includes.end() )
+            {
+                const CORE::CDataNode* includeNode = (*n);
+                ExcludeIncludeDirFromSearchPaths( includeNode->GetAttributeValue( "Path" ) );
                 ++n;
             }
         }
@@ -592,6 +610,33 @@ CModuleInfo::GetIncludeDirs( void ) const
 {GUCEF_TRACE;
 
     return m_includeDirs;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfo::ExcludeIncludeDirFromSearchPaths( const CORE::CString& pathToIncludeDir )
+{GUCEF_TRACE;
+
+    m_includeDirsExcludedFromSearchPaths.insert( pathToIncludeDir );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleInfo::IsIncludeDirExcludedFromSearchPaths( const CORE::CString& pathToIncludeDir ) const
+{GUCEF_TRACE;
+
+    return m_includeDirsExcludedFromSearchPaths.find( pathToIncludeDir ) != m_includeDirsExcludedFromSearchPaths.end();
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TStringSet&
+CModuleInfo::GetIncludeDirsExcludedFromSearchPaths( void ) const
+{GUCEF_TRACE;
+
+    return m_includeDirsExcludedFromSearchPaths;
 }
 
 /*---------------------------------------------------------------------------*/

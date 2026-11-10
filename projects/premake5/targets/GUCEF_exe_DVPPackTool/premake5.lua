@@ -12,15 +12,21 @@
 
 workspace( "GUCEF_exe_DVPPackTool" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "ANDROID"
   include( "dependencies/DVPACKSYS" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -44,6 +50,12 @@ filter "ARDUINO"
   include( "platform/gucefMT" )
   include( "tools/DVPPackTool" )
 
+filter "EMSCRIPTEN"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
 filter "EMSCRIPTEN32"
   include( "dependencies/DVPACKSYS" )
   include( "platform/gucefCORE" )
@@ -62,6 +74,24 @@ filter "IOS"
   include( "platform/gucefMT" )
   include( "tools/DVPPackTool" )
 
+filter "IPHONE"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "IPHONEOS"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "LINUX"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
 filter "LINUX32"
   include( "dependencies/DVPACKSYS" )
   include( "platform/gucefCORE" )
@@ -69,6 +99,30 @@ filter "LINUX32"
   include( "tools/DVPPackTool" )
 
 filter "LINUX64"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "MAC"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "MACOS"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "MACOSX"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "MSWIN"
   include( "dependencies/DVPACKSYS" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -87,6 +141,12 @@ filter "WIN32"
   include( "tools/DVPPackTool" )
 
 filter "WIN64"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "WINDOWS"
   include( "dependencies/DVPACKSYS" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )

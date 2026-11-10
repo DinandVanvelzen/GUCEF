@@ -56,6 +56,7 @@ RouteTypeToString( RouteType routeType )
         case Failover:          return "Failover";
         case SpilloverBuffer:   return "SpilloverBuffer";
         case DeadLetter:        return "DeadLetter";
+        case Persistence:       return "Persistence";
         default:                return CString::Empty;
     }
 }
@@ -73,6 +74,7 @@ StringToRouteType( const CORE::CString& routeTypeStr )
     if ( "failover" == routeTypeStrLc ) return Failover;
     if ( "spilloverbuffer" == routeTypeStrLc ) return SpilloverBuffer;
     if ( "deadletter" == routeTypeStrLc ) return DeadLetter;
+    if ( "persistence" == routeTypeStrLc ) return Persistence;
 
     // If we get here treat it as an int
     return (RouteType) CORE::StringToInt32( routeTypeStrLc, Disabled );

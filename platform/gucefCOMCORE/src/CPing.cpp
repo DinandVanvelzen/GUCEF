@@ -202,7 +202,10 @@ CPing::CPing( CORE::PulseGeneratorPtr pulsGenerator )
       m_bytesToSend( 32 )           ,
       m_timeout( 1000 )             ,
       m_minimalPingDelta( 500 )     ,
+      m_osData( GUCEF_NULL )        ,
+      m_userData( GUCEF_NULL )      ,
       m_taskId( 0 )                 ,
+      m_stoppedHostCount( 0 )       ,
       m_pingTaskConsumer()
 {GUCEF_TRACE;
 
@@ -223,7 +226,11 @@ CPing::CPing( void )
       m_bytesToSend( 32 )       ,
       m_timeout( 1000 )         ,
       m_minimalPingDelta( 500 ) ,
-      m_taskId( 0 )
+      m_osData( GUCEF_NULL )    ,
+      m_userData( GUCEF_NULL )  ,
+      m_taskId( 0 )             ,
+      m_stoppedHostCount( 0 )   ,
+      m_pingTaskConsumer()
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -239,6 +246,9 @@ CPing::~CPing()
 {GUCEF_TRACE;
 
     Stop();
+
+    if ( !m_pingTaskConsumer.IsNULL() )
+        m_pingTaskConsumer->Unsubscribe( &AsObserver() );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     UnlinkICMP();
@@ -282,10 +292,27 @@ CPing::Start( const TStringVector& remoteHosts          ,
         m_bytesToSend = bytesToSend;
         m_minimalPingDelta = minimalPingDelta;
 
+        // Every ping sequence is carried out by a consumer of its own, we listen to the events it raises
+        if ( !m_pingTaskConsumer.IsNULL() )
+            m_pingTaskConsumer->Unsubscribe( &AsObserver() );
+        m_pingTaskConsumer = CPingTaskConsumerPtr( GUCEF_NEW CPingTaskConsumer() );
+        m_pingTaskConsumer->Subscribe( &AsObserver() );
+        m_stoppedHostCount = 0;
+
         CPingTaskConsumer::CPingTaskData taskData( remoteHosts, maxPings, bytesToSend, timeout, minimalPingDelta );
         CORE::CFutureResult result = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( m_pingTaskConsumer ,
                                                                                                                              &taskData          );
-        return result.HasAFuture();
+        if ( result.HasNoFuture() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPing: Failed to start the task which carries out the ping sequence" );
+            m_pingTaskConsumer->Unsubscribe( &AsObserver() );
+            m_pingTaskConsumer = CPingTaskConsumerPtr();
+            return false;
+        }
+
+        m_taskId = result.GetTaskId();
+        m_isActive = true;
+        return true;
     }
     return false;
 }
@@ -342,6 +369,12 @@ CPing::OnPumpedNotify( CORE::CNotifier* notifier    ,
     {
         CPingTaskConsumer::CEchoReceivedEventData* taskData = static_cast< CPingTaskConsumer::CEchoReceivedEventData* >( eventdata );
         CPingEventData eventData( taskData->GetHostAddress(), taskData->GetEchoSize(), taskData->GetRoundTripTime() );
+
+        // The sequence is over when every host has stopped
+        ++m_stoppedHostCount;
+        if ( m_stoppedHostCount >= m_remoteHosts.size() )
+            m_isActive = false;
+
         NotifyObservers( PingStoppedEvent, &eventData );
     }
 }

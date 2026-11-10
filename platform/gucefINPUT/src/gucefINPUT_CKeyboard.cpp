@@ -50,6 +50,7 @@
 #define GUCEF_INPUT_CINPUTCONTROLLER_H
 #endif /* GUCEF_INPUT_CINPUTCONTROLLER_H ? */
 
+#include "gucefINPUT_CKeyboardTextEventData.h"
 #include "gucefINPUT_CKeyboard.h"
 
 /*-------------------------------------------------------------------------//
@@ -69,6 +70,7 @@ namespace INPUT {
 
 const CORE::CEvent CKeyboard::KeyStateChangedEvent = "GUCEF::INPUT::CKeyboard::KeyStateChangedEvent";
 const CORE::CEvent CKeyboard::KeyModStateChangedEvent = "GUCEF::INPUT::CKeyboard::KeyModStateChangedEvent";
+const CORE::CEvent CKeyboard::TextInputEvent = "GUCEF::INPUT::CKeyboard::TextInputEvent";
 
 const char* CKeyboard::DeviceType = "GUCEF::INPUT::CKeyboard";
 
@@ -84,6 +86,7 @@ CKeyboard::RegisterEvents( void )
 
     KeyStateChangedEvent.Initialize();
     KeyModStateChangedEvent.Initialize();
+    TextInputEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -174,7 +177,25 @@ CKeyboard::SetKeyState( const Int32 contextId   ,
 
     m_keyState[ key ] = pressedState;
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Setting state of key [" + KeyCodeToString( key ) + "] to " + CORE::BoolToString( pressedState ) + " on keyboard " + CORE::Int32ToString(  m_deviceID ) );
+    // the modifier keys keep the modifier state, which comes with every key event
+    KeyModifier modifier = (KeyModifier) 0;
+    bool otherSideDown = false;
+    switch ( key )
+    {
+        case KEYCODE_LSHIFT: modifier = KEYMOD_SHIFT; otherSideDown = IsKeyDown( KEYCODE_RSHIFT ); break;
+        case KEYCODE_RSHIFT: modifier = KEYMOD_SHIFT; otherSideDown = IsKeyDown( KEYCODE_LSHIFT ); break;
+        case KEYCODE_LCONTROL: modifier = KEYMOD_CTRL; otherSideDown = IsKeyDown( KEYCODE_RCONTROL ); break;
+        case KEYCODE_RCONTROL: modifier = KEYMOD_CTRL; otherSideDown = IsKeyDown( KEYCODE_LCONTROL ); break;
+        case KEYCODE_LMENU: modifier = KEYMOD_ALT; otherSideDown = IsKeyDown( KEYCODE_RMENU ); break;
+        case KEYCODE_RMENU: modifier = KEYMOD_ALT; otherSideDown = IsKeyDown( KEYCODE_LMENU ); break;
+        case KEYCODE_LWIN: modifier = KEYMOD_META; otherSideDown = IsKeyDown( KEYCODE_RWIN ); break;
+        case KEYCODE_RWIN: modifier = KEYMOD_META; otherSideDown = IsKeyDown( KEYCODE_LWIN ); break;
+        default: break;
+    }
+    if ( 0 != modifier && ( pressedState || !otherSideDown ) && pressedState != IsKeyModifierActive( modifier ) )
+        SetKeyModState( modifier, pressedState );
+
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "Setting state of key [" << KeyCodeToString( key ) << "] to " << CORE::BoolToString( pressedState ) << " on keyboard " << m_deviceID );
 
     CKeyStateChangedEventData eventData( contextId, m_deviceID, key, pressedState, m_keyModStates );
     NotifyObservers( KeyStateChangedEvent, &eventData );
@@ -187,12 +208,26 @@ CKeyboard::SetKeyModState( const KeyModifier keyMod ,
                            const bool pressedState  )
 {GUCEF_TRACE;
 
-    m_keyModStates = m_keyModStates | keyMod;
+    if ( pressedState )
+        m_keyModStates = m_keyModStates | keyMod;
+    else
+        m_keyModStates = m_keyModStates & ~( (UInt32) keyMod );
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Setting state of key mod [" + KeyModifierToString( keyMod ) + "] to " + CORE::BoolToString( pressedState ) + " on keyboard " + CORE::Int32ToString(  m_deviceID ) );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "Setting state of key mod [" << KeyModifierToString( keyMod ) << "] to " << CORE::BoolToString( pressedState ) << " on keyboard " << m_deviceID );
 
     CKeyModStateChangedEventData eventData( keyMod, pressedState, m_keyModStates );
     NotifyObservers( KeyModStateChangedEvent, &eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CKeyboard::SetText( const Int32 contextId ,
+                    const CString& text   )
+{GUCEF_TRACE;
+
+    CKeyboardTextEventData eventData( contextId, m_deviceID, text );
+    NotifyObservers( TextInputEvent, &eventData );
 }
 
 /*-------------------------------------------------------------------------*/

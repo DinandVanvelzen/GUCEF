@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -24,6 +22,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <vector>
 
 #ifndef GUCEF_CORE_DVOSWRAP_H
 #include "DVOSWRAP.h"            /* OS wrapping functionality */
@@ -263,6 +262,260 @@ OnParserErrorHandler( void* privdata          ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Forwards the read events of a plugin to a CIDocumentParserCallbacks implementation.
+ *  Values held by array and set nodes are reported as node values, matching how BuildDataTree() interprets them.
+ */
+struct SParseForwardData
+{
+    CIDocumentParserCallbacks* callbacks;
+    std::vector< int > nodeTypes;
+    bool hadError;
+};
+
+typedef struct SParseForwardData TParseForwardData;
+
+/*-------------------------------------------------------------------------*/
+
+static inline CVariant
+NodeIdFromName( const char* nodename )
+{GUCEF_TRACE;
+
+    return CVariant( GUCEF_NULL != nodename ? nodename : "" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The value as handed to a codec plugin through the C API.
+ *  Decimals are passed as their canonical text in a UTF8 string: text formats carry them as strings
+ *  (a number would be read back as a double, losing exactness and scale) and plugins do not need to know the type.
+ *  Dates and microsecond timestamps are passed as their ISO 8601 text (yyyy-mm-dd, yyyy-mm-ddThh:mm:ss.ffffffZ) for
+ *  the same reason: plugins do not know these inline types.
+ *  'textForm' provides the storage of the converted value and has to outlive the use of the returned pointer
+ */
+static const TVariantData*
+ValueForCodecPlugin( const CVariant& value, CVariant& textForm )
+{GUCEF_TRACE;
+
+    const UInt8 typeId = value.GetTypeId();
+    if ( value.IsDecimal()                                                 ||
+         GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId          ||
+         GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId          ||
+         GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   ||
+         GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   )
+    {
+        textForm = value.AsUtf8String();
+        return textForm.CStyleAccess();
+    }
+    return value.CStyleAccess();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardTreeBeginHandler( void* privdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->callbacks->OnDocumentBegin();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardTreeEndHandler( void* privdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->callbacks->OnDocumentEnd();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardNodeBeginHandler( void* privdata       ,
+                         const char* nodename ,
+                         int nodeType         ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->nodeTypes.push_back( nodeType );
+    fd->callbacks->OnNodeBegin( NodeIdFromName( nodename ), nodeType );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardNodeEndHandler( void* privdata       ,
+                       const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    if ( !fd->nodeTypes.empty() )
+        fd->nodeTypes.pop_back();
+    fd->callbacks->OnNodeEnd( NodeIdFromName( nodename ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardNodeAttHandler( void* privdata               ,
+                       const char* nodename         ,
+                       const TVariantData* attname  ,
+                       const TVariantData* attvalue ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == attvalue )
+        return;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    CVariant value( attvalue, false );
+
+    int nodeType = fd->nodeTypes.empty() ? GUCEF_DATATYPE_OBJECT : fd->nodeTypes.back();
+    if ( GUCEF_NULL == attname || GUCEF_DATATYPE_ARRAY == nodeType || GUCEF_DATATYPE_SET == nodeType )
+    {
+        fd->callbacks->OnNodeValue( NodeIdFromName( nodename ), value );
+    }
+    else
+    {
+        fd->callbacks->OnNodeAttribute( NodeIdFromName( nodename ), CVariant( attname, false ), value );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardNodeValueHandler( void* privdata               ,
+                         const char* nodename         ,
+                         const TVariantData* attvalue ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == attvalue )
+        return;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->callbacks->OnNodeValue( NodeIdFromName( nodename ), CVariant( attvalue, false ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardNodeChildrenBeginHandler( void* privdata       ,
+                                 const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->callbacks->OnNodeChildrenBegin( NodeIdFromName( nodename ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardNodeChildrenEndHandler( void* privdata       ,
+                               const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->callbacks->OnNodeChildrenEnd( NodeIdFromName( nodename ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+ForwardParserErrorHandler( void* privdata          ,
+                           Int32 errorCode         ,
+                           const char* description ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    TParseForwardData* fd = static_cast< TParseForwardData* >( privdata );
+    fd->hadError = true;
+    CString errorText( GUCEF_NULL != description ? description : "" );
+    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DStore Codec error with code " + ToString( errorCode ) + " and description : " + errorText );
+    fd->callbacks->OnParseError( errorCode, errorText );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Passes the nodes written to it straight on to a dstore codec plugin
+ */
+class CDStoreCodecPluginDocumentWriter : public CDocumentStreamWriter
+{
+    public:
+
+    CDStoreCodecPluginDocumentWriter( CDStoreCodecPlugin& plugin, void** codecData, void* filedata )
+        : CDocumentStreamWriter()
+        , m_plugin( plugin )
+        , m_codecData( codecData )
+        , m_filedata( filedata )
+        , m_openNodes()
+    {GUCEF_TRACE;
+    }
+
+    virtual ~CDStoreCodecPluginDocumentWriter() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        Close();
+    }
+
+    protected:
+
+    virtual bool OnBeginNode( const CDataNode& node, bool willHaveChildren ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_plugin.BeginNodeStore( m_codecData, &m_filedata, node, willHaveChildren );
+
+        SOpenNode openNode;
+        openNode.name = node.GetName();
+        openNode.attCount = node.GetAttCount();
+        openNode.hasChildren = willHaveChildren;
+        m_openNodes.push_back( openNode );
+        return true;
+    }
+
+    virtual bool OnEndNode( void ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        if ( m_openNodes.empty() )
+            return false;
+
+        const SOpenNode& openNode = m_openNodes.back();
+        m_plugin.EndNodeStore( m_codecData, &m_filedata, openNode.name, openNode.attCount, openNode.hasChildren );
+        m_openNodes.pop_back();
+        return true;
+    }
+
+    virtual bool OnWriteNode( const CDataNode& node ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_plugin.StoreNode( m_codecData, &node, &m_filedata );
+        return true;
+    }
+
+    virtual bool OnClose( void ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        m_plugin.m_api.Dest_File_Close( &m_plugin.m_plugdata, m_codecData, &m_filedata );
+        return true;
+    }
+
+    private:
+
+    struct SOpenNode
+    {
+        CString name;
+        UInt32 attCount;
+        bool hasChildren;
+    };
+
+    CDStoreCodecPlugin& m_plugin;
+    void** m_codecData;
+    void* m_filedata;
+    std::vector< SOpenNode > m_openNodes;
+};
+
+/*-------------------------------------------------------------------------*/
+
 TPluginMetaDataPtr
 CDStoreCodecPlugin::GetMetaData( void ) const
 {GUCEF_TRACE;
@@ -438,6 +691,10 @@ CDStoreCodecPlugin::Unlink( void )
 
     if ( IsLoaded() )
     {
+        // The data driven codecs made through the plugin can outlive it: the plugin destroys their data while it can
+        if ( GUCEF_NULL != m_ddCodecFactory )
+            m_ddCodecFactory->DetachAllLinks();
+
         // Call the module's shutdown()
         if ( GUCEF_NULL != m_api.Shutdown )
             m_api.Shutdown( &m_plugdata );
@@ -499,96 +756,127 @@ CDStoreCodecPlugin::GetDescription( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CDStoreCodecPlugin::StoreNode( void** codecData   ,
-                               const CDataNode* n ,
-                               void** filedata    )
+CDStoreCodecPlugin::BeginNodeStore( void** codecData   ,
+                                    void** filedata    ,
+                                    const CDataNode& n ,
+                                    bool hasChildren   )
 {GUCEF_TRACE;
 
-    int nodeType( n->GetNodeType() );
-    UInt32 count( n->GetAttCount() );
-    const char* name( n->GetName().C_String() );
+    int nodeType( n.GetNodeType() );
+    UInt32 count( n.GetAttCount() );
+    const char* name( n.GetName().C_String() );
     const CDataNode::TKeyValuePair* att = GUCEF_NULL;
+    UInt32 hasChildrenFlag = hasChildren ? 1 : 0;
 
     /*
      *  Begin storing the node
      */
-    UInt32 valueAsAtt = n->HasValue() ? 1 : 0;
+    UInt32 valueAsAtt = n.HasValue() ? 1 : 0;
     m_api.Begin_Node_Store( &m_plugdata        ,
                             codecData          ,
                             filedata           ,
                             name               ,
                             nodeType           ,
                             count + valueAsAtt ,
-                            n->HasChildren()   );
+                            hasChildrenFlag    );
 
     /*
      *  Store all node attributes
      */
+    CVariant textForm;
     for ( UInt32 i=0; i<count; ++i )
     {
-            att = n->GetAttribute( i );
-            m_api.Store_Node_Att( &m_plugdata                ,
-                                  codecData                  ,
-                                  filedata                   ,
-                                  name                       ,
-                                  count                      ,
-                                  i                          ,
-                                  att->first.C_String()      ,
-                                  att->second.CStyleAccess() ,
-                                  n->HasChildren()           );
+            att = n.GetAttribute( i );
+            m_api.Store_Node_Att( &m_plugdata                                  ,
+                                  codecData                                    ,
+                                  filedata                                     ,
+                                  name                                         ,
+                                  count                                        ,
+                                  i                                            ,
+                                  att->first.C_String()                        ,
+                                  ValueForCodecPlugin( att->second, textForm ) ,
+                                  hasChildrenFlag                              );
     }
 
     /*
      *  Store node value
      */
-    if ( n->HasValue() )
+    if ( n.HasValue() )
     {
-        m_api.Store_Node_Att( &m_plugdata                  ,
-                              codecData                    ,
-                              filedata                     ,
-                              name                         ,
-                              count + valueAsAtt           ,
-                              count                        ,
-                              GUCEF_NULL                   ,
-                              n->GetValue().CStyleAccess() ,
-                              n->HasChildren()             );
+        m_api.Store_Node_Att( &m_plugdata                                   ,
+                              codecData                                     ,
+                              filedata                                      ,
+                              name                                          ,
+                              count + valueAsAtt                            ,
+                              count                                         ,
+                              GUCEF_NULL                                    ,
+                              ValueForCodecPlugin( n.GetValue(), textForm ) ,
+                              hasChildrenFlag                               );
     }
 
-    /*
-     *  If the node has any children we will store them and their children ect.
-     */
-    if ( n->HasChildren() )
+    if ( hasChildren )
     {
         m_api.Begin_Node_Children( &m_plugdata ,
                                    codecData   ,
                                    filedata    ,
                                    name        );
+    }
+}
 
-        /*
-         *      Iterate the child node recursively storing each node level
-         */
+/*-------------------------------------------------------------------------*/
+
+void
+CDStoreCodecPlugin::EndNodeStore( void** codecData    ,
+                                  void** filedata     ,
+                                  const CString& name ,
+                                  UInt32 attCount     ,
+                                  bool hasChildren    )
+{GUCEF_TRACE;
+
+    if ( hasChildren )
+    {
+        m_api.End_Node_Children( &m_plugdata     ,
+                                 codecData       ,
+                                 filedata        ,
+                                 name.C_String() );
+    }
+
+    /*
+     *      We are finished with this node
+     */
+    m_api.End_Node_Store( &m_plugdata         ,
+                          codecData           ,
+                          filedata            ,
+                          name.C_String()     ,
+                          attCount            ,
+                          hasChildren ? 1 : 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDStoreCodecPlugin::StoreNode( void** codecData   ,
+                               const CDataNode* n ,
+                               void** filedata    )
+{GUCEF_TRACE;
+
+    bool hasChildren = n->HasChildren();
+    BeginNodeStore( codecData, filedata, *n, hasChildren );
+
+    /*
+     *      Iterate the child node recursively storing each node level
+     */
+    if ( hasChildren )
+    {
         CDataNode::const_iterator i = n->ConstBegin();
         while ( i != n->ConstEnd() )
         {
             StoreNode( codecData, (*i), filedata );
             ++i;
         }
-
-        m_api.End_Node_Children( &m_plugdata ,
-                                 codecData   ,
-                                 filedata    ,
-                                 name        );
     }
 
-    /*
-     *      We are finished with this node
-     */
-    m_api.End_Node_Store( &m_plugdata      ,
-                          codecData        ,
-                          filedata         ,
-                          name             ,
-                          count            ,
-                          n->HasChildren() );
+    EndNodeStore( codecData, filedata, n->GetName(), n->GetAttCount(), hasChildren );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -609,7 +897,8 @@ CDStoreCodecPlugin::StoreDataTree( void** codecData        ,
                                    const CString& filename )
 {GUCEF_TRACE;
 
-    if ( CreateDirs( filename ) )
+    // Note: opening the file for writing creates any missing parent directories
+    // Calling CreateDirs() on the file path itself would create a directory named after the file
     {
         CFileAccess access( filename, "wb" );
         if ( access.IsValid() )
@@ -755,6 +1044,78 @@ CDStoreCodecPlugin::BuildDataTree( void** codecData    ,
      */
     m_api.Src_File_Close( &m_plugdata, codecData, &filedata );
     return 0 == errorCode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDocumentStreamWriterPtr
+CDStoreCodecPlugin::CreateDocumentWriter( CIOAccess& output )
+{GUCEF_TRACE;
+
+    return CreateDocumentWriter( &m_codecData, output );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDocumentStreamWriterPtr
+CDStoreCodecPlugin::CreateDocumentWriter( void** codecData, CIOAccess& output )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_sohandle )
+        return CDocumentStreamWriterPtr();
+
+    void* filedata = GUCEF_NULL;
+    if ( !m_api.Dest_File_Open( &m_plugdata, codecData, &filedata, output.CStyleAccess() ) )
+        return CDocumentStreamWriterPtr();
+
+    return CDocumentStreamWriterPtr( GUCEF_NEW CDStoreCodecPluginDocumentWriter( *this, codecData, filedata ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDStoreCodecPlugin::ParseDocument( CIOAccess& input                     ,
+                                   CIDocumentParserCallbacks& callbacks )
+{GUCEF_TRACE;
+
+    return ParseDocument( &m_codecData, input, callbacks );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDStoreCodecPlugin::ParseDocument( void** codecData                     ,
+                                   CIOAccess& input                     ,
+                                   CIDocumentParserCallbacks& callbacks )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_sohandle )
+        return false;
+
+    void* filedata = GUCEF_NULL;
+    if ( !m_api.Src_File_Open( &m_plugdata, codecData, &filedata, input.CStyleAccess() ) )
+        return false;
+
+    TParseForwardData forwardData;
+    forwardData.callbacks = &callbacks;
+    forwardData.hadError = false;
+
+    TReadHandlers rhandlers;
+    rhandlers.OnTreeBegin = ForwardTreeBeginHandler;
+    rhandlers.OnTreeEnd = ForwardTreeEndHandler;
+    rhandlers.OnNodeBegin = ForwardNodeBeginHandler;
+    rhandlers.OnNodeEnd = ForwardNodeEndHandler;
+    rhandlers.OnNodeAtt = ForwardNodeAttHandler;
+    rhandlers.OnNodeValue = ForwardNodeValueHandler;
+    rhandlers.OnNodeChildrenBegin = ForwardNodeChildrenBeginHandler;
+    rhandlers.OnNodeChildrenEnd = ForwardNodeChildrenEndHandler;
+    rhandlers.OnError = ForwardParserErrorHandler;
+    m_api.Set_Read_Handlers( &m_plugdata, codecData, &filedata, &rhandlers, &forwardData );
+
+    UInt32 errorCode = m_api.Start_Reading( &m_plugdata, codecData, &filedata );
+
+    m_api.Src_File_Close( &m_plugdata, codecData, &filedata );
+    return 0 == errorCode && !forwardData.hadError;
 }
 
 /*-------------------------------------------------------------------------*/

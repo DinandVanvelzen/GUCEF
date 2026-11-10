@@ -1,5 +1,5 @@
 /*
- *  pubsubpluginAWSSQS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SQS
+ *  pubsubpluginAWSSNS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SNS
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
  *
@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPICCONFIG_H
-#define PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPICCONFIG_H
+#ifndef PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPICCONFIG_H
+#define PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPICCONFIG_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -25,15 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COMCORE_CPUBSUBCLIENTTOPICCONFIG_H
-#include "gucefCOMCORE_CPubSubClientTopicConfig.h"
-#define GUCEF_COMCORE_CPUBSUBCLIENTTOPICCONFIG_H
-#endif /* GUCEF_COMCORE_CPUBSUBCLIENTTOPICCONFIG_H ? */
+#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H
+#include "gucefPUBSUB_CPubSubClientTopicConfig.h"
+#define GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H
+#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H ? */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_MACROS_H
-#include "pubsubpluginAWSSQS_macros.h"
-#define PUBSUBPLUGIN_AWSSQS_MACROS_H
-#endif /* PUBSUBPLUGIN_AWSSQS_MACROS_H ? */
+#ifndef PUBSUBPLUGIN_AWSSNS_MACROS_H
+#include "pubsubpluginAWSSNS_macros.h"
+#define PUBSUBPLUGIN_AWSSNS_MACROS_H
+#endif /* PUBSUBPLUGIN_AWSSNS_MACROS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -43,7 +43,7 @@
 
 namespace GUCEF {
 namespace PUBSUBPLUGIN {
-namespace AWSSQS {
+namespace AWSSNS {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -51,32 +51,47 @@ namespace AWSSQS {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CAwsSqsPubSubClient;
+class CAwsSnsPubSubClient;
 
 /**
  *  Standard pub-sub client config with some custom specifcs added for this
  *  specific pub-sub backend
  */
-class PUBSUBPLUGIN_AWSSQS_PLUGIN_PRIVATE_CPP CAwsSqsPubSubClientTopicConfig : public COMCORE::CPubSubClientTopicConfig
+class PUBSUBPLUGIN_AWSSNS_PLUGIN_PRIVATE_CPP CAwsSnsPubSubClientTopicConfig : public PUBSUB::CPubSubClientTopicConfig ,
+                                                                              public CORE::CTSharedObjCreator< CAwsSnsPubSubClientTopicConfig, MT::CMutex >
 {
     public:
 
     
-    CAwsSqsPubSubClientTopicConfig( void );
+    CAwsSnsPubSubClientTopicConfig( void );
     
-    CAwsSqsPubSubClientTopicConfig( const COMCORE::CPubSubClientTopicConfig& genericConfig );
+    CAwsSnsPubSubClientTopicConfig( const PUBSUB::CPubSubClientTopicConfig& genericConfig );
 
-    virtual ~CAwsSqsPubSubClientTopicConfig() GUCEF_VIRTUAL_OVERRIDE;
+    CAwsSnsPubSubClientTopicConfig( const CAwsSnsPubSubClientTopicConfig& src );
 
-    CAwsSqsPubSubClientTopicConfig& operator=( const COMCORE::CPubSubClientTopicConfig& src );
+    virtual ~CAwsSnsPubSubClientTopicConfig() GUCEF_VIRTUAL_OVERRIDE;
 
-    CAwsSqsPubSubClientTopicConfig& operator=( const CAwsSqsPubSubClientTopicConfig& src );
+    CAwsSnsPubSubClientTopicConfig& operator=( const PUBSUB::CPubSubClientTopicConfig& src );
+
+    CAwsSnsPubSubClientTopicConfig& operator=( const CAwsSnsPubSubClientTopicConfig& src );
 
     bool LoadCustomConfig( const CORE::CDataNode& config );
 
-    bool topicNameIsQueueName;
-    bool tryToUseSendMessageBatch;
+    bool LoadConfig( const PUBSUB::CPubSubClientTopicConfig& src );
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    bool createTopicIfMissing;
+    bool tryToUsePublishBatch;
+    bool addPrefixWhenSendingKvPairs;
+    CORE::CAsciiString kvPairPrefixToAddOnSend;
+    bool addPrefixWhenSendingMetaDataKvPairs;
+    CORE::CAsciiString metaDatakvPairPrefixToAddOnSend;
 };
+
+/*-------------------------------------------------------------------------*/
+
+typedef CAwsSnsPubSubClientTopicConfig::TSharedPtrType     CAwsSnsPubSubClientTopicConfigPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -84,10 +99,10 @@ class PUBSUBPLUGIN_AWSSQS_PLUGIN_PRIVATE_CPP CAwsSqsPubSubClientTopicConfig : pu
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace AWSSQS */
+}; /* namespace AWSSNS */
 }; /* namespace PUBSUBPLUGIN */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_AWSSQS_CAWSSQSPUBSUBCLIENTTOPICCONFIG_H ? */
+#endif /* PUBSUBPLUGIN_AWSSNS_CAWSSNSPUBSUBCLIENTTOPICCONFIG_H ? */

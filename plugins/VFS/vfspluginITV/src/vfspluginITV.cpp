@@ -69,7 +69,9 @@ typedef CORE::CTFactory< VFS::CArchive, CResArchive, MT::CMutex > TResArchiveFac
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static TResArchiveFactory resArchiveFactory;
+// Created when the plugin is loaded and destroyed when it is unloaded:
+// as a static object it could be destroyed at process exit while still registered with the VFS
+static TResArchiveFactory* resArchiveFactory = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,8 +84,11 @@ GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_S
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load called on VFS plugin ITV" );
-    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( CResArchive::ResArchiveTypeName, resArchiveFactory );
-    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "idx", resArchiveFactory );
+    resArchiveFactory = GUCEF_NEW TResArchiveFactory();
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "res", *resArchiveFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( "idx", *resArchiveFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().SetArchiveTypeFileExtensions( "res", CORE::CString( "res" ).ParseUniqueElements( ';', false ) );
+    VFS::CVfsGlobal::Instance()->GetVfs().SetArchiveTypeFileExtensions( "idx", CORE::CString( "idx" ).ParseUniqueElements( ';', false ) );
 
     return 1;
 }
@@ -95,8 +100,13 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload called on VFS plugin ITV" );
-    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( CResArchive::ResArchiveTypeName );
+    // Note that the type name is a literal and not CResArchive::ResArchiveTypeName: that is a static object
+    // which at process exit can already be destroyed by the time the plugin is unloaded
+    VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( "res" );
     VFS::CVfsGlobal::Instance()->GetVfs().UnregisterArchiveFactory( "idx" );
+
+    GUCEF_DELETE resArchiveFactory;
+    resArchiveFactory = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -127,6 +137,15 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     return "Generic GUCEF plugin for VFS \"RES\" archives from Into the Void";
+}
+
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefMT,gucefCORE,gucefVFS";
 }
 
 /*-------------------------------------------------------------------------//

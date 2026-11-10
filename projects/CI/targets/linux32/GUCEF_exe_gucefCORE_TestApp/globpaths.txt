@@ -1,1 +1,5 @@
+common/include/*
 dependencies/zlib/*
+platform/gucefCORE/include/*
+platform/gucefMT/include/*
+plugins/CORE/codecspluginOPENSSL/*

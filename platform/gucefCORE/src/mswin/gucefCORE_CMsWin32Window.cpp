@@ -65,8 +65,13 @@ namespace CORE {
 CMsWin32Window::CMsWin32Window( void )
     : COSWindow(),
       m_hwnd( 0 ) ,
-      m_orgWinProc( 0 )
+      m_orgWinProc( 0 ) ,
+      m_isFullscreen( false ) ,
+      m_windowedStyle( 0 ) ,
+      m_windowedRect()
 {GUCEF_TRACE;
+
+    memset( &m_windowedRect, 0, sizeof( m_windowedRect ) );
 
     SubscribeTo( CCoreGlobal::Instance()->GetPulseGenerator().GetPointerAlways(), CPulseGenerator::PulseEvent );
 }
@@ -187,6 +192,49 @@ void
 CMsWin32Window::GrabFocus( void )
 {
     ::SetFocus( GetHwnd() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMsWin32Window::SetFullscreenStatus( bool fullscreen )
+{GUCEF_TRACE;
+
+    if ( 0 == m_hwnd || fullscreen == m_isFullscreen )
+        return;
+
+    if ( fullscreen )
+    {
+        MONITORINFO monitorInfo;
+        memset( &monitorInfo, 0, sizeof( monitorInfo ) );
+        monitorInfo.cbSize = sizeof( monitorInfo );
+        if ( FALSE == ::GetMonitorInfo( ::MonitorFromWindow( m_hwnd, MONITOR_DEFAULTTONEAREST ), &monitorInfo ) )
+            return;
+
+        m_windowedStyle = ::GetWindowLongPtr( m_hwnd, GWL_STYLE );
+        ::GetWindowRect( m_hwnd, &m_windowedRect );
+        ::SetWindowLongPtr( m_hwnd, GWL_STYLE, ( m_windowedStyle & ~(LONG_PTR) WS_OVERLAPPEDWINDOW ) | WS_POPUP );
+        const RECT& area = monitorInfo.rcMonitor;
+        ::SetWindowPos( m_hwnd, HWND_TOP, area.left, area.top, area.right - area.left, area.bottom - area.top,
+                        SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW );
+    }
+    else
+    {
+        ::SetWindowLongPtr( m_hwnd, GWL_STYLE, m_windowedStyle );
+        ::SetWindowPos( m_hwnd, NULL, m_windowedRect.left, m_windowedRect.top,
+                        m_windowedRect.right - m_windowedRect.left, m_windowedRect.bottom - m_windowedRect.top,
+                        SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW );
+    }
+    m_isFullscreen = fullscreen;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMsWin32Window::GetFullscreenStatus( void ) const
+{GUCEF_TRACE;
+
+    return m_isFullscreen;
 }
 
 /*-------------------------------------------------------------------------*/

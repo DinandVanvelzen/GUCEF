@@ -127,11 +127,12 @@ namespace flic {
   private:
     void readChunk(Frame& frame);
     void readBlackChunk(Frame& frame);
-    void readCopyChunk(Frame& frame);
+    void readCopyChunk(Frame& frame, uint32_t dataSize);
     void readColorChunk(Frame& frame, bool oldColorChunk);
     void readBrunChunk(Frame& frame);
     void readLcChunk(Frame& frame);
     void readDeltaChunk(Frame& frame);
+    bool isFrameHeaderAt(uint32_t pos);
     uint16_t read16();
     uint32_t read32();
 

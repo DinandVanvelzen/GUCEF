@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_GUI_CTABCONTROL_H
+#include "gucefGUI_CTabControl.h"
+#define GUCEF_GUI_CTABCONTROL_H
+#endif /* GUCEF_GUI_CTABCONTROL_H ? */
+
 #include "gucefGUI_CTabContentPane.h"
 
 /*-------------------------------------------------------------------------//
@@ -36,34 +41,45 @@ namespace GUI {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 CTabContentPane::CTabContentPane( void )
-    : CWidget()
+    : CPanel( "TabContentPane" )
 {GUCEF_TRACE;
+
 
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
 CTabContentPane::~CTabContentPane()
 {GUCEF_TRACE;
 
+
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
+CWidget*
+CTabContentPane::Create( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CTabContentPane();
+}
+
+/*-------------------------------------------------------------------------*/
+
 CTabControl*
 CTabContentPane::GetParentTabControl( void )
 {GUCEF_TRACE;
 
-    return NULL;
+    return CWidget::As< CTabControl >( GetParentWidget() );
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
 const CString&
 CTabContentPane::GetClassTypeName( void ) const
 {GUCEF_TRACE;
@@ -71,6 +87,9 @@ CTabContentPane::GetClassTypeName( void ) const
     static const CString classTypeName = "GUCEF::GUI::CTabContentPane";
     return classTypeName;
 }
+
+/*-------------------------------------------------------------------------*/
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

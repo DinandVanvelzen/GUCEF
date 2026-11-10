@@ -29,6 +29,11 @@
 #define GUCEF_CORE_DVFILEUTILS_H
 #endif /* GUCEF_CORE_DVFILEUTILS_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #ifndef ARCHIVEDIFFLIB_H
 #include "ArchiveDiffLib.h"
 #define ARCHIVEDIFFLIB_H
@@ -628,7 +633,7 @@ PerformSvnDeleteFile( const CORE::CString& path    ,
         }
         else
         {
-            if ( 0 != CORE::Delete_File( path.C_String() ) )
+            if ( CORE::DeleteFile( path ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Deleted unversioned file at : " + path );
                 return true;
@@ -672,7 +677,7 @@ PerformSvnAddFile( const CORE::CString& source      ,
             {
                 // Since we are going to replace the file anyway with new content we can delete the
                 // file at this location.
-                if ( 0 != CORE::Delete_File( destination.C_String() ) )
+                if ( CORE::DeleteFile( destination ) )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "deleted unversioned file at destination location: " + destination );
                 }
@@ -753,7 +758,7 @@ PerformSvnMoveFile( const CORE::CString& source                 ,
         {
             // Since we are going to replace the file anyway with new content we can delete the
             // file at this location.
-            if ( 0 != CORE::Delete_File( destination.C_String() ) )
+            if ( CORE::DeleteFile( destination ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "deleted unversioned file at destination location: " + destination );
             }

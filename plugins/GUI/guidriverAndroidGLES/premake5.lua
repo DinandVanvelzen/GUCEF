@@ -44,7 +44,7 @@ defines( { "MODULE_CONSENSUS_NAME=guidriverAndroidGLES" } )
   
 configuration( { ANDROID32 } )
 links( { "gucefCORE", "gucefGUI", "gucefMT" } )
-  links( { "EGL", "GLESv1_CM", "android", "android_native_app_glue", "gucefCORE", "gucefGUI", "gucefMT" } )
+  links( { "EGL", "GLESv3", "android", "android_native_app_glue", "gucefCORE", "gucefGUI", "gucefMT" } )
   
 
 configuration( { ANDROID32 } )
@@ -52,7 +52,7 @@ defines( { "GUIDRIVERANDROIDGLES_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NA
   
 configuration( { ANDROID64 } )
 links( { "gucefCORE", "gucefGUI", "gucefMT" } )
-  links( { "EGL", "GLESv1_CM", "android", "android_native_app_glue", "gucefCORE", "gucefGUI", "gucefMT" } )
+  links( { "EGL", "GLESv3", "android", "android_native_app_glue", "gucefCORE", "gucefGUI", "gucefMT" } )
   
 
 configuration( { ANDROID64 } )
@@ -82,7 +82,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )

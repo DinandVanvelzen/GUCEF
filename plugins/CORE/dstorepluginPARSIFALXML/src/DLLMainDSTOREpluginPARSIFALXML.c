@@ -346,14 +346,14 @@ PrintNumericVariant( const TVariantData* src  ,
             case GUCEF_DATATYPE_INT32:   { snprintf( destBuffer, destBufferLength, "%d", src->union_data.int32_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }             
             case GUCEF_DATATYPE_UINT32:  { snprintf( destBuffer, destBufferLength, "%u", src->union_data.uint32_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             #ifdef GUCEF_MSWIN_BUILD
-            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%I64d", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%I64d", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_UINT64:  { snprintf( destBuffer, destBufferLength, "%I64u", src->union_data.uint64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             #else
-            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%lld", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%lld", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_UINT64:  { snprintf( destBuffer, destBufferLength, "%llu", src->union_data.uint64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             #endif
             case GUCEF_DATATYPE_FLOAT32: { snprintf( destBuffer, destBufferLength, "%f", src->union_data.float32_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
@@ -386,7 +386,10 @@ HandleEscapeCharacters( const char* srcStr       ,
 {
     if ( GUCEF_NULL != srcStr )
     {
-        TEscapeEntry entries[ 6 ];
+        /* Note that bytes >= 0x80 are passed through as-is: the data is UTF-8 and escaping */
+        /* individual bytes of multi-byte sequences would corrupt it */
+        /* line breaks and tabs as character references: an XML reader turns them into spaces otherwise (attribute value normalization) */
+        TEscapeEntry entries[ 8 ];
         UInt32 srcStrLen = (UInt32) strlen( srcStr );
 
         entries[ 0 ].escapeChar = '<';
@@ -404,16 +407,22 @@ HandleEscapeCharacters( const char* srcStr       ,
         entries[ 4 ].escapeChar = '\"';
         entries[ 4 ].replacementStr = "&quot;";
         entries[ 4 ].replacementStrLen = 6;
-        entries[ 5 ].escapeChar = '»';
-        entries[ 5 ].replacementStr = "&#187;";
-        entries[ 5 ].replacementStrLen = 6;
+        entries[ 5 ].escapeChar = '\n';
+        entries[ 5 ].replacementStr = "&#10;";
+        entries[ 5 ].replacementStrLen = 5;
+        entries[ 6 ].escapeChar = '\r';
+        entries[ 6 ].replacementStr = "&#13;";
+        entries[ 6 ].replacementStrLen = 5;
+        entries[ 7 ].escapeChar = '\t';
+        entries[ 7 ].replacementStr = "&#9;";
+        entries[ 7 ].replacementStrLen = 4;
 
         HandleEscapeCharacterSet( srcStr           ,
                                   srcStrLen        ,
                                   destBuffer       ,
                                   destBufferLength ,
                                   entries          ,
-                                  6                ,
+                                  8                ,
                                   strLen           );
         return;
     }
@@ -492,6 +501,9 @@ ParsifalElementEnd( void* userdata         ,
 
         /* we'll reuse Stringbuf just setting its length to 0: */
 		XMLStringbuf_SetLength( &sd->textBuffer, 0 );
+
+        /* the value was handed out as linked data, valid for the duration of the callback only */
+        free( text );
     }
 
     (*sd->handlers.OnNodeEnd)( sd->privdata, qname );
@@ -554,7 +566,7 @@ MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Open )( void** plugdata    ,
         /* start with a buffer large enough to hold 64 bit numbers when printed */
         GuaranteeMinBufferSize( &fd->line, &fd->linelen, 21 );
                 
-        sprintf( outBuffer, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\r\n" );
+        sprintf( outBuffer, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\r\n" );
         outFile->write( outFile, outBuffer, (UInt32)strlen( outBuffer ), 1 );
         sprintf( outBuffer, "<!-- Generated using dstorepluginXMLPARSIFAL (v%d.%d.%d.%d) for the GUCEF platform - Copyright (C) Dinand Vanvelzen. LPGLv3 -->\r\n", VERSION_MAJOR_FIELD, VERSION_MINOR_FIELD, VERSION_PATCH_FIELD, VERSION_RELEASE_FIELD );
         outFile->write( outFile, outBuffer, (UInt32)strlen( outBuffer ), 1 );
@@ -855,6 +867,8 @@ MODULE_API_FUNCTION( DSTOREPLUG_Store_Node_Att )( void** plugdata              ,
         if ( attindex+1 < attscount )
         {
             sprintf( fd->line+linelen, "%s=\"%s\" ", escAttName, escAttValue );
+            free( escAttName );
+            free( escAttValue );
             return;
         }
         if ( haschildren )
@@ -957,7 +971,10 @@ MODULE_API_FUNCTION( DSTOREPLUG_Src_File_Close )( void** plugdata  ,
         {
                 TSrcFileData* sd = (TSrcFileData*) *filedata;
                 XMLParser_Free( sd->parser );
+                XMLStringbuf_Free( &sd->textBuffer );
                 sd->access->close( sd->access );
+                free( sd );
+                *filedata = GUCEF_NULL;
         }
 }
 

@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -26,6 +24,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <typeinfo> 
 
 #ifndef GUCEF_CORE_ESTRUCTS_H
@@ -48,6 +47,8 @@
 
 namespace GUCEF {
 namespace CORE {
+
+class CDynamicBuffer;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -81,9 +82,26 @@ RelativePath( const CString& relpath  ,
  *      - $ENVVAR:FOO$ -> Resolves to the environment variable FOO's content
  *      - $HOSTNAME$   -> Is resolved to the hostname of the system
  *      - $PID$        -> Is resolved to the process ID of the current process
- */
-GUCEF_CORE_PUBLIC_CPP CString
-ResolveVars( const CString& strWithVars );
+ *      - $CACHEDIR$   -> Is resolved to the per user directory for data that can be made again (SPECIALDIR_CACHE_DIR),
+ *                        the temp dir when the platform has none
+ *      - $APPDATADIR$ -> Is resolved to the per user directory for data of the user on this machine that should stay
+ *                        (SPECIALDIR_LOCAL_APPDATA_DIR), the temp dir when the platform has none
+ *      - $APPCONFIGDIR$ -> Is resolved to the per user directory for the settings of applications (SPECIALDIR_APP_CONFIG_DIR),
+ *                        else as $APPDATADIR$
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+ResolveVars( const CString& strWithVars );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The other way round: a path in the form with the variable of the directory it is in, for example
+ *  "$APPCONFIGDIR$/MyApp" for the settings directory of the user, so that it stays right on another machine or for
+ *  another user. The variable whose directory is the longest start of the path is used, of $APPCONFIGDIR$,
+ *  $APPDATADIR$, $CACHEDIR$, $MODULEDIR$ and $TEMPDIR$; a path in none of them is given back as it is
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+UnresolveVars( const CString& path );
 
 /*-------------------------------------------------------------------------*/
 
@@ -378,6 +396,30 @@ Base64Decode( const CString& base64Str, void* byteBuffer, UInt32 bufferSize, UIn
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Encodes binary data as base64url (RFC 4648 section 5): the alphabet with '-' and '_' in place of '+' and '/'.
+ *  Without padding ('=') unless 'pad' is set, as JWT and JWS use it. One allocation for the result.
+ *  @return false, with an empty 'result', when 'data' is NULL for a length above 0 or the text cannot be allocated
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+Base64UrlEncode( const void* data, UInt32 length, CString& result, bool pad = false );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Decodes base64url text (RFC 4648 section 5) into 'result', which is replaced. No allocation once 'result' has
+ *  grown to the size needed. The decoder is strict:
+ *  - padding is optional, but when it is there the text must be a whole number of groups of 4 with 1 or 2 '='
+ *  - only the characters A-Z a-z 0-9 '-' '_' are accepted: '+', '/', whitespace and anything else is refused
+ *  - a text length that leaves 1 character in the last group is refused
+ *  - the unused bits of the last character must be 0, so every byte sequence has one text only
+ *  Empty text gives empty data. On failure 'result' is empty.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+Base64UrlDecode( const CString& text, CDynamicBuffer& result );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP CString
 FloatToString( const float value );
 
@@ -395,6 +437,28 @@ DoubleToString( const double value );
 
 GUCEF_CORE_PUBLIC_CPP double
 StringToDouble( const CString& str, double defaultIfNeeded = 0 );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The text of a finite double that reads back as exactly the same double: the shortest of 15, 16 or 17
+ *  significant digits that does, in the form of printf %g ("0.5", "-1234.5", "1e+22", "-0").
+ *  The decimal point is always '.' and there are no digit group separators, whatever the locale of the C library is.
+ *  Infinity and NaN have no such text: the result is empty.
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+Float64ToRoundTripString( const Float64 value );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Reads a double from a plain decimal text with the decimal point '.' whatever the locale of the C library is.
+ *  Accepted: an optional sign, digits with an optional '.' fraction and an optional exponent. The whole text has to be
+ *  the number: no whitespace, no hexadecimal, no "inf" or "nan", and the value has to be finite.
+ *  The value is only touched on success.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+TryParseFloat64Invariant( const CString& text, Float64& value );
 
 /*-------------------------------------------------------------------------*/
 
@@ -476,6 +540,41 @@ IsAbsolutePath( const CString& path );
 
 GUCEF_CORE_PUBLIC_CPP CString
 GetHostname( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The login name of the user the process runs as, as UTF-8 (the account name, for example "dinand"), empty when it cannot be
+ *  determined or the platform has no users (Android, WebAssembly). Thread safe.
+ *  Linux and macOS: the password database entry of the effective user id, then the environment variables USER and LOGNAME.
+ *  Windows: GetUserNameW(), then USERNAME.
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+GetCurrentUserName( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The full name of the user the process runs as, as UTF-8 (for example "Dinand van Velzen"), empty when the system has none
+ *  recorded or the platform has no users. Thread safe.
+ *  Linux and macOS: the first comma separated field of the GECOS field of the password database entry; empty when that
+ *  is empty, callers fall back to GetCurrentUserName().
+ *  Windows: GetUserNameExW( NameDisplay ), which only accounts that have a display name give; the login name when it does not.
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+GetCurrentUserDisplayName( void );
+
+/*-------------------------------------------------------------------------*/
+
+/** The user name from the environment ("USER", then "LOGNAME"; "USERNAME" on Windows) as GetEnv() sees it, so overrides apply; empty when there is none */
+GUCEF_CORE_PUBLIC_CPP CString
+GetUserNameFromEnvironment( void );
+
+/*-------------------------------------------------------------------------*/
+
+/** The full name in a GECOS field of the password database: the text before the first comma, trimmed; empty for an empty field */
+GUCEF_CORE_PUBLIC_CPP CString
+GetDisplayNameFromGecos( const CString& gecos );
 
 /*-------------------------------------------------------------------------*/
 
@@ -571,14 +670,14 @@ inline CString ToString( const T value,
 /*-------------------------------------------------------------------------*/
 
 // Portable unsigned long routing:
-// Enabled only when unsigned long is not the same type as UInt32/UInt64 or size_t
+// Enabled only when unsigned long is not the same type as UInt32/UInt64. Note that unsigned long can be the same type as size_t, for example on wasm32,
+// in which case the size_t routing above is disabled and this one is the one that handles size_t
 template < typename T >
 inline CString ToString( const T value,
                          typename ::GUCEF::EnableIf<
                              ::GUCEF::TypesAreExactlySame< T, unsigned long >::value &&
                             !::GUCEF::TypesAreExactlySame< unsigned long, ::GUCEF::UInt32 >::value &&
-                            !::GUCEF::TypesAreExactlySame< unsigned long, ::GUCEF::UInt64 >::value &&
-                            !::GUCEF::TypesAreExactlySame< unsigned long, size_t >::value,
+                            !::GUCEF::TypesAreExactlySame< unsigned long, ::GUCEF::UInt64 >::value,
                              long
                          >::type* /*sfinae*/ = 0 )
 {GUCEF_TRACE;
@@ -607,8 +706,58 @@ inline CString ToString( const T value,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Cuts the name of the type out of the text of a compiler of the signature of the function template ToString< T >()
+ *  ( __PRETTY_FUNCTION__ or __FUNCSIG__ ). Used when RTTI is not available to get a type name from.
+ */
+inline CString
+TypeNameFromToStringSignature( const char* signature )
+{
+    CString text( signature );
+    const char* start = strstr( signature, "typeNameParam = " );    // GCC and Clang: "... [with typeNameParam = Type]"
+    const char* end = GUCEF_NULL;
+    if ( GUCEF_NULL != start )
+    {
+        start += 16;
+        end = strrchr( start, ']' );
+        const char* more = strchr( start, ';' );                    // GCC adds the other typedefs it resolved: "; CString = ..."
+        if ( GUCEF_NULL != more && ( GUCEF_NULL == end || more < end ) )
+            end = more;
+    }
+    else
+    {
+        start = strstr( signature, "ToString<" );                   // Visual C++: "... ToString<Type>(void)"
+        if ( GUCEF_NULL != start )
+        {
+            start += 9;
+            end = strrchr( start, '>' );
+        }
+    }
+    if ( GUCEF_NULL == start || GUCEF_NULL == end || end < start )
+        return text;                                                // the whole signature is unique per type as well
+    return text.SubstrFromRange( (UInt32) ( start - signature ), (UInt32) ( end - signature ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A name of the type that is the same for the same type and different for another, used for example as the
+ *  key of a factory. Uses typeid when RTTI is available, else the signature of this function template, so
+ *  this works with RTTI disabled as well. The text can differ between the two.
+ */
 template < typename typeNameParam >
-inline CString ToString( void ) { return typeid( typeNameParam ).name(); }
+inline CString ToString( void )
+{
+    #ifdef GUCEF_RTTI_IS_SUPPORTED
+    return typeid( typeNameParam ).name();
+    #elif defined( _MSC_VER )
+    return TypeNameFromToStringSignature( __FUNCSIG__ );
+    #elif defined( __GNUC__ ) || defined( __clang__ )
+    return TypeNameFromToStringSignature( __PRETTY_FUNCTION__ );
+    #else
+    #error "No way to get a type name without RTTI on this compiler"
+    #endif
+}
 
 /*-------------------------------------------------------------------------*/
 

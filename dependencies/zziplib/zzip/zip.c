@@ -85,7 +85,8 @@ int __zzip_parse_root_directory( int fd,
 				 struct zzip_dir_hdr ** hdr_return,
 				 zzip_plugin_io_t io);
 
-_zzip_inline char* __zzip_aligned4(char* p);
+/* DV edit: static like the other inline helpers, a plain C99 inline function has no external definition in unoptimized builds */
+_zzip_inline static char* __zzip_aligned4(char* p);
 
 /* ------------------------  harden routines ------------------------------ */
 
@@ -342,7 +343,7 @@ __zzip_fetch_disk_trailer(int fd, zzip_off_t filesize,
  * to pointer types but we do need only the lower bits in this implementation,
  * so we can just cast the value to a long value.
  */
-_zzip_inline char* __zzip_aligned4(char* p)
+_zzip_inline static char* __zzip_aligned4(char* p)
 {
 #define aligned4   __zzip_aligned4
     p += ((long)p)&1;            /* warnings about truncation of a "pointer" */

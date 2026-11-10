@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CURL_H
-#include "CURL.h"
-#define GUCEF_CORE_CURL_H
-#endif /* GUCEF_CORE_CURL_H ? */
+#ifndef GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#include "gucefCORE_CAsyncUriResourceRetriever.h"
+#define GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#endif /* GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H ? */
 
 #ifndef GUCEF_CORE_CDATANODE_H
 #include "CDataNode.h"
@@ -98,10 +98,11 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPassiveURLServerListProvider : public CServerL
     
     private:
     
-    CORE::CDynamicBuffer m_buffer;
+    CORE::CDynamicBuffer m_buffer;                      /**< destination of the retrieval, must outlive the retriever */
     CORE::CString m_codecType;
-    CORE::CURL m_url;    
-    bool m_isBusy;    
+    CORE::CString m_url;
+    CORE::CAsyncUriResourceRetriever m_retriever;
+    bool m_isBusy;
 };
 
 /*-------------------------------------------------------------------------//

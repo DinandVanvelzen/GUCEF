@@ -145,7 +145,9 @@ CMutex::CMutex( void )
     pthread_mutexattr_init( &attr );
     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 
-    if ( pthread_mutex_init( &_mutexdata->id, &attr ) != 0 )
+    int initResult = pthread_mutex_init( &_mutexdata->id, &attr );
+    pthread_mutexattr_destroy( &attr );
+    if ( initResult != 0 )
     {
         GUCEF_DELETE _mutexdata;
         _mutexdata = GUCEF_NULL;
@@ -173,7 +175,12 @@ CMutex::~CMutex()
 
     if ( GUCEF_NULL == _mutexdata )
         return;
+
+    // Waits for a thread that may still hold the lock, then lets go again: a mutex must not be destroyed while it is
+    // locked. pthreads leaves that undefined and musl (Emscripten) keeps a locked recursive mutex linked in the owning
+    // thread's list of held mutexes, where the next lock or unlock by that thread writes into the freed memory
     Lock();
+    Unlock();
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     
@@ -278,7 +285,8 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
-    if ( pthread_mutex_lock( &((TMutexData*)_mutexdata)->id ) < 0 )
+    /* pthreads reports failure as a positive errno value, never as a negative one */
+    if ( 0 != pthread_mutex_lock( &((TMutexData*)_mutexdata)->id ) )
     {
         return LOCKSTATUS_OPERATION_FAILED;
     }
@@ -343,13 +351,19 @@ CMutex::Unlock( void ) const
     
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
+    bool wasLocked = ((TMutexData*)_mutexdata)->isLocked;
     ((TMutexData*)_mutexdata)->isLocked = false;
-    GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( ((TMutexData*)_mutexdata)->id );
+    GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &((TMutexData*)_mutexdata)->id );
 
-    if ( pthread_mutex_unlock( &((TMutexData*)_mutexdata)->id ) < 0 )
+    /* pthreads reports failure as a positive errno value (EPERM when we do not own the lock), never as a negative one */
+    if ( 0 != pthread_mutex_unlock( &((TMutexData*)_mutexdata)->id ) )
     {
-        ((TMutexData*)_mutexdata)->isLocked = true;
-        GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( ((TMutexData*)_mutexdata)->id );
+        /* the lock is still held by its owner, undo our administration update */
+        ((TMutexData*)_mutexdata)->isLocked = wasLocked;
+        if ( wasLocked )
+        {
+            GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( &((TMutexData*)_mutexdata)->id );
+        }
         return LOCKSTATUS_OPERATION_FAILED;
     }
     return LOCKSTATUS_OPERATION_SUCCESS;
@@ -412,9 +426,12 @@ CMutex::IsLocked( void ) const
     
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
-    if ( pthread_mutex_trylock( &((TMutexData*)_mutexdata)->id ) != 0 )
+    /* attempt a lock to see if its locked by anyone, same semantics as the Windows implementation */
+    if ( pthread_mutex_trylock( &((TMutexData*)_mutexdata)->id ) == 0 )
+    {
+        pthread_mutex_unlock( &((TMutexData*)_mutexdata)->id );
         return false;
-    pthread_mutex_unlock( &((TMutexData*)_mutexdata)->id );
+    }
     return true;
 
     #else

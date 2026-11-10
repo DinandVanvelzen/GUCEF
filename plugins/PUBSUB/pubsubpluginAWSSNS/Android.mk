@@ -68,6 +68,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/stream \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/threading \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/xml \
+  $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-sns/include \
+  $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-sns/include/aws \
+  $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-sns/include/aws/sns \
+  $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-sns/include/aws/sns/model \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/crt/aws-c-auth/include \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/crt/aws-c-cal/include \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/crt/aws-c-common/include \
@@ -82,16 +86,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/crt/aws-checksums/include \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/include \
   $(MY_MODULE_PATH)/../../../dependencies/curl/include \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/include/curl \
   $(MY_MODULE_PATH)/../../../dependencies/curl/lib \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vauth \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vquic \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vssh \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vtls \
   $(MY_MODULE_PATH)/../../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefPUBSUB/include \
@@ -99,19 +97,16 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefWEB/include \
   $(MY_MODULE_PATH)/../../SHARED/pluginglueAWSSDK/include
 
-LOCAL_CFLAGS := -DPUBSUBPLUGIN_AWSSQS_BUILD_PLUGIN_DLL -DUSE_IMPORT_EXPORT
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=pubsubpluginAWSSNS -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=pubsubpluginAWSSNS -DPUBSUBPLUGIN_AWSSNS_BUILD_PLUGIN_DLL -DUSE_IMPORT_EXPORT
 
 
 LOCAL_SHARED_LIBRARIES := \
+  aws-cpp-sdk-sns \
   gucefCOMCORE \
   gucefCORE \
   gucefMT \
   gucefPUBSUB \
   pluginglueAWSSDK
-
-
-LOCAL_LDLIBS := \
-  -laws-cpp-sdk-sns
 
 include $(BUILD_SHARED_LIBRARY)
 

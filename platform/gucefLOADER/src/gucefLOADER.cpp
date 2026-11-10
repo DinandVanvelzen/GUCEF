@@ -1294,13 +1294,13 @@ ProcessFirstTimeInitialization( const CORE::CString& resRootDir ,
                     // make sure the target location is not obstructed, delete if needed
                     if ( CORE::FileExists( destPath ) )
                     {
-                        if ( 0 == CORE::Delete_File( destPath.C_String() ) )
+                        if ( !CORE::DeleteFile( destPath ) )
                         {
                             return false;
                         }
                     }
 
-                    if ( 0 == CORE::Move_File( destPath.C_String(), srcPath.C_String(), 1 ) )
+                    if ( !CORE::MoveFile( srcPath, destPath, true ) )
                     {
                         // Failed to execute command
                         return false;
@@ -1319,7 +1319,7 @@ ProcessFirstTimeInitialization( const CORE::CString& resRootDir ,
                     // make sure the target location is not obstructed, delete if needed
                     if ( CORE::FileExists( destPath ) )
                     {
-                        if ( 0 == CORE::Delete_File( destPath.C_String() ) )
+                        if ( !CORE::DeleteFile( destPath ) )
                         {
                             return false;
                         }
@@ -1337,8 +1337,8 @@ ProcessFirstTimeInitialization( const CORE::CString& resRootDir ,
             // Now that we have successfully carried out all the actions we can rename the file
             // This keeps the file for later review but it wont trigger another initialization
             CORE::CString afterFirstRunFilePath = resRootDir + "firstrun.completed.txt";
-            CORE::Delete_File( afterFirstRunFilePath.C_String() );
-            if ( 0 == CORE::Move_File( afterFirstRunFilePath.C_String(), firstRunFilePath.C_String(), 1 ) )
+            CORE::DeleteFile( afterFirstRunFilePath );
+            if ( !CORE::MoveFile( firstRunFilePath, afterFirstRunFilePath, true ) )
             {
                 return false;
             }

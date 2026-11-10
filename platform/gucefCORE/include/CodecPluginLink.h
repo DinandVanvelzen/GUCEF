@@ -26,66 +26,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_C_IOACCESS_H
-#include "gucefCORE_c_ioaccess.h"
-#define GUCEF_CORE_C_IOACCESS_H
-#endif /* GUCEF_CORE_C_IOACCESS_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      NAMESPACE                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-#ifdef __cplusplus
-namespace GUCEF {
-namespace CORE {
-#endif /* __cplusplus ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      TYPES                                                              //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Encode ) ( void* pluginData, void* codecData, const char* codecFamily, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Decode ) ( void* pluginData, void* codecData, const char* codecFamily, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-
-/*-------------------------------------------------------------------------*/
-
-struct SCodecPluginLink
-{
-    TCODECPLUGFPTR_Encode encode;
-    TCODECPLUGFPTR_Decode decode;
-    const char* codecType;
-    const char* codecFamily;
-    void* codecData;
-};
-
-typedef struct SCodecPluginLink TCodecPluginLink;
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      NAMESPACE                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-#ifdef __cplusplus
-}; /* namespace CORE */
-}; /* namespace GUCEF */
-#endif /* __cplusplus ? */
+/*
+ *  The codec plugin C interface: TCodecPluginLink and the plugin exports.
+ *  Kept for existing include lines, the interface itself is in gucefCORE_c_codec_plugin_api.h
+ */
+#ifndef GUCEF_CORE_C_CODEC_PLUGIN_API_H
+#include "gucefCORE_c_codec_plugin_api.h"
+#define GUCEF_CORE_C_CODEC_PLUGIN_API_H
+#endif /* GUCEF_CORE_C_CODEC_PLUGIN_API_H ? */
 
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_CODECPLUGINLINK_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 06-02-2007 :
-        - re-implemented the pre-crash version
-
------------------------------------------------------------------------------*/

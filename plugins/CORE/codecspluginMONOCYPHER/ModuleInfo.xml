@@ -1,0 +1,17 @@
+<ModuleInfoEntry>
+    <Module Name="codecspluginMONOCYPHER" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="monocypher" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="monocypher" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_CODECPLUGIN_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

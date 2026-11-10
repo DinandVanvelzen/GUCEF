@@ -1,0 +1,26 @@
+<ModuleInfoEntry>
+    <Module Name="codecspluginOPENSSL" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Codec plugin with the crypto of the OpenSSL libcrypto of the system</DescriptionHeadline>
+            <DescriptionDetails>AES-256-GCM, ChaCha20-Poly1305, X25519, Ed25519, HKDF-SHA256, HMAC-SHA256, SHA-256 and SHA-512 through OpenSSL 3. Without the OpenSSL development headers the plugin builds without codecs.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="crypto" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_CODECPLUGIN_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -192,16 +192,48 @@ namespace GUCEF {
   #define GUCEF_PREDICT_FALSE( x ) ( x ) [[unlikely]]
   #define GUCEF_PREDICT_IS_SUPPORTED 1
 #elif ( ( GUCEF_COMPILER == GUCEF_COMPILER_GNUC ) && ( GCC_VERSION >= 30000 ) )
-  #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(false || (x), true))
-  #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(false || (x), false))
+  #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(!!(x), 1))
+  #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(!!(x), 0))
   #define GUCEF_PREDICT_IS_SUPPORTED 1
 #elif ( ( GUCEF_COMPILER == GUCEF_COMPILER_CLANG ) && ( GUCEF_COMP_VER >= 30900 ) )
-  #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(false || (x), true))
-  #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(false || (x), false))
+  #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(!!(x), 1))
+  #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(!!(x), 0))
   #define GUCEF_PREDICT_IS_SUPPORTED 1
 #else
   #define GUCEF_PREDICT_TRUE( x ) ( x )
   #define GUCEF_PREDICT_FALSE( x ) ( x )
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+#if defined(__cplusplus)
+  /*
+   *  Run time type information (RTTI) can be disabled at compile time, in which case dynamic_cast and typeid
+   *  cannot be used. GUCEF_RTTI_IS_SUPPORTED is defined when the compiler has RTTI enabled.
+   *  Preferably code does not need RTTI at all (virtual accessor, class type name check + static_cast).
+   *  Where dynamic_cast or typeid is the sensible choice, always provide the alternative:
+   *
+   *      #ifdef GUCEF_RTTI_IS_SUPPORTED
+   *      T* t = dynamic_cast< T* >( base );
+   *      #else
+   *      T* t = <type name or tag check> ? static_cast< T* >( base ) : NULL;
+   *      #endif
+   *
+   *  The detection can be overridden: define GUCEF_FORCE_RTTI_DISABLED to make the code take the no-RTTI
+   *  path even when the compiler has RTTI (to test that path), or GUCEF_FORCE_RTTI_ENABLED to skip detection.
+   */
+  #undef GUCEF_RTTI_IS_SUPPORTED
+  #if defined( GUCEF_FORCE_RTTI_DISABLED )
+    /* explicitly disabled */
+  #elif defined( GUCEF_FORCE_RTTI_ENABLED )
+    #define GUCEF_RTTI_IS_SUPPORTED 1
+  #elif defined( __clang__ ) && defined( __has_feature )
+    #if __has_feature( cxx_rtti )
+      #define GUCEF_RTTI_IS_SUPPORTED 1
+    #endif
+  #elif defined( __GXX_RTTI ) || defined( __cpp_rtti ) || defined( _CPPRTTI )
+    #define GUCEF_RTTI_IS_SUPPORTED 1
+  #endif
 #endif
 
 /*-------------------------------------------------------------------------*/
@@ -448,6 +480,297 @@ struct function_traits<R(A1, A2, A3, A4, A5, A6, A7, A8, A9)> {
 template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9, typename A10>
 struct function_traits<R(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10)> {
     typedef R        result_type;
+    typedef A1       arg1_type;
+    typedef A2       arg2_type;
+    typedef A3       arg3_type;
+    typedef A4       arg4_type;
+    typedef A5       arg5_type;
+    typedef A6       arg6_type;
+    typedef A7       arg7_type;
+    typedef A8       arg8_type;
+    typedef A9       arg9_type;
+    typedef A10      arg10_type;
+    typedef arity_10 tag;
+};
+
+/*-------------------------------------------------------------------------*/
+
+//— member_function_traits for non-const and const member function pointers (arity 0…10)
+template< typename MF > struct member_function_traits;
+
+// non-const, arity 0
+template< typename R, typename C >
+struct member_function_traits< R (C::*)() > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef arity_0 tag;
+};
+
+// const, arity 0
+template< typename R, typename C >
+struct member_function_traits< R (C::*)() const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef arity_0 tag;
+};
+
+// non-const, arity 1
+template< typename R, typename C, typename A1 >
+struct member_function_traits< R (C::*)(A1) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef arity_1 tag;
+};
+
+// const, arity 1
+template< typename R, typename C, typename A1 >
+struct member_function_traits< R (C::*)(A1) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef arity_1 tag;
+};
+
+// non-const, arity 2
+template< typename R, typename C, typename A1, typename A2 >
+struct member_function_traits< R (C::*)(A1, A2) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef arity_2 tag;
+};
+
+// const, arity 2
+template< typename R, typename C, typename A1, typename A2 >
+struct member_function_traits< R (C::*)(A1, A2) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef arity_2 tag;
+};
+
+// non-const, arity 3
+template< typename R, typename C, typename A1, typename A2, typename A3 >
+struct member_function_traits< R (C::*)(A1, A2, A3) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef arity_3 tag;
+};
+
+// const, arity 3
+template< typename R, typename C, typename A1, typename A2, typename A3 >
+struct member_function_traits< R (C::*)(A1, A2, A3) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef arity_3 tag;
+};
+
+// non-const, arity 4
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef arity_4 tag;
+};
+
+// const, arity 4
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef arity_4 tag;
+};
+
+// non-const, arity 5
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef arity_5 tag;
+};
+
+// const, arity 5
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef arity_5 tag;
+};
+
+// non-const, arity 6
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef arity_6 tag;
+};
+
+// const, arity 6
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef arity_6 tag;
+};
+
+// non-const, arity 7
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef arity_7 tag;
+};
+
+// const, arity 7
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef arity_7 tag;
+};
+
+// non-const, arity 8
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7, A8) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef A8      arg8_type;
+    typedef arity_8 tag;
+};
+
+// const, arity 8
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7, A8) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef A8      arg8_type;
+    typedef arity_8 tag;
+};
+
+// non-const, arity 9
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7, A8, A9) > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef A8      arg8_type;
+    typedef A9      arg9_type;
+    typedef arity_9 tag;
+};
+
+// const, arity 9
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7, A8, A9) const > {
+    typedef R       result_type;
+    typedef C       class_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef A8      arg8_type;
+    typedef A9      arg9_type;
+    typedef arity_9 tag;
+};
+
+// non-const, arity 10
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9, typename A10 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) > {
+    typedef R        result_type;
+    typedef C        class_type;
+    typedef A1       arg1_type;
+    typedef A2       arg2_type;
+    typedef A3       arg3_type;
+    typedef A4       arg4_type;
+    typedef A5       arg5_type;
+    typedef A6       arg6_type;
+    typedef A7       arg7_type;
+    typedef A8       arg8_type;
+    typedef A9       arg9_type;
+    typedef A10      arg10_type;
+    typedef arity_10 tag;
+};
+
+// const, arity 10
+template< typename R, typename C, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9, typename A10 >
+struct member_function_traits< R (C::*)(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10) const > {
+    typedef R        result_type;
+    typedef C        class_type;
     typedef A1       arg1_type;
     typedef A2       arg2_type;
     typedef A3       arg3_type;

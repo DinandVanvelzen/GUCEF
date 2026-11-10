@@ -31,6 +31,11 @@
 #define GUCEF_CORE_CIOACCESS_H
 #endif /* GUCEF_CORE_CIOACCESS_H ? */
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_VFSPLUGIN_ZIP_MACROS_H
 #include "vfspluginZIP_macros.h"
 #define GUCEF_VFSPLUGIN_ZIP_MACROS_H
@@ -66,8 +71,13 @@ class CZipIOAccess : public CORE::CIOAccess
 {
     public:
     
+    /**
+     *  @param zipLock the lock of the archive, which the zziplib calls of all its files take: they share its file handle.
+     *                 The archive outlives its open files, as its zziplib dir does
+     */
     CZipIOAccess( ZZIP_FILE* zzipFile     , 
-                  size_t uncompressedSize );
+                  size_t uncompressedSize ,
+                  MT::CMutex& zipLock     );
 
     virtual ~CZipIOAccess();   
 
@@ -164,6 +174,7 @@ class CZipIOAccess : public CORE::CIOAccess
     
     ZZIP_FILE* m_zzipFile;
     size_t m_size;
+    MT::CMutex& m_zipLock;
 };
 
 /*-------------------------------------------------------------------------//

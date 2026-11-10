@@ -132,15 +132,10 @@ CMultiLogger::AddLogger( CILogger* loggerImp )
 {GUCEF_TRACE;
 
     // Do not add bogus loggers
+    // Nothing is logged here: the log manager calls this under its own lock, which a log statement must not be made
+    // under (see CLogManager::AddLogger()); the log manager logs the change once it gave up that lock
     if ( GUCEF_NULL != loggerImp )
-    {
         m_loggers.insert( loggerImp );
-        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "MultiLogger: Added logger" );
-    }
-    else
-    {
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "MultiLogger: Null given for logger" );
-    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -152,8 +147,7 @@ CMultiLogger::RemoveLogger( CILogger* loggerImp )
     // Do not pass in bogus pointers
     assert( GUCEF_NULL != loggerImp );
 
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "MultiLogger: Removing logger" );
-
+    // nothing is logged here, see AddLogger()
     m_loggers.erase( loggerImp );
 }
 
@@ -173,13 +167,18 @@ CMultiLogger::ClearLoggers( void )
                                  const Int32 logLevel         ) const
 {GUCEF_TRACE;
 
-    bool retValue = false;
-    if ( logLevel < m_minLogLevel )
-    {
-        retValue = (*m_msgTypeEnablers.find( logMsgType )).second;
-    }
+    // the same test as Log() makes
+    return logLevel >= m_minLogLevel && IsLogMsgTypeEnabled( logMsgType );
+}
 
-    return retValue;
+/*-------------------------------------------------------------------------*/
+
+bool
+CMultiLogger::IsLogMsgTypeEnabled( const TLogMsgType logMsgType ) const
+{GUCEF_TRACE;
+
+    GUCEF::map< TLogMsgType, bool >::const_iterator i = m_msgTypeEnablers.find( logMsgType );
+    return i != m_msgTypeEnablers.end() && (*i).second;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -244,7 +243,7 @@ CMultiLogger::Log( const TLogMsgType logMsgType ,
     // activity itself.
     if ( logLevel >= m_minLogLevel )
     {
-        if ( (*m_msgTypeEnablers.find( logMsgType )).second )
+        if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
             TLoggerList::const_iterator i = m_loggers.begin();
             while ( i != m_loggers.end() )
@@ -291,7 +290,7 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
     // activity itself.
     if ( logLevel >= m_minLogLevel )
     {
-        if ( (*m_msgTypeEnablers.find( logMsgType )).second )
+        if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
             TLoggerList::const_iterator i = m_loggers.begin();
             while ( i != m_loggers.end() )
@@ -331,7 +330,7 @@ CMultiLogger::Log( const TLogMsgType logMsgType     ,
 
     if ( logLevel >= m_minLogLevel )
     {
-        if ( (*m_msgTypeEnablers.find( logMsgType )).second )
+        if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
             TLoggerList::const_iterator i = m_loggers.begin();
             while ( i != m_loggers.end() )
@@ -368,7 +367,7 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
 
     if ( logLevel >= m_minLogLevel )
     {
-        if ( (*m_msgTypeEnablers.find( logMsgType )).second )
+        if ( IsLogMsgTypeEnabled( logMsgType ) )
         {
             TLoggerList::const_iterator i = m_loggers.begin();
             while ( i != m_loggers.end() )

@@ -13,21 +13,19 @@
 
 #if defined(JAS_CONFIGURE)
 
+/* DV edit: this file is used as is, it is not run through cmake which would fill in the @...@ and #cmakedefine lines.
+   The values are those of a POSIX system, the MSVC build uses the other branch. */
+
 /* This preprocessor symbol identifies the version of JasPer. */
-#define	JAS_VERSION "@JAS_VERSION@"
+#define	JAS_VERSION "2.0.9"
 
-#cmakedefine JAS_HAVE_FCNTL_H 1
-#cmakedefine JAS_HAVE_IO_H 1
-#cmakedefine JAS_HAVE_UNISTD_H 1
-#cmakedefine JAS_HAVE_WINDOWS_H 1
-#cmakedefine JAS_HAVE_SYS_TIME_H 1
-#cmakedefine JAS_HAVE_SYS_TYPES_H 1
+#define JAS_HAVE_FCNTL_H 1
+#define JAS_HAVE_UNISTD_H 1
+#define JAS_HAVE_SYS_TIME_H 1
+#define JAS_HAVE_SYS_TYPES_H 1
 
-#cmakedefine JAS_HAVE_GETTIMEOFDAY 1
-#cmakedefine JAS_HAVE_GETRUSAGE 1
-
-#cmakedefine JAS_HAVE_GL_GLUT_H 1
-#cmakedefine JAS_HAVE_GLUT_H 1
+#define JAS_HAVE_GETTIMEOFDAY 1
+#define JAS_HAVE_GETRUSAGE 1
 
 #define JAS_HAVE_SNPRINTF	1
 

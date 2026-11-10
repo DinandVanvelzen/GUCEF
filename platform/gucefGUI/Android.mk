@@ -23,64 +23,132 @@ LOCAL_MODULE_FILENAME := libgucefGUI
 
 LOCAL_SRC_FILES := \
   src/gucefGUI.cpp \
+  src/gucefGUI_CAudioPlayer.cpp \
+  src/gucefGUI_CAudioSettingsForm.cpp \
+  src/gucefGUI_CBitmapFont.cpp \
   src/gucefGUI_CButton.cpp \
+  src/gucefGUI_CChartAxis.cpp \
+  src/gucefGUI_CChartDecimator.cpp \
+  src/gucefGUI_CChartMarker.cpp \
+  src/gucefGUI_CChartPalette.cpp \
+  src/gucefGUI_CChartSeries.cpp \
+  src/gucefGUI_CChartView.cpp \
   src/gucefGUI_CCheckbox.cpp \
   src/gucefGUI_CCombobox.cpp \
+  src/gucefGUI_CDataTableViewModel.cpp \
+  src/gucefGUI_CDeveloperConsoleForm.cpp \
+  src/gucefGUI_CDirectoryOpenDialogForm.cpp \
+  src/gucefGUI_CDirectorySaveDialogForm.cpp \
+  src/gucefGUI_CDrawSurface.cpp \
   src/gucefGUI_CEditbox.cpp \
-  src/gucefGUI_CFileSystemDialog.cpp \
+  src/gucefGUI_CFileOpenDialogForm.cpp \
+  src/gucefGUI_CFileSaveDialogForm.cpp \
+  src/gucefGUI_CFileSystemDialogForm.cpp \
+  src/gucefGUI_CFontRasterizer.cpp \
+  src/gucefGUI_CFontRasterizerRegistry.cpp \
   src/gucefGUI_CForm.cpp \
   src/gucefGUI_CFormBackend.cpp \
   src/gucefGUI_CFormEx.cpp \
   src/gucefGUI_CFormFactory.cpp \
+  src/gucefGUI_CFormLayout.cpp \
+  src/gucefGUI_CGUIContext.cpp \
   src/gucefGUI_CGUIDriver.cpp \
+  src/gucefGUI_CGUIInputAdapter.cpp \
   src/gucefGUI_CGUIManager.cpp \
+  src/gucefGUI_CGUIUserActionLog.cpp \
+  src/gucefGUI_CGeneralSettings.cpp \
+  src/gucefGUI_CGeneralSettingsForm.cpp \
+  src/gucefGUI_CGridCellEditor.cpp \
+  src/gucefGUI_CGridClipboard.cpp \
+  src/gucefGUI_CGridColumnLayout.cpp \
+  src/gucefGUI_CGridEditController.cpp \
+  src/gucefGUI_CGridEditReport.cpp \
+  src/gucefGUI_CGridSelection.cpp \
   src/gucefGUI_CGridView.cpp \
+  src/gucefGUI_CGridViewPainter.cpp \
+  src/gucefGUI_CGroupBox.cpp \
   src/gucefGUI_CGuiGlobal.cpp \
-  src/gucefGUI_CIFileSystemInfoProvider.cpp \
   src/gucefGUI_CIGUIContext.cpp \
+  src/gucefGUI_CITableViewModel.cpp \
   src/gucefGUI_CImageFrame.cpp \
   src/gucefGUI_CLabel.cpp \
   src/gucefGUI_CListbox.cpp \
   src/gucefGUI_CMenuBar.cpp \
+  src/gucefGUI_CMessageBoxForm.cpp \
   src/gucefGUI_CModule.cpp \
+  src/gucefGUI_CPanel.cpp \
+  src/gucefGUI_CPathFieldForm.cpp \
   src/gucefGUI_CPopupMenu.cpp \
   src/gucefGUI_CProgressBar.cpp \
   src/gucefGUI_CPushButton.cpp \
   src/gucefGUI_CRenderContext.cpp \
+  src/gucefGUI_CRoutedEventData.cpp \
+  src/gucefGUI_CScrollPanel.cpp \
+  src/gucefGUI_CSecretInput.cpp \
+  src/gucefGUI_CSecretInputSettings.cpp \
+  src/gucefGUI_CSettingsForm.cpp \
+  src/gucefGUI_CSettingsPageForm.cpp \
+  src/gucefGUI_CSlider.cpp \
+  src/gucefGUI_CSoftwareRenderer.cpp \
   src/gucefGUI_CSpinner.cpp \
   src/gucefGUI_CTabContentPane.cpp \
   src/gucefGUI_CTabControl.cpp \
+  src/gucefGUI_CTableCellFormatter.cpp \
+  src/gucefGUI_CTableCellParser.cpp \
+  src/gucefGUI_CTableEditHistory.cpp \
+  src/gucefGUI_CTableEditResult.cpp \
+  src/gucefGUI_CTableViewColumn.cpp \
+  src/gucefGUI_CTableViewRange.cpp \
+  src/gucefGUI_CTabularText.cpp \
   src/gucefGUI_CTextbox.cpp \
   src/gucefGUI_CTreeview.cpp \
   src/gucefGUI_CUDim.cpp \
   src/gucefGUI_CUVector.cpp \
   src/gucefGUI_CVideoOptions.cpp \
   src/gucefGUI_CVideoSettings.cpp \
+  src/gucefGUI_CVideoSettingsForm.cpp \
+  src/gucefGUI_CVideoView.cpp \
   src/gucefGUI_CWidget.cpp \
   src/gucefGUI_CWidgetFactory.cpp \
+  src/gucefGUI_CWidgetHandler.cpp \
+  src/gucefGUI_CWidgetPainter.cpp \
+  src/gucefGUI_CWidgetPropertyValue.cpp \
+  src/gucefGUI_CWidgetTypeRegistry.cpp \
   src/gucefGUI_CWindow.cpp \
   src/gucefGUI_CWindowContext.cpp \
   src/gucefGUI_CWindowManager.cpp \
-  src/gucefGUI_CWindowManagerBackend.cpp
+  src/gucefGUI_CWindowManagerBackend.cpp \
+  src/gucefGUI_EWidgetProperty.cpp \
+  src/gucefGUI_StandardThemes.cpp \
+  src/gucefGUI_StandardWidgetTypes.cpp \
+  src/gucefGUI_Types.cpp \
+  src/gucefGUI_Utils.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../gucefAUDIO/include \
+  $(MY_MODULE_PATH)/../gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefIMAGE/include \
+  $(MY_MODULE_PATH)/../gucefINPUT/include \
   $(MY_MODULE_PATH)/../gucefMT/include \
-  $(MY_MODULE_PATH)/../gucefVFS/include
+  $(MY_MODULE_PATH)/../gucefVFS/include \
+  $(MY_MODULE_PATH)/../gucefVIDEO/include \
+  $(MY_MODULE_PATH)/../gucefVIDEO/include/c_api
 
-LOCAL_CFLAGS := -DGUCEF_GUI_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_GUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefGUI -DMODULE_NAME=gucefGUI -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefAUDIO \
   gucefCORE \
   gucefIMAGE \
+  gucefINPUT \
   gucefMT \
-  gucefVFS
+  gucefVFS \
+  gucefVIDEO
 
 include $(BUILD_SHARED_LIBRARY)
 

@@ -148,6 +148,19 @@ class GUCEF_HIDDEN CDStoreCodecPlugin : public CDStoreCodec ,
                                 CIOAccess* file     ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
+     *      Creates a writer which passes each node straight on to the plugin
+     *      so that the plugin can write the document as it goes. See CDStoreCodec::CreateDocumentWriter()
+     */
+    virtual CDocumentStreamWriterPtr CreateDocumentWriter( CIOAccess& output ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *      Passes the plugin's read events straight on to the given callbacks
+     *      without building a tree. See CDStoreCodec::ParseDocument()
+     */
+    virtual bool ParseDocument( CIOAccess& input                     ,
+                                CIDocumentParserCallbacks& callbacks ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
      *      Returns the codec type
      *      a dat file codec might return "dat" and an xml codec "xml" ect.
      *
@@ -204,6 +217,8 @@ class GUCEF_HIDDEN CDStoreCodecPlugin : public CDStoreCodec ,
     bool StoreDataTree( void** codecData, const CDataNode* tree, CIOAccess* file );
     bool BuildDataTree( void** codecData, CDataNode* treeroot, const CString& filename );
     bool BuildDataTree( void** codecData, CDataNode* treeroot, CIOAccess* file );
+    CDocumentStreamWriterPtr CreateDocumentWriter( void** codecData, CIOAccess& output );
+    bool ParseDocument( void** codecData, CIOAccess& input, CIDocumentParserCallbacks& callbacks );
 
     private:
     
@@ -213,6 +228,19 @@ class GUCEF_HIDDEN CDStoreCodecPlugin : public CDStoreCodec ,
     void StoreNode( void** codecData   ,
                     const CDataNode* n ,
                     void** filedata    ); /**< recursive node storage algorithm */
+
+    void BeginNodeStore( void** codecData       ,
+                         void** filedata        ,
+                         const CDataNode& n     ,
+                         bool hasChildren       );
+
+    void EndNodeStore( void** codecData       ,
+                       void** filedata        ,
+                       const CString& name    ,
+                       UInt32 attCount        ,
+                       bool hasChildren       );
+
+    friend class CDStoreCodecPluginDocumentWriter;
 
     private:
     friend class CPluginFactoryAdapterForDataDrivenDStoreCodec;

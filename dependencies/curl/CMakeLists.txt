@@ -15,29 +15,46 @@ set( HEADER_FILES
   include/curl/curl.h
   include/curl/curlver.h
   include/curl/easy.h
+  include/curl/header.h
   include/curl/mprintf.h
   include/curl/multi.h
+  include/curl/options.h
   include/curl/stdcheaders.h
   include/curl/system.h
   include/curl/typecheck-gcc.h
   include/curl/urlapi.h
+  include/curl/websockets.h
   lib/altsvc.h
   lib/amigaos.h
+  lib/api.h
   lib/arpa_telnet.h
-  lib/asyn.h
-  lib/config-dos.h
-  lib/config-tpf.h
+  lib/bufq.h
+  lib/bufref.h
+  lib/cf-h1-proxy.h
+  lib/cf-h2-proxy.h
+  lib/cf-haproxy.h
+  lib/cf-https-connect.h
+  lib/cf-ip-happy.h
+  lib/cf-recvbuf.h
+  lib/cf-setup.h
+  lib/cf-socket.h
+  lib/cfilters.h
+  lib/config-mac.h
+  lib/config-os400.h
+  lib/config-win32.h
   lib/conncache.h
   lib/connect.h
   lib/content_encoding.h
   lib/cookie.h
+  lib/creds.h
+  lib/cshutdn.h
   lib/curl_addrinfo.h
-  lib/curl_base64.h
   lib/curl_config.h
   lib/curl_ctype.h
-  lib/curl_des.h
+  lib/curl_ed25519.h
   lib/curl_endian.h
   lib/curl_fnmatch.h
+  lib/curl_fopen.h
   lib/curl_get_line.h
   lib/curl_gethostname.h
   lib/curl_gssapi.h
@@ -45,149 +62,208 @@ set( HEADER_FILES
   lib/curl_ldap.h
   lib/curl_md4.h
   lib/curl_md5.h
-  lib/curl_memory.h
   lib/curl_memrchr.h
-  lib/curl_multibyte.h
   lib/curl_ntlm_core.h
-  lib/curl_ntlm_wb.h
-  lib/curl_path.h
   lib/curl_printf.h
   lib/curl_range.h
-  lib/curl_rtmp.h
   lib/curl_sasl.h
-  lib/curl_sec.h
   lib/curl_setup.h
-  lib/curl_setup_once.h
   lib/curl_sha256.h
+  lib/curl_sha512_256.h
+  lib/curl_share.h
   lib/curl_sspi.h
   lib/curl_threads.h
-  lib/curlx.h
+  lib/curl_trc.h
+  lib/cw-out.h
+  lib/cw-pause.h
   lib/dict.h
-  lib/doh.h
-  lib/dotdot.h
+  lib/dynhds.h
+  lib/easy_lock.h
   lib/easyif.h
+  lib/easyoptions.h
   lib/escape.h
+  lib/fake_addrinfo.h
   lib/file.h
   lib/fileinfo.h
   lib/formdata.h
+  lib/ftp-int.h
   lib/ftp.h
   lib/ftplistparser.h
+  lib/functypes.h
   lib/getinfo.h
   lib/gopher.h
   lib/hash.h
-  lib/hostcheck.h
-  lib/hostip.h
+  lib/headers.h
+  lib/hsts.h
   lib/http.h
+  lib/http1.h
   lib/http2.h
+  lib/http_aws_sigv4.h
   lib/http_chunks.h
   lib/http_digest.h
+  lib/http_httpsig.h
   lib/http_negotiate.h
   lib/http_ntlm.h
   lib/http_proxy.h
+  lib/idn.h
   lib/if2ip.h
   lib/imap.h
-  lib/inet_ntop.h
-  lib/inet_pton.h
   lib/llist.h
-  lib/memdebug.h
+  lib/macos.h
   lib/mime.h
+  lib/mqtt.h
+  lib/multi_ev.h
+  lib/multi_ntfy.h
   lib/multihandle.h
   lib/multiif.h
   lib/netrc.h
-  lib/non-ascii.h
-  lib/nonblock.h
   lib/parsedate.h
+  lib/peer.h
   lib/pingpong.h
   lib/pop3.h
   lib/progress.h
+  lib/protocol.h
+  lib/proxy.h
   lib/psl.h
-  lib/quic.h
+  lib/ptrarray.h
   lib/rand.h
-  lib/rename.h
+  lib/ratelimit.h
+  lib/request.h
   lib/rtsp.h
   lib/select.h
   lib/sendf.h
   lib/setopt.h
-  lib/share.h
+  lib/setup-os400.h
+  lib/setup-vms.h
+  lib/setup-win32.h
   lib/sigpipe.h
   lib/slist.h
-  lib/smb.h
   lib/smtp.h
   lib/sockaddr.h
   lib/socketpair.h
   lib/socks.h
-  lib/speedcheck.h
   lib/splay.h
   lib/strcase.h
-  lib/strdup.h
   lib/strerror.h
-  lib/strtok.h
-  lib/strtoofft.h
-  lib/system_win32.h
   lib/telnet.h
   lib/tftp.h
-  lib/timeval.h
+  lib/thrdpool.h
+  lib/thrdqueue.h
   lib/transfer.h
+  lib/u32_ptrset.h
+  lib/u8_strset.h
+  lib/uint-bset.h
+  lib/uint-spbset.h
+  lib/uint-table.h
   lib/url.h
   lib/urlapi-int.h
   lib/urldata.h
-  lib/warnless.h
-  lib/wildcard.h
-  lib/x509asn1.h
+  lib/ws.h
+  lib/curlx/base64.h
+  lib/curlx/basename.h
+  lib/curlx/dynbuf.h
+  lib/curlx/inet_ntop.h
+  lib/curlx/inet_pton.h
+  lib/curlx/multibyte.h
+  lib/curlx/nonblock.h
+  lib/curlx/snprintf.h
+  lib/curlx/strcopy.h
+  lib/curlx/strdup.h
+  lib/curlx/strerr.h
+  lib/curlx/strparse.h
+  lib/curlx/timediff.h
+  lib/curlx/timeval.h
+  lib/curlx/version_win32.h
+  lib/curlx/wait.h
+  lib/curlx/warnless.h
+  lib/curlx/win32-fopen.h
+  lib/curlx/winapi.h
   lib/vauth/digest.h
-  lib/vauth/ntlm.h
   lib/vauth/vauth.h
-  lib/vquic/ngtcp2.h
-  lib/vquic/quiche.h
+  lib/vdns/asyn.h
+  lib/vdns/cf-dns.h
+  lib/vdns/dnscache.h
+  lib/vdns/doh.h
+  lib/vdns/hostip.h
+  lib/vdns/httpsrr.h
+  lib/vquic/capsule.h
+  lib/vquic/cf-capsule.h
+  lib/vquic/cf-ngtcp2-cmn.h
+  lib/vquic/cf-ngtcp2-proxy.h
+  lib/vquic/cf-ngtcp2.h
+  lib/vquic/cf-quiche.h
+  lib/vquic/vquic-tls.h
+  lib/vquic/vquic.h
+  lib/vquic/vquic_int.h
   lib/vssh/ssh.h
-  lib/vssh/wolfssh.h
-  lib/vtls/bearssl.h
-  lib/vtls/curl_schannel.h
-  lib/vtls/gskit.h
+  lib/vssh/vssh.h
+  lib/vtls/apple.h
+  lib/vtls/cipher_suite.h
   lib/vtls/gtls.h
+  lib/vtls/hostcheck.h
+  lib/vtls/keylog.h
   lib/vtls/mbedtls.h
-  lib/vtls/mbedtls_threadlock.h
-  lib/vtls/mesalink.h
-  lib/vtls/nssg.h
   lib/vtls/openssl.h
-  lib/vtls/sectransp.h
+  lib/vtls/rustls.h
+  lib/vtls/schannel.h
+  lib/vtls/schannel_int.h
   lib/vtls/vtls.h
+  lib/vtls/vtls_config.h
+  lib/vtls/vtls_int.h
+  lib/vtls/vtls_scache.h
+  lib/vtls/vtls_spack.h
   lib/vtls/wolfssl.h
+  lib/vtls/x509asn1.h
 )
 
 set( SOURCE_FILES 
   lib/altsvc.c
   lib/amigaos.c
-  lib/asyn-ares.c
-  lib/asyn-thread.c
-  lib/base64.c
+  lib/api.c
+  lib/bufq.c
+  lib/bufref.c
+  lib/cf-h1-proxy.c
+  lib/cf-h2-proxy.c
+  lib/cf-haproxy.c
+  lib/cf-https-connect.c
+  lib/cf-ip-happy.c
+  lib/cf-recvbuf.c
+  lib/cf-setup.c
+  lib/cf-socket.c
+  lib/cfilters.c
   lib/conncache.c
   lib/connect.c
   lib/content_encoding.c
   lib/cookie.c
+  lib/creds.c
+  lib/cshutdn.c
   lib/curl_addrinfo.c
-  lib/curl_ctype.c
-  lib/curl_des.c
+  lib/curl_ed25519.c
   lib/curl_endian.c
   lib/curl_fnmatch.c
+  lib/curl_fopen.c
   lib/curl_get_line.c
   lib/curl_gethostname.c
   lib/curl_gssapi.c
   lib/curl_memrchr.c
-  lib/curl_multibyte.c
   lib/curl_ntlm_core.c
-  lib/curl_ntlm_wb.c
-  lib/curl_path.c
   lib/curl_range.c
-  lib/curl_rtmp.c
   lib/curl_sasl.c
+  lib/curl_sha512_256.c
+  lib/curl_share.c
   lib/curl_sspi.c
   lib/curl_threads.c
+  lib/curl_trc.c
+  lib/cw-out.c
+  lib/cw-pause.c
   lib/dict.c
-  lib/doh.c
-  lib/dotdot.c
+  lib/dllmain.c
+  lib/dynhds.c
   lib/easy.c
+  lib/easygetopt.c
+  lib/easyoptions.c
   lib/escape.c
+  lib/fake_addrinfo.c
   lib/file.c
   lib/fileinfo.c
   lib/formdata.c
@@ -197,82 +273,101 @@ set( SOURCE_FILES
   lib/getinfo.c
   lib/gopher.c
   lib/hash.c
+  lib/headers.c
   lib/hmac.c
-  lib/hostasyn.c
-  lib/hostcheck.c
-  lib/hostip.c
-  lib/hostip4.c
-  lib/hostip6.c
-  lib/hostsyn.c
+  lib/hsts.c
   lib/http.c
+  lib/http1.c
   lib/http2.c
+  lib/http_aws_sigv4.c
   lib/http_chunks.c
   lib/http_digest.c
+  lib/http_httpsig.c
   lib/http_negotiate.c
   lib/http_ntlm.c
   lib/http_proxy.c
+  lib/idn.c
   lib/if2ip.c
   lib/imap.c
-  lib/inet_ntop.c
-  lib/inet_pton.c
-  lib/krb5.c
   lib/ldap.c
   lib/llist.c
+  lib/macos.c
   lib/md4.c
   lib/md5.c
   lib/memdebug.c
   lib/mime.c
   lib/mprintf.c
+  lib/mqtt.c
   lib/multi.c
+  lib/multi_ev.c
+  lib/multi_ntfy.c
   lib/netrc.c
-  lib/non-ascii.c
-  lib/nonblock.c
-  lib/nwlib.c
-  lib/nwos.c
   lib/openldap.c
   lib/parsedate.c
+  lib/peer.c
   lib/pingpong.c
   lib/pop3.c
   lib/progress.c
+  lib/protocol.c
+  lib/proxy.c
   lib/psl.c
+  lib/ptrarray.c
   lib/rand.c
-  lib/rename.c
+  lib/ratelimit.c
+  lib/request.c
   lib/rtsp.c
-  lib/security.c
   lib/select.c
   lib/sendf.c
   lib/setopt.c
   lib/sha256.c
-  lib/share.c
   lib/slist.c
-  lib/smb.c
   lib/smtp.c
   lib/socketpair.c
   lib/socks.c
   lib/socks_gssapi.c
   lib/socks_sspi.c
-  lib/speedcheck.c
   lib/splay.c
   lib/strcase.c
-  lib/strdup.c
+  lib/strequal.c
   lib/strerror.c
-  lib/strtok.c
-  lib/strtoofft.c
-  lib/system_win32.c
   lib/telnet.c
   lib/tftp.c
-  lib/timeval.c
+  lib/thrdpool.c
+  lib/thrdqueue.c
   lib/transfer.c
+  lib/u32_ptrset.c
+  lib/u8_strset.c
+  lib/uint-bset.c
+  lib/uint-spbset.c
+  lib/uint-table.c
   lib/url.c
   lib/urlapi.c
   lib/version.c
-  lib/warnless.c
-  lib/wildcard.c
-  lib/x509asn1.c
+  lib/ws.c
+  lib/curlx/base64.c
+  lib/curlx/basename.c
+  lib/curlx/dynbuf.c
+  lib/curlx/inet_ntop.c
+  lib/curlx/inet_pton.c
+  lib/curlx/multibyte.c
+  lib/curlx/nonblock.c
+  lib/curlx/snprintf.c
+  lib/curlx/strcopy.c
+  lib/curlx/strdup.c
+  lib/curlx/strerr.c
+  lib/curlx/strparse.c
+  lib/curlx/timediff.c
+  lib/curlx/timeval.c
+  lib/curlx/version_win32.c
+  lib/curlx/wait.c
+  lib/curlx/warnless.c
+  lib/curlx/win32-fopen.c
+  lib/curlx/winapi.c
   lib/vauth/cleartext.c
   lib/vauth/cram.c
   lib/vauth/digest.c
   lib/vauth/digest_sspi.c
+  lib/vauth/gsasl.c
   lib/vauth/krb5_gssapi.c
   lib/vauth/krb5_sspi.c
   lib/vauth/ntlm.c
@@ -281,97 +376,102 @@ set( SOURCE_FILES
   lib/vauth/spnego_gssapi.c
   lib/vauth/spnego_sspi.c
   lib/vauth/vauth.c
-  lib/vquic/ngtcp2.c
-  lib/vquic/quiche.c
+  lib/vdns/asyn-ares.c
+  lib/vdns/asyn-base.c
+  lib/vdns/asyn-thrdd.c
+  lib/vdns/cf-dns.c
+  lib/vdns/dnscache.c
+  lib/vdns/doh.c
+  lib/vdns/hostip.c
+  lib/vdns/hostip4.c
+  lib/vdns/hostip6.c
+  lib/vdns/httpsrr.c
+  lib/vquic/capsule.c
+  lib/vquic/cf-capsule.c
+  lib/vquic/cf-ngtcp2-cmn.c
+  lib/vquic/cf-ngtcp2-proxy.c
+  lib/vquic/cf-ngtcp2.c
+  lib/vquic/cf-quiche.c
+  lib/vquic/vquic-tls.c
+  lib/vquic/vquic.c
   lib/vssh/libssh.c
   lib/vssh/libssh2.c
-  lib/vssh/wolfssh.c
-  lib/vtls/bearssl.c
-  lib/vtls/gskit.c
+  lib/vssh/vssh.c
+  lib/vtls/apple.c
+  lib/vtls/cipher_suite.c
   lib/vtls/gtls.c
+  lib/vtls/hostcheck.c
+  lib/vtls/keylog.c
   lib/vtls/mbedtls.c
-  lib/vtls/mbedtls_threadlock.c
-  lib/vtls/mesalink.c
-  lib/vtls/nss.c
   lib/vtls/openssl.c
+  lib/vtls/rustls.c
   lib/vtls/schannel.c
   lib/vtls/schannel_verify.c
-  lib/vtls/sectransp.c
   lib/vtls/vtls.c
+  lib/vtls/vtls_config.c
+  lib/vtls/vtls_scache.c
+  lib/vtls/vtls_spack.c
   lib/vtls/wolfssl.c
+  lib/vtls/x509asn1.c
 )
 
+# Make sure the PLATFORM_HEADER_FILES variable is always defined
+ set( PLATFORM_HEADER_FILES "" )
 
-
-if (WIN32)
-  set( PLATFORM_HEADER_FILES 
-    lib/config-win32.h
-    lib/system_win32.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "WIN32" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    lib/idn_win32.c
-    lib/system_win32.c
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "WIN32" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (WIN64)
-  set( PLATFORM_HEADER_FILES 
-    lib/config-win32.h
-    lib/system_win32.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "WIN64" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    lib/idn_win32.c
-    lib/system_win32.c
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "WIN64" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-endif ()
+# Make sure the PLATFORM_SOURCE_FILES variable is always defined
+ set( PLATFORM_SOURCE_FILES "" )
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "curl" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BUILDING_LIBCURL;HAVE_BUILTIN_CPU_SUPPORTS;MODULE_CONSENSUS_NAME=curl;MODULE_NAME=curl" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BUILDING_LIBCURL;MODULE_CONSENSUS_NAME=curl;MODULE_NAME=curl" )
 
 if ( LINUX32 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H" )
+  add_dependencies( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
+target_link_libraries( ${MODULE_NAME} PRIVATE crypto ssl )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_HIDDEN_SYMBOLS;HAVE_CONFIG_H;_GNU_SOURCE" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H" )
+  add_dependencies( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
+target_link_libraries( ${MODULE_NAME} PRIVATE crypto ssl )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_HIDDEN_SYMBOLS;HAVE_CONFIG_H;_GNU_SOURCE" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib CRYPT32.lib Wldap32.lib Ws2_32.lib )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_DISABLE_LDAP;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE" )
+  add_dependencies( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
+target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib Bcrypt.lib Crypt32.lib Iphlpapi.lib Secur32.lib Ws2_32.lib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_DISABLE_LDAP;CURL_DISABLE_LDAPS;HAVE_LIBZ;HAVE_ZLIB_H;USE_SCHANNEL;USE_WINDOWS_SSPI;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib CRYPT32.lib Wldap32.lib Ws2_32.lib )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_DISABLE_LDAP;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE" )
+  add_dependencies( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
+target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib Bcrypt.lib Crypt32.lib Iphlpapi.lib Secur32.lib Ws2_32.lib )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_DISABLE_LDAP;CURL_DISABLE_LDAPS;HAVE_LIBZ;HAVE_ZLIB_H;USE_SCHANNEL;USE_WINDOWS_SSPI;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE" )
 endif( WIN64 )
 
-include_directories( include include/curl lib lib/vauth lib/vquic lib/vssh lib/vtls )
+include_directories( include lib )
+
+if ( LINUX32 )
+  include_directories( ../zlib )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  include_directories( ../zlib )
+endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( lib )
+  include_directories( ../zlib )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( lib )
+  include_directories( ../zlib )
 endif( WIN64 )
 
 

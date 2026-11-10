@@ -10,7 +10,7 @@
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
             <Dependency Name="EGL" />
-            <Dependency Name="GLESv1_CM" />
+            <Dependency Name="GLESv3" />
             <Dependency Name="android" />
             <Dependency Name="android_native_app_glue" Type="StaticLibrary" />
         </Linker>

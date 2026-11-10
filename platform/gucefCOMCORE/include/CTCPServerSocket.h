@@ -67,7 +67,21 @@ struct STCPServerSockData;
 //-------------------------------------------------------------------------*/
 
 /**
- *      Server socket class for TCP 
+ *  Server socket class for TCP
+ *
+ *  Threads: the thread that pulses the pulse generator of the socket accepts the clients, updates the connections and
+ *  raises the events; it uses the lists of connections and the listening descriptor without the lock of the socket.
+ *  So ListenOnPort(), Listen(), Close(), SetPort(), SetBindAddress() and SetMaxConnections() are called on that thread
+ *  (also from within an event of the socket), or while nothing pulses it: before its pulses start, after they stopped,
+ *  or under a lock that its pulses take (a DRN node pulses its pulse generator under the node lock). Close() is not
+ *  called from within an event of one of its connections: a connection raises its events under its own lock, and the
+ *  lock of the socket comes before the lock of a connection. A connection may be closed on any thread, and
+ *  SendToAllClients(), SendToConnection() and CloseClientConnection() may be called on any thread.
+ *
+ *  Close() closes and tells the connections that are open, the active ones and those accepted since the last pulse;
+ *  a connection whose close was told already, or is being told by another thread, is not told again. A connection
+ *  object goes to a later client only once its close was told (DisconnectedEvent, then ClientDisconnectedEvent), also
+ *  after a Close() and a new listen.
  */
 class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
 {
@@ -98,6 +112,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     static const CORE::CEvent ServerSocketErrorEvent;
     static const CORE::CEvent ServerSocketClientErrorEvent;
     static const CORE::CEvent ServerSocketMaxConnectionsChangedEvent;
+
+    /** The most connections taken in one pulse: all that wait, up to this bound */
+    static const UInt32 MaxAcceptsPerCycle = 64;
         
     typedef CORE::TCloneableInt32   TServerSocketErrorEventData;
     typedef CORE::TCloneableInt32   TServerSocketClientErrorEventData;    
@@ -144,6 +161,23 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     bool SetPort( UInt16 port );
     
     UInt16 GetPort( void ) const;
+
+    /**
+     *  The port the server is listening on, 0 when it is not. Differs from GetPort() for a server that was
+     *  told to listen on port 0, where the system picks a free port
+     */
+    UInt16 GetBoundPort( void ) const;
+
+    /**
+     *  The IPv4 address to listen on as dotted text, for example "127.0.0.1" to accept loopback clients only.
+     *  Empty (the default) and "0.0.0.0" listen on every NIC.
+     *  Takes effect at the next Listen(), a socket that is active listens again on the new address.
+     *  An address that is not a dotted IPv4 address is refused (false) and makes Listen() fail, so that a mistyped
+     *  address never ends up listening wider than was asked for.
+     */
+    bool SetBindAddress( const CORE::CString& bindAddress );
+
+    CORE::CString GetBindAddress( void ) const;
     
     bool IsActive( void ) const;
     
@@ -200,6 +234,16 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     void SetClientConnectionMaxIdleDurationInMs( UInt32 maxIdleTimeInMs );
 
     UInt32 GeClientConnectiontMaxIdleDurationInMs( void ) const;    
+
+    /**
+     *  Whether the pulse generator is asked for an immediate pulse as soon as the listening socket or one of its
+     *  connections becomes ready (a connection waiting to be accepted, data, writable while data is queued), see
+     *  CSocketReadinessWaiter. Without it the sockets are serviced at their periodic pulses only. Takes effect at the
+     *  next listen. Default false. Only for a pulse generator driven by a task delegator (a dedicated task's).
+     */
+    void SetUseReadinessWake( bool useReadinessWake );
+
+    bool GetUseReadinessWake( void ) const;
     
     virtual ~CTCPServerSocket(); 
     
@@ -231,7 +275,10 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
      */
     CTCPServerSocket( void );     
     
-    void AcceptClients( void );     
+    void AcceptClients( void );
+
+    /** Accepts one waiting connection. @return true when one was accepted */
+    bool AcceptClient( void );     
     
     private :
     
@@ -248,6 +295,10 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     TConnectionQueue m_almostActiveConnections;
     TConnectionSet m_inactiveConnections;      /**< set of all currently inactive connection objects ready for reuse */
     UInt16 m_port;
+    UInt16 m_boundPort;                        /**< the port that was bound, differs from m_port for port 0 */
+    CORE::CString m_bindAddress;               /**< dotted IPv4 address to listen on, empty for every NIC */
+    UInt32 m_bindAddressInNetworkByteOrder;
+    bool m_bindAddressValid;
     MT::CMutex _datalock;
     UInt32 _timeout;         
     CORE::PulseGeneratorPtr m_pulseGenerator;
@@ -256,6 +307,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     bool m_lastListenFailed;
     bool m_disconnectClientsIfIdle;
     UInt32 m_maxClientConnectionIdleTime;
+    bool m_useReadinessWake;
+    CSocketReadinessWaiterPtr m_readinessWaiter;
+    CSocketReadinessWaiter::TRegistrationId m_readinessId;  /**< of the listening socket */
 };
 
 /*-------------------------------------------------------------------------//

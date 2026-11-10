@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -75,6 +73,7 @@
 
   #include <windows.h>		/* WIN32 API */
   #include <winioctl.h>
+  #include <aclapi.h>
   #include <Shlobj.h>
   #undef min
   #undef max
@@ -83,7 +82,19 @@
   #include <direct.h>             /* dir tools */
   #include "Shlwapi.h"
   #define MAX_DIR_LENGTH MAX_PATH
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+       ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+  /*
+   *  Most functions of this file have branches for Windows and for Linux, Android and Emscripten only, and stubs that
+   *  report failure (or, as SyncDirectory, success without doing anything) elsewhere: FileExists, DirExists, PathExists,
+   *  CreateDirs, DeleteDir, FileSize, Get/SetFileMetaData, GetFileModificationTime, GetFileCreationTime, SyncDirectory,
+   *  SetOwnerOnlyAccess, TryResolveSpecialDir, ListAvailableSpecialDirs, the storage volume functions and
+   *  CFileSystemIterator among them. MoveFile, MoveFileAtomically, CreateOwnerOnlyFile and ReadOwnerOnlyFile have
+   *  POSIX branches that name the Apple platforms. Until every function has an Apple branch (POSIX, st_mtimespec
+   *  instead of st_mtim, F_FULLFSYNC for durability) built and tested on those platforms, the file refuses them.
+   */
+  #error The Apple platforms are not implemented in dvcppfileutils.cpp
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
   #include <dirent.h>             /* needed for dirent strcture */
   #include <unistd.h>             /* POSIX utilities */
   #include <limits.h>             /* Linux OS limits */
@@ -117,6 +128,21 @@
 #include "CDynamicBuffer.h"
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
+#ifndef GUCEF_CORE_CRANDOM_H
+#include "gucefCORE_CRandom.h"
+#define GUCEF_CORE_CRANDOM_H
+#endif /* GUCEF_CORE_CRANDOM_H ? */
+
+#ifndef GUCEF_CORE_CFILEACCESS_H
+#include "CFileAccess.h"
+#define GUCEF_CORE_CFILEACCESS_H
+#endif /* GUCEF_CORE_CFILEACCESS_H ? */
+
+#ifndef GUCEF_CORE_SECUREMEMORY_H
+#include "gucefCORE_SecureMemory.h"
+#define GUCEF_CORE_SECUREMEMORY_H
+#endif /* GUCEF_CORE_SECUREMEMORY_H ? */
 
 #include "dvcppfileutils.h"
 
@@ -187,7 +213,7 @@ class GUCEF_HIDDEN CStorageVolumeInfoOSDataImpl
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
 bool GUCEF_HIDDEN
 TryToDetermineIfRunningInContainer( void )
@@ -259,6 +285,76 @@ ParseFakeUUID( const CString& fakeUuid ,
 
 /*--------------------------------------------------------------------------*/
 
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+/**
+ *  An XDG user directory (desktop, documents, downloads, ...): the environment variable when it is set, else the line of the
+ *  user's user-dirs.dirs file (as desktops write it, e.g. XDG_DOWNLOAD_DIR="$HOME/Downloads"), else the home directory, which
+ *  is what the XDG user directories specification falls back to
+ */
+static bool
+TryResolveXdgUserDir( const char* key, CString& resolvedPath )
+{GUCEF_TRACE;
+
+    const char* fromEnv = getenv( key );
+    if ( GUCEF_NULL != fromEnv && '\0' != *fromEnv )
+    {
+        resolvedPath = fromEnv;
+        return true;
+    }
+
+    const char* home = getenv( "HOME" );
+    const char* configHome = getenv( "XDG_CONFIG_HOME" );
+    CString configFile;
+    if ( GUCEF_NULL != configHome && '\0' != *configHome )
+        configFile = CombinePath( configHome, "user-dirs.dirs" );
+    else
+    if ( GUCEF_NULL != home && '\0' != *home )
+        configFile = CombinePath( home, ".config/user-dirs.dirs" );
+
+    CString content;
+    if ( !configFile.IsNULLOrEmpty() && FileExists( configFile ) && LoadTextFileAsString( configFile, content ) )
+    {
+        CString::StringVector lines = content.RemoveChar( '\r' ).ParseElements( '\n', false );
+        CString::StringVector::iterator i = lines.begin();
+        while ( i != lines.end() )
+        {
+            const CString line = (*i).Trim( true ).Trim( false );
+            ++i;
+            if ( line.IsNULLOrEmpty() || '#' == line[ 0 ] )
+                continue;
+            const Int32 equals = line.HasChar( '=' );
+            if ( equals <= 0 || line.SubstrFromRange( 0, (UInt32) equals ).Trim( false ) != key )
+                continue;
+
+            CString value = line.SubstrFromRange( (UInt32) equals + 1, line.Length() ).Trim( true ).RemoveChar( '"' );
+            if ( value.StartsWith( "$HOME" ) )
+            {
+                if ( GUCEF_NULL == home )
+                    break;
+                value = CString( home ) + value.CutChars( 5, true );
+            }
+            if ( !value.IsNULLOrEmpty() )
+            {
+                resolvedPath = value;
+                return true;
+            }
+            break;
+        }
+    }
+
+    if ( GUCEF_NULL != home && '\0' != *home )
+    {
+        resolvedPath = home;
+        return true;
+    }
+    return false;
+}
+
+#endif
+
+/*--------------------------------------------------------------------------*/
+
 bool
 TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
 {GUCEF_TRACE;
@@ -295,9 +391,11 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
             folderId = ::FOLDERID_Profile;
             break;
         case SPECIALDIR_LOCAL_APPDATA_DIR:
+        case SPECIALDIR_CACHE_DIR:
             folderId = ::FOLDERID_LocalAppData;
             break;
         case SPECIALDIR_APPDATA_DIR:
+        case SPECIALDIR_APP_CONFIG_DIR:
             folderId = FOLDERID_RoamingAppData;
             break;
         case SPECIALDIR_INTERNET_CACHE_DIR:
@@ -359,7 +457,7 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
     ::CoTaskMemFree( path );
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     const char* path = GUCEF_NULL;
     switch ( dir )
@@ -375,45 +473,54 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
                 path = getenv( "TEMP" );
             break;
         case SPECIALDIR_APPDATA_DIR:
+        case SPECIALDIR_LOCAL_APPDATA_DIR:
+        {
+            // the XDG base directory default when it is not set
             path = getenv( "XDG_DATA_HOME" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
+            if ( GUCEF_NULL == path && GUCEF_NULL != getenv( "HOME" ) )
+            {
+                resolvedPath = CombinePath( getenv( "HOME" ), ".local/share" );
+                return true;
+            }
             break;
-//        case SPECIALDIR_CONFIG_DIR:
-//            path = getenv( "XDG_CONFIG_HOME" );
-//            if ( GUCEF_NULL == path )
-//                path = getenv( "HOME" );
-//            break;
+        }
+        case SPECIALDIR_APP_CONFIG_DIR:
+        {
+            // the XDG base directory for settings, its default when it is not set
+            path = getenv( "XDG_CONFIG_HOME" );
+            if ( GUCEF_NULL == path && GUCEF_NULL != getenv( "HOME" ) )
+            {
+                resolvedPath = CombinePath( getenv( "HOME" ), ".config" );
+                return true;
+            }
+            break;
+        }
         case SPECIALDIR_INTERNET_CACHE_DIR:
+        case SPECIALDIR_CACHE_DIR:
+        {
+            // the XDG base directory default when it is not set
             path = getenv( "XDG_CACHE_HOME" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
+            if ( GUCEF_NULL == path && GUCEF_NULL != getenv( "HOME" ) )
+            {
+                resolvedPath = CombinePath( getenv( "HOME" ), ".cache" );
+                return true;
+            }
             break;
+        }
         case SPECIALDIR_DESKTOP_DIR:
-            path = getenv( "XDG_DESKTOP_DIR" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
-            break;
+            return TryResolveXdgUserDir( "XDG_DESKTOP_DIR", resolvedPath );
         case SPECIALDIR_MY_DOCUMENTS_DIR:
-            path = getenv( "XDG_DOCUMENTS_DIR" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
-            break;
+            return TryResolveXdgUserDir( "XDG_DOCUMENTS_DIR", resolvedPath );
         case SPECIALDIR_MY_DOWNLOADS_DIR:
-            path = getenv( "XDG_DOWNLOAD_DIR" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
-            break;
+            return TryResolveXdgUserDir( "XDG_DOWNLOAD_DIR", resolvedPath );
         case SPECIALDIR_MY_MUSIC_DIR:
-            path = getenv( "XDG_MUSIC_DIR" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
-            break;
+            return TryResolveXdgUserDir( "XDG_MUSIC_DIR", resolvedPath );
         case SPECIALDIR_MY_PICTURES_DIR:
-            path = getenv( "XDG_PICTURES_DIR" );
-            if ( GUCEF_NULL == path )
-                path = getenv( "HOME" );
-            break;
+            return TryResolveXdgUserDir( "XDG_PICTURES_DIR", resolvedPath );
+        case SPECIALDIR_MY_VIDEO_DIR:
+            return TryResolveXdgUserDir( "XDG_VIDEOS_DIR", resolvedPath );
+        case SPECIALDIR_TEMPLATES_DIR:
+            return TryResolveXdgUserDir( "XDG_TEMPLATES_DIR", resolvedPath );
         default:
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "TryResolveSpecialDir: Unsupported special directory" );
             return false;
@@ -462,6 +569,97 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+ListAvailableSpecialDirs( TSpecialDirSet& specialDirs )
+{GUCEF_TRACE;
+
+    // The ids TryResolveSpecialDir() handles on this platform: keep this table in step with its switch statements
+    specialDirs.clear();
+
+    // the ones resolved through dedicated functions on every platform
+    specialDirs.insert( SPECIALDIR_CURRENT_WORK_DIR );
+    specialDirs.insert( SPECIALDIR_UP_DIR );
+    specialDirs.insert( SPECIALDIR_MODULE_DIR );
+    specialDirs.insert( SPECIALDIR_TEMP_DIR );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    static const TSpecialDirs platformDirs[] = { SPECIALDIR_HOME_DIR, SPECIALDIR_LOCAL_APPDATA_DIR, SPECIALDIR_CACHE_DIR, SPECIALDIR_APPDATA_DIR, SPECIALDIR_APP_CONFIG_DIR,
+                                                 SPECIALDIR_INTERNET_CACHE_DIR, SPECIALDIR_DESKTOP_DIR, SPECIALDIR_MY_DOCUMENTS_DIR,
+                                                 SPECIALDIR_MY_DOWNLOADS_DIR, SPECIALDIR_MY_MUSIC_DIR, SPECIALDIR_MY_PICTURES_DIR,
+                                                 SPECIALDIR_MY_VIDEO_DIR, SPECIALDIR_MY_GAMES_DIR, SPECIALDIR_PROGRAMS_DIR,
+                                                 SPECIALDIR_X86_PROGRAMS_DIR, SPECIALDIR_X64_PROGRAMS_DIR, SPECIALDIR_RECENT_DIR,
+                                                 SPECIALDIR_SYSTEM_DIR, SPECIALDIR_USER_DIR };
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    static const TSpecialDirs platformDirs[] = { SPECIALDIR_HOME_DIR, SPECIALDIR_APPDATA_DIR, SPECIALDIR_LOCAL_APPDATA_DIR, SPECIALDIR_APP_CONFIG_DIR,
+                                                 SPECIALDIR_INTERNET_CACHE_DIR, SPECIALDIR_CACHE_DIR, SPECIALDIR_DESKTOP_DIR,
+                                                 SPECIALDIR_MY_DOCUMENTS_DIR, SPECIALDIR_MY_DOWNLOADS_DIR, SPECIALDIR_MY_MUSIC_DIR,
+                                                 SPECIALDIR_MY_PICTURES_DIR, SPECIALDIR_MY_VIDEO_DIR, SPECIALDIR_TEMPLATES_DIR };
+
+    #endif
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    for ( size_t i=0; i<sizeof( platformDirs ) / sizeof( platformDirs[ 0 ] ); ++i )
+        specialDirs.insert( platformDirs[ i ] );
+    #endif
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+SpecialDirToString( TSpecialDirs dir )
+{GUCEF_TRACE;
+
+    switch ( dir )
+    {
+        case SPECIALDIR_UNSPECIFIED:            return "SPECIALDIR_UNSPECIFIED";
+        case SPECIALDIR_CURRENT_WORK_DIR:       return "SPECIALDIR_CURRENT_WORK_DIR";
+        case SPECIALDIR_UP_DIR:                 return "SPECIALDIR_UP_DIR";
+        case SPECIALDIR_MODULE_DIR:             return "SPECIALDIR_MODULE_DIR";
+        case SPECIALDIR_TEMP_DIR:               return "SPECIALDIR_TEMP_DIR";
+        case SPECIALDIR_HOME_DIR:               return "SPECIALDIR_HOME_DIR";
+        case SPECIALDIR_SYSTEM_DIR:             return "SPECIALDIR_SYSTEM_DIR";
+        case SPECIALDIR_USER_DIR:               return "SPECIALDIR_USER_DIR";
+        case SPECIALDIR_APPDATA_DIR:            return "SPECIALDIR_APPDATA_DIR";
+        case SPECIALDIR_COMMON_APPDATA_DIR:     return "SPECIALDIR_COMMON_APPDATA_DIR";
+        case SPECIALDIR_DESKTOP_DIR:            return "SPECIALDIR_DESKTOP_DIR";
+        case SPECIALDIR_FAVORITES_DIR:          return "SPECIALDIR_FAVORITES_DIR";
+        case SPECIALDIR_STARTMENU_DIR:          return "SPECIALDIR_STARTMENU_DIR";
+        case SPECIALDIR_PROGRAMS_DIR:           return "SPECIALDIR_PROGRAMS_DIR";
+        case SPECIALDIR_X86_PROGRAMS_DIR:       return "SPECIALDIR_X86_PROGRAMS_DIR";
+        case SPECIALDIR_X64_PROGRAMS_DIR:       return "SPECIALDIR_X64_PROGRAMS_DIR";
+        case SPECIALDIR_RECENT_DIR:             return "SPECIALDIR_RECENT_DIR";
+        case SPECIALDIR_TEMPLATES_DIR:          return "SPECIALDIR_TEMPLATES_DIR";
+        case SPECIALDIR_LOCAL_APPDATA_DIR:      return "SPECIALDIR_LOCAL_APPDATA_DIR";
+        case SPECIALDIR_INTERNET_CACHE_DIR:     return "SPECIALDIR_INTERNET_CACHE_DIR";
+        case SPECIALDIR_COOKIES_DIR:            return "SPECIALDIR_COOKIES_DIR";
+        case SPECIALDIR_HISTORY_DIR:            return "SPECIALDIR_HISTORY_DIR";
+        case SPECIALDIR_PROFILE_DIR:            return "SPECIALDIR_PROFILE_DIR";
+        case SPECIALDIR_WINDOWS_DIR:            return "SPECIALDIR_WINDOWS_DIR";
+        case SPECIALDIR_SYSTEM32_DIR:           return "SPECIALDIR_SYSTEM32_DIR";
+        case SPECIALDIR_PROGRAM_FILES_DIR:      return "SPECIALDIR_PROGRAM_FILES_DIR";
+        case SPECIALDIR_COMMON_FILES_DIR:       return "SPECIALDIR_COMMON_FILES_DIR";
+        case SPECIALDIR_MY_DOCUMENTS_DIR:       return "SPECIALDIR_MY_DOCUMENTS_DIR";
+        case SPECIALDIR_MY_PICTURES_DIR:        return "SPECIALDIR_MY_PICTURES_DIR";
+        case SPECIALDIR_MY_MUSIC_DIR:           return "SPECIALDIR_MY_MUSIC_DIR";
+        case SPECIALDIR_MY_VIDEO_DIR:           return "SPECIALDIR_MY_VIDEO_DIR";
+        case SPECIALDIR_MY_GAMES_DIR:           return "SPECIALDIR_MY_GAMES_DIR";
+        case SPECIALDIR_MY_RECENT_DIR:          return "SPECIALDIR_MY_RECENT_DIR";
+        case SPECIALDIR_MY_SEARCHES_DIR:        return "SPECIALDIR_MY_SEARCHES_DIR";
+        case SPECIALDIR_MY_FAVORITES_DIR:       return "SPECIALDIR_MY_FAVORITES_DIR";
+        case SPECIALDIR_MY_DOWNLOADS_DIR:       return "SPECIALDIR_MY_DOWNLOADS_DIR";
+        case SPECIALDIR_CACHE_DIR:              return "SPECIALDIR_CACHE_DIR";
+        case SPECIALDIR_APP_CONFIG_DIR:         return "SPECIALDIR_APP_CONFIG_DIR";
+        default:                                return "SPECIALDIR_UNKNOWN";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDateTime
 GetFileModificationTime( const CString& path )
 {GUCEF_TRACE;
@@ -477,7 +675,7 @@ GetFileModificationTime( const CString& path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     struct stat buf;
 
@@ -517,7 +715,7 @@ GetFileCreationTime( const CString& path )
     }
     return -1;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     struct stat buf;
 
@@ -622,7 +820,7 @@ SetFileMetaData( const CString& filePath           ,
 
         return totalSuccess;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
         /*
          *  Unsupported platform  - @TODO
@@ -703,7 +901,7 @@ GetFileMetaData( const CString& filePath     ,
         // the meta data class has its own flags
         return true;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
         struct stat buf;
 
@@ -742,7 +940,7 @@ GetFileMetaData( const CString& filePath     ,
 
 /*-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 static int
 recursive_mkdir(const char* dir, int accessPerms)
@@ -832,21 +1030,26 @@ CreateDirs( const CString& path )
     }
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     int accessPerms = 0777;
 
     Int32 dirSepCharIndex = actualPath.HasChar( GUCEF_DIRSEPCHAR, true );
     while ( dirSepCharIndex >= 0 )
     {
-        CString dirSegment = actualPath.SubstrToIndex( (UInt32) dirSepCharIndex, true );
-        if ( 0 != ::mkdir( dirSegment.C_String(), accessPerms ) && EEXIST != errno )
+        // Note that for an absolute path the first separator is the root dir which always exists
+        if ( dirSepCharIndex > 0 )
         {
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CreateDirs: Unable to create dir: \"" + dirSegment + "\" ErrorCode=" + ToString( (UInt32) errno ) );
-            return false;
+            CString dirSegment = actualPath.SubstrToIndex( (UInt32) dirSepCharIndex, true );
+            if ( 0 != ::mkdir( dirSegment.C_String(), accessPerms ) && EEXIST != errno )
+            {
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CreateDirs: Unable to create dir: \"" + dirSegment + "\" ErrorCode=" + ToString( (UInt32) errno ) );
+                return false;
+            }
         }
 
-        dirSepCharIndex = actualPath.HasChar( GUCEF_DIRSEPCHAR, dirSepCharIndex, true );
+        // continue the search after the current separator
+        dirSepCharIndex = actualPath.HasChar( GUCEF_DIRSEPCHAR, (UInt32) dirSepCharIndex+1, true );
     }
 
     if ( 0 != ::mkdir( actualPath.C_String(), accessPerms ) && EEXIST != errno )
@@ -863,14 +1066,19 @@ CreateDirs( const CString& path )
     Int32 dirSepCharIndex = actualPath.HasChar( GUCEF_DIRSEPCHAR, true );
     while ( dirSepCharIndex >= 0 )
     {
-        CString dirSegment = actualPath.SubstrToIndex( (UInt32) dirSepCharIndex, true );
-        if ( 0 != ::mkdir( dirSegment.C_String(), accessPerms ) && EEXIST != errno )
+        // Note that for an absolute path the first separator is the root dir which always exists
+        if ( dirSepCharIndex > 0 )
         {
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CreateDirs: Unable to create dir: \"" + dirSegment + "\" ErrorCode=" + ToString( (UInt32) errno ) );
-            return false;
+            CString dirSegment = actualPath.SubstrToIndex( (UInt32) dirSepCharIndex, true );
+            if ( 0 != ::mkdir( dirSegment.C_String(), accessPerms ) && EEXIST != errno )
+            {
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CreateDirs: Unable to create dir: \"" + dirSegment + "\" ErrorCode=" + ToString( (UInt32) errno ) );
+                return false;
+            }
         }
 
-        dirSepCharIndex = actualPath.HasChar( GUCEF_DIRSEPCHAR, dirSepCharIndex, true );
+        // continue the search after the current separator
+        dirSepCharIndex = actualPath.HasChar( GUCEF_DIRSEPCHAR, (UInt32) dirSepCharIndex+1, true );
     }
 
     if ( 0 != ::mkdir( actualPath.C_String(), accessPerms ) && EEXIST != errno )
@@ -913,6 +1121,33 @@ DeleteFile( const CString& path )
 /*-------------------------------------------------------------------------*/
 
 bool
+CopyFile( const CString& sourcePath      ,
+          const CString& destinationPath ,
+          const bool overwrite           )
+{GUCEF_TRACE;
+
+    if ( !overwrite && FileExists( destinationPath ) )
+        return false;
+    CFileAccess source( sourcePath, "rb" );
+    if ( !source.IsValid() )
+        return false;
+    CFileAccess destination( destinationPath, "wb" );
+    if ( !destination.IsValid() )
+        return false;
+
+    char buffer[ 65536 ];
+    UInt32 read = 0;
+    while ( 0 < ( read = source.Read( buffer, 1, sizeof( buffer ) ) ) )
+    {
+        if ( read != destination.Write( buffer, 1, read ) )
+            return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 MoveFile( const CString& oldPath ,
           const CString& newPath ,
           const bool overwrite   )
@@ -941,29 +1176,855 @@ MoveFile( const CString& oldPath ,
     }
     return result == TRUE;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
 
+    // POSIX rename() replaces an existing target atomically: a reader of the path sees the old file or the new one,
+    // never a partial file, and a reader holding the old file open keeps reading the old one
     struct stat originalPermissions;
     if ( 0 != ::stat( actualOldPath.C_String(), &originalPermissions ) )
         return 0;
 
-    ::chmod( actualOldPath.C_String(), 0777 );
+    // rename() always replaces an existing target, honor the caller's wishes
+    if ( !overwrite && FileExists( actualNewPath ) )
+        return 0;
+
+    // rename() works on directory entries: a file needs no permission of its own and keeps its mode. A directory moved
+    // to another parent needs write permission on itself (its ".." entry): its owner gets it for the move only
+    const mode_t originalMode = originalPermissions.st_mode & 07777;
+    const bool grantDirectoryWrite = S_ISDIR( originalPermissions.st_mode ) && 0 == ( originalMode & S_IWUSR );
+    if ( grantDirectoryWrite )
+        ::chmod( actualOldPath.C_String(), originalMode | S_IWUSR );
 
     if ( 0 != ::rename( actualOldPath.C_String(), actualNewPath.C_String() ) )
     {
+        if ( grantDirectoryWrite )
+            ::chmod( actualOldPath.C_String(), originalMode );
         return 0;
     }
 
-    ::chmod( actualNewPath.C_String(), originalPermissions.st_mode );
+    if ( grantDirectoryWrite )
+        ::chmod( actualNewPath.C_String(), originalMode );
     return 1;
 
     #else
 
-    // catch all expensive implementation
-    if ( CopyFile( actualNewPath, actualOldPath, overwrite ) )
+    // catch all expensive implementation, not an atomic replace
+    if ( CopyFile( actualOldPath, actualNewPath, overwrite ) )
+        return DeleteFile( actualOldPath );
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+MoveFileAtomically( const CString& oldPath ,
+                    const CString& newPath ,
+                    const bool overwrite   )
+{GUCEF_TRACE;
+
+    CString actualOldPath = RelativePath( oldPath );
+    CString actualNewPath = RelativePath( newPath );
+
+    if ( !CreatePathDirectories( actualNewPath ) )
+        return false;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // no MOVEFILE_COPY_ALLOWED: a move that cannot be a rename (another volume) fails instead of becoming a copy. A
+    // target that another handle holds open without FILE_SHARE_DELETE is refused (sharing violation): callers retry
+    std::wstring wActualOldPath = ToWString( actualOldPath );
+    std::wstring wActualNewPath = ToWString( actualNewPath );
+
+    DWORD flags = MOVEFILE_WRITE_THROUGH;
+    if ( overwrite )
+        flags = flags | MOVEFILE_REPLACE_EXISTING;
+
+    BOOL result = ::MoveFileExW( wActualOldPath.c_str(), wActualNewPath.c_str(), flags );
+    if ( TRUE != result )
     {
-    	return DeleteFile( actualOldPath );
+        GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "MoveFileAtomically: MoveFileExW failed with error code " << (UInt32) ::GetLastError() );
     }
+    return TRUE == result;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    struct stat source;
+    if ( 0 != ::lstat( actualOldPath.C_String(), &source ) || !S_ISREG( source.st_mode ) )
+        return false;
+
+    struct stat target;
+    if ( 0 == ::lstat( actualNewPath.C_String(), &target ) )
+    {
+        if ( !overwrite || !S_ISREG( target.st_mode ) )
+            return false;
+
+        // the moved file gets the permissions both files have in common, before it takes the place of the target: at no
+        // point wider than the file it replaces, nor than its own
+        const mode_t sourceMode = source.st_mode & 07777;
+        const mode_t commonMode = sourceMode & ( target.st_mode & 07777 );
+        if ( commonMode != sourceMode && 0 != ::chmod( actualOldPath.C_String(), commonMode ) )
+            return false;
+    }
+
+    // one rename(): readers of the path see the old file or the new one, a reader holding the old file keeps it
+    return 0 == ::rename( actualOldPath.C_String(), actualNewPath.C_String() );
+
+    #else
+
+    // no atomic rename is known for this platform
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+SyncDirectory( const CString& dirPath )
+{GUCEF_TRACE;
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    // The rename itself is only durable once the directory entry is on disk
+    int fd = ::open( dirPath.IsNULLOrEmpty() ? "." : dirPath.C_String(), O_RDONLY | O_DIRECTORY );
+    if ( fd < 0 )
+        return false;
+    bool success = 0 == ::fsync( fd );
+    ::close( fd );
+    return success;
+
+    #else
+
+    // MoveFile uses MOVEFILE_WRITE_THROUGH on Windows which covers this
+    return true;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+WriteFileAtomically( const CString& path    ,
+                     const void* data       ,
+                     UInt32 dataSizeInBytes )
+{GUCEF_TRACE;
+
+    if ( path.IsNULLOrEmpty() || ( GUCEF_NULL == data && 0 != dataSizeInBytes ) )
+        return false;
+
+    CString actualPath = RelativePath( path );
+
+    // The temp file must be in the same directory to guarantee the move is a rename on the same file system
+    UInt8 randomBytes[ 4 ];
+    CString tempPath = actualPath + ".tmp";
+    if ( CRandom::GetRandomBytes( randomBytes, sizeof( randomBytes ) ) )
+    {
+        static const char* hexDigits = "0123456789abcdef";
+        for ( UInt32 i=0; i<sizeof( randomBytes ); ++i )
+        {
+            tempPath += CString( hexDigits + ( randomBytes[ i ] >> 4 ), 1 );
+            tempPath += CString( hexDigits + ( randomBytes[ i ] & 0xF ), 1 );
+        }
+    }
+
+    bool success = false;
+    {
+        CFileAccess tempFile;
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+        // the temporary file is made with the permissions of the file it replaces (the umask applies as well), so it is
+        // never wider than that file while the data is written
+        mode_t mode = 0666;
+        struct stat existing;
+        if ( 0 == ::stat( actualPath.C_String(), &existing ) && S_ISREG( existing.st_mode ) )
+            mode = existing.st_mode & 0666;
+        int flags = O_WRONLY | O_CREAT | O_EXCL;
+        #ifdef O_CLOEXEC
+        flags |= O_CLOEXEC;
+        #endif
+        const int fd = ::open( tempPath.C_String(), flags, mode );
+        if ( fd >= 0 )
+            tempFile.OpenFromFileDescriptor( fd, "wb", true );
+
+        #else
+
+        tempFile.Open( tempPath, "wb" );
+
+        #endif
+        if ( tempFile.IsValid() )
+        {
+            success = ( 0 == dataSizeInBytes ) || ( dataSizeInBytes == tempFile.Write( data, 1, dataSizeInBytes ) );
+            success = success && tempFile.Sync();
+        }
+    }
+
+    // a rename, never a copy: the target is the old file or the new one, whole, with no wider permissions than before
+    if ( success )
+        success = MoveFileAtomically( tempPath, actualPath, true );
+    if ( !success )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "WriteFileAtomically: Failed to replace \"" + actualPath + "\"" );
+        if ( FileExists( tempPath ) )
+            DeleteFile( tempPath );
+        return false;
+    }
+
+    SyncDirectory( StripFilename( actualPath ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+WriteFileAtomically( const CString& path          ,
+                     const CDynamicBuffer& buffer )
+{GUCEF_TRACE;
+
+    return WriteFileAtomically( path, buffer.GetConstBufferPtr(), buffer.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+SetOwnerOnlyAccess( const CString& path )
+{GUCEF_TRACE;
+
+    if ( path.IsNULLOrEmpty() )
+        return false;
+    CString actualPath = RelativePath( path );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    HANDLE token = NULL;
+    if ( FALSE == ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &token ) )
+        return false;
+
+    DWORD userInfoSize = 0;
+    ::GetTokenInformation( token, TokenUser, NULL, 0, &userInfoSize );
+    if ( 0 == userInfoSize )
+    {
+        ::CloseHandle( token );
+        return false;
+    }
+    CDynamicBuffer userInfo( userInfoSize, true );
+    BOOL gotUser = ::GetTokenInformation( token, TokenUser, userInfo.GetBufferPtr(), userInfoSize, &userInfoSize );
+    ::CloseHandle( token );
+    if ( FALSE == gotUser )
+        return false;
+    PTOKEN_USER user = static_cast< PTOKEN_USER >( userInfo.GetBufferPtr() );
+
+    EXPLICIT_ACCESSW access;
+    ::ZeroMemory( &access, sizeof( access ) );
+    access.grfAccessPermissions = FILE_ALL_ACCESS;
+    access.grfAccessMode = SET_ACCESS;
+    access.grfInheritance = DirExists( actualPath ) ? SUB_CONTAINERS_AND_OBJECTS_INHERIT : NO_INHERITANCE;
+    access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    access.Trustee.TrusteeType = TRUSTEE_IS_USER;
+    access.Trustee.ptstrName = (LPWSTR) user->User.Sid;
+
+    PACL acl = NULL;
+    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, NULL, &acl ) )
+        return false;
+
+    std::wstring wActualPath = ToWString( actualPath );
+    DWORD result = ::SetNamedSecurityInfoW( (LPWSTR) wActualPath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, NULL, NULL, acl, NULL );
+    ::LocalFree( acl );
+    return ERROR_SUCCESS == result;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    struct stat fileStat;
+    if ( 0 != ::stat( actualPath.C_String(), &fileStat ) )
+        return false;
+    mode_t mode = S_ISDIR( fileStat.st_mode ) ? ( S_IRWXU ) : ( S_IRUSR | S_IWUSR );
+    return 0 == ::chmod( actualPath.C_String(), mode );
+
+    #else
+
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+/** The SID of the user of the process token, kept in 'storage'; GUCEF_NULL when it cannot be had */
+static PSID
+GetProcessUserSid( CDynamicBuffer& storage )
+{GUCEF_TRACE;
+
+    HANDLE token = NULL;
+    if ( FALSE == ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &token ) )
+        return GUCEF_NULL;
+    DWORD size = 0;
+    ::GetTokenInformation( token, TokenUser, NULL, 0, &size );
+    if ( 0 == size )
+    {
+        ::CloseHandle( token );
+        return GUCEF_NULL;
+    }
+    storage.SetBufferSize( size, false );
+    BOOL gotUser = ::GetTokenInformation( token, TokenUser, storage.GetBufferPtr(), size, &size );
+    ::CloseHandle( token );
+    if ( FALSE == gotUser )
+        return GUCEF_NULL;
+    return static_cast< PTOKEN_USER >( storage.GetBufferPtr() )->User.Sid;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether the SID is the well known one of the local machine */
+static bool
+IsWellKnownSid( PSID sid, WELL_KNOWN_SID_TYPE type )
+{GUCEF_TRACE;
+
+    BYTE storage[ SECURITY_MAX_SID_SIZE ];
+    DWORD size = sizeof( storage );
+    if ( FALSE == ::CreateWellKnownSid( type, NULL, storage, &size ) )
+        return false;
+    return FALSE != ::EqualSid( sid, storage );
+}
+
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CreateOwnerOnlyFile( const CString& path      ,
+                     const void* data         ,
+                     UInt32 dataSizeInBytes   ,
+                     CString& problem         )
+{GUCEF_TRACE;
+
+    problem.Clear();
+    if ( path.IsNULLOrEmpty() || ( GUCEF_NULL == data && dataSizeInBytes > 0 ) )
+    {
+        problem = "no path or no data";
+        return false;
+    }
+    const CString actualPath = RelativePath( path );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    CDynamicBuffer userInfo;
+    PSID userSid = GetProcessUserSid( userInfo );
+    if ( GUCEF_NULL == userSid )
+    {
+        problem = "the user of the process is not known";
+        return false;
+    }
+
+    // a DACL with the one entry of the current user, protected from what the directory would pass on
+    EXPLICIT_ACCESSW access;
+    ::ZeroMemory( &access, sizeof( access ) );
+    access.grfAccessPermissions = FILE_ALL_ACCESS;
+    access.grfAccessMode = SET_ACCESS;
+    access.grfInheritance = NO_INHERITANCE;
+    access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    access.Trustee.TrusteeType = TRUSTEE_IS_USER;
+    access.Trustee.ptstrName = (LPWSTR) userSid;
+    PACL acl = NULL;
+    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, NULL, &acl ) )
+    {
+        problem = "the access list cannot be made";
+        return false;
+    }
+    SECURITY_DESCRIPTOR descriptor;
+    if ( FALSE == ::InitializeSecurityDescriptor( &descriptor, SECURITY_DESCRIPTOR_REVISION ) ||
+         FALSE == ::SetSecurityDescriptorDacl( &descriptor, TRUE, acl, FALSE ) ||
+         FALSE == ::SetSecurityDescriptorControl( &descriptor, SE_DACL_PROTECTED, SE_DACL_PROTECTED ) )
+    {
+        ::LocalFree( acl );
+        problem = "the security descriptor cannot be made";
+        return false;
+    }
+    SECURITY_ATTRIBUTES attributes;
+    attributes.nLength = sizeof( attributes );
+    attributes.lpSecurityDescriptor = &descriptor;
+    attributes.bInheritHandle = FALSE;
+
+    // CREATE_NEW fails for anything that exists, a symbolic link included
+    std::wstring wPath = ToWString( actualPath );
+    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_WRITE, 0, &attributes, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL );
+    const DWORD createError = ::GetLastError();
+    ::LocalFree( acl );
+    if ( INVALID_HANDLE_VALUE == file )
+    {
+        problem = ( ERROR_FILE_EXISTS == createError || ERROR_ALREADY_EXISTS == createError ) ? "something exists at the path already" : "the file cannot be made";
+        return false;
+    }
+    const char* bytes = static_cast< const char* >( data );
+    UInt32 written = 0;
+    bool success = true;
+    while ( written < dataSizeInBytes )
+    {
+        DWORD chunk = 0;
+        if ( FALSE == ::WriteFile( file, bytes + written, dataSizeInBytes - written, &chunk, NULL ) || 0 == chunk )
+        {
+            success = false;
+            break;
+        }
+        written += chunk;
+    }
+    success = ( FALSE != ::FlushFileBuffers( file ) ) && success;
+    ::CloseHandle( file );
+    if ( !success )
+    {
+        ::DeleteFileW( wPath.c_str() );
+        problem = "the file cannot be written";
+        return false;
+    }
+    return true;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    // the mode is given to open() itself: the umask can only narrow it, and fchmod() sets exactly 0600 afterwards
+    int flags = O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW;
+    #ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+    #endif
+    int fd = ::open( actualPath.C_String(), flags, S_IRUSR | S_IWUSR );
+    if ( fd < 0 )
+    {
+        problem = EEXIST == errno ? CString( "something exists at the path already" ) : "the file cannot be made: " + CString( ::strerror( errno ) );
+        return false;
+    }
+    bool success = 0 == ::fchmod( fd, S_IRUSR | S_IWUSR );
+    const char* bytes = static_cast< const char* >( data );
+    UInt32 written = 0;
+    while ( success && written < dataSizeInBytes )
+    {
+        ssize_t chunk = ::write( fd, bytes + written, dataSizeInBytes - written );
+        if ( chunk < 0 && EINTR == errno )
+            continue;
+        if ( chunk <= 0 )
+        {
+            success = false;
+            break;
+        }
+        written += (UInt32) chunk;
+    }
+    success = 0 == ::fsync( fd ) && success;
+    success = 0 == ::close( fd ) && success;
+    if ( !success )
+    {
+        ::unlink( actualPath.C_String() );
+        problem = "the file cannot be written";
+        return false;
+    }
+    return true;
+
+    #else
+
+    problem = "owner-only files are not supported on this platform";
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Gives back the memory of a secret that was read in part: the bytes are overwritten before the memory is freed */
+static void
+WipeAndFreeSecret( CDynamicBuffer& content )
+{GUCEF_TRACE;
+
+    if ( !content.IsLinked() )
+        SecureWipe( content.GetBufferPtr(), content.GetBufferSize() );
+    content.Clear( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ReadOwnerOnlyFile( const CString& path      ,
+                   CDynamicBuffer& content  ,
+                   CString& problem         ,
+                   bool* isMissing          )
+{GUCEF_TRACE;
+
+    static const UInt32 maxBytes = 1048576;
+
+    problem.Clear();
+    content.Clear( false );
+    if ( GUCEF_NULL != isMissing )
+        *isMissing = false;
+    if ( path.IsNULLOrEmpty() )
+    {
+        problem = "no path";
+        return false;
+    }
+    const CString actualPath = RelativePath( path );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    std::wstring wPath = ToWString( actualPath );
+    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_READ | READ_CONTROL, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL );
+    if ( INVALID_HANDLE_VALUE == file )
+    {
+        const DWORD openError = ::GetLastError();
+        if ( ERROR_FILE_NOT_FOUND == openError || ERROR_PATH_NOT_FOUND == openError )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        {
+            problem = "the file cannot be opened";
+        }
+        return false;
+    }
+
+    bool safe = true;
+    BY_HANDLE_FILE_INFORMATION info;
+    if ( FALSE == ::GetFileInformationByHandle( file, &info ) || FILE_TYPE_DISK != ::GetFileType( file ) ||
+         0 != ( info.dwFileAttributes & ( FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY ) ) )
+    {
+        safe = false;
+        problem = "the path is no regular file";
+    }
+
+    CDynamicBuffer userInfo;
+    PSID userSid = safe ? GetProcessUserSid( userInfo ) : GUCEF_NULL;
+    PSID owner = NULL;
+    PACL dacl = NULL;
+    PSECURITY_DESCRIPTOR descriptor = NULL;
+    if ( safe && ( GUCEF_NULL == userSid ||
+                   ERROR_SUCCESS != ::GetSecurityInfo( file, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &owner, NULL, &dacl, NULL, &descriptor ) ) )
+    {
+        safe = false;
+        problem = "the owner and the access list of the file cannot be read";
+    }
+    if ( safe && ( NULL == owner || ( FALSE == ::EqualSid( owner, userSid ) && !IsWellKnownSid( owner, WinBuiltinAdministratorsSid ) ) ) )
+    {
+        safe = false;
+        problem = "the file is not owned by the user of the process";
+    }
+    if ( safe && NULL == dacl )
+    {
+        // no DACL at all grants everybody everything
+        safe = false;
+        problem = "the file can be accessed by everybody";
+    }
+    for ( DWORD i=0; safe && i<dacl->AceCount; ++i )
+    {
+        LPVOID ace = NULL;
+        if ( FALSE == ::GetAce( dacl, i, &ace ) )
+        {
+            safe = false;
+            problem = "the access list of the file cannot be read";
+            break;
+        }
+        const ACE_HEADER* header = static_cast< const ACE_HEADER* >( ace );
+        if ( ACCESS_DENIED_ACE_TYPE == header->AceType || SYSTEM_AUDIT_ACE_TYPE == header->AceType )
+            continue;
+        if ( ACCESS_ALLOWED_ACE_TYPE != header->AceType )
+        {
+            // object, callback and other kinds of grants are not judged: refused
+            safe = false;
+            problem = "the access list of the file holds entries that are not understood";
+            break;
+        }
+        PSID sid = (PSID) &( static_cast< ACCESS_ALLOWED_ACE* >( ace )->SidStart );
+        if ( FALSE == ::EqualSid( sid, userSid ) && !IsWellKnownSid( sid, WinLocalSystemSid ) && !IsWellKnownSid( sid, WinBuiltinAdministratorsSid ) )
+        {
+            safe = false;
+            problem = "others than the user of the process can access the file";
+        }
+    }
+    if ( NULL != descriptor )
+        ::LocalFree( descriptor );
+
+    if ( safe )
+    {
+        LARGE_INTEGER size;
+        if ( FALSE == ::GetFileSizeEx( file, &size ) || size.QuadPart > (LONGLONG) maxBytes )
+        {
+            safe = false;
+            problem = "the file is too large";
+        }
+        else
+        {
+            const UInt32 total = (UInt32) size.QuadPart;
+            content.SetBufferSize( total > 0 ? total : 1, false );
+            UInt32 got = 0;
+            while ( got < total )
+            {
+                DWORD chunk = 0;
+                if ( FALSE == ::ReadFile( file, static_cast< char* >( content.GetBufferPtr() ) + got, total - got, &chunk, NULL ) || 0 == chunk )
+                    break;
+                got += chunk;
+            }
+            content.SetDataSize( got );
+            if ( got != total )
+            {
+                safe = false;
+                problem = "the file cannot be read";
+            }
+        }
+    }
+    ::CloseHandle( file );
+    if ( !safe )
+        WipeAndFreeSecret( content );
+    return safe;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    // O_NOFOLLOW: a link is refused (ELOOP), not followed; O_NONBLOCK: a FIFO cannot hold the open up
+    int flags = O_RDONLY | O_NOFOLLOW | O_NONBLOCK;
+    #ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+    #endif
+    int fd = ::open( actualPath.C_String(), flags );
+    if ( fd < 0 )
+    {
+        if ( ENOENT == errno )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        if ( ELOOP == errno )
+            problem = "the path is a symbolic link";
+        else
+            problem = "the file cannot be opened: " + CString( ::strerror( errno ) );
+        return false;
+    }
+
+    struct stat info;
+    bool safe = 0 == ::fstat( fd, &info );
+    if ( !safe )
+        problem = "the file cannot be examined";
+    else
+    if ( !S_ISREG( info.st_mode ) )
+    {
+        safe = false;
+        problem = "the path is no regular file";
+    }
+    else
+    if ( info.st_uid != ::geteuid() )
+    {
+        safe = false;
+        problem = "the file is not owned by the user of the process";
+    }
+    else
+    if ( 0 != ( info.st_mode & ( S_IRWXG | S_IRWXO ) ) )
+    {
+        safe = false;
+        problem = "the group or others have access to the file";
+    }
+    else
+    if ( info.st_size > (off_t) maxBytes )
+    {
+        safe = false;
+        problem = "the file is too large";
+    }
+
+    if ( safe )
+    {
+        const UInt32 total = (UInt32) info.st_size;
+        content.SetBufferSize( total > 0 ? total : 1, false );
+        UInt32 got = 0;
+        while ( got < total )
+        {
+            ssize_t chunk = ::read( fd, static_cast< char* >( content.GetBufferPtr() ) + got, total - got );
+            if ( chunk < 0 && EINTR == errno )
+                continue;
+            if ( chunk <= 0 )
+                break;
+            got += (UInt32) chunk;
+        }
+        content.SetDataSize( got );
+        if ( got != total )
+        {
+            safe = false;
+            problem = "the file cannot be read";
+        }
+    }
+    ::close( fd );
+    if ( !safe )
+        WipeAndFreeSecret( content );
+    return safe;
+
+    #else
+
+    problem = "owner-only files are not supported on this platform";
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ReadMountedSecretFile( const CString& path                     ,
+                       CDynamicBuffer& content                 ,
+                       CString& problem                        ,
+                       bool* isMissing                         ,
+                       bool assumeReadOnlyFileSystemForTesting )
+{GUCEF_TRACE;
+
+    static const UInt32 maxBytes = 1048576;
+
+    problem.Clear();
+    content.Clear( false );
+    if ( GUCEF_NULL != isMissing )
+        *isMissing = false;
+    if ( path.IsNULLOrEmpty() )
+    {
+        problem = "no path";
+        return false;
+    }
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    const CString actualPath = RelativePath( path );
+    CString directory = StripFilename( actualPath );
+    if ( directory.IsNULLOrEmpty() )
+        directory = ".";
+
+    // the directory that holds the path and the file the path leads to, both with every link resolved
+    char resolvedDirectory[ PATH_MAX ];
+    if ( GUCEF_NULL == ::realpath( directory.C_String(), resolvedDirectory ) )
+    {
+        if ( ENOENT == errno && GUCEF_NULL != isMissing )
+            *isMissing = true;
+        problem = "the directory of the file cannot be resolved: " + CString( ::strerror( errno ) );
+        return false;
+    }
+    char resolvedPath[ PATH_MAX ];
+    if ( GUCEF_NULL == ::realpath( actualPath.C_String(), resolvedPath ) )
+    {
+        if ( ENOENT == errno )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        {
+            problem = "the path cannot be resolved: " + CString( ::strerror( errno ) );
+        }
+        return false;
+    }
+
+    // links are followed within the directory only (the "..data" links of a Kubernetes Secret volume)
+    const size_t directoryLength = ::strlen( resolvedDirectory );
+    const bool rootDirectory = 1 == directoryLength && '/' == resolvedDirectory[ 0 ];
+    if ( 0 != ::strncmp( resolvedPath, resolvedDirectory, directoryLength ) ||
+         ( !rootDirectory && '/' != resolvedPath[ directoryLength ] ) )
+    {
+        problem = "the path leads out of the directory that holds it";
+        return false;
+    }
+
+    // O_NOFOLLOW: what realpath() gave is no link, unless it was swapped since; O_NONBLOCK: a FIFO cannot hold the open up
+    int flags = O_RDONLY | O_NOFOLLOW | O_NONBLOCK;
+    #ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+    #endif
+    int fd = ::open( resolvedPath, flags );
+    if ( fd < 0 )
+    {
+        if ( ENOENT == errno )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        if ( ELOOP == errno )
+            problem = "the resolved path is a symbolic link";
+        else
+            problem = "the file cannot be opened: " + CString( ::strerror( errno ) );
+        return false;
+    }
+
+    struct stat info;
+    struct statvfs fileSystemInfo;
+    bool safe = 0 == ::fstat( fd, &info );
+    if ( !safe )
+        problem = "the file cannot be examined";
+    else
+    if ( !S_ISREG( info.st_mode ) )
+    {
+        safe = false;
+        problem = "the path is no regular file";
+    }
+    else
+    if ( 0 != info.st_uid && info.st_uid != ::geteuid() )
+    {
+        safe = false;
+        problem = "the file is owned by neither root nor the user of the process";
+    }
+    else
+    if ( 0 != ( info.st_mode & ( S_IWGRP | S_IWOTH ) ) )
+    {
+        safe = false;
+        problem = "the group or others can write the file";
+    }
+    else
+    if ( 0 != ( info.st_mode & S_IROTH ) )
+    {
+        safe = false;
+        problem = "others can read the file";
+    }
+    else
+    if ( !assumeReadOnlyFileSystemForTesting && ( 0 != ::fstatvfs( fd, &fileSystemInfo ) || 0 == ( fileSystemInfo.f_flag & ST_RDONLY ) ) )
+    {
+        safe = false;
+        problem = "the file system of the file is not mounted read only";
+    }
+    else
+    if ( info.st_size > (off_t) maxBytes )
+    {
+        safe = false;
+        problem = "the file is too large";
+    }
+
+    if ( safe )
+    {
+        const UInt32 total = (UInt32) info.st_size;
+        content.SetBufferSize( total > 0 ? total : 1, false );
+        UInt32 got = 0;
+        while ( got < total )
+        {
+            ssize_t chunk = ::read( fd, static_cast< char* >( content.GetBufferPtr() ) + got, total - got );
+            if ( chunk < 0 && EINTR == errno )
+                continue;
+            if ( chunk <= 0 )
+                break;
+            got += (UInt32) chunk;
+        }
+        content.SetDataSize( got );
+        if ( got != total )
+        {
+            safe = false;
+            problem = "the file cannot be read";
+        }
+    }
+    ::close( fd );
+    if ( !safe )
+        WipeAndFreeSecret( content );
+    return safe;
+
+    #else
+
+    problem = "mounted-secret is a POSIX mode";
     return false;
 
     #endif
@@ -995,8 +2056,9 @@ FileExists( const CString& filename )
 
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
+        /* make sure we found a file not a directory, same as on Windows */
         struct stat buf;
-        return stat( RelativePath( filename ).C_String(), &buf ) == 0;
+        return stat( RelativePath( filename ).C_String(), &buf ) == 0 && !S_ISDIR( buf.st_mode );
 
         #else
 
@@ -1007,6 +2069,112 @@ FileExists( const CString& filename )
         #endif
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+DeleteDir( const CString& path       ,
+           const bool deleteContents )
+{GUCEF_TRACE;
+
+    // . and .. name another directory than the one the path seems to be about: never deleted
+    CString lastSegment = path.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR );
+    while ( lastSegment.Length() > 1 && GUCEF_DIRSEPCHAR == lastSegment[ lastSegment.Length() - 1 ] )
+        lastSegment = lastSegment.CutChars( 1, false );
+    Int32 lastSep = lastSegment.HasChar( GUCEF_DIRSEPCHAR, false );
+    if ( lastSep >= 0 )
+        lastSegment = lastSegment.CutChars( (UInt32) lastSep + 1, true );
+    if ( "." == lastSegment || ".." == lastSegment )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Refusing to delete " << path << ", . and .. are not deleted" );
+        return false;
+    }
+
+    const CString actualPath = RelativePath( path );
+    if ( !DirExists( actualPath ) )
+        return false;
+
+    if ( deleteContents )
+    {
+        // The entries are gathered first, removing entries while a listing is open is not portable.
+        // A symlink is removed as the link: what it points to is outside the directory and stays
+        CString::StringVector files;
+        CString::StringVector dirs;
+        CString::StringVector links;
+        CFileSystemIterator it;
+        if ( it.FindFirst( actualPath ) )
+        {
+            do
+            {
+                const CString name = it.GetResourceName();
+                if ( name.IsNULLOrEmpty() || "." == name || ".." == name ||
+                     -1 < name.HasChar( GUCEF_DIRSEPCHAR, true ) || -1 < name.HasChar( GUCEF_DIRSEPCHAROPPOSITE, true ) )
+                {
+                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Refusing to delete " << actualPath << ", its listing has the entry \"" << name << "\"" );
+                    it.FindClose();
+                    return false;
+                }
+                const CString entryPath = CombinePath( actualPath, name );
+                if ( it.IsSymlink() )
+                    links.push_back( entryPath );
+                else
+                if ( it.IsADirectory() )
+                    dirs.push_back( entryPath );
+                else
+                    files.push_back( entryPath );
+            }
+            while ( it.FindNext() );
+            it.FindClose();
+        }
+
+        for ( CString::StringVector::const_iterator i = files.begin(); i != files.end(); ++i )
+        {
+            if ( !DeleteFile( (*i) ) )
+            {
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Failed to delete file " << (*i) << " in " << actualPath );
+                return false;
+            }
+        }
+        for ( CString::StringVector::const_iterator i = links.begin(); i != links.end(); ++i )
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+            // A link to a directory is removed as a directory, which leaves its target alone
+            std::wstring wLink = ToWString( (*i) );
+            bool removed = 0 != ::RemoveDirectoryW( wLink.c_str() ) || 0 != ::DeleteFileW( wLink.c_str() );
+            #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+            bool removed = 0 == ::unlink( (*i).C_String() );
+            #else
+            bool removed = false;
+            #endif
+            if ( !removed )
+            {
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Failed to delete the link " << (*i) << " in " << actualPath );
+                return false;
+            }
+        }
+        for ( CString::StringVector::const_iterator i = dirs.begin(); i != dirs.end(); ++i )
+        {
+            if ( !DeleteDir( (*i), true ) )
+                return false;
+        }
+    }
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    std::wstring wPath = ToWString( actualPath );
+    return 0 != ::RemoveDirectoryW( wPath.c_str() );
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    return 0 == ::rmdir( actualPath.C_String() );
+
+    #else
+
+    GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "DeleteDir: Platform has no supported implementation" );
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1147,26 +2315,27 @@ TryResolveLinuxSymlinkPath( const CString& symlinkPath, CString& resolvedPath )
 
     if ( !symlinkPath.IsNULLOrEmpty()  )
     {
-        Int32 bytesRead = 0;
         CString linkedPath;
-
-        linkedPath.Reserve( 256 );
-        if ( GUCEF_NULL != linkedPath.C_String() )
+        UInt32 bufferSize = 256;
+        while ( true )
         {
-            do
+            linkedPath.Reserve( bufferSize );
+            char* buffer = linkedPath.C_String();
+            if ( GUCEF_NULL == buffer )
+                return false;
+
+            const Int32 bytesRead = (Int32) readlink( symlinkPath.C_String(), buffer, bufferSize );
+            if ( -1 == bytesRead )
+                return false;
+
+            // A full buffer means the target may not have fit: read it again into a bigger one.
+            // readlink() does not terminate what it writes
+            if ( (UInt32) bytesRead < bufferSize )
             {
-                bytesRead = readlink( symlinkPath.C_String(), linkedPath.C_String(), linkedPath.ByteSize() );
-                if ( -1 == bytesRead )
-                {
-                    return false;
-                }
-                if ( bytesRead == (Int32) linkedPath.ByteSize() )
-                {
-                    // truncation may have occured
-                    linkedPath.Reserve( linkedPath.ByteSize() * 2 );
-                }
+                buffer[ bytesRead ] = '\0';
+                break;
             }
-            while ( GUCEF_NULL != linkedPath.C_String() && bytesRead == (Int32) linkedPath.ByteSize() );
+            bufferSize *= 2;
         }
 
         linkedPath.DetermineLength();
@@ -1430,7 +2599,7 @@ FileSize( const CString& filename )
         FindClose( hFind );
         return lfilesize;
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
         struct stat statInfo;
         int result;
@@ -2076,6 +3245,8 @@ CStorageVolumeInfoOSData::CStorageVolumeInfoOSData( void )
 CStorageVolumeInfoOSData::~CStorageVolumeInfoOSData()
 {GUCEF_TRACE;
 
+    GUCEF_DELETE m_impl;
+    m_impl = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2978,9 +4149,12 @@ class CFileSystemIterator::CFileSystemIteratorOsData
         {
             if ( linkedPath.IsNULLOrEmpty() )
             {
-                CString symlinkPath = entry->d_name;
-                if ( TryResolveLinuxSymlinkPath( symlinkPath, linkedPath ) )
+                if ( TryResolveLinuxSymlinkPath( GetEntryPath(), linkedPath ) )
                 {
+                    // Relative link targets are relative to the dir containing the link
+                    if ( !linkedPath.IsNULLOrEmpty() && '/' != linkedPath[ 0 ] )
+                        linkedPath = CombinePath( rootPath, linkedPath );
+
                     // Get info on the entry.
                     if ( stat( linkedPath.C_String(), &linkedStatinfo ) >= 0 )
                     {
@@ -3001,6 +4175,25 @@ class CFileSystemIterator::CFileSystemIteratorOsData
             ClearSymlinkInfo();
         }
         return false;
+    }
+
+    CString
+    GetEntryPath( void ) const
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == entry )
+            return CString::Empty;
+        return CombinePath( rootPath, entry->d_name );
+    }
+
+    void
+    StatEntry( void )
+    {GUCEF_TRACE;
+
+        // Note that we use the full path here on purpose instead of changing the
+        // process wide working dir which would break concurrent iterators on other threads
+        if ( 0 != ::lstat( GetEntryPath().C_String(), &statinfo ) )
+            memset( &statinfo, 0, sizeof statinfo );
     }
 
     #else
@@ -3077,6 +4270,18 @@ CFileSystemIterator::FindFirst( const CString& path )
         return false;
     }
 
+    // The listing has . and .., which are no entries of the directory: a caller recursing into them leaves it
+    while ( 0 == wcscmp( L".", m_osData->find.name ) || 0 == wcscmp( L"..", m_osData->find.name ) )
+    {
+        if ( 0 != _wfindnext64( m_osData->find_handle, &m_osData->find ) )
+        {
+            _findclose( m_osData->find_handle );
+            m_osData->find_handle = 0;
+            m_osData->rootPath.Clear();
+            return false;
+        }
+    }
+
     /*
      *	Successfully obtained first entry
      */
@@ -3118,9 +4323,6 @@ CFileSystemIterator::FindFirst( const CString& path )
     }
     m_osData->ClearSymlinkInfo();
 
-    // change working dir to be able to read file information
-    ::chdir( m_osData->rootPath.C_String() );
-
     // Read first entry
     m_osData->entry = ::readdir( m_osData->dir );
     if ( GUCEF_NULL != m_osData->entry )
@@ -3155,12 +4357,16 @@ CFileSystemIterator::FindFirst( const CString& path )
         if ( GUCEF_NULL != m_osData->entry )
         {
             // Get info on the entry.
-            ::lstat( m_osData->entry->d_name, &m_osData->statinfo );
+            m_osData->StatEntry();
 
             m_osData->isActive = true;
             return true;
         }
     }
+
+    // Nothing to iterate: the directory is released here, FindClose() only acts on an active iteration
+    ::closedir( m_osData->dir );
+    m_osData->dir = GUCEF_NULL;
     m_osData->isActive = false;
     return false;
 
@@ -3185,7 +4391,14 @@ CFileSystemIterator::FindNext( void )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    return !_wfindnext64( m_osData->find_handle, &m_osData->find );
+    // . and .. are skipped wherever they are in the listing
+    do
+    {
+        if ( 0 != _wfindnext64( m_osData->find_handle, &m_osData->find ) )
+            return false;
+    }
+    while ( 0 == wcscmp( L".", m_osData->find.name ) || 0 == wcscmp( L"..", m_osData->find.name ) );
+    return true;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -3194,32 +4407,44 @@ CFileSystemIterator::FindNext( void )
     m_osData->entry = readdir( m_osData->dir );
     if ( GUCEF_NULL != m_osData->entry )
     {
-        // We need to take glob patterns into account
-        if ( !m_osData->resourceGlobFilter.IsNULLOrEmpty() )
+        // . and .. are skipped wherever they are: the order of a listing is the file system's, often a hash order.
+        // A caller recursing into them would leave the directory. We also need to take glob patterns into account
+        bool isSkipable = false;
+        do
         {
-            bool isSkipable = false;
-            do
+            isSkipable = false;
+            if ( ( 0 == strcmp( ".", m_osData->entry->d_name ) )  ||
+                 ( 0 == strcmp( "..", m_osData->entry->d_name ) ) )
             {
-                isSkipable = false;
+                isSkipable = true;
+                m_osData->entry = ::readdir( m_osData->dir );
+            }
+            else
+            if ( !m_osData->resourceGlobFilter.IsNULLOrEmpty() )
+            {
                 CString entryName( m_osData->entry->d_name );
-                if ( !m_osData->resourceGlobFilter.WildcardEquals( entryName, '*', true, true ) )
+                // The entry name is matched against the pattern, as in FindFirst(): a name is no pattern
+                if ( !entryName.WildcardEquals( m_osData->resourceGlobFilter, '*', true, false ) )
                 {
                     // Skip because we have a pattern to match and the current entry is not a match
                     isSkipable = true;
                     m_osData->entry = ::readdir( m_osData->dir );
                 }
             }
-            while ( isSkipable && ( GUCEF_NULL != m_osData->entry ) );
         }
+        while ( isSkipable && ( GUCEF_NULL != m_osData->entry ) );
 
         if ( GUCEF_NULL != m_osData->entry  )
         {
             // Get info on the entry.
-            ::lstat( m_osData->entry->d_name, &m_osData->statinfo );
+            m_osData->StatEntry();
             return true;
         }
     }
 
+    // The end of the listing: the directory is released here, FindClose() only acts on an active iteration
+    ::closedir( m_osData->dir );
+    m_osData->dir = GUCEF_NULL;
     m_osData->isActive = false;
     return false;
 
@@ -3353,8 +4578,10 @@ CFileSystemIterator::IsSymlink( void ) const
     {
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-        // @TODO: implement for Windows
-        return false;
+        // A symbolic link or a junction is a reparse point
+        std::wstring wEntryPath = ToWString( CombinePath( m_osData->rootPath, GetResourceName() ) );
+        DWORD attributes = ::GetFileAttributesW( wEntryPath.c_str() );
+        return INVALID_FILE_ATTRIBUTES != attributes && 0 != ( attributes & FILE_ATTRIBUTE_REPARSE_POINT );
 
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -3478,7 +4705,7 @@ CFileSystemIterator::GetResourcePath( void ) const
 
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
-        return m_osData->entry->d_name;
+        return m_osData->GetEntryPath();
 
         #else
 

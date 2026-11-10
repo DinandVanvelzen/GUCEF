@@ -58,6 +58,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../aws-c-io/source \
   $(MY_MODULE_PATH)/include
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=aws_c_http -DMODULE_NAME=aws_c_http
+
 
 LOCAL_STATIC_LIBRARIES := \
   aws-c-common \

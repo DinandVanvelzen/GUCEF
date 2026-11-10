@@ -72,7 +72,6 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../freetype/src \
   $(MY_MODULE_PATH)/../../../freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../OgreMain/include \
-  $(MY_MODULE_PATH)/../../OgreMain/include/Android \
   $(MY_MODULE_PATH)/../../OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../OgreMain/src \
@@ -80,7 +79,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../OgreMain/src/stbi \
   $(MY_MODULE_PATH)/../../include
 
-LOCAL_CFLAGS := -DRenderSystem_GL3Plus_EXPORTS
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus -DMODULE_NAME=OgreRenderSystem_GL3Plus -DRenderSystem_GL3Plus_EXPORTS
 
 
 LOCAL_SHARED_LIBRARIES := \

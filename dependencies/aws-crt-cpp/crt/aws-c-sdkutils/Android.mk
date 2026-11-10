@@ -36,6 +36,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../aws-c-common/include \
   $(MY_MODULE_PATH)/include
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=aws_c_sdkutils -DMODULE_NAME=aws_c_sdkutils
+
 
 LOCAL_STATIC_LIBRARIES := \
   aws-c-common

@@ -46,7 +46,13 @@ defines( { "GUCEF_MT_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMT_TestA
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestReaderWriterLock.h"
+  "include/TestAtomic.h",
+  "include/TestMutex.h",
+  "include/TestReaderWriterLock.h",
+  "include/TestSemaphore.h",
+  "include/TestSlotDataExchange.h",
+  "include/TestSpscQueue.h",
+  "include/TestThreadData.h"
  } )
 
 
@@ -54,13 +60,19 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestAtomic.cpp",
+  "src/TestMutex.cpp",
   "src/TestReaderWriterLock.cpp",
+  "src/TestSemaphore.cpp",
+  "src/TestSlotDataExchange.cpp",
+  "src/TestSpscQueue.cpp",
+  "src/TestThreadData.cpp",
   "src/gucefMT_TestApp.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

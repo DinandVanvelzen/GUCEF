@@ -24,6 +24,7 @@ LOCAL_MODULE_FILENAME := libgucefIMAGE
 LOCAL_SRC_FILES := \
   src/CGUCEFIMAGEModule.cpp \
   src/gucefIMAGE.cpp \
+  src/gucefIMAGE_CAsyncImageUpscale.cpp \
   src/gucefIMAGE_CCPluginImageCodecItem.cpp \
   src/gucefIMAGE_CGUIImageCodec.cpp \
   src/gucefIMAGE_CIImageCodec.cpp \
@@ -33,18 +34,21 @@ LOCAL_SRC_FILES := \
   src/gucefIMAGE_CImageCodecPluginManager.cpp \
   src/gucefIMAGE_CImageCodecRegistry.cpp \
   src/gucefIMAGE_CImageGlobal.cpp \
+  src/gucefIMAGE_CImageUpscaler.cpp \
+  src/gucefIMAGE_CImageUpscalerRegistry.cpp \
+  src/gucefIMAGE_CMmpxImageUpscaler.cpp \
   src/gucefIMAGE_CPixel.cpp \
-  src/gucefIMAGE_CPixelMap.cpp
+  src/gucefIMAGE_CPixelMap.cpp \
+  src/gucefIMAGE_CPngImageCodec.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEFIMAGE_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEFIMAGE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefIMAGE -DMODULE_NAME=gucefIMAGE -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \

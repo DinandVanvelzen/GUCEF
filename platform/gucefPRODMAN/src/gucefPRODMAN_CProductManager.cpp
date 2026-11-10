@@ -28,6 +28,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#include "CDynamicBufferAccess.h"
+#define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
+
 #ifndef GUCEF_CORE_CDSTORECODECREGISTRY_H
 #include "CDStoreCodecRegistry.h"
 #define GUCEF_CORE_CDSTORECODECREGISTRY_H
@@ -94,7 +99,9 @@ CProductManager::CProductManager( void )
       m_productListPath()         ,
       m_productListCodec( "xml" ) ,
       m_productRoot()             ,
-      m_downloadsManager()
+      m_downloadsManager()        ,
+      m_productListBuffer( true ) ,
+      m_urlDataRetriever()
 {GUCEF_TRACE;
 
 }
@@ -298,10 +305,10 @@ CProductManager::OnProductInfoListRetrievalEvent( CORE::CNotifier* notifier    ,
                                                   CORE::CICloneable* eventdata )
 {GUCEF_TRACE;
 
-    if ( CORE::CURLDataRetriever::URLAllDataRecievedEvent == eventid )
+    if ( CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent == eventid )
     {
-        CORE::CIOAccess* access = m_urlDataRetriever.GetIOAccess();
-        access->Setpos( 0 );
+        CORE::CDynamicBufferAccess bufferAccess( m_productListBuffer );
+        CORE::CIOAccess* access = &bufferAccess;
 
         CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec;
         CORE::CDStoreCodecRegistry& codecRegistry = CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry();
@@ -322,7 +329,7 @@ CProductManager::OnProductInfoListRetrievalEvent( CORE::CNotifier* notifier    ,
         }
     }
     else
-    if ( GUCEF::CORE::CURLDataRetriever::URLDataRetrievalErrorEvent == eventid )
+    if ( GUCEF::CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent == eventid )
     {
         NotifyObservers( ProductInfoListRetrievalErrorEvent );
     }

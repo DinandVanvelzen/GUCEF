@@ -52,6 +52,19 @@ files( {
 
 
 
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
 configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -79,6 +92,19 @@ configuration( { "ANDROID64" } )
 
 
 configuration( { "ARDUINO" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "json-builder.h"
@@ -156,6 +182,45 @@ configuration( { "IOS" } )
 
 
 
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -170,6 +235,58 @@ configuration( { "LINUX32" } )
 
 
 configuration( { "LINUX64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "MAC" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "MSWIN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "json-builder.h"
@@ -285,7 +402,23 @@ configuration( { "WIN64" } )
     } )
 
 
+
+configuration( { "WINDOWS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
 configuration( {} )
+includedirs( { "../json-parser" } )
+
+configuration( { "ANDROID" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "ANDROID32" } )
@@ -297,6 +430,9 @@ includedirs( { "../json-parser" } )
 configuration( { "ARDUINO" } )
 includedirs( { "../json-parser" } )
 
+configuration( { "EMSCRIPTEN" } )
+includedirs( { "../json-parser" } )
+
 configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../json-parser" } )
 
@@ -306,10 +442,31 @@ includedirs( { "../json-parser" } )
 configuration( { "IOS" } )
 includedirs( { "../json-parser" } )
 
+configuration( { "IPHONE" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "IPHONEOS" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "LINUX" } )
+includedirs( { "../json-parser" } )
+
 configuration( { "LINUX32" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "MAC" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "MACOS" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "MACOSX" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "MSWIN" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "OSX" } )
@@ -319,4 +476,7 @@ configuration( { "WIN32" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "WIN64" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "WINDOWS" } )
 includedirs( { "../json-parser" } )

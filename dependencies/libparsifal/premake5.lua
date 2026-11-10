@@ -87,4 +87,4 @@ configuration( { "WIN32" } )
 
 
 configuration( {} )
-includedirs( { "include", "include/libparsifal" } )
+includedirs( { "../../common/include", "include", "include/libparsifal" } )

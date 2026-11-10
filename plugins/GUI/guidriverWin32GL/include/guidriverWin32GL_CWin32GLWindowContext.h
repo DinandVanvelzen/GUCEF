@@ -95,6 +95,9 @@ class GUIDRIVERWIN32GL_PUBLIC_CPP CWin32GLWindowContext : public GUI::CWindowCon
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings );
 
+    /** Full screen or a window of the size of the settings, waiting for the vertical blank or not */
+    bool ApplyVideoSettings( const GUI::CVideoSettings& videoSettings );
+
     void Shutdown( void );
 
     virtual const CORE::CString& GetClassTypeName( void ) const;
@@ -111,6 +114,9 @@ class GUIDRIVERWIN32GL_PUBLIC_CPP CWin32GLWindowContext : public GUI::CWindowCon
     CWin32GLWindowContext& operator=( const CWin32GLWindowContext& src ); /**< private because: must be unique */
 
     bool MakeCurrent( void );
+
+    /** Swaps wait for the vertical blank or not; false when the driver cannot set it */
+    bool ApplySwapInterval( bool vsync );
 
     private:
 

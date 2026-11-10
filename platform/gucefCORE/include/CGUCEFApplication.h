@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CGUCEFAPPLICATION_H
@@ -72,6 +71,11 @@
 #include "gucefCORE_CBusyWaitPulseGeneratorDriver.h"
 #define GUCEF_CORE_CBUSYWAITPULSEGENERATORDRIVER_H
 #endif /* GUCEF_CORE_CBUSYWAITPULSEGENERATORDRIVER_H ? */
+
+#ifndef GUCEF_CORE_CEMSCRIPTENPULSEGENERATORDRIVER_H
+#include "gucefCORE_CEmscriptenPulseGeneratorDriver.h"
+#define GUCEF_CORE_CEMSCRIPTENPULSEGENERATORDRIVER_H
+#endif /* GUCEF_CORE_CEMSCRIPTENPULSEGENERATORDRIVER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -142,6 +146,21 @@ class GUCEF_CORE_PUBLIC_CPP CGUCEFApplication : public CTSGNotifier             
 
     bool Stop( bool wait = false );
 
+    /**
+     *  Asks the application to stop, from a signal handler (SIGINT, SIGTERM) or a console control handler.
+     *  Async-signal-safe: it only stores the signal number in a sig_atomic_t, nothing else. The application acts on
+     *  it on its pulse thread: at the next pulse of its pulse generator Stop() is called there, and main() returns at
+     *  once without running when the request came before it. Calling it again changes nothing.
+     *  @param signal the signal number, logged when the stop is made; 0 is taken as SIGTERM
+     */
+    static void RequestStopFromSignal( int signal );
+
+    /** Whether RequestStopFromSignal() was called in this process */
+    static bool IsStopRequestedFromSignal( void );
+
+    /** The signal given to RequestStopFromSignal(), 0 when it was not called */
+    static int GetStopRequestSignal( void );
+
     CString GetApplicationDir( void ) const;
 
     /**
@@ -182,6 +201,11 @@ class GUCEF_CORE_PUBLIC_CPP CGUCEFApplication : public CTSGNotifier             
                                       const CString::StringVector& args ,
                                       CString::StringVector& resultdata ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Acts on a stop requested from a signal at every pulse, passes everything else on */
+    virtual void OnPumpedNotify( CNotifier* notifier                 ,
+                                 const CEvent& eventid               ,
+                                 CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
     friend class CCoreGlobal;
 
@@ -199,12 +223,19 @@ class GUCEF_CORE_PUBLIC_CPP CGUCEFApplication : public CTSGNotifier             
 
     int MainLoop( void );
 
+    /** Stops the application when a stop was requested from a signal and that was not acted on yet; on the pulse thread */
+    bool StopIfRequestedFromSignal( void );
+
     private:
 
     bool _initialized;
     bool m_shutdownRequested;
+    bool m_signalStopHandled;
     CString _appdir;
     CBusyWaitPulseGeneratorDriver m_busyWaitPulseDriver;
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    CEmscriptenPulseGeneratorDriver m_emscriptenPulseDriver;
+    #endif
     UInt32 m_forcedMinimalCycleDeltaInMilliSecs; 
     UInt32 m_desiredMaximumCycleDeltaInMilliSecs;
 };

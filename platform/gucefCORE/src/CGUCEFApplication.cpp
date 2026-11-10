@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -24,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <assert.h>
+#include <signal.h>
 
 #ifndef GUCEF_MT_COBJECTSCOPELOCK_H
 #include "gucefMT_CObjectScopeLock.h"
@@ -108,6 +108,9 @@ const CEvent CGUCEFApplication::AppShutdownAbortedEvent = "GUCEF::CORE::CGUCEFAp
 const CEvent CGUCEFApplication::AppShutdownCompleteEvent = "GUCEF::CORE::CGUCEFApplication::AppShutdownCompleteEvent";
 const CEvent CGUCEFApplication::FirstCycleEvent = "GUCEF::CORE::CGUCEFApplication::FirstCycleEvent";
 
+/** The signal of a stop request from a signal handler: written there, read on the pulse thread */
+static volatile sig_atomic_t g_stopRequestSignal = 0;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -119,12 +122,16 @@ CGUCEFApplication::CGUCEFApplication( void )
     , CTSGNotifier()
     , _initialized( false )
     , m_shutdownRequested( false )
+    , m_signalStopHandled( false )
     , m_busyWaitPulseDriver()
     , m_forcedMinimalCycleDeltaInMilliSecs( 25 )
     , m_desiredMaximumCycleDeltaInMilliSecs( 100 )
 {GUCEF_TRACE;
 
     RegisterEvents();
+
+    // Every pulse comes to OnPumpedNotify(), which acts on a stop requested from a signal
+    SetPropagatePulseEvent( true );
 
     /*
      *      Set an initial app dir just in case we have trouble getting one
@@ -164,7 +171,11 @@ CGUCEFApplication::~CGUCEFApplication()
     if ( !pulseGenerator.IsNULL() )
     {
         CIPulseGeneratorDriver* pulseDriver = pulseGenerator->GetPulseGeneratorDriver();
-        if ( &m_busyWaitPulseDriver == pulseDriver )
+        if ( &m_busyWaitPulseDriver == pulseDriver
+             #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+             || &m_emscriptenPulseDriver == pulseDriver
+             #endif
+           )
         {
             // decouple the pulse driver since we dont want to get tripped up with
             // order of destruction
@@ -187,9 +198,13 @@ CGUCEFApplication::LinkPulseGeneratorDriver( void )
         CIPulseGeneratorDriver* pulseDriver = pulseGenerator->GetPulseGeneratorDriver();
         if ( GUCEF_NULL == pulseDriver )
         {
-            // Set the busy wait pulse driver as the default driver for the
-            // pulse generator
+            // Set the default driver for the pulse generator. A browser cannot be blocked by waiting
+            // in a loop so there we hand the loop to the browser instead of using the busy wait driver.
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+            pulseGenerator->SetPulseGeneratorDriver( &m_emscriptenPulseDriver );
+            #else
             pulseGenerator->SetPulseGeneratorDriver( &m_busyWaitPulseDriver );
+            #endif
         }
         pulseGenerator->AllowPeriodicPulses();
         pulseGenerator->RequestPeriodicPulses( this );
@@ -209,6 +224,20 @@ CGUCEFApplication::MainLoop( void )
     if ( !pulseGenerator.IsNULL() )
     {
         LinkPulseGeneratorDriver();
+
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+        if ( pulseGenerator->GetPulseGeneratorDriver() == &m_emscriptenPulseDriver )
+        {
+            Unlock();
+
+            // Notify that the first app cycle is starting
+            if ( !NotifyObservers( FirstCycleEvent ) ) return 0;
+
+            // The browser takes over the loop, by default this call does not return
+            m_emscriptenPulseDriver.Run( *pulseGenerator.GetPointerAlways() );
+            return 0;
+        }
+        #endif
 
         // Unless the pulse drive is overridden we will now start the loop
         if ( pulseGenerator->GetPulseGeneratorDriver() == &m_busyWaitPulseDriver )
@@ -340,6 +369,14 @@ CGUCEFApplication::Main( HINSTANCE hinstance     ,
         data.argv = NULL;
     }
 
+    // A stop asked for by a signal before the application ran is honoured before anything starts
+    if ( IsStopRequestedFromSignal() )
+    {
+        StopIfRequestedFromSignal();
+        GUCEF_DELETE []data.argv;
+        return 0;
+    }
+
     // Set shutdown to false before we emit the init event so that observers can
     // request a shutdown if something went wrong
     m_shutdownRequested = false;
@@ -392,6 +429,14 @@ CGUCEFApplication::main( int argc    ,
     }
 
     _initialized = false;
+
+    // A stop asked for by a signal before the application ran (during the configuration load of a service, for
+    // example) is honoured before anything starts
+    if ( IsStopRequestedFromSignal() )
+    {
+        StopIfRequestedFromSignal();
+        return 0;
+    }
 
     // Set shutdown to false before we emit the init event so that observers can
     // request a shutdown if something went wrong
@@ -504,6 +549,64 @@ CGUCEFApplication::Stop( bool wait )
         NotifyObservers( AppShutdownAbortedEvent );
         return false;
     }    
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUCEFApplication::RequestStopFromSignal( int signal )
+{
+    // Async-signal-safe: no trace, no lock, no allocation, one store
+    g_stopRequestSignal = ( 0 != signal ) ? (sig_atomic_t) signal : (sig_atomic_t) SIGTERM;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUCEFApplication::IsStopRequestedFromSignal( void )
+{
+    return 0 != g_stopRequestSignal;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int
+CGUCEFApplication::GetStopRequestSignal( void )
+{
+    return (int) g_stopRequestSignal;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUCEFApplication::StopIfRequestedFromSignal( void )
+{GUCEF_TRACE;
+
+    if ( 0 == g_stopRequestSignal || m_signalStopHandled )
+        return false;
+    m_signalStopHandled = true;
+
+    GUCEF_LOG( LOGLEVEL_IMPORTANT, "GUCEFApplication: Stopping because of signal " << (int) g_stopRequestSignal );
+    Stop();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUCEFApplication::OnPumpedNotify( CNotifier* notifier    ,
+                                   const CEvent& eventid  ,
+                                   CICloneable* eventdata )
+{GUCEF_TRACE;
+
+    if ( CPulseGenerator::PulseEvent == eventid )
+    {
+        // The pulse is only looked at here: it was never passed on to the observers of the application
+        if ( 0 != g_stopRequestSignal )
+            StopIfRequestedFromSignal();
+        return;
+    }
+    CTSGNotifier::OnPumpedNotify( notifier, eventid, eventdata );
 }
 
 /*-------------------------------------------------------------------------*/

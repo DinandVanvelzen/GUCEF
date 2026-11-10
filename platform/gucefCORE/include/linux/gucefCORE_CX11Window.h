@@ -121,6 +121,9 @@ class GUCEF_CORE_PUBLIC_CPP CX11Window : public COSWindow
 
     void SetFullscreenStatus( bool fullscreen );
 
+    /** Shows or hides the pointer over the window */
+    void SetCursorVisible( bool visible );
+
     int GetWidthOfClientAreaBorder( void ) const;
 
     bool SetWindowAreaPosition( int x, int y );

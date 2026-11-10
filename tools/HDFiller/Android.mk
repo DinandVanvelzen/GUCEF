@@ -26,11 +26,10 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DHDFILLER_BUILD_MODULE
+LOCAL_CFLAGS := -DHDFILLER_BUILD_MODULE -DMODULE_CONSENSUS_NAME=HDFiller -DMODULE_NAME=HDFiller
 
 
 LOCAL_SHARED_LIBRARIES := \

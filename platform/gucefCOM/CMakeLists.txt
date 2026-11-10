@@ -22,8 +22,132 @@ set( HEADER_FILES
   include/gucefCOM.h
   include/gucefCOMDLLInit.h
   include/gucefCOM_CComGlobal.h
+  include/gucefCOM_CDnsMessage.h
+  include/gucefCOM_CEMailAddress.h
+  include/gucefCOM_CEMailAttachment.h
+  include/gucefCOM_CEMailClientBase.h
+  include/gucefCOM_CEMailClientSettings.h
+  include/gucefCOM_CEMailCredential.h
+  include/gucefCOM_CEMailCredentialRequest.h
+  include/gucefCOM_CEMailErrorEventData.h
+  include/gucefCOM_CEMailHeaders.h
+  include/gucefCOM_CEMailMessage.h
+  include/gucefCOM_CEMailOperationTaskConsumer.h
+  include/gucefCOM_CEMailOperationTaskData.h
+  include/gucefCOM_CEMailOperations.h
+  include/gucefCOM_CEMailProtocolLog.h
+  include/gucefCOM_CEMailProviderPreset.h
+  include/gucefCOM_CEMailProviderPresets.h
+  include/gucefCOM_CEMailSaslFactory.h
+  include/gucefCOM_CEMailSaslLogin.h
+  include/gucefCOM_CEMailSaslPlain.h
+  include/gucefCOM_CEMailSaslScramSha256.h
+  include/gucefCOM_CEMailSaslXOAuth2.h
+  include/gucefCOM_CEMailServerPreset.h
+  include/gucefCOM_CEMailSetupDiagnosis.h
+  include/gucefCOM_CEMailSetupValidation.h
+  include/gucefCOM_CEMailStreamReader.h
+  include/gucefCOM_CEMailTcpTransport.h
+  include/gucefCOM_CEMailTransportErrorData.h
+  include/gucefCOM_CIEMailCredentialProvider.h
+  include/gucefCOM_CIEMailSaslMechanism.h
+  include/gucefCOM_CIEMailTransport.h
+  include/gucefCOM_CIIrcTransport.h
+  include/gucefCOM_CIMcpAccessPolicy.h
+  include/gucefCOM_CIMcpPrompt.h
+  include/gucefCOM_CIMcpResource.h
+  include/gucefCOM_CIMcpResourceTemplate.h
+  include/gucefCOM_CIMcpTool.h
+  include/gucefCOM_CIMcpTransport.h
+  include/gucefCOM_CIcmpRttProbe.h
+  include/gucefCOM_CImapBodyStructure.h
+  include/gucefCOM_CImapClient.h
+  include/gucefCOM_CImapClientSettings.h
+  include/gucefCOM_CImapCommandParts.h
+  include/gucefCOM_CImapCommandResult.h
+  include/gucefCOM_CImapEnvelope.h
+  include/gucefCOM_CImapFetchOptions.h
+  include/gucefCOM_CImapFetchResult.h
+  include/gucefCOM_CImapFetchSection.h
+  include/gucefCOM_CImapFetchSpec.h
+  include/gucefCOM_CImapFetchedItem.h
+  include/gucefCOM_CImapIdleUpdate.h
+  include/gucefCOM_CImapMailboxName.h
+  include/gucefCOM_CImapResponse.h
+  include/gucefCOM_CImapSearchCriteria.h
+  include/gucefCOM_CImapValue.h
+  include/gucefCOM_CImapValueParser.h
+  include/gucefCOM_CIrcClient.h
+  include/gucefCOM_CIrcClientSettings.h
+  include/gucefCOM_CIrcMessage.h
+  include/gucefCOM_CIrcTcpTransport.h
+  include/gucefCOM_CJsonRpcEndpoint.h
+  include/gucefCOM_CMcpAuditRecord.h
+  include/gucefCOM_CMcpChannel.h
+  include/gucefCOM_CMcpConfigurableAccessPolicy.h
+  include/gucefCOM_CMcpContent.h
+  include/gucefCOM_CMcpImplementationInfo.h
+  include/gucefCOM_CMcpInputRequired.h
+  include/gucefCOM_CMcpJsonLinesAuditLog.h
+  include/gucefCOM_CMcpLegacySession.h
+  include/gucefCOM_CMcpOperationTask.h
+  include/gucefCOM_CMcpPrincipal.h
+  include/gucefCOM_CMcpPromptDescriptor.h
+  include/gucefCOM_CMcpPromptRegistry.h
+  include/gucefCOM_CMcpPromptResult.h
+  include/gucefCOM_CMcpRegistryBase.h
+  include/gucefCOM_CMcpRequestContext.h
+  include/gucefCOM_CMcpRequestMeta.h
+  include/gucefCOM_CMcpRequestStateSealer.h
+  include/gucefCOM_CMcpResourceContents.h
+  include/gucefCOM_CMcpResourceDescriptor.h
+  include/gucefCOM_CMcpResourceRegistry.h
+  include/gucefCOM_CMcpRpcRelay.h
+  include/gucefCOM_CMcpRpcTransport.h
+  include/gucefCOM_CMcpServer.h
+  include/gucefCOM_CMcpServerSettings.h
+  include/gucefCOM_CMcpStdioTransport.h
+  include/gucefCOM_CMcpStreamChannel.h
+  include/gucefCOM_CMcpSubscription.h
+  include/gucefCOM_CMcpTcpTransport.h
+  include/gucefCOM_CMcpToolDescriptor.h
+  include/gucefCOM_CMcpToolRegistry.h
+  include/gucefCOM_CMcpToolResult.h
+  include/gucefCOM_CMdnsDiscoveryClient.h
+  include/gucefCOM_CMimeCodec.h
+  include/gucefCOM_CMimeComposeOptions.h
+  include/gucefCOM_CMimeComposer.h
+  include/gucefCOM_CMimeLimits.h
+  include/gucefCOM_CMimeParser.h
+  include/gucefCOM_CMimePart.h
+  include/gucefCOM_CNatPmpPortMapper.h
+  include/gucefCOM_CPop3Client.h
+  include/gucefCOM_CPop3ClientSettings.h
+  include/gucefCOM_CPop3CommandResult.h
+  include/gucefCOM_CPop3FetchOptions.h
+  include/gucefCOM_CPop3FetchResult.h
+  include/gucefCOM_CRpcTcpTransport.h
+  include/gucefCOM_CRpcTcpTransportListener.h
+  include/gucefCOM_CSmtpClient.h
+  include/gucefCOM_CSmtpClientSettings.h
+  include/gucefCOM_CSmtpReply.h
+  include/gucefCOM_CSmtpSendResult.h
+  include/gucefCOM_CSsdpDiscoveryClient.h
+  include/gucefCOM_CStaticEMailCredentialProvider.h
   include/gucefCOM_CStatsDClient.h
+  include/gucefCOM_CStunClient.h
+  include/gucefCOM_CTcpConnectRttProbe.h
+  include/gucefCOM_CUdpBroadcastDiscoveryClient.h
+  include/gucefCOM_CUdpDiscoveryClientBase.h
+  include/gucefCOM_CUdpDiscoveryCodec.h
+  include/gucefCOM_CUdpEchoResponder.h
+  include/gucefCOM_CUdpEchoRttProbe.h
+  include/gucefCOM_CUdpMulticastDiscoveryClient.h
+  include/gucefCOM_EMailTypes.h
   include/gucefCOM_ETypes.h
+  include/gucefCOM_JsonRpcTypes.h
+  include/gucefCOM_McpTypes.h
+  include/gucefCOM_NetworkByteOrder.h
   include/gucefCOM_config.h
   include/gucefCOM_macros.h
 )
@@ -35,7 +159,123 @@ set( SOURCE_FILES
   src/CPHUDPSocket.cpp
   src/gucefCOM.cpp
   src/gucefCOM_CComGlobal.cpp
+  src/gucefCOM_CDnsMessage.cpp
+  src/gucefCOM_CEMailAddress.cpp
+  src/gucefCOM_CEMailAttachment.cpp
+  src/gucefCOM_CEMailClientBase.cpp
+  src/gucefCOM_CEMailClientSettings.cpp
+  src/gucefCOM_CEMailCredential.cpp
+  src/gucefCOM_CEMailCredentialRequest.cpp
+  src/gucefCOM_CEMailErrorEventData.cpp
+  src/gucefCOM_CEMailHeaders.cpp
+  src/gucefCOM_CEMailMessage.cpp
+  src/gucefCOM_CEMailOperationTaskConsumer.cpp
+  src/gucefCOM_CEMailOperationTaskData.cpp
+  src/gucefCOM_CEMailOperations.cpp
+  src/gucefCOM_CEMailProtocolLog.cpp
+  src/gucefCOM_CEMailProviderPreset.cpp
+  src/gucefCOM_CEMailProviderPresets.cpp
+  src/gucefCOM_CEMailSaslFactory.cpp
+  src/gucefCOM_CEMailSaslLogin.cpp
+  src/gucefCOM_CEMailSaslPlain.cpp
+  src/gucefCOM_CEMailSaslScramSha256.cpp
+  src/gucefCOM_CEMailSaslXOAuth2.cpp
+  src/gucefCOM_CEMailServerPreset.cpp
+  src/gucefCOM_CEMailSetupDiagnosis.cpp
+  src/gucefCOM_CEMailSetupValidation.cpp
+  src/gucefCOM_CEMailStreamReader.cpp
+  src/gucefCOM_CEMailTcpTransport.cpp
+  src/gucefCOM_CEMailTransportErrorData.cpp
+  src/gucefCOM_CIEMailCredentialProvider.cpp
+  src/gucefCOM_CIEMailSaslMechanism.cpp
+  src/gucefCOM_CIEMailTransport.cpp
+  src/gucefCOM_CIIrcTransport.cpp
+  src/gucefCOM_CIMcpTransport.cpp
+  src/gucefCOM_CIcmpRttProbe.cpp
+  src/gucefCOM_CImapBodyStructure.cpp
+  src/gucefCOM_CImapClient.cpp
+  src/gucefCOM_CImapClientSettings.cpp
+  src/gucefCOM_CImapCommandParts.cpp
+  src/gucefCOM_CImapCommandResult.cpp
+  src/gucefCOM_CImapEnvelope.cpp
+  src/gucefCOM_CImapFetchOptions.cpp
+  src/gucefCOM_CImapFetchResult.cpp
+  src/gucefCOM_CImapFetchSection.cpp
+  src/gucefCOM_CImapFetchSpec.cpp
+  src/gucefCOM_CImapFetchedItem.cpp
+  src/gucefCOM_CImapIdleUpdate.cpp
+  src/gucefCOM_CImapMailboxName.cpp
+  src/gucefCOM_CImapResponse.cpp
+  src/gucefCOM_CImapSearchCriteria.cpp
+  src/gucefCOM_CImapValue.cpp
+  src/gucefCOM_CImapValueParser.cpp
+  src/gucefCOM_CIrcClient.cpp
+  src/gucefCOM_CIrcClientSettings.cpp
+  src/gucefCOM_CIrcMessage.cpp
+  src/gucefCOM_CIrcTcpTransport.cpp
+  src/gucefCOM_CJsonRpcEndpoint.cpp
+  src/gucefCOM_CMcpAuditRecord.cpp
+  src/gucefCOM_CMcpChannel.cpp
+  src/gucefCOM_CMcpConfigurableAccessPolicy.cpp
+  src/gucefCOM_CMcpContent.cpp
+  src/gucefCOM_CMcpImplementationInfo.cpp
+  src/gucefCOM_CMcpInputRequired.cpp
+  src/gucefCOM_CMcpJsonLinesAuditLog.cpp
+  src/gucefCOM_CMcpLegacySession.cpp
+  src/gucefCOM_CMcpOperationTask.cpp
+  src/gucefCOM_CMcpPrincipal.cpp
+  src/gucefCOM_CMcpPromptDescriptor.cpp
+  src/gucefCOM_CMcpPromptRegistry.cpp
+  src/gucefCOM_CMcpPromptResult.cpp
+  src/gucefCOM_CMcpRegistryBase.cpp
+  src/gucefCOM_CMcpRequestContext.cpp
+  src/gucefCOM_CMcpRequestMeta.cpp
+  src/gucefCOM_CMcpRequestStateSealer.cpp
+  src/gucefCOM_CMcpResourceContents.cpp
+  src/gucefCOM_CMcpResourceDescriptor.cpp
+  src/gucefCOM_CMcpResourceRegistry.cpp
+  src/gucefCOM_CMcpRpcRelay.cpp
+  src/gucefCOM_CMcpRpcTransport.cpp
+  src/gucefCOM_CMcpServer.cpp
+  src/gucefCOM_CMcpServerSettings.cpp
+  src/gucefCOM_CMcpStdioTransport.cpp
+  src/gucefCOM_CMcpStreamChannel.cpp
+  src/gucefCOM_CMcpSubscription.cpp
+  src/gucefCOM_CMcpTcpTransport.cpp
+  src/gucefCOM_CMcpToolDescriptor.cpp
+  src/gucefCOM_CMcpToolRegistry.cpp
+  src/gucefCOM_CMcpToolResult.cpp
+  src/gucefCOM_CMdnsDiscoveryClient.cpp
+  src/gucefCOM_CMimeCodec.cpp
+  src/gucefCOM_CMimeComposeOptions.cpp
+  src/gucefCOM_CMimeComposer.cpp
+  src/gucefCOM_CMimeLimits.cpp
+  src/gucefCOM_CMimeParser.cpp
+  src/gucefCOM_CMimePart.cpp
+  src/gucefCOM_CNatPmpPortMapper.cpp
+  src/gucefCOM_CPop3Client.cpp
+  src/gucefCOM_CPop3ClientSettings.cpp
+  src/gucefCOM_CPop3CommandResult.cpp
+  src/gucefCOM_CPop3FetchOptions.cpp
+  src/gucefCOM_CPop3FetchResult.cpp
+  src/gucefCOM_CRpcTcpTransport.cpp
+  src/gucefCOM_CRpcTcpTransportListener.cpp
+  src/gucefCOM_CSmtpClient.cpp
+  src/gucefCOM_CSmtpClientSettings.cpp
+  src/gucefCOM_CSmtpReply.cpp
+  src/gucefCOM_CSmtpSendResult.cpp
+  src/gucefCOM_CSsdpDiscoveryClient.cpp
+  src/gucefCOM_CStaticEMailCredentialProvider.cpp
   src/gucefCOM_CStatsDClient.cpp
+  src/gucefCOM_CStunClient.cpp
+  src/gucefCOM_CTcpConnectRttProbe.cpp
+  src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp
+  src/gucefCOM_CUdpDiscoveryClientBase.cpp
+  src/gucefCOM_CUdpDiscoveryCodec.cpp
+  src/gucefCOM_CUdpEchoResponder.cpp
+  src/gucefCOM_CUdpEchoRttProbe.cpp
+  src/gucefCOM_CUdpMulticastDiscoveryClient.cpp
+  src/gucefCOM_McpTypes.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -55,14 +295,14 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
 
 if ( ANDROID32 )
-  include_directories( ../gucefCORE/include/android )
+  include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../gucefCORE/include/android )
+  include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )

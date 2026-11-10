@@ -111,6 +111,8 @@ CInputController::CInputController( void )
           m_inputdriverMap()
 {GUCEF_TRACE;
 
+    m_idGenerator = TIdGenerator::CreateSharedObj();
+
     RegisterEvents();
 
     TEventCallback callback( this, &CInputController::OnPulse );
@@ -174,7 +176,7 @@ CInputController::CreateContext( const CString& driverName      ,
         if ( NULL != context )
         {
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Created input context using driver " + driverName );
-            TIdGenerator::TNumericID id = m_idGenerator.GenerateID();
+            TIdGenerator::TNumericID id = m_idGenerator->GenerateID();
             context->SetID( id );
             m_contextSet.insert( context );
             return context;
@@ -355,6 +357,46 @@ CInputController::SetKeyboardKeyState( const Int32 contextId ,
         (*i).second->SetKeyState( contextId  ,
                                   keyCode    ,
                                   keyPressed );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Invalid input device ID given: " + CORE::Int32ToString( deviceID ) );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CInputController::SetMouseVariable( const Int32 contextId      ,
+                                    const Int32 deviceID       ,
+                                    const UInt32 variableIndex ,
+                                    const Int32 value          ,
+                                    const Int32 valueDelta     )
+{GUCEF_TRACE;
+
+    TMouseMap::iterator i = m_mouseMap.find( deviceID );
+    if ( i != m_mouseMap.end() )
+    {
+        (*i).second->SetVariable( contextId, variableIndex, value, valueDelta );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Invalid input device ID given: " + CORE::Int32ToString( deviceID ) );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CInputController::SetKeyboardText( const Int32 contextId ,
+                                   const Int32 deviceID  ,
+                                   const CString& text   )
+{GUCEF_TRACE;
+
+    TKeyboardMap::iterator i = m_keyboardMap.find( deviceID );
+    if ( i != m_keyboardMap.end() )
+    {
+        (*i).second->SetText( contextId, text );
     }
     else
     {
@@ -588,6 +630,16 @@ void
 CInputController::UnregisterDriver( const CString& driverName )
 {GUCEF_TRACE;
 
+    // the contexts of the driver go with it: their code and data belong to the driver
+    TInputDriverMap::iterator d = m_inputdriverMap.find( driverName );
+    if ( d != m_inputdriverMap.end() )
+    {
+        CInputDriver* driver = (*d).second.GetPointerAlways();
+        TContextSet contexts = m_contextSet;
+        for ( TContextSet::iterator i=contexts.begin(); i!=contexts.end(); ++i )
+            if ( (*i)->GetDriver() == driver )
+                DestroyContext( *i );
+    }
     m_inputdriverMap.erase( driverName );
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "InputController: Unregistered driver with name " + driverName );
     NotifyObservers( InputDriverUnloadedEvent );

@@ -17,50 +17,39 @@ LOCAL_PATH := $(MY_MODULE_PATH)
 include $(CLEAR_VARS)
 
 @echo Module path: $(MY_MODULE_PATH)
-LOCAL_MODULE := guidriverRocket
-LOCAL_MODULE_FILENAME := libguidriverRocket
+LOCAL_MODULE := guidriverRmlUI
+LOCAL_MODULE_FILENAME := libguidriverRmlUI
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  src/guidriverRocket.cpp \
-  src/guidriverRocket_CButtonImp.cpp \
-  src/guidriverRocket_CCheckboxImp.cpp \
-  src/guidriverRocket_CComboboxImp.cpp \
-  src/guidriverRocket_CDataManager.cpp \
-  src/guidriverRocket_CEditboxImp.cpp \
-  src/guidriverRocket_CFileOpenDialogImp.cpp \
-  src/guidriverRocket_CFileSaveDialogImp.cpp \
-  src/guidriverRocket_CFileSystemDialogImp.cpp \
-  src/guidriverRocket_CFormBackendImp.cpp \
-  src/guidriverRocket_CGUIContext.cpp \
-  src/guidriverRocket_CGridViewImp.cpp \
-  src/guidriverRocket_CIOAccessToRocketStreamAdapter.cpp \
-  src/guidriverRocket_CImageFrameImp.cpp \
-  src/guidriverRocket_CInputAdapter.cpp \
-  src/guidriverRocket_CLabelImp.cpp \
-  src/guidriverRocket_CListboxImp.cpp \
-  src/guidriverRocket_CMemoboxImp.cpp \
-  src/guidriverRocket_CMenuBarImp.cpp \
-  src/guidriverRocket_CPopupMenuImp.cpp \
-  src/guidriverRocket_CProgressBarImp.cpp \
-  src/guidriverRocket_CPushButtonImp.cpp \
-  src/guidriverRocket_CRenderContextImp.cpp \
-  src/guidriverRocket_CRocketInputAdapter.cpp \
-  src/guidriverRocket_CRocketStreamAdapter.cpp \
-  src/guidriverRocket_CRocketSystemInterface.cpp \
-  src/guidriverRocket_CRocketVFSInterface.cpp \
-  src/guidriverRocket_CSpinnerImp.cpp \
-  src/guidriverRocket_CTabContentPaneImp.cpp \
-  src/guidriverRocket_CTabControlImp.cpp \
-  src/guidriverRocket_CTreeviewImp.cpp \
-  src/guidriverRocket_CVFSInfoProvider.cpp \
-  src/guidriverRocket_CWidgetImp.cpp \
-  src/guidriverRocket_CWindowImp.cpp \
-  src/guidriverRocket_pluginAPI.cpp
+  src/guidriverRmlUI.cpp \
+  src/guidriverRmlUI_CRmlUIContext.cpp \
+  src/guidriverRmlUI_CRmlUIDriver.cpp \
+  src/guidriverRmlUI_CRmlUIFormBackend.cpp \
+  src/guidriverRmlUI_CRmlUISystemInterface.cpp \
+  src/guidriverRmlUI_CRmlUIVFSInterface.cpp \
+  src/guidriverRmlUI_CRmlUIWidgetElement.cpp \
+  src/guidriverRmlUI_CRmlUIWidgetHandler.cpp \
+  src/guidriverRmlUI_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Config \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core/Containers \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Core/Elements \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Debugger \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Lottie \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/Lua \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Include/RmlUi/SVG \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core/Elements \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core/FontEngineDefault \
+  $(MY_MODULE_PATH)/../../../dependencies/RmlUi/Source/Core/Layout \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/config \
@@ -68,31 +57,26 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Controls \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Core \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Core/Python \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Include/Rocket/Debugger \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Source/Controls \
-  $(MY_MODULE_PATH)/../../../dependencies/libRocket/Source/Core \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefINPUT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefVFS/include
+  $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api
 
-LOCAL_CFLAGS := -DGUCEF_GUIDRIVERROCKET_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_GUIDRIVERRMLUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverRmlUI -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverRmlUI
 
 
 LOCAL_SHARED_LIBRARIES := \
-  RocketControls \
-  RocketCore \
+  RmlUI_Core \
   gucefCORE \
   gucefGUI \
+  gucefIMAGE \
   gucefINPUT \
   gucefMT \
   gucefVFS

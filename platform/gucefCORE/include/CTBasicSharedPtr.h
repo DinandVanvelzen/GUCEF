@@ -91,6 +91,7 @@ class TBasicSharedPtrSharedData : public MT::CILockable
     typedef LockType                       TLockType;
 
     Int32 m_refCounter;                        /**< shared reference counter */
+    Int32 m_weakCounter;                       /**< weak references (CTWeakPtr): independent shared data stays until the last one goes */
     LockType m_lock;                           /**< shared lock, if any */
     bool m_hasIndependentLifeCycle;            /**< depending on if the shared data is part of a larger object it may not have an independent lifecycle */
     CIDynamicVoidDestructor* m_voidDestructor; /**< mandatory external object destructor */
@@ -165,6 +166,8 @@ class CTBasicSharedPtr : public MT::CILockable ,
 
     protected:
 
+    template< typename, class > friend class CTWeakPtr;
+
     mutable TBasicSharedPtrSharedData< LockType >* m_shared;    /**< holds data shared across multiple instances of the shared pointer */
     T* m_ptr;                                                   /**< the pointer that we wish to reference count */
 
@@ -220,8 +223,9 @@ class CTBasicSharedPtr : public MT::CILockable ,
 
         Unlink();
 
+        // Note: after Unlink() this has no shared data and thus no lock of its own, the reference count
+        // we are about to increment is protected by the lock of the other shared pointer
         MT::CObjectScopeLock lockOther( other );
-        MT::CObjectScopeLock lock( this );
 
         // The static cast below is performed as a compile time validation
         // of the type passed.
@@ -851,8 +855,6 @@ bool
 CTBasicSharedPtr< T, LockType >::RelinquishOwnership( T*& rawPtr )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-
     if ( GUCEF_NULL == m_shared || m_ptr == GUCEF_NULL )
     {
         // we are releasing ownership of a NULL pointer
@@ -860,16 +862,12 @@ CTBasicSharedPtr< T, LockType >::RelinquishOwnership( T*& rawPtr )
         return true;
     }
 
-    if ( 1 == m_shared->m_refCounter )
+    TBasicSharedPtrSharedData< LockType >* shared = m_shared;
+    shared->m_lock.Lock();
+    if ( 1 != shared->m_refCounter )
     {
-        --(m_shared->m_refCounter);
-        rawPtr = m_ptr;
-        m_ptr = GUCEF_NULL;
-        Unlink();
-        return true;
-    }
-    else
-    {
+        shared->m_lock.Unlock();
+
         /*
          *  If you get here you should check your code flow
          *  If you want to use this member function you should ensure that the local scope has the last remaining reference
@@ -878,6 +876,20 @@ CTBasicSharedPtr< T, LockType >::RelinquishOwnership( T*& rawPtr )
         GUCEF_ASSERT_ALWAYS;
         return false;
     }
+
+    // Without its destructor the shared data lets go of the object instead of destroying it
+    CIDynamicVoidDestructor* voidDestructor = shared->m_voidDestructor;
+    shared->m_voidDestructor = GUCEF_NULL;
+    shared->m_originalAddressAsCreated = GUCEF_NULL;
+    shared->m_lock.Unlock();
+
+    rawPtr = m_ptr;
+    Unlink();
+
+    // A destructor made for this pointer alone deletes itself when asked to destroy an object, nothing is destroyed for NULL
+    if ( GUCEF_NULL != voidDestructor )
+        voidDestructor->DestroyKnownVoidedObject( GUCEF_NULL );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1352,16 +1364,29 @@ CTBasicSharedPtr< T, LockType >::Unlink( void )
                     localSharedRef->m_voidDestructor = GUCEF_NULL;
                     localSharedRef->m_originalAddressAsCreated = GUCEF_NULL;
 
+                    // Shared data that is part of the object, lock included, goes with the object: the lock is released while it
+                    // still exists. This also leaves objects that are recycled instead of destroyed (free lists) with a usable lock
+                    if ( !sharedDataIsIndependent )
+                        localSharedRef->m_lock.Unlock();
+
                     GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
                     voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
+                }
+                else
+                if ( !sharedDataIsIndependent )
+                {
+                    localSharedRef->m_lock.Unlock();
                 }
                 m_ptr = GUCEF_NULL;
 
                 if ( sharedDataIsIndependent )
-                {                    
+                {
+                    // weak pointers still use the shared data to see the object is gone: the last of them deletes it
                     m_shared = GUCEF_NULL;
+                    bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
                     localSharedRef->m_lock.Unlock();
-                    GUCEF_DELETE localSharedRef;
+                    if ( !weaklyReferenced )
+                        GUCEF_DELETE localSharedRef;
                 }
                 else
                 {
@@ -1401,14 +1426,25 @@ CTBasicSharedPtr< T, LockType >::Unlink( void )
                     localSharedRef->m_voidDestructor = GUCEF_NULL;
                     localSharedRef->m_originalAddressAsCreated = GUCEF_NULL;
 
+                    // see above: shared data that is part of the object releases its lock before the object goes
+                    if ( !sharedDataIsIndependent )
+                        localSharedRef->m_lock.Unlock();
+
                     GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
                     voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
+                }
+                else
+                if ( !sharedDataIsIndependent )
+                {
+                    localSharedRef->m_lock.Unlock();
                 }
 
                 if ( sharedDataIsIndependent )
                 {
+                    bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
                     localSharedRef->m_lock.Unlock();
-                    GUCEF_DELETE localSharedRef;
+                    if ( !weaklyReferenced )
+                        GUCEF_DELETE localSharedRef;
                 }
             }
         }
@@ -1469,6 +1505,7 @@ template< class LockType >
 TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( bool hasIndependentLifeCycle )
     : MT::CILockable()
     , m_refCounter( 0 )
+    , m_weakCounter( 0 )
     , m_lock()
     , m_hasIndependentLifeCycle( hasIndependentLifeCycle )
     , m_voidDestructor( GUCEF_NULL )
@@ -1487,6 +1524,7 @@ TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( TBasicSharedPt
                                                                   CIDynamicVoidDestructor* voidedDestructor ) GUCEF_NOEXCEPT
     : MT::CILockable()
     , m_refCounter( src.m_refCounter )
+    , m_weakCounter( src.m_weakCounter )
     , m_lock( GUCEF_MOVE( src.m_lock ) )
     , m_hasIndependentLifeCycle( src.m_hasIndependentLifeCycle )
     , m_voidDestructor( voidedDestructor )
@@ -1494,6 +1532,7 @@ TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( TBasicSharedPt
 {GUCEF_TRACE;
 
     src.m_refCounter = 0;
+    src.m_weakCounter = 0;
     src.m_voidDestructor = GUCEF_NULL;
     src.m_originalAddressAsCreated = GUCEF_NULL;
 }

@@ -1,20 +1,19 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
  
 /*-------------------------------------------------------------------------//
@@ -51,9 +50,8 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( void )
-    : CIPulseGeneratorDriver()  
-    , m_loop( false )           
-    , m_desiredPulseDelta( 10 )
+    : CIPulseGeneratorDriver()
+    , m_loop( false )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
@@ -64,9 +62,8 @@ CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( void )
 /*--------------------------------------------------------------------------*/
 
 CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( const CBusyWaitPulseGeneratorDriver& src )
-    : CIPulseGeneratorDriver( src ) 
-    , m_loop( false )               
-    , m_desiredPulseDelta( 10 )     
+    : CIPulseGeneratorDriver( src )
+    , m_loop( false )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
@@ -90,10 +87,21 @@ CBusyWaitPulseGeneratorDriver::RequestImmediatePulse( CPulseGenerator& pulseGene
 
     if ( m_loop )
     {
-        m_immediatePulseTickets = m_immediatePulseTicketMax;
+        m_immediatePulseTickets.Store( m_immediatePulseTicketMax.Load() );
     }
     else
         SendDriverPulse( pulseGenerator );
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+CBusyWaitPulseGeneratorDriver::QueueImmediatePulse( CPulseGenerator& pulseGenerator )
+{GUCEF_TRACE;
+
+    // Whether or not the loop runs: never a pulse on the calling thread, which may be any thread. A loop that runs
+    // takes the ticket at its next pulse, a loop that starts later at its first
+    m_immediatePulseTickets.Store( m_immediatePulseTicketMax.Load() );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -125,11 +133,13 @@ CBusyWaitPulseGeneratorDriver::Run( CPulseGenerator& pulseGenerator            ,
         try
         {
             // For immediate pulses we use a tight loop with no CPU yielding at all
-            // This is intended for when the application is stressed and CPU bottlenecking on its workload
-            if ( m_immediatePulseTickets > 0 )
+            // This is intended for when the application is stressed and CPU bottlenecking on its workload.
+            // A ticket is taken only when it is still there: other threads hand out new ones meanwhile
+            Int32 tickets = m_immediatePulseTickets.Load();
+            if ( tickets > 0 )
             {
-                --m_immediatePulseTickets;
-                SendDriverPulse( pulseGenerator );
+                if ( m_immediatePulseTickets.CompareExchangeStrong( tickets, tickets - 1 ) )
+                    SendDriverPulse( pulseGenerator );
                 continue;
             }
 
@@ -152,7 +162,7 @@ CBusyWaitPulseGeneratorDriver::RequestPeriodicPulses( CPulseGenerator& pulseGene
                                                       const UInt32 pulseDeltaInMilliSecs )
 {GUCEF_TRACE;
 
-    m_desiredPulseDelta = pulseDeltaInMilliSecs;                                      
+    // Nothing to keep: the loop waits for the next pulse window of the pulse generator, which has the interval
 }
 
 /*--------------------------------------------------------------------------*/
@@ -162,7 +172,7 @@ CBusyWaitPulseGeneratorDriver::RequestPulseInterval( CPulseGenerator& pulseGener
                                                      const UInt32 pulseDeltaInMilliSecs )
 {GUCEF_TRACE;
 
-    m_desiredPulseDelta = pulseDeltaInMilliSecs;
+    // Nothing to keep: the loop waits for the next pulse window of the pulse generator, which has the interval
 }
 
 /*--------------------------------------------------------------------------*/

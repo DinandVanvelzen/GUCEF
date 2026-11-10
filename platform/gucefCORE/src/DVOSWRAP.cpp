@@ -105,6 +105,13 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifdef GUCEF_LINUX_BUILD
+  #ifndef GUCEF_CORE_CX11CLIPBOARD_H
+  #include "gucefCORE_CX11Clipboard.h"   /* the X11 clipboard behind StringToClipboard() and StringFromClipboard() */
+  #define GUCEF_CORE_CX11CLIPBOARD_H
+  #endif /* GUCEF_CORE_CX11CLIPBOARD_H ? */
+#endif /* GUCEF_LINUX_BUILD ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -1319,6 +1326,12 @@ StringToClipboard( const char *str )
     }
     return OSWRAP_FALSE;
 
+    #elif defined( GUCEF_LINUX_BUILD )
+
+    if ( GUCEF_NULL == str )
+        return OSWRAP_FALSE;
+    return CX11Clipboard::Instance()->SetUtf8Text( str, (UInt32) strlen( str ) ) ? OSWRAP_TRUE : OSWRAP_FALSE;
+
     #else /* GUCEF_MSWIN_BUILD */
 
     return OSWRAP_FALSE;
@@ -1402,6 +1415,29 @@ StringFromClipboard( char *dest     ,
         }
         return OSWRAP_FALSE;
 
+        #elif defined( GUCEF_LINUX_BUILD )
+
+        // Same semantics as above: *wbytes is the offset on entry, at most size-1 bytes are copied, dest is terminated
+        if ( GUCEF_NULL == dest || GUCEF_NULL == wbytes || size < 2 )
+            return OSWRAP_FALSE;
+
+        CDynamicBuffer text;
+        if ( !CX11Clipboard::Instance()->GetUtf8Text( text ) )
+            return OSWRAP_FALSE;
+
+        UInt32 offset = *wbytes;
+        UInt32 textSize = text.GetDataSize();
+        if ( textSize <= offset )
+            return OSWRAP_FALSE;
+
+        UInt32 copySize = textSize - offset;
+        if ( copySize > size-1 )
+            copySize = size-1;
+        memcpy( dest, static_cast< const char* >( text.GetConstBufferPtr() ) + offset, copySize );
+        dest[ copySize ] = '\0';
+        *wbytes += copySize;
+        return OSWRAP_TRUE;
+
         #else /* GUCEF_MSWIN_BUILD */
 
         return OSWRAP_FALSE;
@@ -1425,13 +1461,9 @@ GUCEFSetEnv( const char* key   ,
     free( envstr );
     return retval == 0;
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    // Environment variables are not supported in Emscripten
-    return OSWRAP_FALSE;
-
     #else
 
+    // Emscripten has an environment as well, in node it can be the one of the host
     return setenv( key, value, 1 ) == 0;
 
     #endif
@@ -1443,16 +1475,7 @@ const char*
 GUCEFGetEnv( const char* key )
 {GUCEF_TRACE;
 
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    // Environment variables are not supported in Emscripten
-    return GUCEF_NULL;
-
-    #else
-
     return getenv( key );
-
-    #endif
 }
 
 /*--------------------------------------------------------------------------*/

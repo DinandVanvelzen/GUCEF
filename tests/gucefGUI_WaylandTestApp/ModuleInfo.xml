@@ -1,0 +1,27 @@
+<ModuleInfoEntry>
+    <Module Name="gucefGUI_WaylandTestApp" Type="Executable" Platform="linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="pluginglueWAYLAND" />
+            <Dependency Name="guidriverWAYLAND" />
+            <Dependency Name="inputdriverWAYLAND" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="pluginglueWAYLAND" />
+            <Dependency Name="guidriverWAYLAND" />
+            <Dependency Name="inputdriverWAYLAND" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_GUI_WAYLANDTESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

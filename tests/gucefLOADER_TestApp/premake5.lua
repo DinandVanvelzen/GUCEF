@@ -53,6 +53,9 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform", "../../platform/gucefCORE", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefLOADER/include", "../../platform/gucefMT", "../../platform/gucefMT/include", "../../platform/gucefMT/include/" } )
 
+configuration( { "ANDROID" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/android", "../../platform/gucefCORE/include/android/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
@@ -60,6 +63,9 @@ configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/android", "../../platform/gucefCORE/include/android/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
 configuration( { "ARDUINO" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
+configuration( { "EMSCRIPTEN" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
 configuration( { "EMSCRIPTEN32" } )
@@ -71,11 +77,32 @@ includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/in
 configuration( { "IOS" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
+configuration( { "IPHONE" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
+configuration( { "IPHONEOS" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
+configuration( { "LINUX" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefCORE/include/linux", "../../platform/gucefMT/include/" } )
 
 configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefCORE/include/linux", "../../platform/gucefMT/include/" } )
+
+configuration( { "MAC" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
+configuration( { "MACOS" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
+configuration( { "MACOSX" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
+
+configuration( { "MSWIN" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
 configuration( { "OSX" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
@@ -85,3 +112,6 @@ includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/in
 
 configuration( { "WIN64" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefCORE/include/mswin", "../../platform/gucefCORE/include/mswin/", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/" } )
+
+configuration( { "WINDOWS" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )

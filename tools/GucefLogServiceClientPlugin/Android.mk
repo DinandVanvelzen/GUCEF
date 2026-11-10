@@ -30,12 +30,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../GucefLogServiceLib/include
 
-LOCAL_CFLAGS := -DGUCEF_LOGSERVICECLIENTPLUGIN_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_LOGSERVICECLIENTPLUGIN_BUILD_MODULE -DMODULE_CONSENSUS_NAME=GucefLogServiceClientPlugin -DMODULE_NAME=GucefLogServiceClientPlugin
 
 
 LOCAL_SHARED_LIBRARIES := \

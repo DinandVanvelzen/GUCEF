@@ -53,6 +53,8 @@ CThreadInfo::CThreadInfo( void )
     , m_threadStatus( MT::THREADSTATUS_UNDEFINED )
     , m_affinityMask( 0 )
     , m_threadCpuId( 0 )
+    , m_threadName()
+    , m_isExternal( false )
 {GUCEF_TRACE;
 
 }
@@ -65,6 +67,8 @@ CThreadInfo::CThreadInfo( const CThreadInfo& src )
     , m_threadStatus( src.m_threadStatus )
     , m_affinityMask( src.m_affinityMask )
     , m_threadCpuId( src.m_threadCpuId )
+    , m_threadName( src.m_threadName )
+    , m_isExternal( src.m_isExternal )
 {GUCEF_TRACE;
 
 }
@@ -87,6 +91,8 @@ CThreadInfo::Clear( void )
     m_threadStatus = MT::THREADSTATUS_UNDEFINED;
     m_affinityMask = 0;
     m_threadCpuId = 0;
+    m_threadName.Clear();
+    m_isExternal = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -102,6 +108,9 @@ CThreadInfo::Serialize( CDataNode& domRootNode                        ,
     totalSuccess = domRootNode.SetAttribute( "threadStatusId", (UInt16) m_threadStatus ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "affinityMask", m_affinityMask ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "threadCpuId", m_threadCpuId ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "isExternal", m_isExternal ) && totalSuccess;
+    if ( !m_threadName.IsNULLOrEmpty() )
+        totalSuccess = domRootNode.SetAttribute( "threadName", m_threadName ) && totalSuccess;
 
     if ( CDataNodeSerializableSettings::DataNodeSerializableLod_MinimumDetails < settings.levelOfDetail )
     {
@@ -124,6 +133,8 @@ CThreadInfo::Deserialize( const CDataNode& domRootNode                  ,
     m_threadStatus = (TThreadStatus) domRootNode.GetAttributeValueOrChildValueByName( "threadStatusId" ).AsUInt8( (UInt8) m_threadStatus, true );
     m_affinityMask = domRootNode.GetAttributeValueOrChildValueByName( "affinityMask" ).AsUInt64( m_affinityMask, true );
     m_threadCpuId = domRootNode.GetAttributeValueOrChildValueByName( "threadCpuId" ).AsUInt32( m_threadCpuId, true );
+    m_threadName = domRootNode.GetAttributeValueOrChildValueByName( "threadName" ).AsString( m_threadName, true );
+    m_isExternal = domRootNode.GetAttributeValueOrChildValueByName( "isExternal" ).AsBool( m_isExternal, true );
 
     return true;
 }
@@ -162,6 +173,42 @@ CThreadInfo::GetThreadStatus( void ) const
 {GUCEF_TRACE;
 
     return m_threadStatus;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadInfo::SetThreadName( const CString& threadName )
+{GUCEF_TRACE;
+
+    m_threadName = threadName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CThreadInfo::GetThreadName( void ) const
+{GUCEF_TRACE;
+
+    return m_threadName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadInfo::SetIsExternal( bool isExternal )
+{GUCEF_TRACE;
+
+    m_isExternal = isExternal;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CThreadInfo::GetIsExternal( void ) const
+{GUCEF_TRACE;
+
+    return m_isExternal;
 }
 
 /*-------------------------------------------------------------------------*/

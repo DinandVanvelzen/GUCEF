@@ -15,6 +15,15 @@
         <Linker>
             <Dependency Name="zlib" />
         </Linker>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=gnu++14 -Wno-narrowing" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux">
+        <Preprocessor>
+            <Define String="__ANSI__" />
+            <Define String="DISABLE_PERF_MEASUREMENT" />
+        </Preprocessor>
     </Module>
     <Module Platform="mswin">
         <Preprocessor>

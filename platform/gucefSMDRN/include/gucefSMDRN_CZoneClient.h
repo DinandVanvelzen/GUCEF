@@ -31,6 +31,11 @@
 #define GUCEF_DRN_CDRNNODE_H
 #endif /* GUCEF_DRN_CDRNNODE_H ? */
 
+#ifndef GUCEF_DRN_CDRNSESSION_H
+#include "gucefDRN_CDRNSession.h"
+#define GUCEF_DRN_CDRNSESSION_H
+#endif /* GUCEF_DRN_CDRNSESSION_H ? */
+
 #ifndef GUCEF_SMDRN_MACROS_H
 #include "gucefSMDRN_macros.h"         /* often used gucefSMDRN macros */
 #define GUCEF_SMDRN_MACROS_H
@@ -55,7 +60,7 @@ class GUCEF_SMDRN_EXPORT_CPP CZoneClient
 {
     public:
     
-    void SetZoneArbiterConnectInfo( const COMCORE::CHostAddress& arbiterAddress );
+    void SetZoneArbiterEndpoints( const DRN::CDRNEndpointList& arbiterEndpoints );
     
 
     private:
@@ -66,6 +71,7 @@ class GUCEF_SMDRN_EXPORT_CPP CZoneClient
     private:
     
     DRN::CDRNNode m_drnNode;
+    DRN::CDRNSession* m_zoneSession;        /**< membership of the zone's session */
 };
 
 /*-------------------------------------------------------------------------//

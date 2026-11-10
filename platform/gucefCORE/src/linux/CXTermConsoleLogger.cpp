@@ -60,6 +60,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 #endif /* GUCEF_LINUX_BUILD ? */
 
@@ -200,8 +204,9 @@ CXTermConsoleLogger::Initialize( void )
             execl("/usr/bin/xterm", "xterm", sopt, NULL);
             perror("/usr/bin/xterm");
 
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CXTermConsoleLogger: failed fork a xterm, fork returned 0" );
-            return false;
+            // We are the forked child and the exec failed
+            // We must not return since that would continue running a second copy of the application
+            _exit( 127 );
         }
         default:
         {
@@ -211,6 +216,12 @@ CXTermConsoleLogger::Initialize( void )
             //m_masterfd = -1;
 
             GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "CXTermConsoleLogger: starting xterm (pid " + Int32ToString( m_xtermpid ) + ") on " + pts_name );
+
+            // Writing log output must never block the application
+            // for example because the xterm cannot keep up or because it never started
+            int fileFlags = fcntl( m_slavefd, F_GETFL, 0 );
+            if ( -1 != fileFlags )
+                fcntl( m_slavefd, F_SETFL, fileFlags | O_NONBLOCK );
             //fprintf( stderr, "starting xterm (pid %d) on %s\n", m_xtermpid, pts_name.C_String() );
 
 //            // Discard windowid, which comes back as first line from xterm
@@ -227,6 +238,29 @@ CXTermConsoleLogger::Initialize( void )
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "CXTermConsoleLogger: Successfully initialized" );
     return true;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CXTermConsoleLogger::IsTerminalAttached( void )
+{GUCEF_TRACE;
+
+    if ( m_slavefd == -1 || m_xtermpid == -1 || m_slaveFptr == NULL )
+        return false;
+
+    // Check whether the xterm process is still running, this also reaps it if it exited
+    int status = 0;
+    pid_t result = waitpid( (pid_t) m_xtermpid, &status, WNOHANG );
+    // Note that if the application ignores SIGCHLD the child is auto-reaped and waitpid() reports ECHILD
+    // In that case we fall back to checking for the existence of the process
+    if ( result == (pid_t) m_xtermpid || ( -1 == result && ECHILD == errno && 0 != kill( (pid_t) m_xtermpid, 0 ) ) )
+    {
+        m_xtermpid = -1;
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CXTermConsoleLogger: The xterm process is no longer running, disabling this console logger" );
+        return false;
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -257,7 +291,7 @@ CXTermConsoleLogger::Log( const TLogMsgType logMsgType ,
                           const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
-    if ( m_slavefd != -1 && m_xtermpid != -1 && m_slaveFptr != NULL )
+    if ( IsTerminalAttached() )
     {
         if ( !m_formatForUiPurpose )
         {
@@ -293,7 +327,7 @@ CXTermConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                            const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
-    if ( m_slavefd != -1 && m_xtermpid != -1 && m_slaveFptr != NULL )
+    if ( IsTerminalAttached() )
     {
         if ( !m_formatForUiPurpose )
         {
@@ -324,7 +358,7 @@ CXTermConsoleLogger::Log( const TLogMsgType logMsgType     ,
                           const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
-    Log( logMsgType, logLevel, logMessage.AsString(), threadId, timestamp );
+    Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -337,7 +371,7 @@ CXTermConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
                                            const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
-    LogWithoutFormatting( logMsgType, logLevel, logMessage.AsString(), threadId, timestamp );
+    LogWithoutFormatting( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/

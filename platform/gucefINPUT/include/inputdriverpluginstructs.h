@@ -69,6 +69,9 @@ typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TINPUTCALLBACK_OnMouseDetached ) ( 
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TINPUTCALLBACK_OnKeyboardDetached ) ( void* userData, const Int32 deviceID ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TINPUTCALLBACK_OnDeviceDetached ) ( void* userData, const Int32 deviceID ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
+/** Text typed on a keyboard, as the keyboard layout and input method made it: UTF-8, null terminated */
+typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TINPUTCALLBACK_OnKeyboardText ) ( void* userData, const Int32 deviceID, const char* utf8Text ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
 /*-------------------------------------------------------------------------*/
 
 struct SInputCallbacks
@@ -89,6 +92,12 @@ struct SInputCallbacks
     TINPUTCALLBACK_OnKeyboardDetached onKeyboardDetached;
     TINPUTCALLBACK_OnDeviceDetached   onDeviceDetached;        
     void* userData;
+
+    /*
+     *  Members added later come after userData, so drivers built before them still find every member they know
+     *  at the same place. A driver checks for NULL before calling these.
+     */
+    TINPUTCALLBACK_OnKeyboardText     onKeyboardText;
 };
 typedef struct SInputCallbacks TInputCallbacks;
 

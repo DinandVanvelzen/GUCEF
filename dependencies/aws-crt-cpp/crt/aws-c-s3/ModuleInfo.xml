@@ -26,4 +26,9 @@
 			<Dependency Name="aws-c-sdkutils" />
         </Linker>		
     </Module>
+    <Module Platform="linux">
+        <Preprocessor>
+            <Define String="BYO_CRYPTO" /> <!-- s2n is not part of our dependencies, TLS is handled by the HTTP client of the SDK (curl) -->
+        </Preprocessor>
+    </Module>
 </ModuleInfoEntry>

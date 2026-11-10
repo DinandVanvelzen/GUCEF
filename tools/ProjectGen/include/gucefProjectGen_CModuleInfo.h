@@ -142,6 +142,18 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
 
     const TStringSet& GetIncludeFiles( const CORE::CString& pathToFiles ) const;
 
+    /**
+     *  Marks one of the module's include dirs as not to be used as an include search path
+     *  The headers in said dir remain part of the module, only its use as a search path is suppressed
+     *  This is driven by an INCLUDEDIR item in the EXCLUDES section of the processing instructions
+     *  It allows for example a 3rd party header named like a system header to not shadow said system header
+     */
+    void ExcludeIncludeDirFromSearchPaths( const CORE::CString& pathToIncludeDir );
+
+    bool IsIncludeDirExcludedFromSearchPaths( const CORE::CString& pathToIncludeDir ) const;
+
+    const TStringSet& GetIncludeDirsExcludedFromSearchPaths( void ) const;
+
     void SetSourceFiles( const TStringSetMap& files );
 
     void SetSourceFiles( const CORE::CString& pathToFiles ,
@@ -251,6 +263,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
 
     TStringSetMap m_includeDirs;                   // include directories of this module's own headers
     TStringSetMap m_sourceDirs;                    // source directories of this module's own source
+    TStringSet m_includeDirsExcludedFromSearchPaths; // subset of the include dirs which are not to be used as include search paths
 
 };
 

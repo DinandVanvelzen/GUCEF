@@ -72,6 +72,7 @@ enum ETaskStatus : UInt8
     TASKSTATUS_RESUMED                ,    /**< same as 'TASKSTATUS_RUNNING' except that the task had been paused during its run cycle */
     TASKSTATUS_STOPPED                ,    /**< the task has been stopped on external request instead of finishing a finite length task. this is an end state */
     TASKSTATUS_KILLED                 ,    /**< the task has been stopped on external request and is not resumable. this is an end state */
+    TASKSTATUS_CANCELLED              ,    /**< the task was cancelled on request before it finished, either before it started or while it was running. this is an end state */
     TASKSTATUS_FINISHED                    /**< the task has stopped because it finished a finite length task. this is an end state */
 };
 typedef enum ETaskStatus TTaskStatus;

@@ -31,6 +31,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_LOGGINGMACROS_H
+#include "gucefCORE_LoggingMacros.h"
+#define GUCEF_CORE_LOGGINGMACROS_H
+#endif /* GUCEF_CORE_LOGGINGMACROS_H ? */
+
 #ifndef GUCEF_CORE_CMFILEACCESS_H
 #include "CMFileAccess.h"
 #define GUCEF_CORE_CMFILEACCESS_H
@@ -983,6 +988,16 @@ CPixelMap::RelinquishPixelDataOwnership( void )
 
 /*--------------------------------------------------------------------------*/
 
+/** The alpha of a fully opaque pixel: the largest value for integer components, 1 for floating point ones */
+template < typename T >
+inline T
+OpaqueAlpha( void )
+{
+    return std::numeric_limits< T >::is_integer ? std::numeric_limits< T >::max() : (T) 1;
+}
+
+/*--------------------------------------------------------------------------*/
+
 template< typename T >
 bool
 CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
@@ -1021,7 +1036,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                     for ( UInt32 i=0; i<pixelCount; ++i )
                     {                            
                         T* orgPixelData = pixelMapData+(i*channelCount);                        
-                        T pixelData[ 4 ] = { orgPixelData[ 2 ], orgPixelData[ 1 ], orgPixelData[ 0 ], 1 }; // fully opaque
+                        T pixelData[ 4 ] = { orgPixelData[ 2 ], orgPixelData[ 1 ], orgPixelData[ 0 ], OpaqueAlpha< T >() }; // fully opaque
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );
@@ -1034,7 +1049,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                     for ( UInt32 i=0; i<pixelCount; ++i )
                     {                            
                         T* orgPixelData = pixelMapData+(i*channelCount);                        
-                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 1 ], orgPixelData[ 2 ], 1 };  // fully opaque
+                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 1 ], orgPixelData[ 2 ], OpaqueAlpha< T >() };  // fully opaque
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );
@@ -1302,7 +1317,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                     for ( UInt32 i=0; i<pixelCount; ++i )
                     {                            
                         T* orgPixelData = pixelMapData+(i*channelCount);                        
-                        T pixelData[ 4 ] = { orgPixelData[ 2 ], orgPixelData[ 1 ], orgPixelData[ 0 ], 0 }; // fully opaque
+                        T pixelData[ 4 ] = { orgPixelData[ 2 ], orgPixelData[ 1 ], orgPixelData[ 0 ], OpaqueAlpha< T >() }; // fully opaque
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );
@@ -1315,7 +1330,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                     for ( UInt32 i=0; i<pixelCount; ++i )
                     {                            
                         T* orgPixelData = pixelMapData+(i*channelCount);                        
-                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 1 ], orgPixelData[ 2 ], 0 };  // fully opaque
+                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 1 ], orgPixelData[ 2 ], OpaqueAlpha< T >() };  // fully opaque
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );
@@ -1805,7 +1820,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                     for ( UInt32 i=0; i<pixelCount; ++i )
                     {                            
                         T* orgPixelData = pixelMapData+(i*channelCount);                        
-                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 0 ], orgPixelData[ 0 ], 0 };  // fully opaque
+                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 0 ], orgPixelData[ 0 ], OpaqueAlpha< T >() };  // fully opaque
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );
@@ -1869,7 +1884,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                     for ( UInt32 i=0; i<pixelCount; ++i )
                     {                            
                         T* orgPixelData = pixelMapData+(i*channelCount);                        
-                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 0 ], orgPixelData[ 0 ], 0 };  // fully opaque
+                        T pixelData[ 4 ] = { orgPixelData[ 0 ], orgPixelData[ 0 ], orgPixelData[ 0 ], OpaqueAlpha< T >() };  // fully opaque
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );

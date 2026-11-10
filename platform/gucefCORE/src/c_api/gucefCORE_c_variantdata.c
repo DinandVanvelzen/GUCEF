@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -111,6 +109,12 @@ TypeNameForGucefTypeId( UInt8 typeId )
         case GUCEF_DATATYPE_INT64_INT32_BE_FRACTION:        return GUCEF_DATATYPE_NAME_INT64_INT32_BE_FRACTION;
         case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION:      return GUCEF_DATATYPE_NAME_UINT64_UINT32_LE_FRACTION;
         case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION:      return GUCEF_DATATYPE_NAME_UINT64_UINT32_BE_FRACTION;        
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:         return GUCEF_DATATYPE_NAME_INT64_UINT8_LE_DECIMAL;
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:         return GUCEF_DATATYPE_NAME_INT64_UINT8_BE_DECIMAL;
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:           return GUCEF_DATATYPE_NAME_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH;
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:           return GUCEF_DATATYPE_NAME_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:    return GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:    return GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH;
 
         case GUCEF_DATATYPE_MAP:                            return GUCEF_DATATYPE_NAME_MAP;
         case GUCEF_DATATYPE_ENUM:                           return GUCEF_DATATYPE_NAME_ENUM;
@@ -185,6 +189,12 @@ GucefTypeIdForTypeName( const char* typeName )
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_INT64_INT32_BE_FRACTION, typeName ) ) return GUCEF_DATATYPE_INT64_INT32_BE_FRACTION;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_UINT64_UINT32_LE_FRACTION, typeName ) ) return GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_UINT64_UINT32_BE_FRACTION, typeName ) ) return GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_INT64_UINT8_LE_DECIMAL, typeName ) ) return GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_INT64_UINT8_BE_DECIMAL, typeName ) ) return GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH, typeName ) ) return GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH, typeName ) ) return GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH, typeName ) ) return GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH, typeName ) ) return GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_MAP, typeName ) ) return GUCEF_DATATYPE_MAP;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_ENUM, typeName ) ) return GUCEF_DATATYPE_ENUM;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_SET, typeName ) ) return GUCEF_DATATYPE_SET;
@@ -245,6 +255,12 @@ GucefByteSizeOfFixedSizeType( UInt8 varType )
         case GUCEF_DATATYPE_INT64_INT32_BE_FRACTION: return sizeof( Int64 ) + sizeof( Int32 );
         case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION: return sizeof( UInt64 ) + sizeof( UInt32 );
         case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION: return sizeof( UInt64 ) + sizeof( UInt32 );
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL: return GUCEF_DECIMAL_PAYLOAD_SIZE;
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL: return GUCEF_DECIMAL_PAYLOAD_SIZE;
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return sizeof( Int32 );
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return sizeof( Int32 );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return sizeof( Int64 );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return sizeof( Int64 );
         
         case GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS: return sizeof( const void* );
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS: return sizeof( void* );

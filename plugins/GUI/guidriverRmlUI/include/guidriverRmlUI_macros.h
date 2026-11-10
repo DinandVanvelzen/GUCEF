@@ -52,7 +52,7 @@
  *      config file to control the export type.
  */
 #undef GUCEF_EXPORTSPEC
-#ifdef GUCEF_guidriverRmlUI_BUILD_MODULE
+#if defined( GUCEF_guidriverRmlUI_BUILD_MODULE ) || defined( GUCEF_GUIDRIVERRMLUI_BUILD_MODULE )
   #define GUCEF_EXPORTSPEC GUCEF_EXPORT
 #else
   #define GUCEF_EXPORTSPEC GUCEF_IMPORT

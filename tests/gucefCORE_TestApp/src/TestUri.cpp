@@ -23,6 +23,16 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CURLENCODER_H
+#include "gucefCORE_CUrlEncoder.h"
+#define GUCEF_CORE_CURLENCODER_H
+#endif /* GUCEF_CORE_CURLENCODER_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
 #ifndef GUCEF_CORE_CURI_H
 #include "gucefCORE_CUri.h"
 #define GUCEF_CORE_CURI_H
@@ -135,6 +145,70 @@ PerformUriTests( void )
         ASSERT_TRUE( uri != uri2 );
         ASSERT_TRUE( uri2 != uri3 );
         ASSERT_TRUE( uri3 != uri4 );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: URL encoding and decoding and the hex of bytes give the hex of every byte, the bytes of UTF-8 from 0x80 on included" )
+    try
+    {
+        // a byte is two upper case hex digits, whatever the sign of char is on this platform
+        char a = 0;
+        char b = 0;
+        CORE::ConvertByteToHexChars( (char) 0x00, a, b );
+        ASSERT_TRUE( '0' == a && '0' == b );
+        CORE::ConvertByteToHexChars( (char) 0x20, a, b );
+        ASSERT_TRUE( '2' == a && '0' == b );
+        CORE::ConvertByteToHexChars( (char) 0x7F, a, b );
+        ASSERT_TRUE( '7' == a && 'F' == b );
+        CORE::ConvertByteToHexChars( (char) 0x80, a, b );
+        ASSERT_TRUE( '8' == a && '0' == b );
+        CORE::ConvertByteToHexChars( (char) 0xC3, a, b );
+        ASSERT_TRUE( 'C' == a && '3' == b );
+        CORE::ConvertByteToHexChars( (char) 0xFF, a, b );
+        ASSERT_TRUE( 'F' == a && 'F' == b );
+
+        // a buffer of bytes as hex gives the same for every byte
+        const unsigned char bytes[] = { 0x00, 0x1F, 0x7F, 0x80, 0xC3, 0xFF };
+        ASSERT_TRUE( "001F7F80C3FF" == CORE::ConvertBytesToHexString( bytes, 6, false, false ) );
+        ASSERT_TRUE( "00 1F 7F 80 C3 FF " == CORE::ConvertBytesToHexString( bytes, 6, true, false ) );
+        ASSERT_TRUE( "0x00 0x1F 0x7F 0x80 0xC3 0xFF " == CORE::ConvertBytesToHexString( bytes, 6, true, true ) );
+
+        // ASCII: only the unreserved characters stay as they are
+        CORE::CString encoded;
+        CORE::CUrlEncoder::Encode( CORE::CString( "plain-text_1.0~" ), encoded );
+        ASSERT_TRUE( "plain-text_1.0~" == encoded );
+        CORE::CUrlEncoder::Encode( CORE::CString( "a b+c@d/e?f=g&h" ), encoded );
+        ASSERT_TRUE( "a%20b%2Bc%40d%2Fe%3Ff%3Dg%26h" == encoded );
+
+        // UTF-8: every byte of a code point is a %XX
+        CORE::CUrlEncoder::Encode( CORE::CString( "j\xC3\xBCrgen+test" ), encoded );
+        ASSERT_TRUE( "j%C3%BCrgen%2Btest" == encoded );
+        CORE::CUrlEncoder::Encode( CORE::CString( "\xE2\x82\xAC 100%" ), encoded );
+        ASSERT_TRUE( "%E2%82%AC%20100%25" == encoded );
+        CORE::CUrlEncoder::Encode( CORE::CString( "\xF0\x9F\x98\x80" ), encoded );
+        ASSERT_TRUE( "%F0%9F%98%80" == encoded );
+
+        // and back: what was encoded is what is decoded, for ASCII and for the bytes of every length of UTF-8
+        CORE::CUtf8String decoded;
+        ASSERT_TRUE( CORE::CUrlEncoder::DecodeFromAscii( CORE::CAsciiString( "a%20b%2Bc%40d%2Fe%3Ff%3Dg%26h" ), decoded ) );
+        ASSERT_TRUE( "a b+c@d/e?f=g&h" == decoded );
+        decoded.Clear();
+        ASSERT_TRUE( CORE::CUrlEncoder::DecodeFromAscii( CORE::CAsciiString( "j%C3%BCrgen%2Btest%e2%82%AC-%F0%9F%98%80" ), decoded ) );
+        ASSERT_TRUE( "j\xC3\xBCrgen+test\xE2\x82\xAC-\xF0\x9F\x98\x80" == decoded );
+        decoded.Clear();
+        ASSERT_TRUE( CORE::CUrlEncoder::DecodeFromAscii( CORE::CAsciiString( "" ), decoded ) && decoded.IsNULLOrEmpty() );
+
+        // an escape that is cut off, has no hex digits, or is the start of a code point that is not finished is refused
+        const char* malformed[] = { "%", "a%", "a%4", "%zz", "%4g", "%C3", "%C3x", "%C3%", "%E2%82", "%F0%9F%98" };
+        for ( size_t i=0; i<sizeof( malformed ) / sizeof( malformed[ 0 ] ); ++i )
+        {
+            decoded.Clear();
+            ASSERT_FALSE( CORE::CUrlEncoder::DecodeFromAscii( CORE::CAsciiString( malformed[ i ] ), decoded ) );
+        }
     }
     catch( ... )
     {

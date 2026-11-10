@@ -29,19 +29,13 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
   $(MY_MODULE_PATH)/../../../dependencies/curl/include \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/include/curl \
   $(MY_MODULE_PATH)/../../../dependencies/curl/lib \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vauth \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vquic \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vssh \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vtls \
   $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DCOMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL
+LOCAL_CFLAGS := -DCOMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL -DMODULE_CONSENSUS_NAME=comcorepluginGEOOSM -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=comcorepluginGEOOSM
 
 
 LOCAL_SHARED_LIBRARIES := \

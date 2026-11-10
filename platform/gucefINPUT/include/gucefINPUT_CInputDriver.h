@@ -129,6 +129,18 @@ class GUCEF_INPUT_PUBLIC_CPP CInputDriver
                                   const KeyCode keyCode   ,
                                   const bool keyPressed   );
 
+    /** A variable of a mouse changed, see CMouse::EMouseVariable (the wheel: 'valueDelta' notches, up is positive) */
+    void InjectMouseVariableChange( const Int32 contextId     ,
+                                    const Int32 deviceIndex   ,
+                                    const UInt32 variableIndex ,
+                                    const Int32 value         ,
+                                    const Int32 valueDelta    );
+
+    /** Text typed on a keyboard, UTF-8 */
+    void InjectKeyboardText( const Int32 contextId   ,
+                             const Int32 deviceIndex ,
+                             const CString& utf8Text );
+
     void AddMouse( const Int32 deviceID );
     
     void RemoveMouse( const Int32 deviceID );

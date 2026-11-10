@@ -75,6 +75,7 @@ CArchiveSettings::CArchiveSettings( void )
     , m_writeableRequested( false )
     , m_readableRequested( true )
     , m_directoryWatchingAbilityRequested( false )
+    , m_parentArchiveName()
     , m_archiveSpecificSettings()
 {GUCEF_TRACE;
 
@@ -97,6 +98,7 @@ CArchiveSettings::CArchiveSettings( const CArchiveSettings& src )
     , m_writeableRequested( src.m_writeableRequested )
     , m_readableRequested( src.m_readableRequested )
     , m_directoryWatchingAbilityRequested( src.m_directoryWatchingAbilityRequested )
+    , m_parentArchiveName( src.m_parentArchiveName )
     , m_archiveSpecificSettings( src.m_archiveSpecificSettings )
 {GUCEF_TRACE;
 
@@ -130,6 +132,7 @@ CArchiveSettings::operator=( const CArchiveSettings& src )
         m_writeableRequested = src.m_writeableRequested;
         m_readableRequested = src.m_readableRequested;
         m_directoryWatchingAbilityRequested = src.m_directoryWatchingAbilityRequested;
+        m_parentArchiveName = src.m_parentArchiveName;
         m_archiveSpecificSettings = src.m_archiveSpecificSettings;
     }
     return *this;
@@ -365,6 +368,24 @@ CArchiveSettings::GetDirectoryWatchingAbilityRequested( void ) const
 {GUCEF_TRACE;
     
     return m_directoryWatchingAbilityRequested;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CArchiveSettings::SetParentArchiveName( const CORE::CString& parentArchiveName )
+{GUCEF_TRACE;
+
+    m_parentArchiveName = parentArchiveName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CArchiveSettings::GetParentArchiveName( void ) const
+{GUCEF_TRACE;
+
+    return m_parentArchiveName;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -140,10 +140,18 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CServerList : public CORE::CObservingNotifier
     
     private:
     typedef std::vector< COMCORE::CPing* > TPingers;
-    
+
+    /** Gives a pinger that is free the next server to ping; false when there is none left */
+    bool StartNextPing( COMCORE::CPing& ping );
+
+    void ReleasePingUserData( COMCORE::CPing& ping );
+
+    void DestroyPingers( UInt32 firstIndex );
+
     TServerInfoList m_serverList;
     TServerInfoList m_toBePingedList;
-    TPingers m_pingers;    
+    TPingers m_pingers;
+    UInt32 m_activePings;
 };
 
 /*-------------------------------------------------------------------------//

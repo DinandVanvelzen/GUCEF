@@ -62,7 +62,6 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/event \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/json \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/logging \
-  $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/logging/android \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/memory \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/memory/stl \
   $(MY_MODULE_PATH)/../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/ratelimiter \
@@ -87,20 +86,14 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/crt/aws-checksums/include \
   $(MY_MODULE_PATH)/../../../dependencies/aws-crt-cpp/include \
   $(MY_MODULE_PATH)/../../../dependencies/curl/include \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/include/curl \
   $(MY_MODULE_PATH)/../../../dependencies/curl/lib \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vauth \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vquic \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vssh \
-  $(MY_MODULE_PATH)/../../../dependencies/curl/lib/vtls \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../SHARED/pluginglueAWSSDK/include
 
-LOCAL_CFLAGS := -DGUCEF_VFSPLUGIN_AWSS3_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_VFSPLUGIN_AWSS3_BUILD_MODULE -DMODULE_CONSENSUS_NAME=vfspluginAWSS3 -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=vfspluginAWSS3
 
 
 LOCAL_SHARED_LIBRARIES := \

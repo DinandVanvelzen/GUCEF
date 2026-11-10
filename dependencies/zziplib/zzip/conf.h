@@ -241,6 +241,9 @@
 #  if !defined _zzip_export && defined __GNUC__
 #    if defined __declspec
 #      define _zzip_export extern __declspec(dllexport)
+#    elif __GNUC__ >= 4
+       /* DV edit: GUCEF builds use -fvisibility=hidden with GCC/Clang, as such exports must be explicitly marked */
+#      define _zzip_export extern __attribute__ ((visibility("default")))
 #    else
 #      define _zzip_export extern
 #    endif

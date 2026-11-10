@@ -12,15 +12,29 @@
 
 workspace( "GUCEF_exe_gucefCOMCORE_TestApp" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "ANDROID"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
@@ -63,6 +77,20 @@ filter "ANDROID64"
   include( "tests/gucefCOMCORE_TestApp" )
 
 filter "ARDUINO"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "EMSCRIPTEN"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )
@@ -120,6 +148,48 @@ filter "IOS"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "tests/gucefCOMCORE_TestApp" )
 
+filter "IPHONE"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "IPHONEOS"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "LINUX"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
 filter "LINUX32"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
@@ -141,6 +211,62 @@ filter "LINUX64"
   include( "dependencies/libparsifal" )
   include( "dependencies/stbrumme-hash-library" )
   include( "dependencies/zlib" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "MAC"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "MACOS"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "MACOSX"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )
+
+filter "MSWIN"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -195,3 +321,17 @@ filter "WIN64"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "tests/gucefCOMCORE_TestApp" )
   include( "tools/MemoryLeakFinder" )
+
+filter "WINDOWS"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "dependencies/stbrumme-hash-library" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/codecspluginSTBRUMMEHASH" )
+  include( "plugins/CORE/codecspluginZLIB" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefCOMCORE_TestApp" )

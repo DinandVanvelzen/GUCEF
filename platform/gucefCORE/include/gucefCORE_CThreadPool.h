@@ -627,6 +627,21 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
 
     void RemoveDelegator( CNotifier* notifier );
 
+    /**
+     *  Releases the delegators which RemoveDelegator() retired, and the delegators whose thread ended but whose
+     *  ThreadFinishedEvent or ThreadKilledEvent did not reach this pool yet: a delegator references this pool, kept
+     *  it would keep this pool alive
+     *  A retired delegator can hold the last reference to this pool, the caller must hold its own reference
+     *  for the duration of the call so this pool cannot be destroyed from within its own member functions
+     */
+    void ReleaseRetiredDelegators( void );
+
+    /**
+     *  Releases the consumers of the given type kept for reuse
+     *  A consumer is destroyed through the factory which made it, it must be gone before that factory is
+     */
+    void ReleaseFreeTaskConsumers( const CString& taskType );
+
     TTaskDelegatorBasicPtr GetDelegatorForThreadId( const UInt32 threadId ) const;
 
     void SubscribeToTaskConsumerEvents( CTaskConsumerPtr& taskConsumer );
@@ -663,6 +678,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     TStringToTaskConsumerSetMap m_freeTaskConsumers;
     TTaskDelegatorSet m_taskDedicatedDelegators;
     TTaskDelegatorSet m_taskGenericDelegators;    
+    TTaskDelegatorSet m_retiredDelegators;          /**< delegators whose threads ended, see ReleaseRetiredDelegators() */
     bool m_acceptNewWork;
     bool m_allowAppThreadToWork;
 };

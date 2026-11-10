@@ -83,9 +83,10 @@ CXWinGLWindowManagerImp::CreateWindowContext( const GUI::CString& title         
                                               const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
-    TXWinGLWindowContextPtr windowContext = new CXWinGLWindowContext();
+    TXWinGLWindowContextPtr windowContext( new CXWinGLWindowContext() );
     if ( windowContext->Initialize( title    ,
-                                    settings ) )
+                                    settings ,
+                                    params   ) )
     {
         return windowContext;
     }
@@ -131,7 +132,10 @@ CXWinGLWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowConte
                                              const GUI::CVideoSettings& settings   )
 {GUCEF_TRACE;
 
-    return false;
+    CXWinGLWindowContext* glContext = static_cast< CXWinGLWindowContext* >( windowContext.GetPointerAlways() );
+    if ( NULL == glContext )
+        return false;
+    return glContext->ApplyVideoSettings( settings );
 }
 
 /*-------------------------------------------------------------------------//

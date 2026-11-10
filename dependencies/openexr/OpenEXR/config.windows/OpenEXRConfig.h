@@ -39,7 +39,12 @@
 // Define if we can use sysconf(_SC_NPROCESSORS_ONLN) to get CPU count
 //
 
+#if !defined(_MSC_VER) && !defined(__MINGW32__)
+// DV edit: POSIX systems can tell the number of processors
+#define OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN 1
+#else
 #undef OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN
+#endif
 
 //
 // Current internal library namepace name

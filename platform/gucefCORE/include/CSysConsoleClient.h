@@ -103,7 +103,19 @@ class GUCEF_CORE_PUBLIC_CPP CSysConsoleClient
 
     TStringVector GetCmdList( void ) const;
 
+    /** Names that start with what was typed: aliases, commands anywhere by name and the dirs of the current dir */
+    TStringVector GetCompletions( const CString& partialName ) const;
+
     virtual void OnReturnData( const TStringVector& data );
+
+    public:
+
+    /**
+     *  Splits a line as typed into its words: separated by white space, "double quotes" keep spaces in a word,
+     *  within quotes \" is a quote and \\ a backslash. False when a quote is not closed
+     */
+    static bool SplitCommandLine( const CString& userInput ,
+                                  TStringVector& words     );
 
     private:
     friend class CSysConsole;

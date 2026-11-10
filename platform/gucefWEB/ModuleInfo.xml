@@ -30,4 +30,9 @@
             <Define String="GUCEF_WEB_BUILD_MODULE" />
         </Preprocessor>
     </Module>
+    <Module Platform="mswin">
+        <Linker>
+            <Dependency Name="winhttp.lib" Scope="private" />
+        </Linker>
+    </Module>
 </ModuleInfoEntry>

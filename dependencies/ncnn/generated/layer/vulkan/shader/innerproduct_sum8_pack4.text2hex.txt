@@ -1,0 +1,47 @@
+#version 450
+#define shape_constant_id_offset 0
+layout(constant_id = shape_constant_id_offset + 0) const int w = 0;
+layout(constant_id = shape_constant_id_offset + 1) const int outw = 0;
+layout(constant_id = shape_constant_id_offset + 2) const int outh = 0;
+layout(binding = 0) readonly buffer bottom_blob { sfpvec4 bottom_blob_data[]; };
+layout(binding = 1) writeonly buffer top_blob { sfpvec4 top_blob_data[]; };
+#if NCNN_fp16_packed || (NCNN_fp16_storage && !NCNN_fp16_arithmetic) || NCNN_bf16_packed || NCNN_bf16_storage
+layout(binding = 2) readonly buffer weight_blob { sfpvec4 weight_data[]; };
+#else
+layout(binding = 2) readonly buffer weight_blob { sfpmat4 weight_data[]; };
+#endif
+layout(push_constant) uniform parameter
+{
+int w;
+int outw;
+int outh;
+} p;
+void main()
+{
+int gx = int(gl_GlobalInvocationID.x);
+int gy = int(gl_GlobalInvocationID.y);
+int gz = int(gl_GlobalInvocationID.z);
+if (gx >= psc(outw) || gy >= psc(outh) || gz >= 1)
+return;
+const int start = gx * 8;
+const int end = min(gx * 8 + 8, psc(w));
+afpvec4 sum = afpvec4(0.f);
+int w_offset = gy * psc(w) + start;
+for (int i = start; i < end; i++)
+{
+afpvec4 v = buffer_ld4(bottom_blob_data, i);
+#if NCNN_fp16_packed || (NCNN_fp16_storage && !NCNN_fp16_arithmetic) || NCNN_bf16_packed || NCNN_bf16_storage
+afpmat4 k = afpmat4(
+buffer_ld4(weight_data, w_offset * 4 + 0),
+buffer_ld4(weight_data, w_offset * 4 + 1),
+buffer_ld4(weight_data, w_offset * 4 + 2),
+buffer_ld4(weight_data, w_offset * 4 + 3));
+#else
+afpmat4 k = afpmat4(weight_data[w_offset]);
+#endif
+sum += v * k;
+w_offset += 1;
+}
+const int gi = gy * psc(outw) + gx;
+buffer_st4(top_blob_data, gi, sum);
+}

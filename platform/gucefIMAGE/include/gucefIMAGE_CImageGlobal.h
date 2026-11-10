@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CCODECREGISTRY_H
+#include "CCodecRegistry.h"
+#define GUCEF_CORE_CCODECREGISTRY_H
+#endif /* GUCEF_CORE_CCODECREGISTRY_H ? */
+
 #ifndef GUCEF_IMAGE_MACROS_H
 #include "gucefIMAGE_macros.h"
 #define GUCEF_IMAGE_MACROS_H
@@ -47,6 +52,8 @@ namespace IMAGE {
 
 class CImageCodecPluginManager;
 class CImageCodecRegistry;
+class CImageUpscalerRegistry;
+class CMmpxImageUpscaler;
 
 /*-------------------------------------------------------------------------*/
 
@@ -62,6 +69,9 @@ class GUCEF_IMAGE_EXPORT_CPP CImageGlobal
     CImageCodecPluginManager& GetImageCodecPluginManager( void );
 
     CImageCodecRegistry& GetImageCodecRegistry( void );
+
+    /** The image upscalers: "mmpx" built in, others from plugins */
+    CImageUpscalerRegistry& GetImageUpscalerRegistry( void );
 
     private:
     friend class CModule;
@@ -80,6 +90,9 @@ class GUCEF_IMAGE_EXPORT_CPP CImageGlobal
 
     CImageCodecPluginManager* m_imageCodecPluginManager;
     CImageCodecRegistry* m_imageCodecRegistry;
+    CImageUpscalerRegistry* m_imageUpscalerRegistry;
+    CMmpxImageUpscaler* m_mmpxUpscaler;
+    CORE::CCodecRegistry::TICodecPtr m_pngCodec;    /**< the built-in "png" codec, registered in the codec registry of gucefCORE */
     
     static CImageGlobal* g_instance;
 };

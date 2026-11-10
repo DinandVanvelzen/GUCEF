@@ -126,8 +126,12 @@ class GUCEF_CORE_PUBLIC_CPP CMultiLogger : public CILogger
 
     UInt32 GetLoggerCount( void ) const;
 
+    /** Whether a message of the type and level is passed on to the loggers */
     bool IsLoggingEnabled( const TLogMsgType logMsgType ,
                            const Int32 logLevel         ) const;
+
+    /** Whether messages of a type are passed on */
+    bool IsLogMsgTypeEnabled( const TLogMsgType logMsgType ) const;
 
     private:
 

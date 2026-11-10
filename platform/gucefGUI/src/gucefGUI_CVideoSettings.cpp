@@ -28,11 +28,12 @@
 #define GUCEF_CORE_ESSENTIALS_H
 #endif /* GUCEF_CORE_ESSENTIALS_H ? */
 
-#include "gucefGUI_CVideoSettings.h"
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
-#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-#include <windows.h>
-#endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
+#include "gucefGUI_CVideoSettings.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,12 +50,24 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+const CString CVideoSettings::ConfigSectionName = "VideoSettings";
+const CString CVideoSettings::MovieUpscalingFilter = "filter";
+const CString CVideoSettings::MovieUpscalingConverted = "converted";
+
+/*-------------------------------------------------------------------------*/
+
 CVideoSettings::CVideoSettings( void )
-    : CIConfigurable()          ,
-      m_isFullscreen( false )   ,
-      m_hasVSync( false )       ,
-      m_antiAliasingFactor( 0 ) ,
-      m_displayMode()
+    : CIConfigurable()                     ,
+      m_isFullscreen( false )              ,
+      m_hasVSync( false )                  ,
+      m_antiAliasingFactor( 0 )            ,
+      m_displayMode()                      ,
+      m_presentMode( PRESENTMODE_NEAREST ) ,
+      m_presentFilter()                    ,
+      m_presentFilterParameters()          ,
+      m_imageUpscaler()                    ,
+      m_movieUpscaling()                   ,
+      m_renderScale( 1 )
 {GUCEF_TRACE;
 
     m_displayMode.depthInBits = 32;
@@ -70,7 +83,13 @@ CVideoSettings::CVideoSettings( const CVideoSettings& src )
       m_isFullscreen( src.m_isFullscreen )             ,
       m_hasVSync( src.m_hasVSync )                     ,
       m_antiAliasingFactor( src.m_antiAliasingFactor ) ,
-      m_displayMode( src.m_displayMode )
+      m_displayMode( src.m_displayMode )               ,
+      m_presentMode( src.m_presentMode )               ,
+      m_presentFilter( src.m_presentFilter )           ,
+      m_presentFilterParameters( src.m_presentFilterParameters ) ,
+      m_imageUpscaler( src.m_imageUpscaler )           ,
+      m_movieUpscaling( src.m_movieUpscaling )         ,
+      m_renderScale( src.m_renderScale )
 {GUCEF_TRACE;
 
 }
@@ -94,6 +113,12 @@ CVideoSettings::operator=( const CVideoSettings& src )
         m_hasVSync = src.m_hasVSync;
         m_antiAliasingFactor = src.m_antiAliasingFactor;
         m_displayMode = src.m_displayMode;
+        m_presentMode = src.m_presentMode;
+        m_presentFilter = src.m_presentFilter;
+        m_presentFilterParameters = src.m_presentFilterParameters;
+        m_imageUpscaler = src.m_imageUpscaler;
+        m_movieUpscaling = src.m_movieUpscaling;
+        m_renderScale = src.m_renderScale;
     }
     return *this;
 }
@@ -206,7 +231,7 @@ CVideoSettings::SetResolution( const UInt32 widthInPixels  ,
 void
 CVideoSettings::GetResolution( UInt32& widthInPixels  ,
                                UInt32& heightInPixels ,
-                               UInt32& depthInPixels  )
+                               UInt32& depthInPixels  ) const
 {GUCEF_TRACE;
 
     widthInPixels = m_displayMode.widthInPixels;
@@ -252,20 +277,220 @@ CVideoSettings::GetFrequency( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CVideoSettings::SetPresentMode( TPresentMode presentMode )
+{GUCEF_TRACE;
+
+    m_presentMode = presentMode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TPresentMode
+CVideoSettings::GetPresentMode( void ) const
+{GUCEF_TRACE;
+
+    return m_presentMode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettings::SetPresentFilter( const CString& filterName )
+{GUCEF_TRACE;
+
+    m_presentFilter = filterName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CVideoSettings::GetPresentFilter( void ) const
+{GUCEF_TRACE;
+
+    return m_presentFilter;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettings::SetPresentFilterParameters( const TParameterMap& parameters )
+{GUCEF_TRACE;
+
+    m_presentFilterParameters = parameters;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CVideoSettings::TParameterMap&
+CVideoSettings::GetPresentFilterParameters( void ) const
+{GUCEF_TRACE;
+
+    return m_presentFilterParameters;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettings::SetImageUpscaler( const CString& upscalerName )
+{GUCEF_TRACE;
+
+    m_imageUpscaler = upscalerName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CVideoSettings::GetImageUpscaler( void ) const
+{GUCEF_TRACE;
+
+    return m_imageUpscaler;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettings::SetMovieUpscaling( const CString& movieUpscaling )
+{GUCEF_TRACE;
+
+    m_movieUpscaling = movieUpscaling;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CVideoSettings::GetMovieUpscaling( void ) const
+{GUCEF_TRACE;
+
+    return m_movieUpscaling;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoSettings::SetRenderScale( UInt32 renderScale )
+{GUCEF_TRACE;
+
+    m_renderScale = renderScale;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CVideoSettings::GetRenderScale( void ) const
+{GUCEF_TRACE;
+
+    return m_renderScale;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CVideoSettings::PresentModeToString( TPresentMode presentMode )
+{GUCEF_TRACE;
+
+    switch ( presentMode )
+    {
+        case PRESENTMODE_LINEAR: return "linear";
+        case PRESENTMODE_INTEGER: return "integer";
+        case PRESENTMODE_STRETCH: return "stretch";
+        case PRESENTMODE_NEAREST:
+        default: return "nearest";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+TPresentMode
+CVideoSettings::StringToPresentMode( const CString& presentModeStr, TPresentMode defaultMode )
+{GUCEF_TRACE;
+
+    CString mode = presentModeStr.Lowercase();
+    if ( "nearest" == mode )
+        return PRESENTMODE_NEAREST;
+    if ( "linear" == mode )
+        return PRESENTMODE_LINEAR;
+    if ( "integer" == mode )
+        return PRESENTMODE_INTEGER;
+    if ( "stretch" == mode )
+        return PRESENTMODE_STRETCH;
+    return defaultMode;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CVideoSettings::SaveConfig( GUCEF::CORE::CDataNode& tree ) const
 {GUCEF_TRACE;
 
-    return false;
+    CORE::CDataNode* section = tree.Structure( ConfigSectionName, '/' );
+    if ( GUCEF_NULL == section )
+        return false;
+
+    section->SetAttribute( "fullscreen", m_isFullscreen );
+    section->SetAttribute( "vsync", m_hasVSync );
+    section->SetAttribute( "width", m_displayMode.widthInPixels );
+    section->SetAttribute( "height", m_displayMode.heightInPixels );
+    section->SetAttribute( "depth", m_displayMode.depthInBits );
+    section->SetAttribute( "frequency", m_displayMode.frequency );
+    section->SetAttribute( "antiAliasing", m_antiAliasingFactor );
+    section->SetAttribute( "presentMode", PresentModeToString( m_presentMode ) );
+    section->SetAttribute( "presentFilter", m_presentFilter );
+    section->SetAttribute( "imageUpscaler", m_imageUpscaler );
+    section->SetAttribute( "movieUpscaling", m_movieUpscaling );
+    section->SetAttribute( "renderScale", m_renderScale );
+
+    section->DelChild( "PresentFilterParameters" );
+    if ( !m_presentFilterParameters.empty() )
+    {
+        CORE::CDataNode* parameters = section->AddChild( "PresentFilterParameters" );
+        TParameterMap::const_iterator i = m_presentFilterParameters.begin();
+        while ( i != m_presentFilterParameters.end() )
+        {
+            parameters->SetAttribute( (*i).first, (*i).second );
+            ++i;
+        }
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
-                                                                   
+
 bool
 CVideoSettings::LoadConfig( const GUCEF::CORE::CDataNode& treeroot )
 {GUCEF_TRACE;
 
-    return false;
+    const CORE::CDataNode* section = &treeroot;
+    if ( treeroot.GetName() != ConfigSectionName )
+        section = treeroot.FindChild( ConfigSectionName );
+    if ( GUCEF_NULL == section )
+        return false;
+
+    m_isFullscreen = section->GetAttributeValueOrChildValueByName( "fullscreen" ).AsBool( m_isFullscreen, true );
+    m_hasVSync = section->GetAttributeValueOrChildValueByName( "vsync" ).AsBool( m_hasVSync, true );
+    m_displayMode.widthInPixels = section->GetAttributeValueOrChildValueByName( "width" ).AsUInt32( m_displayMode.widthInPixels, true );
+    m_displayMode.heightInPixels = section->GetAttributeValueOrChildValueByName( "height" ).AsUInt32( m_displayMode.heightInPixels, true );
+    m_displayMode.depthInBits = section->GetAttributeValueOrChildValueByName( "depth" ).AsUInt32( m_displayMode.depthInBits, true );
+    m_displayMode.frequency = section->GetAttributeValueOrChildValueByName( "frequency" ).AsUInt32( m_displayMode.frequency, true );
+    m_antiAliasingFactor = section->GetAttributeValueOrChildValueByName( "antiAliasing" ).AsUInt32( m_antiAliasingFactor, true );
+    m_presentMode = StringToPresentMode( section->GetAttributeValueOrChildValueByName( "presentMode" ).AsString( CString::Empty, true ), m_presentMode );
+    m_presentFilter = section->GetAttributeValueOrChildValueByName( "presentFilter" ).AsString( m_presentFilter, true );
+    m_imageUpscaler = section->GetAttributeValueOrChildValueByName( "imageUpscaler" ).AsString( m_imageUpscaler, true );
+    m_movieUpscaling = section->GetAttributeValueOrChildValueByName( "movieUpscaling" ).AsString( m_movieUpscaling, true );
+    m_renderScale = section->GetAttributeValueOrChildValueByName( "renderScale" ).AsUInt32( m_renderScale, true );
+
+    const CORE::CDataNode* parameters = section->FindChild( "PresentFilterParameters" );
+    if ( GUCEF_NULL != parameters )
+    {
+        m_presentFilterParameters.clear();
+        for ( UInt32 i=0; i<parameters->GetAttCount(); ++i )
+        {
+            const CORE::CDataNode::TKeyValuePair* parameter = parameters->GetAttribute( i );
+            if ( GUCEF_NULL != parameter )
+                m_presentFilterParameters[ parameter->first ] = parameter->second.AsString();
+        }
+    }
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -292,32 +517,11 @@ bool
 CVideoSettings::RetrieveSettingsFromOS( CVideoSettings& settings )
 {GUCEF_TRACE;
 
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    
-    DEVMODE displayMode;
-    memset( &displayMode, 0, sizeof( DEVMODE ) );
-    displayMode.dmSize = sizeof( DEVMODE );
     TDisplayMode currentMode;
-    
-    if ( TRUE == EnumDisplaySettings( NULL                  ,
-                                      ENUM_CURRENT_SETTINGS ,
-                                      &displayMode          ) )
-    {
-        currentMode.widthInPixels = displayMode.dmPelsWidth; 
-        currentMode.heightInPixels = displayMode.dmPelsHeight;
-        currentMode.depthInBits = displayMode.dmBitsPerPel;
-        currentMode.frequency = displayMode.dmDisplayFrequency;
-        settings.SetDisplayMode( currentMode );
-        
-        return true;
-    }     
-    return false;
-    
-    #else
-    
-    return false;
-    
-    #endif
+    if ( !CVideoOptions::RetrieveCurrentDisplayModeFromOS( currentMode ) )
+        return false;
+    settings.SetDisplayMode( currentMode );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -2,6 +2,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefWEB_TestApp" Platform="All" Type="Executable" Tags="test" >
 		<Dependencies>
+			<Dependency Name="gucefTestHeaders" />
 			<Dependency Name="gucefWEB" />
 			<Dependency Name="gucefCOM" />
 			<Dependency Name="gucefCOMCORE" />
@@ -24,6 +25,7 @@
 			<RuntimeDependency Name="dstorepluginYAML" />
 			<RuntimeDependency Name="codecspluginZLIB" />
 			<RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
+			<RuntimeDependency Name="httpclientpluginCURL" />
 		</RuntimeDependencies>
     </Module>
 	<Module Platform="mswin" >

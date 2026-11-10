@@ -1,0 +1,31 @@
+<ModuleInfoEntry>
+    <Module Name="audiocodecpluginFLAC" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO codec plugin for FLAC audio</DescriptionHeadline>
+            <DescriptionDetails>Reads and writes FLAC files. Decoding is done by dr_flac, sample exact seeking included, with 16 bit samples for up to 16 bits per sample and left justified 32 bit samples for more, so lossless audio stays exact. Writing is done by a small encoder in the plugin (fixed predictors with Rice coding, STREAMINFO with MD5). Written in C against the gucefAUDIO codec plugin C interface.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="dr_libs" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIOCODECPLUGIN_FLAC_BUILD_MODULE" />
+        </Preprocessor>
+        <!-- the decoder runs optimised in debug builds too: unoptimised it is many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

@@ -46,36 +46,54 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  A number the user steps up or down: a click on the right part (the right quarter) adds Step, on the
+ *  left part subtracts it; the wheel and Up / Down do the same. Properties: Value, Min, Max, Step,
+ *  Decimals, Font, TextColour, BackgroundColour.
+ */
 class GUCEF_GUI_PUBLIC_CPP CSpinner : public CWidget
 {
     public:
 
-    static const CORE::CEvent ValueChangedEvent;
-    
-    static void RegisterEvents( void );
-    
-    public:
-    
     CSpinner( void );
-    
+
     virtual ~CSpinner();
-    
+
     virtual bool SetValueUInt32( const UInt32 value );
-    
+
     virtual bool SetValueInt32( const Int32 value );
-    
+
     virtual bool SetValueFloat32( const Float32 value );
-    
+
     virtual UInt32 GetValueUInt32( void ) const;
-    
+
     virtual Int32 GetValueInt32( void ) const;
-    
+
     virtual Float32 GetValueFloat32( void ) const;
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
+    /** Adds 'steps' times Step, clamped to Min and Max, as the user would */
+    bool StepValue( Int32 steps );
+
+    /** The value as shown, with Decimals digits after the point */
+    CString GetValueText( void ) const;
+
+    virtual bool GetNaturalSize( Int32& width, Int32& height ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Spinner"; }
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
+    Float32 Clamp( Float32 value ) const;
+
     CSpinner( const CSpinner& src );
     CSpinner& operator=( const CSpinner& src );
 };
@@ -90,16 +108,5 @@ class GUCEF_GUI_PUBLIC_CPP CSpinner : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CSPINNER_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

@@ -1,0 +1,10 @@
+common/include/*
+common/test/include/*
+platform/gucefAUDIO/*
+platform/gucefCORE/*
+platform/gucefMT/*
+plugins/AUDIO/audiocodecpluginAU/*
+plugins/AUDIO/audiocodecpluginFLAC/*
+plugins/AUDIO/audiocodecpluginMP3/*
+tests/gucefAUDIO_TestApp/*
+tests/gucefAUDIO_TestCodecPlugin/*

@@ -40,6 +40,18 @@
 
 
 //================================
+// DV edit: what the Microsoft compiler provides and the JXR code expects
+//================================
+#include <wchar.h>
+#include <string.h>
+#include <stdlib.h>
+#ifndef _BIG__ENDIAN_
+// implemented in strcodec.c for the platforms that do not have it as a compiler intrinsic
+unsigned int _byteswap_ulong( unsigned int bits );
+#endif
+
+
+//================================
 // common defines
 //================================
 #define FORCE_INLINE

@@ -34,6 +34,9 @@
 void
 PerformVariantTests( void );
 
+void
+PerformVariantViewTests( void );
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_TESTAPP_TESTVARIANT_H ? */

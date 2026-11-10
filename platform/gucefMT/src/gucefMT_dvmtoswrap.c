@@ -50,6 +50,8 @@
   #include <pthread.h>
   #include <signal.h>
   #include <sys/time.h>
+  #include <time.h>
+  #include <errno.h>
 
 #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
@@ -87,6 +89,9 @@ struct SThreadData
     void* data;
     pid_t threadId;
     pthread_cond_t exitSignal;
+    pthread_mutex_t startMutex;     /* guards 'started', the hand shake between ThreadCreate() and the new thread */
+    pthread_cond_t startSignal;
+    int started;                    /* set by the new thread once threadId and threadStatus are valid */
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
@@ -131,7 +136,11 @@ ThreadDelay( UInt32 delay )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     Sleep( delay );
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-    sleep( delay );
+    /* note that sleep() takes seconds while delay is in milliseconds */
+    struct timespec remaining;
+    remaining.tv_sec = (time_t) ( delay / 1000 );
+    remaining.tv_nsec = (long) ( ( delay % 1000 ) * 1000000 );
+    while ( 0 != nanosleep( &remaining, &remaining ) && EINTR == errno ) {}
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
     usleep( delay * 1000 ); // usleep expects microseconds
     #endif
@@ -165,8 +174,18 @@ ThreadMain( void* tdvptr )
 
     GUCEF_BEGIN;
     TThreadData* td = (TThreadData*) tdvptr;
+
+    /*
+     *  Publish the thread id and status to the thread that is in ThreadCreate(): it waits for this before it returns,
+     *  so ThreadID() is valid for every caller from the moment ThreadCreate() has returned, without a data race.
+     */
+    pthread_mutex_lock( &td->startMutex );
     td->threadStatus = THREADSTATUS_RUNNING;
     td->threadId = gettid();
+    td->started = 1;
+    pthread_cond_signal( &td->startSignal );
+    pthread_mutex_unlock( &td->startMutex );
+
     td->returnValue = td->func( td->data );
     pthread_cond_signal( &td->exitSignal );
     GUCEF_END;
@@ -214,6 +233,8 @@ ThreadDataReserve( void )
     {
         memset( td, 0, sizeof(TThreadData) );
         pthread_cond_init( &td->exitSignal, GUCEF_NULL );
+        pthread_mutex_init( &td->startMutex, GUCEF_NULL );
+        pthread_cond_init( &td->startSignal, GUCEF_NULL );
         td->threadStatus = THREADSTATUS_UNDEFINED;
     }
     return td;
@@ -249,6 +270,10 @@ ThreadDataCleanup( struct SThreadData* td )
         #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
         pthread_cond_destroy( &td->exitSignal );
         #endif
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        pthread_cond_destroy( &td->startSignal );
+        pthread_mutex_destroy( &td->startMutex );
+        #endif
 
         free( td );
     }
@@ -272,10 +297,18 @@ ThreadCreate( struct SThreadData* td ,
                                      0                                   ,  /* initial stack size */
                                      (LPTHREAD_START_ROUTINE) ThreadMain ,  /* thread function */
                                      (LPVOID) td                         ,  /* thread argument */
-                                     0                                   ,  /* creation option */
+                                     CREATE_SUSPENDED                    ,  /* creation option: the thread id is stored before the thread runs */
                                      &td->threadid                       ); /* thread identifier */
     if ( td->threadhandle == NULL )
     {
+        td->threadStatus = THREADSTATUS_CREATION_FAILED;
+        return 0;
+    }
+    if ( (DWORD) -1 == ResumeThread( td->threadhandle ) )
+    {
+        TerminateThread( td->threadhandle, 1 );
+        CloseHandle( td->threadhandle );
+        td->threadhandle = NULL;
         td->threadStatus = THREADSTATUS_CREATION_FAILED;
         return 0;
     }
@@ -284,7 +317,14 @@ ThreadCreate( struct SThreadData* td ,
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     int retVal = 0;
+    /* the primitives were initialized by ThreadDataReserve(), the memset resets them so they are made again */
+    pthread_cond_destroy( &td->exitSignal );
+    pthread_cond_destroy( &td->startSignal );
+    pthread_mutex_destroy( &td->startMutex );
     memset( td, 0, sizeof( TThreadData ) );
+    pthread_cond_init( &td->exitSignal, GUCEF_NULL );
+    pthread_mutex_init( &td->startMutex, GUCEF_NULL );
+    pthread_cond_init( &td->startSignal, GUCEF_NULL );
 
     retVal = pthread_attr_init( &td->attr );
     if ( 0 != retVal )
@@ -306,6 +346,16 @@ ThreadCreate( struct SThreadData* td ,
         td->threadStatus = THREADSTATUS_CREATION_FAILED;
         return 0;
     }
+
+    /*
+     *  Wait until the new thread has published its thread id and status, so that they can be used
+     *  right away by whoever has the thread data, from any thread, without a data race.
+     *  The new thread does this before it runs the thread function so this cannot depend on anything the caller holds.
+     */
+    pthread_mutex_lock( &td->startMutex );
+    while ( 0 == td->started )
+        pthread_cond_wait( &td->startSignal, &td->startMutex );
+    pthread_mutex_unlock( &td->startMutex );
     return 1;
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
@@ -356,6 +406,7 @@ ThreadID( struct SThreadData* td )
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     return (UInt32) td->threadId;
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    /* the id is the handle that the creating thread got from pthread_create(), the new thread never writes it */
     return (UInt32)(uintptr_t)td->thread;
     #else
     #error unsupported target platform
@@ -448,12 +499,32 @@ ThreadKill( struct SThreadData* td )
 
     if ( NULL != td && 0 != td->thread )
     {
-        Int32 retval = (Int32) pthread_kill( td->thread, 0 );
-        if ( 0 != retval )
+        /*
+         *  Note that a thread handle is no longer valid once the thread has been joined,
+         *  using it after that (as pthread_kill() used to do here) is undefined behaviour and crashes with glibc.
+         *  As such td->thread is cleared whenever the thread is reaped.
+         */
+        Int32 retval = 0;
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+        if ( 0 != pthread_tryjoin_np( td->thread, GUCEF_NULL ) )
         {
-            /* an error occured */
-
+            /* The thread is still running: cancellation is the closest equivalent to TerminateThread() */
+            retval = (Int32) pthread_cancel( td->thread );
+            struct timespec ts;
+            clock_gettime( CLOCK_REALTIME, &ts );
+            ts.tv_sec += 5;
+            if ( 0 != retval || 0 != pthread_timedjoin_np( td->thread, GUCEF_NULL, &ts ) )
+            {
+                /* We could not reap the thread, let the system clean it up once it ends */
+                pthread_detach( td->thread );
+            }
         }
+        #else
+        /* Android has no thread cancellation: detach so the thread is cleaned up once it ends */
+        pthread_detach( td->thread );
+        #endif
+        td->thread = 0;
+
         pthread_cond_signal( &td->exitSignal );
         pthread_attr_destroy( &td->attr );
         return retval;
@@ -505,6 +576,17 @@ ThreadWait( struct SThreadData* td ,
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 
+    if ( GUCEF_NULL != td && 0 != td->thread && timeoutInMs < 0 )
+    {
+        /* A negative timeout means wait indefinitely */
+        if ( 0 == pthread_join( td->thread, GUCEF_NULL ) )
+        {
+            /* the handle is no longer valid once joined */
+            td->thread = 0;
+            return GUCEF_THREAD_WAIT_OK;
+        }
+        return GUCEF_THREAD_WAIT_FAILED;
+    }
     if ( GUCEF_NULL != td && 0 != td->thread )
     {
         static const long max_nsec = 1000000 * 1000;
@@ -519,7 +601,13 @@ ThreadWait( struct SThreadData* td ,
         }
         int errorCode = pthread_timedjoin_np( td->thread, GUCEF_NULL, &ts );
         if ( 0 == errorCode )
+        {
+            /* the handle is no longer valid once joined */
+            td->thread = 0;
             return GUCEF_THREAD_WAIT_OK;
+        }
+        if ( ETIMEDOUT == errorCode )
+            return GUCEF_THREAD_WAIT_TIMEOUT;
     }
     return GUCEF_THREAD_WAIT_FAILED;
 

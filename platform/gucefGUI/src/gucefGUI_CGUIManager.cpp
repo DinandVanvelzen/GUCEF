@@ -70,6 +70,11 @@ CGUIManager::CGUIManager( void )
 {GUCEF_TRACE;
 
     RegisterEvents();
+
+    TEventCallback registeredCallback( this, &CGUIManager::OnFormFactoryRegistered );
+    SubscribeTo( &m_genericFormFactory, CORE::CAbstractFactoryBase::ConcreteFactoryRegisteredEvent, registeredCallback );
+    TEventCallback unregisteredCallback( this, &CGUIManager::OnFormFactoryUnregistered );
+    SubscribeTo( &m_genericFormFactory, CORE::CAbstractFactoryBase::ConcreteFactoryUnregisteredEvent, unregisteredCallback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -101,6 +106,18 @@ void
 CGUIManager::RegisterGUIDriver( const CString& guiDriverName ,
                                 CGUIDriver* guiDriver        )
 {GUCEF_TRACE;
+
+    if ( GUCEF_NULL == guiDriver )
+        return;
+
+    // drivers that report no version (0) predate the version; any other mismatch cannot work
+    UInt32 driverVersion = guiDriver->GetInterfaceVersion();
+    if ( 0 != driverVersion && CGUIDriver::InterfaceVersion != driverVersion )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CGUIManager: Refused GUI driver \"" << guiDriverName << "\": it was built for driver interface version "
+                         << driverVersion << " while this gucefGUI has version " << CGUIDriver::InterfaceVersion );
+        return;
+    }
 
     m_guiDrivers[ guiDriverName ] = guiDriver;
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CGUIManager: Registered GUI driver (" + PointerToString( guiDriver ) + ") with name \"" + guiDriverName + "\"" );
@@ -213,13 +230,6 @@ CGUIManager::CreateGenericForm( const CString& formTypeName )
 
 /*-------------------------------------------------------------------------*/
     
-void
-CGUIManager::DestroyGenericForm( CForm* genericForm )
-{GUCEF_TRACE;
-
-    //m_genericFormFactory.DestroyObject( genericForm, genericForm->GetClassTypeName() );
-}
-
 /*-------------------------------------------------------------------------*/
 
 void

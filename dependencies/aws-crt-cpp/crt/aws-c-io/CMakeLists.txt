@@ -42,6 +42,10 @@ set( SOURCE_FILES
 if (LINUX32)
   set( PLATFORM_SOURCE_FILES 
     source/linux/epoll_event_loop.c
+    source/posix/host_resolver.c
+    source/posix/pipe.c
+    source/posix/shared_library.c
+    source/posix/socket.c
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX32" )
@@ -50,6 +54,10 @@ if (LINUX32)
 elseif (LINUX64)
   set( PLATFORM_SOURCE_FILES 
     source/linux/epoll_event_loop.c
+    source/posix/host_resolver.c
+    source/posix/pipe.c
+    source/posix/shared_library.c
+    source/posix/socket.c
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
@@ -107,6 +115,14 @@ add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-cal aws-c-common )
 target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-cal aws-c-common )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_c_io;MODULE_NAME=aws_c_io" )
+
+if ( LINUX32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
+endif( LINUX64 )
 
 if ( WIN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_USE_IO_COMPLETION_PORTS" )

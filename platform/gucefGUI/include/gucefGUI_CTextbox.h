@@ -46,47 +46,68 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  Several lines of text, read only, with scrolling (the wheel, or ScrollPosition = the first line shown).
+ *  Properties: Text, Font, TextColour, BackgroundColour, WordWrap, ScrollPosition, RowHeight
+ */
 class GUCEF_GUI_PUBLIC_CPP CTextbox : public CWidget
 {
     public:
-        
+
     static const CORE::CEvent SelectionChangedEvent;
     static const CORE::CEvent TextChangedEvent;
-    
+
     static void RegisterEvents( void );
-    
+
     public:
-    
-    typedef std::vector< CString > TStringVector;
+
+    typedef GUCEF::vector< CString > TStringVector;
 
     CTextbox( void );
-    
+
     virtual ~CTextbox();
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
     virtual UInt32 GetLineCount( void );
-    
+
     virtual bool Clear( void );
-    
+
     virtual bool GetLineAtIndex( const UInt32 lineIndex ,
                                  CString& lineText      ) const;
-    
+
     virtual bool InsertLineAtIndex( const UInt32 lineIndex ,
                                     const CString& text    );
-    
+
     virtual bool AppendLine( const CString& text );
-    
+
     virtual CString GetTextAsString( void ) const;
-    
+
     virtual TStringVector GetText( void ) const;
-    
+
     virtual CString GetSelectedText( void ) const;
-    
+
+    /** The lines as shown: the text broken on '\n' and, with WordWrap, to the width of the box */
+    TStringVector GetDisplayLines( void ) const;
+
+    /** How many lines fit in the box */
+    Int32 GetVisibleLineCount( void ) const;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Textbox"; }
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
     CTextbox( const CTextbox& src );
-    CTextbox& operator=( const CTextbox& src );    
+    CTextbox& operator=( const CTextbox& src );
 };
 
 /*-------------------------------------------------------------------------//
@@ -99,16 +120,5 @@ class GUCEF_GUI_PUBLIC_CPP CTextbox : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CTEXTBOX_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 10-02-2008 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

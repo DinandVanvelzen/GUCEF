@@ -43,6 +43,16 @@
 #define GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H ? */ 
 
+#ifndef GUCEF_MT_CSEMAPHORE_H
+#include "gucefMT_CSemaphore.h"
+#define GUCEF_MT_CSEMAPHORE_H
+#endif /* GUCEF_MT_CSEMAPHORE_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -52,6 +62,8 @@
 #include "CGUCEFApplication.h"
 #define GUCEF_CORE_CGUCEFAPPLICATION_H
 #endif /* GUCEF_CORE_CGUCEFAPPLICATION_H ? */
+
+#include "gucefCORE_CAsyncUriRetrievalTask.h"
 
 #ifndef GUCEF_CORE_CSINGLETASKDELEGATOR_H
 #include "gucefCORE_CSingleTaskDelegator.h"
@@ -113,8 +125,16 @@ const CEvent CTaskManager::GlobalTaskDataFactoryUnregisteredEvent = "GUCEF::CORE
 
 const CString CTaskManager::ClassTypeName = "GUCEF::CORE::CTaskManager";
 const CString CTaskManager::DefaultThreadPoolName = "default";
+const CString CTaskManager::ExternalThreadPoolName = "external";
 
 TGenericCallbackTaskConsumerFactory g_genericCallbackTaskConsumerFactory;
+TAsyncUriRetrievalTaskConsumerFactory g_asyncUriRetrievalTaskConsumerFactory;
+
+/** Outcome of the probe of the wake-up signal of the task delegators: 0 not probed yet, 1 works, -1 does not work */
+static MT::CTAtomic< Int32 > g_taskDelegatorWakeUpProbe( 0 );
+
+/** Test seam (CTaskManagerTestAccess): 0 the probe decides, 1 available, -1 not available */
+static MT::CTAtomic< Int32 > g_taskDelegatorWakeUpOverride( 0 );
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -156,6 +176,7 @@ CTaskManager::CTaskManager( void )
     RegisterThreadPoolEventHandlers( defaultPool.GetPointerAlways() );
 
     RegisterTaskConsumerFactory( CGenericCallbackTaskConsumer::TaskType, &g_genericCallbackTaskConsumerFactory );
+    RegisterTaskConsumerFactory( CAsyncUriRetrievalTaskConsumer::TaskType, &g_asyncUriRetrievalTaskConsumerFactory );
 
     ThreadPoolCreatedEventData eData( DefaultThreadPoolName );
     NotifyObserversFromThread( ThreadPoolCreatedEvent, &eData );
@@ -203,7 +224,12 @@ CTaskManager::OnAppShutdown( CORE::CNotifier* notifier    ,
                              CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    Shutdown();
+    // The threads are asked to stop, not waited for: the application raises this event under its own lock and that of
+    // its notifier, which a task may need before it can end (it calls into the application, or subscribes to it).
+    // CGUCEFApplication::Stop() waits for the threads once it gave those locks up. The thread pools stay registered:
+    // the wait of the teardown of CCoreGlobal finds every thread that is still running there, before the global
+    // objects the threads use are destroyed
+    RequestAllThreadsToStop( false, false, GUCEF_MT_SUPER_LONG_LOCK_TIMEOUT );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -331,28 +357,32 @@ CTaskManager::GetOrCreateThreadPool( const CString& threadPoolName            ,
                                      bool createIfNotExists                   )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
-
-    ThreadPoolMap::iterator i = m_threadPools.find( threadPoolName );
-    if ( i != m_threadPools.end() )
     {
-        return (*i).second;
+        MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+        ThreadPoolMap::iterator i = m_threadPools.find( threadPoolName );
+        if ( i != m_threadPools.end() )
+            return (*i).second;
     }
-    
-    if ( createIfNotExists )
+    if ( !createIfNotExists )
+        return ThreadPoolPtr();
+
+    // The pool is made without the lock: it subscribes to the pulse generator, whose notification lock the thread that pulses
+    // holds while it notifies. With the lock held here a pool made on another thread would block that thread as soon as it
+    // asks for any pool. Another thread may have made the same pool meanwhile: then that one is used and this one is dropped
+    ThreadPoolPtr newPool = ( GUCEF_NEW CThreadPool( threadPoolPulseContext, threadPoolName ) )->CreateSharedPtr();
     {
-        ThreadPoolPtr newPool = ( GUCEF_NEW CThreadPool( threadPoolPulseContext, threadPoolName ) )->CreateSharedPtr();        
+        MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+        ThreadPoolMap::iterator i = m_threadPools.find( threadPoolName );
+        if ( i != m_threadPools.end() )
+            return (*i).second;
         m_threadPools[ threadPoolName ] = newPool;
-        lock.EarlyUnlock();
-
-        RegisterThreadPoolEventHandlers( newPool.GetPointerAlways() );
-        
-        ThreadPoolCreatedEventData eData( threadPoolName );
-        NotifyObserversFromThread( ThreadPoolCreatedEvent, &eData ); 
-        return newPool; 
     }
 
-    return ThreadPoolPtr();
+    RegisterThreadPoolEventHandlers( newPool.GetPointerAlways() );
+
+    ThreadPoolCreatedEventData eData( threadPoolName );
+    NotifyObserversFromThread( ThreadPoolCreatedEvent, &eData );
+    return newPool;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -376,10 +406,16 @@ CTaskManager::UnregisterThreadPool( const CString& threadPoolName )
     ThreadPoolMap::const_iterator i = m_threadPools.find( threadPoolName );
     if ( i != m_threadPools.end() )
     {
+        ThreadPoolPtr threadPool = (*i).second;
         m_threadPools.erase( i );
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "TaskManager:UnregisterThreadPool: Thread pool with name \"" + threadPoolName + "\" has been unregistered" );
 
         lock.EarlyUnlock();
+
+        // Delegators of ended threads reference their pool, the pool cannot release them from within itself
+        // safely once it is no longer registered, so we release them while we still hold a reference
+        if ( !threadPool.IsNULL() )
+            threadPool->ReleaseRetiredDelegators();
         
         ThreadPoolUnregisteredEventData eventData( threadPoolName );
         NotifyObserversFromThread( ThreadPoolUnregisteredEvent, &eventData );
@@ -429,8 +465,8 @@ CTaskManager::QueueTask( const CString& threadPoolName  ,
                          bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
 
-    ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );        
-    if ( threadPool.IsNULL() )
+    ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );
+    if ( !threadPool.IsNULL() )
     {
         return threadPool->QueueTask( taskType                  ,
                                       taskData                  ,
@@ -584,6 +620,76 @@ CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName ,
                                                   taskData );
     }
     return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::RegisterExternalThread( const CString& threadName )
+{GUCEF_TRACE;
+
+    const UInt32 threadId = MT::GetCurrentTaskID();
+    MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+
+    SExternalThread& thread = m_externalThreads[ threadId ];
+    if ( 0 == thread.registrations )
+        thread.name = threadName;
+    ++thread.registrations;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::UnregisterExternalThread( void )
+{GUCEF_TRACE;
+
+    const UInt32 threadId = MT::GetCurrentTaskID();
+    MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+
+    TExternalThreadMap::iterator i = m_externalThreads.find( threadId );
+    if ( i == m_externalThreads.end() )
+        return false;
+
+    if ( (*i).second.registrations > 1 )
+        --(*i).second.registrations;
+    else
+        m_externalThreads.erase( i );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTaskManager::GetNrOfExternalThreads( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+    return (UInt32) m_externalThreads.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::MakeExternalThreadInfo( UInt32 threadId, const SExternalThread& thread, CThreadInfo& info ) const
+{GUCEF_TRACE;
+
+    info.Clear();
+    info.SetThreadId( threadId );
+    info.SetThreadStatus( MT::THREADSTATUS_RUNNING );
+    info.SetThreadName( thread.name );
+    info.SetIsExternal( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::GetExternalThreadPoolInfo( CThreadPoolInfo& info ) const
+{GUCEF_TRACE;
+
+    info.Clear();
+    info.SetThreadPoolName( ExternalThreadPoolName );
+    info.SetActiveNrOfDedicatedThreads( (UInt32) m_externalThreads.size() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -753,6 +859,16 @@ CTaskManager::UnregisterTaskConsumerFactory( const CString& taskType )
 
     m_consumerFactory.UnregisterConcreteFactory( taskType );
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "TaskManager: global consumer factory unregistered of type " + taskType );
+
+    // Consumers made by the factory which the pools keep for reuse cannot outlive it
+    ThreadPoolVector threadPools;
+    GetAllThreadPools( threadPools );
+    ThreadPoolVector::iterator i = threadPools.begin();
+    while ( i != threadPools.end() )
+    {
+        (*i)->ReleaseFreeTaskConsumers( taskType );
+        ++i;
+    }
     GlobalTaskConsumerFactoryUnregisteredEventData eData( taskType );
     NotifyObserversFromThread( GlobalTaskConsumerFactoryUnregisteredEvent, &eData );
 }
@@ -841,6 +957,47 @@ CTaskManager::GetTaskIdRecycleCheckThreshold( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CTaskManager::IsTaskDelegatorWakeUpAvailable( void )
+{GUCEF_TRACE;
+
+    Int32 availability = g_taskDelegatorWakeUpOverride.Load();
+    if ( 0 != availability )
+        return availability > 0;
+
+    availability = g_taskDelegatorWakeUpProbe.Load();
+    if ( 0 == availability )
+    {
+        // A semaphore without a post must not be taken, one post must be taken exactly once. A placeholder
+        // implementation that returns success for every wait would make a delegator spin instead of wait
+        MT::CSemaphore probe( 0 );
+        const bool works = 1 == probe.WaitOrTimeout( 0 ) &&
+                           probe.Post()                   &&
+                           0 == probe.WaitOrTimeout( 0 ) &&
+                           1 == probe.WaitOrTimeout( 0 );
+
+        Int32 notProbed = 0;
+        if ( g_taskDelegatorWakeUpProbe.CompareExchangeStrong( notProbed, works ? 1 : -1 ) && !works )
+        {
+            GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "TaskManager: MT::CSemaphore does not work in this build. Task delegators wait between their cycles "
+                "with a plain delay and take pulse requests of other threads at their next cycle" );
+        }
+        availability = g_taskDelegatorWakeUpProbe.Load();
+    }
+    return availability > 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskManager::OverrideTaskDelegatorWakeUpAvailability( Int32 availability )
+{GUCEF_TRACE;
+
+    g_taskDelegatorWakeUpOverride.Store( availability > 0 ? 1 : ( availability < 0 ? -1 : 0 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTaskManager::TryGetGlobalTaskId( CTask::TTaskId& taskId )
 {GUCEF_TRACE;
 
@@ -923,6 +1080,8 @@ CTaskManager::GetAllThreadPoolNames( CORE::CString::StringSet& poolNames ) const
         poolNames.insert( (*i).first );
         ++i;
     }
+    if ( !m_externalThreads.empty() )
+        poolNames.insert( ExternalThreadPoolName );
 }
 /*-------------------------------------------------------------------------*/
 
@@ -1050,6 +1209,8 @@ CTaskManager::GetAllThreadPoolInfo( TThreadPoolInfoMap& info ) const
         totalSuccess = (*i).second->GetInfo( poolInfo ) && totalSuccess;
         ++i;
     }
+    if ( !m_externalThreads.empty() )
+        GetExternalThreadPoolInfo( info[ ExternalThreadPoolName ] );
     return totalSuccess;
 }
 
@@ -1067,6 +1228,11 @@ CTaskManager::GetThreadPoolInfo( const CString& poolName, CThreadPoolInfo& info 
     {
         if ( (*i).second->GetInfo( info ) )
             return true;
+    }
+    else if ( ExternalThreadPoolName == poolName )
+    {
+        GetExternalThreadPoolInfo( info );
+        return true;
     }
     return false;
 }
@@ -1094,6 +1260,14 @@ CTaskManager::GetThreadInfo( UInt32 threadId         ,
         ++i;
     }
 
+    TExternalThreadMap::const_iterator e = m_externalThreads.find( threadId );
+    if ( e != m_externalThreads.end() )
+    {
+        MakeExternalThreadInfo( (*e).first, (*e).second, info );
+        threadPoolName = ExternalThreadPoolName;
+        return true;
+    }
+
     return false;
 }
 
@@ -1112,6 +1286,13 @@ CTaskManager::GetAllThreadInfo( TThreadInfoMap& info ) const
     {
         totalSuccess = (*i).second->GetAllThreadInfo( info ) && totalSuccess;
         ++i;
+    }
+
+    TExternalThreadMap::const_iterator e = m_externalThreads.begin();
+    while ( e != m_externalThreads.end() )
+    {
+        MakeExternalThreadInfo( (*e).first, (*e).second, info[ (*e).first ] );
+        ++e;
     }
     return totalSuccess;
 }

@@ -23,6 +23,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#define GUCEF_TESTFW_IMPL
+
+#include <string.h>
+
+#ifndef GUCEF_TESTFW_H
+#include "gucef_test_framework.h"
+#define GUCEF_TESTFW_H
+#endif /* GUCEF_TESTFW_H ? */
+
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -32,6 +46,12 @@
 #include "gucefIMAGE.h"
 #define GUCEF_IMAGE_H
 #endif /* GUCEF_IMAGE_H ? */
+
+#include "TestImageAnimation.h"
+#include "TestPixelMapConversion.h"
+#include "TestImageUpscaler.h"
+#include "TestImageCodecPlugins.h"
+#include "TestPngImageCodec.h"
 
 using namespace GUCEF;
 
@@ -78,9 +98,10 @@ LoadConfig( void )
 /*-------------------------------------------------------------------------*/
           
 /*
- *      Application entry point
+ *      Manual test code which expects the original game data of Into the Void at hardcoded locations
  */
-GUCEF_OSMAIN_BEGIN
+int
+RunManualTests( int argc, char** argv )
 {GUCEF_TRACE;
 
     #ifdef GUCEF_IMAGE_DEBUG_MODE
@@ -165,6 +186,62 @@ GUCEF_OSMAIN_BEGIN
                                        "Unhandled exception during program execution, the application will now terminate"  );                                                         
     }
     return 1;                                                                                                                              
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*
+ *      Application entry point
+ */
+GUCEF_OSMAIN_BEGIN
+{GUCEF_TRACE;
+
+    try
+    {
+        for ( int i=1; i<argc; ++i )
+        {
+            if ( 0 == strcmp( argv[ i ], "-manual" ) )
+                return RunManualTests( argc, argv );
+        }
+
+        CORE::CString logFilename = CORE::RelativePath( "$CURWORKDIR$" );
+        CORE::AppendToPath( logFilename, "gucefIMAGE_TestApp_Log.txt" );
+        CORE::CFileAccess logFileAccess( logFilename, "w" );
+
+        CORE::CStdLogger logger( logFileAccess );
+        CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( &logger );
+
+        CORE::CPlatformNativeConsoleLogger console;
+        if ( GUCEF_APP_TYPE == GUCEF_APP_TYPE_CONSOLE )
+            CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
+
+        // initializes the module, as every application using gucefIMAGE has to do
+        IMAGE::CImageGlobal::Instance();
+
+        GUCEF_TESTFW_INIT( "gucefIMAGE_TestApp" );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
+
+        PerformImageAnimationTests();
+        PerformPixelMapConversionTests();
+        PerformImageUpscalerTests();
+        PerformPngImageCodecTests();
+        PerformImageCodecPluginTests();
+
+        CORE::CLogStreamScope::FlushLogs();
+
+        CORE::CString xmlPath = CORE::RelativePath( "$CURWORKDIR$" );
+        CORE::AppendToPath( xmlPath, "gucefIMAGE_TestApp_Results.xml" );
+        GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
+
+        CORE::CCoreGlobal::Instance()->GetLogManager().ClearLoggers();
+        return GUCEF_TESTFW_EXITCODE;
+    }
+    catch ( ... )
+    {
+        CORE::ShowErrorMessage( "Unknown exception"                                                                 ,
+                                "Unhandled exception during program execution, the application will now terminate"  );
+    }
+    return 1;
 }
 GUCEF_OSMAIN_END
 

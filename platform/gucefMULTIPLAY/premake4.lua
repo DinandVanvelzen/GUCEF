@@ -29,8 +29,8 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
 
 
 configuration( {} )
@@ -41,11 +41,95 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/gucefMULTIPLAY.h",
-  "include/gucefMULTIPLAY_CMultiPlayControl.h",
+  "include/gucefMULTIPLAY_CAsyncLobby.h",
+  "include/gucefMULTIPLAY_CAsyncLobbyListingProvider.h",
+  "include/gucefMULTIPLAY_CAsyncLobbyService.h",
+  "include/gucefMULTIPLAY_CAsyncLobbyView.h",
+  "include/gucefMULTIPLAY_CAuthIdentityProvider.h",
+  "include/gucefMULTIPLAY_CChatMessage.h",
+  "include/gucefMULTIPLAY_CFileHashClientIntegrity.h",
+  "include/gucefMULTIPLAY_CGameAdvertiser.h",
+  "include/gucefMULTIPLAY_CGameBrowser.h",
+  "include/gucefMULTIPLAY_CGameListingEntry.h",
+  "include/gucefMULTIPLAY_CGameListingFilter.h",
+  "include/gucefMULTIPLAY_CGucefLobby.h",
+  "include/gucefMULTIPLAY_CGucefLobbyAuthenticator.h",
+  "include/gucefMULTIPLAY_CGucefLobbyProtocol.h",
+  "include/gucefMULTIPLAY_CGucefLobbyRelayAuthenticator.h",
+  "include/gucefMULTIPLAY_CGucefLobbyServer.h",
+  "include/gucefMULTIPLAY_CGucefLobbyServerApp.h",
+  "include/gucefMULTIPLAY_CGucefLobbyService.h",
+  "include/gucefMULTIPLAY_CHttpListListingProvider.h",
+  "include/gucefMULTIPLAY_CIAsyncLobbyBackend.h",
+  "include/gucefMULTIPLAY_CIChatService.h",
+  "include/gucefMULTIPLAY_CIClientIntegrity.h",
+  "include/gucefMULTIPLAY_CIGameListingProvider.h",
+  "include/gucefMULTIPLAY_CIIdentityProvider.h",
+  "include/gucefMULTIPLAY_CILobby.h",
+  "include/gucefMULTIPLAY_CILobbyService.h",
+  "include/gucefMULTIPLAY_CIMatchAlertSink.h",
+  "include/gucefMULTIPLAY_CIMatchClock.h",
+  "include/gucefMULTIPLAY_CIMatchPackageVerifier.h",
+  "include/gucefMULTIPLAY_CIMatchProvider.h",
+  "include/gucefMULTIPLAY_CInAppMatchAlertSink.h",
+  "include/gucefMULTIPLAY_CIrcChatService.h",
+  "include/gucefMULTIPLAY_CLanListingProvider.h",
+  "include/gucefMULTIPLAY_CLaunchDescription.h",
+  "include/gucefMULTIPLAY_CLinkProof.h",
+  "include/gucefMULTIPLAY_CLobbyChatService.h",
+  "include/gucefMULTIPLAY_CLobbyCreateParams.h",
+  "include/gucefMULTIPLAY_CLobbyPresentation.h",
+  "include/gucefMULTIPLAY_CLobbyRules.h",
+  "include/gucefMULTIPLAY_CLobbyServiceListingProvider.h",
+  "include/gucefMULTIPLAY_CLobbySettingsSchema.h",
+  "include/gucefMULTIPLAY_CLobbyState.h",
+  "include/gucefMULTIPLAY_CLocalIdentityProvider.h",
+  "include/gucefMULTIPLAY_CMatchAcceptance.h",
+  "include/gucefMULTIPLAY_CMatchAlert.h",
+  "include/gucefMULTIPLAY_CMatchAlertRouter.h",
+  "include/gucefMULTIPLAY_CMatchBinaryReader.h",
+  "include/gucefMULTIPLAY_CMatchBinaryWriter.h",
+  "include/gucefMULTIPLAY_CMatchBook.h",
+  "include/gucefMULTIPLAY_CMatchBookChange.h",
+  "include/gucefMULTIPLAY_CMatchChainVerifier.h",
+  "include/gucefMULTIPLAY_CMatchContainer.h",
+  "include/gucefMULTIPLAY_CMatchDecisionEvidence.h",
+  "include/gucefMULTIPLAY_CMatchDecisionResult.h",
+  "include/gucefMULTIPLAY_CMatchDecisionVerifier.h",
+  "include/gucefMULTIPLAY_CMatchDraftBoard.h",
+  "include/gucefMULTIPLAY_CMatchDraftTally.h",
+  "include/gucefMULTIPLAY_CMatchEntry.h",
+  "include/gucefMULTIPLAY_CMatchId.h",
+  "include/gucefMULTIPLAY_CMatchInfo.h",
+  "include/gucefMULTIPLAY_CMatchLink.h",
+  "include/gucefMULTIPLAY_CMatchOperationResult.h",
+  "include/gucefMULTIPLAY_CMatchPackage.h",
+  "include/gucefMULTIPLAY_CMatchParticipant.h",
+  "include/gucefMULTIPLAY_CMatchPreview.h",
+  "include/gucefMULTIPLAY_CMatchProposal.h",
+  "include/gucefMULTIPLAY_CMatchProviderState.h",
+  "include/gucefMULTIPLAY_CMatchRecord.h",
+  "include/gucefMULTIPLAY_CMatchRoster.h",
+  "include/gucefMULTIPLAY_CMatchRosterEntry.h",
+  "include/gucefMULTIPLAY_CMatchSigning.h",
+  "include/gucefMULTIPLAY_CMatchStore.h",
+  "include/gucefMULTIPLAY_CMatchSystemClock.h",
+  "include/gucefMULTIPLAY_CMatchTextArmor.h",
+  "include/gucefMULTIPLAY_CMatchTurnEventData.h",
+  "include/gucefMULTIPLAY_CMatchUpdate.h",
+  "include/gucefMULTIPLAY_CMatchVote.h",
+  "include/gucefMULTIPLAY_CModule.h",
+  "include/gucefMULTIPLAY_CMultiplayGlobal.h",
   "include/gucefMULTIPLAY_CPassiveURLServerListProvider.h",
+  "include/gucefMULTIPLAY_CPingService.h",
+  "include/gucefMULTIPLAY_CPlayerIdentity.h",
+  "include/gucefMULTIPLAY_CPlayerIdentitySigner.h",
+  "include/gucefMULTIPLAY_CPlayerReport.h",
   "include/gucefMULTIPLAY_CServerList.h",
   "include/gucefMULTIPLAY_CServerListProvider.h",
+  "include/gucefMULTIPLAY_CTokenBucket.h",
   "include/gucefMULTIPLAY_DLLInit.h",
+  "include/gucefMULTIPLAY_MatchTypes.h",
   "include/gucefMULTIPLAY_Types.h",
   "include/gucefMULTIPLAY_config.h",
   "include/gucefMULTIPLAY_macros.h"
@@ -56,21 +140,106 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
-  "src/gucefMULTIPLAY_CMultiPlayControl.cpp",
+  "src/gucefMULTIPLAY.cpp",
+  "src/gucefMULTIPLAY_CAsyncLobby.cpp",
+  "src/gucefMULTIPLAY_CAsyncLobbyListingProvider.cpp",
+  "src/gucefMULTIPLAY_CAsyncLobbyService.cpp",
+  "src/gucefMULTIPLAY_CAsyncLobbyView.cpp",
+  "src/gucefMULTIPLAY_CAuthIdentityProvider.cpp",
+  "src/gucefMULTIPLAY_CChatMessage.cpp",
+  "src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp",
+  "src/gucefMULTIPLAY_CGameAdvertiser.cpp",
+  "src/gucefMULTIPLAY_CGameBrowser.cpp",
+  "src/gucefMULTIPLAY_CGameListingEntry.cpp",
+  "src/gucefMULTIPLAY_CGameListingFilter.cpp",
+  "src/gucefMULTIPLAY_CGucefLobby.cpp",
+  "src/gucefMULTIPLAY_CGucefLobbyAuthenticator.cpp",
+  "src/gucefMULTIPLAY_CGucefLobbyProtocol.cpp",
+  "src/gucefMULTIPLAY_CGucefLobbyRelayAuthenticator.cpp",
+  "src/gucefMULTIPLAY_CGucefLobbyServer.cpp",
+  "src/gucefMULTIPLAY_CGucefLobbyServerApp.cpp",
+  "src/gucefMULTIPLAY_CGucefLobbyService.cpp",
+  "src/gucefMULTIPLAY_CHttpListListingProvider.cpp",
+  "src/gucefMULTIPLAY_CIAsyncLobbyBackend.cpp",
+  "src/gucefMULTIPLAY_CIChatService.cpp",
+  "src/gucefMULTIPLAY_CIClientIntegrity.cpp",
+  "src/gucefMULTIPLAY_CIGameListingProvider.cpp",
+  "src/gucefMULTIPLAY_CIIdentityProvider.cpp",
+  "src/gucefMULTIPLAY_CILobby.cpp",
+  "src/gucefMULTIPLAY_CILobbyService.cpp",
+  "src/gucefMULTIPLAY_CIMatchAlertSink.cpp",
+  "src/gucefMULTIPLAY_CIMatchClock.cpp",
+  "src/gucefMULTIPLAY_CIMatchPackageVerifier.cpp",
+  "src/gucefMULTIPLAY_CIMatchProvider.cpp",
+  "src/gucefMULTIPLAY_CInAppMatchAlertSink.cpp",
+  "src/gucefMULTIPLAY_CIrcChatService.cpp",
+  "src/gucefMULTIPLAY_CLanListingProvider.cpp",
+  "src/gucefMULTIPLAY_CLaunchDescription.cpp",
+  "src/gucefMULTIPLAY_CLinkProof.cpp",
+  "src/gucefMULTIPLAY_CLobbyChatService.cpp",
+  "src/gucefMULTIPLAY_CLobbyCreateParams.cpp",
+  "src/gucefMULTIPLAY_CLobbyPresentation.cpp",
+  "src/gucefMULTIPLAY_CLobbyRules.cpp",
+  "src/gucefMULTIPLAY_CLobbyServiceListingProvider.cpp",
+  "src/gucefMULTIPLAY_CLobbySettingsSchema.cpp",
+  "src/gucefMULTIPLAY_CLobbyState.cpp",
+  "src/gucefMULTIPLAY_CLocalIdentityProvider.cpp",
+  "src/gucefMULTIPLAY_CMatchAcceptance.cpp",
+  "src/gucefMULTIPLAY_CMatchAlert.cpp",
+  "src/gucefMULTIPLAY_CMatchAlertRouter.cpp",
+  "src/gucefMULTIPLAY_CMatchBinaryReader.cpp",
+  "src/gucefMULTIPLAY_CMatchBinaryWriter.cpp",
+  "src/gucefMULTIPLAY_CMatchBook.cpp",
+  "src/gucefMULTIPLAY_CMatchBookChange.cpp",
+  "src/gucefMULTIPLAY_CMatchChainVerifier.cpp",
+  "src/gucefMULTIPLAY_CMatchContainer.cpp",
+  "src/gucefMULTIPLAY_CMatchDecisionEvidence.cpp",
+  "src/gucefMULTIPLAY_CMatchDecisionResult.cpp",
+  "src/gucefMULTIPLAY_CMatchDecisionVerifier.cpp",
+  "src/gucefMULTIPLAY_CMatchDraftBoard.cpp",
+  "src/gucefMULTIPLAY_CMatchDraftTally.cpp",
+  "src/gucefMULTIPLAY_CMatchEntry.cpp",
+  "src/gucefMULTIPLAY_CMatchId.cpp",
+  "src/gucefMULTIPLAY_CMatchInfo.cpp",
+  "src/gucefMULTIPLAY_CMatchLink.cpp",
+  "src/gucefMULTIPLAY_CMatchOperationResult.cpp",
+  "src/gucefMULTIPLAY_CMatchPackage.cpp",
+  "src/gucefMULTIPLAY_CMatchParticipant.cpp",
+  "src/gucefMULTIPLAY_CMatchPreview.cpp",
+  "src/gucefMULTIPLAY_CMatchProposal.cpp",
+  "src/gucefMULTIPLAY_CMatchProviderState.cpp",
+  "src/gucefMULTIPLAY_CMatchRecord.cpp",
+  "src/gucefMULTIPLAY_CMatchRoster.cpp",
+  "src/gucefMULTIPLAY_CMatchRosterEntry.cpp",
+  "src/gucefMULTIPLAY_CMatchSigning.cpp",
+  "src/gucefMULTIPLAY_CMatchStore.cpp",
+  "src/gucefMULTIPLAY_CMatchSystemClock.cpp",
+  "src/gucefMULTIPLAY_CMatchTextArmor.cpp",
+  "src/gucefMULTIPLAY_CMatchTurnEventData.cpp",
+  "src/gucefMULTIPLAY_CMatchUpdate.cpp",
+  "src/gucefMULTIPLAY_CMatchVote.cpp",
+  "src/gucefMULTIPLAY_CModule.cpp",
+  "src/gucefMULTIPLAY_CMultiplayGlobal.cpp",
   "src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp",
+  "src/gucefMULTIPLAY_CPingService.cpp",
+  "src/gucefMULTIPLAY_CPlayerIdentity.cpp",
+  "src/gucefMULTIPLAY_CPlayerIdentitySigner.cpp",
+  "src/gucefMULTIPLAY_CPlayerReport.cpp",
   "src/gucefMULTIPLAY_CServerList.cpp",
-  "src/gucefMULTIPLAY_CServerListProvider.cpp"
+  "src/gucefMULTIPLAY_CServerListProvider.cpp",
+  "src/gucefMULTIPLAY_CTokenBucket.cpp",
+  "src/gucefMULTIPLAY_MatchTypes.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../gucefAUTH/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefMT/include", "../gucefVFS/include", "../gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
@@ -79,7 +248,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "../gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin", "../gucefWEB/include/mswin" } )

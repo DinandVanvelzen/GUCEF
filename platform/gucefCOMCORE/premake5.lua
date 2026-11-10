@@ -65,6 +65,14 @@ files( {
   "include/dvwinsock.h",
   "include/gucefCOMCORE.h",
   "include/gucefCOMCORE_CComCoreGlobal.h",
+  "include/gucefCOMCORE_CDatabaseClientBase.h",
+  "include/gucefCOMCORE_CDatabaseClientFactory.h",
+  "include/gucefCOMCORE_CDatabaseClientOperation.h",
+  "include/gucefCOMCORE_CDatabaseClientSettings.h",
+  "include/gucefCOMCORE_CDatabaseTableResult.h",
+  "include/gucefCOMCORE_CDiscoveryClientBase.h",
+  "include/gucefCOMCORE_CDiscoveryClientFactory.h",
+  "include/gucefCOMCORE_CDiscoveryEntry.h",
   "include/gucefCOMCORE_CDiscoveryManager.h",
   "include/gucefCOMCORE_CDnsCache.h",
   "include/gucefCOMCORE_CDnsCacheEntry.h",
@@ -72,6 +80,7 @@ files( {
   "include/gucefCOMCORE_CDnsResolver.h",
   "include/gucefCOMCORE_CGeoLocationLookupService.h",
   "include/gucefCOMCORE_CICommunicationInterface.h",
+  "include/gucefCOMCORE_CIDatabaseClient.h",
   "include/gucefCOMCORE_CIDiscovery.h",
   "include/gucefCOMCORE_CIDiscoveryCapability.h",
   "include/gucefCOMCORE_CIDiscoveryClient.h",
@@ -80,14 +89,80 @@ files( {
   "include/gucefCOMCORE_CIMessage.h",
   "include/gucefCOMCORE_CIMessageTransformer.h",
   "include/gucefCOMCORE_CINetworkInterface.h",
+  "include/gucefCOMCORE_CIPortMapper.h",
   "include/gucefCOMCORE_CIPv4Address.h",
   "include/gucefCOMCORE_CIPv4Info.h",
   "include/gucefCOMCORE_CIPv6Address.h",
   "include/gucefCOMCORE_CIPv6Info.h",
+  "include/gucefCOMCORE_CIRpcAccessPolicy.h",
+  "include/gucefCOMCORE_CIRpcMethodHandler.h",
+  "include/gucefCOMCORE_CIRpcServiceImpl.h",
+  "include/gucefCOMCORE_CIRpcStream.h",
+  "include/gucefCOMCORE_CIRpcTransport.h",
+  "include/gucefCOMCORE_CIRpcTransportListener.h",
+  "include/gucefCOMCORE_CIRttProbe.h",
   "include/gucefCOMCORE_CMessageSerializer.h",
+  "include/gucefCOMCORE_COpenSslTlsProvider.h",
+  "include/gucefCOMCORE_COpenSslTlsProviderAbi.h",
+  "include/gucefCOMCORE_COpenSslTlsProviderSession.h",
   "include/gucefCOMCORE_CPingTaskConsumer.h",
+  "include/gucefCOMCORE_CPortMappingResult.h",
+  "include/gucefCOMCORE_CRpcBuiltInContracts.h",
+  "include/gucefCOMCORE_CRpcCallOptions.h",
+  "include/gucefCOMCORE_CRpcCallResult.h",
+  "include/gucefCOMCORE_CRpcCallTask.h",
+  "include/gucefCOMCORE_CRpcClientStream.h",
+  "include/gucefCOMCORE_CRpcCompatibilityReport.h",
+  "include/gucefCOMCORE_CRpcContract.h",
+  "include/gucefCOMCORE_CRpcContractBuilder.h",
+  "include/gucefCOMCORE_CRpcContractCompatibility.h",
+  "include/gucefCOMCORE_CRpcContractHash.h",
+  "include/gucefCOMCORE_CRpcContractRegistry.h",
+  "include/gucefCOMCORE_CRpcDurableRequestTable.h",
+  "include/gucefCOMCORE_CRpcEndpoint.h",
+  "include/gucefCOMCORE_CRpcEndpointLink.h",
+  "include/gucefCOMCORE_CRpcEndpointSettings.h",
+  "include/gucefCOMCORE_CRpcEnumDescriptor.h",
+  "include/gucefCOMCORE_CRpcFieldDescriptor.h",
+  "include/gucefCOMCORE_CRpcFrameCodec.h",
+  "include/gucefCOMCORE_CRpcFrameEventData.h",
+  "include/gucefCOMCORE_CRpcHost.h",
+  "include/gucefCOMCORE_CRpcHostSettings.h",
+  "include/gucefCOMCORE_CRpcLoopbackTransport.h",
+  "include/gucefCOMCORE_CRpcLoopbackTransportListener.h",
+  "include/gucefCOMCORE_CRpcMessage.h",
+  "include/gucefCOMCORE_CRpcMessageCodec.h",
+  "include/gucefCOMCORE_CRpcMetadata.h",
+  "include/gucefCOMCORE_CRpcMethodDescriptor.h",
+  "include/gucefCOMCORE_CRpcMethodRef.h",
+  "include/gucefCOMCORE_CRpcPrincipal.h",
+  "include/gucefCOMCORE_CRpcProtocolTask.h",
+  "include/gucefCOMCORE_CRpcReflectionService.h",
+  "include/gucefCOMCORE_CRpcRequestId.h",
+  "include/gucefCOMCORE_CRpcRequestStatus.h",
+  "include/gucefCOMCORE_CRpcRoleAccessPolicy.h",
+  "include/gucefCOMCORE_CRpcServerCall.h",
+  "include/gucefCOMCORE_CRpcServiceDescriptor.h",
+  "include/gucefCOMCORE_CRpcServiceImpl.h",
+  "include/gucefCOMCORE_CRpcServiceSet.h",
+  "include/gucefCOMCORE_CRpcSession.h",
+  "include/gucefCOMCORE_CRpcStatus.h",
+  "include/gucefCOMCORE_CRpcTransportProfile.h",
+  "include/gucefCOMCORE_CRpcTransportProperties.h",
+  "include/gucefCOMCORE_CRpcTypeDescriptor.h",
   "include/gucefCOMCORE_CSerialPort.h",
+  "include/gucefCOMCORE_CSocketReadinessWaiter.h",
+  "include/gucefCOMCORE_CTRpcMethodHandler.h",
+  "include/gucefCOMCORE_CTlsClientConnection.h",
+  "include/gucefCOMCORE_CTlsProviderRegistry.h",
+  "include/gucefCOMCORE_CTlsSettings.h",
   "include/gucefCOMCORE_ETypes.h",
+  "include/gucefCOMCORE_ITlsProvider.h",
+  "include/gucefCOMCORE_ITlsSession.h",
+  "include/gucefCOMCORE_RpcEventData.h",
+  "include/gucefCOMCORE_RpcProtocol.h",
+  "include/gucefCOMCORE_RpcTypes.h",
+  "include/gucefCOMCORE_TlsTypes.h",
   "include/gucefCOMCORE_config.h",
   "include/gucefCOMCORE_macros.h",
   "include/socketerrors.h",
@@ -114,6 +189,12 @@ files( {
   "src/dvwinsock.c",
   "src/gucefCOMCORE.cpp",
   "src/gucefCOMCORE_CComCoreGlobal.cpp",
+  "src/gucefCOMCORE_CDatabaseClientBase.cpp",
+  "src/gucefCOMCORE_CDatabaseClientOperation.cpp",
+  "src/gucefCOMCORE_CDatabaseClientSettings.cpp",
+  "src/gucefCOMCORE_CDatabaseTableResult.cpp",
+  "src/gucefCOMCORE_CDiscoveryClientBase.cpp",
+  "src/gucefCOMCORE_CDiscoveryEntry.cpp",
   "src/gucefCOMCORE_CDiscoveryManager.cpp",
   "src/gucefCOMCORE_CDnsCache.cpp",
   "src/gucefCOMCORE_CDnsCacheEntry.cpp",
@@ -121,6 +202,7 @@ files( {
   "src/gucefCOMCORE_CDnsResolver.cpp",
   "src/gucefCOMCORE_CGeoLocationLookupService.cpp",
   "src/gucefCOMCORE_CICommunicationInterface.cpp",
+  "src/gucefCOMCORE_CIDatabaseClient.cpp",
   "src/gucefCOMCORE_CIDiscovery.cpp",
   "src/gucefCOMCORE_CIDiscoveryCapability.cpp",
   "src/gucefCOMCORE_CIDiscoveryClient.cpp",
@@ -129,15 +211,105 @@ files( {
   "src/gucefCOMCORE_CIMessage.cpp",
   "src/gucefCOMCORE_CIMessageTransformer.cpp",
   "src/gucefCOMCORE_CINetworkInterface.cpp",
+  "src/gucefCOMCORE_CIPortMapper.cpp",
   "src/gucefCOMCORE_CIPv4Address.cpp",
   "src/gucefCOMCORE_CIPv4Info.cpp",
   "src/gucefCOMCORE_CIPv6Address.cpp",
   "src/gucefCOMCORE_CIPv6Info.cpp",
+  "src/gucefCOMCORE_CIRpcAccessPolicy.cpp",
+  "src/gucefCOMCORE_CIRpcMethodHandler.cpp",
+  "src/gucefCOMCORE_CIRpcServiceImpl.cpp",
+  "src/gucefCOMCORE_CIRpcStream.cpp",
+  "src/gucefCOMCORE_CIRpcTransport.cpp",
+  "src/gucefCOMCORE_CIRpcTransportListener.cpp",
+  "src/gucefCOMCORE_CIRttProbe.cpp",
   "src/gucefCOMCORE_CMessageSerializer.cpp",
+  "src/gucefCOMCORE_COpenSslTlsProvider.cpp",
+  "src/gucefCOMCORE_COpenSslTlsProviderAbi.cpp",
+  "src/gucefCOMCORE_COpenSslTlsProviderSession.cpp",
   "src/gucefCOMCORE_CPingTaskConsumer.cpp",
+  "src/gucefCOMCORE_CPortMappingResult.cpp",
+  "src/gucefCOMCORE_CRpcBuiltInContracts.cpp",
+  "src/gucefCOMCORE_CRpcCallOptions.cpp",
+  "src/gucefCOMCORE_CRpcCallResult.cpp",
+  "src/gucefCOMCORE_CRpcCallTask.cpp",
+  "src/gucefCOMCORE_CRpcClientStream.cpp",
+  "src/gucefCOMCORE_CRpcCompatibilityReport.cpp",
+  "src/gucefCOMCORE_CRpcContract.cpp",
+  "src/gucefCOMCORE_CRpcContractBuilder.cpp",
+  "src/gucefCOMCORE_CRpcContractCompatibility.cpp",
+  "src/gucefCOMCORE_CRpcContractHash.cpp",
+  "src/gucefCOMCORE_CRpcContractRegistry.cpp",
+  "src/gucefCOMCORE_CRpcDurableRequestTable.cpp",
+  "src/gucefCOMCORE_CRpcEndpoint.cpp",
+  "src/gucefCOMCORE_CRpcEndpointLink.cpp",
+  "src/gucefCOMCORE_CRpcEndpointSettings.cpp",
+  "src/gucefCOMCORE_CRpcEnumDescriptor.cpp",
+  "src/gucefCOMCORE_CRpcFieldDescriptor.cpp",
+  "src/gucefCOMCORE_CRpcFrameCodec.cpp",
+  "src/gucefCOMCORE_CRpcFrameEventData.cpp",
+  "src/gucefCOMCORE_CRpcHost.cpp",
+  "src/gucefCOMCORE_CRpcHostSettings.cpp",
+  "src/gucefCOMCORE_CRpcLoopbackTransport.cpp",
+  "src/gucefCOMCORE_CRpcLoopbackTransportListener.cpp",
+  "src/gucefCOMCORE_CRpcMessage.cpp",
+  "src/gucefCOMCORE_CRpcMessageCodec.cpp",
+  "src/gucefCOMCORE_CRpcMetadata.cpp",
+  "src/gucefCOMCORE_CRpcMethodDescriptor.cpp",
+  "src/gucefCOMCORE_CRpcMethodRef.cpp",
+  "src/gucefCOMCORE_CRpcPrincipal.cpp",
+  "src/gucefCOMCORE_CRpcProtocolTask.cpp",
+  "src/gucefCOMCORE_CRpcReflectionService.cpp",
+  "src/gucefCOMCORE_CRpcRequestId.cpp",
+  "src/gucefCOMCORE_CRpcRequestStatus.cpp",
+  "src/gucefCOMCORE_CRpcRoleAccessPolicy.cpp",
+  "src/gucefCOMCORE_CRpcServerCall.cpp",
+  "src/gucefCOMCORE_CRpcServiceDescriptor.cpp",
+  "src/gucefCOMCORE_CRpcServiceImpl.cpp",
+  "src/gucefCOMCORE_CRpcServiceSet.cpp",
+  "src/gucefCOMCORE_CRpcSession.cpp",
+  "src/gucefCOMCORE_CRpcStatus.cpp",
+  "src/gucefCOMCORE_CRpcTransportProfile.cpp",
+  "src/gucefCOMCORE_CRpcTransportProperties.cpp",
+  "src/gucefCOMCORE_CRpcTypeDescriptor.cpp",
   "src/gucefCOMCORE_CSerialPort.cpp",
+  "src/gucefCOMCORE_CSocketReadinessWaiter.cpp",
+  "src/gucefCOMCORE_CTlsClientConnection.cpp",
+  "src/gucefCOMCORE_CTlsProviderRegistry.cpp",
+  "src/gucefCOMCORE_CTlsSettings.cpp",
+  "src/gucefCOMCORE_ITlsProvider.cpp",
+  "src/gucefCOMCORE_ITlsSession.cpp",
+  "src/gucefCOMCORE_RpcEventData.cpp",
+  "src/gucefCOMCORE_RpcTypes.cpp",
+  "src/gucefCOMCORE_TlsTypes.cpp",
   "src/socketutils.cpp"
  } )
+
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/android/gucefCOMCORE_CLinuxNetworkInterface.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/android/gucefCOMCORE_CLinuxNetworkInterface.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/android/gucefCOMCORE_CLinuxNetworkInterface.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/android/gucefCOMCORE_CLinuxNetworkInterface.cpp"
+    } )
 
 
 
@@ -208,10 +380,10 @@ configuration( {} )
 includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCORE/include/android", "include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../gucefCORE/include/android" } )
+includedirs( { "../gucefCORE/include/android", "include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../gucefCORE/include/linux", "include/linux" } )

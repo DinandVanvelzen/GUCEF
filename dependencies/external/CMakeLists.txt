@@ -20,11 +20,38 @@
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# Per CMake limitation, we must set any additional library search paths before defining the target
+if ( WIN32 )
+  link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
+endif( WIN32 )
+if ( WIN64 )
+  link_directories( $ENV{DXSDK_DIR}/Lib/x64 )
+endif( WIN64 )
+
+
+if( WIN32 )
+  set( MODULE_NAME "DirectInput8" )
+elseif( WIN64 )
+  set( MODULE_NAME "DirectInput8" )
+endif()
+if( WIN32 )
+  elseif( WIN64 )
+  endif()
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} dinput8 dxguid )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dinput8 dxguid )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=DirectInput8" )
 endif( WIN32 )
 
+if ( WIN64 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dinput8 dxguid )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=DirectInput8" )
+endif( WIN64 )
+
 if ( WIN32 )
-  include_directories( #$#ENVVAR:DXSDK_DIR#$#\Include )
+  include_directories( $ENV{DXSDK_DIR}/Include )
 endif( WIN32 )
+
+if ( WIN64 )
+  include_directories( $ENV{DXSDK_DIR}/Include )
+endif( WIN64 )

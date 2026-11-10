@@ -43,7 +43,26 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID32)
+if (ANDROID)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
@@ -98,6 +117,25 @@ elseif (ARDUINO)
   )
 
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (EMSCRIPTEN32)
@@ -195,6 +233,63 @@ elseif (IOS)
   set( PLATFORM_SOURCE_INSTALL "IOS" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (IPHONE)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONE" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONE" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (IPHONEOS)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONEOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONEOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "LINUX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
@@ -231,6 +326,82 @@ elseif (LINUX64)
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MAC)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MAC" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MAC" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOS)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOSX)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MSWIN)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MSWIN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MSWIN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (NACL)
@@ -385,6 +556,25 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_INSTALL "WIN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (WINDOWS)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WINDOWS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WINDOWS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 endif ()
 
 # For ease of use make a variable that has all files for this module
@@ -398,17 +588,25 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( .. ../.. ../../.. ../../../common/include ../../../dependencies/ ../../../dependencies/hiredis ../../../dependencies/redis-plus-plus/src/ ../../../dependencies/redis-plus-plus/src/sw/redis++ ../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11 ../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw ../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw/redis++ ../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls ../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw ../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw/redis++ ../../../dependencies/redis-plus-plus/src/sw/redis++/patterns ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include ../../../tools ../../../tools/redisinfo ../../../tools/redisinfo/include include )
 
+if ( ANDROID )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( ANDROID )
+
 if ( ANDROID32 )
-  include_directories( ../../../dependencies/hiredis ../../../platform/gucefCORE/include/android ../../../tools/redisinfo/include/ )
+  include_directories( ../../../dependencies/hiredis ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android ../../../tools/redisinfo/include/ )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../dependencies/hiredis ../../../platform/gucefCORE/include/android ../../../tools/redisinfo/include/ )
+  include_directories( ../../../dependencies/hiredis ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android ../../../tools/redisinfo/include/ )
 endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
 endif( ARDUINO )
+
+if ( EMSCRIPTEN )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( EMSCRIPTEN )
 
 if ( EMSCRIPTEN32 )
   include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
@@ -430,6 +628,18 @@ if ( IOS )
   include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
 endif( IOS )
 
+if ( IPHONE )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( LINUX )
+
 if ( LINUX32 )
   include_directories( ../../../dependencies/hiredis ../../../platform/gucefCOMCORE/include/linux ../../../platform/gucefCORE/include/linux ../../../tools/redisinfo/include/ )
 endif( LINUX32 )
@@ -437,6 +647,22 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../../../dependencies/hiredis ../../../platform/gucefCOMCORE/include/linux ../../../platform/gucefCORE/include/linux ../../../tools/redisinfo/include/ )
 endif( LINUX64 )
+
+if ( MAC )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( MSWIN )
 
 if ( NACL )
   include_directories( ../../../tools/redisinfo/include/ )
@@ -469,6 +695,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../dependencies/hiredis ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin ../../../tools/redisinfo/include/ )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( WINDOWS )
 
 
 

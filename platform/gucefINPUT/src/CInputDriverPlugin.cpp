@@ -258,14 +258,27 @@ CInputDriverPlugin::OnMouseVarChanged( void* userData         ,
                                        const Int32 value      ,
                                        const Int32 valueDelta ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-/*        CPluginInputContext* context( static_cast<CPluginInputContext*>( userData ) );
-        if ( NULL != context->DoGetMutableHandler() )
-        {
-                context->DoGetMutableHandler()->OnMouseVariableChanged( *context   ,
-                                                                        varIndex   ,
-                                                                        value      ,
-                                                                        valueDelta );
-        }  */
+
+    CPluginInputContext* context = static_cast<CPluginInputContext*>( userData );
+    context->GetPluginAPI()->InjectMouseVariableChange( context->GetID() ,
+                                                        deviceID         ,
+                                                        varIndex         ,
+                                                        value            ,
+                                                        valueDelta       );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void GUCEF_PLUGIN_CALLSPEC_PREFIX
+CInputDriverPlugin::OnKeyboardText( void* userData       ,
+                                    const Int32 deviceID ,
+                                    const char* utf8Text ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == utf8Text || '\0' == *utf8Text )
+        return;
+    CPluginInputContext* context = static_cast<CPluginInputContext*>( userData );
+    context->GetPluginAPI()->InjectKeyboardText( context->GetID(), deviceID, utf8Text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -550,6 +563,7 @@ CInputDriverPlugin::CreateContext( const CORE::CValueList& params )
     callbacks.onKeyboardDetached = OnKeyboardDetached;
     callbacks.onDeviceDetached   = OnDeviceDetached;
     callbacks.userData = context;
+    callbacks.onKeyboardText     = OnKeyboardText;
 
     char** argv = 0;
     int argc = 0;

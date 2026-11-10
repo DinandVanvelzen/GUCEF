@@ -34,6 +34,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_MT_H
 #include "gucefMT.h"
 #define GUCEF_MT_H
@@ -63,6 +68,31 @@
 #include "TestMutex.h"
 #define GUCEF_MT_TESTAPP_TESTMUTEX_H
 #endif /* GUCEF_MT_TESTAPP_TESTMUTEX_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTSEMAPHORE_H
+#include "TestSemaphore.h"
+#define GUCEF_MT_TESTAPP_TESTSEMAPHORE_H
+#endif /* GUCEF_MT_TESTAPP_TESTSEMAPHORE_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTSLOTDATAEXCHANGE_H
+#include "TestSlotDataExchange.h"
+#define GUCEF_MT_TESTAPP_TESTSLOTDATAEXCHANGE_H
+#endif /* GUCEF_MT_TESTAPP_TESTSLOTDATAEXCHANGE_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H
+#include "TestSpscQueue.h"
+#define GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H
+#endif /* GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTTHREADDATA_H
+#include "TestThreadData.h"
+#define GUCEF_MT_TESTAPP_TESTTHREADDATA_H
+#endif /* GUCEF_MT_TESTAPP_TESTTHREADDATA_H ? */
+
+#ifndef GUCEF_MT_TESTAPP_TESTATOMIC_H
+#include "TestAtomic.h"
+#define GUCEF_MT_TESTAPP_TESTATOMIC_H
+#endif /* GUCEF_MT_TESTAPP_TESTATOMIC_H ? */
 
 #ifndef GUCEF_MT_TESTAPP_TESTREADERWRITERLOCK_H
 #include "TestReaderWriterLock.h"
@@ -197,7 +227,7 @@ GUCEF_OSMAIN_BEGIN
             GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
         GUCEF_TESTFW_INIT( "gucefMT_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( GUCEF::CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefMT_TestApp_Results.xml" );
@@ -210,6 +240,11 @@ GUCEF_OSMAIN_BEGIN
 
         PerformMutexTests();
         PerformReaderWriterLockTests();
+        PerformAtomicTests();
+        PerformSemaphoreTests();
+        PerformSpscQueueTests();
+        PerformSlotDataExchangeTests();
+        PerformThreadDataTests();
 
         // Tests finished normally — disarm the watchdog before it fires
         watchdog.Cancel();

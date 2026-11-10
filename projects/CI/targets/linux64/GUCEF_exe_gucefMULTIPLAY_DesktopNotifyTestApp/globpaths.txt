@@ -1,0 +1,14 @@
+common/include/*
+common/test/include/*
+dependencies/monocypher/*
+platform/gucefAUTH/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefDRN/*
+platform/gucefMT/*
+platform/gucefMULTIPLAY/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+plugins/MULTIPLAY/notifysinkpluginDESKTOP/*
+tests/gucefMULTIPLAY_DesktopNotifyTestApp/*

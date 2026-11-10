@@ -1,11 +1,11 @@
 examples
 amiga
-as400
 contrib
+doc
 msdos
-old
+os400
 projects
 qnx
+test
+watcom
 win32
-example.c
-minigzip.c

@@ -31,6 +31,16 @@
 #define GUCEF_CORE_CX11WINDOW_H
 #endif /* GUCEF_CORE_CX11WINDOW_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
+#ifndef GUCEF_CORE_CX11EVENTDISPATCHER_H
+#include "gucefCORE_CX11EventDispatcher.h"
+#define GUCEF_CORE_CX11EVENTDISPATCHER_H
+#endif /* GUCEF_CORE_CX11EVENTDISPATCHER_H ? */
+
 #ifndef GUCEF_CORE_CTSHAREDPTR_H
 #include "CTSharedPtr.h"
 #define GUCEF_CORE_CTSHAREDPTR_H
@@ -90,23 +100,44 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
 
     virtual GUI::CString GetProperty( const GUI::CString& propertyName ) const;
 
+    virtual bool SetSystemCursorVisible( bool visible ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Full screen or a window of the size of the settings, waiting for the vertical blank or not */
+    bool ApplyVideoSettings( const GUI::CVideoSettings& videoSettings );
+
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings );
+
+    /**
+     *  As above; 'params' may hold "X" and "Y": where the window (its frame) is placed on the screen, honoured when the point
+     *  is on the screen. The property "POSITION" ("x,y") gives the place to restore a window at
+     */
+    bool Initialize( const GUI::CString& title                ,
+                     const GUI::CVideoSettings& videoSettings ,
+                     const CORE::CValueList* params           );
 
     void Shutdown( void );
 
     virtual const CORE::CString& GetClassTypeName( void ) const;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier          ,
-                           const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CXWinGLWindowContext > TEventCallback;
+
+    void OnWindowPaint( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnWindowResize( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnWindowClose( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnWindowActivation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+
+    /** Draws a frame: the observers redraw the window, then the buffers are swapped */
+    void Redraw( void );
 
     CXWinGLWindowContext( const CXWinGLWindowContext& src );            /**< private because: must be unique */
     CXWinGLWindowContext& operator=( const CXWinGLWindowContext& src ); /**< private because: must be unique */
+
+    /** Swaps wait for the vertical blank or not; the GL context must be current. False when the driver cannot set it */
+    bool ApplySwapInterval( bool vsync );
 
     private:
 
@@ -114,13 +145,15 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
     GUI::UInt32 m_id;
     GUI::CString m_name;
     CORE::CX11Window m_window;
-    //HGLRC m_renderContext;
-    //HDC m_deviceContext;
+    void* m_renderContext;          /**< GLXContext */
+    bool m_isCoreProfile;
+    bool m_shown;                   /**< mapped or exposed: before that a swap can wait for a window that is not shown (XWayland) */
+    CORE::CX11ActivationTokenProvider* m_activation;    /**< gives the launcher of the browser the startup id of the last key or button press while this window exists; NULL when somebody else's provider is installed */
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CORE::CTSharedPtr< CXWinGLWindowContext >  TXWinGLWindowContextPtr;
+typedef CORE::CTSharedPtr< CXWinGLWindowContext, MT::CMutex >  TXWinGLWindowContextPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

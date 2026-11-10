@@ -33,10 +33,10 @@
 #define GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
 #endif /* GUCEF_CORE_CGLOBALLYCONFIGURABLE_H ? */
 
-#ifndef GUCEF_CORE_CURLDATARETRIEVER_H
-#include "CURLDataRetriever.h"
-#define GUCEF_CORE_CURLDATARETRIEVER_H
-#endif /* GUCEF_CORE_CURLDATARETRIEVER_H ? */
+#ifndef GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#include "gucefCORE_CAsyncUriResourceRetriever.h"
+#define GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#endif /* GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H ? */
 
 #ifndef GUCEF_CORE_COBSERVINGNOTIFIER_H
 #include "CObservingNotifier.h"
@@ -140,7 +140,8 @@ class GUCEF_PRODMAN_PUBLIC_CPP CProductManager : public CORE::CObservingNotifier
     CString m_productListCodec;
     CString m_productRoot;
     CDownloadsManager m_downloadsManager;
-    CORE::CURLDataRetriever m_urlDataRetriever;
+    CORE::CDynamicBuffer m_productListBuffer;               /**< destination of the product list retrieval, must outlive the retriever */
+    CORE::CAsyncUriResourceRetriever m_urlDataRetriever;
 };
 
 /*-------------------------------------------------------------------------//

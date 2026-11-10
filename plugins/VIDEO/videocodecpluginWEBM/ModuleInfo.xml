@@ -1,0 +1,38 @@
+<ModuleInfoEntry>
+    <Module Name="videocodecpluginWEBM" Type="SharedLibrary" Platform="linux;mswin;android" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefVIDEO codec plugin for WebM video</DescriptionHeadline>
+            <DescriptionDetails>Decodes WebM / Matroska files with VP8 or VP9 video and Opus audio, and encodes VP9 with Opus into WebM. Uses libwebm for the container, libvpx for the video and libopus for the sound, behind the gucefVIDEO codec plugin C interface.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="libvpx" />
+            <Dependency Name="opus" />
+            <Dependency Name="libwebm" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="libvpx" />
+            <Dependency Name="opus" />
+            <Dependency Name="libwebm" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE" />
+        </Preprocessor>
+        <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-O2" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

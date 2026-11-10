@@ -108,6 +108,16 @@ LoadModuleDynamicly( const CString& filename );
 
 /*--------------------------------------------------------------------------*/
 
+/**
+ *  Same as LoadModuleDynamicly() but also tells why the module could not be loaded, for example
+ *  "libssl.so.3: cannot open shared object file: No such file or directory", which is the text of the
+ *  operating system for the file name as it was asked for. Empty when the module loaded.
+ */
+GUCEF_CORE_PUBLIC_CPP void*
+LoadModuleDynamicly( const CString& filename, CString& failureReason );
+
+/*--------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_C void
 UnloadModuleDynamicly( void* sohandle );
 
@@ -174,6 +184,28 @@ GetExeNameForProcessId( TProcessId pid   ,
 
 GUCEF_CORE_PUBLIC_CPP CString
 GetHostname( void );
+
+/*--------------------------------------------------------------------------*/
+
+/** See dvcppstringutils.h: the login name of the user the process runs as, empty when unknown */
+GUCEF_CORE_PUBLIC_CPP CString
+GetCurrentUserName( void );
+
+/*--------------------------------------------------------------------------*/
+
+/** See dvcppstringutils.h: the full name of the user the process runs as, empty when the system has none */
+GUCEF_CORE_PUBLIC_CPP CString
+GetCurrentUserDisplayName( void );
+
+/*--------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_CPP CString
+GetUserNameFromEnvironment( void );
+
+/*--------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_CPP CString
+GetDisplayNameFromGecos( const CString& gecos );
 
 /*--------------------------------------------------------------------------*/
 

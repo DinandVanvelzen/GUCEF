@@ -21,21 +21,47 @@ LOCAL_MODULE := gucefPUBSUB_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/MockPubSubClient.cpp \
+  src/TestBasicPubSubMsg.cpp \
+  src/TestBinaryPubSubJournal.cpp \
   src/TestCode_PubSubMsgBinaryStorageTest.cpp \
-  src/gucefPUBSUB_TestApp.cpp
+  src/TestPubSubBookmark.cpp \
+  src/TestPubSubClientConfig.cpp \
+  src/TestPubSubClientFeatures.cpp \
+  src/TestPubSubClientSide.cpp \
+  src/TestPubSubFlowRouter.cpp \
+  src/TestPubSubFlowRouterConfig.cpp \
+  src/TestPubSubMsgBinarySerializer.cpp \
+  src/TestPubSubMsgContainerBinarySerializer.cpp \
+  src/TestPubSubPlugin_AWSSNS.cpp \
+  src/TestPubSubPlugin_AWSSQS.cpp \
+  src/TestPubSubPlugin_FIX.cpp \
+  src/TestPubSubPlugin_FIX_Integration.cpp \
+  src/TestPubSubPlugin_KAFKA.cpp \
+  src/TestPubSubPlugin_MSMQ.cpp \
+  src/TestPubSubPlugin_REDISCLUSTER.cpp \
+  src/TestPubSubPlugin_STORAGE.cpp \
+  src/TestPubSubPlugin_STORAGE_Index.cpp \
+  src/TestPubSubPlugin_STORAGE_Replay.cpp \
+  src/TestPubSubPlugin_TEST.cpp \
+  src/TestPubSubPlugin_UDP.cpp \
+  src/TestPubSubPlugin_WEB.cpp \
+  src/gucefPUBSUB_TestApp_main.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefPUBSUB/include \
   $(MY_MODULE_PATH)/../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../platform/gucefWEB/include
+
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=gucefPUBSUB_TestApp -DMODULE_NAME=gucefPUBSUB_TestApp
 
 
 LOCAL_SHARED_LIBRARIES := \

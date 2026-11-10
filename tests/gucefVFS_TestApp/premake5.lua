@@ -46,7 +46,17 @@ defines( { "GUCEF_VFS_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefVFS_Tes
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestCode_VFSFileLoadUnloadTest.h"
+  "include/TestArchiveUtils.h",
+  "include/TestCode_VFSFileLoadUnloadTest.h",
+  "include/TestCueBinArchive.h",
+  "include/TestFileSystemAccess.h",
+  "include/TestIso9660Archive.h",
+  "include/TestItvArchive.h",
+  "include/TestLibArchive.h",
+  "include/TestMountFromResource.h",
+  "include/TestVfsCodecs.h",
+  "include/TestVfsConfig.h",
+  "include/TestZipArchiveWriter.h"
  } )
 
 
@@ -54,13 +64,23 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestArchiveUtils.cpp",
   "src/TestCode_VFSFileLoadUnloadTest.cpp",
+  "src/TestCueBinArchive.cpp",
+  "src/TestFileSystemAccess.cpp",
+  "src/TestIso9660Archive.cpp",
+  "src/TestItvArchive.cpp",
+  "src/TestLibArchive.cpp",
+  "src/TestMountFromResource.cpp",
+  "src/TestVfsCodecs.cpp",
+  "src/TestVfsConfig.cpp",
+  "src/TestZipArchiveWriter.cpp",
   "src/gucefVFS_TestApp.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

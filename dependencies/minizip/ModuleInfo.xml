@@ -1,0 +1,22 @@
+<ModuleInfoEntry>
+    <Module Name="minizip" Type="StaticLibrary" Platform="All">
+    </Module>
+    <Module Platform="mswin;linux">
+        <Linker>
+            <Dependency Name="zlib" />
+        </Linker>
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+    </Module>
+    <Module Platform="android">
+        <Linker>
+            <Dependency Name="z" />
+        </Linker>
+    </Module>
+    <Module Platform="emscripten" >
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+    </Module>
+</ModuleInfoEntry>

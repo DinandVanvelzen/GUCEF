@@ -1,0 +1,20 @@
+<ModuleInfoEntry>
+    <Module Name="AncestryDotComBackupLib" Type="StaticLibrary" Platform="All" >
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefWEB" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefWEB" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

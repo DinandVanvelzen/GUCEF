@@ -66,10 +66,6 @@
 #define GUCEF_WEB_CHTTPCLIENT_H
 #endif /* GUCEF_WEB_CHTTPCLIENT_H ? */
 
-#ifndef GUCEF_WEB_CHTTPURLHANDLER_H
-#include "gucefWEB_CHTTPURLHandler.h"
-#define GUCEF_WEB_CHTTPURLHANDLER_H
-#endif /* GUCEF_WEB_CHTTPURLHANDLER_H ? */
 
 #ifndef GUCEF_WEB_CASYNCHTTPSERVERREQUESTHANDLER_H
 #include "gucefWEB_CAsyncHttpServerRequestHandler.h"

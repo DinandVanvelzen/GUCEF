@@ -53,9 +53,9 @@ namespace IMAGE {
  *  linked type definition versus the runtime passed object
  */
 #define GUCEF_IMAGE_TIMAGE_VERSION                  1
-#define GUCEF_IMAGE_TIMAGEINFO_VERSION              1
+#define GUCEF_IMAGE_TIMAGEINFO_VERSION              2
 #define GUCEF_IMAGE_TIMAGEFRAME_VERSION             1
-#define GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION         1
+#define GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION         2
 #define GUCEF_IMAGE_TIMAGEMIPMAPLEVEL_VERSION       1
 #define GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION   1
 
@@ -105,6 +105,7 @@ struct SImageInfo
 {
     UInt32 version;                 /**< version of the TImageInfo definition */
     UInt32 nrOfFramesInImage;       /**< total number of frames in the image */
+    UInt32 loopCount;               /**< animations only: nr of times the frame sequence is played, 0 = loop forever. Added in version 2 */
 };
 
 typedef struct SImageInfo TImageInfo;
@@ -118,6 +119,7 @@ struct SImageFrameInfo
 {
     UInt32 version;                 /**< version of the TImageInfo definition */
     UInt32 nrOfMipmapLevels;        /**< total number of mimmap levels in the image */
+    UInt32 frameDurationInMs;       /**< animations only: how long the frame is shown in milliseconds, 0 = unspecified. Added in version 2 */
 };
 
 typedef struct SImageFrameInfo TImageFrameInfo;

@@ -117,22 +117,46 @@ GetProcessingInstructions( const CProjectInfo& projectInfo ,
 
 /*---------------------------------------------------------------------------*/
 
+static TStringVector
+CreateSourceFileExtensions( void )
+{
+    TStringVector fileTypes;
+    fileTypes.push_back( "c" );
+    fileTypes.push_back( "cc" );
+    fileTypes.push_back( "cpp" );
+    fileTypes.push_back( "cxx" );
+    fileTypes.push_back( "asm" );
+    fileTypes.push_back( "cs" );
+    return fileTypes;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static TStringVector
+CreateHeaderFileExtensions( void )
+{
+    TStringVector fileTypes;
+    fileTypes.push_back( "h" );
+    fileTypes.push_back( "hpp" );
+    fileTypes.push_back( "hxx" );
+    return fileTypes;
+}
+
+/*---------------------------------------------------------------------------*/
+
+// Initialized at module load time, before any of the concurrent module processing tasks run
+static const TStringVector g_sourceFileExtensions = CreateSourceFileExtensions();
+static const TStringVector g_headerFileExtensions = CreateHeaderFileExtensions();
+
+/*---------------------------------------------------------------------------*/
+
 const TStringVector&
 GetSourceFileExtensions( void )
 {GUCEF_TRACE;
 
-    static TStringVector fileTypes;
-
-    if ( fileTypes.empty() )
-    {
-        fileTypes.push_back( "c" );
-        fileTypes.push_back( "cc" );
-        fileTypes.push_back( "cpp" );
-        fileTypes.push_back( "cxx" );
-        fileTypes.push_back( "asm" );
-        fileTypes.push_back( "cs" );
-    }
-    return fileTypes;
+    // Note: the list is created at module load time. Lazily filling a function local static here was not thread-safe
+    // and this is called concurrently from the module processing tasks, causing modules to randomly lose their files
+    return g_sourceFileExtensions;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -141,15 +165,8 @@ const TStringVector&
 GetHeaderFileExtensions( void )
 {GUCEF_TRACE;
 
-    static TStringVector fileTypes;
-
-    if ( fileTypes.empty() )
-    {
-        fileTypes.push_back( "h" );
-        fileTypes.push_back( "hpp" );
-        fileTypes.push_back( "hxx" );
-    }
-    return fileTypes;
+    // Note: the list is created at module load time, see GetSourceFileExtensions()
+    return g_headerFileExtensions;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -298,11 +315,13 @@ RemoveString( TStringVector& list            ,
         return true;
     }
 
+    // A pattern with wildcards, such as "*_neon.c", removes everything it matches
     bool removedString = false;
+    bool isWildcardPattern = searchStr.HasChar( '*', true ) >= 0;
     TStringVector::iterator i = list.begin();
     while ( i != list.end() )
     {
-        if ( (*i) == searchStr )
+        if ( (*i) == searchStr || ( isWildcardPattern && (*i).WildcardEquals( searchStr, '*', true ) ) )
         {
             list.erase( i );
             i = list.begin();
@@ -330,11 +349,13 @@ RemoveString( TStringSet& list               ,
         return true;
     }
 
+    // A pattern with wildcards, such as "*_neon.c", removes everything it matches
     bool removedString = false;
+    bool isWildcardPattern = searchStr.HasChar( '*', true ) >= 0;
     TStringSet::iterator i = list.begin();
     while ( i != list.end() )
     {
-        if ( (*i) == searchStr )
+        if ( (*i) == searchStr || ( isWildcardPattern && (*i).WildcardEquals( searchStr, '*', true ) ) )
         {
             list.erase( i );
             i = list.begin();
@@ -761,6 +782,7 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
         static const CORE::CString itemNodeName = "ITEM";
         static const CORE::CString nameAttribName = "NAME";
         static const CORE::CString typeAttribName = "TYPE";
+        static const CORE::CString typeAttribIncludeDirValue = "INCLUDEDIR";
         static const CORE::CString allPlatformsValue = "ALL";
 
         // Parse the instructions for the information we are looking for
@@ -776,9 +798,10 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
             CORE::CDataNode::TConstDataNodeSet::iterator w = platformsNodes.begin();
             while ( w != platformsNodes.end() )
             {
-                CORE::CDataNode::TConstDataNodeSet platformNodes = rootNode->FindChildrenOfType( platformNodeName, false );
-                CORE::CDataNode::TConstDataNodeSet::iterator q = platformsNodes.begin();
-                while ( q != platformsNodes.end() )
+                // The platform definitions are children of the PLATFORMS node
+                CORE::CDataNode::TConstDataNodeSet platformNodes = (*w)->FindChildrenOfType( platformNodeName, false );
+                CORE::CDataNode::TConstDataNodeSet::iterator q = platformNodes.begin();
+                while ( q != platformNodes.end() )
                 {
                     const CORE::CDataNode* platformNode = (*q);
                     TStringVector platformNames = platformNode->GetAttributeValueOrChildValueByName( "NAME" ).AsString().Lowercase().ParseElements( ';', false );
@@ -789,9 +812,11 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
                         if ( !platformName.IsNULLOrEmpty() )
                         {
                             TPlatformDefinition& platformDefinition = instructionStorage.platforms[ platformName ];
+                            platformDefinition.name = platformName;
                             platformDefinition.aliases = StringVectorToStringSet( platformNode->GetAttributeValueOrChildValueByName( "ALIASES" ).AsString().Lowercase().ParseElements( ';', false ) );
                             platformDefinition.platformDirs = StringVectorToStringSet( platformNode->GetAttributeValueOrChildValueByName( "PLATFORMDIRS" ).AsString().ParseElements( ';', false ) );
                         }
+                        ++j;
                     }
                     ++q;
                 }
@@ -829,9 +854,25 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
                             {
                                 // Get the name and type of the item to add to the list
                                 CORE::CString itemName = curNode2->GetAttributeValue( nameAttribName );
+                                CORE::CString itemType = curNode2->GetAttributeValue( typeAttribName );
+                                if ( !itemName.IsNULLOrEmpty() && itemType.Equals( typeAttribIncludeDirValue, false ) )
+                                {
+                                    // This is not a processing exclusion: the files in the dir remain part of the module
+                                    // The dir is merely not to be used as an include search path. "." refers to the dir holding the instructions
+                                    if ( platformName.IsNULLOrEmpty() || platformName.Equals( allPlatformsValue, false ) )
+                                    {
+                                        instructionStorage.includeDirExcludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
+                                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added include search path exclude entry \"" + itemName + "\" based on the processing instructions for this dir" );
+                                    }
+                                    else
+                                    {
+                                        instructionStorage.includeDirExcludeList[ platformName ].push_back( itemName );
+                                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added include search path exclude entry \"" + itemName + "\" for platform " + platformName + " based on the processing instructions for this dir" );
+                                    }
+                                }
+                                else
                                 if ( !itemName.IsNULLOrEmpty() )
                                 {
-                                    CORE::CString itemType = curNode2->GetAttributeValue( typeAttribName );
                                     bool itemIsADir = IsProcessingInstructionsItemADir( instructionsDir, itemName, itemType );
 
                                     // We found an item to add to our list
@@ -1813,6 +1854,85 @@ FindSubDirsWithFileTypes( const CProjectInfo& projectInfo                       
 
 /*---------------------------------------------------------------------------*/
 
+bool
+IsIncludeDirSearchPathExcludedByInstructions( const CProjectInfo& projectInfo                          ,
+                                              const CORE::CString& instructionsDir                     ,
+                                              const CORE::CString& itemName                            ,
+                                              const CORE::CString& platform                            ,
+                                              TDirProcessingInstructionsMap& newProcessingInstructions )
+{GUCEF_TRACE;
+
+    const TDirProcessingInstructions* instructions = GetProcessingInstructions( projectInfo, instructionsDir, newProcessingInstructions );
+    if ( GUCEF_NULL == instructions )
+        return false;
+
+    // Check both the entries specific to the given platform and those which apply to all platforms
+    TStringVectorMap::const_iterator i = instructions->includeDirExcludeList.begin();
+    while ( i != instructions->includeDirExcludeList.end() )
+    {
+        const CORE::CString& instructionsPlatform = (*i).first;
+        if ( instructionsPlatform == KnownPlatforms::AllPlatforms || instructionsPlatform.Equals( platform, false ) )
+        {
+            const TStringVector& entries = (*i).second;
+            TStringVector::const_iterator n = entries.begin();
+            while ( n != entries.end() )
+            {
+                if ( (*n).Equals( itemName, false ) )
+                    return true;
+                ++n;
+            }
+        }
+        ++i;
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+ApplyIncludeDirSearchPathExclusions( const CProjectInfo& projectInfo                          ,
+                                     CModuleInfoEntryPtr& moduleInfoEntry                     ,
+                                     TDirProcessingInstructionsMap& newProcessingInstructions )
+{GUCEF_TRACE;
+
+    const CORE::CString& moduleRootDir = moduleInfoEntry->GetAbsolutePathToModuleRootDir();
+
+    TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().begin();
+    while ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        const CORE::CString& platform = (*m).first;
+        CModuleInfoPtr moduleInfo = (*m).second;
+
+        TStringSetMap::const_iterator d = moduleInfo->GetIncludeDirs().begin();
+        while ( d != moduleInfo->GetIncludeDirs().end() )
+        {
+            const CORE::CString& relIncludeDir = (*d).first;
+            CORE::CString absIncludeDir = relIncludeDir.IsNULLOrEmpty() ? moduleRootDir : CORE::CombinePath( moduleRootDir, relIncludeDir );
+
+            // The dir can be referred to as "." by instructions in the dir itself or by name by instructions in its parent dir
+            bool isExcluded = IsIncludeDirSearchPathExcludedByInstructions( projectInfo, absIncludeDir, ".", platform, newProcessingInstructions );
+            if ( !isExcluded && !relIncludeDir.IsNULLOrEmpty() )
+            {
+                isExcluded = IsIncludeDirSearchPathExcludedByInstructions( projectInfo                            ,
+                                                                           CORE::StripLastSubDir( absIncludeDir ) ,
+                                                                           CORE::LastSubDir( absIncludeDir )      ,
+                                                                           platform                               ,
+                                                                           newProcessingInstructions              );
+            }
+
+            if ( isExcluded )
+            {
+                moduleInfo->ExcludeIncludeDirFromSearchPaths( relIncludeDir );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Include dir \"" + relIncludeDir + "\" of module " + moduleInfo->name + " will not be used as an include search path per the processing instructions" );
+            }
+            ++d;
+        }
+        ++m;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
 void
 FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
                           CModuleInfoEntryPtr& moduleInfoEntry ,
@@ -2009,6 +2129,10 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
     // Such projects are sensitive to the inclusion of header parent dirs as include dirs in order for the include paths
     // to be correct. To cover this case we add relative parent dirs of dirs with headers
     FillHeaderSubDirIncludes( projectInfo, moduleInfoEntry );
+
+    // Some dirs with headers are not to be used as include search paths, for example because they contain
+    // a 3rd party header named like a system header. Their headers do remain part of the module.
+    ApplyIncludeDirSearchPathExclusions( projectInfo, moduleInfoEntry, newProcessingInstructions );
 }
 
 /*---------------------------------------------------------------------------*/

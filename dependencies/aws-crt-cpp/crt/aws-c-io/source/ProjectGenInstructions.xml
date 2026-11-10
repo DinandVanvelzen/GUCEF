@@ -7,6 +7,7 @@
     </INCLUDES>	
 	<INCLUDES PLATFORM="linux">
         <ITEM NAME="linux" TYPE="DIR" />
+        <ITEM NAME="posix" TYPE="DIR" />
     </INCLUDES>	
 	<INCLUDES PLATFORM="osx">
         <ITEM NAME="darwin" TYPE="DIR" />

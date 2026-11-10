@@ -1,0 +1,250 @@
+#version 450
+layout(constant_id = 0) const int order_type = 0;
+layout(constant_id = 1) const int bugihfa = 0;
+#define shape_constant_id_offset 2
+layout(constant_id = shape_constant_id_offset + 0) const int dims = 0;
+layout(constant_id = shape_constant_id_offset + 1) const int w = 0;
+layout(constant_id = shape_constant_id_offset + 2) const int h = 0;
+layout(constant_id = shape_constant_id_offset + 3) const int d = 0;
+layout(constant_id = shape_constant_id_offset + 4) const int c = 0;
+layout(constant_id = shape_constant_id_offset + 5) const int cstep = 0;
+layout(constant_id = shape_constant_id_offset + 6) const int outdims = 0;
+layout(constant_id = shape_constant_id_offset + 7) const int outw = 0;
+layout(constant_id = shape_constant_id_offset + 8) const int outh = 0;
+layout(constant_id = shape_constant_id_offset + 9) const int outd = 0;
+layout(constant_id = shape_constant_id_offset + 10) const int outc = 0;
+layout(constant_id = shape_constant_id_offset + 11) const int outcstep = 0;
+layout(binding = 0) readonly buffer bottom_blob { sfp bottom_blob_data[]; };
+layout(binding = 1) writeonly buffer top_blob { sfp top_blob_data[]; };
+layout(push_constant) uniform parameter
+{
+int dims;
+int w;
+int h;
+int d;
+int c;
+int cstep;
+int outdims;
+int outw;
+int outh;
+int outd;
+int outc;
+int outcstep;
+} p;
+void main()
+{
+int gx = int(gl_GlobalInvocationID.x);
+int gy = int(gl_GlobalInvocationID.y);
+int gz = int(gl_GlobalInvocationID.z);
+if (gx >= psc(outw) || gy >= psc(outh) * psc(outd) || gz >= psc(outc))
+return;
+int x;
+int y;
+int z;
+if (psc(dims) == 2)
+{
+gz = 0;
+z = 0;
+if (order_type == 0)
+{
+x = gx;
+y = gy;
+}
+if (order_type == 1)
+{
+x = gy;
+y = gx;
+}
+}
+else if (psc(dims) == 3)
+{
+if (order_type == 0)
+{
+x = gx;
+y = gy;
+z = gz;
+}
+if (order_type == 1)
+{
+x = gy;
+y = gx;
+z = gz;
+}
+if (order_type == 2)
+{
+x = gx;
+y = gz;
+z = gy;
+}
+if (order_type == 3)
+{
+x = gy;
+y = gz;
+z = gx;
+}
+if (order_type == 4)
+{
+x = gz;
+y = gx;
+z = gy;
+}
+if (order_type == 5)
+{
+x = gz;
+y = gy;
+z = gx;
+}
+}
+else 
+{
+int yd = gy / psc(outh);
+int yh = gy % psc(outh);
+if (order_type == 0)
+{
+x = gx;
+y = yd * psc(h) + yh;
+z = gz;
+}
+if (order_type == 1)
+{
+x = yh;
+y = yd * psc(h) + gx;
+z = gz;
+}
+if (order_type == 2)
+{
+x = gx;
+y = yh * psc(h) + yd;
+z = gz;
+}
+if (order_type == 3)
+{
+x = yh;
+y = gx * psc(h) + yd;
+z = gz;
+}
+if (order_type == 4)
+{
+x = yd;
+y = yh * psc(h) + gx;
+z = gz;
+}
+if (order_type == 5)
+{
+x = yd;
+y = gx * psc(h) + yh;
+z = gz;
+}
+if (order_type == 6)
+{
+x = gx;
+y = gz * psc(h) + yh;
+z = yd;
+}
+if (order_type == 7)
+{
+x = yh;
+y = gz * psc(h) + gx;
+z = yd;
+}
+if (order_type == 8)
+{
+x = gx;
+y = gz * psc(h) + yd;
+z = yh;
+}
+if (order_type == 9)
+{
+x = yh;
+y = gz * psc(h) + yd;
+z = gx;
+}
+if (order_type == 10)
+{
+x = yd;
+y = gz * psc(h) + gx;
+z = yh;
+}
+if (order_type == 11)
+{
+x = yd;
+y = gz * psc(h) + yh;
+z = gx;
+}
+if (order_type == 12)
+{
+x = gx;
+y = yh * psc(h) + gz;
+z = yd;
+}
+if (order_type == 13)
+{
+x = yh;
+y = gx * psc(h) + gz;
+z = yd;
+}
+if (order_type == 14)
+{
+x = gx;
+y = yd * psc(h) + gz;
+z = yh;
+}
+if (order_type == 15)
+{
+x = yh;
+y = yd * psc(h) + gz;
+z = gx;
+}
+if (order_type == 16)
+{
+x = yd;
+y = gx * psc(h) + gz;
+z = yh;
+}
+if (order_type == 17)
+{
+x = yd;
+y = yh * psc(h) + gz;
+z = gx;
+}
+if (order_type == 18)
+{
+x = gz;
+y = yh * psc(h) + gx;
+z = yd;
+}
+if (order_type == 19)
+{
+x = gz;
+y = gx * psc(h) + yh;
+z = yd;
+}
+if (order_type == 20)
+{
+x = gz;
+y = yd * psc(h) + gx;
+z = yh;
+}
+if (order_type == 21)
+{
+x = gz;
+y = yd * psc(h) + yh;
+z = gx;
+}
+if (order_type == 22)
+{
+x = gz;
+y = gx * psc(h) + yd;
+z = yh;
+}
+if (order_type == 23)
+{
+x = gz;
+y = yh * psc(h) + yd;
+z = gx;
+}
+}
+int v_offset = z * psc(cstep) + y * psc(w) + x;
+const int gi = gz * psc(outcstep) + gy * psc(outw) + gx;
+buffer_cp1(top_blob_data, gi, bottom_blob_data, v_offset);
+}

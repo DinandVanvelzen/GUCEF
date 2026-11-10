@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_CONFIG_H
-#define GUCEF_GUIDRIVERROCKETGL_CONFIG_H
+#ifndef GUCEF_GUIDRIVERRMLUIGL_CONFIG_H
+#define GUCEF_GUIDRIVERRMLUIGL_CONFIG_H
 
 /*
  *      Build configuration specific macros.
@@ -43,12 +43,12 @@
 //-------------------------------------------------------------------------*/
 
 /* Switches for the export of C++ and/or C code */
-#define GUIDRIVERROCKETGL_PUBLIC_CPP_CODE
-#define GUIDRIVERROCKETGL_PUBLIC_C_CODE
+#define GUIDRIVERRMLUIGL_PUBLIC_CPP_CODE
+#define GUIDRIVERRMLUIGL_PUBLIC_C_CODE
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_GUIDRIVERROCKETGL_CONFIG_H ? */
+#endif /* GUCEF_GUIDRIVERRMLUIGL_CONFIG_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

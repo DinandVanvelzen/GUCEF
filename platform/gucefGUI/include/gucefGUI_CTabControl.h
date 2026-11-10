@@ -31,10 +31,10 @@
 #define GUCEF_CORE_CLONEABLES_H
 #endif /* GUCEF_CORE_CLONEABLES_H ? */
 
-#ifndef GUCEF_GUI_CTABCONTENTPANE_H
-#include "gucefGUI_CTabContentPane.h"
-#define GUCEF_GUI_CTABCONTENTPANE_H
-#endif /* GUCEF_GUI_CTABCONTENTPANE_H ? */
+#ifndef GUCEF_GUI_CWIDGET_H
+#include "gucefGUI_CWidget.h"
+#define GUCEF_GUI_CWIDGET_H
+#endif /* GUCEF_GUI_CWIDGET_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -51,32 +51,79 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CTabContentPane;
+
+/**
+ *  Tabs along the top (the Tabs property, one entry per tab) above pages: the children of type
+ *  TabContentPane, in order. The page of ActiveTab is shown. Properties: Tabs, ActiveTab, TabHeight,
+ *  Font, TextColour, TabColour, ActiveTabColour, BackgroundColour, TextOverflow (a title wider than its
+ *  tab: Clip, or Ellipsis with the whole title as the tooltip of the tab). A click on a tab or Left /
+ *  Right while focused switches the tab (ValueChangedEvent and ActiveTabChangedEvent).
+ */
 class GUCEF_GUI_PUBLIC_CPP CTabControl : public CWidget
 {
     public:
 
     static const CORE::CEvent ActiveTabChangedEvent;
-    
     typedef CORE::TCloneableUInt32 TActiveTabChangedEventData;
-    
+
     static void RegisterEvents( void );
-    
+
     public:
-    
+
     CTabControl( void );
-    
+
     virtual ~CTabControl();
-    
+
     virtual bool SetActiveTab( const UInt32 tabIndex );
-    
+
     virtual Int32 GetActiveTab( void ) const;
-    
+
     virtual CTabContentPane* GetTabContentPane( const UInt32 tabIndex );
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
+    UInt32 GetTabCount( void ) const;
+
+    /** Where the header of a tab is, relative to the control; tabs share the width equally */
+    CRect GetTabRect( UInt32 tabIndex ) const;
+
+    /** The tab at a position relative to the control, -1 when none */
+    Int32 GetTabAt( Int32 localX, Int32 localY ) const;
+
+    /** The room around the title of a tab */
+    enum ETabLayout
+    {
+        TAB_TEXT_PADDING = 4
+    };
+
+    /** The pixels the title of a tab has: the width of its header without the padding on both sides */
+    Int32 GetTabTextRoom( UInt32 tabIndex ) const;
+
+    /** Whether the title of a tab is wider than its room: with TextOverflow Ellipsis it is drawn cut with "..." and its tooltip is the whole title */
+    bool IsTabTitleCut( UInt32 tabIndex ) const;
+
+    /** Over a tab whose title is cut (TextOverflow Ellipsis): the whole title; else the Tooltip property */
+    virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "TabControl"; }
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** A page added or taken away: the active one is shown, the others not */
+    virtual void OnChildrenChanged( void ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
+    void ShowActivePane( void );
+
     CTabControl( const CTabControl& src );
     CTabControl& operator=( const CTabControl& src );
 };
@@ -91,16 +138,5 @@ class GUCEF_GUI_PUBLIC_CPP CTabControl : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CTABCONTROL_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

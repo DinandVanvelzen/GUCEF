@@ -29,6 +29,11 @@
 #define GUCEF_MT_COBJECTSCOPELOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #ifndef GUCEF_CORE_DVSTRUTILS_H
 #include "dvstrutils.h"
 #define GUCEF_CORE_DVSTRUTILS_H
@@ -110,6 +115,7 @@ struct CUDPSocket::SUDPSockData
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     std::vector< struct mmsghdr > msgs;
     std::vector< struct iovec > iovecs;
+    GUCEF::vector< struct sockaddr_in > sourceAddresses;    /* where recvmmsg() writes the sender of each packet */
     #endif
 };
 
@@ -140,6 +146,9 @@ CUDPSocket::CUDPSocket( const CORE::PulseGeneratorPtr& pulseGenerator ,
     , m_bytesTransmitted( 0 )
     , m_nrOfDataReceivedEvents( 0 )
     , m_nrOfDataSentEvents( 0 )
+    , m_useReadinessWake( false )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -174,6 +183,9 @@ CUDPSocket::CUDPSocket( bool blocking )
     , m_bytesTransmitted( 0 )
     , m_nrOfDataReceivedEvents( 0 )
     , m_nrOfDataSentEvents( 0 )
+    , m_useReadinessWake( false )
+    , m_readinessWaiter()
+    , m_readinessId( 0 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -231,6 +243,13 @@ CUDPSocket::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator )
 
     m_pulseGenerator = newPulseGenerator;
     RegisterEventHandlers();
+
+    // an open socket wakes the new pulse generator from now on
+    if ( 0 != m_readinessId )
+    {
+        RegisterForReadinessWake();
+        ArmReadinessWake();
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -250,11 +269,24 @@ CUDPSocket::SetNrOfReceiveBuffers( UInt32 nrOfReceiveBuffers ,
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Attempt to set nrOfReceiveBuffers to 0, this is not allowed. Forcing to 1" );
     }
 
+    // The logical receive buffers and the packet entries are views on the underlying receive buffer.
+    // Resizing the underlying buffer can move its memory, so drop every view first: resizing a vector
+    // of views afterwards would copy them and with that read memory which was already released
+    UInt32 oldNrOfReceiveBuffers = (UInt32) m_receiveBuffers.size();
+    UInt32 oldBufferSize = m_maxRecievedDataBufferSize;
+    TUdpPacketsRecievedEventData& infoStruct = m_udpPacketsReceivedEventData.GetData();
+    infoStruct.packets.clear();
+    infoStruct.packetsReceived = 0;
+    m_receiveBuffers.clear();
+
     if ( !m_underlyingReceiveBuffer.SetBufferSize( nrOfReceiveBuffers * newBufferSize ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Failed to allocate enough memory for " + CORE::UInt32ToString( nrOfReceiveBuffers ) +
             " receive buffers with each buffer having a size of " + CORE::UInt32ToString( newBufferSize ) + " bytes."
             " Total required bytes for underlying buffer in bytes = " + CORE::UInt32ToString( nrOfReceiveBuffers * newBufferSize ) );
+
+        // A failed resize leaves the underlying buffer as it was, so the previous views are still valid
+        LinkReceiveBuffers( oldNrOfReceiveBuffers, oldBufferSize );
         return false;
     }
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Successfully allocated enough memory for " + CORE::UInt32ToString( nrOfReceiveBuffers ) +
@@ -262,38 +294,52 @@ CUDPSocket::SetNrOfReceiveBuffers( UInt32 nrOfReceiveBuffers ,
         " Total required bytes for underlying buffer in bytes = " + CORE::UInt32ToString( nrOfReceiveBuffers * newBufferSize ) );
 
     m_maxRecievedDataBufferSize = newBufferSize;
+    LinkReceiveBuffers( nrOfReceiveBuffers, newBufferSize );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUDPSocket::LinkReceiveBuffers( UInt32 nrOfReceiveBuffers, UInt32 bufferSize )
+{GUCEF_TRACE;
 
     TUdpPacketsRecievedEventData& infoStruct = m_udpPacketsReceivedEventData.GetData();
+    infoStruct.packets.clear();
     infoStruct.packets.resize( nrOfReceiveBuffers );
     infoStruct.packetsReceived = 0;
 
+    m_receiveBuffers.clear();
     m_receiveBuffers.resize( nrOfReceiveBuffers );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     _data->msgs.resize( nrOfReceiveBuffers );
     _data->iovecs.resize( nrOfReceiveBuffers );
+    _data->sourceAddresses.resize( nrOfReceiveBuffers );
     #endif
 
-    for ( UInt32 i=0; i<m_receiveBuffers.size(); ++i )
+    for ( UInt32 i=0; i<nrOfReceiveBuffers; ++i )
     {
         CORE::CDynamicBuffer& linkedBuffer = m_receiveBuffers[ i ];
-        linkedBuffer.LinkTo( m_underlyingReceiveBuffer.GetBufferPtr( i * newBufferSize ), newBufferSize );
+        linkedBuffer.LinkTo( m_underlyingReceiveBuffer.GetBufferPtr( i * bufferSize ), bufferSize );
         infoStruct.packets[ i ].dataBuffer.LinkTo( &linkedBuffer );
 
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
         memset( &_data->iovecs[ i ], 0, sizeof( _data->iovecs[ i ] ) );
-        _data->iovecs[ i ].iov_base         = m_underlyingReceiveBuffer.GetBufferPtr( i * newBufferSize );
-        _data->iovecs[ i ].iov_len          = newBufferSize;
+        _data->iovecs[ i ].iov_base         = m_underlyingReceiveBuffer.GetBufferPtr( i * bufferSize );
+        _data->iovecs[ i ].iov_len          = bufferSize;
         memset( &_data->msgs[ i ], 0, sizeof( _data->msgs[ i ] ) );
         _data->msgs[ i ].msg_hdr.msg_iov    = &_data->iovecs[ i ];
         _data->msgs[ i ].msg_hdr.msg_iovlen = 1;
+        memset( &_data->sourceAddresses[ i ], 0, sizeof( _data->sourceAddresses[ i ] ) );
+        _data->msgs[ i ].msg_hdr.msg_name    = &_data->sourceAddresses[ i ];
+        _data->msgs[ i ].msg_hdr.msg_namelen = sizeof( struct sockaddr_in );
         #endif
 
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Linked logical receive buffer " +
                 CORE::UInt32ToString( i+1 ) + "/" + CORE::UInt32ToString( nrOfReceiveBuffers ) );
     }
 
-    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -366,8 +412,8 @@ CUDPSocket::SendPacketTo( const CIPv4Address& dest ,
         m_bytesTransmitted += returnValue;
         ++m_nrOfDataSentEvents;
 
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SendPacketTo: Sent " + CORE::UInt16ToString( datasize ) +
-            " bytes to " + dest.AddressAndPortAsString() + " from " + m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):SendPacketTo: Sent " << datasize <<
+            " bytes to " << dest.AddressAndPortAsString() << " from " << m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
     }
     else
     {
@@ -408,11 +454,36 @@ CUDPSocket::IsIncomingDataQueued( void )
 
 /*-------------------------------------------------------------------------*/
 
+static int
+CloseUdpDescriptor( MT::CMutex& dataLock, SOCKET& published, SOCKET sockid )
+{GUCEF_TRACE;
+
+    // The descriptor is no longer ours either way: the system may hand the number to the next socket, which a
+    // second close would take away from it. A descriptor another thread closed (or replaced) meanwhile is left alone.
+    MT::CScopeMutex lock( dataLock );
+    if ( 0 == sockid || published != sockid )
+        return 0;
+    int errorCode = 0;
+    int closeResult = dvsocket_closesocket( sockid, &errorCode );
+    published = 0;
+    return 0 == closeResult ? 0 : ( 0 != errorCode ? errorCode : -1 );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CUDPSocket::Update( bool performRead )
 {GUCEF_TRACE;
 
-    if ( !_blocking && _data->sockid > 0 )
+    // the descriptor is published by Open() and Close() under the data lock: they may run on another thread
+    // than the one that pulses this socket
+    SOCKET sockid = 0;
+    {
+        MT::CScopeMutex lock( _datalock );
+        sockid = _data->sockid;
+    }
+
+    if ( !_blocking && sockid > 0 )
     {
         fd_set readfds;      /* Setup the read variable for the select function */
         fd_set exceptfds;    /* Setup the except variable for the select function */
@@ -431,10 +502,10 @@ CUDPSocket::Update( bool performRead )
         {
             FD_ZERO( &readfds );
             FD_ZERO( &exceptfds );
-            FD_SET( _data->sockid, &readfds );
-            FD_SET( _data->sockid, &exceptfds );
+            FD_SET( sockid, &readfds );
+            FD_SET( sockid, &exceptfds );
 
-            if ( dvsocket_select( (int)_data->sockid+1 ,
+            if ( dvsocket_select( (int)sockid+1        ,
                                   &readfds             ,
                                   NULL                 , // We don't care about socket writes here
                                   &exceptfds           ,
@@ -443,18 +514,17 @@ CUDPSocket::Update( bool performRead )
             {
                 // something happened on the socket
 
-                if ( FD_ISSET( _data->sockid, &exceptfds ) )
+                if ( FD_ISSET( sockid, &exceptfds ) )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CUDPSocket(" + CORE::PointerToString( this ) + "): Socket error occured: " +
                             CORE::Int32ToString( errorCode ) );
 
-                    int closeError;
-                    dvsocket_closesocket( _data->sockid, &closeError );
-                    _data->sockid = 0;
+                    UnregisterFromReadinessWake();
+                    CloseUdpDescriptor( _datalock, _data->sockid, sockid );
                     break;
                 }
                 else
-                if ( FD_ISSET( _data->sockid, &readfds ) )
+                if ( FD_ISSET( sockid, &readfds ) )
                 {
                     // data can be read from the socket
                     // This is why we loop, to batch multiple reads per cycle
@@ -484,16 +554,15 @@ CUDPSocket::Update( bool performRead )
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "UDPSocket(" + CORE::PointerToString( this ) + "): Socket error occured (select call failed) on socket " +
                     ipv4Address.AddressAndPortAsString() + ". Error code: " + CORE::Int32ToString( errorCode ) );
 
-                int closeError;
-                dvsocket_closesocket( _data->sockid, &closeError );
-                _data->sockid = 0;
+                UnregisterFromReadinessWake();
+                CloseUdpDescriptor( _datalock, _data->sockid, sockid );
                 break;
             }
         }
 
         if ( eventData.packetsReceived > 0 )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):Update: Received " + CORE::UInt32ToString( eventData.packetsReceived ) + " packets in one cycle" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):Update: Received " << eventData.packetsReceived << " packets in one cycle" );
 
             // Send an event notifying people that the data was recieved
             if ( !NotifyObservers( UDPPacketsRecievedEvent, &m_udpPacketsReceivedEventData ) ) return false;
@@ -516,7 +585,7 @@ CUDPSocket::Update( bool performRead )
         {
             // We reached out max bulk operation size per notification
             // However there is more work to do
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):Update: Max operations per Update() cycle reached for the current nr of read buffers" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):Update: Max operations per Update() cycle reached for the current nr of read buffers" );
             return true;
         }
         else
@@ -528,6 +597,94 @@ CUDPSocket::Update( bool performRead )
 
     // Not applicable thus no work to do
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUDPSocket::SetUseReadinessWake( bool useReadinessWake )
+{GUCEF_TRACE;
+
+    m_useReadinessWake = useReadinessWake;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUDPSocket::GetUseReadinessWake( void ) const
+{GUCEF_TRACE;
+
+    return m_useReadinessWake;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUDPSocket::RegisterForReadinessWake( void )
+{GUCEF_TRACE;
+
+    UnregisterFromReadinessWake();
+
+    SOCKET sockid = 0;
+    CSocketReadinessWaiterPtr waiter;
+    {
+        MT::CScopeMutex lock( _datalock );
+        sockid = _data->sockid;
+        waiter = m_readinessWaiter;
+    }
+    if ( _blocking || 0 == sockid || m_pulseGenerator.IsNULL() )
+        return;
+    if ( waiter.IsNULL() )
+        waiter = CComCoreGlobal::Instance()->GetSocketReadinessWaiter();
+    if ( waiter.IsNULL() )
+        return;
+
+    // asked for by this socket's owner, or by the owner of the pulse generator for every socket on it
+    if ( !m_useReadinessWake && !waiter->IsEnabledForPulseGenerator( m_pulseGenerator ) )
+        return;
+    CSocketReadinessWaiter::TRegistrationId id = waiter->Register( (UInt64) sockid, m_pulseGenerator );
+
+    // published under the data lock: the thread that pulses this socket arms the registration
+    MT::CScopeMutex lock( _datalock );
+    m_readinessWaiter = waiter;
+    m_readinessId = id;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUDPSocket::ArmReadinessWake( void )
+{GUCEF_TRACE;
+
+    CSocketReadinessWaiter::TRegistrationId id = 0;
+    CSocketReadinessWaiterPtr waiter;
+    {
+        MT::CScopeMutex lock( _datalock );
+        if ( 0 == m_readinessId || 0 == _data->sockid )
+            return;
+        id = m_readinessId;
+        waiter = m_readinessWaiter;
+    }
+    waiter->Arm( id, CSocketReadinessWaiter::ReadinessRead );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUDPSocket::UnregisterFromReadinessWake( void )
+{GUCEF_TRACE;
+
+    CSocketReadinessWaiter::TRegistrationId id = 0;
+    CSocketReadinessWaiterPtr waiter;
+    {
+        MT::CScopeMutex lock( _datalock );
+        if ( 0 == m_readinessId )
+            return;
+        id = m_readinessId;
+        waiter = m_readinessWaiter;
+        m_readinessId = 0;
+    }
+    waiter->Unregister( id );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -570,7 +727,7 @@ CUDPSocket::OnPulse( CORE::CNotifier* notifier                 ,
             if ( !m_pulseGenerator.IsNULL() )
             {
                 m_pulseGenerator->RequestImmediatePulse();
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):OnPulse: Max update cycles per pulse reached, will request an immediate pulse (CPU burst mode)" );
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):OnPulse: Max update cycles per pulse reached, will request an immediate pulse (CPU burst mode)" );
             }
         }
     }
@@ -578,6 +735,8 @@ CUDPSocket::OnPulse( CORE::CNotifier* notifier                 ,
     {
         while( Update( true ) );
     }
+
+    ArmReadinessWake();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -749,6 +908,10 @@ CUDPSocket::PerformRead( UInt32 readIndex, UInt32& packetsRead )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 
     UInt32 maxPackets = (UInt32) m_receiveBuffers.size() - readIndex;
+
+    // recvmmsg() sets the name length to what it wrote: give every entry the full room again
+    for ( UInt32 i=readIndex; i<readIndex+maxPackets; ++i )
+        _data->msgs[ i ].msg_hdr.msg_namelen = sizeof( struct sockaddr_in );
 
     struct timespec timeout;
     memset( &timeout, 0, sizeof( timeout ) );
@@ -938,10 +1101,17 @@ CUDPSocket::Open( const CORE::CString& localaddr ,
 {GUCEF_TRACE;
 
     CHostAddress address( localaddr, port );
-    CIPv4Address& ipv4Address = m_hostAddress.GetIPv4Addresses()[ 0 ];
+    if ( address.GetIPv4Addresses().empty() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Unable to resolve the local address \"" + localaddr + "\" to open the socket on" );
+        return false;
+    }
 
+    // Open() takes the address and keeps it, with the port the system assigned when 0 was asked for
+    CIPv4Address ipv4Address = address.GetFirstIPv4Address();
     bool success = Open( ipv4Address );
-    m_hostAddress = address;
+    if ( success )
+        m_hostAddress = CHostAddress( m_hostAddress.GetFirstIPv4Address(), address.GetHostname() );
     return success;
 }
 
@@ -958,10 +1128,16 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
 
     //create a UDP socket
     int errorCode = 0;
-    if ( ( _data->sockid = dvsocket_socket( AF_INET     ,
-                                            SOCK_DGRAM  ,
-                                            IPPROTO_UDP ,
-                                            &errorCode  ) ) == INVALID_SOCKET )
+    SOCKET sockid = dvsocket_socket( AF_INET     ,
+                                     SOCK_DGRAM  ,
+                                     IPPROTO_UDP ,
+                                     &errorCode  );
+    {
+        // published under the data lock: the thread that pulses this socket reads it in Update()
+        MT::CScopeMutex lock( _datalock );
+        _data->sockid = INVALID_SOCKET == sockid ? 0 : sockid;
+    }
+    if ( INVALID_SOCKET == sockid )
     {
         TSocketErrorEventData eData( errorCode );
         if ( !NotifyObservers( UDPSocketErrorEvent, &eData ) ) return false;
@@ -975,7 +1151,7 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
     }
 
     // Set the desired blocking mode
-    if ( !SetBlockingMode( _data->sockid, _blocking ) )
+    if ( !SetBlockingMode( sockid, _blocking ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set blocking mode \"" +
             CORE::BoolToString( _blocking ) + "\" on socket" );
@@ -985,25 +1161,25 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
 
         return false;
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set blocking mode \"" +
-        CORE::BoolToString( _blocking ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set blocking mode \"" <<
+        CORE::BoolToString( _blocking ) << "\" on socket" );
 
     int allowAddressReuse = 1;
-    if ( 0 > dvsocket_setsockopt( _data->sockid, SOL_SOCKET, SO_REUSEADDR, (const char*) &allowAddressReuse, sizeof(int), &errorCode ) )
+    if ( 0 > dvsocket_setsockopt( sockid, SOL_SOCKET, SO_REUSEADDR, (const char*) &allowAddressReuse, sizeof(int), &errorCode ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set address reuse mode \"" + CORE::BoolToString( allowAddressReuse != 0 )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set address reuse mode \"" + CORE::BoolToString( allowAddressReuse != 0 ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set address reuse mode \"" << CORE::BoolToString( allowAddressReuse != 0 ) << "\" on socket" );
 
     #ifdef SO_REUSEPORT
     int allowPortReuse = 1;
-    if ( 0 > dvsocket_setsockopt( _data->sockid, SOL_SOCKET, SO_REUSEPORT, (const char*) &allowPortReuse, sizeof(int), &errorCode ) )
+    if ( 0 > dvsocket_setsockopt( sockid, SOL_SOCKET, SO_REUSEPORT, (const char*) &allowPortReuse, sizeof(int), &errorCode ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set port reuse mode \"" + CORE::BoolToString( allowPortReuse != 0 )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set port reuse mode \"" + CORE::BoolToString( allowPortReuse != 0 ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set port reuse mode \"" << CORE::BoolToString( allowPortReuse != 0 ) << "\" on socket" );
     #endif
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
@@ -1013,41 +1189,41 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
         // of the overall socket blocking mode
         struct timeval receiveTimeout;
         memset( &receiveTimeout, 0, sizeof( receiveTimeout ) );
-        if ( 0 > dvsocket_setsockopt( _data->sockid, SOL_SOCKET, SO_RCVTIMEO, (const char*) &receiveTimeout, sizeof(receiveTimeout), &errorCode ) )
+        if ( 0 > dvsocket_setsockopt( sockid, SOL_SOCKET, SO_RCVTIMEO, (const char*) &receiveTimeout, sizeof(receiveTimeout), &errorCode ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set receive timeout \"0\" on socket"
                 + ". Error code: " + CORE::UInt32ToString( errorCode ) );
         }
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set receive timeout \"0\" on socket" );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set receive timeout \"0\" on socket" );
     }
     #endif
 
     SetOsLevelSocketReceiveBufferSize( m_osLevelSocketReceiveBufferSize );
 
     Int32 loopch = m_allowMulticastLoopback ? (Int32)1 : (Int32)0;
-    if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_IP, IP_MULTICAST_LOOP, (const char*) &loopch, sizeof(loopch), &errorCode ) )
+    if ( 0 > dvsocket_setsockopt( sockid, IPPROTO_IP, IP_MULTICAST_LOOP, (const char*) &loopch, sizeof(loopch), &errorCode ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set multicast loopback (dis)allowed mode \"" + CORE::BoolToString( loopch != 0 )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set multicast loopback mode \"" + CORE::BoolToString( loopch != 0 ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set multicast loopback mode \"" << CORE::BoolToString( loopch != 0 ) << "\" on socket" );
 
-    if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_IP, IP_MULTICAST_TTL, (const char*) &m_multicastTTL, sizeof(m_multicastTTL), &errorCode ) )
+    if ( 0 > dvsocket_setsockopt( sockid, IPPROTO_IP, IP_MULTICAST_TTL, (const char*) &m_multicastTTL, sizeof(m_multicastTTL), &errorCode ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set multicast TTL to " + CORE::Int32ToString( m_multicastTTL )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set multicast TTL to \"" + CORE::Int32ToString( m_multicastTTL ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set multicast TTL to \"" << m_multicastTTL << "\" on socket" );
 
     // This option is needed on the socket in order to be able to transmit broadcast messages
     // If not set the socket will not be able to transmit broadcast messages in the local network subnet.
     Int32 broadcastOption = m_allowBroadcast ? 1 : 0;
-    if ( 0 > dvsocket_setsockopt( _data->sockid, SOL_SOCKET, SO_BROADCAST, (const char*) &broadcastOption, sizeof(broadcastOption), &errorCode ) )
+    if ( 0 > dvsocket_setsockopt( sockid, SOL_SOCKET, SO_BROADCAST, (const char*) &broadcastOption, sizeof(broadcastOption), &errorCode ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set broadcast option to " + CORE::BoolToString( m_allowBroadcast )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set broadcast option to \"" + CORE::BoolToString( m_allowBroadcast ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set broadcast option to \"" << CORE::BoolToString( m_allowBroadcast ) << "\" on socket" );
 
     _data->localaddress.sin_family = AF_INET;
     _data->localaddress.sin_port = ipv4Address.GetPort();
@@ -1055,7 +1231,7 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
 
     SetDefaultMulticastInterface( ipv4Address );
 
-    if ( dvsocket_bind( _data->sockid                            ,
+    if ( dvsocket_bind( sockid                                   ,
                         (struct sockaddr *) &_data->localaddress ,
                         sizeof(struct sockaddr_in)               ,
                         &errorCode                               ) == 0 )
@@ -1065,12 +1241,15 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
         {
             struct sockaddr_in sin;
             socklen_t len = sizeof(sin);
-            if ( 0 == getsockname( _data->sockid, (struct sockaddr*) &sin, &len ) )
+            if ( 0 == getsockname( sockid, (struct sockaddr*) &sin, &len ) )
                 ipv4Address.SetPort( sin.sin_port );
         }
 
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully bound and opened socket at " + ipv4Address.AddressAndPortAsString()
             + " aka " + CORE::UInt32ToString( ipv4Address.GetAddress() ) + ":" + CORE::UInt16ToString( ipv4Address.GetPort() ) + " in network format" );
+        RegisterForReadinessWake();
+        ArmReadinessWake();
+
         if ( !NotifyObservers( UDPSocketOpenedEvent ) ) return true;
 
         // We will now be requiring periodic updates to poll for data
@@ -1125,7 +1304,7 @@ CUDPSocket::SetOsLevelSocketReceiveBufferSize( UInt32 osLevelSocketReceiveBuffer
                 return false;
             }
         }
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set OS level socket receive buffer size to " + CORE::Int32ToString( socketReceiveBufferSize ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set OS level socket receive buffer size to " << socketReceiveBufferSize );
 
         #else
 
@@ -1137,7 +1316,7 @@ CUDPSocket::SetOsLevelSocketReceiveBufferSize( UInt32 osLevelSocketReceiveBuffer
 
             return false;
         }
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set OS level socket receive buffer size to " + CORE::Int32ToString( socketReceiveBufferSize ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set OS level socket receive buffer size to " << socketReceiveBufferSize );
 
         #endif
     }
@@ -1162,8 +1341,8 @@ CUDPSocket::GetOsLevelSocketReceiveBufferSize( void ) const
             return m_osLevelSocketReceiveBufferSize;
         }
 
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):GetOsLevelSocketReceiveBufferSize: OS level receive buffer size is: " +
-                CORE::Int32ToString( actualSocketReceiveBufferSize ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):GetOsLevelSocketReceiveBufferSize: OS level receive buffer size is: " <<
+                actualSocketReceiveBufferSize );
         return (UInt32) actualSocketReceiveBufferSize;
     }
 
@@ -1432,10 +1611,19 @@ CUDPSocket::Close( bool shutdownOnly )
 
         if ( !shutdownOnly )
         {
+            // the waiter must not wait on a descriptor number the system may hand to the next socket
+            UnregisterFromReadinessWake();
+
             // A socket close will trigger a shutdown sequence if one hasnt occured yet and will also free up the related
             // system resources
-            int errorCode = 0;
-            if ( 0 == dvsocket_closesocket( _data->sockid, &errorCode ) )
+            SOCKET sockid = 0;
+            {
+                MT::CScopeMutex lock( _datalock );
+                sockid = _data->sockid;
+            }
+            int errorCode = CloseUdpDescriptor( _datalock, _data->sockid, sockid );
+
+            if ( 0 == errorCode )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Closed socket at " + m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
 
@@ -1456,6 +1644,7 @@ CUDPSocket::Close( bool shutdownOnly )
         else
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): shutting down socket at " + m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
+            MT::CScopeMutex lock( _datalock );
             shutdown( _data->sockid, 1 );
         }
     }
@@ -1476,6 +1665,7 @@ bool
 CUDPSocket::IsActive( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( _datalock );
     return _data->sockid > 0;
 }
 

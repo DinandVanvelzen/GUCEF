@@ -587,7 +587,8 @@ CIOAccess::Write( CIOAccess& sourceData ,
     readBuffer.SetDataSize( 1024 );
     Int64 bytesLeftToWrite = bytesToWrite;
 
-    while ( !sourceData.Eof() )
+    // A limit of zero or less means everything the source has
+    while ( !sourceData.Eof() && ( bytesToWrite <= 0 || bytesLeftToWrite > 0 ) )
     {
         UInt32 bytesToRead = 1024;
         if ( bytesLeftToWrite > 0 && bytesLeftToWrite < 1024 )

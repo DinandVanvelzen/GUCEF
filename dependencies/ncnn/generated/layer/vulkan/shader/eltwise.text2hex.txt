@@ -1,0 +1,41 @@
+#version 450
+layout(constant_id = 0) const int op_type = 0;
+layout(constant_id = 1) const int coeff_term = 0;
+layout(constant_id = 2) const uint n = 0;
+layout(binding = 0) readonly buffer bottom_blob1 { sfpvec4 bottom_blob1_data[]; };
+layout(binding = 1) readonly buffer bottom_blob2 { sfpvec4 bottom_blob2_data[]; };
+layout(binding = 2) writeonly buffer top_blob { sfpvec4 top_blob_data[]; };
+layout(push_constant) uniform parameter
+{
+uint n;
+float coeff0;
+float coeff1;
+} p;
+void main()
+{
+const uint gi = gl_GlobalInvocationID.x;
+if (gi >= psc(n))
+return;
+afpvec4 v1 = buffer_ld4(bottom_blob1_data, gi);
+afpvec4 v2 = buffer_ld4(bottom_blob2_data, gi);
+afpvec4 res;
+if (coeff_term == 0)
+{
+if (op_type == 0)
+res = v1 * v2;
+if (op_type == 1)
+res = v1 + v2;
+if (op_type == 2)
+res = max(v1, v2);
+}
+else
+{
+if (op_type == 0)
+res = v1 * v2;
+if (op_type == 1)
+res = v1 * afp(p.coeff0) + v2 * afp(p.coeff1);
+if (op_type == 2)
+res = max(v1, v2);
+}
+buffer_st4(top_blob_data, gi, res);
+}

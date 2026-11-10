@@ -1,6 +1,6 @@
 <PROJECTGENERATOR>
     <INCLUDES PLATFORM="ALL">
-        <ITEM NAME="../gucefMT/src/gucefMT_mutex.c" TYPE="FILE" />
+        <ITEM NAME="../gucefMT/src/gucefMT_MUTEX.c" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_mutex.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_CILockable.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_CILockable.h" TYPE="FILE" />
@@ -31,6 +31,27 @@
         <ITEM NAME="../gucefCORE/include/gucefCORE_CString.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CAsciiString.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CAsciiString.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CRandom.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CRandom.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CProcess.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CProcess.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CProcessPipe.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CProcessPipe.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_StdoutClaim.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_StdoutClaim.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CDecimal.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CDecimal.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CDecimalAccumulator.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_RoundingMode.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CDataTableValues.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CDataTableValues.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CTimestamp.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CTimestamp.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf16String.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CUtf16String.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf32String.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CUtf32String.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf8String.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CUtf8String.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CIDate.cpp" TYPE="FILE" />
@@ -73,6 +94,8 @@
         <ITEM NAME="../gucefCORE/include/dvfileutils.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/dvcppfileutils.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/dvcppfileutils.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_IFileSystemIterator.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/dvcppstringutils.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/dvcppstringutils.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/md5.c" TYPE="FILE" />

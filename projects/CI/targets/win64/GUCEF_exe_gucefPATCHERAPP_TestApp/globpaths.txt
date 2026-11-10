@@ -1,0 +1,4 @@
+common/include/*
+platform/gucefCORE/*
+platform/gucefLOADER/*
+platform/gucefMT/*

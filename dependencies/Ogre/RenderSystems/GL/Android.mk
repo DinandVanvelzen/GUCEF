@@ -101,7 +101,6 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../freetype/src \
   $(MY_MODULE_PATH)/../../../freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../OgreMain/include \
-  $(MY_MODULE_PATH)/../../OgreMain/include/Android \
   $(MY_MODULE_PATH)/../../OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../OgreMain/src \
@@ -112,7 +111,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/src/GLSL \
   $(MY_MODULE_PATH)/src/atifs
 
-LOCAL_CFLAGS := -DOGRE_GLPLUGIN_EXPORTS
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=OgreRenderSystem_GL -DMODULE_NAME=OgreRenderSystem_GL -DOGRE_GLPLUGIN_EXPORTS
 
 
 LOCAL_SHARED_LIBRARIES := \

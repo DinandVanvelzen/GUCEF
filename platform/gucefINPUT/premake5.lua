@@ -58,9 +58,11 @@ files( {
   "include/gucefINPUT_CKeyModStateChangedEventData.h",
   "include/gucefINPUT_CKeyStateChangedEventData.h",
   "include/gucefINPUT_CKeyboard.h",
+  "include/gucefINPUT_CKeyboardTextEventData.h",
   "include/gucefINPUT_CMouse.h",
   "include/gucefINPUT_CMouseButtonEventData.h",
   "include/gucefINPUT_CMouseMovedEventData.h",
+  "include/gucefINPUT_CMouseVariableChangedEventData.h",
   "include/gucefINPUT_CTConcreteActionEventData.h",
   "include/gucefINPUT_ETypes.h",
   "include/gucefINPUT_config.h",
@@ -89,9 +91,11 @@ files( {
   "src/gucefINPUT_CKeyModStateChangedEventData.cpp",
   "src/gucefINPUT_CKeyStateChangedEventData.cpp",
   "src/gucefINPUT_CKeyboard.cpp",
+  "src/gucefINPUT_CKeyboardTextEventData.cpp",
   "src/gucefINPUT_CMouse.cpp",
   "src/gucefINPUT_CMouseButtonEventData.cpp",
   "src/gucefINPUT_CMouseMovedEventData.cpp",
+  "src/gucefINPUT_CMouseVariableChangedEventData.cpp",
   "src/gucefINPUT_keyboard.cpp"
  } )
 

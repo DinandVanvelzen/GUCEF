@@ -61,6 +61,15 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CGUIContext;
+
+/**
+ *  A window of a window driver.
+ *
+ *  Several GUI contexts can draw in one window, as layers: each has a layer number (CGUIContext::SetLayer()), and
+ *  they are drawn from the lowest layer up, in the order they were made when the numbers are equal. The GUI
+ *  contexts register themselves.
+ */
 class GUCEF_GUI_PUBLIC_CPP CWindowContext : public CORE::CObservingNotifier
 {        
     public:
@@ -68,6 +77,7 @@ class GUCEF_GUI_PUBLIC_CPP CWindowContext : public CORE::CObservingNotifier
     static const GUCEF::CORE::CEvent WindowContextRedrawEvent;
     static const GUCEF::CORE::CEvent WindowContextSizeEvent;
     static const GUCEF::CORE::CEvent WindowContextActivateEvent;
+    static const GUCEF::CORE::CEvent WindowContextCloseRequestEvent;    /**< the user asked to close the window (its close button); the application decides */
 
     typedef GUCEF::CORE::TCloneableBool WindowContextActivateEventData;
     
@@ -94,8 +104,32 @@ class GUCEF_GUI_PUBLIC_CPP CWindowContext : public CORE::CObservingNotifier
     virtual TGuiContextPtr GetGuiContext( void ) = 0;
 
     virtual CString GetProperty( const CString& propertyName ) const = 0;
-    
+
+    /** Shows or hides the pointer of the system over the window, for GUIs that draw their own; false when the window cannot */
+    virtual bool SetSystemCursorVisible( bool visible );
+
+    /**
+     *  Shows the pointer of the system unless the GUI layer that takes the input (the highest that shows something, else
+     *  the lowest) draws a picture of its own (CGUIContext::SetCursor()). The window is asked only when that changes
+     */
+    void UpdateSystemCursor( void );
+
+    typedef GUCEF::vector< CGUIContext* > TGuiContextLayers;
+
+    /** The GUI contexts that draw in the window, from the lowest layer up */
+    const TGuiContextLayers& GetGuiLayers( void ) const;
+
+    /** For GUI contexts: they draw in this window, or no longer, or their layer number changed */
+    void RegisterGuiLayer( CGUIContext* context );
+
+    void UnregisterGuiLayer( CGUIContext* context );
+
+    void SortGuiLayers( void );
+
     private:
+
+    TGuiContextLayers m_guiLayers;
+    Int32 m_systemCursorShown;      /**< -1 when not known yet */
     
     CWindowContext( const CWindowContext& src );            /**< private because: must be unique */ 
     CWindowContext& operator=( const CWindowContext& src ); /**< private because: must be unique */

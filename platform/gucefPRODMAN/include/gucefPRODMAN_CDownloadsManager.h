@@ -31,10 +31,10 @@
 #define GUCEF_CORE_CTCLONEABLEOBJ_H
 #endif /* GUCEF_CORE_CTCLONEABLEOBJ_H ? */
 
-#ifndef GUCEF_CORE_CURLDATARETRIEVER_H
-#include "CURLDataRetriever.h"
-#define GUCEF_CORE_CURLDATARETRIEVER_H
-#endif /* GUCEF_CORE_CURLDATARETRIEVER_H ? */
+#ifndef GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#include "gucefCORE_CAsyncUriResourceRetriever.h"
+#define GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H
+#endif /* GUCEF_CORE_CASYNCURIRESOURCERETRIEVER_H ? */
 
 #ifndef GUCEF_PATCHER_CPATCHMANAGER_H
 #include "gucefPATCHER_CPatchManager.h"
@@ -145,7 +145,9 @@ class GUCEF_PRODMAN_PUBLIC_CPP CDownloadsManager : public CORE::CObservingNotifi
     CString m_patchEngineConfigTemplatePath;
     CString m_patchEngineConfigTemplateCodec;
     PATCHER::CPatchManager m_patchManager;
-    CORE::CURLDataRetriever m_adListUrlRetiever;
+    CString m_adListUrl;
+    CORE::CDynamicBuffer m_adListBuffer;                    /**< destination of the list retrieval, must outlive the retriever */
+    CORE::CAsyncUriResourceRetriever m_adListRetriever;
     bool m_resumeDownloadsOnStartup;
 };
 

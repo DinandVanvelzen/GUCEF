@@ -150,7 +150,24 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID32)
+if (ANDROID)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
     src/StateCacheManager/OgreGLNullUniformCacheImp.h
@@ -199,6 +216,23 @@ elseif (ARDUINO)
   )
 
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (EMSCRIPTEN32)
@@ -301,6 +335,57 @@ elseif (IOS)
   set( PLATFORM_SOURCE_INSTALL "IOS" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (IPHONE)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONE" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONE" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (IPHONEOS)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONEOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONEOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "LINUX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
@@ -333,6 +418,74 @@ elseif (LINUX64)
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MAC)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MAC" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MAC" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOS)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOSX)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MSWIN)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MSWIN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MSWIN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (NACL)
@@ -502,6 +655,23 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_INSTALL "WIN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (WINDOWS)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WINDOWS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WINDOWS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 endif ()
 
 # For ease of use make a variable that has all files for this module
@@ -531,6 +701,10 @@ endif( WIN64 )
 
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include include/GL src src/GLSL src/GLSL/include src/StateCacheManager src/atifs src/atifs/include src/nvparse src/nvparse/winheaders )
 
+if ( ANDROID )
+  include_directories( src/StateCacheManager )
+endif( ANDROID )
+
 if ( ANDROID32 )
   include_directories( ../../OgreMain/include/Android src/StateCacheManager )
 endif( ANDROID32 )
@@ -542,6 +716,10 @@ endif( ANDROID64 )
 if ( ARDUINO )
   include_directories( src/StateCacheManager )
 endif( ARDUINO )
+
+if ( EMSCRIPTEN )
+  include_directories( src/StateCacheManager )
+endif( EMSCRIPTEN )
 
 if ( EMSCRIPTEN32 )
   include_directories( ../../OgreMain/include/Emscripten src/StateCacheManager )
@@ -563,6 +741,18 @@ if ( IOS )
   include_directories( ../../OgreMain/include/iOS src/StateCacheManager )
 endif( IOS )
 
+if ( IPHONE )
+  include_directories( src/StateCacheManager )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( src/StateCacheManager )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( src/StateCacheManager )
+endif( LINUX )
+
 if ( LINUX32 )
   include_directories( src/StateCacheManager )
 endif( LINUX32 )
@@ -570,6 +760,22 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( src/StateCacheManager )
 endif( LINUX64 )
+
+if ( MAC )
+  include_directories( src/StateCacheManager )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( src/StateCacheManager )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( src/StateCacheManager )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( src/StateCacheManager )
+endif( MSWIN )
 
 if ( NACL )
   include_directories( src/StateCacheManager )
@@ -602,6 +808,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( src/StateCacheManager )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( src/StateCacheManager )
+endif( WINDOWS )
 
 
 

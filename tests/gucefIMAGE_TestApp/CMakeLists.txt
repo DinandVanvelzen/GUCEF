@@ -14,7 +14,23 @@
 
 
 if (LINUX32)
+  set( PLATFORM_HEADER_FILES 
+    include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
+    include/TestImageUpscaler.h
+    include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
+    src/TestImageUpscaler.cpp
+    src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -22,7 +38,23 @@ if (LINUX32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX64)
+  set( PLATFORM_HEADER_FILES 
+    include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
+    include/TestImageUpscaler.h
+    include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
+    src/TestImageUpscaler.cpp
+    src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -30,7 +62,23 @@ elseif (LINUX64)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN32)
+  set( PLATFORM_HEADER_FILES 
+    include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
+    include/TestImageUpscaler.h
+    include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
+    src/TestImageUpscaler.cpp
+    src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -38,7 +86,23 @@ elseif (WIN32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN64)
+  set( PLATFORM_HEADER_FILES 
+    include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
+    include/TestImageUpscaler.h
+    include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
   set( PLATFORM_SOURCE_FILES 
+    src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
+    src/TestImageUpscaler.cpp
+    src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -46,9 +110,6 @@ elseif (WIN64)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
-
-# Make sure the PLATFORM_HEADER_FILES variable is always defined
- set( PLATFORM_HEADER_FILES "" )
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
@@ -98,19 +159,19 @@ if ( WIN64 )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
 endif( WIN64 )
 
 

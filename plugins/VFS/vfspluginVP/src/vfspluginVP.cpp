@@ -82,6 +82,7 @@ GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_S
 {GUCEF_TRACE;
 
     VFS::CVfsGlobal::Instance()->GetVfs().RegisterArchiveFactory( CVPArchive::VPArchiveTypeName, vpArchiveFactory );
+    VFS::CVfsGlobal::Instance()->GetVfs().SetArchiveTypeFileExtensions( CVPArchive::VPArchiveTypeName, CORE::CString( "vp" ).ParseUniqueElements( ';', false ) );
     return 1;
 }
 
@@ -122,6 +123,15 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     return "Generic GUCEF plugin for VFS \"Violation Pack\" archives";
+}
+
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefCORE,gucefVFS";
 }
 
 /*-------------------------------------------------------------------------//

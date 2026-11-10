@@ -44,7 +44,7 @@
             "generator": "Ninja",
             "toolchainFile": "${sourceDir}/projects/CMake/Emscripten.toolchain.cmake",
             "cacheVariables": {
-                "BUILD_SHARED_LIBS": "ON",
+                "BUILD_SHARED_LIBS": "OFF",
                 "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
                 "PLATFORM": "wasm"
             }

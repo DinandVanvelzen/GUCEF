@@ -21,33 +21,122 @@ LOCAL_MODULE := gucefCORE_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestASync.cpp \
+  src/TestAbstractFactory.cpp \
+  src/TestAllocationCounter.cpp \
+  src/TestAsyncUriResourceRetriever.cpp \
+  src/TestBase64Url.cpp \
+  src/TestBigUnsigned.cpp \
+  src/TestBinaryWire.cpp \
+  src/TestBusyWaitPulseGeneratorDriver.cpp \
+  src/TestBrowserLauncher.cpp \
+  src/TestCodecPlugins.cpp \
+  src/TestConfigStore.cpp \
+  src/TestCronSchedule.cpp \
+  src/TestCryptoCodecs.cpp \
+  src/TestCsvTableCodec.cpp \
+  src/TestCsvTableCodecInference.cpp \
+  src/TestCsvTableCodecRoundTrip.cpp \
+  src/TestCsvTableCodecWriter.cpp \
   src/TestCyclicDynamicBuffer.cpp \
+  src/TestDStoreStreaming.cpp \
   src/TestDataDrivenDStoreCodecs.cpp \
+  src/TestDataNode.cpp \
   src/TestDataNodeBinarySerializer.cpp \
+  src/TestDataTableBatchBuilder.cpp \
+  src/TestDataTableBufferPool.cpp \
+  src/TestDataTableColumnBatch.cpp \
+  src/TestDataTablePredicate.cpp \
+  src/TestDataTableScan.cpp \
+  src/TestDataTableScanBenchmark.cpp \
+  src/TestDataTableSchema.cpp \
+  src/TestDataTableVariant.cpp \
   src/TestDateTime.cpp \
+  src/TestDateTimeRange.cpp \
+  src/TestDecimal.cpp \
+  src/TestDecimalVariant.cpp \
+  src/TestDedicatedTasks.cpp \
+  src/TestDenormalFlushScope.cpp \
+  src/TestDesktopTerminalConsoleLogger.cpp \
+  src/TestDynamicBuffer.cpp \
   src/TestDynamicBufferStringStream.cpp \
   src/TestDynamicBufferSwap.cpp \
+  src/TestExternalThreads.cpp \
+  src/TestFileAccess.cpp \
+  src/TestFileDataTable.cpp \
+  src/TestFileSystemAccess.cpp \
+  src/TestFileSystemAccessResultC.c \
   src/TestFileUtils.cpp \
+  src/TestFraction.cpp \
+  src/TestFrameworkSkip.cpp \
+  src/TestFrameworkSuites.cpp \
+  src/TestFreeList.cpp \
+  src/TestFutureResultSource.cpp \
   src/TestIniParser.cpp \
+  src/TestJsonDataNodeFidelity.cpp \
+  src/TestJsonSchema.cpp \
+  src/TestJsonSyntaxValidator.cpp \
+  src/TestLogging.cpp \
+  src/TestLogManagerLockOrder.cpp \
+  src/TestPumpedObserverLockOrder.cpp \
+  src/TestPumpedObserverMail.cpp \
+  src/TestAppStopWithTasks.cpp \
+  src/TestCoreGlobalTeardown.cpp \
+  src/TestMemoryDataTable.cpp \
+  src/TestNotificationCost.cpp \
+  src/TestNotifierDelivery.cpp \
   src/TestNotifierObserver.cpp \
+  src/TestPbkdf2HmacSha256.cpp \
+  src/TestPluginUnload.cpp \
+  src/TestProcess.cpp \
+  src/TestRandom.cpp \
+  src/TestRateLimiting.cpp \
+  src/TestRedactor.cpp \
+  src/TestSchedule.cpp \
+  src/TestScopedValue.cpp \
+  src/TestSecureBuffer.cpp \
+  src/TestServiceHealthRegistry.cpp \
+  src/TestServiceHosting.cpp \
+  src/TestSfinaeUtils.cpp \
   src/TestSharedPtr.cpp \
+  src/TestStandardStreams.cpp \
+  src/TestStopwatch.cpp \
   src/TestString.cpp \
+  src/TestSysConsole.cpp \
+  src/TestTableCodecRegistry.cpp \
+  src/TestTaskDelegatorWakeUp.cpp \
+  src/TestTaskMemoryRetention.cpp \
+  src/TestTaskPulseRequests.cpp \
+  src/TestThreadPoolCancellation.cpp \
+  src/TestTimeZoneRules.cpp \
+  src/TestTimestamp.cpp \
   src/TestTokenizer.cpp \
+  src/TestUInt128.cpp \
   src/TestUri.cpp \
+  src/TestUserNames.cpp \
   src/TestVariant.cpp \
   src/TestVariantBinarySerializer.cpp \
+  src/TestVariantMapAdapter.cpp \
+  src/TestVariantStream.cpp \
   src/TestVars.cpp \
+  src/TestVersion.cpp \
+  src/TestWeakPtr.cpp \
+  src/TestX11Clipboard.cpp \
+  src/TestX11ClipboardPeer.cpp \
+  src/TestX11EventDispatcher.cpp \
+  src/TestXmlDStoreCodec.cpp \
   src/gucefCORE_TestApp_main.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
+  $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEF_CORE_TESTAPP_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_CORE_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefCORE_TestApp -DMODULE_NAME=gucefCORE_TestApp
 
 
 LOCAL_SHARED_LIBRARIES := \

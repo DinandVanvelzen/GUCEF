@@ -21,19 +21,29 @@ LOCAL_MODULE := gucefVFS_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestArchiveUtils.cpp \
   src/TestCode_VFSFileLoadUnloadTest.cpp \
+  src/TestCueBinArchive.cpp \
+  src/TestFileSystemAccess.cpp \
+  src/TestIso9660Archive.cpp \
+  src/TestItvArchive.cpp \
+  src/TestLibArchive.cpp \
+  src/TestMountFromResource.cpp \
+  src/TestVfsCodecs.cpp \
+  src/TestVfsConfig.cpp \
+  src/TestZipArchiveWriter.cpp \
   src/gucefVFS_TestApp.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefVFS/include
 
-LOCAL_CFLAGS := -DGUCEF_VFS_TESTAPP_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_VFS_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefVFS_TestApp -DMODULE_NAME=gucefVFS_TestApp
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -1,0 +1,30 @@
+<ModuleInfoEntry>
+    <Module Name="inputdriverEMSCRIPTEN" Type="StaticLibrary" Platform="emscripten" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>Input driver for web browsers: mouse, wheel, keys and text of a page</DescriptionHeadline>
+            <DescriptionDetails>For WebAssembly builds made with Emscripten. Linked into the application, which calls the prefixed plugin entry points to register the input driver "EMSCRIPTEN".</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefINPUT" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefINPUT" />
+        </Linker>
+        <Preprocessor>
+            <Define String="INPUTDRIVEREMSCRIPTEN_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

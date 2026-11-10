@@ -32,6 +32,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_PUBSUB_CCOMCOREGLOBAL_H
 #include "gucefCOMCORE_CComCoreGlobal.h"
 #define GUCEF_PUBSUB_CCOMCOREGLOBAL_H
@@ -151,6 +156,7 @@ CPubSubGlobal::Initialize( void )
 
     m_pubsubBookmarkPersistenceFactory->RegisterConcreteFactory( CVfsPubSubBookmarkPersistence::BookmarkPersistenceType, &g_vfsPubSubBookmarkPersistenceFactory );
     m_pubsubJournalFactory->RegisterConcreteFactory( CBinaryPubSubJournal::JournalType, &g_binaryPubSubJournalFactory );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefPUBSUB" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -159,7 +165,8 @@ CPubSubGlobal::~CPubSubGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefPUBSUB Global systems shutting down" );
-  
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefPUBSUB" );
+
     m_pubsubBookmarkPersistenceFactory->UnregisterConcreteFactory( CVfsPubSubBookmarkPersistence::BookmarkPersistenceType );
     m_pubsubJournalFactory->UnregisterConcreteFactory( CBinaryPubSubJournal::JournalType );
     

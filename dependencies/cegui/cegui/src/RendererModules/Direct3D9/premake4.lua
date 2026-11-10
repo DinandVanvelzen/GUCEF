@@ -45,20 +45,20 @@ configuration( { WIN64 } )
 kind( "SharedLib" )
   
 configuration( { WIN32 } )
-links( { "CEGUI", "Direct3D9" } )
+links( { "CEGUI" } )
   links( { "CEGUI", "d3d9", "d3dx9" } )
   
 
 configuration( { WIN32 } )
-defines( { "CEGUIDIRECT3D9RENDERER_EXPORTS" } )
+defines( { "CEGUIDIRECT3D9RENDERER_EXPORTS", "MODULE_NAME=CEGUI_RendererModule_Direct3D9" } )
   
 configuration( { WIN64 } )
-links( { "CEGUI", "Direct3D9" } )
+links( { "CEGUI" } )
   links( { "CEGUI", "d3d9", "d3dx9" } )
   
 
 configuration( { WIN64 } )
-defines( { "CEGUIDIRECT3D9RENDERER_EXPORTS" } )
+defines( { "CEGUIDIRECT3D9RENDERER_EXPORTS", "MODULE_NAME=CEGUI_RendererModule_Direct3D9" } )
 
 
 configuration( { "WIN32" } )
@@ -88,7 +88,7 @@ configuration( {} )
 includedirs( { "../../../include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../../../external" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../../../external" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include" } )

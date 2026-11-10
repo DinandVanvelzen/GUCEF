@@ -38,7 +38,15 @@ defines( { "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "OGRE_NONCLIENT_BUI
   links( { "atomic", "dl" } )
   links( { "atomic", "dl" } )
   links( { "atomic", "dl" } )
+  
+
+configuration( { LINUX32 } )
+defines( { "_GNU_SOURCE" } )
   links( { "atomic", "dl" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "_GNU_SOURCE" } )
 
 
 configuration( {} )

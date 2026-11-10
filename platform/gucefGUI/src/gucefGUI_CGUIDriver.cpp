@@ -47,6 +47,9 @@ const CORE::CEvent CGUIDriver::FormTypeUnregisteredEvent = "GUCEF::GUI::FormType
 const CORE::CEvent CGUIDriver::FontTypeRegisteredEvent = "GUCEF::GUI::FontTypeRegisteredEvent";
 const CORE::CEvent CGUIDriver::FontTypeUnregisteredEvent = "GUCEF::GUI::FontTypeUnregisteredEvent";
 
+/** Goes up whenever the driver interface changes in a way older drivers cannot follow */
+const UInt32 CGUIDriver::InterfaceVersion = 2;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -78,9 +81,11 @@ CGUIDriver::CGUIDriver()
 /*-------------------------------------------------------------------------*/
 
 CGUIDriver::CGUIDriver( const CGUIDriver& src )
-    : CObservingNotifier( src )
+    : CObservingNotifier( src )                ,
+      CORE::CGloballyConfigurable( src )
 {GUCEF_TRACE;
 
+    RegisterEvents();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -98,6 +103,44 @@ CGUIDriver::GetClassTypeName( void ) const
 
     static CString classTypeName = "GUCEF::GUI::CGUIDriver";
     return classTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWidgetHandler*
+CGUIDriver::GetWidgetHandler( const CString& widgetType )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGUIDriver::TStringSet
+CGUIDriver::GetCapabilities( void )
+{GUCEF_TRACE;
+
+    return TStringSet();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIDriver::HasCapability( const CString& capability )
+{GUCEF_TRACE;
+
+    TStringSet capabilities = GetCapabilities();
+    return capabilities.find( capability ) != capabilities.end();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CGUIDriver::GetInterfaceVersion( void ) const
+{GUCEF_TRACE;
+
+    // drivers made before the version existed report this and keep working
+    return 0;
 }
 
 /*-------------------------------------------------------------------------//

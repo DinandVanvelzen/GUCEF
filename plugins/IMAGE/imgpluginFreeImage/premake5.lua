@@ -13,10 +13,10 @@
 
 
 configuration( { "EMSCRIPTEN32" } )
-  project( "" )
+  project( "imgpluginFreeImage" )
 
 configuration( { "EMSCRIPTEN64" } )
-  project( "" )
+  project( "imgpluginFreeImage" )
 
 configuration( { "LINUX32" } )
   project( "imgpluginFreeImage" )

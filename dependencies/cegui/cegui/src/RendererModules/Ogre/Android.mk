@@ -32,7 +32,6 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include \
-  $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include/Android \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/src \
@@ -48,7 +47,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../../../freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../../include
 
-LOCAL_CFLAGS := -DCEGUIOGRERENDERER_EXPORTS
+LOCAL_CFLAGS := -DCEGUIOGRERENDERER_EXPORTS -DMODULE_CONSENSUS_NAME=CEGUI_RendererModule_Ogre -DMODULE_NAME=CEGUI_RendererModule_Ogre
 
 
 LOCAL_SHARED_LIBRARIES := \

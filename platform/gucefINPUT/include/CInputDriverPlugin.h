@@ -128,6 +128,11 @@ class GUCEF_INPUT_PUBLIC_CPP CInputDriverPlugin : public CInputDriver   ,
                        const Int32 valueDelta ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
     static void GUCEF_PLUGIN_CALLSPEC_PREFIX
+    OnKeyboardText( void* userData        ,
+                    const Int32 deviceID  ,
+                    const char* utf8Text  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+    static void GUCEF_PLUGIN_CALLSPEC_PREFIX
     OnKeyboardKeyDown( void* userData            ,
                        const Int32 deviceID      ,
                        const KeyCode keyCode     ,

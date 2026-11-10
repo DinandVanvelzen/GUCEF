@@ -66,6 +66,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH) \
   $(MY_MODULE_PATH)/../../libjpeg
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=libtiff -DMODULE_NAME=libtiff
+
 
 LOCAL_SHARED_LIBRARIES := \
   libjpeg

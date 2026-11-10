@@ -50,6 +50,27 @@
 
 #include "TestFreeList.h"
 
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      MACROS                                                             //
@@ -110,6 +131,76 @@ struct TestObjNoClear
 };
 
 typedef CTFreeList< TestObjNoClear, TNoLock >::TSharedPtr TestObjNoClearPtr;
+
+// A type which tracks the lifetime of every instance by address, catching double construction and double destruction
+struct TestObjLifetime
+{
+    static GUCEF::set< const void* > liveInstances;
+    static UInt32 doubleConstructions;
+    static UInt32 doubleDestructions;
+
+    Int32 value;
+    TestObjLifetime( void ) : value( 7 ) { if ( !liveInstances.insert( this ).second ) ++doubleConstructions; }
+    TestObjLifetime( const TestObjLifetime& src ) : value( src.value ) { if ( !liveInstances.insert( this ).second ) ++doubleConstructions; }
+    ~TestObjLifetime() { if ( 0 == liveInstances.erase( this ) ) ++doubleDestructions; }
+
+    static void Reset( void ) { liveInstances.clear(); doubleConstructions = 0; doubleDestructions = 0; }
+};
+
+GUCEF::set< const void* > TestObjLifetime::liveInstances;
+UInt32 TestObjLifetime::doubleConstructions = 0;
+UInt32 TestObjLifetime::doubleDestructions = 0;
+
+typedef CTFreeList< TestObjLifetime, TNoLock > TLifetimeFreeList;
+
+// A type which is reset by Clear() and counts constructions and clears
+struct TestObjCountedClear
+{
+    static UInt32 constructions;
+    static UInt32 clears;
+
+    Int32 value;
+    TestObjCountedClear( void ) : value( 0 ) { ++constructions; }
+    TestObjCountedClear( const TestObjCountedClear& src ) : value( src.value ) { ++constructions; }
+    void Clear( void ) { value = 0; ++clears; }
+};
+
+UInt32 TestObjCountedClear::constructions = 0;
+UInt32 TestObjCountedClear::clears = 0;
+
+// A type which only inherits its Clear()
+struct TestObjInheritedClear : public TestObjCountedClear
+{
+    Int32 extra;
+    TestObjInheritedClear( void ) : TestObjCountedClear(), extra( 0 ) {}
+};
+
+/** Tries to lock a shared pointer from a thread of its own, the shared lock must not be held by anyone */
+class CSharedPtrLockProbe : public MT::CActiveObject
+{
+    public:
+
+    typedef CTFreeList< TestObj, MT::CMutex >::TSharedPtr TPtr;
+
+    explicit CSharedPtrLockProbe( TPtr& ptr ) : MT::CActiveObject(), m_ptr( ptr ), result( 0 ) {}
+
+    virtual bool OnThreadStart( void* ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        MT::TLockStatus lockStatus = MT::LOCKSTATUS_UNDEFINED;
+        {
+            MT::CObjectScopeLock lock( m_ptr, 500, lockStatus );
+        }
+        result.Store( MT::LOCKSTATUS_OPERATION_SUCCESS == lockStatus ? 1 : 2 );
+        return true;
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    TPtr& m_ptr;
+    MT::CTAtomic< Int32 > result;
+};
 
 static void TestReserveAndAcquire_Reconstruct()
 {
@@ -238,6 +329,89 @@ static void TestNoClearPolicyGracefulFallback()
     ASSERT_TRUE( pool.GetFreedCount() == freeItems );
 }
 
+static void TestObjectLifetimeAcrossReuse( TLifetimeFreeList::TReusePolicy policy )
+{
+    TestObjLifetime::Reset();
+    {
+        TLifetimeFreeList pool( policy );
+        ASSERT_TRUE( pool.Reserve( 3 ) );
+
+        TLifetimeFreeList::TSharedPtr a = pool.Acquire();
+        ASSERT_TRUE( !a.IsNULL() && 7 == a->value );
+        a->value = 1;
+        a.Unlink();                                         // back to the free list
+
+        TLifetimeFreeList::TSharedPtr b = pool.Acquire();   // reuses the slot a released
+        ASSERT_TRUE( !b.IsNULL() && 7 == b->value );
+        TLifetimeFreeList::TSharedPtr c = pool.Acquire();   // a slot which was never used before
+        ASSERT_TRUE( !c.IsNULL() && 7 == c->value );
+        b.Unlink();
+        c.Unlink();
+    }
+    // Destroying the free list must leave no object alive, and no object may have been constructed or destroyed twice
+    ASSERT_TRUE( 0 == TestObjLifetime::doubleConstructions );
+    ASSERT_TRUE( 0 == TestObjLifetime::doubleDestructions );
+    ASSERT_TRUE( TestObjLifetime::liveInstances.empty() );
+}
+
+static void TestClearPolicyReusesObjectsThroughClear( void )
+{
+    TestObjCountedClear::constructions = 0;
+    TestObjCountedClear::clears = 0;
+    {
+        CTFreeList< TestObjCountedClear, TNoLock > pool( CTFreeList< TestObjCountedClear, TNoLock >::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE );
+        ASSERT_TRUE( pool.Reserve( 2 ) );
+        const UInt32 constructedByReserve = TestObjCountedClear::constructions;
+
+        CTFreeList< TestObjCountedClear, TNoLock >::TSharedPtr a = pool.Acquire();
+        const void* address = a.GetPointerAlways();
+        a->value = 99;
+        a.Unlink();
+        ASSERT_TRUE( 1 == TestObjCountedClear::clears );
+
+        CTFreeList< TestObjCountedClear, TNoLock >::TSharedPtr b = pool.Acquire();     // the object a released
+        ASSERT_TRUE( address == b.GetPointerAlways() );
+        ASSERT_TRUE( 0 == b->value );
+        ASSERT_TRUE( constructedByReserve == TestObjCountedClear::constructions );    // reused, not reconstructed
+
+        CTFreeList< TestObjCountedClear, TNoLock >::TSharedPtr c = b;                   // the reused object hands out shared pointers as before
+        ASSERT_TRUE( 2 == c.GetReferenceCount() );
+        b.Unlink();
+        c.Unlink();
+        ASSERT_TRUE( 2 == TestObjCountedClear::clears );
+        ASSERT_TRUE( 0 == pool.GetActiveCount() );
+    }
+}
+
+static void TestClearPolicyFindsAnInheritedClear( void )
+{
+    TestObjCountedClear::clears = 0;
+    CTFreeList< TestObjInheritedClear, TNoLock > pool( CTFreeList< TestObjInheritedClear, TNoLock >::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE );
+    CTFreeList< TestObjInheritedClear, TNoLock >::TSharedPtr a = pool.Acquire();
+    a->value = 5;
+    a.Unlink();
+    ASSERT_TRUE( 1 == TestObjCountedClear::clears );
+}
+
+static void TestReusedObjectSharedLockIsFree( TLifetimeFreeList::TReusePolicy policy )
+{
+    CTFreeList< TestObj, MT::CMutex > pool( (CTFreeList< TestObj, MT::CMutex >::TReusePolicy) (int) policy );
+    CSharedPtrLockProbe::TPtr a = pool.Acquire();
+    a.Unlink();
+    CSharedPtrLockProbe::TPtr b = pool.Acquire();       // reuses the object a released, on this thread
+
+    CSharedPtrLockProbe probe( b );
+    ASSERT_TRUE( probe.Activate() );
+    UInt32 waited = 0;
+    while ( 0 == probe.result.Load() && waited < 5000 )
+    {
+        MT::PrecisionDelay( 5 );
+        waited += 5;
+    }
+    probe.Deactivate( false, true );
+    ASSERT_TRUE( 1 == probe.result.Load() );
+}
+
 static void TestDormantTransitions()
 {
     CTFreeList< TestObj, TNoLock > pool;
@@ -331,6 +505,62 @@ void PerformFreeListTests( void )
         try
         {
             GUCEF::CORE::TestDormantTransitions();
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 7: Objects are constructed and destroyed once per use with Reconstruct" )
+        try
+        {
+            GUCEF::CORE::TestObjectLifetimeAcrossReuse( GUCEF::CORE::TLifetimeFreeList::REUSE_RECONSTRUCT_OBJECT );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 8: Objects are constructed and destroyed once per use with the Clear Policy fallback" )
+        try
+        {
+            GUCEF::CORE::TestObjectLifetimeAcrossReuse( GUCEF::CORE::TLifetimeFreeList::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 9: The Clear Policy reuses objects through Clear() without reconstructing them" )
+        try
+        {
+            GUCEF::CORE::TestClearPolicyReusesObjectsThroughClear();
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 10: The Clear Policy finds a Clear() that the type inherits" )
+        try
+        {
+            GUCEF::CORE::TestClearPolicyFindsAnInheritedClear();
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test 11: A reused object's shared pointer lock is free for other threads" )
+        try
+        {
+            GUCEF::CORE::TestReusedObjectSharedLockIsFree( GUCEF::CORE::TLifetimeFreeList::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE );
+            GUCEF::CORE::TestReusedObjectSharedLockIsFree( GUCEF::CORE::TLifetimeFreeList::REUSE_RECONSTRUCT_OBJECT );
         }
         catch( ... )
         {

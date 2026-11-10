@@ -14,7 +14,7 @@
 
 
 if (WIN32)
-  set( PLATFORM_HEADER_FILES
+  set( PLATFORM_HEADER_FILES 
     ../../platform/gucefMT/include/gucefMT_CILockable.h
     ../../platform/gucefMT/include/gucefMT_CMutex.h
     ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
@@ -44,7 +44,7 @@ if (WIN32)
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
-  set( PLATFORM_SOURCE_FILES
+  set( PLATFORM_SOURCE_FILES 
     ../../platform/gucefMT/src/gucefMT_CILockable.cpp
     ../../platform/gucefMT/src/gucefMT_CMutex.cpp
     ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
@@ -68,7 +68,7 @@ if (WIN32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN64)
-  set( PLATFORM_HEADER_FILES
+  set( PLATFORM_HEADER_FILES 
     ../../platform/gucefMT/include/gucefMT_CILockable.h
     ../../platform/gucefMT/include/gucefMT_CMutex.h
     ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
@@ -98,7 +98,7 @@ elseif (WIN64)
   set( PLATFORM_HEADER_INSTALL "WIN64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
-  set( PLATFORM_SOURCE_FILES
+  set( PLATFORM_SOURCE_FILES 
     ../../platform/gucefMT/src/gucefMT_CILockable.cpp
     ../../platform/gucefMT/src/gucefMT_CMutex.cpp
     ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
@@ -140,13 +140,17 @@ endif()
 
 if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Winmm )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_DRGUP_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DRGUP_BUILD_MODULE;GUCEF_DYNNEWON_DISABLED;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
 endif( WIN32 )
 
 if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Winmm )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_DRGUP_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DRGUP_BUILD_MODULE;GUCEF_DYNNEWON_DISABLED;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
 endif( WIN64 )
+
+if ( ANDROID )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( ANDROID )
 
 if ( ANDROID32 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
@@ -159,6 +163,10 @@ endif( ANDROID64 )
 if ( ARDUINO )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( ARDUINO )
+
+if ( EMSCRIPTEN )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( EMSCRIPTEN )
 
 if ( EMSCRIPTEN32 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
@@ -180,6 +188,18 @@ if ( IOS )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( IOS )
 
+if ( IPHONE )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( LINUX )
+
 if ( LINUX32 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( LINUX32 )
@@ -187,6 +207,22 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( LINUX64 )
+
+if ( MAC )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( MSWIN )
 
 if ( NACL )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
@@ -219,6 +255,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin/ include )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( WINDOWS )
 
 
 

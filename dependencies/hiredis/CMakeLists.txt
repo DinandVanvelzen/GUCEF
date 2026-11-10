@@ -35,7 +35,36 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID32)
+if (ANDROID)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     alloc.h
     async.h
@@ -120,6 +149,35 @@ elseif (ARDUINO)
   )
 
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (EMSCRIPTEN32)
@@ -267,6 +325,93 @@ elseif (IOS)
   set( PLATFORM_SOURCE_INSTALL "IOS" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (IPHONE)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONE" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONE" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (IPHONEOS)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONEOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONEOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "LINUX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     alloc.h
@@ -323,6 +468,122 @@ elseif (LINUX64)
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MAC)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MAC" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MAC" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOS)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOSX)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MSWIN)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MSWIN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MSWIN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (NACL)
@@ -555,6 +816,35 @@ elseif (WIN64)
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (WINDOWS)
+  set( PLATFORM_HEADER_FILES 
+    alloc.h
+    async.h
+    dict.h
+    hiredis.h
+    net.h
+    read.h
+    sds.h
+    sockcompat.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WINDOWS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WINDOWS" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()

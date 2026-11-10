@@ -120,7 +120,7 @@ CImageCodecPlugin::CImageCodecPlugin( void )
     : CORE::CStdCodecPlugin()
 {GUCEF_TRACE;
 
-    memset( m_icFuncPointers, 0, ICPLUGINFUNCPTR_COUNT );
+    memset( m_icFuncPointers, 0, sizeof( m_icFuncPointers ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -177,7 +177,7 @@ CImageCodecPlugin::Link( void* modulePtr                        ,
     }
 
     // We failed to link the functions :(
-    memset( m_icFuncPointers, 0, ICPLUGINFUNCPTR_COUNT );
+    memset( m_icFuncPointers, 0, sizeof( m_icFuncPointers ) );
     return false;
 }
 
@@ -188,7 +188,7 @@ CImageCodecPlugin::Unlink( void )
 {GUCEF_TRACE;
 
     if ( !CORE::CStdCodecPlugin::Unlink() ) return false;
-    memset( m_icFuncPointers, 0, ICPLUGINFUNCPTR_COUNT );
+    memset( m_icFuncPointers, 0, sizeof( m_icFuncPointers ) );
     return true;
 }
 
@@ -199,6 +199,10 @@ CImageCodecPlugin::Encode( const CImage& inputImage       ,
                            CORE::CIOAccess& encodedOutput ,
                            const CString& typeName        )
 {GUCEF_TRACE;
+
+    // a plugin that is not linked (or lacks the function) has nothing to call
+    if ( GUCEF_NULL == m_icFuncPointers[ ICPLUGINFUNCPTR_ENCODEIMAGE ] )
+        return false;
 
     TImage* cStyleImage = inputImage.CreateCStyleAccess();
 
@@ -219,6 +223,10 @@ CImageCodecPlugin::Decode( CORE::CIOAccess& encodedInput ,
                            CImage& outputImage           ,
                            const CString& typeName       )
 {GUCEF_TRACE;
+
+    // a plugin that is not linked (or lacks the function) has nothing to call
+    if ( GUCEF_NULL == m_icFuncPointers[ ICPLUGINFUNCPTR_DECODEIMAGE ] )
+        return false;
 
      TImage* cStyleImage = NULL;
      void* cStyleImageData = NULL;
@@ -276,6 +284,10 @@ CImageCodecPlugin::DecodeMetaData( CORE::CIOAccess& encodedInput ,
                                    CORE::CValueList& metaData    ,
                                    const CString& typeName       )
 {GUCEF_TRACE;
+
+    // a plugin that is not linked (or lacks the function) has nothing to call
+    if ( GUCEF_NULL == m_icFuncPointers[ ICPLUGINFUNCPTR_DECODEIMAGEMETADATA ] )
+        return false;
 
     CORE::CValueMapBuilder mapBuilder;
 

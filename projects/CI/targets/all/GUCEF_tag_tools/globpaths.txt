@@ -7,8 +7,10 @@ dependencies/curl/*
 dependencies/flic/*
 dependencies/json-builder/*
 dependencies/json-parser/*
+dependencies/libarchive/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
+dependencies/minizip/*
 dependencies/protobuf/src/*
 dependencies/stbrumme-hash-library/*
 dependencies/zziplib/*
@@ -36,8 +38,11 @@ plugins/SHARED/pluginglueAWSSDK/*
 plugins/VFS/vfspluginAWSS3/*
 plugins/VFS/vfspluginDVP/*
 plugins/VFS/vfspluginITV/*
+plugins/VFS/vfspluginLIBARCHIVE/*
 plugins/VFS/vfspluginVP/*
 plugins/VFS/vfspluginZIP/*
+plugins/WEB/httpclientpluginCURL/*
+tools/AncestryDotComBackup/*
 tools/ArchiveDiff/*
 tools/DCSBruteInstaller/*
 tools/GucefArchiver/*

@@ -78,6 +78,10 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../ ../../../../ ../../../../hiredis ../redis++ cxx11 cxx11/sw cxx11/sw/redis++ no_tls no_tls/sw no_tls/sw/redis++ patterns )
 
+if ( ANDROID )
+  include_directories( ../../../../hiredis )
+endif( ANDROID )
+
 if ( ANDROID32 )
   include_directories( ../../../../hiredis )
 endif( ANDROID32 )
@@ -89,6 +93,10 @@ endif( ANDROID64 )
 if ( ARDUINO )
   include_directories( ../../../../hiredis )
 endif( ARDUINO )
+
+if ( EMSCRIPTEN )
+  include_directories( ../../../../hiredis )
+endif( EMSCRIPTEN )
 
 if ( EMSCRIPTEN32 )
   include_directories( ../../../../hiredis )
@@ -102,6 +110,18 @@ if ( IOS )
   include_directories( ../../../../hiredis )
 endif( IOS )
 
+if ( IPHONE )
+  include_directories( ../../../../hiredis )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( ../../../../hiredis )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( ../../../../hiredis )
+endif( LINUX )
+
 if ( LINUX32 )
   include_directories( ../../../../hiredis )
 endif( LINUX32 )
@@ -109,6 +129,22 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../../../../hiredis )
 endif( LINUX64 )
+
+if ( MAC )
+  include_directories( ../../../../hiredis )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( ../../../../hiredis )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( ../../../../hiredis )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( ../../../../hiredis )
+endif( MSWIN )
 
 if ( OSX )
   include_directories( ../../../../hiredis )
@@ -121,6 +157,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../../hiredis )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( ../../../../hiredis )
+endif( WINDOWS )
 
 
 

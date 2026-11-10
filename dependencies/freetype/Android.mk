@@ -27,6 +27,7 @@ LOCAL_SRC_FILES := \
   src/base/ftbitmap.c \
   src/base/ftglyph.c \
   src/base/ftinit.c \
+  src/base/ftmm.c \
   src/base/ftsystem.c \
   src/bdf/bdf.c \
   src/cache/ftcache.c \
@@ -63,11 +64,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/src/winfonts \
   $(MY_MODULE_PATH)/src
 
-LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY -DFT_CONFIG_OPTION_SYSTEM_ZLIB -DFT_CONFIG_OPTION_USE_ZLIB -DFT_DVEDIT_BUILD_DLL -DFT_DVEDIT_DLL_API
-
-
-LOCAL_LDLIBS := \
-  -lz
+LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY -DFT_CONFIG_OPTION_SYSTEM_ZLIB -DFT_CONFIG_OPTION_USE_ZLIB -DFT_DVEDIT_BUILD_DLL -DFT_DVEDIT_DLL_API -DMODULE_CONSENSUS_NAME=freetype -DMODULE_NAME=freetype
 
 include $(BUILD_SHARED_LIBRARY)
 

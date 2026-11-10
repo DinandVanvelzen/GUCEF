@@ -16,9 +16,10 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
+ 
 
-#ifndef CTESTCODE_CCLIENTSERVER_H
-#define CTESTCODE_CCLIENTSERVER_H
+#ifndef CTESTCODE_CLIENTSERVER_H
+#define CTESTCODE_CLIENTSERVER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,9 +27,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** Tests of a TCP client socket talking to a TCP server socket */
 void
-SetupClientServerTest( void );
+PerformClientServerTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* CTESTCODE_CCLIENTSERVER_H ? */
+#endif /* CTESTCODE_CLIENTSERVER_H ? */

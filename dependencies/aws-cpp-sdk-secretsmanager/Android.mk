@@ -117,7 +117,6 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/event \
   $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/json \
   $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/logging \
-  $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/logging/android \
   $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/memory \
   $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/memory/stl \
   $(MY_MODULE_PATH)/../aws-cpp-sdk-core/include/aws/core/utils/ratelimiter \
@@ -138,16 +137,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../aws-crt-cpp/crt/aws-checksums/include \
   $(MY_MODULE_PATH)/../aws-crt-cpp/include \
   $(MY_MODULE_PATH)/../curl/include \
-  $(MY_MODULE_PATH)/../curl/include/curl \
   $(MY_MODULE_PATH)/../curl/lib \
-  $(MY_MODULE_PATH)/../curl/lib/vauth \
-  $(MY_MODULE_PATH)/../curl/lib/vquic \
-  $(MY_MODULE_PATH)/../curl/lib/vssh \
-  $(MY_MODULE_PATH)/../curl/lib/vtls \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/include/aws
 
-LOCAL_CFLAGS := -DAWS_SECRETSMANAGER_EXPORTS -DUSE_IMPORT_EXPORT=1
+LOCAL_CFLAGS := -DAWS_SECRETSMANAGER_EXPORTS -DMODULE_CONSENSUS_NAME=aws_cpp_sdk_secretsmanager -DMODULE_NAME=aws_cpp_sdk_secretsmanager -DUSE_IMPORT_EXPORT=1
 
 
 LOCAL_SHARED_LIBRARIES := \

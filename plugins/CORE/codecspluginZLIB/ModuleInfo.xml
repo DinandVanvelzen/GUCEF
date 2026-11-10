@@ -3,7 +3,6 @@
         <Dependencies>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
-            <Dependency Name="zlib" />
         </Dependencies>
         <Preprocessor>
             <Define String="GUCEF_CODECPLUGIN_BUILD_MODULE" />
@@ -23,5 +22,8 @@
         </Linker>
     </Module>
     <Module Type="StaticLibrary" Platform="Emscripten" >
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
     </Module>
 </ModuleInfoEntry>

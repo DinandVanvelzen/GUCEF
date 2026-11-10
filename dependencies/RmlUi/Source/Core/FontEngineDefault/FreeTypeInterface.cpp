@@ -10,6 +10,19 @@
 #include FT_MULTIPLE_MASTERS_H
 #include FT_TRUETYPE_TABLES_H
 
+// DV edit: the FreeType that is part of this code base is version 2.3.7 which predates color fonts and the upper case table names
+#if ( FREETYPE_MAJOR == 2 ) && ( FREETYPE_MINOR < 5 )
+  #ifndef FT_LOAD_COLOR
+    #define FT_LOAD_COLOR 0
+  #endif
+  #ifndef FT_PIXEL_MODE_BGRA
+    #define FT_PIXEL_MODE_BGRA 7
+  #endif
+  #ifndef FT_SFNT_OS2
+    #define FT_SFNT_OS2 ft_sfnt_os2
+  #endif
+#endif
+
 namespace Rml {
 
 static FT_Library ft_library = nullptr;

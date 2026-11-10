@@ -18,10 +18,11 @@ set( HEADER_FILES
   include/gucefVFS_CArchiveSettings.h
   include/gucefVFS_CAsyncVfsOperation.h
   include/gucefVFS_CFileSystemArchive.h
+  include/gucefVFS_CIArchiveWriter.h
   include/gucefVFS_CModule.h
   include/gucefVFS_CVFS.h
   include/gucefVFS_CVFSHandle.h
-  include/gucefVFS_CVFSURLHandler.h
+  include/gucefVFS_CVfsFileSystemAccess.h
   include/gucefVFS_CVfsGlobal.h
   include/gucefVFS_CVfsUriResourceAccessor.h
   include/gucefVFS_ETypes.h
@@ -36,10 +37,11 @@ set( SOURCE_FILES
   src/gucefVFS_CArchiveSettings.cpp
   src/gucefVFS_CAsyncVfsOperation.cpp
   src/gucefVFS_CFileSystemArchive.cpp
+  src/gucefVFS_CIArchiveWriter.cpp
   src/gucefVFS_CModule.cpp
   src/gucefVFS_CVFS.cpp
   src/gucefVFS_CVFSHandle.cpp
-  src/gucefVFS_CVFSURLHandler.cpp
+  src/gucefVFS_CVfsFileSystemAccess.cpp
   src/gucefVFS_CVfsGlobal.cpp
   src/gucefVFS_CVfsUriResourceAccessor.cpp
 )
@@ -61,7 +63,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )

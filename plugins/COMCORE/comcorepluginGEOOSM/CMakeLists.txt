@@ -38,14 +38,14 @@ add_dependencies( ${MODULE_NAME} curl gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC curl gucefCOMCORE gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "COMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL;MODULE_CONSENSUS_NAME=comcorepluginGEOOSM;MODULE_IS_PLUGIN=1;MODULE_NAME=comcorepluginGEOOSM" )
 
-include_directories( ../../../common/include ../../../dependencies/curl/include ../../../dependencies/curl/include/curl ../../../dependencies/curl/lib ../../../dependencies/curl/lib/vauth ../../../dependencies/curl/lib/vquic ../../../dependencies/curl/lib/vssh ../../../dependencies/curl/lib/vtls ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
+include_directories( ../../../common/include ../../../dependencies/curl/include ../../../dependencies/curl/lib ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( LINUX32 )
@@ -57,11 +57,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../dependencies/curl/lib ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../dependencies/curl/lib ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
 
 

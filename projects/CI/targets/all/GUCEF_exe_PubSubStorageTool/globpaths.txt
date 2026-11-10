@@ -8,6 +8,7 @@ dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
+dependencies/minizip/*
 dependencies/stbrumme-hash-library/*
 dependencies/zziplib/*
 platform/gucefCOM/*

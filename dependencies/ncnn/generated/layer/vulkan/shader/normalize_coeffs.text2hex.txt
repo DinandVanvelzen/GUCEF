@@ -1,0 +1,39 @@
+#version 450
+layout(constant_id = 0) const int across_spatial = 0;
+layout(constant_id = 1) const int across_channel = 0;
+layout(constant_id = 2) const float eps = 0.f;
+layout(constant_id = 3) const int eps_mode = 0;
+layout(binding = 0) readonly buffer sqsum_blob { float sqsum_blob_data[]; };
+layout(binding = 1) writeonly buffer coeffs_blob { sfp coeffs_blob_data[]; };
+layout(push_constant) uniform parameter
+{
+int w;
+int h;
+int c;
+int cstep;
+} p;
+void main()
+{
+int gx = int(gl_GlobalInvocationID.x);
+int gy = int(gl_GlobalInvocationID.y);
+int gz = int(gl_GlobalInvocationID.z);
+if (gx >= p.w || gy >= p.h || gz >= p.c)
+return;
+int v_offset = gz * p.cstep + gx;
+afp sqsum = afp(sqsum_blob_data[v_offset]);
+afp a;
+if (eps_mode == 0) 
+{
+a = afp(1.f) / sqrt(sqsum + afp(eps));
+}
+if (eps_mode == 1) 
+{
+a = afp(1.f) / max(sqrt(sqsum), afp(eps));
+}
+if (eps_mode == 2) 
+{
+a = afp(1.f) / sqrt(max(sqsum, afp(eps)));
+}
+int gi = gz * p.w + gx;
+buffer_st1(coeffs_blob_data, gi, a);
+}

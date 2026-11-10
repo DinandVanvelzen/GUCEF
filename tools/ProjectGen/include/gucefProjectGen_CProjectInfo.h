@@ -603,6 +603,16 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
                                                   const CModuleInfoEntryPtr dependencyModuleEntry ,
                                                   const CORE::CString& platformName               );
 
+    /**
+     *  Same as above but the include dirs of the dependency for dependencyPlatformName are added to the module info
+     *  of the module for storePlatformName. This is for dependencies which are for all platforms but which a module only
+     *  uses on some platforms, in which case the include dirs are only needed for the platforms it uses it on.
+     */
+    static bool GenerateModuleDependencyIncludesInto( CModuleInfoEntryPtr& moduleInfoEntry            ,
+                                                      const CModuleInfoEntryPtr dependencyModuleEntry ,
+                                                      const CORE::CString& dependencyPlatformName     ,
+                                                      const CORE::CString& storePlatformName          );
+
     bool GenerateModuleDependencyIncludesForPlatform( CModuleInfoEntryPtr& moduleInfoEntry ,
                                                       const CORE::CString& platformName    );
 

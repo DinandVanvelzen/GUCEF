@@ -80,8 +80,12 @@ CVariantStream::CVariantStream( void )
     , m_writePosition( 0 )
     , m_readPosition( 0 )
     , m_isValid( true )
+    , m_failedReadPosition( GUCEF_UINT32MAX )
+    , m_failedReadDataSize( GUCEF_UINT32MAX )
 {GUCEF_TRACE;
 
+    // a value at a time: geometric growth keeps a long stream at amortized constant time per value
+    m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -91,8 +95,11 @@ CVariantStream::CVariantStream( UInt32 initialBufferSize )
     , m_writePosition( 0 )
     , m_readPosition( 0 )
     , m_isValid( true )
+    , m_failedReadPosition( GUCEF_UINT32MAX )
+    , m_failedReadDataSize( GUCEF_UINT32MAX )
 {GUCEF_TRACE;
 
+    m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -102,8 +109,11 @@ CVariantStream::CVariantStream( const CVariantStream& src )
     , m_writePosition( src.m_writePosition )
     , m_readPosition( src.m_readPosition )
     , m_isValid( src.m_isValid )
+    , m_failedReadPosition( src.m_failedReadPosition )
+    , m_failedReadDataSize( src.m_failedReadDataSize )
 {GUCEF_TRACE;
 
+    m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -115,11 +125,17 @@ CVariantStream::CVariantStream( CVariantStream&& src ) GUCEF_NOEXCEPT
     , m_writePosition( src.m_writePosition )
     , m_readPosition( src.m_readPosition )
     , m_isValid( src.m_isValid )
+    , m_failedReadPosition( src.m_failedReadPosition )
+    , m_failedReadDataSize( src.m_failedReadDataSize )
 {GUCEF_TRACE;
 
+    m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );
+    src.m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );    // the move took the strategy along
     src.m_writePosition = 0;
     src.m_readPosition = 0;
     src.m_isValid = true;
+    src.m_failedReadPosition = GUCEF_UINT32MAX;
+    src.m_failedReadDataSize = GUCEF_UINT32MAX;
 }
 
 #endif
@@ -145,6 +161,8 @@ CVariantStream::operator=( const CVariantStream& src )
         m_writePosition = src.m_writePosition;
         m_readPosition = src.m_readPosition;
         m_isValid = src.m_isValid;
+        m_failedReadPosition = src.m_failedReadPosition;
+        m_failedReadDataSize = src.m_failedReadDataSize;
     }
     return *this;
 }
@@ -160,14 +178,20 @@ CVariantStream::operator=( CVariantStream&& src ) GUCEF_NOEXCEPT
     if ( this != &src )
     {
         *m_buffer = GUCEF_MOVE( *src.m_buffer );
+        m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );
+        src.m_buffer->SetGrowthStrategy( CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );    // the move took the strategy along
         
         m_writePosition = src.m_writePosition;
         m_readPosition = src.m_readPosition;
         m_isValid = src.m_isValid;
+        m_failedReadPosition = src.m_failedReadPosition;
+        m_failedReadDataSize = src.m_failedReadDataSize;
         
         src.m_writePosition = 0;
         src.m_readPosition = 0;
         src.m_isValid = true;
+        src.m_failedReadPosition = GUCEF_UINT32MAX;
+        src.m_failedReadDataSize = GUCEF_UINT32MAX;
     }
     return *this;
 }
@@ -686,10 +710,8 @@ CVariantStream::operator>>( bool& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsBool();
     }
     else
@@ -706,10 +728,8 @@ CVariantStream::operator>>( Int8& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsInt8();
     }
     else
@@ -726,10 +746,8 @@ CVariantStream::operator>>( UInt8& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUInt8();
     }
     else
@@ -746,10 +764,8 @@ CVariantStream::operator>>( Int16& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsInt16();
     }
     else
@@ -766,10 +782,8 @@ CVariantStream::operator>>( UInt16& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUInt16();
     }
     else
@@ -786,10 +800,8 @@ CVariantStream::operator>>( Int32& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsInt32();
     }
     else
@@ -806,10 +818,8 @@ CVariantStream::operator>>( UInt32& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUInt32();
     }
     else
@@ -826,10 +836,8 @@ CVariantStream::operator>>( Int64& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsInt64();
     }
     else
@@ -846,10 +854,8 @@ CVariantStream::operator>>( UInt64& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUInt64();
     }
     else
@@ -866,10 +872,8 @@ CVariantStream::operator>>( Float32& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsFloat32();
     }
     else
@@ -886,10 +890,8 @@ CVariantStream::operator>>( Float64& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsFloat64();
     }
     else
@@ -906,10 +908,8 @@ CVariantStream::operator>>( CAsciiString& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsAsciiString();
     }
     else
@@ -926,10 +926,8 @@ CVariantStream::operator>>( CUtf8String& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUtf8String();
     }
     else
@@ -946,10 +944,8 @@ CVariantStream::operator>>( CUtf16String& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUtf16String();
     }
     else
@@ -966,10 +962,8 @@ CVariantStream::operator>>( CUtf32String& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsUtf32String();
     }
     else
@@ -986,10 +980,8 @@ CVariantStream::operator>>( std::string& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsString().STL_String();
     }
     else
@@ -1006,10 +998,8 @@ CVariantStream::operator>>( std::wstring& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, true, bytesRead ) )
+    if ( ReadVariant( var, true ) )
     {
-        m_readPosition += bytesRead;
         data = ToWString( var.AsString() );
     }
     else
@@ -1026,10 +1016,8 @@ CVariantStream::operator>>( CDateTime& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsDateTime();
     }
     else
@@ -1046,10 +1034,8 @@ CVariantStream::operator>>( CTimestamp& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsTimestamp();
     }
     else
@@ -1066,10 +1052,8 @@ CVariantStream::operator>>( CGeoLocation& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data.FromISO6709String( var.AsString().STL_String() );
     }
     else
@@ -1085,10 +1069,8 @@ CVariantStream&
 CVariantStream::operator>>( CVariant& data )
 {GUCEF_TRACE;
 
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( data, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( data, false ) )
     {
-        m_readPosition += bytesRead;
     }
     else
     {
@@ -1104,10 +1086,8 @@ CVariantStream::operator>>( CDynamicBuffer& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data = var.AsBuffer();
     }
     else
@@ -1124,10 +1104,8 @@ CVariantStream::operator>>( std::stringstream& data )
 {GUCEF_TRACE;
 
     CVariant var;
-    UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( ReadVariant( var, false ) )
     {
-        m_readPosition += bytesRead;
         data.str( var.AsString().STL_String() );
     }
     else
@@ -1147,6 +1125,42 @@ CVariantStream::Clear( void )
     m_writePosition = 0;
     m_readPosition = 0;
     m_isValid = true;
+    m_failedReadPosition = GUCEF_UINT32MAX;
+    m_failedReadDataSize = GUCEF_UINT32MAX;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariantStream::ReadVariant( CVariant& var, bool linkWherePossible )
+{GUCEF_TRACE;
+
+    // The end of the data is the normal end of reading: nothing to deserialize and nothing to report
+    const UInt32 dataSize = m_buffer->GetDataSize();
+    if ( m_readPosition >= dataSize )
+    {
+        m_isValid = false;
+        return false;
+    }
+
+    // A value that could not be read (the serializer reported why) cannot be read again until data is added or the
+    // stream is reset: it is not deserialized and reported again at every read
+    if ( m_readPosition == m_failedReadPosition && dataSize == m_failedReadDataSize )
+    {
+        m_isValid = false;
+        return false;
+    }
+
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, linkWherePossible, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        return true;
+    }
+    m_failedReadPosition = m_readPosition;
+    m_failedReadDataSize = dataSize;
+    m_isValid = false;
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1249,6 +1263,8 @@ CVariantStream::ResetValidState( void )
 {GUCEF_TRACE;
 
     m_isValid = true;
+    m_failedReadPosition = GUCEF_UINT32MAX;
+    m_failedReadDataSize = GUCEF_UINT32MAX;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1340,12 +1356,8 @@ CVariantStream::ReadNextSegment( CVariantStream& outSegment )
     while ( m_readPosition < dataSize )
     {
         CVariant var;
-        UInt32 bytesRead = 0;
-        
-        if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, true, bytesRead ) )
+        if ( ReadVariant( var, true ) )
         {
-            m_readPosition += bytesRead;
-            
             // Check if this is the segment end marker
             if ( var.IsVoid() )
             {
@@ -1385,12 +1397,8 @@ CVariantStream::ReadNextSegmentAsString( CString& outString )
     while ( m_readPosition < dataSize )
     {
         CVariant var;
-        UInt32 bytesRead = 0;
-        
-        if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+        if ( ReadVariant( var, false ) )
         {
-            m_readPosition += bytesRead;
-            
             // Check if this is the segment end marker
             if ( var.IsVoid() )
             {
@@ -1470,6 +1478,14 @@ CVariantStream::Swap( CVariantStream& other )
     bool tempValid = m_isValid;
     m_isValid = other.m_isValid;
     other.m_isValid = tempValid;
+
+    UInt32 tempFailedReadPosition = m_failedReadPosition;
+    m_failedReadPosition = other.m_failedReadPosition;
+    other.m_failedReadPosition = tempFailedReadPosition;
+
+    UInt32 tempFailedReadDataSize = m_failedReadDataSize;
+    m_failedReadDataSize = other.m_failedReadDataSize;
+    other.m_failedReadDataSize = tempFailedReadDataSize;
 }
 
 /*-------------------------------------------------------------------------//

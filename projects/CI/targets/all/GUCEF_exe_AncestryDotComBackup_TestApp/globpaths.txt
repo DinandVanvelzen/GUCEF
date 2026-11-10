@@ -1,0 +1,16 @@
+common/include/*
+common/test/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
+dependencies/libarchive/*
+dependencies/stbrumme-hash-library/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginSTBRUMMEHASH/*
+plugins/CORE/dstorepluginJSONPARSER/*
+plugins/VFS/vfspluginLIBARCHIVE/*
+tests/AncestryDotComBackup_TestApp/*
+tools/AncestryDotComBackupLib/*

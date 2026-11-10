@@ -100,6 +100,7 @@ endfunction(GUCEF_config_common)
 # setup library build
 function(GUCEF_config_lib LIBNAME)
   GUCEF_config_common(${LIBNAME})
+  GUCEF_deploy_data_files(${LIBNAME})
   if (GUCEF_STATIC)
     # add static prefix, if compiling static version
     set_target_properties(${LIBNAME} PROPERTIES OUTPUT_NAME ${LIBNAME}Static)
@@ -158,6 +159,7 @@ endfunction(GUCEF_config_lib)
 # setup plugin build
 function(GUCEF_config_plugin PLUGINNAME)
   GUCEF_config_common(${PLUGINNAME})
+  GUCEF_deploy_data_files(${PLUGINNAME})
   if (GUCEF_STATIC)
     # add static prefix, if compiling static version
     set_target_properties(${PLUGINNAME} PROPERTIES OUTPUT_NAME ${PLUGINNAME}Static)
@@ -277,9 +279,83 @@ function(GUCEF_config_sample SAMPLENAME)
 
 endfunction(GUCEF_config_sample)
 
+# The config files of an app or tool, <module dir>/config/<target>*.ini and <target>*.json, are copied next to its
+# binary after each build: that is where the app looks for them ($MODULEDIR$). Other files in that dir, like examples
+# in sub dirs, are left alone. A config file added later is picked up when CMake runs again
+function(GUCEF_deploy_config_files TARGETNAME)
+  file(GLOB _configFiles LIST_DIRECTORIES false
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGETNAME}*.ini"
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${TARGETNAME}*.json"
+    )
+  if (_configFiles)
+    add_custom_command(TARGET ${TARGETNAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_configFiles} $<TARGET_FILE_DIR:${TARGETNAME}>
+      COMMENT "Copying the config files of ${TARGETNAME} next to it"
+      VERBATIM
+      )
+  endif ()
+endfunction(GUCEF_deploy_config_files)
+
+# The data files of a module, <module dir>/data, are copied to <build dir>/data/<target> after each build. Next to
+# the bin dir is where the module finds them at run time: $MODULEDIR$/../data/<target>
+function(GUCEF_deploy_data_files TARGETNAME)
+  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data")
+    set_target_properties(${TARGETNAME} PROPERTIES GUCEF_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
+    add_custom_command(TARGET ${TARGETNAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" "${GUCEF_BINARY_DIR}/data/${TARGETNAME}"
+      COMMENT "Copying the data files of ${TARGETNAME} to the data dir"
+      VERBATIM
+      )
+  endif ()
+endfunction(GUCEF_deploy_data_files)
+
+# Collects the data dirs of a target and of the targets it links, directly or through others
+function(GUCEF_collect_data_dirs TARGETNAME VISITEDVAR DATADIRSVAR)
+  set(_visited ${${VISITEDVAR}})
+  set(_dataDirs ${${DATADIRSVAR}})
+  if (TARGET ${TARGETNAME} AND NOT "${TARGETNAME}" IN_LIST _visited)
+    list(APPEND _visited ${TARGETNAME})
+    get_target_property(_dataDir ${TARGETNAME} GUCEF_DATA_DIR)
+    if (_dataDir)
+      list(APPEND _dataDirs "${_dataDir}@/data/${TARGETNAME}")
+    endif ()
+    get_target_property(_linked ${TARGETNAME} LINK_LIBRARIES)
+    if (_linked)
+      foreach(_dependency ${_linked})
+        GUCEF_collect_data_dirs(${_dependency} _visited _dataDirs)
+      endforeach ()
+    endif ()
+  endif ()
+  set(${VISITEDVAR} ${_visited} PARENT_SCOPE)
+  set(${DATADIRSVAR} ${_dataDirs} PARENT_SCOPE)
+endfunction(GUCEF_collect_data_dirs)
+
+# A web app has no files next to it: the data of the modules it links is preloaded into its virtual file system at
+# /data/<module>. Runs once every target is known, at the end of the configuration
+function(GUCEF_preload_data_files TARGETNAME)
+  set(_visited "")
+  set(_dataDirs "")
+  GUCEF_collect_data_dirs(${TARGETNAME} _visited _dataDirs)
+  foreach(_dataDir ${_dataDirs})
+    target_link_options(${TARGETNAME} PRIVATE "SHELL:--preload-file ${_dataDir}")
+  endforeach ()
+endfunction(GUCEF_preload_data_files)
+
+# The data files an app or tool needs: those of the modules it links, on the web preloaded into the app. A web build that
+# node runs (GUCEF_EMSCRIPTEN_LINK_NODE_FLAGS, the real file system) reads them where they are copied, as a native one does
+function(GUCEF_deploy_app_data_files TARGETNAME)
+  GUCEF_deploy_data_files(${TARGETNAME})
+  if (EMSCRIPTEN AND NOT GUCEF_EMSCRIPTEN_LINK_NODE_FLAGS)
+    # the arguments of a deferred call are evaluated when it runs: the target name is put in now
+    cmake_language(EVAL CODE "cmake_language(DEFER DIRECTORY [[${CMAKE_SOURCE_DIR}]] CALL GUCEF_preload_data_files [[${TARGETNAME}]])")
+  endif ()
+endfunction(GUCEF_deploy_app_data_files)
+
 # setup GUCEF tool build
 function(GUCEF_config_tool TOOLNAME)
   GUCEF_config_common(${TOOLNAME})
+  GUCEF_deploy_config_files(${TOOLNAME})
+  GUCEF_deploy_app_data_files(${TOOLNAME})
 
   # set install RPATH for Unix systems
   if (UNIX AND GUCEF_FULL_RPATH)
@@ -308,6 +384,8 @@ endfunction(GUCEF_config_tool)
 # setup GUCEF tool build
 function(GUCEF_config_app APPNAME)
   GUCEF_config_common(${APPNAME})
+  GUCEF_deploy_config_files(${APPNAME})
+  GUCEF_deploy_app_data_files(${APPNAME})
 
   # set install RPATH for Unix systems
   if (UNIX AND GUCEF_FULL_RPATH)

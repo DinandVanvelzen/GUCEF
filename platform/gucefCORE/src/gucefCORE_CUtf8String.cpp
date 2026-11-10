@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -75,10 +73,47 @@ const CUtf8String::StringSet CUtf8String::EmptyStringSet;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  Decodes the codepoint at cpPos and returns a pointer to the previous codepoint
+ *  Unlike utf8rcodepoint() this never reads before the start of the string:
+ *  utf8rcodepoint() always steps back which for the first codepoint means reading the byte before the buffer
+ *  For the first codepoint the start of the string is returned
+ */
+static const char*
+Utf8ReverseCodepoint( const char* stringStart ,
+                      const void* cpPos       ,
+                      UInt32* codepoint       )
+{GUCEF_TRACE;
+
+    if ( cpPos <= (const void*) stringStart )
+    {
+        utf8codepoint( stringStart, codepoint );
+        return stringStart;
+    }
+
+    // the code point at cpPos, then back to the start of the one before it; the walk over continuation bytes stops at
+    // the start of the string, which text that is not valid UTF-8 (starting with continuation bytes) would pass otherwise
+    utf8codepoint( cpPos, codepoint );
+    const char* s = static_cast< const char* >( cpPos );
+    do
+    {
+        --s;
+    }
+    while ( s > stringStart && 0x80 == ( 0xC0 & (unsigned char) s[ 0 ] ) );
+    return s;
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      UTILITIES                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
 CUtf8String::CUtf8String( void )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
 }
@@ -89,6 +124,7 @@ CUtf8String::CUtf8String( const CUtf8String& src )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src.C_String(), src.ByteSize(), src.Length() );
@@ -100,6 +136,7 @@ CUtf8String::CUtf8String( const CAsciiString& src )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src.C_String(), src.ByteSize(), src.Length() );
@@ -111,6 +148,7 @@ CUtf8String::CUtf8String( const std::string& src )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( src.size() > 0 )
@@ -126,11 +164,13 @@ CUtf8String::CUtf8String( CUtf8String&& src ) GUCEF_NOEXCEPT
     : m_string( src.m_string )
     , m_length( src.m_length )
     , m_byteSize( src.m_byteSize )
+    , m_linked( src.m_linked )
 {GUCEF_TRACE;
 
     src.m_string = GUCEF_NULL;
     src.m_length = 0;
     src.m_byteSize = 0;
+    src.m_linked = false;
 }
 
 #endif
@@ -140,6 +180,7 @@ CUtf8String::CUtf8String( const char* src )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src );
@@ -153,6 +194,7 @@ CUtf8String::CUtf8String( const char *src        ,
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src, byteSize, reexamineByteSize );
@@ -167,6 +209,7 @@ CUtf8String::CUtf8String( const char* src        ,
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src, byteSize, length, reexamineByteSize );
@@ -178,6 +221,7 @@ CUtf8String::CUtf8String( const char src )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( &src, (UInt32) sizeof( src ) );
@@ -189,6 +233,7 @@ CUtf8String::CUtf8String( const wchar_t* src )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src );
@@ -202,6 +247,7 @@ CUtf8String::CUtf8String( const wchar_t* src         ,
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src, lengthInWCodePoints, reexamineByteSize );
@@ -216,6 +262,7 @@ CUtf8String::CUtf8String( const wchar_t* src         ,
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( src, byteSize, lengthInWCodePoints, reexamineByteSize );
@@ -227,6 +274,7 @@ CUtf8String::CUtf8String( const Int32 NULLvalueOrUtf32 )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( (const char*) &NULLvalueOrUtf32, sizeof( NULLvalueOrUtf32 ) );
@@ -238,6 +286,7 @@ CUtf8String::CUtf8String( const UInt32 utf32 )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
     , m_byteSize( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     Set( (const char*) &utf32, sizeof( utf32 ) );
@@ -558,7 +607,19 @@ CUtf8String::CodepointPtrAtIndex( const char* str        ,
     UInt32 cp = 0; UInt32 i=0;
     while ( i<index && bytesFromStart < byteSize )
     {
-        const char* newCpPos = (const char*) utf8codepoint( cpPos, &cp );
+        const char* newCpPos = GUCEF_NULL;
+        const UInt32 sequenceSize = (UInt32) utf8codepointcalcsize_s( cpPos, byteSize-bytesFromStart );
+        if ( sequenceSize > byteSize-bytesFromStart )
+        {
+            // The sequence is cut off by the end of the buffer. We must not decode it: its continuation bytes are not ours to read.
+            // It runs past the end and thus is handled by the check on offsets beyond the buffer below
+            newCpPos = cpPos + sequenceSize;
+            cp = 1;
+        }
+        else
+        {
+            newCpPos = (const char*) utf8codepoint( cpPos, &cp );
+        }
         if ( 0 == cp && i < index )
         {
             // there is a disconnect between the given bytesize & length vs where we found a null terminator
@@ -709,7 +770,11 @@ CUtf8String::Set( const char* str           ,
                 const char* ptrAtCodePointIndex = CodepointPtrAtIndex( str, byteSize, lengthInCodePoints, lengthInCodePoints, indexBytesFromStart );
 
                 // Check for a null terminator
-                if ( GUCEF_NULL == ptrAtCodePointIndex || *ptrAtCodePointIndex != '\0' )
+                // The terminator only counts if it is within the byte range we were given. The position right after
+                // the last code point is the end of the range for input without a terminator and reading it would look
+                // at memory which is not ours. That makes the outcome depend on whatever happens to follow the buffer
+                // and wrongly takes the final content byte for the terminator when that memory happens to be a 0 byte.
+                if ( GUCEF_NULL == ptrAtCodePointIndex || ptrAtCodePointIndex >= str+byteSize || *ptrAtCodePointIndex != '\0' )
                 {
                     // did not find the expected null terminator at the end of 'length'
                     hasNullTerminator = false;
@@ -1061,6 +1126,59 @@ CUtf8String::GetCharacterRepeatCount( const Int32 searchChar ) const
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Copies a code point which was decoded from the bytes srcStart up to srcEnd to dest, as utf8catcodepoint() does.
+ *  Bytes which are not a well formed sequence (cut off, stray continuation bytes, overlong forms) do not decode to a code point
+ *  which encodes to the same number of bytes, so they are carried over as they are instead of being encoded as something else
+ *  which could take more room than there is. Returns NULL when there is not enough room, as utf8catcodepoint() does.
+ */
+static char*
+CatDecodedCodePoint( char* dest, size_t spaceLeft, UInt32 cp, const char* srcStart, const char* srcEnd )
+{GUCEF_TRACE;
+
+    const size_t consumed = (size_t) ( srcEnd - srcStart );
+    if ( utf8codepointsize( (utf8_int32_t) cp ) == consumed )
+        return (char*) utf8catcodepoint( dest, (utf8_int32_t) cp, spaceLeft );
+
+    if ( consumed > spaceLeft )
+        return GUCEF_NULL;
+    memcpy( dest, srcStart, consumed );
+    return dest + consumed;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Tells whether the used bytes end in a lead byte whose continuation bytes are not (all) there. Only the last 3 bytes
+ *  can hold such a lead byte. The decision mirrors the way the code points are counted so it never misses one;
+ *  for content that is not well formed it may say yes for a lead byte which is not counted as a lead byte
+ */
+static bool
+EndsInPossiblyIncompleteSequence( const char* str, UInt32 usedBytes )
+{GUCEF_TRACE;
+
+    UInt32 window = usedBytes < 3 ? usedBytes : 3;
+    for ( UInt32 i=1; i<=window; ++i )
+    {
+        const unsigned char leadByte = (unsigned char) str[ usedBytes-i ];
+        UInt32 sequenceSize = 1;
+        if ( 0xf0 == ( 0xf8 & leadByte ) )
+            sequenceSize = 4;
+        else
+        if ( 0xe0 == ( 0xf0 & leadByte ) )
+            sequenceSize = 3;
+        else
+        if ( 0xc0 == ( 0xe0 & leadByte ) )
+            sequenceSize = 2;
+
+        if ( sequenceSize > i )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CUtf8String::Append( const UInt32 utf32CodePoint )
 {GUCEF_TRACE;
@@ -1098,6 +1216,20 @@ CUtf8String::Append( const char* appendstr    ,
     if ( appendstr == GUCEF_NULL || 0 == byteSize )
         return;
 
+    if ( !m_linked && GUCEF_NULL != m_string && appendstr >= m_string && appendstr < m_string + m_byteSize )
+    {
+        // We are asked to append (part of) ourselves. Growing the buffer would invalidate the source
+        // so we work from a copy of the bytes
+        char* copy = (char*) malloc( byteSize );
+        if ( GUCEF_NULL != copy )
+        {
+            memcpy( copy, appendstr, byteSize );
+            Append( copy, byteSize, lengthInCodePoints );
+            free( copy );
+        }
+        return;
+    }
+
     // we always determine the length ourselves in order to either use direct or to sanity check the lengh given
     // as being a shorter subset of the available string
     const char* inputNullAddress = GUCEF_NULL;
@@ -1118,52 +1250,54 @@ CUtf8String::Append( const char* appendstr    ,
 
     // we could only be using a subset of the buffer via Reserve()
     // As such make sure we know the end of the actually used space
-    char* addNullAddress = GUCEF_NULL;
-    if ( m_byteSize != m_length+1 )
-        m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &addNullAddress );
+    // The end is kept as an offset: the buffer can be moved by Reserve() below, which would leave any address into it dangling
+    UInt32 usedBytes = 0;
+    if ( m_byteSize == m_length+1 )
+    {
+        usedBytes = m_length; // no need to seek in this case, small optimization for ASCII text
+    }
     else
-        addNullAddress = m_string + m_length; // no need to seek in this case, small optimization for ASCII text
+    {
+        // The terminator is searched for per byte instead of per code point: a lead byte at the end of the content
+        // whose continuation bytes are not there yet (data arriving in pieces) would otherwise swallow the terminator.
+        // For well formed content both give the same position.
+        const char* nullPos = (const char*) memchr( m_string, 0, m_byteSize );
+        usedBytes = GUCEF_NULL != nullPos ? (UInt32) ( nullPos - m_string ) : m_byteSize;
+        m_length = (UInt32) utf8len_s( m_string, usedBytes );
+    }
 
     // Since we are combining strings we need to work codepoint wise not byte buffer wise
     // this is because the underlying byte buffer may actually be larger than nessesary
     // due to Reserve() style usage. Hence we dont just want to append at the end of that
 
-    UInt32 usedBytes = (UInt32) ( addNullAddress - m_string );
-    UInt32 unusedBytes = ((m_byteSize-usedBytes)-1);
+    // If the content so far ends in an incomplete sequence then the appended bytes complete it.
+    // The code points of both parts do not add up in that case.
+    const bool mustRecount = EndsInPossiblyIncompleteSequence( m_string, usedBytes );
+    const UInt32 lengthSoFar = m_length;
 
-   // Check for a null terminator
+    UInt32 neededBytes = usedBytes + 1 + byteSize; // content + terminator + what we add
+    if ( GUCEF_NULL != inputNullAddress )
+        --neededBytes; // input brings its own terminator
+
+    if ( GUCEF_NULL == Reserve( neededBytes ) )
+        return;
+
+    char* addNullAddress = m_string + usedBytes;
+    memcpy( addNullAddress, appendstr, byteSize );
+
     if ( GUCEF_NULL != inputNullAddress )
     {
-        const char* originalAddress = m_string;
-        UInt32 neededBytes = ( m_byteSize - unusedBytes ) + byteSize - 1;
-        if ( GUCEF_NULL != Reserve( neededBytes ) )
-        {
-            // did realloc move the memory or enlarge from current address?
-            // don't seek if we dont have to
-            if ( GUCEF_NULL == addNullAddress || m_string != originalAddress )
-                m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &addNullAddress ); // redetermine address of \0
-            memcpy( (char*)addNullAddress, appendstr, byteSize );
-            m_length += lengthInCodePoints;
-        }
+        // Input had a null-terminator
+        if ( mustRecount )
+            m_length = (UInt32) utf8len_s( m_string, m_byteSize );
+        else
+            m_length = lengthSoFar + lengthInCodePoints;
     }
     else
     {
         // Add the null-terminator since input didnt have one
-        const char* originalAddress = m_string;
-        UInt32 neededBytes = ( m_byteSize - unusedBytes ) + byteSize;
-        if ( GUCEF_NULL != Reserve( neededBytes ) )
-        {
-            // did realloc move the memory or enlarge from current address?
-            // don't seek if we dont have to
-            if ( GUCEF_NULL == addNullAddress || m_string != originalAddress )
-                m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &addNullAddress ); // redetermine address of \0
-            memcpy( addNullAddress, appendstr, byteSize );
-            m_string[ m_byteSize-1 ] = '\0';
-            char* nullPtr;
-            m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &nullPtr );
-            if ( GUCEF_NULL != nullPtr )
-                *nullPtr = '\0';
-        }
+        m_string[ m_byteSize-1 ] = '\0';
+        m_length = (UInt32) utf8len_s( m_string, m_byteSize );
     }
 }
 
@@ -1236,6 +1370,12 @@ char*
 CUtf8String::C_String( void )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
+    if ( GUCEF_NULL == m_string )
+    {
+        // an empty string without storage: give it a terminator, so the writable C string is "" as the const one is
+        Reserve( 1, 0 );
+    }
     return reinterpret_cast< char* >( m_string );
 }
 
@@ -1245,14 +1385,22 @@ char*
 CUtf8String::Reserve( const UInt32 byteSize, Int32 newLength )
 {GUCEF_TRACE;
 
-    if ( m_byteSize == byteSize )
+    if ( m_byteSize == byteSize && !m_linked )
         return m_string;
 
-    if ( GUCEF_NULL == m_string )
+    if ( GUCEF_NULL == m_string || m_linked )
     {
-        m_string = (char*) calloc( byteSize, 1 );
+        // For linked strings: allocate a new owned buffer, optionally copying existing content
+        char* newBuffer = (char*) calloc( byteSize, 1 );
+        if ( GUCEF_NULL != newBuffer && m_linked && GUCEF_NULL != m_string && m_byteSize > 0 )
+        {
+            UInt32 copyBytes = ( m_byteSize < byteSize ) ? m_byteSize : byteSize;
+            memcpy( newBuffer, m_string, copyBytes );
+        }
+        m_string = newBuffer;
         m_byteSize = byteSize;
-        m_length = 0;
+        if ( !m_linked ) m_length = 0;
+        m_linked = false;
         return m_string;
     }
 
@@ -1320,6 +1468,7 @@ void
 CUtf8String::SetLength( UInt32 newLength, UInt32 maxCodePointSize )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     if ( 0 == newLength || 0 == maxCodePointSize )
     {
         Clear();
@@ -1393,12 +1542,13 @@ CUtf8String::ReplaceChar( Int32 oldchar ,
             for ( UInt32 i=0; i<m_length; ++i )
             {
                 // Grab code point from current string
+                const char* prevCpPos = srcCpPos;
                 srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
                 char* newDestCpPos = GUCEF_NULL;
                 if ( cp != oldchar )
                 {
                     // This one doesnt need replacing, just concat it into the pre-allocated destination buffer
-                    newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                    newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                 }
                 else
                 {
@@ -1579,11 +1729,85 @@ CUtf8String::Clear( void )
 
     m_length = 0;
     m_byteSize = 0;
-    if ( GUCEF_NULL != m_string )
+    if ( GUCEF_NULL != m_string && !m_linked )
     {
         free( m_string );
-        m_string = GUCEF_NULL;
     }
+    m_string = GUCEF_NULL;
+    m_linked = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUtf8String::PromoteToOwned( void )
+{GUCEF_TRACE;
+
+    if ( m_linked && GUCEF_NULL != m_string && m_byteSize > 0 )
+    {
+        char* copy = (char*) calloc( m_byteSize, 1 );
+        if ( GUCEF_NULL != copy )
+        {
+            ::memcpy( copy, m_string, m_byteSize );
+        }
+        m_string = copy;
+        m_linked = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUtf8String::IsLinked( void ) const
+{GUCEF_TRACE;
+
+    return m_linked;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf8String&
+CUtf8String::LinkTo( const char* externalBuffer, UInt32 byteSize, UInt32 lengthInCodePoints )
+{GUCEF_TRACE;
+
+    Clear();
+    m_string = const_cast< char* >( externalBuffer );
+    m_byteSize = byteSize;
+    m_length = lengthInCodePoints;
+    m_linked = ( GUCEF_NULL != externalBuffer );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf8String&
+CUtf8String::LinkTo( const char* externalBuffer )
+{GUCEF_TRACE;
+
+    Clear();
+    if ( GUCEF_NULL != externalBuffer )
+    {
+        m_string = const_cast< char* >( externalBuffer );
+        m_byteSize = (UInt32) utf8size( externalBuffer );
+        m_length = (UInt32) utf8len( externalBuffer );
+        m_linked = true;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf8String&
+CUtf8String::LinkTo( const CUtf8String& src )
+{GUCEF_TRACE;
+
+    if ( &src == this ) return *this;
+    Clear();
+    m_string = const_cast< char* >( src.m_string );
+    m_byteSize = src.m_byteSize;
+    m_length = src.m_length;
+    m_linked = ( GUCEF_NULL != src.m_string );
+    return *this;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1629,7 +1853,7 @@ CUtf8String::SubstrToChar( UInt32 searchchar              ,
             UInt32 codePoint = 0;
             for ( Int32 i=startIndex; i>=0; --i )
             {
-                cpPos = (const char*) utf8rcodepoint( prevCpPos, &codePoint );
+                cpPos = Utf8ReverseCodepoint( m_string, prevCpPos, &codePoint );
                 if ( codePoint == searchchar )
                 {
                     const char* prevPrevCpPos = (const char*) utf8codepoint( prevCpPos, &codePoint );
@@ -1788,7 +2012,7 @@ CUtf8String::Trim( bool frontToBack ) const
             Int32 i = (Int32) m_length-1;
             do
             {
-                cpPos = utf8rcodepoint( cpPos, &cp );
+                cpPos = (void*) Utf8ReverseCodepoint( m_string, cpPos, &cp );
                 if ( cp == ' ' ||  cp == '\t' )
                 {
                     ++charsToCut;
@@ -1875,11 +2099,12 @@ CUtf8String::RemoveChar( const Int32 charToRemove ) const
             for ( UInt32 i=0; i<m_length; ++i )
             {
                 // Grab code point from current string
+                const char* prevCpPos = srcCpPos;
                 srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
                 if ( cp != charToRemove )
                 {
                     // This one can stay, just concat it into the pre-allocated destination buffer
-                    char* newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                    char* newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                     bufferSpaceLeft -= (Int32)( newDestCpPos - destCpPos );
                     destCpPos = newDestCpPos;
                 }
@@ -1930,10 +2155,11 @@ CUtf8String::CompactRepeatingChar( const Int32 charToCompact ) const
             for ( UInt32 i=0; i<m_length; ++i )
             {
                 // Grab code point from current string
+                const char* prevCpPos = srcCpPos;
                 srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
 
                 // This one can stay, just concat it into the pre-allocated destination buffer
-                char* newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                char* newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                 bufferSpaceLeft -= (Int32)( newDestCpPos - destCpPos );
                 destCpPos = newDestCpPos;
 
@@ -1943,13 +2169,14 @@ CUtf8String::CompactRepeatingChar( const Int32 charToCompact ) const
                     for ( i; i<m_length; ++i )
                     {
                         // Grab code point from current string
+                        prevCpPos = srcCpPos;
                         srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
 
                         // Skip all that now match the code point we wish to compact
                         if ( cp != charToCompact )
                         {
                             // This one can stay, just concat it into the pre-allocated destination buffer
-                            newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                            newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                             bufferSpaceLeft -= (Int32)( newDestCpPos - destCpPos );
                             destCpPos = newDestCpPos;
 
@@ -2079,7 +2306,7 @@ CUtf8String::HasChar( UInt32 searchchar       ,
         Int32 i = (Int32) max;
         do
         {
-            cpPos = utf8rcodepoint( cpPos, &cp );
+            cpPos = (void*) Utf8ReverseCodepoint( m_string, cpPos, &cp );
             if ( cp == searchchar )
                 return i;
             --i;
@@ -2159,37 +2386,41 @@ CUtf8String::ParseUniqueElements( const UInt8* bufferPtr ,
         char* lastSepCpPtr = cpPos;
         UInt32 i=0;
         UInt64 bytesRead = 0;
+        UInt32 codePoint = 0;
         do
         {
-            UInt32 codePoint=0;
+            // the null terminator ends the text, it is not part of the last element (as in ParseElements)
             char* newCpPos = (char*) utf8codepoint( cpPos, &codePoint );
-            if ( cpPos != newCpPos )
-                ++bufferCps;
-
-            if ( codePoint == seperator )
+            if ( codePoint != '\0' || seperator == '\0' )
             {
-                UInt32 stringLength = i-lastSepCpIndex;
-                if ( ( 0 == stringLength && addEmptyElements ) ||
-                     ( stringLength > 0 ) )
+                if ( cpPos != newCpPos )
+                    ++bufferCps;
+
+                if ( codePoint == seperator )
                 {
-                    entry.Set( lastSepCpPtr, (UInt32)(cpPos-lastSepCpPtr), stringLength );
-                    list.insert( entry );
+                    UInt32 stringLength = i-lastSepCpIndex;
+                    if ( ( 0 == stringLength && addEmptyElements ) ||
+                         ( stringLength > 0 ) )
+                    {
+                        entry.Set( lastSepCpPtr, (UInt32)(cpPos-lastSepCpPtr), stringLength );
+                        list.insert( entry );
+                    }
+
+                    lastSepCpIndex = i+1;
+                    lastSepCpPtr = newCpPos;
                 }
 
-                lastSepCpIndex = i+1;
-                lastSepCpPtr = newCpPos;
+                cpPos = newCpPos;
+                bytesRead = (UInt64) ( (const UInt8*)newCpPos - (const UInt8*)bufferPtr );
+                ++i;
             }
-
-            cpPos = newCpPos;
-            bytesRead = (UInt64) ( (const UInt8*)newCpPos - (const UInt8*)bufferPtr );
-            ++i;
         }
-        while ( GUCEF_NULL != cpPos && bytesRead < bufferSize );
+        while ( GUCEF_NULL != cpPos && ( codePoint != '\0' || seperator == '\0' ) && bytesRead < bufferSize );
 
         // add last item
         UInt32 stringLength = bufferCps-lastSepCpIndex;
         if ( ( 0 == stringLength && addEmptyElements ) ||
-             ( stringLength > 0 && ( GUCEF_NULL != lastSepCpPtr && ( *lastSepCpPtr != '\0' || addEmptyElements ) ) ) )
+             ( stringLength > 0 ) )
         {
             entry.Set( lastSepCpPtr, (UInt32)(cpPos-lastSepCpPtr), stringLength );
             list.insert( entry );
@@ -2334,30 +2565,30 @@ CUtf8String::FindMaxSubstrEquality( const CUtf8String& searchStr ,
         }
         else
         {
-            // Loop trough the buffer growing our comparison string
+            // Compare code points back to front, same semantics as the ASCII implementation:
+            // this string from its end minus startOffset code points, the search string from its end
+            if ( 0 == maxMatchLength )
+                return 0;
+
             UInt32 bytesFromStart=0;
-            const char* startPos = thisStr->CodepointPtrAtIndex( thisStr->m_length-1-startOffset, bytesFromStart );
-            const char* cpPos = startPos;
-            const char* otherString = theSearchStr->CodepointPtrAtIndex( theSearchStr->m_length-1-startOffset, bytesFromStart );
+            const char* thisStrCpPos = thisStr->CodepointPtrAtIndex( thisStr->m_length-1-startOffset, bytesFromStart );
+            const char* searchStrCpPos = theSearchStr->CodepointPtrAtIndex( theSearchStr->m_length-1, bytesFromStart );
 
-            UInt32 subLength=1;
-            size_t subByteSize = utf8codepointcalcsize( cpPos );
-            while ( subLength<=maxMatchLength )
-            {                         // @TODO: refactor: compare based on code points not memcmp()
-                if ( memcmp( startPos-subByteSize, otherString-subByteSize, subByteSize ) != 0 )
-                {
-                    // Reached the maximum equality length
-                    return subLength-1;
-                }
+            UInt32 matchingCpCount=0;
+            while ( matchingCpCount<maxMatchLength )
+            {
+                UInt32 thisStrCp = 0;
+                UInt32 searchStrCp = 0;
+                const char* thisStrPrevCpPos = Utf8ReverseCodepoint( thisStr->m_string, thisStrCpPos, &thisStrCp );
+                const char* searchStrPrevCpPos = Utf8ReverseCodepoint( theSearchStr->m_string, searchStrCpPos, &searchStrCp );
+                if ( thisStrCp != searchStrCp )
+                    break;
 
-                // Grow the comparison segment enough bytes to fit 1 extra codepoint
-                UInt32 cp;
-                cpPos = (const char*) utf8rcodepoint( cpPos, &cp );
-                subByteSize = (UInt32)( startPos - cpPos );
-
-                ++subLength;
+                ++matchingCpCount;
+                thisStrCpPos = thisStrPrevCpPos;
+                searchStrCpPos = searchStrPrevCpPos;
             }
-            return subLength-1;
+            return matchingCpCount;
         }
     }
 
@@ -2596,6 +2827,9 @@ bool
 CUtf8String::EndsWith( const CUtf8String& substr ) const
 {GUCEF_TRACE;
 
+    // a longer suffix cannot be the end, and "not found" (-1) must not equal a negative difference of the lengths
+    if ( substr.m_length > m_length )
+        return false;
     if ( m_length > 0 )
         return ((Int32)m_length)-substr.m_length == HasSubstr( substr, m_length, false, false );
     return substr.IsNULLOrEmpty();
@@ -2635,34 +2869,48 @@ CUtf8String::ForceToAscii( char asciiReplacement ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CUtf8String::WildcardEquals( const CUtf8String& strWithWildcards    ,
+CUtf8String::WildcardEquals( const CUtf8String& strWithWildcards ,
                              const UInt32 wildCardToken /* = '*' */ ,
-                             const bool caseSensitive /* = true */  ,
+                             const bool caseSensitive /* = true */ ,
                              const bool biDirectional /* = false */ ) const
 {GUCEF_TRACE;
 
-    if ( biDirectional )
-    {
-        if ( strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
-            return true;
-    }
-
-    if ( strWithWildcards == wildCardToken || *this == wildCardToken )
+    // Either string may be the pattern, when asked for
+    if ( biDirectional && strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
         return true;
 
-    // If the string does not actually have wildcards treat it like a regular string compare
-    if ( -1 == strWithWildcards.HasChar( wildCardToken ) )
-        return Equals( strWithWildcards, caseSensitive );
+    const CUtf8String text = caseSensitive ? *this : Lowercase();
+    const CUtf8String pattern = caseSensitive ? strWithWildcards : strWithWildcards.Lowercase();
 
-    CUtf8String::StringVector segs = strWithWildcards.ParseElements( wildCardToken, false );
-    Int32 lastSeg = 0;
-    CUtf8String::StringVector::iterator i = segs.begin();
-    while ( i != segs.end() )
+    // Without a wildcard it is a plain comparison
+    Int32 firstWildcard = pattern.HasChar( wildCardToken, true );
+    if ( firstWildcard < 0 )
+        return text == pattern;
+
+    // The whole string is matched: the part before the first wildcard starts it, the part after the last one ends
+    // it, and the parts between the wildcards come in that order in between, a wildcard standing for any characters
+    bool anchoredStart = 0 != firstWildcard;
+    bool anchoredEnd = pattern.HasChar( wildCardToken, false ) != (Int32) pattern.Length() - 1;
+    StringVector segments = pattern.ParseElements( wildCardToken, false );
+    UInt32 textLength = text.Length();
+    UInt32 position = 0;
+    for ( size_t i=0; i<segments.size(); ++i )
     {
-        lastSeg = HasSubstr( (*i), lastSeg, true );
-        if ( 0 > lastSeg )
+        const CUtf8String& segment = segments[ i ];
+        UInt32 segmentLength = segment.Length();
+        if ( 0 == segmentLength )
+            continue;
+        if ( position + segmentLength > textLength )
             return false;
-        ++i;
+        if ( i + 1 == segments.size() && anchoredEnd )
+        {
+            UInt32 endStart = textLength - segmentLength;
+            return text.HasSubstr( segment, (Int32) endStart, true ) == (Int32) endStart;
+        }
+        Int32 found = text.HasSubstr( segment, (Int32) position, true );
+        if ( found < 0 || ( 0 == i && anchoredStart && 0 != found ) )
+            return false;
+        position = (UInt32) found + segmentLength;
     }
     return true;
 }
@@ -2675,9 +2923,6 @@ CUtf8String::WildcardEquals( const StringSet& strsWithWildcards     ,
                              const bool caseSensitive /* = true */  ,
                              const bool biDirectional /* = false */ ) const
 {GUCEF_TRACE;
-
-    if ( strsWithWildcards.empty() )
-        return WildcardEquals( Empty, wildCardToken, caseSensitive, biDirectional );
 
     StringSet::const_iterator i = strsWithWildcards.begin();
     while ( i != strsWithWildcards.end() )

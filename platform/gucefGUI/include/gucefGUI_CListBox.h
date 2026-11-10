@@ -46,10 +46,17 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  A list of text rows. Properties: Items, SelectedIndex, MultiSelect, SelectedIndices, DisabledItems,
+ *  RowHeight, Font, TextColour, DisabledTextColour, SelectionColour, HoverColour, BackgroundColour,
+ *  ScrollPosition (the first row shown). Runtime: HoverIndex.
+ *  A click selects a row (not a disabled one), a double click or Enter activates it (ItemActivatedEvent),
+ *  the wheel and Up / Down scroll and move the selection.
+ */
 class GUCEF_GUI_PUBLIC_CPP CListbox : public CWidget
 {
     public:
-        
+
     static const CORE::CEvent SelectionChangedEvent;
     static const CORE::CEvent ItemAddedEvent;
     static const CORE::CEvent ItemRemovedEvent;
@@ -58,53 +65,110 @@ class GUCEF_GUI_PUBLIC_CPP CListbox : public CWidget
     static const CORE::CEvent ItemClickedEvent;
     static const CORE::CEvent ItemDoubleClickedEvent;
     static const CORE::CEvent ItemTripleClickedEvent;
-    
+
     static void RegisterEvents( void );
-    
+
     public:
-    
-    typedef std::vector< CString > TStringVector;
+
+    typedef GUCEF::vector< CString > TStringVector;
 
     CListbox( void );
-    
+
     virtual ~CListbox();
-    
-    virtual const CString& GetClassTypeName( void ) const;
-    
+
     virtual bool SetAllowMultiSelect( bool allowMultiselect );
-    
-    virtual bool GetAllowMultiSelect( bool allowMultiselect );
-    
+
+    virtual bool GetAllowMultiSelect( void ) const;
+
     virtual UInt32 GetLineCount( void );
-    
+
     virtual bool Clear( void );
-    
+
     virtual bool GetLineAtIndex( const UInt32 lineIndex ,
                                  CString& lineText      ) const;
-    
+
     virtual bool InsertLineAtIndex( const UInt32 lineIndex ,
                                     const CString& text    );
-    
+
     virtual bool AppendLine( const CString& text );
-    
+
+    /** All rows joined with '\n' */
     virtual bool GetText( CString& text ) const;
-    
+
     virtual bool SetLineSelection( const UInt32 lineIndex ,
                                    const bool isSelected  );
 
     virtual bool GetLineSelection( const UInt32 lineIndex ,
                                    bool& isSelected       ) const;
-                                       
+
     virtual bool GetFirstSelectedLine( CString& text ) const;
 
-    virtual bool GetLastSelectedLine( CString& text ) const;    
-    
+    virtual bool GetLastSelectedLine( CString& text ) const;
+
     virtual bool GetSelectedLines( TStringVector& selectedLines ) const;
-    
+
+    TStringVector GetItems( void ) const;
+
+    bool SetItems( const TStringVector& items );
+
+    Int32 GetSelectedIndex( void ) const;
+
+    bool SetSelectedIndex( Int32 index );
+
+    bool IsItemDisabled( Int32 index ) const;
+
+    bool IsItemSelected( Int32 index ) const;
+
+    Int32 GetRowHeight( void ) const;
+
+    Int32 GetVisibleRowCount( void ) const;
+
+    /** The row at a position relative to the list, -1 when none */
+    Int32 GetRowAt( Int32 localY ) const;
+
+    /** Scrolls so the row is visible */
+    void ScrollToRow( Int32 index );
+
+    /** The colour of a row (ItemColours); false for a plain row */
+    bool GetItemColour( Int32 index, CColour& colour ) const;
+
+    /** Whether any row has a colour: the rows then make room for the marker at their left */
+    bool HasItemColours( void ) const;
+
+    /** The room of the marker of a coloured row, the padding of the text */
+    enum EItemLayout
+    {
+        ITEM_MARKER_WIDTH = 4,
+        ITEM_MARKER_ROOM = 10,
+        ITEM_PADDING_LEFT = 2,
+        ITEM_PADDING_RIGHT = 4
+    };
+
+    /** The pixels the text of a row has: the width of the list without the padding and the room of a marker */
+    Int32 GetItemTextRoom( void ) const;
+
+    /** Over a row whose text is cut (TextOverflow Ellipsis): the whole text; else the Tooltip property */
+    virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Listbox"; }
+
+    static CWidget* Create( void );
+
+    protected:
+
+    virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
+
+    void SelectByUser( Int32 index );
+
     CListbox( const CListbox& src );
-    CListbox& operator=( const CListbox& src );    
+    CListbox& operator=( const CListbox& src );
 };
 
 /*-------------------------------------------------------------------------//
@@ -117,16 +181,5 @@ class GUCEF_GUI_PUBLIC_CPP CListbox : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CLISTBOX_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 10-02-2008 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

@@ -20,8 +20,6 @@ MOVEFILE assets/libs/armeabi/libvfspluginVP.so assets/libs/armeabi/LIB/GUCEFPLUG
 MOVEFILE assets/libs/armeabi/libguidriverAndroidGLES.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/guidriverAndroidGLES/0.0/libguidriverAndroidGLES.so
 MOVEFILE assets/libs/armeabi/libguidriverMyGUI.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/guidriverMyGUI/0.0/libguidriverMyGUI.so
 MOVEFILE assets/libs/armeabi/libguidriverMyGUIOpenGL.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/guidriverMyGUIOpenGL/0.0/libguidriverMyGUIOpenGL.so
-MOVEFILE assets/libs/armeabi/libguidriverRocket.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/guidriverRocket/0.0/libguidriverRocket.so
-MOVEFILE assets/libs/armeabi/libguidriverRocketOpenGL.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/guidriverRocketOpenGL/0.0/libguidriverRocketOpenGL.so
 MOVEFILE assets/libs/armeabi/libinputdriverNANDROID.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/inputdriverNANDROID/0.0/libinputdriverNANDROID.so
 MOVEFILE assets/libs/armeabi/libGucefLogServiceClientPlugin.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/GucefLogServiceClientPlugin/0.0/libGucefLogServiceClientPlugin.so
 MOVEFILE assets/libs/armeabi/libGucefLogServiceLib.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/GucefLogServiceLib/0.0/libGucefLogServiceLib.so
@@ -30,9 +28,6 @@ MOVEFILE assets/libs/armeabi/libDVPACKSYS.so assets/libs/armeabi/LIB/GUCEFPLUGIN
 MOVEFILE assets/libs/armeabi/libArchiveDiffLib.so assets/libs/armeabi/LIB/GUCEFPLUGINS/0.0/ArchiveDiffLib/0.0/libArchiveDiffLib.so
 MOVEFILE assets/libs/armeabi/libfreetype.so assets/libs/armeabi/LIB/freetype/0.0/freetype/0.0/libfreetype.so
 MOVEFILE assets/libs/armeabi/libMyGUI.Engine.so assets/libs/armeabi/LIB/mygui/0.0/MyGUI.Engine/0.0/libMyGUI.Engine.so
-MOVEFILE assets/libs/armeabi/libRocketCore.so assets/libs/armeabi/LIB/rocket/0.0/RocketCore/0.0/libRocketCore.so
-MOVEFILE assets/libs/armeabi/libRocketControls.so assets/libs/armeabi/LIB/rocket/0.0/RocketControls/0.0/libRocketControls.so
-MOVEFILE assets/libs/armeabi/libRocketDebugger.so assets/libs/armeabi/LIB/rocket/0.0/RocketDebugger/0.0/libRocketDebugger.so
 MOVEFILE assets/libs/armeabi/libzziplib.so assets/libs/armeabi/LIB/zziplib/0.0/zziplib/0.0/libzziplib.so
 MOVEFILE assets/libs/armeabi/liblibparsifal.so assets/libs/armeabi/LIB/parsifal/0.0/libparsifal/0.0/liblibparsifal.so
 MOVEFILE assets/libs/armeabi/libminiupnpc.so assets/libs/armeabi/LIB/miniupnpc/0.0/miniupnpc/0.0/libminiupnpc.so

@@ -12,15 +12,20 @@
 
 workspace( "GUCEF_exe_gucefMT_TestApp" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "ANDROID"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )
@@ -40,6 +45,11 @@ filter "ARDUINO"
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )
 
+filter "EMSCRIPTEN"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
 filter "EMSCRIPTEN32"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
@@ -55,12 +65,47 @@ filter "IOS"
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )
 
+filter "IPHONE"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "IPHONEOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "LINUX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
 filter "LINUX32"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )
 
 filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "MAC"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "MACOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "MACOSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "MSWIN"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )
@@ -81,3 +126,8 @@ filter "WIN64"
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )
   include( "tools/MemoryLeakFinder" )
+
+filter "WINDOWS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )

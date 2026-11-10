@@ -2633,7 +2633,7 @@ LocateAndProcessProjectDirsRecusively( TProjectInfo& projectInfo        ,
     ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo, topLevelDir, dirList );
 
     // Process all sub-dirs
-    std::vector< CORE::CString >::iterator i = dirList.begin();
+    CORE::CString::StringVector::iterator i = dirList.begin();
     while ( i != dirList.end() )
     {
         CORE::CString subDir = topLevelDir;

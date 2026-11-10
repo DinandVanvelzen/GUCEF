@@ -1,6 +1,27 @@
 <ModuleInfoEntry>
     <Module Name="gucefPATCHERAPP_TestApp" Type="Executable" Platform="All" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefPATCHER" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefPATCHER" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin">
+        <Dependencies>
             <Dependency Name="gucefLOADER" />
         </Dependencies>
         <Linker>

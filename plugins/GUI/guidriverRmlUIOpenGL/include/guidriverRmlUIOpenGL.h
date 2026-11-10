@@ -1,5 +1,5 @@
 /*
- *  guidriverRocketOpenGL: module providing a GUI backend using Rocket and OpenGL
+ *  guidriverRmlUIOpenGL: module providing a GUI backend using RmlUi and OpenGL
  *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_H
-#define GUCEF_GUIDRIVERROCKETGL_H
+#ifndef GUCEF_GUIDRIVERRMLUIGL_H
+#define GUCEF_GUIDRIVERRMLUIGL_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,29 +26,29 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_CONFIG_H
-#include "guidriverRocketOpenGL_config.h.h"
-#define GUCEF_GUIDRIVERROCKETGL_CONFIG_H
-#endif /* GUCEF_GUIDRIVERROCKETGL_CONFIG_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUIGL_CONFIG_H
+#include "guidriverRmlUIOpenGL_config.h"
+#define GUCEF_GUIDRIVERRMLUIGL_CONFIG_H
+#endif /* GUCEF_GUIDRIVERRMLUIGL_CONFIG_H ? */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_MACROS_H
-#include "guidriverRocketOpenGL_macros.h"
-#define GUCEF_GUIDRIVERROCKETGL_MACROS_H
-#endif /* GUCEF_GUIDRIVERROCKETGL_MACROS_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUIGL_MACROS_H
+#include "guidriverRmlUIOpenGL_macros.h"
+#define GUCEF_GUIDRIVERRMLUIGL_MACROS_H
+#endif /* GUCEF_GUIDRIVERRMLUIGL_MACROS_H ? */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_CROCKETRENDERINTERFACEOPENGL_H
-#include "guidriverRocketOpenGL_CRocketRenderInterfaceOpenGL.h"
-#define GUCEF_GUIDRIVERROCKETGL_CROCKETRENDERINTERFACEOPENGL_H
-#endif /* GUCEF_GUIDRIVERROCKETGL_CROCKETRENDERINTERFACEOPENGL_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUIGL_CRMLUIRENDERINTERFACEOPENGL_H
+#include "guidriverRmlUIOpenGL_CRmlUIOpenGLContext.h"
+#define GUCEF_GUIDRIVERRMLUIGL_CRMLUIRENDERINTERFACEOPENGL_H
+#endif /* GUCEF_GUIDRIVERRMLUIGL_CRMLUIRENDERINTERFACEOPENGL_H ? */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_CROCKETGUIDRIVER_H
-#include "guidriverRocketOpenGL_CRocketGuiDriver.h"
-#define GUCEF_GUIDRIVERROCKETGL_CROCKETGUIDRIVER_H
-#endif /* GUCEF_GUIDRIVERROCKETGL_CROCKETGUIDRIVER_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUIGL_CRMLUIGUIDRIVER_H
+#include "guidriverRmlUIOpenGL_CRmlUIGuiDriver.h"
+#define GUCEF_GUIDRIVERRMLUIGL_CRMLUIGUIDRIVER_H
+#endif /* GUCEF_GUIDRIVERRMLUIGL_CRMLUIGUIDRIVER_H ? */
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_GUIDRIVERROCKETGL_H ? */
+#endif /* GUCEF_GUIDRIVERRMLUIGL_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

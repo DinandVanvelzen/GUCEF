@@ -975,7 +975,7 @@ zzip_seek(ZZIP_FILE * fp, zzip_off_t offset, int whence)
     if (dir->currentfp != fp)  
     {
         if (zzip_file_saveoffset(dir->currentfp) < 0 
-            || dir->currentfp->io->fd.seeks(dir->fd, fp->offset, SEEK_SET) < 0)
+            || fp->io->fd.seeks(dir->fd, fp->offset, SEEK_SET) < 0) /* GUCEF: currentfp is NULL after it was closed, use this handle's io as zzip_read does */
         { dir->errcode = ZZIP_DIR_SEEK; return -1; }
         else
         { dir->currentfp = fp; }

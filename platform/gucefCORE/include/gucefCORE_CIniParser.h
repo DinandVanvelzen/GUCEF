@@ -105,7 +105,17 @@ class GUCEF_CORE_PUBLIC_CPP CIniParser
     
     TIniData& GetData( void );
     
-    const TIniData& GetData( void ) const;
+    const TIniData& GetData( void ) const;
+
+    /**
+     *  Sets one value in an ini file and leaves the rest of the file as it is: comments, the order, the quoting and the
+     *  line endings stay (a file written through LoadFrom() and SaveTo() loses its comments). The key is added at the end of
+     *  its section when it is not there, the section at the end of the file. Names are matched ignoring case
+     */
+    static bool UpdateValueInIniFile( const CString& iniFilePath  ,
+                                      const CString& sectionName  ,
+                                      const CString& key          ,
+                                      const CString& value        );
 
     private:
 

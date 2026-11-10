@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#include "CDynamicBufferAccess.h"
+#define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
+
 #ifndef GUCEF_CORE_CDSTORECODECREGISTRY_H
 #include "CDStoreCodecRegistry.h"
 #define GUCEF_CORE_CDSTORECODECREGISTRY_H
@@ -68,6 +73,8 @@ namespace PRODMAN {
 CCodecBasedProductInfoListProvider::CCodecBasedProductInfoListProvider()
     : CProductInfoListProvider(),
       m_codecToUse( "xml" ),
+      m_listUrl(),
+      m_listBuffer( true ),
       m_dataRetriever()
 {GUCEF_TRACE;
 
@@ -79,7 +86,7 @@ CCodecBasedProductInfoListProvider::CCodecBasedProductInfoListProvider()
 CCodecBasedProductInfoListProvider::~CCodecBasedProductInfoListProvider()
 {GUCEF_TRACE;
 
-    m_dataRetriever.SetIOAccess( NULL );
+    // The retriever stops a retrieval that is still busy when it is destroyed
 }
 
 /*-------------------------------------------------------------------------*/
@@ -96,7 +103,8 @@ CCodecBasedProductInfoListProvider::OnAllDataRetrieved( void )
     {
         // we have our codec, parse the data into data nodes
         CORE::CDataNode rootNode;
-        if ( codec->BuildDataTree( &rootNode, m_dataRetriever.GetIOAccess() ) )
+        CORE::CDynamicBufferAccess listAccess( m_listBuffer );
+        if ( codec->BuildDataTree( &rootNode, &listAccess ) )
         {
             // Now try to load the product info list data
             CProductInfoListPtr productInfoList( new CProductInfoList() );
@@ -104,7 +112,7 @@ CCodecBasedProductInfoListProvider::OnAllDataRetrieved( void )
             {
                 rootNode.Clear();
                 
-                CProductInfoListRetrievedEventData eventData( m_dataRetriever.GetURL().GetURL(), productInfoList );
+                CProductInfoListRetrievedEventData eventData( m_listUrl, productInfoList );
                 NotifyObservers( ProductInfoListRetrievedEvent, &eventData );
             }
         }
@@ -117,14 +125,13 @@ bool
 CCodecBasedProductInfoListProvider::RetrieveList( const CORE::CString& listLocation )
 {GUCEF_TRACE;
    
-    CORE::CURL& url = m_dataRetriever.GetURL();
-    if ( !url.IsActive() )
-    {    
-        // Set a new buffer as storage
-        m_dataRetriever.SetMemoryBufferAsStorage();
+    if ( !m_dataRetriever.IsBusy() )
+    {
+        // Start with a fresh buffer as storage
+        m_listBuffer.Clear();
 
-        url.SetURL( listLocation );
-        if ( url.Activate() )
+        m_listUrl = listLocation;
+        if ( m_dataRetriever.Retrieve( CORE::CUri( m_listUrl ), m_listBuffer ).HasAFuture() )
         {
             NotifyObservers( ProductInfoListRetrievalStartedEvent );
             return true;
@@ -141,12 +148,12 @@ CCodecBasedProductInfoListProvider::OnNotify( CORE::CNotifier* notifier    ,
                                               CORE::CICloneable* eventdata )
 {GUCEF_TRACE;
 
-    if ( CORE::CIURLEvents::URLAllDataRecievedEvent == eventid )
+    if ( CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent == eventid )
     {
         OnAllDataRetrieved();
     }
     else
-    if ( CORE::CIURLEvents::URLDataRetrievalErrorEvent == eventid )
+    if ( CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent == eventid )
     {
         NotifyObservers( ProductInfoListRetrievalErrorEvent );
     }

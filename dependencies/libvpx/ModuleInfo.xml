@@ -1,0 +1,24 @@
+<ModuleInfoEntry>
+    <Module Name="libvpx" Type="StaticLibrary" Platform="linux;mswin;android">
+        <ModuleMetaData>
+            <License>BSD-3-Clause</License>
+            <SemVer>1.15.0.0</SemVer>
+            <DescriptionHeadline>libvpx (WebM project): VP8 decoder, VP9 encoder and decoder, portable C build</DescriptionHeadline>
+            <DescriptionDetails>The sources of libvpx v1.15.0 listed by its configure for --target=generic-gnu --enable-vp8-decoder --disable-vp8-encoder --enable-vp9 --enable-multithread --disable-vp9-highbitdepth --disable-postproc. The configuration it generated is in 'generated'; HAVE_PTHREAD_H is switched off on Windows so libvpx uses its Win32 threads.</DescriptionDetails>
+        </ModuleMetaData>
+        <Includes Source="Self">
+            <Include Path="." />
+            <Include Path="generated" />
+        </Includes>
+        <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux;android">
+        <Linker>
+            <Dependency Name="pthread" />
+            <Dependency Name="m" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

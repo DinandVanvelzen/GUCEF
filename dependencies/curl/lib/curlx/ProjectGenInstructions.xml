@@ -1,0 +1,7 @@
+<!-- DV edit: curl includes the headers in this directory as "curlx/name.h", keeping the directory itself off the include path
+     prevents its headers (for example schannel.h) from hiding system headers with the same name -->
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="." TYPE="INCLUDEDIR" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

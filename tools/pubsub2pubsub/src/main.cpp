@@ -27,6 +27,11 @@
 #define GUCEF_CORE_CGUCEFAPPLICATION_H
 #endif /* GUCEF_CORE_CGUCEFAPPLICATION_H ? */
 
+#ifndef GUCEF_CORE_PROCESSARGUMENTS_H
+#include "gucefCORE_ProcessArguments.h"
+#define GUCEF_CORE_PROCESSARGUMENTS_H
+#endif /* GUCEF_CORE_PROCESSARGUMENTS_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -224,32 +229,20 @@ ParseParams( const int argc                 ,
              CORE::CValueList& keyValueList )
 {GUCEF_TRACE;
 
-    GUCEF::CORE::CString argString;
-    if ( argc > 0 )
-    {
-        argString = *argv;
-
-        // Combine the argument strings back into a single string because we don't want to use
-        // a space as the seperator
-        for ( int i=1; i<argc; ++i )
-        {
-            argString += ' ' + CORE::CString( argv[ i ] );
-        }
-
-        // Parse the param list based on the ' symbol
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Application parameters: " + argString );
-        keyValueList.SetMultiple( argString, '*' );
-    }
+    CORE::ParseApplicationArguments( argc, argv, keyValueList, '*' );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Application parameters: " << CORE::ToString( keyValueList ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
 GucefAppSignalHandler( int signal )
-{GUCEF_TRACE;
+{GUCEF_TRACE; 
     
-    GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "GucefAppSignalHandler: Received signal " + CORE::ToString( signal ) );
-    ::GUCEF::CORE::CCoreGlobal::Instance()->GetApplication().Stop();
+    GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "GucefAppSignalHandler: Received signal " << signal );
+    
+    // signal context: only the async-signal-safe stop request, the application stops at its next pulse
+    ::GUCEF::CORE::CGUCEFApplication::RequestStopFromSignal( signal );
 }
 
 /*-------------------------------------------------------------------------*/

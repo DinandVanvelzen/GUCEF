@@ -17,7 +17,7 @@
 			<Dependency Name="aws-cpp-sdk-sns" />
 		</Linker>
         <Preprocessor>
-            <Define String="PUBSUBPLUGIN_AWSSQS_BUILD_PLUGIN_DLL" />
+            <Define String="PUBSUBPLUGIN_AWSSNS_BUILD_PLUGIN_DLL" />
 			<Define String="USE_IMPORT_EXPORT" />
         </Preprocessor>
     </Module>

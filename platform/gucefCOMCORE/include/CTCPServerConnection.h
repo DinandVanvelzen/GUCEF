@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CCYCLICDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CCYCLICDYNAMICBUFFER_H ? */ 
                 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
 #define GUCEF_CORE_CTIMER_H
@@ -39,6 +44,11 @@
 #include "CTCPConnection.h"                     /* TCP connection base class */
 #define GUCEF_COMCORE_CTCPCONNECTION_H
 #endif /* GUCEF_COMCORE_CTCPCONNECTION_H ? */
+
+#ifndef GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#include "gucefCOMCORE_CSocketReadinessWaiter.h"
+#define GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#endif /* GUCEF_COMCORE_CSOCKETREADINESSWAITER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,6 +92,12 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
      *      This can cause this object to be deleted by the parent server.
      *      After a call to Close() the object should no longer be accessed
      *      by the user.
+     *
+     *      A thread that holds the lock of this connection (AsLockable(), or an observer of an event of this connection,
+     *      which the connection raises under its lock) may close it: the socket is closed at once, and the server socket
+     *      and the observers hear of it once that thread gave the lock up, at the latest on the next pulse of the server
+     *      socket. Until then the server socket does not hand this object to a later client, so whoever closes under the
+     *      lock knows that the connection it closed is the one it looked at.
      */
     virtual void Close( void ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -133,6 +149,12 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
      *      bytes that will be read from the data buffer.
      */
     UInt32 GetMaxRead( void ) const;
+
+    /**
+     *  The bytes that were handed to Send() and that the socket did not take yet: Send() queues what the socket
+     *  cannot take at once and the pulses of the server socket send it later
+     */
+    UInt32 GetBufferedSendDataSize( void ) const;
     
     virtual const CORE::CString& GetRemoteHostName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
@@ -151,6 +173,16 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
     virtual ~CTCPServerConnection();
     
     UInt32 GetConnectionIndex( void ) const;
+
+    /**
+     *  Slot for a pointer owned by whoever is processing this connection, for example a protocol handler which
+     *  took the connection over. It saves such users from having to look up the connection in their own
+     *  administration on every event. It is cleared when the connection object is used for a new client
+     *  and never touched by the connection itself.
+     */
+    void SetUserData( void* userData );
+
+    void* GetUserData( void ) const;
 
     /**
      *  Allows you to set whether to use data coalescing on sends.
@@ -179,8 +211,10 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
      *      polls the socket ect. as needed and update stats.
      *
      *      @param maxUpdatesPerCycle Max number of socket operation update cycles per pulse
+     *      @return false if this connection object was deleted as a result of notifying observers, if so
+     *              the object must not be touched anymore
      */
-    virtual void Update( UInt32 maxUpdatesPerCycle );
+    virtual bool Update( UInt32 maxUpdatesPerCycle );
     
     virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
     
@@ -188,9 +222,45 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
                          
     private:
     
-    void CheckRecieveBuffer( void );
+    /**
+     *  @return false if this object was deleted as a result of notifying observers, if so it must not be touched anymore
+     */
+    bool CheckRecieveBuffer( void );
 
-    void CloseImp( bool byUser, bool lock, bool updateActiveLists, bool notify );
+    /**
+     *  Closes the socket. The observers (DisconnectedEvent) and then the server socket hear of it once the lock of this
+     *  connection is given up: with lock true here, unless the calling thread held the lock already; else (the caller
+     *  holds the lock) when the caller gives it up with UnlockAndCompleteClose(). A close that waits for a thread outside
+     *  this class to give up the lock is completed by the next Update() (CompletePendingClose()), or by a later
+     *  CloseImp() that can complete it. The server socket hears of it last because it may hand this object to a later
+     *  client from then on. With onlyWhenOpenOrPending a connection whose close was told already, or is being told by
+     *  another thread, is left alone (the server socket closes)
+     */
+    void CloseImp( bool byUser, bool lock, bool updateActiveLists, bool notify, bool onlyWhenOpenOrPending = false );
+
+    /**
+     *  Gives up the lock and tells the observers and then the server socket of a close that CloseImp() made under it. Lock
+     *  order: the lock of the server socket (which it holds while it sends to its connections and raises its events)
+     *  comes before the lock of a connection, so a connection never calls the server socket under its own lock. When
+     *  the thread holds the lock more than once the close stays pending, for its outermost hold or the next Update()
+     *  @return false if this object was deleted as a result of notifying observers, if so it must not be touched anymore
+     */
+    bool UnlockAndCompleteClose( void );
+
+    /**
+     *  Completes a close of an inactive connection that waited for the lock to be given up, see CloseImp()
+     *  @return false if this object was deleted as a result of notifying observers, if so it must not be touched anymore
+     */
+    bool CompletePendingClose( void );
+
+    /** Registers the accepted socket for readiness wakes of the server socket's pulse generator, under the lock */
+    void RegisterForReadinessWake( const CSocketReadinessWaiterPtr& waiter );
+
+    /** Asks for the next readiness wake, under the lock, when the connection is done being serviced */
+    void ArmReadinessWake( void );
+
+    /** Under the lock, before the descriptor is closed */
+    void UnregisterFromReadinessWake( void );
 
     void
     OnIdleTimerTriggered( CORE::CNotifier* notifier    ,
@@ -204,19 +274,28 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
     
     struct STCPServerConData* _data;
     bool _blocking;  
-    bool _active;
+    MT::CTAtomic< bool > _active;           /**< written under the lock, read without it by IsActive() */
     CORE::CDynamicBuffer m_readbuffer;
     CORE::CCyclicDynamicBuffer m_sendBuffer;
     CORE::CDynamicBuffer m_sendOpBuffer;
     MT::CMutex _datalock;
     UInt32 m_maxreadbytes;
-    UInt32 m_connectionidx;      
+    UInt32 m_connectionidx;
+    void* m_userData;      
     CTCPServerSocket* m_parentsock;
     bool m_coaleseDataSends;
     UInt32 m_bytesReceived;
     UInt32 m_bytesTransmitted;
     bool m_disconnectIfIdle;
     CORE::CTimer m_idleTimer;
+    CSocketReadinessWaiterPtr m_readinessWaiter;
+    CSocketReadinessWaiter::TRegistrationId m_readinessId;
+    bool m_closeToComplete;                 /**< CloseImp() closed the socket under a lock its caller holds */
+    bool m_closeToCompleteByUser;
+    bool m_closeToCompleteUpdateLists;
+    bool m_closeToCompleteNotify;
+    MT::CTAtomic< bool > m_closeBeingTold;  /**< closed, its observers and the server socket are being told: not handed to a later client yet */
+    mutable UInt32 m_lockDepth;             /**< how often the thread that holds _datalock holds it, used by that thread only */
 
     CTCPServerConnection( void ); /* private default constructor because we need data */                             
 };

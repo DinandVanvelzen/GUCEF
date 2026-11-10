@@ -23,12 +23,18 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 #include "inputdriverXWINMSG_CEventListner.h"
 
 #define XK_MISCELLANY
 #define XK_TECHNICAL
 #define XK_LATIN1
 #include "X11/keysymdef.h"
+#include <X11/Xutil.h>
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -52,7 +58,12 @@ CEventListner::CEventListner( ::Window window                  ,
       m_window( window )        ,
       m_callbacks( *callbacks ) ,
       m_mouseX( 0 )             ,
-      m_mouseY( 0 )
+      m_mouseY( 0 )             ,
+      m_wheel( 0 )              ,
+      m_horizontalWheel( 0 )    ,
+      m_movesSinceButtonChange( 0 )   ,
+      m_inputMethod( GUCEF_NULL ) ,
+      m_inputContext( GUCEF_NULL )
 {GUCEF_TRACE;
 
     CORE::CX11EventDispatcher* eventDispatcher = CORE::CX11EventDispatcher::Instance();
@@ -66,9 +77,20 @@ CEventListner::CEventListner( ::Window window                  ,
     long eventMask = windowAttributes.your_event_mask |
                           KeyPressMask | KeyReleaseMask |
                           ButtonPressMask | ButtonReleaseMask |
-                          PointerMotionMask | Button1MotionMask;
-
+                          PointerMotionMask | Button1MotionMask |
+                          EnterWindowMask | LeaveWindowMask | FocusChangeMask;
     ::XSelectInput( display, window, eventMask );
+
+    // an input method makes text in the user's language and layout as UTF-8; without one XLookupString gives Latin-1
+    ::XSetLocaleModifiers( "" );
+    m_inputMethod = ::XOpenIM( display, GUCEF_NULL, GUCEF_NULL, GUCEF_NULL );
+    if ( GUCEF_NULL != m_inputMethod )
+    {
+        m_inputContext = ::XCreateIC( m_inputMethod, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+                                      XNClientWindow, window, XNFocusWindow, window, (char*) GUCEF_NULL );
+        if ( GUCEF_NULL != m_inputContext )
+            ::XSetICFocus( m_inputContext );
+    }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -77,6 +99,10 @@ CEventListner::~CEventListner()
 {GUCEF_TRACE;
 
     CORE::CX11EventDispatcher::Instance()->UnsubscribeOnBehalfOfWindow( *this, m_window );
+    if ( GUCEF_NULL != m_inputContext )
+        ::XDestroyIC( m_inputContext );
+    if ( GUCEF_NULL != m_inputMethod )
+        ::XCloseIM( m_inputMethod );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -106,7 +132,7 @@ CEventListner::MapKeyCode( int x11KeyCode )
     switch ( x11KeyCode )
     {
         // XK_MISCELLANY
-        case XK_BackSpace /* Back space, back char */ : return KEYCODE_TAB;
+        case XK_BackSpace /* Back space, back char */ : return KEYCODE_BACK;
         case XK_Tab : return KEYCODE_TAB;
         case XK_Linefeed /* Linefeed, LF */ : return KEYCODE_UNASSIGNED;
         case XK_Clear : return KEYCODE_UNASSIGNED;
@@ -267,10 +293,99 @@ CEventListner::MapKeyCode( int x11KeyCode )
         case XK_uparrow /* U+2191 UPWARDS ARROW */ : return KEYCODE_UP;
         case XK_rightarrow /* U+2192 RIGHTWARDS ARROW */ : return KEYCODE_RIGHT;
         case XK_downarrow /* U+2193 DOWNWARDS ARROW */ : return KEYCODE_DOWN;
-
+        // cursor control, editing and modifiers
+        case XK_Left : return KEYCODE_LEFT;
+        case XK_Up : return KEYCODE_UP;
+        case XK_Right : return KEYCODE_RIGHT;
+        case XK_Down : return KEYCODE_DOWN;
+        case XK_Home : return KEYCODE_HOME;
+        case XK_End : return KEYCODE_END;
+        case XK_Prior : return KEYCODE_PGUP;
+        case XK_Next : return KEYCODE_PGDOWN;
+        case XK_Insert : return KEYCODE_INSERT;
+        case XK_Menu : return KEYCODE_APPS;
+        case XK_Print : return KEYCODE_SYSRQ;
+        case XK_Shift_L : return KEYCODE_LSHIFT;
+        case XK_Shift_R : return KEYCODE_RSHIFT;
+        case XK_Control_L : return KEYCODE_LCONTROL;
+        case XK_Control_R : return KEYCODE_RCONTROL;
+        case XK_Alt_L : return KEYCODE_LMENU;
+        case XK_Alt_R : return KEYCODE_RMENU;
+        case XK_Super_L : return KEYCODE_LWIN;
+        case XK_Super_R : return KEYCODE_RWIN;
+        case XK_Caps_Lock : return KEYCODE_CAPITAL;
+        case XK_Num_Lock : return KEYCODE_NUMLOCK;
+        // the numeric keypad
+        case XK_KP_Enter : return KEYCODE_NUMPADENTER;
+        case XK_KP_Add : return KEYCODE_ADD;
+        case XK_KP_Subtract : return KEYCODE_SUBTRACT;
+        case XK_KP_Multiply : return KEYCODE_MULTIPLY;
+        case XK_KP_Divide : return KEYCODE_DIVIDE;
+        case XK_KP_Decimal : return KEYCODE_DECIMAL;
+        case XK_KP_Delete : return KEYCODE_DELETE;
+        case XK_KP_Insert : case XK_KP_0 : return KEYCODE_NUMPAD0;
+        case XK_KP_End : case XK_KP_1 : return KEYCODE_NUMPAD1;
+        case XK_KP_Down : case XK_KP_2 : return KEYCODE_NUMPAD2;
+        case XK_KP_Next : case XK_KP_3 : return KEYCODE_NUMPAD3;
+        case XK_KP_Left : case XK_KP_4 : return KEYCODE_NUMPAD4;
+        case XK_KP_Begin : case XK_KP_5 : return KEYCODE_NUMPAD5;
+        case XK_KP_Right : case XK_KP_6 : return KEYCODE_NUMPAD6;
+        case XK_KP_Home : case XK_KP_7 : return KEYCODE_NUMPAD7;
+        case XK_KP_Up : case XK_KP_8 : return KEYCODE_NUMPAD8;
+        case XK_KP_Prior : case XK_KP_9 : return KEYCODE_NUMPAD9;
         default: return KEYCODE_UNASSIGNED;
-
     }
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** Latin-1 text (what XLookupString gives without an input context) as UTF-8 */
+static CORE::CString
+Latin1ToUtf8( const char* text, int length )
+{
+    CORE::CString result;
+    for ( int i=0; i<length; ++i )
+        result.Append( (UInt32) (unsigned char) text[ i ] );
+    return result;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+CEventListner::SendText( ::XKeyEvent& keyEvent )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_callbacks.onKeyboardText )
+        return;
+
+    // the text the key makes, after the keyboard layout and input method
+    char buffer[ 64 ];
+    CORE::CString text;
+    if ( GUCEF_NULL != m_inputContext )
+    {
+        ::KeySym keySym = 0;
+        Status status = 0;
+        int length = ::Xutf8LookupString( m_inputContext, &keyEvent, buffer, (int) sizeof( buffer ) - 1, &keySym, &status );
+        if ( ( XLookupChars == status || XLookupBoth == status ) && length > 0 )
+        {
+            buffer[ length ] = '\0';
+            text = buffer;
+        }
+    }
+    else
+    {
+        int length = ::XLookupString( &keyEvent, buffer, (int) sizeof( buffer ) - 1, GUCEF_NULL, GUCEF_NULL );
+        if ( length > 0 )
+            text = Latin1ToUtf8( buffer, length );
+    }
+
+    // control characters (Return, Backspace, Escape, Tab, Delete) are keys, not text
+    if ( text.IsNULLOrEmpty() )
+        return;
+    const char* bytes = text.C_String();
+    if ( 1 == text.ByteSize() - 1 && ( (unsigned char) bytes[ 0 ] < 32 || 127 == (unsigned char) bytes[ 0 ] ) )
+        return;
+    m_callbacks.onKeyboardText( m_callbacks.userData, 0, bytes );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -284,54 +399,101 @@ CEventListner::OnX11Event( ::XEvent& event )
     {
         case KeyRelease:
         {
-            m_callbacks.onKeyboardKeyUp( m_callbacks.userData, 0, MapKeyCode( ::XLookupKeysym( &event.xkey, 0 ) ), 0 );
+            m_callbacks.onKeyboardKeyUp( m_callbacks.userData, 0, MapKeyCode( (int) ::XLookupKeysym( &event.xkey, 0 ) ), 0 );
             return;
         }
         case KeyPress:
         {
-            m_callbacks.onKeyboardKeyDown( m_callbacks.userData, 0, MapKeyCode( ::XLookupKeysym( &event.xkey, 0 ) ), 0 );
+            m_callbacks.onKeyboardKeyDown( m_callbacks.userData, 0, MapKeyCode( (int) ::XLookupKeysym( &event.xkey, 0 ) ), 0 );
+            SendText( event.xkey );
             return;
         }
         case ButtonPress:
-        {
-            Int32 deltaX = event.xbutton.x - m_mouseX;
-            Int32 deltaY = event.xbutton.y - m_mouseY;
-
-            m_mouseX = event.xbutton.x;
-            m_mouseY = event.xbutton.y;
-
-            m_callbacks.onMouseMove( m_callbacks.userData, 0, m_mouseX, m_mouseY, deltaX, deltaY );
-
-            m_callbacks.onMouseButtonDown( m_callbacks.userData, 0, event.xbutton.button );
-            return;
-        }
         case ButtonRelease:
         {
+            bool pressed = ButtonPress == event.type;
+            if ( event.xbutton.button < Button4 || event.xbutton.button > 7 )
+            {
+                const char* direction = pressed ? " down" : " up";
+                GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: button " << event.xbutton.button << direction << " at " << event.xbutton.x << "," << event.xbutton.y
+                                << ", state " << event.xbutton.state << ", " << m_movesSinceButtonChange << " moves since the last button change" );
+                m_movesSinceButtonChange = 0;
+            }
             Int32 deltaX = event.xbutton.x - m_mouseX;
             Int32 deltaY = event.xbutton.y - m_mouseY;
-
             m_mouseX = event.xbutton.x;
             m_mouseY = event.xbutton.y;
-
             m_callbacks.onMouseMove( m_callbacks.userData, 0, m_mouseX, m_mouseY, deltaX, deltaY );
 
-            m_callbacks.onMouseButtonUp( m_callbacks.userData, 0, event.xbutton.button );
+            // X11 numbers the buttons from 1: left, middle, right, then the wheel (4 up, 5 down, 6 left, 7 right), then the side buttons;
+            // gucefINPUT numbers them 0 left, 1 right, 2 middle, 3 and 4 the side buttons
+            UInt32 index = 0;
+            switch ( event.xbutton.button )
+            {
+                case Button1: index = 0; break;
+                case Button2: index = 2; break;
+                case Button3: index = 1; break;
+                case Button4:
+                case Button5:
+                {
+                    // a notch of the wheel is a press and a release: count the press only
+                    if ( pressed )
+                    {
+                        Int32 delta = Button4 == event.xbutton.button ? 1 : -1;
+                        m_wheel += delta;
+                        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: wheel notch " << delta << " at " << event.xbutton.x << "," << event.xbutton.y );
+                        m_callbacks.onMouseVarChanged( m_callbacks.userData, 0, 0, m_wheel, delta );
+                    }
+                    return;
+                }
+                case 6:
+                case 7:
+                {
+                    if ( pressed )
+                    {
+                        Int32 delta = 7 == event.xbutton.button ? 1 : -1;
+                        m_horizontalWheel += delta;
+                        m_callbacks.onMouseVarChanged( m_callbacks.userData, 0, 1, m_horizontalWheel, delta );
+                    }
+                    return;
+                }
+                default:
+                {
+                    index = event.xbutton.button >= 8 ? event.xbutton.button - 5 : event.xbutton.button;
+                    break;
+                }
+            }
+            if ( pressed )
+                m_callbacks.onMouseButtonDown( m_callbacks.userData, 0, index );
+            else
+                m_callbacks.onMouseButtonUp( m_callbacks.userData, 0, index );
             return;
         }
         case LeaveNotify :
         case EnterNotify :
         {
+            const char* movement = EnterNotify == event.type ? "enters" : "leaves";
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: the pointer " << movement << " the window at " << event.xcrossing.x << "," << event.xcrossing.y
+                            << " (mode " << event.xcrossing.mode << ", detail " << event.xcrossing.detail << ", state " << event.xcrossing.state << ")" );
             Int32 deltaX = event.xcrossing.x - m_mouseX;
             Int32 deltaY = event.xcrossing.y - m_mouseY;
 
-            m_mouseX = event.xbutton.x;
-            m_mouseY = event.xbutton.y;
+            m_mouseX = event.xcrossing.x;
+            m_mouseY = event.xcrossing.y;
 
             m_callbacks.onMouseMove( m_callbacks.userData, 0, m_mouseX, m_mouseY, deltaX, deltaY );
             return;
         }
+        case FocusIn :
+        case FocusOut :
+        {
+            const char* focus = FocusIn == event.type ? "gets" : "loses";
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: the window " << focus << " the keyboard focus (mode " << event.xfocus.mode << ", detail " << event.xfocus.detail << ")" );
+            return;
+        }
         case MotionNotify:
         {
+            ++m_movesSinceButtonChange;
             Int32 deltaX = event.xmotion.x - m_mouseX;
             Int32 deltaY = event.xmotion.y - m_mouseY;
 

@@ -62,13 +62,19 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../dependencies/hiredis", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
+configuration( { "ANDROID" } )
+includedirs( { "../../dependencies/hiredis" } )
+
 configuration( { "ANDROID32" } )
-includedirs( { "../../dependencies/hiredis", "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../dependencies/hiredis", "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ARDUINO" } )
+includedirs( { "../../dependencies/hiredis" } )
+
+configuration( { "EMSCRIPTEN" } )
 includedirs( { "../../dependencies/hiredis" } )
 
 configuration( { "EMSCRIPTEN32" } )
@@ -80,17 +86,41 @@ includedirs( { "../../dependencies/hiredis" } )
 configuration( { "IOS" } )
 includedirs( { "../../dependencies/hiredis" } )
 
+configuration( { "IPHONE" } )
+includedirs( { "../../dependencies/hiredis" } )
+
+configuration( { "IPHONEOS" } )
+includedirs( { "../../dependencies/hiredis" } )
+
+configuration( { "LINUX" } )
+includedirs( { "../../dependencies/hiredis" } )
+
 configuration( { "LINUX32" } )
 includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
 configuration( { "LINUX64" } )
 includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
+configuration( { "MAC" } )
+includedirs( { "../../dependencies/hiredis" } )
+
+configuration( { "MACOS" } )
+includedirs( { "../../dependencies/hiredis" } )
+
+configuration( { "MACOSX" } )
+includedirs( { "../../dependencies/hiredis" } )
+
+configuration( { "MSWIN" } )
+includedirs( { "../../dependencies/hiredis" } )
+
 configuration( { "OSX" } )
 includedirs( { "../../dependencies/hiredis" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
+
+configuration( { "WINDOWS" } )
+includedirs( { "../../dependencies/hiredis" } )

@@ -12,9 +12,9 @@
 
 workspace( "GUCEF_tag_tools" )
 
-  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:
@@ -40,8 +40,10 @@ filter "ALL"
   include( "dependencies/flic" )
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
+  include( "dependencies/libarchive" )
   include( "dependencies/libparsifal" )
   include( "dependencies/libyaml" )
+  include( "dependencies/minizip" )
   include( "dependencies/protobuf/src" )
   include( "dependencies/stbrumme-hash-library" )
   include( "dependencies/zziplib" )
@@ -70,8 +72,12 @@ filter "ALL"
   include( "plugins/VFS/vfspluginAWSS3" )
   include( "plugins/VFS/vfspluginDVP" )
   include( "plugins/VFS/vfspluginITV" )
+  include( "plugins/VFS/vfspluginLIBARCHIVE" )
   include( "plugins/VFS/vfspluginVP" )
   include( "plugins/VFS/vfspluginZIP" )
+  include( "plugins/WEB/httpclientpluginCURL" )
+  include( "tools/AncestryDotComBackup" )
+  include( "tools/AncestryDotComBackupLib" )
   include( "tools/ArchiveDiff" )
   include( "tools/ArchiveDiffLib" )
   include( "tools/DCSBruteInstaller" )
@@ -82,11 +88,15 @@ filter "ALL"
   include( "tools/PubSubStorageTool" )
   include( "tools/itvExporter" )
 
+filter "ANDROID"
+
 filter "ANDROID32"
 
 filter "ANDROID64"
 
 filter "ARDUINO"
+
+filter "EMSCRIPTEN"
 
 filter "EMSCRIPTEN32"
   include( "dependencies/zlib" )
@@ -99,6 +109,12 @@ filter "EMSCRIPTEN64"
   include( "plugins/IMAGE/imgpluginFreeImage" )
 
 filter "IOS"
+
+filter "IPHONE"
+
+filter "IPHONEOS"
+
+filter "LINUX"
 
 filter "LINUX32"
   include( "dependencies/DevIL/DevIL" )
@@ -131,6 +147,14 @@ filter "LINUX64"
   include( "plugins/IMAGE/imgpluginDEVIL" )
   include( "plugins/IMAGE/imgpluginFreeImage" )
   include( "tools/CMakeListGenerator" )
+
+filter "MAC"
+
+filter "MACOS"
+
+filter "MACOSX"
+
+filter "MSWIN"
 
 filter "OSX"
 
@@ -167,3 +191,5 @@ filter "WIN64"
   include( "plugins/IMAGE/imgpluginFreeImage" )
   include( "tools/CMakeListGenerator" )
   include( "tools/PatchSetGenerator" )
+
+filter "WINDOWS"

@@ -210,21 +210,11 @@ LOCAL_SRC_FILES := \
   src/OgreWireBoundingBox.cpp \
   src/OgreWorkQueue.cpp \
   src/OgreZip.cpp \
-  src/Android/OgreAPKFileSystemArchive.cpp \
-  src/Android/OgreAPKZipArchive.cpp \
-  src/Android/OgreAndroidLogListener.cpp \
-  src/Android/OgreFileSystemLayer.cpp \
-  src/Android/JNI/OgreActivityJNI.cpp \
   src/Hash/MurmurHash3.cpp \
-  src/Threading/OgreBarrierPThreads.cpp \
-  src/Threading/OgreDefaultWorkQueueStandard.cpp \
-  src/Threading/OgreLightweightMutexPThreads.cpp \
-  src/Threading/OgreThreadsPThreads.cpp \
   src/nedmalloc/nedmalloc.c
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
-  $(MY_MODULE_PATH)/include/Android \
   $(MY_MODULE_PATH)/include/Hash \
   $(MY_MODULE_PATH)/include/Threading \
   $(MY_MODULE_PATH)/src \
@@ -239,16 +229,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../freetype/src/winfonts \
   $(MY_MODULE_PATH)/../include
 
-LOCAL_CFLAGS := -DOGRE_NONCLIENT_BUILD -DOGRE_NO_CONFIG_DIALOG
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=Ogre -DMODULE_NAME=Ogre -DOGRE_NONCLIENT_BUILD -DOGRE_NO_CONFIG_DIALOG
 
 
 LOCAL_SHARED_LIBRARIES := \
   freetype
-
-
-LOCAL_LDLIBS := \
-  -latomic \
-  -ldl
 
 include $(BUILD_SHARED_LIBRARY)
 

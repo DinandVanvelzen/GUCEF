@@ -135,6 +135,14 @@ class GUCEF_VFS_PUBLIC_CPP CArchiveSettings : public CORE::CIConfigurable
     void SetDirectoryWatchingAbilityRequested( bool canWatch );
     
     bool GetDirectoryWatchingAbilityRequested( void ) const;
+
+    /**
+     *  The archive that mounts this one as one of its sub archives (auto mounting), empty for none. Unmounting that archive
+     *  unmounts this one too. Set at run time only, it is not part of the configuration
+     */
+    void SetParentArchiveName( const CORE::CString& parentArchiveName );
+
+    const CORE::CString& GetParentArchiveName( void ) const;
     
     const CORE::CValueList& GetArchiveSpecificSettings( void ) const;
 
@@ -150,6 +158,7 @@ class GUCEF_VFS_PUBLIC_CPP CArchiveSettings : public CORE::CIConfigurable
     bool m_writeableRequested;
     bool m_readableRequested;
     bool m_directoryWatchingAbilityRequested;
+    CORE::CString m_parentArchiveName;
     CORE::CValueList m_archiveSpecificSettings;
 };
 

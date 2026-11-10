@@ -766,7 +766,7 @@ SaveXmlFile( const CORE::CString& filePath   ,
 
     if ( CORE::FileExists( filePath ) )
     {
-        if ( 0 == CORE::Delete_File( filePath.C_String() ) )
+        if ( !CORE::DeleteFile( filePath ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "A file already exists and it could not be deleted: " + filePath );
             return false;

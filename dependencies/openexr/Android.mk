@@ -30,14 +30,11 @@ LOCAL_SRC_FILES := \
   IlmBase/IlmThread/IlmThread.cpp \
   IlmBase/IlmThread/IlmThreadMutex.cpp \
   IlmBase/IlmThread/IlmThreadMutexPosix.cpp \
-  IlmBase/IlmThread/IlmThreadMutexWin32.cpp \
   IlmBase/IlmThread/IlmThreadPool.cpp \
   IlmBase/IlmThread/IlmThreadPosix.cpp \
   IlmBase/IlmThread/IlmThreadSemaphore.cpp \
   IlmBase/IlmThread/IlmThreadSemaphorePosix.cpp \
   IlmBase/IlmThread/IlmThreadSemaphorePosixCompat.cpp \
-  IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp \
-  IlmBase/IlmThread/IlmThreadWin32.cpp \
   IlmBase/Imath/ImathBox.cpp \
   IlmBase/Imath/ImathColorAlgo.cpp \
   IlmBase/Imath/ImathFun.cpp \
@@ -161,6 +158,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/OpenEXR/config.windows \
   $(MY_MODULE_PATH)/IlmBase \
   $(MY_MODULE_PATH)/OpenEXR
+
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=OpenEXR -DMODULE_NAME=OpenEXR
+
+LOCAL_CPPFLAGS +=-std=gnu++14
 
 
 LOCAL_LDLIBS := \

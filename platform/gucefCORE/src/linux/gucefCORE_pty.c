@@ -54,7 +54,7 @@ GUCEF_pty_open( int* fdm, int* fds )
      *  O_RDWR = Open the device for both reading and writing. It is usual to specify this flag.
      *  O_NOCTTY = Do not make this device the controlling terminal for the process.
      */
-    int masterfd = posix_openpt( O_RDWR | O_NOCTTY );
+    masterfd = posix_openpt( O_RDWR | O_NOCTTY );
     if ( masterfd < 0 ) 
     {
         /* fallback to /dev/ptmx if posix_openpt not available */

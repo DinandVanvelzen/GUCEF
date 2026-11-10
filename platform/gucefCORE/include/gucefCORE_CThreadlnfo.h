@@ -104,6 +104,21 @@ class GUCEF_CORE_PUBLIC_CPP CThreadInfo : public CIDataNodeSerializable
 
     UInt64 GetThreadAffinityMask( void ) const;
     
+    /**
+     *  Optional name of the thread, set for threads GUCEF did not create (see CTaskManager::RegisterExternalThread)
+     */
+    void SetThreadName( const CString& threadName );
+
+    const CString& GetThreadName( void ) const;
+
+    /**
+     *  True for a thread that was created outside of the task manager and only announced itself to it.
+     *  Such threads are tracked but never scheduled.
+     */
+    void SetIsExternal( bool isExternal );
+
+    bool GetIsExternal( void ) const;
+
     void SetThreadAffinityByCpuId( UInt32 cpuId );
 
     UInt32 GetThreadAffinityByCpuId( void ) const;
@@ -120,6 +135,8 @@ class GUCEF_CORE_PUBLIC_CPP CThreadInfo : public CIDataNodeSerializable
     TThreadStatus m_threadStatus;
     UInt64 m_affinityMask;
     UInt32 m_threadCpuId;
+    CString m_threadName;
+    bool m_isExternal;
 };
 
 /*-------------------------------------------------------------------------//

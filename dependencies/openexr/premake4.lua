@@ -35,6 +35,8 @@ links( { "zlib" } )
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=OpenEXR", "MODULE_NAME=OpenEXR" } )
+  links( { "pthread" } )
+  links( { "pthread" } )
   
 
 configuration( { WIN32 } )
@@ -250,14 +252,11 @@ files( {
   "IlmBase/IlmThread/IlmThread.cpp",
   "IlmBase/IlmThread/IlmThreadMutex.cpp",
   "IlmBase/IlmThread/IlmThreadMutexPosix.cpp",
-  "IlmBase/IlmThread/IlmThreadMutexWin32.cpp",
   "IlmBase/IlmThread/IlmThreadPool.cpp",
   "IlmBase/IlmThread/IlmThreadPosix.cpp",
   "IlmBase/IlmThread/IlmThreadSemaphore.cpp",
   "IlmBase/IlmThread/IlmThreadSemaphorePosix.cpp",
   "IlmBase/IlmThread/IlmThreadSemaphorePosixCompat.cpp",
-  "IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp",
-  "IlmBase/IlmThread/IlmThreadWin32.cpp",
   "IlmBase/Imath/ImathBox.cpp",
   "IlmBase/Imath/ImathColorAlgo.cpp",
   "IlmBase/Imath/ImathFun.cpp",
@@ -369,6 +368,26 @@ files( {
   "OpenEXR/IlmImfUtil/ImfImageLevel.cpp",
   "OpenEXR/IlmImfUtil/ImfSampleCountChannel.cpp"
  } )
+
+
+
+configuration( { "WIN32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "IlmBase/IlmThread/IlmThreadMutexWin32.cpp",
+      "IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp",
+      "IlmBase/IlmThread/IlmThreadWin32.cpp"
+    } )
+
+
+
+configuration( { "WIN64" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "IlmBase/IlmThread/IlmThreadMutexWin32.cpp",
+      "IlmBase/IlmThread/IlmThreadSemaphoreWin32.cpp",
+      "IlmBase/IlmThread/IlmThreadWin32.cpp"
+    } )
 
 
 configuration( {} )

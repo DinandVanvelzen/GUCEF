@@ -78,23 +78,23 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
   target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
-target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM android android_native_app_glue )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv3 android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERANDROIDGLES_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverAndroidGLES" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
   target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
-target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM android android_native_app_glue )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv3 android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERANDROIDGLES_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverAndroidGLES" )
 endif( ANDROID64 )
 
 if ( ANDROID32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
 endif( ANDROID64 )
 
 

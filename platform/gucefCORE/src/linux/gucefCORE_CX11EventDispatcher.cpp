@@ -37,6 +37,8 @@
 #define GUCEF_CORE_CGUCEFAPPLICATION_H
 #endif /* GUCEF_CORE_CGUCEFAPPLICATION_H ? */
 
+#include <unistd.h>
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -74,7 +76,8 @@ CX11EventDispatcher::RegisterEvents( void )
 
 CX11EventDispatcher::CX11EventDispatcher( void )
     : m_windowObserverMap(),
-      m_display( NULL )
+      m_display( NULL ),
+      m_lastUserInputTime( 0 )
 {GUCEF_TRACE;
 
     PulseGeneratorPtr pulseGenerator = CCoreGlobal::Instance()->GetPulseGenerator();
@@ -251,12 +254,16 @@ CX11EventDispatcher::ProcessEvent( ::XEvent& event )
         case KeyRelease :
         case KeyPress :
         {
+            if ( 0 != GetUserInputTimeOfEvent( event ) )
+                m_lastUserInputTime = GetUserInputTimeOfEvent( event );
             DispatchEventToWindow( event, event.xkey.window );
             break;
         }
         case ButtonRelease :
         case ButtonPress :
         {
+            if ( 0 != GetUserInputTimeOfEvent( event ) )
+                m_lastUserInputTime = GetUserInputTimeOfEvent( event );
             DispatchEventToWindow( event, event.xbutton.window );
             break;
         }
@@ -407,6 +414,19 @@ CX11EventDispatcher::ProcessEvent( ::XEvent& event )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CX11EventDispatcher::IsSupersededMotion( const ::XEvent& event, const ::XEvent& next )
+{GUCEF_TRACE;
+
+    return MotionNotify == event.type && MotionNotify == next.type                 &&
+           event.xmotion.window == next.xmotion.window                             &&
+           event.xmotion.subwindow == next.xmotion.subwindow                       &&
+           event.xmotion.state == next.xmotion.state                               &&
+           event.xmotion.send_event == next.xmotion.send_event;
+}
+
+/*--------------------------------------------------------------------------*/
+
 void
 CX11EventDispatcher::OnNotify( CNotifier* notifier    ,
                                const CEvent& eventid  ,
@@ -421,6 +441,16 @@ CX11EventDispatcher::OnNotify( CNotifier* notifier    ,
         while ( 0 != ::XEventsQueued( m_display, QueuedAlready ) )
         {
             ::XNextEvent( m_display, &event );
+
+            // the movements of the pointer that a later one replaces are not worth the work
+            ::XEvent next;
+            while ( MotionNotify == event.type && 0 != ::XEventsQueued( m_display, QueuedAlready ) )
+            {
+                ::XPeekEvent( m_display, &next );
+                if ( !IsSupersededMotion( event, next ) )
+                    break;
+                ::XNextEvent( m_display, &event );
+            }
             ProcessEvent( event );
         }
     }
@@ -433,6 +463,122 @@ CX11EventDispatcher::GetDisplay( void ) const
 {GUCEF_TRACE;
 
     return m_display;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CX11EventDispatcher::GetLastUserInputTime( void ) const
+{GUCEF_TRACE;
+
+    return m_lastUserInputTime;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CX11EventDispatcher::GetUserInputTimeOfEvent( const ::XEvent& event )
+{GUCEF_TRACE;
+
+    if ( KeyPress == event.type )
+        return (UInt32) event.xkey.time;
+    if ( ButtonPress == event.type )
+        return (UInt32) event.xbutton.time;
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CX11ActivationTokenProvider::CX11ActivationTokenProvider( const CString& appName )
+    : CIActivationTokenProvider()
+    , m_appName( appName )
+    , m_sequence( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CX11ActivationTokenProvider::~CX11ActivationTokenProvider()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CX11ActivationTokenProvider::GetUserInputTime( void ) const
+{GUCEF_TRACE;
+
+    return CX11EventDispatcher::Instance()->GetLastUserInputTime();
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CString
+CleanStartupIdPart( const CString& text )
+{GUCEF_TRACE;
+
+    CString clean;
+    const char* p = text.C_String();
+    const UInt32 length = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        const char c = p[ i ];
+        const bool plain = ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) || ( c >= '0' && c <= '9' ) || '.' == c || '_' == c || '-' == c;
+        clean += plain ? c : '_';
+    }
+    return clean;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CX11ActivationTokenProvider::MakeStartupId( const CString& appName, UInt32 processId, UInt32 sequence, const CString& hostName, UInt32 userInputTime )
+{GUCEF_TRACE;
+
+    CString name = CleanStartupIdPart( appName );
+    if ( name.IsNULLOrEmpty() )
+        name = "program";
+    CString host = CleanStartupIdPart( hostName );
+    if ( host.IsNULLOrEmpty() )
+        host = "localhost";
+
+    CString id = name;
+    id += '/';
+    id += UInt32ToString( processId );
+    id += '/';
+    id += UInt32ToString( sequence );
+    id += '-';
+    id += host;
+    id += "_TIME";
+    id += UInt32ToString( userInputTime );
+    return id;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CX11ActivationTokenProvider::GetActivationToken( CString& token, TActivationTokenKind& kind, UInt32 maxWaitInMs )
+{GUCEF_TRACE;
+
+    token.Clear();
+    kind = ACTIVATIONTOKEN_STARTUP_ID;
+
+    // without a key or button press there is no action of the user to point the window manager at
+    const UInt32 userInputTime = GetUserInputTime();
+    if ( 0 == userInputTime )
+        return false;
+
+    char hostName[ 256 ];
+    hostName[ 0 ] = '\0';
+    if ( 0 != ::gethostname( hostName, sizeof( hostName ) - 1 ) )
+        hostName[ 0 ] = '\0';
+    hostName[ sizeof( hostName ) - 1 ] = '\0';
+
+    token = MakeStartupId( m_appName, (UInt32) ::getpid(), m_sequence, hostName, userInputTime );
+    ++m_sequence;
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

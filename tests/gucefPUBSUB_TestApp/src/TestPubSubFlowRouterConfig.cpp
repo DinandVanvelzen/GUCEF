@@ -249,6 +249,8 @@ PerformPubSubFlowRouterConfigTests( void )
             ASSERT_TRUE( routeConfig.toSideId.IsNULLOrEmpty() );
             ASSERT_TRUE( routeConfig.failoverSideId.IsNULLOrEmpty() );
             ASSERT_TRUE( routeConfig.topicAssociations.empty() );
+            ASSERT_TRUE( routeConfig.persistenceSideId.IsNULLOrEmpty() );
+            ASSERT_FALSE( routeConfig.persistenceSideTopicsAutoMatchFromSide );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -261,8 +263,10 @@ PerformPubSubFlowRouterConfigTests( void )
             routeConfig.fromSideId     = "sideFrom";
             routeConfig.toSideId       = "sideTo";
             routeConfig.failoverSideId = "sideFailover";
-            routeConfig.toSideTopicsAutoMatchFromSide      = true;
-            routeConfig.failoverSideTopicsAutoMatchFromSide = false;
+            routeConfig.persistenceSideId = "sidePersistence";
+            routeConfig.toSideTopicsAutoMatchFromSide           = true;
+            routeConfig.failoverSideTopicsAutoMatchFromSide     = false;
+            routeConfig.persistenceSideTopicsAutoMatchFromSide  = true;
 
             CORE::CDataNode cfgNode;
             ASSERT_TRUE( routeConfig.SaveConfig( cfgNode ) );
@@ -270,11 +274,13 @@ PerformPubSubFlowRouterConfigTests( void )
             PUBSUB::CPubSubFlowRouteConfig routeConfig2;
             ASSERT_TRUE( routeConfig2.LoadConfig( cfgNode ) );
 
-            ASSERT_TRUE( routeConfig2.fromSideId     == "sideFrom" );
-            ASSERT_TRUE( routeConfig2.toSideId       == "sideTo" );
-            ASSERT_TRUE( routeConfig2.failoverSideId == "sideFailover" );
-            ASSERT_TRUE( routeConfig2.toSideTopicsAutoMatchFromSide      == true );
-            ASSERT_TRUE( routeConfig2.failoverSideTopicsAutoMatchFromSide == false );
+            ASSERT_TRUE( routeConfig2.fromSideId      == "sideFrom" );
+            ASSERT_TRUE( routeConfig2.toSideId        == "sideTo" );
+            ASSERT_TRUE( routeConfig2.failoverSideId  == "sideFailover" );
+            ASSERT_TRUE( routeConfig2.persistenceSideId == "sidePersistence" );
+            ASSERT_TRUE( routeConfig2.toSideTopicsAutoMatchFromSide          == true );
+            ASSERT_TRUE( routeConfig2.failoverSideTopicsAutoMatchFromSide    == false );
+            ASSERT_TRUE( routeConfig2.persistenceSideTopicsAutoMatchFromSide == true );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -286,15 +292,21 @@ PerformPubSubFlowRouterConfigTests( void )
             PUBSUB::CPubSubFlowRouteConfig routeConfig;
 
             // All false by default — no auto matching needed
-            routeConfig.toSideTopicsAutoMatchFromSide       = false;
-            routeConfig.failoverSideTopicsAutoMatchFromSide = false;
-            routeConfig.spilloverSideTopicsAutoMatchFromSide = false;
+            routeConfig.toSideTopicsAutoMatchFromSide         = false;
+            routeConfig.failoverSideTopicsAutoMatchFromSide   = false;
+            routeConfig.spilloverSideTopicsAutoMatchFromSide  = false;
             routeConfig.deadLetterSideTopicsAutoMatchFromSide = false;
+            routeConfig.persistenceSideTopicsAutoMatchFromSide = false;
             ASSERT_FALSE( routeConfig.IsAnyAutoTopicMatchingNeeded() );
 
-            // Enable one — auto matching needed
+            // Enable to-side — auto matching needed
             routeConfig.toSideTopicsAutoMatchFromSide = true;
             ASSERT_TRUE( routeConfig.IsAnyAutoTopicMatchingNeeded() );
+
+            // persistence side alone also triggers it
+            PUBSUB::CPubSubFlowRouteConfig persistenceConfig;
+            persistenceConfig.persistenceSideTopicsAutoMatchFromSide = true;
+            ASSERT_TRUE( persistenceConfig.IsAnyAutoTopicMatchingNeeded() );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -309,6 +321,7 @@ PerformPubSubFlowRouterConfigTests( void )
             ASSERT_TRUE( topicConfig.failoverSideTopicName.IsNULLOrEmpty() );
             ASSERT_TRUE( topicConfig.spilloverSideTopicName.IsNULLOrEmpty() );
             ASSERT_TRUE( topicConfig.deadLetterSideTopicName.IsNULLOrEmpty() );
+            ASSERT_TRUE( topicConfig.persistenceSideTopicName.IsNULLOrEmpty() );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -318,11 +331,12 @@ PerformPubSubFlowRouterConfigTests( void )
         try
         {
             PUBSUB::CPubSubFlowRouteTopicConfig topicConfig;
-            topicConfig.fromSideTopicName     = "topicFrom";
-            topicConfig.toSideTopicName       = "topicTo";
-            topicConfig.failoverSideTopicName = "topicFailover";
-            topicConfig.spilloverSideTopicName = "topicSpillover";
+            topicConfig.fromSideTopicName       = "topicFrom";
+            topicConfig.toSideTopicName         = "topicTo";
+            topicConfig.failoverSideTopicName   = "topicFailover";
+            topicConfig.spilloverSideTopicName  = "topicSpillover";
             topicConfig.deadLetterSideTopicName = "topicDeadLetter";
+            topicConfig.persistenceSideTopicName = "topicPersistence";
 
             CORE::CDataNode cfgNode;
             ASSERT_TRUE( topicConfig.SaveConfig( cfgNode ) );
@@ -330,11 +344,12 @@ PerformPubSubFlowRouterConfigTests( void )
             PUBSUB::CPubSubFlowRouteTopicConfig topicConfig2;
             ASSERT_TRUE( topicConfig2.LoadConfig( cfgNode ) );
 
-            ASSERT_TRUE( topicConfig2.fromSideTopicName     == "topicFrom" );
-            ASSERT_TRUE( topicConfig2.toSideTopicName       == "topicTo" );
-            ASSERT_TRUE( topicConfig2.failoverSideTopicName == "topicFailover" );
-            ASSERT_TRUE( topicConfig2.spilloverSideTopicName == "topicSpillover" );
+            ASSERT_TRUE( topicConfig2.fromSideTopicName       == "topicFrom" );
+            ASSERT_TRUE( topicConfig2.toSideTopicName         == "topicTo" );
+            ASSERT_TRUE( topicConfig2.failoverSideTopicName   == "topicFailover" );
+            ASSERT_TRUE( topicConfig2.spilloverSideTopicName  == "topicSpillover" );
             ASSERT_TRUE( topicConfig2.deadLetterSideTopicName == "topicDeadLetter" );
+            ASSERT_TRUE( topicConfig2.persistenceSideTopicName == "topicPersistence" );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END

@@ -145,9 +145,11 @@ class GUCEF_IMAGE_EXPORT_CPP CImage
                          const UInt32 mipMapLevel ,
                          TPixelMapPtr& pixelMap   ) const;
 
-    void AddFrame( TPixelMapPtr& imageFrame );
+    void AddFrame( TPixelMapPtr& imageFrame               ,
+                   const UInt32 frameDurationInMs = 0     );
 
-    void AddFrame( TMipMapList& imageFrame );
+    void AddFrame( TMipMapList& imageFrame                ,
+                   const UInt32 frameDurationInMs = 0     );
     
     void SetFrame( TPixelMapPtr& imageFrame    ,
                    const UInt32 frameIndex = 0 );
@@ -160,6 +162,39 @@ class GUCEF_IMAGE_EXPORT_CPP CImage
     const TMipMapList& GetFrame( const UInt32 frameIndex = 0 ) const;
     
     bool HasFrames( void ) const;
+
+    /**
+     *  Animation support: an image with multiple frames can be an animation (GIF, FLIC, etc).
+     *  Every frame can have a duration. A duration of 0 means no duration was specified.
+     *  The frame data itself is always the complete (composited) frame.
+     *
+     *  @throw EInvalidIndex is thrown if an invalid index is given
+     */
+    UInt32 GetFrameDurationInMs( const UInt32 frameIndex = 0 ) const;
+
+    /**
+     *  @throw EInvalidIndex is thrown if an invalid index is given
+     */
+    void SetFrameDurationInMs( const UInt32 frameIndex      ,
+                               const UInt32 durationInMs    );
+
+    /**
+     *  Sum of the durations of all frames
+     */
+    UInt32 GetTotalDurationInMs( void ) const;
+
+    /**
+     *  An image is considered an animation if it has more than 1 frame and at least one
+     *  frame has a duration.
+     */
+    bool IsAnimation( void ) const;
+
+    /**
+     *  Number of times the frame sequence of an animation should be played, 0 means loop forever
+     */
+    UInt32 GetLoopCount( void ) const;
+
+    void SetLoopCount( const UInt32 loopCount );
 
     /**
      *      Unloads image data if needed and resets values to there defaults
@@ -198,6 +233,8 @@ class GUCEF_IMAGE_EXPORT_CPP CImage
     private:        
 
     TFrameList m_frameList;
+    std::vector< UInt32 > m_frameDurationsInMs;  /**< always has the same number of entries as m_frameList */
+    UInt32 m_loopCount;
     CORE::CValueList m_metaData;
 };
 

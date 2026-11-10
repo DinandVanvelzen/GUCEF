@@ -1104,11 +1104,60 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
 
 /*---------------------------------------------------------------------------*/
 
+/**
+ *  Compile options which a module asks for per compiler, as given with CompilerFlags in the Compiler section of the
+ *  module info. The compilers GCC (C code) and G++ (C++ code) are supported, the options are passed to the GNU and
+ *  Clang compilers, which is what the names stand for.
+ */
+CORE::CString
+GenerateCMakeModuleCompilerFlagsLine( const CModuleInfoPtr& moduleInfo  ,
+                                      const CORE::CString& moduleName   ,
+                                      const CORE::CString& platformName )
+{GUCEF_TRACE;
+
+    CORE::CString sectionContent;
+    const CORE::CStringMap& flagsPerCompiler = moduleInfo->compilerSettings.GetCompilerFlags();
+
+    CORE::CStringMap::const_iterator i = flagsPerCompiler.begin();
+    while ( i != flagsPerCompiler.end() )
+    {
+        const CORE::CString& compilerName = (*i).first;
+        bool isCxx = compilerName.Equals( "G++", false );
+        bool isC = compilerName.Equals( "GCC", false );
+        if ( isCxx || isC )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module compiler options for module " + moduleName + " and platform " + platformName );
+
+            CORE::CString::StringVector flags = (*i).second.ParseElements( ' ', false );
+            CORE::CString flagList;
+            for ( CORE::CString::StringVector::iterator f = flags.begin(); f != flags.end(); ++f )
+            {
+                if ( !(*f).IsNULLOrEmpty() )
+                    flagList += ( flagList.IsNULLOrEmpty() ? "" : ";" ) + ConvertEnvVarStrings( (*f) );
+            }
+
+            if ( !flagList.IsNULLOrEmpty() )
+            {
+                CORE::CString language = isCxx ? "CXX" : "C";
+                sectionContent += "if ( CMAKE_" + language + "_COMPILER_ID STREQUAL \"GNU\" OR CMAKE_" + language + "_COMPILER_ID MATCHES \"Clang\" )\n" +
+                                  "  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:" + language + ">:" + flagList + "> )\n" +
+                                  "endif()\n";
+            }
+        }
+        ++i;
+    }
+    return sectionContent;
+}
+
+/*---------------------------------------------------------------------------*/
+
 CORE::CString
 GenerateCMakeModuleDefinesLine( const CModuleInfoPtr& moduleInfo  ,
                                 const CORE::CString& moduleName   ,
                                 const CORE::CString& platformName )
 {GUCEF_TRACE;
+
+    CORE::CString compilerFlagsSection = GenerateCMakeModuleCompilerFlagsLine( moduleInfo, moduleName, platformName );
 
     if ( !moduleInfo->preprocessorSettings.GetDefines().empty() )
     {
@@ -1132,10 +1181,10 @@ GenerateCMakeModuleDefinesLine( const CModuleInfoPtr& moduleInfo  ,
             ++i;
         }
         sectionContent += "\" )\n";
-        return sectionContent;
+        return sectionContent + compilerFlagsSection;
     }
 
-    return CORE::CString();
+    return compilerFlagsSection;
 }
 
 /*---------------------------------------------------------------------------*/          
@@ -1609,12 +1658,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
         {
             const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
 
-            TModuleType moduleType = moduleInfoEntry->GetModuleType( targetPlatform );
-            if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
-                 ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
-                 ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
-                 ( MODULETYPE_BINARY_PACKAGE != moduleType )            &&
-                 ( MODULETYPE_UNDEFINED != moduleType )                  )
+            if ( IsModuleBuiltForPlatform( moduleInfoEntry, targetPlatform ) )
             {
                 CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( targetOutputDir, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
                     
@@ -1832,6 +1876,9 @@ struct SCMakePresetGeneratorConfig
     CORE::CString platform;        /**< Value for PLATFORM cache variable (e.g. "wasm"), empty if none */
     CORE::CString androidAbi;      /**< ANDROID_ABI cache variable, e.g. "arm64-v8a", empty if none   */
     CORE::CString androidPlatform; /**< ANDROID_PLATFORM minimum API level, e.g. "android-21"         */
+    bool buildSharedLibs;          /**< Value for BUILD_SHARED_LIBS: modules are shared libraries or static libraries */
+
+    SCMakePresetGeneratorConfig( void ) : buildSharedLibs( true ) {}
 };
 
 /*-------------------------------------------------------------------------*/
@@ -1910,6 +1957,9 @@ GetPresetGeneratorConfig( const CORE::CString& generatorName, const CORE::CStrin
         config.generator     = "Ninja";
         config.toolchainFile = "${sourceDir}/projects/CMake/Emscripten.toolchain.cmake";
         config.platform      = "wasm";
+
+        // WebAssembly has no dynamic loading to speak of, so everything is linked statically into the one module
+        config.buildSharedLibs = false;
     }
     else if ( generatorName == "Android-arm64" )
     {
@@ -1955,12 +2005,12 @@ GetPresetGeneratorConfig( const CORE::CString& generatorName, const CORE::CStrin
 /*-------------------------------------------------------------------------*/
 
 static void
-WriteCMakePresetsFileToDisk( const CProjectTargetInfoBundle& targets    ,
+WriteCMakePresetsFileToDisk( const CProjectTargetInfoBundle& targets     ,
                              const CORE::CString& presetsRootDir         ,
                              const CORE::CString& binaryDirBase          ,
                              const CORE::CString& generatorsParam        ,
                              const CORE::CString& architecturesParam     ,
-                             const CORE::CString& platformDefaultsParam   )
+                             const CORE::CString& platformDefaultsParam  )
 {GUCEF_TRACE;
 
     // Parse semicolon-separated generator list, e.g. "VS2026;ClangCL;Ninja"
@@ -2095,7 +2145,7 @@ WriteCMakePresetsFileToDisk( const CProjectTargetInfoBundle& targets    ,
             json += ",\n            \"toolchainFile\": \"" + (*g).toolchainFile + "\"";
         json += ",\n";
         json += "            \"cacheVariables\": {\n";
-        json += "                \"BUILD_SHARED_LIBS\": \"ON\",\n";
+        json += (*g).buildSharedLibs ? "                \"BUILD_SHARED_LIBS\": \"ON\",\n" : "                \"BUILD_SHARED_LIBS\": \"OFF\",\n";
         json += "                \"CMAKE_POLICY_VERSION_MINIMUM\": \"3.5\"";
         if ( !(*g).platform.IsNULLOrEmpty() )
             json += ",\n                \"PLATFORM\": \"" + (*g).platform + "\"";

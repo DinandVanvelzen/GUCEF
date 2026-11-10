@@ -28,6 +28,11 @@
 #define GUCEF_CORE_STRINGLOGGINGMACROS_H
 #endif /* GUCEF_CORE_STRINGLOGGINGMACROS_H ? */
 
+#ifndef GUCEF_CORE_CLOGSTREAMSCOPE_H
+#include "gucefCORE_CLogStreamScope.h"
+#define GUCEF_CORE_CLOGSTREAMSCOPE_H
+#endif /* GUCEF_CORE_CLOGSTREAMSCOPE_H ? */
+
 #ifndef GUCEF_CORE_CLOGGINGGLOBAL_H
 #include "gucefCORE_CLoggingGlobal.h"
 #define GUCEF_CORE_CLOGGINGGLOBAL_H
@@ -59,6 +64,15 @@ CStringLogHelper::LogStr( const TLogMsgType logMsgType ,
     {
         loggingGlobal->Log( logMsgType, logLevel, logMessage );
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CStringLogHelper::IsUserLogEnabled( void )
+{GUCEF_TRACE;
+
+    return CLogStreamScope::IsUserLogEnabled();
 }
 
 /*-------------------------------------------------------------------------//

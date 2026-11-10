@@ -31,11 +31,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../common/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DCOMCOREPLUGIN_DBL_BUILD_PLUGIN_DLL
+LOCAL_CFLAGS := -DCOMCOREPLUGIN_DBL_BUILD_PLUGIN_DLL -DMODULE_CONSENSUS_NAME=comcorepluginDBL -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=comcorepluginDBL
 
 
 LOCAL_SHARED_LIBRARIES := \

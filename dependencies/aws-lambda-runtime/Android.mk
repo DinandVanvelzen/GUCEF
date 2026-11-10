@@ -32,14 +32,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include/aws/logging \
   $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/../curl/include \
-  $(MY_MODULE_PATH)/../curl/include/curl \
   $(MY_MODULE_PATH)/../curl/lib \
-  $(MY_MODULE_PATH)/../curl/lib/vauth \
-  $(MY_MODULE_PATH)/../curl/lib/vquic \
-  $(MY_MODULE_PATH)/../curl/lib/vssh \
-  $(MY_MODULE_PATH)/../curl/lib/vtls \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/include/aws
+
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=aws_lambda_runtime -DMODULE_NAME=aws_lambda_runtime
 
 
 LOCAL_SHARED_LIBRARIES := \

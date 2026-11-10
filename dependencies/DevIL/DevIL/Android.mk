@@ -40,7 +40,6 @@ LOCAL_SRC_FILES := \
   src-IL/src/il_dpx.cpp \
   src-IL/src/il_endian.cpp \
   src-IL/src/il_error.cpp \
-  src-IL/src/il_exr.c \
   src-IL/src/il_exr.cpp \
   src-IL/src/il_fastconv.cpp \
   src-IL/src/il_files.cpp \
@@ -94,7 +93,6 @@ LOCAL_SRC_FILES := \
   src-IL/src/il_tiff.cpp \
   src-IL/src/il_tpl.cpp \
   src-IL/src/il_utility.cpp \
-  src-IL/src/il_utx.c \
   src-IL/src/il_utx.cpp \
   src-IL/src/il_vtf.cpp \
   src-IL/src/il_wal.cpp \
@@ -169,7 +167,9 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/src-ILU \
   $(MY_MODULE_PATH)/src-ILUT
 
-LOCAL_CFLAGS := -DCMS_DLL -DHAVE_CONFIG_H -DJAS_DLL -DMNG_DLL -DMNG_USE_DLL
+LOCAL_CFLAGS := -DCMS_DLL -DHAVE_CONFIG_H -DJAS_DLL -DMNG_DLL -DMNG_USE_DLL -DMODULE_CONSENSUS_NAME=DevIL2 -DMODULE_NAME=DevIL2
+
+LOCAL_CPPFLAGS +=-std=gnu++14
 
 
 LOCAL_SHARED_LIBRARIES := \

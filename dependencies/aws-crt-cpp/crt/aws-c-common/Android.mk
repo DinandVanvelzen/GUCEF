@@ -63,14 +63,13 @@ LOCAL_SRC_FILES := \
   source/uri.c \
   source/uuid.c \
   source/xml_parser.c \
-  source/android/logging.c \
   source/arch/generic/cpuid.c \
   source/external/cJSON.c
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include
 
-LOCAL_CFLAGS := -DAWS_CORE_EXPORTS -DCJSON_AS4CPP_EXPORT_SYMBOLS -DHAVE_BUILTIN_CPU_SUPPORTS -DUSE_IMPORT_EXPORT
+LOCAL_CFLAGS := -DAWS_CORE_EXPORTS -DCJSON_AS4CPP_EXPORT_SYMBOLS -DHAVE_BUILTIN_CPU_SUPPORTS -DMODULE_CONSENSUS_NAME=aws_c_common -DMODULE_NAME=aws_c_common -DUSE_IMPORT_EXPORT
 
 include $(BUILD_STATIC_LIBRARY)
 

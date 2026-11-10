@@ -415,10 +415,26 @@ class GUCEF_CORE_PUBLIC_CPP CUtf32String
      */
     static CUtf32String ReadString( CIOAccess* io );
 
+    /**
+     *  Links this string to an externally managed buffer (zero-copy, non-owning).
+     *  LinkTo() is the ONLY way to enter linked/non-owning mode.
+     */
+    CUtf32String& LinkTo( const UInt32* externalBuffer, UInt32 lengthInCodePoints );
+    CUtf32String& LinkTo( const CUtf32String& src );
+
+    /**
+     *  Returns true if this string is in linked (non-owning) mode.
+     */
+    bool IsLinked( void ) const;
+
     private:
 
+    void PromoteToOwned( void );
+
+    private:
     UInt32* m_string;   /**< null-terminated UTF-32 buffer (each element is one code point) */
     UInt32  m_length;   /**< number of code points, excluding the null terminator */
+    bool    m_linked;   /**< true = borrows external buffer; do not delete on destruction */
 };
 
 /*-------------------------------------------------------------------------*/

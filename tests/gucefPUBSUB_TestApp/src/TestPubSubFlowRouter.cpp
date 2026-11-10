@@ -273,6 +273,67 @@ PerformPubSubFlowRouterTests( void )
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
 
+    // Test 13: HandleReplayRequest with null requestingSide returns false
+    GUCEF_TESTFW_TESTCASE( "Test 13: HandleReplayRequest returns false with null requestingSide" )
+        try
+        {
+            PUBSUB::CPubSubFlowRouter router;
+            PUBSUB::CPubSubBookmark startBm;
+            PUBSUB::CPubSubBookmark endBm;
+            CORE::UInt64 replayRequestId = 0;
+            bool result = router.HandleReplayRequest( GUCEF_NULL, GUCEF_NULL, startBm, endBm, replayRequestId );
+            ASSERT_FALSE( result );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 14: HandleReplayRequest with null requestingTopic (but valid side) returns false
+    GUCEF_TESTFW_TESTCASE( "Test 14: HandleReplayRequest returns false with null requestingTopic" )
+        try
+        {
+            PUBSUB::CPubSubFlowRouter router;
+            PUBSUB::CPubSubClientSide side( "testSide" );
+            PUBSUB::CPubSubBookmark startBm;
+            PUBSUB::CPubSubBookmark endBm;
+            CORE::UInt64 replayRequestId = 0;
+            bool result = router.HandleReplayRequest( &side, GUCEF_NULL, startBm, endBm, replayRequestId );
+            ASSERT_FALSE( result );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 15: HandleReplayRequest with valid side and topic but no routes configured returns false
+    GUCEF_TESTFW_TESTCASE( "Test 15: HandleReplayRequest returns false when no persistence side in any route" )
+        try
+        {
+            PUBSUB::CMockPubSubClient::RegisterInFactory();
+
+            PUBSUB::CPubSubClientConfig mockCfg;
+            mockCfg.pubsubClientType = PUBSUB::CMockPubSubClient::MockClientTypeId;
+            PUBSUB::CPubSubClientFactory::TProductPtr mockClient = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().Create(
+                PUBSUB::CMockPubSubClient::MockClientTypeId, mockCfg );
+
+            PUBSUB::CPubSubFlowRouter router;
+            PUBSUB::CPubSubClientSide side( "testSide" );
+
+            // Create a mock topic via the mock client
+            PUBSUB::CPubSubClientTopicConfigPtr topicCfg( new PUBSUB::CPubSubClientTopicConfig() );
+            topicCfg->topicName = "mockTopic";
+            PUBSUB::CPubSubClientTopicBasicPtr topicAccess = mockClient->CreateTopicAccess( topicCfg );
+
+            PUBSUB::CPubSubBookmark startBm;
+            PUBSUB::CPubSubBookmark endBm;
+            CORE::UInt64 replayRequestId = 0;
+            bool result = router.HandleReplayRequest( &side, topicAccess.GetPointerAlways(), startBm, endBm, replayRequestId );
+            ASSERT_FALSE( result );
+
+            topicAccess.Unlink();
+            mockClient.Unlink();
+            PUBSUB::CMockPubSubClient::UnregisterFromFactory();
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CPubSubFlowRouter TESTS COMPLETED" );
 }
 

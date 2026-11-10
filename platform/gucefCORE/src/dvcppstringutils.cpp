@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -25,6 +23,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <locale.h>
+#include <stdlib.h>
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
@@ -47,6 +47,11 @@
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
 #include "dvcppstringutils.h"   /* function prototypes of the functions implemented here */
+
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
 #ifndef GUCEF_CORE_NO_MD5_SUPPORT
   #ifndef GUCEF_CORE_DVMD5UTILS_H
@@ -159,6 +164,12 @@ TempDir( void )
     if ( 0 != ::GetTempPathW( MAX_DIR_LENGTH+1, buffer ) )
         return CString( buffer, MAX_DIR_LENGTH, true );
     #endif
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    // Per POSIX the TMPDIR environment variable takes precedence, /tmp is the standard fallback
+    CString tmpDir = GetEnv( "TMPDIR" );
+    if ( !tmpDir.IsNULLOrEmpty() )
+        return tmpDir;
+    return CString( "/tmp" );
     #endif
     return CString::Empty;
 }
@@ -228,21 +239,10 @@ ConvertByteToHexChars( const char byte ,
                        char& hexCharB  )
 {GUCEF_TRACE;
 
-    Int32 digitIndex1 = 0;
-    Int32 digitIndex2 = 0;
-
-    DivisionRemainder( byte                ,
-                       16                  ,
-                       digitIndex1         ,
-                       digitIndex2         );
-
-    if ( digitIndex1 < 0 )
-        digitIndex1 *= -1;
-    if ( digitIndex2 < 0 )
-        digitIndex2 *= -1;
-
-    hexCharA = g_hexDigits[ digitIndex2 ];
-    hexCharB = g_hexDigits[ digitIndex1 ];
+    // The byte is a value from 0 to 255, also when char is signed on this platform: the bytes from 0x80 on are those of UTF-8
+    const UInt8 value = (UInt8) byte;
+    hexCharA = g_hexDigits[ value >> 4 ];
+    hexCharB = g_hexDigits[ value & 0x0F ];
 }
 
 /*-------------------------------------------------------------------------*/
@@ -271,15 +271,10 @@ ConvertBytesToHexString( const void* byteBuffer ,
 
     for ( UInt32 i=0; i<bufferSize; ++i )
     {
-        DivisionRemainder( charByteBuffer[ i ] ,
-                           16                  ,
-                           digitIndex1         ,
-                           digitIndex2         );
-
-        if ( digitIndex1 < 0 )
-            digitIndex1 *= -1;
-        if ( digitIndex2 < 0 )
-            digitIndex2 *= -1;
+        // A byte is a value from 0 to 255, also when char is signed on this platform
+        const UInt8 value = (UInt8) charByteBuffer[ i ];
+        digitIndex2 = value >> 4;
+        digitIndex1 = value & 0x0F;
 
         if ( addSpaces )
         {
@@ -404,6 +399,7 @@ Base64Encode( const CString& toBeEncodedStr )
 /*-------------------------------------------------------------------------*/
 
 static const char* base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char* base64url_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 static const int base64_table[ 256 ] =
 {
@@ -419,75 +415,198 @@ static const int base64_table[ 256 ] =
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The base64 encoder behind Base64Encode() and Base64UrlEncode(): one allocation for the result, no work per character
+ *  beyond the table lookups. False when the result cannot be allocated
+ */
+static bool
+EncodeBase64( const void* byteBuffer, UInt32 bufferSize, const char* alphabet, bool pad, CString& result )
+{GUCEF_TRACE;
+
+    // The text must fit in 32 bits
+    if ( bufferSize > ( GUCEF_UINT32MAX / 4 ) * 3 - 3 )
+        return false;
+
+    const UInt32 groupCount = bufferSize / 3;
+    const UInt32 remainder = bufferSize % 3;
+    const UInt32 base64StrLength = groupCount * 4 + ( 0 == remainder ? 0 : ( pad ? 4 : remainder + 1 ) );
+    if ( 0 == base64StrLength )
+    {
+        result = CString::Empty;
+        return true;
+    }
+
+    // Base64 encoding can really add up wrt size requirements
+    // We need to sanity check that we were able to allocate enough memory
+    char* str = result.Reserve( base64StrLength+1, (Int32) base64StrLength );
+    if ( GUCEF_NULL == str || base64StrLength+1 != result.ByteSize() )
+        return false;
+    char* base64StringBuffer = str;
+
+    const unsigned char* bytes = static_cast< const unsigned char* >( byteBuffer );
+    for ( UInt32 group=0; group<groupCount; ++group )
+    {
+        const UInt32 triple = ( (UInt32) bytes[ 0 ] << 16 ) | ( (UInt32) bytes[ 1 ] << 8 ) | (UInt32) bytes[ 2 ];
+        str[ 0 ] = alphabet[ ( triple >> 18 ) & 0x3F ];
+        str[ 1 ] = alphabet[ ( triple >> 12 ) & 0x3F ];
+        str[ 2 ] = alphabet[ ( triple >> 6 ) & 0x3F ];
+        str[ 3 ] = alphabet[ triple & 0x3F ];
+        bytes += 3;
+        str += 4;
+    }
+
+    if ( 1 == remainder )
+    {
+        const UInt32 single = (UInt32) bytes[ 0 ];
+        str[ 0 ] = alphabet[ single >> 2 ];
+        str[ 1 ] = alphabet[ ( single & 0x03 ) << 4 ];
+        if ( pad )
+        {
+            str[ 2 ] = '=';
+            str[ 3 ] = '=';
+        }
+    }
+    else
+    if ( 2 == remainder )
+    {
+        const UInt32 pair = ( (UInt32) bytes[ 0 ] << 8 ) | (UInt32) bytes[ 1 ];
+        str[ 0 ] = alphabet[ pair >> 10 ];
+        str[ 1 ] = alphabet[ ( pair >> 4 ) & 0x3F ];
+        str[ 2 ] = alphabet[ ( pair & 0x0F ) << 2 ];
+        if ( pad )
+            str[ 3 ] = '=';
+    }
+
+    base64StringBuffer[ base64StrLength ] = '\0';
+    result.DetermineLength();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 Base64Encode( const void* byteBuffer, UInt32 bufferSize )
 {GUCEF_TRACE;
 
     CString result;
-    UInt32 base64StrLength = ( ( bufferSize + 2 ) / 3 ) * 4;
-    char* base64StringBuffer = result.Reserve( base64StrLength+1, (Int32) base64StrLength );
-    char* str = base64StringBuffer;
-
-    // Base64 encoding can really add up wrt size requirements
-    // We need to sanity check that we were able to allocate enough memory
-    if ( GUCEF_NULL == str || base64StrLength+1 != result.ByteSize() )
+    if ( !EncodeBase64( byteBuffer, bufferSize, base64_chars, true, result ) )
         return CString::Empty;
-
-    memset( base64StringBuffer, '=', base64StrLength );
-    const char* charByteBuffer = (const char*) byteBuffer;
-
-    int i = 0;
-    int j = 0;
-    unsigned char char_array_3[3];
-    unsigned char char_array_4[4];
-
-    for ( size_t pos = 0; pos < bufferSize; ++pos )
-    {
-        char_array_3[ i++ ] = charByteBuffer[ pos ];
-        if ( i == 3 )
-        {
-            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-            char_array_4[3] = char_array_3[2] & 0x3f;
-
-            for ( i=0; i<4; ++i )
-            {
-                *str = base64_chars[ char_array_4[ i ] ];
-                ++str;
-            }
-            i=0;
-        }
-    }
-
-    if ( i > 0 )
-    {
-        for(j = i; j < 3; j++)
-            char_array_3[j] = '\0';
-
-        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-        char_array_4[3] = char_array_3[2] & 0x3f;
-
-        for (j = 0; (j < i + 1); j++)
-        {
-            *str = base64_chars[ char_array_4[ j ] ];
-            ++str;
-        }
-
-        while( (i++ < 3) )
-        {
-            *str = '=';
-            ++str;
-        }
-
-    }
-
-    base64StringBuffer[ base64StrLength ] = '\0';
-    result.DetermineLength();
-
     return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+Base64UrlEncode( const void* data, UInt32 length, CString& result, bool pad )
+{GUCEF_TRACE;
+
+    result = CString::Empty;
+    if ( GUCEF_NULL == data && length > 0 )
+        return false;
+    if ( !EncodeBase64( data, length, base64url_chars, pad, result ) )
+    {
+        result = CString::Empty;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The value of a base64url character, 0x80 for any character that is not in the alphabet */
+static inline UInt32
+Base64UrlValue( unsigned char c )
+{
+    if ( c >= 'A' && c <= 'Z' )
+        return (UInt32) ( c - 'A' );
+    if ( c >= 'a' && c <= 'z' )
+        return (UInt32) ( c - 'a' ) + 26;
+    if ( c >= '0' && c <= '9' )
+        return (UInt32) ( c - '0' ) + 52;
+    if ( '-' == c )
+        return 62;
+    if ( '_' == c )
+        return 63;
+    return 0x80;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+Base64UrlDecode( const CString& text, CDynamicBuffer& result )
+{GUCEF_TRACE;
+
+    result.Clear( true );
+    if ( text.IsNULLOrEmpty() )
+        return true;
+
+    const unsigned char* p = (const unsigned char*) text.C_String();
+    UInt32 length = text.ByteSize() - 1;
+
+    // padding is optional, but when it is there the text must be a whole number of groups
+    UInt32 padCount = 0;
+    while ( padCount < length && '=' == p[ length - 1 - padCount ] )
+        ++padCount;
+    if ( padCount > 0 && ( padCount > 2 || 0 != length % 4 ) )
+        return false;
+    length -= padCount;
+
+    const UInt32 remainder = length % 4;
+    if ( 1 == remainder )
+        return false;
+
+    const UInt32 groupCount = length / 4;
+    const UInt32 byteCount = groupCount * 3 + ( 0 == remainder ? 0 : remainder - 1 );
+    if ( 0 == byteCount )
+        return false;
+    if ( result.GetBufferSize() < byteCount && !result.SetBufferSize( byteCount, false, true ) )
+        return false;
+
+    UInt8* out = static_cast< UInt8* >( result.GetBufferPtr() );
+    UInt32 invalid = 0;                 // 0x80 once a character is not in the alphabet
+    bool nonCanonical = false;          // bits that belong to no byte are set
+    for ( UInt32 group=0; group<groupCount; ++group )
+    {
+        const UInt32 a = Base64UrlValue( p[ 0 ] );
+        const UInt32 b = Base64UrlValue( p[ 1 ] );
+        const UInt32 c = Base64UrlValue( p[ 2 ] );
+        const UInt32 d = Base64UrlValue( p[ 3 ] );
+        invalid |= a | b | c | d;
+        const UInt32 triple = ( a << 18 ) | ( b << 12 ) | ( c << 6 ) | d;
+        out[ 0 ] = (UInt8) ( triple >> 16 );
+        out[ 1 ] = (UInt8) ( triple >> 8 );
+        out[ 2 ] = (UInt8) triple;
+        p += 4;
+        out += 3;
+    }
+
+    if ( 2 == remainder )
+    {
+        const UInt32 a = Base64UrlValue( p[ 0 ] );
+        const UInt32 b = Base64UrlValue( p[ 1 ] );
+        invalid |= a | b;
+
+        // the bits that do not belong to a byte must be zero, else two texts would decode to the same bytes
+        nonCanonical = 0 != ( b & 0x0F );
+        out[ 0 ] = (UInt8) ( ( a << 2 ) | ( b >> 4 ) );
+    }
+    else
+    if ( 3 == remainder )
+    {
+        const UInt32 a = Base64UrlValue( p[ 0 ] );
+        const UInt32 b = Base64UrlValue( p[ 1 ] );
+        const UInt32 c = Base64UrlValue( p[ 2 ] );
+        invalid |= a | b | c;
+        nonCanonical = 0 != ( c & 0x03 );
+        out[ 0 ] = (UInt8) ( ( a << 2 ) | ( b >> 4 ) );
+        out[ 1 ] = (UInt8) ( ( b << 4 ) | ( c >> 2 ) );
+    }
+
+    if ( 0 != ( invalid & 0x80 ) || nonCanonical )
+        return false;
+
+    result.SetDataSize( byteCount );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -502,6 +621,11 @@ Base64Decode( const CString& base64Str, void* byteBuffer, UInt32 bufferSize, UIn
 
     UInt32 base64StrLen = base64Str.ByteSize()-1;
     const unsigned char* p = (const unsigned char*) base64Str.C_String();
+
+    // One character more than whole groups cannot be the end of any data: the last group would hold no byte, and decoding it
+    // would read past the end of the text
+    if ( 1 == base64StrLen % 4 )
+        return false;
 
     UInt32 j = 0,
         pad1 = base64StrLen % 4 || p[ base64StrLen-1 ] == '=',
@@ -543,6 +667,11 @@ CString
 ResolveVars( const CString& strWithVars )
 {GUCEF_TRACE;
 
+    // every variable is enclosed in '$': a path without one, the common case of file access, is returned as it is
+    // without looking up the values (the host name, the module and working directories cost system calls)
+    if ( strWithVars.HasChar( '$', true ) < 0 )
+        return strWithVars;
+
     // First resolve any environment variables which in turn could contain other variables
     CString resultStr = strWithVars;
     Int32 idx = 0;
@@ -563,13 +692,73 @@ ResolveVars( const CString& strWithVars )
     }
     while ( idx > -1 );
 
-    resultStr = resultStr.ReplaceSubstr( "$HOSTNAME$", GetHostname() );
-    resultStr = resultStr.ReplaceSubstr( "$PID$", UInt32ToString( MT::GetProcessID() ) );
-    resultStr = resultStr.ReplaceSubstr( "$TEMPDIR$", TempDir() );
-    resultStr = resultStr.ReplaceSubstr( "$MODULEDIR$", ModuleDir() );
-    resultStr = resultStr.ReplaceSubstr( "$CURWORKDIR$", CurrentWorkingDir() );
+    // a value is only looked up when its variable is in the text (by then)
+    if ( resultStr.HasSubstr( "$HOSTNAME$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$HOSTNAME$", GetHostname() );
+    if ( resultStr.HasSubstr( "$PID$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$PID$", UInt32ToString( MT::GetProcessID() ) );
+    if ( resultStr.HasSubstr( "$TEMPDIR$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$TEMPDIR$", TempDir() );
+    if ( resultStr.HasSubstr( "$MODULEDIR$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$MODULEDIR$", ModuleDir() );
+    if ( resultStr.HasSubstr( "$CURWORKDIR$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$CURWORKDIR$", CurrentWorkingDir() );
+    if ( resultStr.HasSubstr( "$CACHEDIR$", true ) >= 0 )
+    {
+        CString cacheDir;
+        if ( !TryResolveSpecialDir( SPECIALDIR_CACHE_DIR, cacheDir ) )
+            cacheDir = TempDir();
+        resultStr = resultStr.ReplaceSubstr( "$CACHEDIR$", cacheDir );
+    }
+    if ( resultStr.HasSubstr( "$APPCONFIGDIR$", true ) >= 0 )
+    {
+        // the settings of applications of the user
+        CString appConfigDir;
+        if ( !TryResolveSpecialDir( SPECIALDIR_APP_CONFIG_DIR, appConfigDir ) && !TryResolveSpecialDir( SPECIALDIR_LOCAL_APPDATA_DIR, appConfigDir ) )
+            appConfigDir = TempDir();
+        resultStr = resultStr.ReplaceSubstr( "$APPCONFIGDIR$", appConfigDir );
+    }
+    if ( resultStr.HasSubstr( "$APPDATADIR$", true ) >= 0 )
+    {
+        // the data of the user for this machine: saves, settings and such that should stay
+        CString appDataDir;
+        if ( !TryResolveSpecialDir( SPECIALDIR_LOCAL_APPDATA_DIR, appDataDir ) )
+            appDataDir = TempDir();
+        resultStr = resultStr.ReplaceSubstr( "$APPDATADIR$", appDataDir );
+    }
 
     return resultStr;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+UnresolveVars( const CString& path )
+{GUCEF_TRACE;
+
+    static const char* const variables[] = { "$APPCONFIGDIR$", "$APPDATADIR$", "$CACHEDIR$", "$MODULEDIR$", "$TEMPDIR$" };
+
+    CString normalized = path.ReplaceChar( '\\', '/' );
+    CString bestVariable;
+    UInt32 bestLength = 0;
+    for ( UInt32 i=0; i<sizeof( variables ) / sizeof( variables[ 0 ] ); ++i )
+    {
+        CString directory = ResolveVars( variables[ i ] ).ReplaceChar( '\\', '/' );
+        while ( directory.Length() > 1 && '/' == directory[ directory.Length()-1 ] )
+            directory = directory.CutChars( 1, false );
+        if ( directory.IsNULLOrEmpty() || directory.Length() <= bestLength )
+            continue;
+
+        // the directory itself or something in it, not a directory whose name only starts the same
+        if ( normalized == directory || ( normalized.StartsWith( directory ) && '/' == normalized[ directory.Length() ] ) )
+        {
+            bestVariable = variables[ i ];
+            bestLength = directory.Length();
+        }
+    }
+    if ( bestVariable.IsNULLOrEmpty() )
+        return path;
+    return bestVariable + normalized.CutChars( bestLength, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -672,15 +861,17 @@ RelativePath( const CString& relpath ,
             }
         }
 
-        // Join the segments back into a single path
+        // Join the segments back into a single path, an absolute path keeps its leading separator
         CString result;
+        bool first = true;
         for ( CString::StringVector::iterator it = resolvedSegments.begin(); it != resolvedSegments.end(); ++it )
         {
-            if ( !result.IsNULLOrEmpty() )
+            if ( !first )
             {
                 result += GUCEF_DIRSEPCHAR;
             }
             result += *it;
+            first = false;
         }
 
         resultStr = result;
@@ -1227,6 +1418,102 @@ DoubleToString( const double value )
 
 /*-------------------------------------------------------------------------*/
 
+/** Replaces the decimal point of the locale of the C library by '.' */
+static void
+ReplaceLocalePointByDot( char* buffer, UInt32 length )
+{
+    const struct lconv* conv = localeconv();
+    if ( GUCEF_NULL != conv && GUCEF_NULL != conv->decimal_point && '\0' != conv->decimal_point[ 0 ] &&
+         '\0' == conv->decimal_point[ 1 ] && '.' != conv->decimal_point[ 0 ] )
+    {
+        for ( UInt32 i=0; i<length; ++i )
+            if ( buffer[ i ] == conv->decimal_point[ 0 ] )
+                buffer[ i ] = '.';
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+Float64ToRoundTripString( const Float64 value )
+{GUCEF_TRACE;
+
+    if ( value != value || value - value != 0.0 )
+        return CString::Empty;
+
+    char buffer[ 64 ];
+    int length = 0;
+    for ( int precision = 15; precision <= 17; ++precision )
+    {
+        length = snprintf( buffer, sizeof( buffer ), "%.*g", precision, value );
+        if ( length <= 0 || length >= (int) sizeof( buffer ) )
+            return CString::Empty;
+        ReplaceLocalePointByDot( buffer, (UInt32) length );
+        if ( 17 == precision )
+            break;
+
+        // read back with the same locale rules: put the locale point back for the C library
+        char readBuffer[ 64 ];
+        memcpy( readBuffer, buffer, (size_t) length + 1 );
+        const struct lconv* conv = localeconv();
+        if ( GUCEF_NULL != conv && GUCEF_NULL != conv->decimal_point && '\0' != conv->decimal_point[ 0 ] && '\0' == conv->decimal_point[ 1 ] )
+            for ( int i=0; i<length; ++i )
+                if ( '.' == readBuffer[ i ] )
+                    readBuffer[ i ] = conv->decimal_point[ 0 ];
+        if ( strtod( readBuffer, GUCEF_NULL ) == value )
+            break;
+    }
+    return CString( buffer );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+TryParseFloat64Invariant( const CString& text, Float64& value )
+{GUCEF_TRACE;
+
+    const char* data = text.C_String();
+    const UInt32 length = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
+    if ( GUCEF_NULL == data || 0 == length || length >= 64 )
+        return false;
+
+    // only the characters of a plain decimal number: this rejects whitespace, hexadecimal, "inf" and "nan"
+    bool hasDigit = false;
+    char buffer[ 64 ];
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        const char c = data[ i ];
+        if ( ( c >= '0' && c <= '9' ) )
+            hasDigit = true;
+        else
+        if ( '+' != c && '-' != c && '.' != c && 'e' != c && 'E' != c )
+            return false;
+        buffer[ i ] = c;
+    }
+    buffer[ length ] = '\0';
+    if ( !hasDigit )
+        return false;
+
+    // strtod reads the decimal point of the locale
+    const struct lconv* conv = localeconv();
+    if ( GUCEF_NULL != conv && GUCEF_NULL != conv->decimal_point && '\0' != conv->decimal_point[ 0 ] &&
+         '\0' == conv->decimal_point[ 1 ] && '.' != conv->decimal_point[ 0 ] )
+    {
+        for ( UInt32 i=0; i<length; ++i )
+            if ( '.' == buffer[ i ] )
+                buffer[ i ] = conv->decimal_point[ 0 ];
+    }
+
+    char* end = GUCEF_NULL;
+    const Float64 result = strtod( buffer, &end );
+    if ( GUCEF_NULL == end || end == buffer || '\0' != *end || result != result || result - result != 0.0 )
+        return false;
+    value = result;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 double
 StringToDouble( const CString& str, double defaultIfNeeded )
 {GUCEF_TRACE;
@@ -1406,7 +1693,13 @@ StripFilename( const CString& pathPlusFilename )
     {
         return pathPlusFilename.SubstrToIndex( sepCharIndex, true );
     }
-    return pathPlusFilename;
+    if ( 0 == sepCharIndex )
+    {
+        // The file is directly in the root dir, the path is the root dir
+        return pathPlusFilename.SubstrToIndex( 1, true );
+    }
+    // There is no path, only a filename
+    return CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1703,15 +1996,61 @@ Utf16toUtf8( const std::wstring& wstr ,
 
     return true;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
-    // @TODO
-//    size_t neededBufferSize = CalculateUtf8BufferSizeForUtf16( (const uint16_t*) wstr.c_str(), wstr.size() ) + 1;
-//    str.resize( neededBufferSize, '\0' );
-//    ::utf16_to_utf8( wstr.c_str(), str.c_str(), neededBufferSize );
-//    return true;
+    // Note that wchar_t is 4 bytes on Linux making std::wstring UTF-32 but we also handle a 2 byte wchar_t as UTF-16
+    str.clear();
+    str.reserve( wstr.size() );
+    size_t i = 0;
+    while ( i < wstr.size() )
+    {
+        UInt32 codepoint = static_cast< UInt32 >( wstr[ i ] );
+        ++i;
 
-    return false;
+        if ( 2 == sizeof( wchar_t ) && codepoint >= 0xD800 && codepoint <= 0xDBFF )
+        {
+            // UTF-16 surrogate pair
+            if ( i >= wstr.size() )
+                return false;
+            UInt32 lowSurrogate = static_cast< UInt32 >( wstr[ i ] );
+            if ( lowSurrogate < 0xDC00 || lowSurrogate > 0xDFFF )
+                return false;
+            codepoint = 0x10000 + ( ( codepoint - 0xD800 ) << 10 ) + ( lowSurrogate - 0xDC00 );
+            ++i;
+        }
+
+        if ( codepoint <= 0x7F )
+        {
+            str.push_back( static_cast< char >( codepoint ) );
+        }
+        else
+        if ( codepoint <= 0x7FF )
+        {
+            str.push_back( static_cast< char >( 0xC0 | ( codepoint >> 6 ) ) );
+            str.push_back( static_cast< char >( 0x80 | ( codepoint & 0x3F ) ) );
+        }
+        else
+        if ( codepoint <= 0xFFFF )
+        {
+            str.push_back( static_cast< char >( 0xE0 | ( codepoint >> 12 ) ) );
+            str.push_back( static_cast< char >( 0x80 | ( ( codepoint >> 6 ) & 0x3F ) ) );
+            str.push_back( static_cast< char >( 0x80 | ( codepoint & 0x3F ) ) );
+        }
+        else
+        if ( codepoint <= 0x10FFFF )
+        {
+            str.push_back( static_cast< char >( 0xF0 | ( codepoint >> 18 ) ) );
+            str.push_back( static_cast< char >( 0x80 | ( ( codepoint >> 12 ) & 0x3F ) ) );
+            str.push_back( static_cast< char >( 0x80 | ( ( codepoint >> 6 ) & 0x3F ) ) );
+            str.push_back( static_cast< char >( 0x80 | ( codepoint & 0x3F ) ) );
+        }
+        else
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Utf16toUtf8: Invalid code point" );
+            return false;
+        }
+    }
+    return true;
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
@@ -1819,6 +2158,12 @@ Utf8toUtf16( const std::string& str ,
             return false;
         }
 
+        if ( 4 == sizeof( wchar_t ) )
+        {
+            // On this platform std::wstring is UTF-32: no surrogate pairs are needed
+            utf16_str.push_back( static_cast< wchar_t >( codepoint ) );
+        }
+        else
         if ( codepoint <= 0xFFFF )
         {
             utf16_str.push_back( static_cast< UInt16 >( codepoint ) );

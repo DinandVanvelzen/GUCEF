@@ -196,7 +196,10 @@ setting CMake options and regenerating, rather than editing directly.
 // This is defined when iconv is expecting a const char** and not a char**
 // as type for its inbuf parameter. This is only used when building cegui
 // itself, and likely will not be useful externally.
+#if !defined( __linux__ )
+// DV edit: the iconv of glibc takes a non-const input buffer, those of other systems a const one
 #define CEGUI_ICONV_USES_CONST_INBUF
+#endif
 
 #endif	// end of guard _CEGUIConfig_h_
 

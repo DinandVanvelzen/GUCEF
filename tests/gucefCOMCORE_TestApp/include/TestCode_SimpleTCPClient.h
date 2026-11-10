@@ -16,14 +16,10 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
+ 
 
-#ifndef CTESTCODE_CSIMPLETCPCLIENT_H
-#define CTESTCODE_CSIMPLETCPCLIENT_H
-
-using namespace GUCEF;
-using namespace GUCEF::CORE;
-
-class CORE::CString;
+#ifndef CTESTCODE_SIMPLETCPCLIENT_H
+#define CTESTCODE_SIMPLETCPCLIENT_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,11 +27,10 @@ class CORE::CString;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** Tests of a minimal request/response style TCP client */
 void
-SetupSimpleTCPClient( const CORE::CString& remoteaddr , 
-                      UInt16 port                     ,
-                      const CORE::CString& information);
+PerformSimpleTCPClientTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* CTESTCODE_CCLIENTSERVER_H ? */
+#endif /* CTESTCODE_SIMPLETCPCLIENT_H ? */

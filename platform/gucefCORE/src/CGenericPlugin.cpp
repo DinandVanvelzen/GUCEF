@@ -59,11 +59,12 @@ namespace CORE {
 
 enum TGenericPluginFuncPtrType
 {
-    GPLUGINFUNCPTR_LOAD        ,
-    GPLUGINFUNCPTR_UNLOAD      ,
-    GPLUGINFUNCPTR_VERSION     ,
-    GPLUGINFUNCPTR_COPYRIGHT   ,
-    GPLUGINFUNCPTR_DESCRIPTION ,
+    GPLUGINFUNCPTR_LOAD                   ,
+    GPLUGINFUNCPTR_UNLOAD                 ,
+    GPLUGINFUNCPTR_VERSION                ,
+    GPLUGINFUNCPTR_COPYRIGHT              ,
+    GPLUGINFUNCPTR_DESCRIPTION            ,
+    GPLUGINFUNCPTR_LINKBACKMODULEDEPS     ,   /* optional */
 
     GPLUGINFUNCPTR_COUNT
 };
@@ -82,7 +83,7 @@ CGenericPlugin::CGenericPlugin( void )
       m_metaData()
 {GUCEF_TRACE;
 
-    memset( m_funcPointers, 0, GPLUGINFUNCPTR_COUNT );
+    memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -163,7 +164,12 @@ CGenericPlugin::Link( void* modulePtr                   ,
                                                                          "GUCEFPlugin_GetCopyright" ,
                                                                          0                          ).funcPtr;
 
-        // Verify that all function pointers are loaded correctly
+        // Optional export — may be absent in older plugins
+        m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] = GetFunctionAddress( m_moduleHandle                           ,
+                                                                                  "GUCEFPlugin_GetLinkBackModuleDependencies" ,
+                                                                                  0                                          ).funcPtr;
+
+        // Verify that all mandatory function pointers are loaded correctly
         if ( ( NULL != m_funcPointers[ GPLUGINFUNCPTR_LOAD ] )        &&
              ( NULL != m_funcPointers[ GPLUGINFUNCPTR_UNLOAD ] )      &&
              ( NULL != m_funcPointers[ GPLUGINFUNCPTR_VERSION ] )     &&
@@ -191,16 +197,23 @@ CGenericPlugin::Link( void* modulePtr                   ,
                 // Call the module's Load()
                 loadStatus = reinterpret_cast< TGUCEFGENERICPLUGFPTR_Load >( m_funcPointers[ GPLUGINFUNCPTR_LOAD ] )( argc, argv );
             }
+            // the meta data of this object is only made once the load succeeded, the given meta data names the module
             catch ( const timeout_exception& )
             {
                 GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "GenericPlugin:Link: Timeout Exception while invoking Load on plugin " + 
-                    m_metaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) );
+                    pluginMetaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) );
                 loadInvokeSucces = false;
             }
             catch ( const std::exception& e )
             {
                 GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "GenericPlugin:Link: Std Exception while invoking Load on plugin " + 
-                    m_metaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) + ". what: " + CString( e.what() ) );
+                    pluginMetaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) + ". what: " + CString( e.what() ) );
+                loadInvokeSucces = false;
+            }
+            catch ( ... )
+            {
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "GenericPlugin:Link: Unknown exception while invoking Load on plugin " + 
+                    pluginMetaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) );
                 loadInvokeSucces = false;
             }                                                                           
             
@@ -223,10 +236,27 @@ CGenericPlugin::Link( void* modulePtr                   ,
                         Int32ToString( loadStatus  ) + " using module: " + PointerToString( modulePtr ) );
 
                 // Copy the given metadata and update it with info from the actual module
-                m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );                 
+                m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );
                 m_metaData->SetDescription( GetDescription() );
                 m_metaData->SetCopyright( GetCopyright() );
                 m_metaData->SetVersion( GetVersion() );
+                // Generic plugins always have this type; ensure it is set in the stored metadata
+                // even when loaded via trial-and-error (where the incoming metadata has no type).
+                m_metaData->SetPluginType( "GucefGenericPlugin" );
+
+                // If the plugin exports the optional LinkBack dependencies function, use its
+                // return value to supplement or override whatever was set in the config metadata.
+                // The hardcoded list from the binary is authoritative over the config.
+                if ( NULL != m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )
+                {
+                    const char* linkBackDeps = reinterpret_cast< TGUCEFGENERICPLUGFPTR_GetLinkBackModuleDependencies >(
+                            m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )();
+                    if ( NULL != linkBackDeps && '\0' != linkBackDeps[ 0 ] )
+                    {
+                        m_metaData->SetAllLinkBackModules( CString( linkBackDeps ) );
+                        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "GenericPlugin: Plugin declared LinkBack module dependencies: " + CString( linkBackDeps ) );
+                    }
+                }
 
                 return true;
             }
@@ -236,8 +266,15 @@ CGenericPlugin::Link( void* modulePtr                   ,
                 GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "GenericPlugin: Failed load module because Load returned an error state (" + 
                                                         Int32ToString( loadStatus ) + ") with module: " + PointerToString( modulePtr ) );
 
-                // Call the module's Unload()
-                reinterpret_cast< TGUCEFGENERICPLUGFPTR_Unload >( m_funcPointers[ GPLUGINFUNCPTR_UNLOAD ] )();
+                // Call the module's Unload(), it is not used after this whatever Unload() does
+                try
+                {
+                    reinterpret_cast< TGUCEFGENERICPLUGFPTR_Unload >( m_funcPointers[ GPLUGINFUNCPTR_UNLOAD ] )();
+                }
+                catch ( ... )
+                {
+                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "GenericPlugin: Exception while invoking Unload after a failed Load with module: " + PointerToString( modulePtr ) );
+                }
             }
                 
         }
@@ -247,7 +284,7 @@ CGenericPlugin::Link( void* modulePtr                   ,
         }
 
         // We failed to link the functions :(
-        memset( m_funcPointers, 0, GPLUGINFUNCPTR_COUNT );
+        memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
         m_moduleHandle = NULL;
         return false;
     }
@@ -264,6 +301,8 @@ CGenericPlugin::Unlink( void )
 
     if ( IsLoaded() )
     {
+        // A plugin whose Unload() fails is unlinked all the same: the module is unloaded after this, so nothing may
+        // call into it again, also not this object's destructor. The failure is logged
         try
         {
             // Call the module's Unload()
@@ -273,17 +312,20 @@ CGenericPlugin::Unlink( void )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CGenericPlugin:Unlink: Timeout Exception while invoking Unload on plugin " + 
                 m_metaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) );
-            return false;
         }
         catch ( const std::exception& e )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CGenericPlugin:Unlink: Std Exception while invoking Unload on plugin " + 
                 m_metaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) + ". what: " + CString( e.what() ) );
-            return false;
+        }
+        catch ( ... )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CGenericPlugin:Unlink: Unknown exception while invoking Unload on plugin " + 
+                m_metaData->GetModuleFilename() + " with module address " + PointerToString( m_moduleHandle ) );
         }
 
         // Cleanup recources
-        memset( m_funcPointers, 0, GPLUGINFUNCPTR_COUNT );
+        memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
         m_moduleHandle = NULL;
         m_metaData.Unlink();
     }

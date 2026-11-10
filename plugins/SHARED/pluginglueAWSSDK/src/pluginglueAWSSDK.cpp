@@ -22,6 +22,26 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_SHAREDMODULE_H
+#include "gucef_sharedmodule.h"
+#define GUCEF_SHAREDMODULE_H
+#endif /* GUCEF_SHAREDMODULE_H ? */
+
+#ifndef GUCEF_PLUGINGLUE_AWSSDK_CMODULE_H
+#include "pluginglueAWSSDK_CModule.h"
+#define GUCEF_PLUGINGLUE_AWSSDK_CMODULE_H
+#endif /* GUCEF_PLUGINGLUE_AWSSDK_CMODULE_H ? */
+
 #include "pluginglueAWSSDK.h"
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifndef GUCEF_PLUGINGLUE_AWSSDK_EMBED_CODE
+GUCEF_DLL_INIT_FUNC_BEG_END( GUCEF::PLUGINGLUE::AWSSDK::CModule );
+#endif
 
 /*-------------------------------------------------------------------------*/

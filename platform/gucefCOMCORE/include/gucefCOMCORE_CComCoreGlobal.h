@@ -40,6 +40,41 @@
 #define GUCEF_COMCORE_CDNSCACHE_H
 #endif /* GUCEF_COMCORE_CDNSCACHE_H ? */
 
+#ifndef GUCEF_COMCORE_CDISCOVERYCLIENTFACTORY_H
+#include "gucefCOMCORE_CDiscoveryClientFactory.h"
+#define GUCEF_COMCORE_CDISCOVERYCLIENTFACTORY_H
+#endif /* GUCEF_COMCORE_CDISCOVERYCLIENTFACTORY_H ? */
+
+#ifndef GUCEF_COMCORE_CIRTTPROBE_H
+#include "gucefCOMCORE_CIRttProbe.h"
+#define GUCEF_COMCORE_CIRTTPROBE_H
+#endif /* GUCEF_COMCORE_CIRTTPROBE_H ? */
+
+#ifndef GUCEF_COMCORE_CIPORTMAPPER_H
+#include "gucefCOMCORE_CIPortMapper.h"
+#define GUCEF_COMCORE_CIPORTMAPPER_H
+#endif /* GUCEF_COMCORE_CIPORTMAPPER_H ? */
+
+#ifndef GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#include "gucefCOMCORE_CTlsProviderRegistry.h"
+#define GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#endif /* GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H ? */
+
+#ifndef GUCEF_COMCORE_CDATABASECLIENTFACTORY_H
+#include "gucefCOMCORE_CDatabaseClientFactory.h"
+#define GUCEF_COMCORE_CDATABASECLIENTFACTORY_H
+#endif /* GUCEF_COMCORE_CDATABASECLIENTFACTORY_H ? */
+
+#ifndef GUCEF_COMCORE_CIRPCTRANSPORTLISTENER_H
+#include "gucefCOMCORE_CIRpcTransportListener.h"
+#define GUCEF_COMCORE_CIRPCTRANSPORTLISTENER_H
+#endif /* GUCEF_COMCORE_CIRPCTRANSPORTLISTENER_H ? */
+
+#ifndef GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#include "gucefCOMCORE_CSocketReadinessWaiter.h"
+#define GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
+#endif /* GUCEF_COMCORE_CSOCKETREADINESSWAITER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -59,6 +94,7 @@ class CCom;
 class CDnsCache;
 class CDiscoveryManager;
 class CGeoLocationLookupService;
+class CRpcContractRegistry;
 
 /*-------------------------------------------------------------------------*/
 
@@ -74,7 +110,40 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     
     CDiscoveryManager& GetDiscoveryManager( void );
 
+    /** Creates discovery clients by type name, for example "mdns" */
+    CDiscoveryClientFactory& GetDiscoveryClientFactory( void );
+
+    /** Creates round trip time probes by method name, for example "udp-echo" */
+    CRttProbeFactory& GetRttProbeFactory( void );
+
+    /** Creates port mappers by method name, for example "natpmp" */
+    CPortMapperFactory& GetPortMapperFactory( void );
+
+    /** Creates database clients by backend name, for example "vfstables". Backends register from their plugins */
+    CDatabaseClientFactory& GetDatabaseClientFactory( void );
+
+    /** Creates RPC transports by type name: "loopback" built in, "tcp" from gucefCOM, "drn" from gucefDRN */
+    CRpcTransportFactory& GetRpcTransportFactory( void );
+
+    /** Creates RPC transport listeners by type name, as GetRpcTransportFactory() */
+    CRpcTransportListenerFactory& GetRpcTransportListenerFactory( void );
+
+    /** The RPC contracts the process knows: built in, from files, the disk cache and peers */
+    CRpcContractRegistry& GetRpcContractRegistry( void );
+
     CGeoLocationLookupService& GetGeoLocationLookupService( void );
+
+    /**
+     *  The providers of TLS (the OpenSSL of the system on Linux, others from plugins and later the TLS of the OS).
+     *  The system provider is registered but loads nothing until TLS is first used, see CTlsProviderRegistry
+     */
+    CTlsProviderRegistry& GetTlsProviderRegistry( void );
+
+    /**
+     *  Wakes the owners of sockets that asked for it when their sockets become ready (SetUseReadinessWake()).
+     *  Its task starts at the first registration
+     */
+    CSocketReadinessWaiterPtr GetSocketReadinessWaiter( void );
 
     private:
     friend class CModule;
@@ -95,7 +164,16 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     CCom* m_com;
     CDnsCachePtr m_dnsCache;
     CDiscoveryManager* m_discoveryManager;
+    CDiscoveryClientFactory* m_discoveryClientFactory;
+    CRttProbeFactory* m_rttProbeFactory;
+    CPortMapperFactory* m_portMapperFactory;
+    CDatabaseClientFactory* m_databaseClientFactory;
+    CRpcTransportFactory* m_rpcTransportFactory;
+    CRpcTransportListenerFactory* m_rpcTransportListenerFactory;
+    CRpcContractRegistry* m_rpcContractRegistry;
     CGeoLocationLookupService* m_geoLocationLookupService;
+    CTlsProviderRegistry* m_tlsProviderRegistry;
+    CSocketReadinessWaiterPtr m_socketReadinessWaiter;
 
     static MT::CMutex g_dataLock;
     static CComCoreGlobal* g_instance;

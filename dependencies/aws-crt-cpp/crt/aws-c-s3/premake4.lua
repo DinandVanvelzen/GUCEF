@@ -35,6 +35,14 @@ links( { "aws-c-auth", "aws-c-common", "aws-c-http", "aws-c-io", "aws-c-sdkutils
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=aws_c_s3", "MODULE_NAME=aws_c_s3" } )
+  
+
+configuration( { LINUX32 } )
+defines( { "BYO_CRYPTO" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "BYO_CRYPTO" } )
 
 
 configuration( {} )

@@ -14,7 +14,7 @@ workspace( "GUCEF_exe_MyGUI.LayoutEditor" )
 
   platforms( { "LINUX32", "LINUX64", "WIN32", "WIN64" } )
 
-  location( "projects\premake5\targets" )
+  location( "projects/premake5/targets" )
 
   --
   -- Includes for all modules in the solution:

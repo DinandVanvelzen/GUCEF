@@ -89,8 +89,8 @@ CPatchEngine::CPatchEngine( const CORE::PulseGeneratorPtr& pulseGenerator )
       CPatchSetEngineEvents()                                     ,
       CPatchListEngineEvents()                                    ,
       m_patchListEngine( new CPatchListEngine( pulseGenerator ) ) ,
-      m_url()                                                     ,
       m_listDataBuffer()                                          ,
+      m_retriever( pulseGenerator )                               ,
       m_isActive( false )                                         ,
       m_stopSignalGiven( false )                                  ,
       m_config()
@@ -108,8 +108,8 @@ CPatchEngine::CPatchEngine( void )
       CPatchSetEngineEvents()                     ,
       CPatchListEngineEvents()                    ,
       m_patchListEngine( new CPatchListEngine() ) ,
-      m_url()                                     ,
       m_listDataBuffer()                          ,
+      m_retriever()                               ,
       m_isActive( false )                         ,
       m_stopSignalGiven( false )                  ,
       m_config()
@@ -171,7 +171,7 @@ CPatchEngine::Initialize( void )
     AddForwardingForEvent( FileListProcessingCompleteEvent, EVENTORIGINFILTER_UNMODIFIED );
     AddForwardingForEvent( FileListProcessingAbortedEvent, EVENTORIGINFILTER_UNMODIFIED );
 
-    SubscribeTo( &m_url );
+    SubscribeTo( &m_retriever );
 
     // Subscribe to all events from the patch list engine
     // This should allow us to receive all events that we wish to forward
@@ -250,21 +250,18 @@ CPatchEngine::Start( void )
             NotifyObservers( PatchProcessStartedEvent );
 
             // We must obtain the patch list before we can use it,..
-            // Set the URL for the list location
-            if ( m_url.SetURL( m_config.GetPatchListURL() ) )
+            // The list location is given as a URL, which is retrieved straight into our buffer
+            NotifyObservers( PatchListRetrievalStartedEvent );
+            if ( !m_retriever.Retrieve( CORE::CUri( m_config.GetPatchListURL() ), m_listDataBuffer ).HasAFuture() )
             {
-                // Now we try and obtain it
-                NotifyObservers( PatchListRetrievalStartedEvent );
-                if ( !m_url.Activate() )
-                {
-                    NotifyObservers( PatchListRetrievalFailedEvent );
-                    NotifyObservers( PatchProcessFailedEvent );
-                    return false;
-                }
-
-                // Now we wait
-                return true;
+                m_isActive = false;
+                NotifyObservers( PatchListRetrievalFailedEvent );
+                NotifyObservers( PatchProcessFailedEvent );
+                return false;
             }
+
+            // Now we wait
+            return true;
         }
     }
 
@@ -284,7 +281,7 @@ CPatchEngine::Stop( void )
     {
         m_stopSignalGiven = true;
 
-        m_url.Deactivate();
+        m_retriever.Cancel( true );
         m_patchListEngine->Stop();
     }
 }
@@ -376,23 +373,17 @@ CPatchEngine::OnNotify( CORE::CNotifier* notifier                 ,
             }
         }
         else
-        if ( notifier == &m_url )
+        if ( notifier == &m_retriever )
         {
-            if ( eventid == CORE::CURL::URLDataRecievedEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalProgressEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchEngine: Patch list data received" );
 
-                // Translate event data
-                const CORE::CDynamicBuffer& buffer = ( static_cast< CORE::CURL::TURLDataRecievedEventData* >( eventdata ) )->GetData();
-
-                // Append the data to our buffer
-                m_listDataBuffer.Append( buffer.GetConstBufferPtr() ,
-                                         buffer.GetDataSize()       );
-
+                // The data itself is already in our buffer
                 NotifyObservers( PatchListDataReceivedEvent );
             }
             else
-            if ( eventid == CORE::CURL::URLAllDataRecievedEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent )
             {
                 // The retrieval process of the patch list has been completed
                 NotifyObservers( PatchListRetrievalCompletedEvent );
@@ -404,7 +395,7 @@ CPatchEngine::OnNotify( CORE::CNotifier* notifier                 ,
                 }
             }
             else
-            if ( eventid == CORE::CURL::URLDeactivateEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalCancelledEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchEngine: Aborting patch list retrieval" );
 
@@ -414,7 +405,7 @@ CPatchEngine::OnNotify( CORE::CNotifier* notifier                 ,
                 NotifyObservers( PatchProcessAbortedEvent );
             }
             else
-            if ( eventid == CORE::CURL::URLDataRetrievalErrorEvent )
+            if ( eventid == CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchEngine: Patch list data retrieval error" );
 

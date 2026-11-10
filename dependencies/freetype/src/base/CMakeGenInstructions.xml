@@ -8,5 +8,6 @@
     <ITEM NAME="ftglyph.c" />
     <ITEM NAME="ftbitmap.c" />
     <ITEM NAME="ftinit.c" />
+    <ITEM NAME="ftmm.c" />
   </INCLUDES>
 </CMAKELISTGENERATOR>

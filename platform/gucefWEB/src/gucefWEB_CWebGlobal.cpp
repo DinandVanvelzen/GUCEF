@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_CORE_CMETRICSCLIENTMANAGER_H
 #include "gucefCORE_CMetricsClientManager.h"
 #define GUCEF_CORE_CMETRICSCLIENTMANAGER_H
@@ -53,15 +58,63 @@
 #define GUCEF_WEB_CHTTPCLIENT_H
 #endif /* GUCEF_WEB_CHTTPCLIENT_H ? */
 
-#ifndef GUCEF_WEB_CHTTPURLHANDLER_H
-#include "gucefWEB_CHTTPURLHandler.h"
-#define GUCEF_WEB_CHTTPURLHANDLER_H
-#endif /* GUCEF_WEB_CHTTPURLHANDLER_H ? */
+#ifndef GUCEF_WEB_CHTTPSERVER_H
+#include "gucefWEB_CHTTPServer.h"
+#define GUCEF_WEB_CHTTPSERVER_H
+#endif /* GUCEF_WEB_CHTTPSERVER_H ? */
+
+#ifndef GUCEF_WEB_CWEBSOCKETSERVER_H
+#include "gucefWEB_CWebSocketServer.h"
+#define GUCEF_WEB_CWEBSOCKETSERVER_H
+#endif /* GUCEF_WEB_CWEBSOCKETSERVER_H ? */
+
+#ifndef GUCEF_WEB_CWEBSOCKETCLIENT_H
+#include "gucefWEB_CWebSocketClient.h"
+#define GUCEF_WEB_CWEBSOCKETCLIENT_H
+#endif /* GUCEF_WEB_CWEBSOCKETCLIENT_H ? */
+
+#ifndef GUCEF_WEB_CJSONRPCSERVER_H
+#include "gucefWEB_CJsonRpcServer.h"
+#define GUCEF_WEB_CJSONRPCSERVER_H
+#endif /* GUCEF_WEB_CJSONRPCSERVER_H ? */
+
+#ifndef GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
+#include "gucefWEB_CChromeDevToolsClient.h"
+#define GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
+#endif /* GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H ? */
+
 
 #ifndef GUCEF_WEB_CASYNCHTTPSERVERREQUESTHANDLER_H
 #include "gucefWEB_CAsyncHttpServerRequestHandler.h"
 #define GUCEF_WEB_CASYNCHTTPSERVERREQUESTHANDLER_H
 #endif /* GUCEF_WEB_CASYNCHTTPSERVERREQUESTHANDLER_H ? */
+
+#ifndef GUCEF_WEB_CNATIVEHTTPCLIENTBACKEND_H
+#include "gucefWEB_CNativeHttpClientBackend.h"
+#define GUCEF_WEB_CNATIVEHTTPCLIENTBACKEND_H
+#endif /* GUCEF_WEB_CNATIVEHTTPCLIENTBACKEND_H ? */
+
+#ifdef GUCEF_MSWIN_BUILD
+#ifndef GUCEF_WEB_CWINHTTPCLIENTBACKEND_H
+#include "gucefWEB_CWinHttpClientBackend.h"
+#define GUCEF_WEB_CWINHTTPCLIENTBACKEND_H
+#endif /* GUCEF_WEB_CWINHTTPCLIENTBACKEND_H ? */
+#endif /* GUCEF_MSWIN_BUILD ? */
+
+#ifndef GUCEF_WEB_CHTTPCLIENTREQUESTTASK_H
+#include "gucefWEB_CHttpClientRequestTask.h"
+#define GUCEF_WEB_CHTTPCLIENTREQUESTTASK_H
+#endif /* GUCEF_WEB_CHTTPCLIENTREQUESTTASK_H ? */
+
+#ifndef GUCEF_WEB_CHTTPURIRESOURCEACCESSOR_H
+#include "gucefWEB_CHttpUriResourceAccessor.h"
+#define GUCEF_WEB_CHTTPURIRESOURCEACCESSOR_H
+#endif /* GUCEF_WEB_CHTTPURIRESOURCEACCESSOR_H ? */
+
+#ifndef GUCEF_CORE_CURIRESOURCEACCESSORFACTORY_H
+#include "gucefCORE_CUriResourceAccessorFactory.h"
+#define GUCEF_CORE_CURIRESOURCEACCESSORFACTORY_H
+#endif /* GUCEF_CORE_CURIRESOURCEACCESSORFACTORY_H ? */
 
 #ifndef GUCEF_WEB_CASYNCHTTPSERVERRESPONSEHANDLER_H
 #include "gucefWEB_CAsyncHttpServerResponseHandler.h"
@@ -72,6 +125,26 @@
 #include "gucefWEB_CGlobalHttpCodecLinks.h"
 #define GUCEF_WEB_CGLOBALHTTPCODECLINKS_H
 #endif /* GUCEF_WEB_CGLOBALHTTPCODECLINKS_H ? */
+
+#ifndef GUCEF_COM_CCOMGLOBAL_H
+#include "gucefCOM_CComGlobal.h"
+#define GUCEF_COM_CCOMGLOBAL_H
+#endif /* GUCEF_COM_CCOMGLOBAL_H ? */
+
+#ifndef GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H
+#include "gucefWEB_CIrcWebSocketTransport.h"
+#define GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H
+#endif /* GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H ? */
+
+#ifndef GUCEF_WEB_CMCPSTREAMABLEHTTPTRANSPORT_H
+#include "gucefWEB_CMcpStreamableHttpTransport.h"
+#define GUCEF_WEB_CMCPSTREAMABLEHTTPTRANSPORT_H
+#endif /* GUCEF_WEB_CMCPSTREAMABLEHTTPTRANSPORT_H ? */
+
+#ifndef GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H
+#include "gucefWEB_CMcpStaticBearerAuthenticator.h"
+#define GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H
+#endif /* GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H ? */
 
 #include "gucefWEB_CWebGlobal.h"  /* definition of the class implemented here */
 
@@ -94,6 +167,23 @@ MT::CMutex CWebGlobal::g_dataLock;
 CWebGlobal* CWebGlobal::g_instance = GUCEF_NULL;
 TAsyncHttpServerRequestHandlerFactory g_asyncHttpServerRequestHandlerFactory;
 TAsyncHttpServerResponseHandlerFactory g_asyncHttpServerResponseHandlerFactory;
+THttpClientRequestTaskConsumerFactory g_httpClientRequestTaskConsumerFactory;
+
+typedef CORE::CTFactory< CIHttpClientBackend, CNativeHttpClientBackend, MT::CMutex > TNativeHttpClientBackendFactory;
+TNativeHttpClientBackendFactory g_nativeHttpClientBackendFactory;
+
+#ifdef GUCEF_MSWIN_BUILD
+typedef CORE::CTFactory< CIHttpClientBackend, CWinHttpClientBackend, MT::CMutex > TWinHttpClientBackendFactory;
+TWinHttpClientBackendFactory g_winHttpClientBackendFactory;
+#endif /* GUCEF_MSWIN_BUILD ? */
+
+typedef CORE::CTFactory< CORE::CUriResourceAccessor, CHttpUriResourceAccessor, MT::CMutex > THttpUriResourceAccessorFactory;
+THttpUriResourceAccessorFactory g_httpUriResourceAccessorFactory;
+
+TIrcWebSocketTransportFactory g_ircWebSocketTransportFactory;
+TMcpStreamableHttpTransportFactory g_mcpStreamableHttpTransportFactory;
+TMcpStaticBearerAuthenticatorFactory g_mcpStaticBearerAuthenticatorFactory;
+TMcpNoHttpAuthenticatorFactory g_mcpNoHttpAuthenticatorFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -103,6 +193,8 @@ TAsyncHttpServerResponseHandlerFactory g_asyncHttpServerResponseHandlerFactory;
 
 CWebGlobal::CWebGlobal( void )
     : m_globalHttpCodecLinks( GUCEF_NULL )
+    , m_httpClientBackendFactory( GUCEF_NULL )
+    , m_mcpHttpAuthenticatorFactory( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -116,16 +208,42 @@ CWebGlobal::Initialize( void )
     // Initialize modules we depend on
     CORE::CCoreGlobal::Instance();
     COMCORE::CComCoreGlobal::Instance();
+    COM::CComGlobal::Instance();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB Global systems initializing" );
 
     CHTTPClient::RegisterEvents();
-    CHTTPURLHandler::Register();
+    CHTTPServer::RegisterEvents();
+    CWebSocketServer::RegisterEvents();
+    CWebSocketClient::RegisterEvents();
+    CJsonRpcServer::RegisterEvents();
+    CChromeDevToolsClient::RegisterEvents();
+    CHttpClientRequestTaskConsumer::RegisterEvents();
 
     m_globalHttpCodecLinks = GUCEF_NEW CGlobalHttpCodecLinks();
 
+    m_httpClientBackendFactory = GUCEF_NEW THttpClientBackendFactory();
+    m_httpClientBackendFactory->RegisterConcreteFactory( CNativeHttpClientBackend::BackendName, &g_nativeHttpClientBackendFactory );
+    #ifdef GUCEF_MSWIN_BUILD
+    m_httpClientBackendFactory->RegisterConcreteFactory( CWinHttpClientBackend::BackendName, &g_winHttpClientBackendFactory );
+    #endif /* GUCEF_MSWIN_BUILD ? */
+
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncHttpServerRequestHandler::TaskType, &g_asyncHttpServerRequestHandlerFactory );
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncHttpServerResponseHandler::TaskType, &g_asyncHttpServerResponseHandlerFactory );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CHttpClientRequestTaskConsumer::TaskType, &g_httpClientRequestTaskConsumerFactory );
+    CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().RegisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttp, &g_httpUriResourceAccessorFactory );
+    CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().RegisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttps, &g_httpUriResourceAccessorFactory );
+
+    // IRC can go over a web socket: the COM IRC client finds this transport by name
+    COM::CComGlobal::Instance()->GetIrcTransportFactory().RegisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName, &g_ircWebSocketTransportFactory );
+
+    // MCP over Streamable HTTP: the COM MCP server finds this transport by name, and the transport its authenticator
+    m_mcpHttpAuthenticatorFactory = GUCEF_NEW TMcpHttpAuthenticatorFactory();
+    m_mcpHttpAuthenticatorFactory->RegisterConcreteFactory( CIMcpHttpAuthenticator::StaticBearerAuthenticatorName, &g_mcpStaticBearerAuthenticatorFactory );
+    m_mcpHttpAuthenticatorFactory->RegisterConcreteFactory( CIMcpHttpAuthenticator::NoAuthenticatorName, &g_mcpNoHttpAuthenticatorFactory );
+    COM::CComGlobal::Instance()->GetMcpTransportFactory().RegisterConcreteFactory( COM::CIMcpTransport::StreamableHttpTransportName, &g_mcpStreamableHttpTransportFactory );
+
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefWEB" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,14 +252,29 @@ CWebGlobal::~CWebGlobal()
 {GUCEF_TRACE;
   
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB Global systems shutting down" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefWEB" );
+
+    COM::CComGlobal::Instance()->GetIrcTransportFactory().UnregisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName );
+    COM::CComGlobal::Instance()->GetMcpTransportFactory().UnregisterConcreteFactory( COM::CIMcpTransport::StreamableHttpTransportName );
+    m_mcpHttpAuthenticatorFactory->UnregisterAllConcreteFactories();
+    GUCEF_DELETE m_mcpHttpAuthenticatorFactory;
+    m_mcpHttpAuthenticatorFactory = GUCEF_NULL;
+
+    CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttp );
+    CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttps );
 
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncHttpServerRequestHandler::TaskType );
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncHttpServerResponseHandler::TaskType );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CHttpClientRequestTaskConsumer::TaskType );
+
+    // Plugins providing backends were unloaded above
+    m_httpClientBackendFactory->UnregisterAllConcreteFactories();
+    GUCEF_DELETE m_httpClientBackendFactory;
+    m_httpClientBackendFactory = GUCEF_NULL;
 
     m_globalHttpCodecLinks->RemoveEncodingCodecLinks();
     m_globalHttpCodecLinks->RemoveMimeCodecLinks();
     
-    CHTTPURLHandler::Unregister();
 
     GUCEF_DELETE m_globalHttpCodecLinks;
     m_globalHttpCodecLinks = GUCEF_NULL;
@@ -178,6 +311,24 @@ CWebGlobal::Deinstance( void )
     MT::CScopeMutex scopeLock( g_dataLock );
     GUCEF_DELETE g_instance;
     g_instance = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+THttpClientBackendFactory&
+CWebGlobal::GetHttpClientBackendFactory( void ) const
+{GUCEF_TRACE;
+
+    return *m_httpClientBackendFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TMcpHttpAuthenticatorFactory&
+CWebGlobal::GetMcpHttpAuthenticatorFactory( void ) const
+{GUCEF_TRACE;
+
+    return *m_mcpHttpAuthenticatorFactory;
 }
 
 /*-------------------------------------------------------------------------*/

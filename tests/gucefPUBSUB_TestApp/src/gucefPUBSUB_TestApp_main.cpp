@@ -33,6 +33,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -62,6 +67,11 @@
 #include "TestPubSubMsgContainerBinarySerializer.h"
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGCONTAINERBINARYSERIALIZER_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGCONTAINERBINARYSERIALIZER_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTBINARYPUBSUBJOURNAL_H
+#include "TestBinaryPubSubJournal.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTBINARYPUBSUBJOURNAL_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTBINARYPUBSUBJOURNAL_H ? */
 
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBBOOKMARK_H
 #include "TestPubSubBookmark.h"
@@ -123,10 +133,30 @@
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_H ? */
 
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_INDEX_H
+#include "TestPubSubPlugin_STORAGE_Index.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_INDEX_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_INDEX_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_REPLAY_H
+#include "TestPubSubPlugin_STORAGE_Replay.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_REPLAY_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_REPLAY_H ? */
+
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H
 #include "TestPubSubPlugin_TEST.h"
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_H
+#include "TestPubSubPlugin_FIX.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_INTEGRATION_H
+#include "TestPubSubPlugin_FIX_Integration.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_INTEGRATION_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_INTEGRATION_H ? */
 
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_UDP_H
 #include "TestPubSubPlugin_UDP.h"
@@ -170,11 +200,12 @@ GUCEF_OSMAIN_BEGIN
         GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().FlushBootstrapLogEntriesToLogs();
 
         GUCEF_TESTFW_INIT( "gucefPUBSUB_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( GUCEF::CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         #define FLUSH_LOGS GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().FlushLogs()
 
         PerformPubSubBookmarkTests();                     FLUSH_LOGS;
+        PerformBinaryPubSubJournalTests();                FLUSH_LOGS;
         PerformPubSubClientFeaturesTests();               FLUSH_LOGS;
         PerformBasicPubSubMsgTests();                     FLUSH_LOGS;
         PerformPubSubMsgBinarySerializerTests();          FLUSH_LOGS;
@@ -184,12 +215,16 @@ GUCEF_OSMAIN_BEGIN
         PerformPubSubFlowRouterTests();                   FLUSH_LOGS;
         PerformPubSubClientSideTests();                   FLUSH_LOGS;
 
+        PerformPubSubPlugin_FIXTests();                   FLUSH_LOGS;
+        PerformPubSubPlugin_FIXIntegrationTests();        FLUSH_LOGS;
         PerformPubSubPlugin_AWSSNSTests();                FLUSH_LOGS;
         PerformPubSubPlugin_AWSSQSTests();                FLUSH_LOGS;
         PerformPubSubPlugin_KAFKATests();                 FLUSH_LOGS;
         PerformPubSubPlugin_MSMQTests();                  FLUSH_LOGS;
         PerformPubSubPlugin_REDISCLUSTERTests();          FLUSH_LOGS;
         PerformPubSubPlugin_STORAGETests();               FLUSH_LOGS;
+        PerformPubSubPlugin_STORAGEIndexTests();          FLUSH_LOGS;
+        PerformPubSubPlugin_STORAGEReplayTests();         FLUSH_LOGS;
         PerformPubSubPlugin_TESTTests();                  FLUSH_LOGS;
         PerformPubSubPlugin_UDPTests();                   FLUSH_LOGS;
         PerformPubSubPlugin_WEBTests();                   FLUSH_LOGS;

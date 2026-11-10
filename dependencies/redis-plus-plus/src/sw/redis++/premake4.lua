@@ -97,6 +97,9 @@ files( {
 configuration( {} )
 includedirs( { "../../", "../../../../", "../../../../hiredis", "cxx11", "cxx11/sw", "no_tls", "no_tls/sw", "../redis++", "cxx11/sw/redis++", "no_tls/sw/redis++", "patterns" } )
 
+configuration( { "ANDROID" } )
+includedirs( { "../../../../hiredis" } )
+
 configuration( { "ANDROID32" } )
 includedirs( { "../../../../hiredis" } )
 
@@ -104,6 +107,9 @@ configuration( { "ANDROID64" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "ARDUINO" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "EMSCRIPTEN" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "EMSCRIPTEN32" } )
@@ -115,10 +121,31 @@ includedirs( { "../../../../hiredis" } )
 configuration( { "IOS" } )
 includedirs( { "../../../../hiredis" } )
 
+configuration( { "IPHONE" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "IPHONEOS" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "LINUX" } )
+includedirs( { "../../../../hiredis" } )
+
 configuration( { "LINUX32" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "MAC" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "MACOS" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "MACOSX" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "MSWIN" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "OSX" } )
@@ -128,4 +155,7 @@ configuration( { "WIN32" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "WIN64" } )
+includedirs( { "../../../../hiredis" } )
+
+configuration( { "WINDOWS" } )
 includedirs( { "../../../../hiredis" } )

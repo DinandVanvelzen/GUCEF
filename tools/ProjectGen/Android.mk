@@ -32,10 +32,17 @@ LOCAL_SRC_FILES := \
   src/gucefProjectGen_CIProjectGenerator.cpp \
   src/gucefProjectGen_CIProjectInfoGatherer.cpp \
   src/gucefProjectGen_CIProjectPreprocessor.cpp \
+  src/gucefProjectGen_CModuleDependencyNode.cpp \
+  src/gucefProjectGen_CModuleInfo.cpp \
+  src/gucefProjectGen_CModuleInfoEntry.cpp \
+  src/gucefProjectGen_CModuleMetaData.cpp \
   src/gucefProjectGen_CPremake4ProjectGenerator.cpp \
   src/gucefProjectGen_CPremake5ProjectGenerator.cpp \
   src/gucefProjectGen_CProjectGenGlobal.cpp \
+  src/gucefProjectGen_CProjectInfo.cpp \
   src/gucefProjectGen_CProjectPreprocessorManager.cpp \
+  src/gucefProjectGen_CProjectTargetInfo.cpp \
+  src/gucefProjectGen_CProjectTargetInfoBundle.cpp \
   src/gucefProjectGen_CXmlProjectGenerator.cpp \
   src/gucefProjectGen_DataTypes.cpp
 
@@ -43,11 +50,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEF_PROJECTGEN_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_PROJECTGEN_BUILD_MODULE -DMODULE_CONSENSUS_NAME=ProjectGen -DMODULE_NAME=ProjectGen
 
 
 LOCAL_SHARED_LIBRARIES := \

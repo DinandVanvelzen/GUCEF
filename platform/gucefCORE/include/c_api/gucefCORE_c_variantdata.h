@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_C_VARIANTDATA_H
@@ -25,6 +23,8 @@
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+#include <stddef.h>         /* wchar_t is not a built-in type when compiled as C */
 
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"
@@ -45,6 +45,11 @@
 #include "gucefCORE_c_fractiondata.h"
 #define GUCEF_CORE_C_POINTERDATA_H
 #endif /* GUCEF_CORE_C_POINTERDATA_H ? */
+
+#ifndef GUCEF_CORE_C_DECIMALDATA_H
+#include "gucefCORE_c_decimaldata.h"
+#define GUCEF_CORE_C_DECIMALDATA_H
+#endif /* GUCEF_CORE_C_DECIMALDATA_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -107,11 +112,15 @@ struct SVariantData
         Float64     float64_data;
         THeapData   heap_data;
         TFraction   fraction_data;
+        TDecimalData decimal_data;                         /**< decimal payload: bytes 0..8 of the union, the rest is zeroed whenever a decimal is stored */
         TAnyPointer memory_address_data;
         UInt8       bsob_data[ GUCEF_VARIANT_BSOB_SIZE ];  /**< Binary Small Object, something encoded to use the same variant blob space without using the heap. Size based on largest alternate union fields as to not grow size requirements */
     } union_data;
 };
 typedef struct SVariantData TVariantData;
+
+/* Compile time check: the decimal payload must not grow the variant, it has to fit the space the heap data already takes */
+typedef char GUCEF_CORE_VariantDecimalDataSizeCheck[ ( sizeof( TDecimalData ) <= sizeof( THeapData ) ) ? 1 : -1 ];
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

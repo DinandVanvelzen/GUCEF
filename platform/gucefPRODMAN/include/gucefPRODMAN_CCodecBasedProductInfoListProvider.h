@@ -27,7 +27,7 @@
 //-------------------------------------------------------------------------*/
 
 #ifndef GUCEF_CORE_CURLDATARETRIEVER_H
-#include "CURLDataRetriever.h"
+#include "gucefCORE_CAsyncUriResourceRetriever.h"
 #define GUCEF_CORE_CURLDATARETRIEVER_H
 #endif /* GUCEF_CORE_CURLDATARETRIEVER_H ? */
 
@@ -83,7 +83,9 @@ class GUCEF_PRODMAN_PUBLIC_CPP CCodecBasedProductInfoListProvider : public CProd
     private:
 
     CORE::CString m_codecToUse;
-    CORE::CURLDataRetriever m_dataRetriever;
+    CORE::CString m_listUrl;
+    CORE::CDynamicBuffer m_listBuffer;                      /**< destination of the list retrieval, must outlive the retriever */
+    CORE::CAsyncUriResourceRetriever m_dataRetriever;
 };
 
 /*-------------------------------------------------------------------------//

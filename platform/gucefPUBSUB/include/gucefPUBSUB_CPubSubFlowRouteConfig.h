@@ -79,11 +79,12 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouteTopicConfig : public CORE::CIConfi
     typedef CORE::CTSharedPtr< CPubSubFlowRouteTopicConfig, MT::CMutex >                                       CPubSubFlowRouteTopicConfigPtr;
     typedef GUCEF::vector< CPubSubFlowRouteTopicConfigPtr, gucef_allocator< CPubSubFlowRouteTopicConfigPtr > >   PubSubFlowRouteTopicConfigPtrVector;
 
-    CORE::CString fromSideTopicName;        /**< primary 'from' side topic for this route */
-    CORE::CString toSideTopicName;          /**< primary 'to' side topic for this route */
-    CORE::CString failoverSideTopicName;    /**< if the primary flow fails traffic would be rerouted here as a equivelant */ 
-    CORE::CString spilloverSideTopicName;   /**< if the primary and failover is unhealthy or is a slow consumer the spill over acts as buffer for the route publishing/subscribing to said side */
-    CORE::CString deadLetterSideTopicName;  /**< unable-to-publish messages on configured channels with no remaining remedies go here */
+    CORE::CString fromSideTopicName;           /**< primary 'from' side topic for this route */
+    CORE::CString toSideTopicName;             /**< primary 'to' side topic for this route */
+    CORE::CString failoverSideTopicName;       /**< if the primary flow fails traffic would be rerouted here as a equivelant */
+    CORE::CString spilloverSideTopicName;      /**< if the primary and failover is unhealthy or is a slow consumer the spill over acts as buffer for the route publishing/subscribing to said side */
+    CORE::CString deadLetterSideTopicName;     /**< unable-to-publish messages on configured channels with no remaining remedies go here */
+    CORE::CString persistenceSideTopicName;    /**< persistence side topic — always receives a copy of all messages for durable storage and replay support */
 
     CPubSubFlowRouteTopicConfig( void );
 
@@ -121,14 +122,16 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouteConfig : public CORE::CIConfigurab
 
     CORE::CString fromSideId;                              /**< primary 'from' side for this route */
     CORE::CString toSideId;                                /**< primary 'to' side for this route */
-    CORE::CString failoverSideId;                          /**< if the primary flow fails traffic would be rerouted here as a equivelant */ 
+    CORE::CString failoverSideId;                          /**< if the primary flow fails traffic would be rerouted here as a equivelant */
     CORE::CString spilloverBufferSideId;                   /**< if the primary and failover is unhealthy or is a slow consumer the spill over acts as buffer for the route publishing/subscribing to said side */
     CORE::CString deadLetterSideId;                        /**< unable-to-publish messages on configured channels with no remaining remedies go here */
+    CORE::CString persistenceSideId;                       /**< persistence side — always receives a copy of all messages for durable storage and replay support */
     PubSubFlowRouteTopicConfigPtrVector topicAssociations; /**< Beyond the sides there is the mapping of which topics are associated with what other topic on the other sides if any, this holds that information */
     bool toSideTopicsAutoMatchFromSide;                    /**< Whether 'to' side topics should be auto matched naming wise 1:1 with the 'from' side automatically, barring an explicity association override */
     bool failoverSideTopicsAutoMatchFromSide;              /**< Whether 'failover' side topics should be auto matched naming wise 1:1 with the 'from' side automatically, barring an explicity association override */
     bool spilloverSideTopicsAutoMatchFromSide;             /**< Whether 'spillover' side topics should be auto matched naming wise 1:1 with the 'from' side automatically, barring an explicity association override */
     bool deadLetterSideTopicsAutoMatchFromSide;            /**< Whether 'deadletter' side topics should be auto matched naming wise 1:1 with the 'from' side automatically, barring an explicity association override */
+    bool persistenceSideTopicsAutoMatchFromSide;           /**< Whether 'persistence' side topics should be auto matched naming wise 1:1 with the 'from' side automatically, barring an explicity association override */
     bool preferFromTopicThreadForDestination;              /**< if available the 'from' topic pulseGenerator will also be used for any created destination topics */
     bool egressAllDiscoveredSpilloverTopicsOnStart;        /**< if true all discovered spillover topics will be egressed otherwise only configured spillover topics will be egressed on startup */
     bool autoAssociateTopicsAnyToAnyAcrossSides;           /**< if true any topic on any side will be associated with any topic on any other side if no explicit association is found */

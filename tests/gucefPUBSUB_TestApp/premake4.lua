@@ -46,7 +46,31 @@ defines( { "MODULE_CONSENSUS_NAME=gucefPUBSUB_TestApp", "MODULE_NAME=gucefPUBSUB
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestCode_PubSubMsgBinaryStorageTest.h"
+  "include/MockPubSubClient.h",
+  "include/TestBasicPubSubMsg.h",
+  "include/TestBinaryPubSubJournal.h",
+  "include/TestCode_PubSubMsgBinaryStorageTest.h",
+  "include/TestPubSubBookmark.h",
+  "include/TestPubSubClientConfig.h",
+  "include/TestPubSubClientFeatures.h",
+  "include/TestPubSubClientSide.h",
+  "include/TestPubSubFlowRouter.h",
+  "include/TestPubSubFlowRouterConfig.h",
+  "include/TestPubSubMsgBinarySerializer.h",
+  "include/TestPubSubMsgContainerBinarySerializer.h",
+  "include/TestPubSubPlugin_AWSSNS.h",
+  "include/TestPubSubPlugin_AWSSQS.h",
+  "include/TestPubSubPlugin_FIX.h",
+  "include/TestPubSubPlugin_FIX_Integration.h",
+  "include/TestPubSubPlugin_KAFKA.h",
+  "include/TestPubSubPlugin_MSMQ.h",
+  "include/TestPubSubPlugin_REDISCLUSTER.h",
+  "include/TestPubSubPlugin_STORAGE.h",
+  "include/TestPubSubPlugin_STORAGE_Index.h",
+  "include/TestPubSubPlugin_STORAGE_Replay.h",
+  "include/TestPubSubPlugin_TEST.h",
+  "include/TestPubSubPlugin_UDP.h",
+  "include/TestPubSubPlugin_WEB.h"
  } )
 
 
@@ -54,19 +78,43 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/MockPubSubClient.cpp",
+  "src/TestBasicPubSubMsg.cpp",
+  "src/TestBinaryPubSubJournal.cpp",
   "src/TestCode_PubSubMsgBinaryStorageTest.cpp",
-  "src/gucefPUBSUB_TestApp.cpp"
+  "src/TestPubSubBookmark.cpp",
+  "src/TestPubSubClientConfig.cpp",
+  "src/TestPubSubClientFeatures.cpp",
+  "src/TestPubSubClientSide.cpp",
+  "src/TestPubSubFlowRouter.cpp",
+  "src/TestPubSubFlowRouterConfig.cpp",
+  "src/TestPubSubMsgBinarySerializer.cpp",
+  "src/TestPubSubMsgContainerBinarySerializer.cpp",
+  "src/TestPubSubPlugin_AWSSNS.cpp",
+  "src/TestPubSubPlugin_AWSSQS.cpp",
+  "src/TestPubSubPlugin_FIX.cpp",
+  "src/TestPubSubPlugin_FIX_Integration.cpp",
+  "src/TestPubSubPlugin_KAFKA.cpp",
+  "src/TestPubSubPlugin_MSMQ.cpp",
+  "src/TestPubSubPlugin_REDISCLUSTER.cpp",
+  "src/TestPubSubPlugin_STORAGE.cpp",
+  "src/TestPubSubPlugin_STORAGE_Index.cpp",
+  "src/TestPubSubPlugin_STORAGE_Replay.cpp",
+  "src/TestPubSubPlugin_TEST.cpp",
+  "src/TestPubSubPlugin_UDP.cpp",
+  "src/TestPubSubPlugin_WEB.cpp",
+  "src/gucefPUBSUB_TestApp_main.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPUBSUB/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPUBSUB/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
@@ -75,7 +123,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )

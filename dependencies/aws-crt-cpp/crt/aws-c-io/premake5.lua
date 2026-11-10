@@ -37,6 +37,14 @@ configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=aws_c_io", "MODULE_NAME=aws_c_io" } )
   
 
+configuration( { LINUX32 } )
+defines( { "BYO_CRYPTO" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "BYO_CRYPTO" } )
+  
+
 configuration( { WIN32 } )
 defines( { "AWS_USE_IO_COMPLETION_PORTS" } )
   
@@ -82,7 +90,11 @@ files( {
 configuration( { "LINUX32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "source/linux/epoll_event_loop.c"
+      "source/linux/epoll_event_loop.c",
+      "source/posix/host_resolver.c",
+      "source/posix/pipe.c",
+      "source/posix/shared_library.c",
+      "source/posix/socket.c"
     } )
 
 
@@ -90,7 +102,11 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "source/linux/epoll_event_loop.c"
+      "source/linux/epoll_event_loop.c",
+      "source/posix/host_resolver.c",
+      "source/posix/pipe.c",
+      "source/posix/shared_library.c",
+      "source/posix/socket.c"
     } )
 
 

@@ -88,6 +88,8 @@ class CSingleTaskDelegator;
 class CThreadPool;
 class CTaskManager;
 class CASync;
+class CFutureResultSource;
+template< typename T, class LockType > class CTFreeList;
 
 typedef CTBasicSharedPtr< CThreadPool, MT::CMutex >    CThreadPoolPtr;
 
@@ -222,6 +224,15 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     bool RequestCancellation( void ) const;
 
     /**
+     *  Marks the task as one for which cancellation was requested. A task thread which ends the task checks this to
+     *  end it as cancelled instead of stopped. Cancellation requests made through the thread pool set this,
+     *  there is normally no need to call it directly.
+     */
+    void SetCancellationRequested( bool cancellationRequested );
+
+    bool IsCancellationRequested( void ) const;
+
+    /**
      *  Operator to allow comparison of tasks based on their unique task id
      */
     bool operator==( const CTask& other ) const;
@@ -250,7 +261,9 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     friend class CTaskConsumer;
     friend class CThreadPool;
     friend class CTaskManager;
+    friend class CTFreeList< CTask, MT::CMutex >;     /**< resets task objects for reuse through Clear() */
     friend class CASync;
+    friend class CFutureResultSource;
 
     void SetTaskStatus( TTaskStatus newStatus );
 
@@ -268,6 +281,10 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
                TTaskStatus taskStatus          ,
                ThreadPoolPtr threadPool        );
 
+    /**
+     *  Readies the task object for reuse by a next task, as the thread pool's free list does
+     *  Everything of the previous use goes, including the task id: the next use gets a new one
+     */
     void Clear( void );
 
     /**
@@ -308,6 +325,11 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
 
     private:
 
+    /** Releases what one use of the task holds, shared by Clear() and the destructor */
+    void ClearUseState( void );
+
+    private:
+
     CICloneable* m_taskData;
     CDataNode m_serializedTaskData; /**< Serialized task data if any, used for serialization of task data to DOM */
     CString m_taskType;
@@ -315,6 +337,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     CTaskConsumerPtr m_taskConsumer;
     TTaskId m_taskId;
     bool m_assumedOwnershipOfTaskData;  
+    bool m_cancellationRequested;
     TTaskStatus m_taskStatus;
     CString m_taskStatusExtraInfo;
     TTaskIdVector m_chainTasks;

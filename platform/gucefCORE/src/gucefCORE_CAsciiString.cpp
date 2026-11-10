@@ -75,7 +75,8 @@ const CAsciiString::StringSet CAsciiString::EmptyStringSet;
 
 CAsciiString::CAsciiString( void )
         : m_string( NULL ) ,
-          m_length( 0 )
+          m_length( 0 )    ,
+          m_linked( false )
 {GUCEF_TRACE;
 
 }
@@ -84,9 +85,11 @@ CAsciiString::CAsciiString( void )
 
 CAsciiString::CAsciiString( const CAsciiString &src )
         : m_string( NULL ) ,
-          m_length( 0 )
+          m_length( 0 )    ,
+          m_linked( false )
 {GUCEF_TRACE;
 
+    // Always deep-copy: never propagate linked state on copy
     if ( src.m_length > 0 )
     {
         m_string = GUCEF_NEW char[ src.m_length+1 ];
@@ -101,6 +104,7 @@ CAsciiString::CAsciiString( const CAsciiString &src )
 CAsciiString::CAsciiString( const CUtf8String &src ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0 )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     *this = src.ForceToAscii();
@@ -110,7 +114,8 @@ CAsciiString::CAsciiString( const CUtf8String &src ) GUCEF_NOEXCEPT
 
 CAsciiString::CAsciiString( const std::string& src ) GUCEF_NOEXCEPT
         : m_string( NULL ) ,
-          m_length( 0 )
+          m_length( 0 )    ,
+          m_linked( false )
 {GUCEF_TRACE;
 
     if ( src.size() > 0 )
@@ -127,11 +132,14 @@ CAsciiString::CAsciiString( const std::string& src ) GUCEF_NOEXCEPT
 
 CAsciiString::CAsciiString( CAsciiString&& src ) GUCEF_NOEXCEPT
     : m_string( src.m_string ) ,
-      m_length( src.m_length )
+      m_length( src.m_length ) ,
+      m_linked( src.m_linked )
 {GUCEF_TRACE;
 
+    // Transfer ownership (or link state); source becomes null/unlinked
     src.m_string = NULL;
     src.m_length = 0;
+    src.m_linked = false;
 }
 
 #endif
@@ -139,7 +147,8 @@ CAsciiString::CAsciiString( CAsciiString&& src ) GUCEF_NOEXCEPT
 
 CAsciiString::CAsciiString( const char* src ) GUCEF_NOEXCEPT
         : m_string( GUCEF_NULL ) ,
-          m_length( 0 )
+          m_length( 0 )          ,
+          m_linked( false )
 {GUCEF_TRACE;
 
     if ( src != NULL )
@@ -157,7 +166,8 @@ CAsciiString::CAsciiString( const char* src      ,
                             UInt32 length        ,
                             bool reexamineLength )  GUCEF_NOEXCEPT
         : m_string( NULL ) ,
-          m_length( 0 )
+          m_length( 0 )    ,
+          m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && 0 < length )
@@ -190,7 +200,8 @@ CAsciiString::CAsciiString( const char* src      ,
 
 CAsciiString::CAsciiString( const char src )
     : m_string( NULL ) ,
-      m_length( 0 )
+      m_length( 0 )    ,
+      m_linked( false )
 {GUCEF_TRACE;
 
     Set( &src, 1 );
@@ -200,7 +211,8 @@ CAsciiString::CAsciiString( const char src )
 
 CAsciiString::CAsciiString( const int NULLvalue )
     : m_string( NULL ) ,
-      m_length( 0 )
+      m_length( 0 )    ,
+      m_linked( false )
 {GUCEF_TRACE;
 
     assert( NULLvalue == (int) NULL );
@@ -210,9 +222,11 @@ CAsciiString::CAsciiString( const int NULLvalue )
 CAsciiString::~CAsciiString()
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = NULL;
     m_length = 0;
+    m_linked = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -223,9 +237,12 @@ CAsciiString::operator=( const CAsciiString &src )
 
     if ( &src != this )
     {
-        GUCEF_DELETE []m_string;
+        // Always deep-copy: never propagate linked state via assignment
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = NULL;
         m_length = src.m_length;
+        m_linked = false;
 
         if ( m_length > 0 )
         {
@@ -243,9 +260,11 @@ CAsciiString&
 CAsciiString::operator=( const std::string& src )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = NULL;
     m_length = (UInt32) src.size();
+    m_linked = false;
 
     if ( m_length > 0 )
     {
@@ -262,12 +281,14 @@ CAsciiString&
 CAsciiString::operator=( const char *src )
 {GUCEF_TRACE;
 
-    // protect against self-assignment
+    // protect against self-assignment (or assigning the linked buffer to itself)
     if ( src != m_string )
     {
-        GUCEF_DELETE []m_string;
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = NULL;
         m_length = 0;
+        m_linked = false;
 
         if ( src != NULL )
         {
@@ -363,13 +384,10 @@ bool
 CAsciiString::operator==( const CAsciiString &other ) const
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_string && GUCEF_NULL == other.m_string )
-    {
-        return true;
-    }
+    // empty is empty, with or without storage
     if ( GUCEF_NULL == m_string || GUCEF_NULL == other.m_string )
     {
-        return false;
+        return m_length == other.m_length && 0 == m_length;
     }
     return strcmp( m_string       ,
                    other.m_string ) == 0;
@@ -428,6 +446,7 @@ char&
 CAsciiString::operator[]( const UInt32 index )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     static char outOfBoundsChar = '\0';
     if ( index <= m_length )
         return m_string[ index ];
@@ -501,9 +520,11 @@ CAsciiString::Set( const char *new_str ,
 
     if ( new_str != m_string )
     {
-        GUCEF_DELETE []m_string;
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = NULL;
         m_length = 0;
+        m_linked = false;
 
         if ( ( new_str != NULL ) &&
              ( len > 0 )          )
@@ -624,9 +645,9 @@ CAsciiString::Append( const char *appendstr ,
                       UInt32 len            )
 {GUCEF_TRACE;
 
-    if ( ( appendstr != m_string ) &&
-         ( appendstr != NULL )     &&
-         ( len > 0 )                )
+    // Note that the string may be appended to itself: the new buffer is filled before the current one is released
+    if ( ( appendstr != NULL ) &&
+         ( len > 0 )            )
     {
         if ( m_length > 0 )
         {
@@ -636,17 +657,22 @@ CAsciiString::Append( const char *appendstr ,
             memcpy( newString+m_length, appendstr, len );
             m_length = m_length+len;
             newString[ m_length ] = 0;
-            GUCEF_DELETE []m_string;
+            if ( !m_linked )
+                GUCEF_DELETE []m_string;
             m_string = newString;
+            m_linked = false;
         }
         else
         {
-            GUCEF_DELETE []m_string;
+            char* newString = GUCEF_NEW char[ len+1 ];
+            assert( newString != NULL );
+            memcpy( newString, appendstr, len );
+            newString[ len ] = 0;
+            if ( !m_linked )
+                GUCEF_DELETE []m_string;
+            m_string = newString;
             m_length = len;
-            m_string = GUCEF_NEW char[ m_length+1 ];
-            assert( m_string );
-            memcpy( m_string, appendstr, m_length );
-            m_string[ m_length ] = 0;
+            m_linked = false;
         }
     }
 }
@@ -708,6 +734,14 @@ char*
 CAsciiString::C_String( void )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
+    if ( GUCEF_NULL == m_string )
+    {
+        // an empty string without storage: give it a terminator, so the writable C string is "" as the const one is
+        m_string = GUCEF_NEW char[ 1 ];
+        m_string[ 0 ] = '\0';
+        m_length = 0;
+    }
     return m_string;
 }
 
@@ -717,8 +751,10 @@ char*
 CAsciiString::Reserve( const UInt32 bufferSize, Int32 newLength )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
+    m_linked = false;
 
     if ( bufferSize > 0 )
     {
@@ -768,6 +804,7 @@ void
 CAsciiString::SetLength( UInt32 newLength )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     if ( GUCEF_NULL != m_string )
     {
         if ( m_length < newLength )
@@ -978,8 +1015,64 @@ CAsciiString::Clear( void )
 {GUCEF_TRACE;
 
     m_length = 0;
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = NULL;
+    m_linked = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAsciiString::PromoteToOwned( void )
+{GUCEF_TRACE;
+
+    if ( m_linked && GUCEF_NULL != m_string )
+    {
+        UInt32 len = m_length + 1;
+        char* copy = GUCEF_NEW char[ len ];
+        ::memcpy( copy, m_string, len );
+        m_string = copy;
+        m_linked = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAsciiString::IsLinked( void ) const
+{GUCEF_TRACE;
+
+    return m_linked;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAsciiString&
+CAsciiString::LinkTo( const char* externalBuffer, UInt32 length )
+{GUCEF_TRACE;
+
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
+    m_string = const_cast< char* >( externalBuffer );
+    m_length = length;
+    m_linked = ( GUCEF_NULL != externalBuffer );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAsciiString&
+CAsciiString::LinkTo( const CAsciiString& src )
+{GUCEF_TRACE;
+
+    if ( &src == this ) return *this;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
+    m_string = const_cast< char* >( src.m_string );
+    m_length = src.m_length;
+    m_linked = ( GUCEF_NULL != src.m_string );
+    return *this;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1646,30 +1739,48 @@ CAsciiString::HasSubstr( const CAsciiString& substr ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CAsciiString::WildcardEquals( const CAsciiString& strWithWildcards    ,
-                              const char wildCardToken /* = '*' */   ,
-                              const bool caseSensitive /* = true */  ,
+CAsciiString::WildcardEquals( const CAsciiString& strWithWildcards ,
+                              const char wildCardToken /* = '*' */ ,
+                              const bool caseSensitive /* = true */ ,
                               const bool biDirectional /* = false */ ) const
 {GUCEF_TRACE;
 
-    if ( biDirectional )
-    {
-        if ( strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
-            return true;
-    }
-
-    if ( strWithWildcards == wildCardToken || *this == wildCardToken )
+    // Either string may be the pattern, when asked for
+    if ( biDirectional && strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
         return true;
 
-    CAsciiString::StringVector segs = strWithWildcards.ParseElements( wildCardToken, false );
-    Int32 lastSeg = 0;
-    CAsciiString::StringVector::iterator i = segs.begin();
-    while ( i != segs.end() )
+    const CAsciiString text = caseSensitive ? *this : Lowercase();
+    const CAsciiString pattern = caseSensitive ? strWithWildcards : strWithWildcards.Lowercase();
+
+    // Without a wildcard it is a plain comparison
+    Int32 firstWildcard = pattern.HasChar( wildCardToken, true );
+    if ( firstWildcard < 0 )
+        return text == pattern;
+
+    // The whole string is matched: the part before the first wildcard starts it, the part after the last one ends
+    // it, and the parts between the wildcards come in that order in between, a wildcard standing for any characters
+    bool anchoredStart = 0 != firstWildcard;
+    bool anchoredEnd = pattern.HasChar( wildCardToken, false ) != (Int32) pattern.Length() - 1;
+    StringVector segments = pattern.ParseElements( wildCardToken, false );
+    UInt32 textLength = text.Length();
+    UInt32 position = 0;
+    for ( size_t i=0; i<segments.size(); ++i )
     {
-        lastSeg = HasSubstr( (*i), lastSeg, true );
-        if ( 0 > lastSeg )
+        const CAsciiString& segment = segments[ i ];
+        UInt32 segmentLength = segment.Length();
+        if ( 0 == segmentLength )
+            continue;
+        if ( position + segmentLength > textLength )
             return false;
-        ++i;
+        if ( i + 1 == segments.size() && anchoredEnd )
+        {
+            UInt32 endStart = textLength - segmentLength;
+            return text.HasSubstr( segment, (Int32) endStart, true ) == (Int32) endStart;
+        }
+        Int32 found = text.HasSubstr( segment, (Int32) position, true );
+        if ( found < 0 || ( 0 == i && anchoredStart && 0 != found ) )
+            return false;
+        position = (UInt32) found + segmentLength;
     }
     return true;
 }
@@ -1682,9 +1793,6 @@ CAsciiString::WildcardEquals( const StringSet& strsWithWildcards     ,
                               const bool caseSensitive /* = true */  ,
                               const bool biDirectional /* = false */ ) const
 {GUCEF_TRACE;
-
-    if ( strsWithWildcards.empty() )
-        return WildcardEquals( Empty, wildCardToken, caseSensitive, biDirectional );
 
     StringSet::const_iterator i = strsWithWildcards.begin();
     while ( i != strsWithWildcards.end() )

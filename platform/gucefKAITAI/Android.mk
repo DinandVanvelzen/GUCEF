@@ -53,12 +53,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/includes \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
-  $(MY_MODULE_PATH)/../gucefCORE/include/android \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include
 
-LOCAL_CFLAGS := -DGUCEF_KAITAI_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_KAITAI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefKAITAI -DMODULE_NAME=gucefKAITAI -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -84,7 +84,9 @@ namespace PUBSUB {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
- 
+
+class CPubSubClientSide;
+
 /**
  *  Base class for all pub-sub client implementations
  */
@@ -274,8 +276,21 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClient : public CORE::CTSGNotifier         
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     void SetOpaqueUserData( void* opaqueUserData );
-    
+
     void* GetOpaqueUserData( void ) const;
+
+    /**
+     *  Sets the parent side that owns this client.
+     *  Called by CPubSubClientSide after creating the client.
+     *  Provides a typed alternative to GetOpaqueUserData() for routing purposes.
+     */
+    void SetParentSide( CPubSubClientSide* parentSide );
+
+    /**
+     *  Returns the parent CPubSubClientSide that owns this client.
+     *  Returns NULL if no parent side has been set.
+     */
+    CPubSubClientSide* GetParentSide( void ) const;
 
     virtual void SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -322,7 +337,8 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClient : public CORE::CTSGNotifier         
     
     private:
 
-    void* m_opaqueUserData;
+    void*              m_opaqueUserData;
+    CPubSubClientSide* m_parentSide;
 };
 
 /*-------------------------------------------------------------------------*/

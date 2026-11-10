@@ -75,6 +75,9 @@ class GUCEF_CORE_PUBLIC_CPP CStringLogHelper
     static void LogStr( const TLogMsgType logMsgType ,
                         const Int32 logLevel         ,
                         const CString& logMessage    );
+
+    /** Whether the messages of the user log are made at all, see CLogManager::SetUserLogEnabled() */
+    static bool IsUserLogEnabled( void );
 };
 
 /*-------------------------------------------------------------------------//
@@ -114,7 +117,7 @@ class GUCEF_CORE_PUBLIC_CPP CStringLogHelper
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_USER_LOGSTR
-#define GUCEF_USER_LOGSTR( logLevel, logMessage ) ::GUCEF::CORE::CStringLogHelper::LogStr( ::GUCEF::CORE::LOG_USER, logLevel, logMessage );
+#define GUCEF_USER_LOGSTR( logLevel, logMessage ) { if ( ::GUCEF::CORE::CStringLogHelper::IsUserLogEnabled() ) { ::GUCEF::CORE::CStringLogHelper::LogStr( ::GUCEF::CORE::LOG_USER, logLevel, logMessage ); } }
 
 /*-------------------------------------------------------------------------*/
 

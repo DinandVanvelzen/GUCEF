@@ -17,27 +17,31 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
  
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEFCORE_H
-#include "gucefCORE.h"          /* GUCEF CORE library API */
-#define GUCEFCORE_H
-#endif /* GUCEFCORE_H ? */
+#ifndef GUCEF_CORE_H
+#include "gucefCORE.h"
+#define GUCEF_CORE_H
+#endif /* GUCEF_CORE_H ? */
 
-#ifndef GUCEFCOMCORE_H
-#include "gucefCOMCORE.h"       /* GUCEF COMCORE library API */
-#define GUCEFCOMCORE_H
-#endif /* GUCEFCOMCORE_H ? */
+#ifndef GUCEF_COMCORE_H
+#include "gucefCOMCORE.h"
+#define GUCEF_COMCORE_H
+#endif /* GUCEF_COMCORE_H ? */
 
-#ifdef GUCEF_MSWIN_BUILD
-  #include <windows.h>
-#else
-  #include <assert.h>
-#endif
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
+#include "TestCode_Pump.h"
+
+#include "TestCode_PingTest.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,32 +49,12 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MSWIN_BUILD
-  #define DebugBreak() assert( 0 )
-#endif
-
-#define ERRORHERE { GUCEF_ERROR_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, GUCEF::CORE::CString( "Test failed @ " ) + GUCEF::CORE::CString( __FILE__ ) + ':' + GUCEF::CORE::Int32ToString( __LINE__ ) ); \
-                    DebugBreak();                                                                                                                                     \
-                  }
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      CONSTANTS                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-#define MAX_PINGS    1
-#define PING_BYTES   32
-#define PING_TIMEOUT 1000
-#define REMOTE_HOST  "www.google.com"
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      NAMESPACE                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 using namespace GUCEF;
+using namespace GUCEF::COMCORE;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -78,124 +62,76 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CPingTester : public CORE::CObserver
+/** records the events of a ping sequence */
+class CPingRecorder : public CORE::CObserver
 {
     public:
-    
-    /*---------------------------------------------------------------------*/
-    
-    CPingTester( void )
-        : CORE::CObserver() ,
-          m_pingCount( 0 )  ,
-          m_ping()
+
+    CPingRecorder( void )
+        : CORE::CObserver()
+        , m_ping()
+        , m_started( 0 )
+        , m_responses( 0 )
+        , m_timeouts( 0 )
+        , m_failures( 0 )
+        , m_stopped( 0 )
+        , m_lastRoundTripTime( 0 )
     {GUCEF_TRACE;
-    
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "**** STARTING THE PING TEST ****" );
-        
+
         SubscribeTo( &m_ping );
     }
-    
-    /*---------------------------------------------------------------------*/
-    
-    virtual ~CPingTester()
-    {GUCEF_TRACE;
-    
+
+    virtual ~CPingRecorder() { UnsubscribeAllFromObserver(); }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CPingRecorder";
+        return classTypeName;
     }
-    
-    /*---------------------------------------------------------------------*/
-    
+
+    CPing m_ping;
+    CORE::UInt32 m_started;
+    CORE::UInt32 m_responses;
+    CORE::UInt32 m_timeouts;
+    CORE::UInt32 m_failures;
+    CORE::UInt32 m_stopped;
+    CORE::UInt32 m_lastRoundTripTime;
+
     protected:
-    
-    /*---------------------------------------------------------------------*/
-    
-    virtual void OnNotify( CORE::CNotifier* notifier           ,
-                           const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL )
+
+    virtual void OnNotify( CORE::CNotifier* notifier                 ,
+                           const CORE::CEvent& eventid               ,
+                           CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
-    
-        if ( eventid == CORE::CGUCEFApplication::AppInitEvent )
-        {   
-            printf( "CPingTester: pinging %s for %d time(s) with %d bytes and a timeout of %d ms\n", REMOTE_HOST, MAX_PINGS, PING_BYTES, PING_TIMEOUT );
-            if ( !m_ping.Start( REMOTE_HOST  , 
-                                MAX_PINGS    ,
-                                PING_BYTES   ,
-                                PING_TIMEOUT ) )
-            {
-                // Failed to start the ping sequence
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: Failed to start the ping sequence" );
-                ERRORHERE;
-            }
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: Ping start requested" );
-        }
-        else
-        if ( eventid == CORE::CGUCEFApplication::AppShutdownEvent )
+
+        if ( eventid == CPing::PingStartedEvent )
         {
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: The application is shutting down" ); 
+            ++m_started;
         }
         else
-        if ( eventid == COMCORE::CPing::PingReponseEvent )
+        if ( eventid == CPing::PingReponseEvent )
         {
-            COMCORE::CPing::CPingEventData* eData = static_cast< COMCORE::CPing::CPingEventData* >( eventdata );
-            if ( NULL == eData )
-            {
-                // We should have received data with this event
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: no event data for event PingReponseEvent" );
-                ERRORHERE;
-            }            
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: Received ping response from " + eData->GetHostAddress().GetHostname() + ": " + CORE::UInt32ToString( eData->GetRoundTripTime() ) + " ms" );
-                        
-            if ( m_pingCount > MAX_PINGS )
-            {
-                // check if the maximum ping count functionality is working
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: we are getting more ping responses then we asked for\n" );
-                ERRORHERE;
-            }
-            ++m_pingCount;
+            ++m_responses;
+            CPing::CPingEventData* data = static_cast< CPing::CPingEventData* >( eventdata );
+            if ( GUCEF_NULL != data )
+                m_lastRoundTripTime = data->GetRoundTripTime();
         }
         else
-        if ( eventid == COMCORE::CPing::PingStartedEvent )
-        {   
-            COMCORE::CPing::CPingEventData* eData = static_cast< COMCORE::CPing::CPingEventData* >( eventdata );
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: started pinging " + eData->GetHostAddress().GetHostname() );
-        }
-        else
-        if ( eventid == COMCORE::CPing::PingTimeoutEvent )
-        {   
-            // We are pinging REMOTE_HOST, we should not get a timeout (unless REMOTE_HOST is having a bad day)
-            COMCORE::CPing::CPingEventData* eData = static_cast< COMCORE::CPing::CPingEventData* >( eventdata );
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: timeout while pinging " + eData->GetHostAddress().GetHostname() + " this should not happen" );
-            ERRORHERE;
-        }
-        else
-        if ( eventid == COMCORE::CPing::PingFailedEvent )
-        {   
-            // some error occurred while attempting to ping
-            COMCORE::CPing::CPingEventData* eData = static_cast< COMCORE::CPing::CPingEventData* >( eventdata );
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: error while pinging " + eData->GetHostAddress().GetHostname() );
-            ERRORHERE;
-        }
-        else
-        if ( eventid == COMCORE::CPing::PingStoppedEvent )
+        if ( eventid == CPing::PingTimeoutEvent )
         {
-            // If we got here without any errors then we are finished
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: Stopped pinging" );
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "**** SUCCESSFULLY COMPLETED THE PING TEST ****" );
-            CORE::CCoreGlobal::Instance()->GetApplication().Stop();
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: Application stopping" );
-        }                
+            ++m_timeouts;
+        }
         else
+        if ( eventid == CPing::PingFailedEvent )
         {
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CPingTester: Received event: " + eventid.GetName() );
+            ++m_failures;
+        }
+        else
+        if ( eventid == CPing::PingStoppedEvent )
+        {
+            ++m_stopped;
         }
     }
-    
-    /*---------------------------------------------------------------------*/
-    
-    private:
-    
-    CORE::UInt32 m_pingCount;
-    COMCORE::CPing m_ping;
-    static CPingTester* m_instance;   
 };
 
 /*-------------------------------------------------------------------------//
@@ -205,30 +141,28 @@ class CPingTester : public CORE::CObserver
 //-------------------------------------------------------------------------*/
 
 void
-PerformPingTest( void )
-{   
-    try
-    {
-        CORE::CGUCEFApplication* app = &CORE::CCoreGlobal::Instance()->GetApplication();
-        CPingTester pingTester;
-        pingTester.SubscribeTo( app );
-        app->main( 0, NULL, true );
-    }
-    catch ( CORE::CMsgException& e )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, CORE::CString( "unhandled GUCEF exception during Ping test: " ) + e.what() );
-        ERRORHERE;
-    }
-    catch ( std::exception& e )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, CORE::CString( "unhandled std exception during Ping test: " ) + e.what() );
-        ERRORHERE;
-    }
-    catch ( ... )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "unhandled exception during Ping test" );
-        ERRORHERE;
-    }
+PerformPingTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_SUITE_SCOPE( "Ping" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: The loopback address answers a ping" )
+        try
+        {
+            CPingRecorder recorder;
+            ASSERT_TRUE( recorder.m_ping.Start( "127.0.0.1", 1, 32, 1000 ) );
+
+            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.m_stopped > 0; }, 10000 ) );
+            ASSERT_TRUE( 1 == recorder.m_started );
+            ASSERT_TRUE( 1 == recorder.m_responses );
+            ASSERT_TRUE( 0 == recorder.m_timeouts );
+            ASSERT_TRUE( 0 == recorder.m_failures );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

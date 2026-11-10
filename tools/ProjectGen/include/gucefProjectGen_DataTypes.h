@@ -446,6 +446,8 @@ struct SDirProcessingInstructions
     TStringVectorMap fileExcludeList;       // list of files that are to be excluded, maps a list of per platform
     TStringVectorMap fileIncludeList;       // list of files that are to be included, maps a list of per platform
 
+    TStringVectorMap includeDirExcludeList; // list of dirs which are not to be used as include search paths while their files remain part of the module, maps a list of per platform. "." refers to the dir holding the instructions
+
     TPlatformDefinitionMap platforms;       // Supplemental platform definitions
     
     CORE::CDataNode processingInstructions; // All unparsed processing instruction data
@@ -512,7 +514,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfo  ,
                  const CORE::CString& targetPlatform    ,
-                 CModuleInfo& mergedModuleInfo          );
+                 CModuleInfoPtr& mergedModuleInfo       );
 
 /*-------------------------------------------------------------------------*/
 
@@ -634,6 +636,18 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 void
 GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
                                     TModuleInfoPtrMap& moduleMap               );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Whether the module makes a binary (library or executable) for the platform. For all platforms that is the case
+ *  when it does so for any platform, also when the kind of binary differs per platform (a shared library here, a
+ *  static library there)
+ */
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+IsModuleBuiltForPlatform( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                          const CORE::CString& targetPlatform        );
 
 /*-------------------------------------------------------------------------*/
 

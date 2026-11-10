@@ -35,6 +35,14 @@ add_dependencies( ${MODULE_NAME} aws-c-common aws-c-http aws-c-io )
 target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-common aws-c-http aws-c-io )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_MQTT_WITH_WEBSOCKETS;MODULE_CONSENSUS_NAME=aws_c_mqtt;MODULE_NAME=aws_c_mqtt" )
 
+if ( LINUX32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
+endif( LINUX64 )
+
 include_directories( ../aws-c-cal/include ../aws-c-common/include ../aws-c-http/include ../aws-c-io/include ../aws-c-io/source include )
 
 

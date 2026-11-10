@@ -1,0 +1,7 @@
+<!-- DV edit: curl's headers are included as <curl/name.h>, keeping this directory itself off the include path
+     prevents its generically named headers (header.h, options.h, system.h) from hiding other headers -->
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="." TYPE="INCLUDEDIR" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

@@ -35,6 +35,16 @@
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
 
+#ifndef GUCEF_CORE_CFILEACCESS_H
+#include "CFileAccess.h"
+#define GUCEF_CORE_CFILEACCESS_H
+#endif /* GUCEF_CORE_CFILEACCESS_H ? */
+
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #include "gucefCORE_CIniParser.h"
 
 /*-------------------------------------------------------------------------//
@@ -464,11 +474,111 @@ CIniParser::GetData( void )
 /*-------------------------------------------------------------------------*/
 
 const CIniParser::TIniData&
-CIniParser::GetData( void ) const
-{GUCEF_TRACE;
-
-    return m_iniData;
-}
+CIniParser::GetData( void ) const
+{GUCEF_TRACE;
+
+    return m_iniData;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIniParser::UpdateValueInIniFile( const CString& iniFilePath  ,
+                                  const CString& sectionName  ,
+                                  const CString& key          ,
+                                  const CString& value        )
+{GUCEF_TRACE;
+
+    // the file as it is, a missing file is an empty one
+    CString text;
+    if ( FileExists( iniFilePath ) )
+    {
+        CDynamicBuffer content;
+        if ( !content.LoadContentFromFile( iniFilePath ) )
+            return false;
+        text = CString( (const char*) content.GetConstBufferPtr(), content.GetDataSize() );
+    }
+    const CString newline = text.HasSubstr( "\r\n", true ) >= 0 ? CString( "\r\n" ) : CString( "\n" );
+
+    // the lines with their line endings
+    CString::StringVector lines;
+    UInt32 start = 0;
+    while ( start < text.Length() )
+    {
+        Int32 end = text.HasChar( '\n', start, true );
+        UInt32 next = end < 0 ? text.Length() : (UInt32) end + 1;
+        lines.push_back( text.SubstrFromRange( start, next ) );
+        start = next;
+    }
+
+    Int32 sectionLine = -1;      // the header of the section
+    Int32 lastLineOfSection = -1;
+    Int32 keyLine = -1;
+    for ( UInt32 i=0; i<(UInt32)lines.size(); ++i )
+    {
+        CString line = lines[ i ].RemoveChar( '\r' ).RemoveChar( '\n' ).Trim( true ).Trim( false );
+        if ( line.IsNULLOrEmpty() || ';' == line[ 0 ] || '#' == line[ 0 ] )
+            continue;
+        if ( '[' == line[ 0 ] )
+        {
+            if ( sectionLine >= 0 )
+                break;      // the section ended
+            Int32 close = line.HasChar( ']' );
+            CString name = line.SubstrFromRange( 1, close > 0 ? (UInt32) close : line.Length() ).Trim( true ).Trim( false );
+            if ( name.Equals( sectionName, false ) )
+                sectionLine = lastLineOfSection = (Int32) i;
+            continue;
+        }
+        if ( sectionLine < 0 )
+            continue;
+        lastLineOfSection = (Int32) i;
+        Int32 equals = FindIndexOfNonQuotedEquals( line );
+        if ( equals > 0 && StripQuotation( line.SubstrFromRange( 0, (UInt32) equals ).Trim( true ).Trim( false ) ).Equals( key, false ) )
+        {
+            keyLine = (Int32) i;
+            break;
+        }
+    }
+
+    if ( keyLine >= 0 )
+    {
+        // the key keeps how it was written, the value gets quotes when the old one had them
+        CString line = lines[ keyLine ];
+        CString ending = line.HasSubstr( "\r\n", false ) >= 0 ? CString( "\r\n" ) : ( line.HasChar( '\n' ) >= 0 ? CString( "\n" ) : CString() );
+        CString content = line.RemoveChar( '\r' ).RemoveChar( '\n' );
+        Int32 equals = FindIndexOfNonQuotedEquals( content );
+        CString oldValue = content.CutChars( (UInt32) equals + 1, true ).Trim( true );
+        bool quoted = oldValue.Length() > 0 && '"' == oldValue[ 0 ];
+        lines[ keyLine ] = content.SubstrFromRange( 0, (UInt32) equals + 1 ) + ( quoted ? "\"" + value + "\"" : value ) + ending;
+    }
+    else
+    {
+        CString entry = "\"" + key + "\"=\"" + value + "\"" + newline;
+        if ( sectionLine < 0 )
+        {
+            if ( !lines.empty() && lines.back().HasChar( '\n' ) < 0 )
+                lines.back() += newline;
+            if ( !lines.empty() )
+                lines.push_back( newline );
+            lines.push_back( "[" + sectionName + "]" + newline );
+            lines.push_back( entry );
+        }
+        else
+        {
+            if ( lines[ lastLineOfSection ].HasChar( '\n' ) < 0 )
+                lines[ lastLineOfSection ] += newline;
+            lines.insert( lines.begin() + lastLineOfSection + 1, entry );
+        }
+    }
+
+    CString result;
+    for ( UInt32 i=0; i<(UInt32)lines.size(); ++i )
+        result += lines[ i ];
+    CFileAccess output( iniFilePath, "wb" );
+    if ( !output.IsValid() )
+        return false;
+    return result.ByteSize() <= 1 || 1 == output.Write( result.C_String(), result.ByteSize()-1, 1 );
+}
 
 /*-------------------------------------------------------------------------*/
 

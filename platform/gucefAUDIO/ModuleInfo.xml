@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <Module Name="gucefAUDIO" Type="SharedLibrary" Platform="All" Tags="platform">
+		<ModuleMetaData>
+			<License>APACHEv2</License>
+			<SemVer>0.1.0.0</SemVer>
+			<DescriptionHeadline>GUCEF module providing audio playback, mixing and decoding</DescriptionHeadline>
+			<DescriptionDetails>Cross platform audio: formats and buffers, conversion, sources, codecs and audio drivers as plugins, a mixing engine with buses and voices</DescriptionDetails>
+			<Authors>
+				<Author>Dinand Vanvelzen</Author>
+			</Authors>
+			<Maintainers>
+				<Maintainer>Dinand Vanvelzen</Maintainer>
+			</Maintainers>
+		</ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEFAUDIO_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

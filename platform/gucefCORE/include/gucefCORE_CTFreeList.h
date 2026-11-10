@@ -178,15 +178,23 @@ class CTFreeList : public MT::CILockable
     UInt32 GetFreedCount( void ) const;
     UInt32 GetTotalManagedCount( void ) const;
 
+    /**
+     *  C++98 compatible check for a member named Clear, also when U inherits it
+     *  A class deriving from U and from a class with its own Clear makes the name ambiguous exactly when U has one,
+     *  taking its address then fails substitution. Checking &U::Clear directly misses inherited members, and
+     *  the type checked here is always the accessor which derives from the contained type
+     */
     template< typename U >
     struct has_clear
     {
         typedef char yes[1];
         typedef char no[2];
-        template< typename V, void (V::*)() > struct S { };
-        template< typename V > static yes& test( S<V, &V::Clear>* );
-        template< typename V > static no&  test( ... );
-        enum { value = sizeof( test<U>(0) ) == sizeof( yes ) };
+        struct SClearFallback { void Clear( void ) {} };
+        struct SClearProbe : public U, public SClearFallback { };
+        template< typename V, V > struct S { };
+        template< typename V > static no&  test( S< void (SClearFallback::*)( void ), &V::Clear >* );
+        template< typename V > static yes& test( ... );
+        enum { value = sizeof( test< SClearProbe >( 0 ) ) == sizeof( yes ) };
     };
 
     TSharedPtr Acquire( void );
@@ -274,6 +282,10 @@ class CTFreeList : public MT::CILockable
     {GUCEF_TRACE;
 
         obj->Clear();
+
+        // The last shared pointer released the shared pointer creator data when it let go of the object
+        // The object is not reconstructed, so it is armed again here, ready for its next Acquire()
+        obj->InitializeSharedPtrCreatorData( obj, &m_destructor );
     }
 
     template< typename U >
@@ -312,6 +324,17 @@ class CTFreeList : public MT::CILockable
     {GUCEF_TRACE;
 
         ReconstructIfNoClearIsAvailableImpl< TSharedPtrCreator >( obj );
+    }
+
+    /**
+     *  Whether objects in the freed state are constructed objects or raw memory
+     *  Only objects which are reset via Clear() stay constructed while freed, every other reuse path destroys
+     *  objects when they are freed and constructs them again when they are acquired
+     */
+    bool FreedObjectsAreConstructed( void ) const
+    {GUCEF_TRACE;
+
+        return REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE == m_reusePolicy && 0 != has_clear< TSharedPtrCreator >::value;
     }
 
     CTFreeList( const CTFreeList& ) GUCEF_DELETED_MEMBER;
@@ -389,12 +412,16 @@ CTFreeList< T, LockType >::Clear( void )
     }
     m_dormant.clear();
 
-    typename GUCEF::vector< TSharedPtrCreator* >::iterator n = m_freed.begin();
-    while ( n != m_freed.end() )
+    // Freed objects were already destroyed when they were freed, unless they are reused via Clear()
+    if ( FreedObjectsAreConstructed() )
     {
-        TSharedPtrCreator* obj = (*n);
-        m_allocator.destroy( obj );
-        ++n;
+        typename GUCEF::vector< TSharedPtrCreator* >::iterator n = m_freed.begin();
+        while ( n != m_freed.end() )
+        {
+            TSharedPtrCreator* obj = (*n);
+            m_allocator.destroy( obj );
+            ++n;
+        }
     }
     m_freed.clear();
     
@@ -518,10 +545,13 @@ CTFreeList< T, LockType >::Reserve( UInt32 count )
         {
             TSharedPtrCreator* slot = reinterpret_cast< TSharedPtrCreator* >( cursor );
 
-            // Use placement new to do the very first construction always
-            // Reuse policy only applies to subsequent reuses
-            m_allocator.construct( slot );
-            slot->InitializeSharedPtrCreatorData( slot, &m_destructor );
+            // New slots enter the freed state in the same form as freed objects do: Acquire() constructs them
+            // unless they are reused via Clear(), in which case they have to be constructed objects already
+            if ( FreedObjectsAreConstructed() )
+            {
+                m_allocator.construct( slot );
+                slot->InitializeSharedPtrCreatorData( slot, &m_destructor );
+            }
 
             m_freed.push_back( slot );
 

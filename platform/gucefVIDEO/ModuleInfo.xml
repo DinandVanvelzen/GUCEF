@@ -1,0 +1,32 @@
+<ModuleInfoEntry>
+    <Module Name="gucefVIDEO" Type="SharedLibrary" Platform="All" Tags="platform">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF module providing video decoding and playback</DescriptionHeadline>
+            <DescriptionDetails>Cross platform video: formats and frames, sources and codecs as plugins, a demuxer that shares a video between its pictures and its sound, and a player that keeps the pictures with the sound of a gucefAUDIO engine</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefIMAGE" Scope="public" />
+            <Dependency Name="gucefAUDIO" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEFVIDEO_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -9,7 +9,7 @@
 #-------------------------------------------------------------------
 
 
-ifndef $(MY_MODULE_PATH)
+ifndef MY_MODULE_PATH
   MY_MODULE_PATH := $(call my-dir)
 endif
 LOCAL_PATH := $(MY_MODULE_PATH)
@@ -25,12 +25,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
-  $(MY_MODULE_PATH)/../../gucefCOM/include \
-  $(MY_MODULE_PATH)/../../gucefCOMCORE/include \
-  $(MY_MODULE_PATH)/../../gucefCORE/include \
-  $(MY_MODULE_PATH)/../../gucefMT/include \
-  $(MY_MODULE_PATH)/../../gucefPATCHER/include \
+  $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
+  $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
+  $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
+  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../platform/gucefMT/include \
+  $(MY_MODULE_PATH)/../../platform/gucefPATCHER/include \
   $(MY_MODULE_PATH)/../ArchiveDiffLib/include
+
+LOCAL_CFLAGS := -DARCHIVEDIFF_BUILD_MODULE -DMODULE_CONSENSUS_NAME=ArchiveDiff -DMODULE_NAME=ArchiveDiff
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="gucefAUDIO_TestApp" Platform="All" Type="Executable" Tags="test" >
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIO_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="audiodriverALSA" />
+            <RuntimeDependency Name="audiocodecpluginAU" />
+            <RuntimeDependency Name="gucefAUDIO_TestCodecPlugin" />
+            <RuntimeDependency Name="audiocodecpluginFLAC" />
+            <RuntimeDependency Name="audiocodecpluginMP3" />
+            <RuntimeDependency Name="audiocodecpluginOGG" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="emscripten" >
+        <Dependencies>
+            <Dependency Name="audiodriverWEBAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="audiodriverWEBAUDIO" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

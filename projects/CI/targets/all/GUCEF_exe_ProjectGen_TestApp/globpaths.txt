@@ -1,0 +1,8 @@
+common/include/*
+common/test/include/*
+dependencies/libparsifal/*
+platform/gucefCORE/*
+platform/gucefMT/*
+plugins/CORE/dstorepluginPARSIFALXML/*
+tests/ProjectGen_TestApp/*
+tools/ProjectGen/*

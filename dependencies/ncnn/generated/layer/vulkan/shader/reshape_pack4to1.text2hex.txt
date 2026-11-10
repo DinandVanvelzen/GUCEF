@@ -1,0 +1,89 @@
+#version 450
+layout(constant_id = 0) const int ndim = 0;
+#define shape_constant_id_offset 1
+layout(constant_id = shape_constant_id_offset + 0) const int dims = 0;
+layout(constant_id = shape_constant_id_offset + 1) const int w = 0;
+layout(constant_id = shape_constant_id_offset + 2) const int h = 0;
+layout(constant_id = shape_constant_id_offset + 3) const int d = 0;
+layout(constant_id = shape_constant_id_offset + 4) const int c = 0;
+layout(constant_id = shape_constant_id_offset + 5) const int cstep = 0;
+layout(constant_id = shape_constant_id_offset + 6) const int outdims = 0;
+layout(constant_id = shape_constant_id_offset + 7) const int outw = 0;
+layout(constant_id = shape_constant_id_offset + 8) const int outh = 0;
+layout(constant_id = shape_constant_id_offset + 9) const int outd = 0;
+layout(constant_id = shape_constant_id_offset + 10) const int outc = 0;
+layout(constant_id = shape_constant_id_offset + 11) const int outcstep = 0;
+layout(binding = 0) readonly buffer bottom_blob { sfpvec4 bottom_blob_data[]; };
+layout(binding = 1) writeonly buffer top_blob { sfp top_blob_data[]; };
+layout(push_constant) uniform parameter
+{
+int dims;
+int w;
+int h;
+int d;
+int c;
+int cstep;
+int outdims;
+int outw;
+int outh;
+int outd;
+int outc;
+int outcstep;
+} p;
+void main()
+{
+int gx = int(gl_GlobalInvocationID.x);
+int gy = int(gl_GlobalInvocationID.y);
+int gz = int(gl_GlobalInvocationID.z);
+if (gx >= psc(w) || gy >= psc(h) * psc(d) || gz >= psc(c))
+return;
+ivec4 i4;
+if (psc(dims) == 1)
+{
+i4 = gx * 4 + ivec4(0, 1, 2, 3);
+}
+else if (psc(dims) == 2)
+{
+i4 = (gy * 4) * psc(w) + gx + ivec4(0, 1, 2, 3) * psc(w);
+}
+else if (psc(dims) == 3)
+{
+i4 = (gz * 4) * psc(h) * psc(w) + gy * psc(w) + gx + ivec4(0, 1, 2, 3) * psc(h) * psc(w);
+}
+else 
+{
+i4 = (gz * 4) * psc(d) * psc(h) * psc(w) + gy * psc(w) + gx + ivec4(0, 1, 2, 3) * psc(d) * psc(h) * psc(w);
+}
+ivec4 v_offset;
+if (ndim == 1)
+{
+v_offset = i4;
+}
+if (ndim == 2)
+{
+ivec4 y4 = i4 / psc(outw);
+ivec4 x4 = i4 % psc(outw);
+v_offset = y4 * psc(outw) + x4;
+}
+if (ndim == 3)
+{
+int size = psc(outw) * psc(outh);
+ivec4 z4 = i4 / size;
+ivec4 y4 = i4 % size / psc(outw);
+ivec4 x4 = i4 % size % psc(outw);
+v_offset = z4 * psc(outcstep) + y4 * psc(outw) + x4;
+}
+if (ndim == 4)
+{
+int size = psc(outw) * psc(outh) * psc(outd);
+int dsize = psc(outw) * psc(outh);
+ivec4 z4 = i4 / size;
+ivec4 yd4 = i4 % size / dsize;
+ivec4 yh4 = i4 % size % dsize / psc(outw);
+ivec4 x4 = i4 % size % dsize % psc(outw);
+ivec4 y4 = yd4 * psc(outh) + yh4;
+v_offset = z4 * psc(outcstep) + y4 * psc(outw) + x4;
+}
+int gi = gz * psc(cstep) + gy * psc(w) + gx;
+buffer_cp4to1(top_blob_data, v_offset, bottom_blob_data, gi);
+}

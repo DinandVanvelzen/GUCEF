@@ -23,18 +23,33 @@ LOCAL_MODULE := gucefCOMCORE_TestApp
 LOCAL_SRC_FILES := \
   src/TestCode_ClientServer.cpp \
   src/TestCode_DNS.cpp \
+  src/TestCode_Discovery.cpp \
   src/TestCode_PingTest.cpp \
   src/TestCode_SimpleTCPClient.cpp \
+  src/TestCode_TlsLayer.cpp \
+  src/TestCode_TlsOpenSsl.cpp \
+  src/TestRpcCodec.cpp \
+  src/TestRpcContract.cpp \
+  src/TestRpcEndpoint.cpp \
+  src/TestRpcLifecycle.cpp \
+  src/TestRpcPerf.cpp \
+  src/TestRpcSession.cpp \
+  src/TestSocketReadiness.cpp \
+  src/TestTcpSocketThreads.cpp \
   src/gucefCOMCORE_TestApp.cpp
+  src/TestDatabaseClient.cpp \
+  src/TestDatabaseClientFake.cpp \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
+
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=gucefCOMCORE_TestApp -DMODULE_NAME=gucefCOMCORE_TestApp
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -1,0 +1,34 @@
+#version 450
+#define shape_constant_id_offset 0
+layout(constant_id = shape_constant_id_offset + 0) const int dims = 0;
+layout(constant_id = shape_constant_id_offset + 1) const int w = 0;
+layout(constant_id = shape_constant_id_offset + 2) const int h = 0;
+layout(constant_id = shape_constant_id_offset + 3) const int c = 0;
+layout(constant_id = shape_constant_id_offset + 4) const int cstep = 0;
+layout(binding = 0) buffer bottom_top_blob { sfpvec4 bottom_top_blob_data[]; };
+layout(binding = 1) readonly buffer a { sfpvec4 a_data[]; };
+layout(binding = 2) readonly buffer b { sfpvec4 b_data[]; };
+layout(push_constant) uniform parameter
+{
+int dims;
+int w;
+int h;
+int c;
+int cstep;
+} p;
+void main()
+{
+int gx = int(gl_GlobalInvocationID.x);
+int gy = int(gl_GlobalInvocationID.y);
+int gz = int(gl_GlobalInvocationID.z);
+if (gx >= psc(w) || gy >= psc(h) || gz >= psc(c))
+return;
+const int gi = gz * psc(cstep) + gy * psc(w) + gx;
+afpvec4 v = buffer_ld4(bottom_top_blob_data, gi);
+const ivec3 gxyz = ivec3(gx, gy, gz);
+const int abi = gxyz[psc(dims) - 1];
+afpvec4 b = buffer_ld4(b_data, abi);
+afpvec4 a = buffer_ld4(a_data, abi);
+v = b * v + a;
+buffer_st4(bottom_top_blob_data, gi, v);
+}

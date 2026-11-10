@@ -1,20 +1,18 @@
 /*
  *  gucefVFS: GUCEF module implementing a Virtual File System
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_VFS_CARCHIVE_H
@@ -162,6 +160,15 @@ class GUCEF_VFS_PUBLIC_CPP CArchive : public CORE::CObservingNotifier           
                            const CString& newFilePath ,
                            const bool overwrite       ) = 0;
 
+    /**
+     *  Moves a file within the archive in one atomic step or not at all: never a copy and a delete, so a failure leaves
+     *  the target as it was and a reader of the target sees the old file or the new one, whole.
+     *  Default implementation always fails: an archive that cannot rename atomically does not offer it.
+     */
+    virtual bool MoveFileAtomically( const CString& oldFilePath ,
+                                     const CString& newFilePath ,
+                                     const bool overwrite       );
+
     virtual bool FileExists( const CString& filePath ) const = 0;
 
     virtual bool DirExists( const CString& dirPath ) const = 0;
@@ -230,6 +237,17 @@ class GUCEF_VFS_PUBLIC_CPP CArchive : public CORE::CObservingNotifier           
      *  The default implementation always fails.
      */
     virtual bool TryResolveSpecialDir( CORE::TSpecialDirs dir, CString& resolvedPath ) const;
+
+    /**
+     *  Optional directory operations, with paths in the archive like the other operations.
+     *  The default implementations fail: an archive that cannot change its directories need not implement them.
+     *  CreateDir() makes the parent directories too; MoveDir() moves a directory with its contents within the archive.
+     */
+    virtual bool CreateDir( const CString& dirPath );
+
+    virtual bool DeleteDir( const CString& dirPath, bool deleteContents );
+
+    virtual bool MoveDir( const CString& oldDirPath, const CString& newDirPath );
 };
 
 /*-------------------------------------------------------------------------//

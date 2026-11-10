@@ -81,6 +81,14 @@ if ( ANDROID64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZZIP_HAVE_STDINT_H" )
 endif( ANDROID64 )
 
+if ( EMSCRIPTEN32 )
+  add_dependencies( ${MODULE_NAME} zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  add_dependencies( ${MODULE_NAME} zlib )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
@@ -104,6 +112,14 @@ if ( WIN64 )
 endif( WIN64 )
 
 include_directories( ../zziplib zzip )
+
+if ( EMSCRIPTEN32 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../zlib )

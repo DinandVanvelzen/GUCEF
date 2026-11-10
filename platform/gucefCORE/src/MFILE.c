@@ -167,7 +167,8 @@ mfread( void *dest      ,
                 mfile->offset += ( esize * elements );
                 mfile->curpos = mfile->mchunk + mfile->offset;
 
-                return( esize * elements );
+                /* Like fread() this is the number of elements read, not the number of bytes */
+                return( (UInt32) elements );
         }
         return( 0 );
 }

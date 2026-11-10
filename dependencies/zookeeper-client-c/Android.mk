@@ -42,5 +42,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/src/hashtable
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=zookeeper -DMODULE_NAME=zookeeper
+
 include $(BUILD_STATIC_LIBRARY)
 

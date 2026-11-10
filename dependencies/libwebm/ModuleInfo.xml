@@ -1,0 +1,17 @@
+<ModuleInfoEntry>
+    <Module Name="libwebm" Type="StaticLibrary" Platform="linux;mswin;android">
+        <ModuleMetaData>
+            <License>BSD-3-Clause</License>
+            <SemVer>1.0.0.31</SemVer>
+            <DescriptionHeadline>libwebm (WebM project): the Matroska / WebM parser and muxer</DescriptionHeadline>
+            <DescriptionDetails>mkvparser and mkvmuxer of libwebm-1.0.0.31, with the WebM element ids they share. Local change: mkvparser.cc includes stdint.h itself.</DescriptionDetails>
+        </ModuleMetaData>
+        <Includes Source="Self">
+            <Include Path="." />
+        </Includes>
+        <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-O2" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

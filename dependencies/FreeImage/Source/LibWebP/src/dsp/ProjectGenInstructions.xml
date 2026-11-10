@@ -1,0 +1,9 @@
+<PROJECTGENERATOR>
+    <!-- the processor specific optimizations for architectures other than x86, they are picked at run time and only
+         compile on the architecture they were written for -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="*mips*.c" TYPE="FILE" />
+        <ITEM NAME="*msa.c" TYPE="FILE" />
+        <ITEM NAME="*neon.c" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

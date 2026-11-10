@@ -47,19 +47,13 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/patterns \
   $(MY_MODULE_PATH)/../../ \
   $(MY_MODULE_PATH)/../../../../ \
-  $(MY_MODULE_PATH)/../../../../Ogre \
-  $(MY_MODULE_PATH)/../../../../Ogre/RenderSystems \
-  $(MY_MODULE_PATH)/../../../../Ogre/RenderSystems/GLES2 \
-  $(MY_MODULE_PATH)/../../../../Ogre/RenderSystems/GLES2/include \
-  $(MY_MODULE_PATH)/../../../../Ogre/RenderSystems/GLES2/include/EGL \
-  $(MY_MODULE_PATH)/../../../../Ogre/RenderSystems/GLES2/include/EGL/Android \
   $(MY_MODULE_PATH)/../../../../hiredis \
   $(MY_MODULE_PATH)/cxx11 \
   $(MY_MODULE_PATH)/cxx11/sw \
   $(MY_MODULE_PATH)/no_tls \
   $(MY_MODULE_PATH)/no_tls/sw
 
-LOCAL_CFLAGS := -DREDIS_PLUS_PLUS_BUILD_TEST=OFF -DREDIS_PLUS_PLUS_CXX_STANDARD=11
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=redis_plus_plus -DMODULE_NAME=redis_plus_plus -DREDIS_PLUS_PLUS_BUILD_TEST=OFF -DREDIS_PLUS_PLUS_CXX_STANDARD=11
 
 
 LOCAL_STATIC_LIBRARIES := \

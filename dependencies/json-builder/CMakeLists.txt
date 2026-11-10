@@ -21,7 +21,22 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID32)
+if (ANDROID)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     json-builder.h
   )
@@ -64,6 +79,21 @@ elseif (ARDUINO)
   )
 
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (EMSCRIPTEN32)
@@ -141,6 +171,51 @@ elseif (IOS)
   set( PLATFORM_SOURCE_INSTALL "IOS" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (IPHONE)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONE" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONE" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (IPHONEOS)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "IPHONEOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "IPHONEOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "LINUX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "LINUX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     json-builder.h
@@ -169,6 +244,66 @@ elseif (LINUX64)
   )
 
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MAC)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MAC" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MAC" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOS)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MACOSX)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MACOSX" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MACOSX" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (MSWIN)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "MSWIN" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "MSWIN" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (NACL)
@@ -291,6 +426,21 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_INSTALL "WIN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
+elseif (WINDOWS)
+  set( PLATFORM_HEADER_FILES 
+    json-builder.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WINDOWS" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json-builder.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WINDOWS" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
 endif ()
 
 # For ease of use make a variable that has all files for this module
@@ -302,6 +452,10 @@ add_dependencies( ${MODULE_NAME} jsonparser )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=jsonbuilder;MODULE_NAME=jsonbuilder" )
 
 include_directories( ../json-parser )
+
+if ( ANDROID )
+  include_directories( ../json-parser )
+endif( ANDROID )
 
 if ( ANDROID32 )
   include_directories( ../json-parser )
@@ -315,6 +469,10 @@ if ( ARDUINO )
   include_directories( ../json-parser )
 endif( ARDUINO )
 
+if ( EMSCRIPTEN )
+  include_directories( ../json-parser )
+endif( EMSCRIPTEN )
+
 if ( EMSCRIPTEN32 )
   include_directories( ../json-parser )
 endif( EMSCRIPTEN32 )
@@ -327,6 +485,18 @@ if ( IOS )
   include_directories( ../json-parser )
 endif( IOS )
 
+if ( IPHONE )
+  include_directories( ../json-parser )
+endif( IPHONE )
+
+if ( IPHONEOS )
+  include_directories( ../json-parser )
+endif( IPHONEOS )
+
+if ( LINUX )
+  include_directories( ../json-parser )
+endif( LINUX )
+
 if ( LINUX32 )
   include_directories( ../json-parser )
 endif( LINUX32 )
@@ -334,6 +504,22 @@ endif( LINUX32 )
 if ( LINUX64 )
   include_directories( ../json-parser )
 endif( LINUX64 )
+
+if ( MAC )
+  include_directories( ../json-parser )
+endif( MAC )
+
+if ( MACOS )
+  include_directories( ../json-parser )
+endif( MACOS )
+
+if ( MACOSX )
+  include_directories( ../json-parser )
+endif( MACOSX )
+
+if ( MSWIN )
+  include_directories( ../json-parser )
+endif( MSWIN )
 
 if ( OSX )
   include_directories( ../json-parser )
@@ -346,6 +532,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../json-parser )
 endif( WIN64 )
+
+if ( WINDOWS )
+  include_directories( ../json-parser )
+endif( WINDOWS )
 
 
 

@@ -30,11 +30,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DSERVERPORTEXTENDER_BUILD_MODULE
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=ServerPortExtender -DMODULE_NAME=ServerPortExtender -DSERVERPORTEXTENDER_BUILD_MODULE
 
 
 LOCAL_SHARED_LIBRARIES := \

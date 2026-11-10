@@ -58,6 +58,11 @@
 #define GUCEF_INPUT_CINPUTDRIVERPLUGINMANAGER_H
 #endif /* GUCEF_INPUT_CINPUTDRIVERPLUGINMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefINPUT_CInputGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -132,6 +137,7 @@ CInputGlobal::Initialize( void )
     m_inputDriverPluginManager = new CInputDriverPluginManager();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefINPUT Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefINPUT" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -149,7 +155,7 @@ CInputGlobal::~CInputGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefINPUT global systems" );
-
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefINPUT" );
 
     /*
      *      cleanup all singletons

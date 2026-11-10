@@ -1,5 +1,5 @@
 /*
- *  guidriverRocketOpenGL: module providing a GUI backend using Rocket and OpenGL
+ *  guidriverRmlUIOpenGL: module providing a GUI backend using RmlUi and OpenGL
  *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
@@ -33,12 +33,12 @@
 #define GUCEF_GUI_CGUIGLOBAL_H
 #endif /* GUCEF_GUI_CGUIGLOBAL_H ? */
 
-#ifndef GUCEF_GUIDRIVERROCKETGL_CROCKETGUIDRIVER_H
-#include "guidriverRocketOpenGL_CRocketGuiDriver.h"
-#define GUCEF_GUIDRIVERROCKETGL_CROCKETGUIDRIVER_H
-#endif /* GUCEF_GUIDRIVERROCKETGL_CROCKETGUIDRIVER_H ? */
+#ifndef GUCEF_GUIDRIVERRMLUIGL_CRMLUIGUIDRIVER_H
+#include "guidriverRmlUIOpenGL_CRmlUIGuiDriver.h"
+#define GUCEF_GUIDRIVERRMLUIGL_CRMLUIGUIDRIVER_H
+#endif /* GUCEF_GUIDRIVERRMLUIGL_CRMLUIGUIDRIVER_H ? */
 
-#include "guidriverRocketOpenGL_pluginAPI.h"
+#include "guidriverRmlUIOpenGL_pluginAPI.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -47,7 +47,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace GUIDRIVERROCKETGL {
+namespace GUIDRIVERRMLUIGL {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -55,7 +55,7 @@ namespace GUIDRIVERROCKETGL {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static CRocketGuiDriver* g_guiDriver = NULL;
+static CRmlUIGuiDriver* g_guiDriver = NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -64,21 +64,21 @@ static CRocketGuiDriver* g_guiDriver = NULL;
 //-------------------------------------------------------------------------*/
 
 CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_Load )( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    g_guiDriver = new CRocketGuiDriver();
-    GUI::CGuiGlobal::Instance()->GetGuiManager().RegisterGUIDriver( "RocketOpenGL", g_guiDriver );
+    g_guiDriver = new CRmlUIGuiDriver();
+    GUI::CGuiGlobal::Instance()->GetGuiManager().RegisterGUIDriver( guidriverRmlUI::CRmlUIDriver::DriverName, g_guiDriver );
     return 1;
 }
 
 /*--------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_Unload )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    GUI::CGuiGlobal::Instance()->GetGuiManager().UnregisterGUIDriverByName( "RocketOpenGL" );
+    GUI::CGuiGlobal::Instance()->GetGuiManager().UnregisterGUIDriverByName( guidriverRmlUI::CRmlUIDriver::DriverName );
     delete g_guiDriver;
     g_guiDriver = NULL;
 }
@@ -86,7 +86,7 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 /*--------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetVersion( CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_GetVersion )( CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     versionInfo->major = 0; 
@@ -98,7 +98,7 @@ GUCEFPlugin_GetVersion( CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFF
 /*--------------------------------------------------------------------------*/
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_GetCopyright )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
     
     return "Copyright (C) Dinand Vanvelzen, released under LGPLv3";
@@ -107,10 +107,10 @@ GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 /*--------------------------------------------------------------------------*/
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_GetDescription )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    return "GUI backend based on Rocket using OpenGL";
+    return "GUI backend based on RmlUi using OpenGL";
 }
 
 /*-------------------------------------------------------------------------//
@@ -119,7 +119,7 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace GUIDRIVERROCKETGL */
+}; /* namespace GUIDRIVERRMLUIGL */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/

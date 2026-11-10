@@ -635,6 +635,7 @@ rwl_destroy( TRWLock* rwlock )
                                  */
                                 MutexDestroy( rwlock->writerlock );
                                 rwlock->writerlock = GUCEF_NULL;
+                                MutexUnlock( rwlock->datalock );    /* a mutex is never destroyed while locked */
                                 MutexDestroy( rwlock->datalock );
                                 rwlock->datalock = GUCEF_NULL;
                                 

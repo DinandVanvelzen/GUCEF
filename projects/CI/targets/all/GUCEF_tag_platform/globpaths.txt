@@ -1,7 +1,10 @@
 common/include/*
+platform/gucefAUDIO/*
+platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
+platform/gucefGAMEGUI/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
 platform/gucefINPUT/*
@@ -15,4 +18,5 @@ platform/gucefPRODMAN/*
 platform/gucefPUBSUB/*
 platform/gucefSMDRN/*
 platform/gucefVFS/*
+platform/gucefVIDEO/*
 platform/gucefWEB/*

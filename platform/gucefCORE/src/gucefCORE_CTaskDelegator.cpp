@@ -88,10 +88,16 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool )
     , m_pulseGenerator()
     , m_threadPool( threadPool )
     , m_consumerBusy( false )
+    , m_cancelCurrentTask( false )
     , m_sendRegularPulses( false )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_taskRequestedCycleDelayInMs( 0 )
+    , m_requestedPulseDeltaInMs( 0 )
+    , m_driverTaskId( 0 )
+    , m_driverThreadEnded( false )
+    , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
+    , m_wakeUpPosted( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -114,10 +120,16 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool ,
     , m_task( task )
     , m_threadPool( threadPool )
     , m_consumerBusy( false )
+    , m_cancelCurrentTask( false )
     , m_sendRegularPulses( false )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_taskRequestedCycleDelayInMs( 0 )
+    , m_requestedPulseDeltaInMs( 0 )
+    , m_driverTaskId( 0 )
+    , m_driverThreadEnded( false )
+    , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
+    , m_wakeUpPosted( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -149,6 +161,10 @@ CTaskDelegator::~CTaskDelegator()
     m_pulseGenerator->SetPulseGeneratorDriver( GUCEF_NULL );
     m_pulseGenerator.Unlink();
     m_threadPool.Unlink();
+
+    // no request can reach WakeUp() any more: the pulse generator let go of this driver
+    GUCEF_DELETE m_wakeUpSignal;
+    m_wakeUpSignal = GUCEF_NULL;
     
     TaskCleanup( m_task );
     m_task.Unlink();
@@ -180,7 +196,8 @@ CTaskDelegator::RequestImmediatePulse( CPulseGenerator& pulseGenerator )
 
     if ( &pulseGenerator == m_pulseGenerator.GetPointerAlways() )
     {
-        m_immediatePulseTickets = m_immediatePulseTicketMax;
+        m_immediatePulseTickets.Store( m_immediatePulseTicketMax.Load() );
+        WakeUp();
     }
 }
 
@@ -194,10 +211,10 @@ CTaskDelegator::RequestPulsesPerImmediatePulseRequest( CPulseGenerator& pulseGen
     if ( &pulseGenerator == m_pulseGenerator.GetPointerAlways() )
     {
         if ( requestedPulsesPerImmediatePulseRequest > 1 )
-            m_immediatePulseTicketMax = requestedPulsesPerImmediatePulseRequest;
+            m_immediatePulseTicketMax.Store( requestedPulsesPerImmediatePulseRequest );
         else
-            m_immediatePulseTicketMax = 1;
-        m_sendRegularPulses = true;
+            m_immediatePulseTicketMax.Store( 1 );
+        m_sendRegularPulses.Store( true );
     }
 }
 
@@ -211,8 +228,10 @@ CTaskDelegator::RequestPeriodicPulses( CPulseGenerator& pulseGenerator    ,
 
     if ( &pulseGenerator == m_pulseGenerator.GetPointerAlways() )
     {
-        m_delayInMilliSecs = pulseDeltaInMilliSecs;
-        m_sendRegularPulses = true;
+        // the cycle delay is the delegator thread's own state, it takes the request at its next cycle
+        m_requestedPulseDeltaInMs.Store( pulseDeltaInMilliSecs );
+        m_sendRegularPulses.Store( true );
+        WakeUp();
     }
 }
 
@@ -225,8 +244,10 @@ CTaskDelegator::RequestPulseInterval( CPulseGenerator& pulseGenerator    ,
 
     if ( &pulseGenerator == m_pulseGenerator.GetPointerAlways() )
     {
-        m_delayInMilliSecs = pulseDeltaInMilliSecs;
-        m_sendRegularPulses = true;
+        // the cycle delay is the delegator thread's own state, it takes the request at its next cycle
+        m_requestedPulseDeltaInMs.Store( pulseDeltaInMilliSecs );
+        m_sendRegularPulses.Store( true );
+        WakeUp();
     }
 }
 
@@ -238,7 +259,7 @@ CTaskDelegator::RequestStopOfPeriodicUpdates( CPulseGenerator& pulseGenerator )
 
     if ( &pulseGenerator == m_pulseGenerator.GetPointerAlways() )
     {
-        m_sendRegularPulses = false;
+        m_sendRegularPulses.Store( false );
     }
 }
 
@@ -248,7 +269,11 @@ bool
 CTaskDelegator::OnThreadStart( void* taskData )
 {GUCEF_TRACE;
 
-    m_pulseGenerator->SetPulseDriverThreadId( GetThreadID() );
+    // the id as MT::GetCurrentTaskID() gives it, on this thread: that is what the pulse generator's users compare with
+    // (on Linux GetThreadID() is the kernel thread id, a different number)
+    m_driverThreadEnded.Store( false );
+    m_driverTaskId.Store( MT::GetCurrentTaskID() );
+    m_pulseGenerator->SetPulseDriverThreadId( m_driverTaskId.Load() );
     ThreadStartedEventData id( GetThreadID() );
     NotifyObservers( ThreadStartedEvent, &id );
     return true;
@@ -308,8 +333,34 @@ CTaskDelegator::TaskCleanup( CTaskPtr task )
 /*-------------------------------------------------------------------------*/
 
 bool
+CTaskDelegator::CancelCurrentTask( UInt32 taskId )
+{GUCEF_TRACE;
+
+    if ( GetCurrentTaskId() == taskId )
+    {
+        m_cancelCurrentTask = true;
+        WakeUp();   // the task ends now, not at the next cycle
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskDelegator::IsStopOfCurrentTaskRequested( void ) const
+{GUCEF_TRACE;
+
+    return m_cancelCurrentTask || IsDeactivationRequested();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTaskDelegator::OnThreadCycle( void* )
 {GUCEF_TRACE;
+
+    ApplyRequestedPulseDelta();
 
     if ( ( !m_threadPool.IsNULL() ) &&
          ( m_threadPool->GetQueuedTask( m_task ) ) &&
@@ -360,11 +411,16 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
     bool returnStatus = false;
     bool taskWasFinished = false;
 
+    ApplyRequestedPulseDelta();
+
     // Create local refs for the invocation duration to avoid external interference
     PulseGeneratorPtr pulseGenerator = m_pulseGenerator;
     ThreadPoolPtr threadPool = m_threadPool;
     if GUCEF_PREDICT_FALSE( pulseGenerator.IsNULL() || threadPool.IsNULL() || task.IsNULL()  )
         return false;
+
+    // A task which was asked to cancel before we got to it never starts
+    m_cancelCurrentTask = task->IsCancellationRequested();
 
     // At this point we should have a valid task which has a valid task consumer
     CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
@@ -384,7 +440,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
     // given the signal that we are ready to begin operations
     while ( taskConsumer->GetIsInPhasedSetup() )
     {
-        if ( !IsDeactivationRequested() )
+        if ( !IsStopOfCurrentTaskRequested() )
         {
             pulseGenerator->WaitTillNextPulseWindow( 25 );
         }
@@ -394,7 +450,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
         }
     }
     
-    if ( !IsDeactivationRequested() )
+    if ( !IsStopOfCurrentTaskRequested() )
     {
         // Now we go through the execution sequence within a cycle as if this
         // where a thread sequence
@@ -409,7 +465,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
             taskConsumer->OnTaskStarted( task );
 
             // cycle the task as long as it is not "done"
-            while ( !IsDeactivationRequested() )
+            while ( !IsStopOfCurrentTaskRequested() )
             {
                 try
                 {
@@ -421,24 +477,34 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
                         break;
                     }
 
-                    if ( m_sendRegularPulses || m_immediatePulseTickets > 0 )
+                    // A ticket is taken before the pulse, not after it: a request made while the pulse is delivered
+                    // (by a handler of the pulse or by another thread meanwhile) hands out a ticket of its own, which
+                    // is left for the next cycle. Only this thread takes tickets, others only hand them out
+                    bool tookTicket = false;
+                    Int32 tickets = m_immediatePulseTickets.Load();
+                    while ( tickets > 0 && !tookTicket )
+                        tookTicket = m_immediatePulseTickets.CompareExchangeStrong( tickets, tickets - 1 );
+
+                    if ( tookTicket || m_sendRegularPulses.Load() )
                         SendDriverPulse( *pulseGenerator.GetPointerAlways() );
 
-                    if ( m_immediatePulseTickets > 0 )
+                    if ( m_immediatePulseTickets.Load() > 0 )
                     {
-                        --m_immediatePulseTickets;
+                        // tickets are left (more pulses per request, or a request made during the pulse): the next
+                        // cycle comes without a wait
                     }
                     else
                     {
                         // Per cycle we allow external deferment of the next cycle which is distinct from the minimum cycle delta
                         // this allows others or the task logic itself to throttle and 'back off' on a per cycle basis as needed
-                        if ( m_taskRequestedCycleDelayInMs > 0 && m_taskRequestedCycleDelayInMs > m_minimalCycleDeltaInMilliSecs )
+                        UInt32 taskRequestedCycleDelayInMs = m_taskRequestedCycleDelayInMs.Load();
+                        if ( taskRequestedCycleDelayInMs > 0 && taskRequestedCycleDelayInMs > m_minimalCycleDeltaInMilliSecs )
                         {
-                            UInt32 timeLeftToWait = m_taskRequestedCycleDelayInMs; 
-                            while ( !IsDeactivationRequested() && timeLeftToWait >= m_minimalCycleDeltaInMilliSecs )
+                            UInt32 timeLeftToWait = taskRequestedCycleDelayInMs;
+                            while ( !IsStopOfCurrentTaskRequested() && timeLeftToWait >= m_minimalCycleDeltaInMilliSecs )
                             {
                                 UInt32 elapsedWaitTimeInMilliSecs = 0;
-                                pulseGenerator->WaitTillNextPulseWindow( m_minimalCycleDeltaInMilliSecs, timeLeftToWait, &elapsedWaitTimeInMilliSecs  );
+                                WaitTillNextPulseWindowOrWakeUp( *pulseGenerator, m_minimalCycleDeltaInMilliSecs, timeLeftToWait, &elapsedWaitTimeInMilliSecs );
 
                                 Int64 timeLeftToWaitResult = ((Int64)timeLeftToWait) - elapsedWaitTimeInMilliSecs;
                                 if ( timeLeftToWaitResult < m_minimalCycleDeltaInMilliSecs )
@@ -449,18 +515,26 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
                                 // While we don't trigger OnTaskCycle for an extended period, we do still send out out driver pulses
                                 // This is because pulses are more rudimentary on not per se tied to task cycles explicitly
                                 // for example timer implementations may depend on it for additional processing time management
-                                if ( m_sendRegularPulses )
+                                if ( m_sendRegularPulses.Load() )
                                     SendDriverPulse( *pulseGenerator.GetPointerAlways() );
 
                                 // Any immediate pulse requests cause us to bust out of the extended cycle delay as it counts as an override
-                                if ( m_immediatePulseTickets > 0 )
+                                if ( m_immediatePulseTickets.Load() > 0 )
                                     break;
                             }
-                            m_taskRequestedCycleDelayInMs = 0;
+                            m_taskRequestedCycleDelayInMs.Store( 0 );
                         }
                         else
                         {
-                            pulseGenerator->WaitTillNextPulseWindow( m_minimalCycleDeltaInMilliSecs );
+                            // periodic pulses asked for at a shorter interval than the minimal cycle delta are given
+                            // at that interval: the requests are made for it (a protocol thread waiting for frames)
+                            UInt32 minimalCycleDelta = m_minimalCycleDeltaInMilliSecs;
+                            UInt32 requestedPulseDelta = m_requestedPulseDeltaInMs.Load();
+                            if ( m_sendRegularPulses.Load() && 0 != requestedPulseDelta && requestedPulseDelta < minimalCycleDelta )
+                                minimalCycleDelta = requestedPulseDelta;
+                            // a pulse request of another thread ends the wait: a dedicated protocol task answers a
+                            // frame from another thread at once instead of at its next cycle
+                            WaitTillNextPulseWindowOrWakeUp( *pulseGenerator, minimalCycleDelta, 1000, GUCEF_NULL );
                         }
                     }
                 }
@@ -474,7 +548,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
             }
 
             taskConsumer->OnTaskEnding( task, false );
-            task->SetTaskStatus( taskWasFinished ? TASKSTATUS_FINISHED : TASKSTATUS_STOPPED );
+            task->SetTaskStatus( taskWasFinished ? TASKSTATUS_FINISHED : ( task->IsCancellationRequested() ? TASKSTATUS_CANCELLED : TASKSTATUS_STOPPED ) );
             taskConsumer->OnTaskEnded( task, false );            
 
             if ( !threadPool.IsNULL() )
@@ -499,7 +573,7 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
     }
     else
     {
-        task->SetTaskStatus( TASKSTATUS_STOPPED );
+        task->SetTaskStatus( task->IsCancellationRequested() ? TASKSTATUS_CANCELLED : TASKSTATUS_STOPPED );
         
         // We never even got to start the consumer's work
         // not an error, just an efficiency thing so we still return success
@@ -516,10 +590,76 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
 /*-------------------------------------------------------------------------*/
 
 void
+CTaskDelegator::ApplyRequestedPulseDelta( void )
+{GUCEF_TRACE;
+
+    UInt32 requestedPulseDeltaInMs = m_requestedPulseDeltaInMs.Load();
+    if ( 0 != requestedPulseDeltaInMs )
+        m_delayInMilliSecs = requestedPulseDeltaInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskDelegator::WakeUp( void )
+{GUCEF_TRACE;
+
+    // without a working semaphore the delegator waits with a plain delay and takes the request at its next cycle
+    if ( GUCEF_NULL == m_wakeUpSignal )
+        return;
+    if ( MT::GetCurrentTaskID() == m_driverTaskId.Load() )
+        return;
+
+    // one post at a time: requests that come while a post waits to be taken need none of their own, the delegator
+    // thread looks at all requests after it took it, so the semaphore never counts more than 1
+    bool notPosted = false;
+    if ( m_wakeUpPosted.CompareExchangeStrong( notPosted, true ) )
+    {
+        if ( !m_wakeUpSignal->Post() )
+            m_wakeUpPosted.Store( false );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskDelegator::WaitTillNextPulseWindowOrWakeUp( CPulseGenerator& pulseGenerator       ,
+                                                 UInt32 forcedMinimalDeltaInMilliSecs  ,
+                                                 UInt32 desiredMaximumDeltaInMilliSecs ,
+                                                 UInt32* elapsedTimeInMilliSecs        )
+{GUCEF_TRACE;
+
+    UInt32 timeLeftToWaitInMs = pulseGenerator.GetTimeTillNextPulseWindowInMilliSecs( forcedMinimalDeltaInMilliSecs, desiredMaximumDeltaInMilliSecs );
+    if ( 0 == timeLeftToWaitInMs )
+        return; // Time's up already
+
+    // without a working semaphore (CTaskManager::IsTaskDelegatorWakeUpAvailable()) the wait is the plain delay it was before
+    Int32 waitResult = GUCEF_NULL != m_wakeUpSignal ? m_wakeUpSignal->WaitOrTimeout( timeLeftToWaitInMs ) : -1;
+    if ( 0 == waitResult )
+    {
+        // taken: a request made from now on posts again
+        m_wakeUpPosted.Store( false );
+    }
+    else
+    if ( 0 > waitResult )
+    {
+        // without a working semaphore the wait is the plain delay it was before
+        MT::PrecisionDelay( timeLeftToWaitInMs );
+    }
+
+    if ( GUCEF_NULL != elapsedTimeInMilliSecs )
+    {
+        *elapsedTimeInMilliSecs = (UInt32) pulseGenerator.GetActualPulseDeltaInMilliSecs();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CTaskDelegator::RequestTaskCycleDelayInMs( UInt32 requestedDelayInMs )
 {GUCEF_TRACE;
 
-    m_taskRequestedCycleDelayInMs = requestedDelayInMs;
+    m_taskRequestedCycleDelayInMs.Store( requestedDelayInMs );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -614,10 +754,11 @@ CTaskDelegator::OnThreadEnded( void* taskdata ,
         if ( !taskConsumer.IsNULL() )
         {
             TTaskStatus taskStatusBeforeEnd = taskConsumer->GetTaskStatus();
-            if ( !( TASKSTATUS_STOPPED == taskStatusBeforeEnd || 
-                    TASKSTATUS_FINISHED == taskStatusBeforeEnd ) )
+            if ( !( TASKSTATUS_STOPPED == taskStatusBeforeEnd   ||
+                    TASKSTATUS_CANCELLED == taskStatusBeforeEnd ||
+                    TASKSTATUS_FINISHED == taskStatusBeforeEnd  ) )
             {
-                taskConsumer->SetTaskStatus( TASKSTATUS_STOPPED );
+                taskConsumer->SetTaskStatus( task->IsCancellationRequested() ? TASKSTATUS_CANCELLED : TASKSTATUS_STOPPED );
             }
         
             taskConsumer->OnTaskEnded( task, m_consumerBusy );
@@ -627,6 +768,13 @@ CTaskDelegator::OnThreadEnded( void* taskdata ,
             taskConsumer->SetTaskDelegator( CTaskDelegatorPtr() );
         }
     }
+
+    // the thread is gone: a thread made later may get the same id, it must not pass for the driver of the pulse generator
+    m_driverTaskId.Store( 0 );
+    m_driverThreadEnded.Store( true );
+    PulseGeneratorPtr pulseGenerator = m_pulseGenerator;
+    if ( !pulseGenerator.IsNULL() )
+        pulseGenerator->SetPulseDriverThreadId( 0 );
 
     if ( forced )
     {
@@ -756,7 +904,11 @@ UInt32
 CTaskDelegator::GetPulseDriverThreadId( void ) const
 {GUCEF_TRACE;
 
-    return GetThreadID();
+    UInt32 taskId = m_driverTaskId.Load();
+    if ( 0 != taskId )
+        return taskId;
+    // before the thread runs its id as the platform gives it; once it ended no thread
+    return m_driverThreadEnded.Load() ? 0 : GetThreadID();
 }
 
 /*-------------------------------------------------------------------------//

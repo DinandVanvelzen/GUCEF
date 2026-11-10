@@ -83,6 +83,11 @@ GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 GUCEF_VFSPLUGIN_AWSS3_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
+/*--------------------------------------------------------------------------*/
+
+GUCEF_VFSPLUGIN_AWSS3_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
 /*---------------------------------------------------------------------------*/
 
 #ifdef __cplusplus

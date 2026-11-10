@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="authpluginANDROID" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUTH plugin for logging in on Android devices</DescriptionHeadline>
+            <DescriptionDetails>Google sign in with Play Games Services and Credential Manager, Login with Amazon on Fire OS, Custom Tabs and the app link redirect for the browser flows. The Java sources are in the java directory; building the plugin needs neither the Android SDK nor a JDK.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUTHPLUGIN_ANDROID_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

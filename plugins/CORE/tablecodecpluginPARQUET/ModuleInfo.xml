@@ -1,0 +1,29 @@
+<ModuleInfoEntry>
+    <Module Name="tablecodecpluginPARQUET" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>gucefCORE table codec plugin for Apache Parquet files</DescriptionHeadline>
+            <DescriptionDetails>Reads and writes parquet files as data tables: flat schemas, PLAIN and dictionary encodings, row groups, statistics and in place pages, with its own Thrift compact protocol. Compression goes through the codec registry.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Linker>
+        <Preprocessor>
+            <Define String="TABLECODECPLUGIN_PARQUET_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

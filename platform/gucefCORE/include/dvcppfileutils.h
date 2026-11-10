@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_DVCPPFILEUTILS_H
@@ -66,6 +64,11 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_CORE_IFILESYSTEMITERATOR_H
+#include "gucefCORE_IFileSystemIterator.h"
+#define GUCEF_CORE_IFILESYSTEMITERATOR_H
+#endif /* GUCEF_CORE_IFILESYSTEMITERATOR_H ? */
+
 #undef MoveFile
 #undef CopyFile
 #undef DeleteFile
@@ -79,6 +82,8 @@
 namespace GUCEF {
 namespace CORE {
 
+class CDynamicBuffer;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -91,6 +96,23 @@ namespace CORE {
  */
 GUCEF_CORE_PUBLIC_CPP bool
 TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath );
+
+/*-------------------------------------------------------------------------*/
+
+typedef GUCEF::set< TSpecialDirs > TSpecialDirSet;
+
+/**
+ *  The special directories TryResolveSpecialDir() can resolve on this platform, so callers do not have to try every id.
+ *  Whether a directory exists is not checked.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+ListAvailableSpecialDirs( TSpecialDirSet& specialDirs );
+
+/*-------------------------------------------------------------------------*/
+
+/** A stable name of a special directory id, for example "SPECIALDIR_HOME_DIR", for logs and configuration */
+GUCEF_CORE_PUBLIC_CPP const char*
+SpecialDirToString( TSpecialDirs dir );
 
 /*-------------------------------------------------------------------------*/
 
@@ -147,8 +169,132 @@ MoveFile( const CString& oldPath ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Moves a file in one atomic step or not at all: a rename within one file system (rename() on POSIX, MoveFileExW
+ *  without MOVEFILE_COPY_ALLOWED on Windows), never a copy and a delete, so a failure leaves the target as it was and a
+ *  reader of the target sees the old file or the new one, whole. On POSIX a reader holding the old file keeps reading
+ *  it; on Windows the move is refused while another handle holds the target open without FILE_SHARE_DELETE (callers
+ *  retry). On POSIX a replaced target passes on its permissions: the moved file gets the mode both files have in
+ *  common, set before the rename. Regular files only; false on platforms without an atomic rename.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+MoveFileAtomically( const CString& oldPath ,
+                    const CString& newPath ,
+                    const bool overwrite   );
+
+/*-------------------------------------------------------------------------*/
+
+/** Copies a file; an existing destination is only replaced with 'overwrite'. False when the source cannot be read */
+GUCEF_CORE_PUBLIC_CPP bool
+CopyFile( const CString& sourcePath      ,
+          const CString& destinationPath ,
+          const bool overwrite           );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Durably replaces the content of a file: the data is written to a temporary file in the same
+ *  directory, synced to storage and then moved over the target with MoveFileAtomically. Readers (and
+ *  a crash at any point) see either the complete old content or the complete new content, never a
+ *  partial file. If anything fails the original file is left untouched and the temporary file is
+ *  removed. On POSIX the file keeps the permissions of the file it replaces (never wider, also not
+ *  the temporary file while it is written); a new file gets 0666 less the umask.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+WriteFileAtomically( const CString& path         ,
+                     const void* data            ,
+                     UInt32 dataSizeInBytes      );
+
+GUCEF_CORE_PUBLIC_CPP bool
+WriteFileAtomically( const CString& path          ,
+                     const CDynamicBuffer& buffer );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Restricts a file or a directory to the user that runs the process, for keys and credentials.
+ *  Linux and Android: mode 0600 for a file, 0700 for a directory. Windows: a protected ACL (no inheritance from the
+ *  parent) with full control for the current user only; a directory passes that on to what is created in it.
+ *  False when the path does not exist or the restriction could not be applied.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+SetOwnerOnlyAccess( const CString& path );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Makes a new file that only the user that runs the process can access, and writes 'data' to it. The restriction
+ *  is part of the creation, so the file is never more open than that, whatever the umask:
+ *  POSIX: open() with O_CREAT | O_EXCL | O_NOFOLLOW and mode 0600, then fchmod() to exactly 0600;
+ *  Windows: CreateFileW() with CREATE_NEW and a protected DACL that grants the current user alone.
+ *  Nothing that exists at the path is used: a file, a directory or a symbolic link, also one that points nowhere,
+ *  makes it fail. That is what keeps a file planted beforehand from being trusted or written through.
+ *  A file that was made but could not be written whole is deleted again.
+ *  @param problem  why it failed, for a log line
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+CreateOwnerOnlyFile( const CString& path      ,
+                     const void* data         ,
+                     UInt32 dataSizeInBytes   ,
+                     CString& problem         );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Reads a file that holds a secret, after checking that nobody but its owner can have put it there or read it:
+ *  POSIX: opened with O_NOFOLLOW (a symbolic link is refused, never followed), a regular file, owned by the effective
+ *  user of the process, without any permission for the group or others; a FIFO or a device is refused without
+ *  blocking. Windows: no reparse point, owned by the current user, and no access granted to anyone but the current
+ *  user, LocalSystem and the Administrators group. At most 1 MiB is read.
+ *  @param isMissing    when given: set to whether the path does not exist at all, so that the caller can make it
+ *  @param problem      why it failed, for a log line
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+ReadOwnerOnlyFile( const CString& path      ,
+                   CDynamicBuffer& content  ,
+                   CString& problem         ,
+                   bool* isMissing = GUCEF_NULL );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Reads a secret from a read only mount provisioned for the process by someone else, such as a Kubernetes Secret
+ *  volume, where ReadOwnerOnlyFile() cannot apply: the files are owned by root, each one is a symbolic link into a
+ *  "..data" directory, and a group may read them (fsGroup). POSIX (Linux, Android) only:
+ *  - the path is resolved (realpath()): symbolic links are followed only within the directory that holds the given
+ *    path; a link that leads out of it is refused
+ *  - the resolved file is opened with O_NOFOLLOW and must be a regular file (no FIFO, device or directory)
+ *  - owned by root or by the effective user of the process
+ *  - no write permission for the group or others, no read permission for others (group read is allowed)
+ *  - on a file system that is mounted read only (fstatvfs(), ST_RDONLY), so nothing in the container can replace it
+ *  - at most 1 MiB is read
+ *  Other platforms: refused, "mounted-secret is a POSIX mode".
+ *  @param isMissing    when given: set to whether the path (or what a link of it points to) does not exist
+ *  @param problem      why it failed, for a log line
+ *  @param assumeReadOnlyFileSystemForTesting   for tests that cannot mount a file system read only: the read only
+ *                      file system rule is taken as met. Never set outside tests
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+ReadMountedSecretFile( const CString& path                             ,
+                       CDynamicBuffer& content                         ,
+                       CString& problem                                ,
+                       bool* isMissing = GUCEF_NULL                    ,
+                       bool assumeReadOnlyFileSystemForTesting = false );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP bool
 DirExists( const CString& path );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Removes a directory. With deleteContents the files and sub directories in it are removed first,
+ *  symbolic links are removed as links and not followed. Without it only an empty directory is removed.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+DeleteDir( const CString& path          ,
+           const bool deleteContents    );
 
 /*-------------------------------------------------------------------------*/
 
@@ -446,24 +592,24 @@ GetAllFileSystemMountPointsForVolume( const CString& volumeId         ,
  *  The class is not thread safe, keep the iterator object private to the thread
  *  Also note that the interface intentionally mimics the C API style for easy mapping
  */
-class GUCEF_CORE_PUBLIC_CPP CFileSystemIterator
+class GUCEF_CORE_PUBLIC_CPP CFileSystemIterator : public IFileSystemIterator
 {
     public:
 
     CFileSystemIterator( void );
-    ~CFileSystemIterator();
+    virtual ~CFileSystemIterator() GUCEF_VIRTUAL_OVERRIDE;
 
-    bool FindFirst( const CString& path );
-    bool FindNext( void );
-    bool FindClose( void );
+    virtual bool FindFirst( const CString& path ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool FindNext( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool FindClose( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    bool IsADirectory( void ) const;
-    bool IsAFile( void ) const;
-    bool IsSymlink( void ) const;
+    virtual bool IsADirectory( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsAFile( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsSymlink( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    bool TryReadMetaData( CResourceMetaData& metaData );
-    CString GetResourceName( void ) const;
-    CString GetResourcePath( void ) const;
+    virtual bool TryReadMetaData( CResourceMetaData& metaData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual CString GetResourceName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual CString GetResourcePath( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     bool TryReadSymlinkedMetaData( CResourceMetaData& metaData );
     CString GetSymlinkedResourceName( void ) const;

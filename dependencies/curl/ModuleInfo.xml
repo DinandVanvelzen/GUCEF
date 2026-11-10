@@ -1,12 +1,15 @@
 <ModuleInfoEntry>
     <Module Name="curl" Type="SharedLibrary" Platform="All">
         <Preprocessor>
-            <Define String="HAVE_BUILTIN_CPU_SUPPORTS" />
             <Define String="BUILDING_LIBCURL" />
         </Preprocessor>
+    </Module>
+    <Module Platform="mswin;linux">
         <Dependencies>
+            <Dependency Name="zlib" />
         </Dependencies>
         <Linker>
+            <Dependency Name="zlib" />
         </Linker>
     </Module>
     <Module Platform="mswin">
@@ -14,23 +17,30 @@
             <Define String="_CRT_SECURE_NO_DEPRECATE" />
             <Define String="_CRT_NONSTDC_NO_DEPRECATE" />
             <Define String="CURL_DISABLE_LDAP" />
+            <Define String="CURL_DISABLE_LDAPS" />
+            <Define String="USE_SCHANNEL" />
+            <Define String="USE_WINDOWS_SSPI" />
+            <Define String="HAVE_LIBZ" />
+            <Define String="HAVE_ZLIB_H" />
         </Preprocessor>
-        <Dependencies>
-        </Dependencies>
         <Linker>
             <Dependency Name="Ws2_32.lib" />
+            <Dependency Name="Iphlpapi.lib" />
+            <Dependency Name="Bcrypt.lib" />
             <Dependency Name="Advapi32.lib" />
-            <Dependency Name="Wldap32.lib" />
-			<Dependency Name="CRYPT32.lib" />
+            <Dependency Name="Crypt32.lib" />
+            <Dependency Name="Secur32.lib" />
         </Linker>
     </Module>
     <Module Platform="linux">
         <Preprocessor>
             <Define String="HAVE_CONFIG_H" />
+            <Define String="CURL_HIDDEN_SYMBOLS" />
+            <Define String="_GNU_SOURCE" />
         </Preprocessor>
-        <Dependencies>
-        </Dependencies>
         <Linker>
+            <Dependency Name="ssl" />
+            <Dependency Name="crypto" />
         </Linker>
-    </Module>	
+    </Module>
 </ModuleInfoEntry>

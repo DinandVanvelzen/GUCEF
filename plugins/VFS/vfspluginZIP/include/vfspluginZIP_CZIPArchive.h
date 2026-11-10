@@ -28,6 +28,11 @@
 
 #include <map>
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_VFS_CVFS_H
 #include "gucefVFS_CVFS.h"
 #define GUCEF_VFS_CVFS_H
@@ -164,12 +169,16 @@ class CZIPArchive : public VFS::CArchive
     
     private:
     
-    typedef std::vector< TZipEntry > TZipEntryVector;
+    typedef std::vector< TZipEntry > TZipEntryVector;
+    typedef CORE::CString::StringSet TDirSet;
     
     VFS::CString m_archiveName;
     VFS::CString m_archivePath;
     ZZIP_DIR* m_zipRoot;
-    TZipEntryVector m_fileList; 
+    MT::CMutex m_zipLock;           /**< the open files share the handle and read position of m_zipRoot: one zziplib call at a time */
+    TZipEntryVector m_fileList; 
+    TDirSet m_dirs;                 /**< every folder: those with an entry of their own and those only in the paths of files */
+    TDirSet m_lowercaseDirs;        /**< the same in lower case, as names are matched ignoring case */
 };
 
 /*-------------------------------------------------------------------------//

@@ -38,10 +38,20 @@
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
 
-#ifndef GUCEF_CORE_CSUBFILEACCESS_H
-#include "gucefCORE_CSubFileAccess.h"
-#define GUCEF_CORE_CSUBFILEACCESS_H
-#endif /* GUCEF_CORE_CSUBFILEACCESS_H ? */
+#ifndef GUCEF_CORE_CSUBIOACCESS_H
+#include "gucefCORE_CSubIOAccess.h"
+#define GUCEF_CORE_CSUBIOACCESS_H
+#endif /* GUCEF_CORE_CSUBIOACCESS_H ? */
+
+#ifndef GUCEF_CORE_CVARIANT_H
+#include "gucefCORE_CVariant.h"
+#define GUCEF_CORE_CVARIANT_H
+#endif /* GUCEF_CORE_CVARIANT_H ? */
+
+#ifndef GUCEF_VFS_CVFSGLOBAL_H
+#include "gucefVFS_CVfsGlobal.h"
+#define GUCEF_VFS_CVFSGLOBAL_H
+#endif /* GUCEF_VFS_CVFSGLOBAL_H ? */
 
 #ifndef GUCEF_CORE_CFILEACCESS_H
 #include "CFileAccess.h"
@@ -89,13 +99,58 @@ const VFS::CString CResArchive::ResArchiveTypeName = "res";
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  The index and data files are little endian on disk, regardless of the byte order of the platform we run on
+ */
+static bool
+ReadLittleEndianInt32( CORE::CIOAccess& access, CORE::Int32& value )
+{GUCEF_TRACE;
+
+    CORE::Int32 raw = 0;
+    if ( !access.ReadValue( raw ) )
+        return false;
+
+    CORE::TVariantData data;
+    memset( &data, 0, sizeof( data ) );
+    data.containedType = GUCEF_DATATYPE_LE_INT32;
+    data.union_data.int32_data = raw;
+
+    CORE::CVariant variant( data, false );
+    value = variant.ToNativeEndian().AsInt32();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+ReadLittleEndianInt16( CORE::CIOAccess& access, CORE::Int16& value )
+{GUCEF_TRACE;
+
+    CORE::Int16 raw = 0;
+    if ( !access.ReadValue( raw ) )
+        return false;
+
+    CORE::TVariantData data;
+    memset( &data, 0, sizeof( data ) );
+    data.containedType = GUCEF_DATATYPE_LE_INT16;
+    data.union_data.int16_data = raw;
+
+    CORE::CVariant variant( data, false );
+    value = variant.ToNativeEndian().AsInt16();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CResArchive::CResArchive( void )
     : CArchive()        ,
       m_archiveName()   ,
       m_archivePath()   ,
-      m_resPath()       ,
-      m_idxPath()       ,
-      m_index()
+      m_resAccess()     ,
+      m_idxResource()   ,
+      m_resResource()   ,
+      m_index()         ,
+      m_indexLookup()
 {GUCEF_TRACE;
 
 }
@@ -212,7 +267,7 @@ CResArchive::GetFileMetaData( const VFS::CString& filePath      ,
 
     metaData.Clear();
     
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ResArchive: request for file size for file: " +  filePath );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ResArchive: request for file size for file: " << filePath );
     
     // First perform a sanity check on the resource type
     VFS::CString typeIdStr = filePath.SubstrToChar( '.', false );
@@ -233,8 +288,9 @@ CResArchive::GetFileMetaData( const VFS::CString& filePath      ,
         metaData.hasResourceSizeInBytes = true;
         metaData.name = CORE::ToString( resourceId );
         metaData.hasName = true;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -251,19 +307,9 @@ CResArchive::FileExists( const VFS::CString& filePath ) const
         return false;
 
     VFS::CString resourceIdStr = filePath.SubstrToChar( '.', true );
-    CORE::UInt32 resourceId = CORE::StringToUInt32( resourceIdStr );
-    
-    IndexVector::const_iterator i = m_index.index.begin();
-    while ( i != m_index.index.end() )
-    {
-        if ( (*i).resourceNr == resourceId )
-        {
-            return true;
-        }
-        ++i;
-    }
+    CORE::Int32 resourceId = CORE::StringToInt32( resourceIdStr );
 
-    return false;
+    return m_indexLookup.find( resourceId ) != m_indexLookup.end();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,7 +323,7 @@ CResArchive::GetFileSize( const VFS::CString& filePath ) const
     typeIdStr = typeIdStr.CutChars( 3, true, 0 );
     CORE::UInt32 typeId = CORE::StringToUInt32( typeIdStr );
     if ( typeId != m_index.recordType )
-        return false;
+        return 0;
 
     CORE::Int32 offset = 0;
     CORE::Int32 size = 0;
@@ -331,26 +377,43 @@ CResArchive::GetResourceInfo( CORE::Int32 resourceId ,
                               CORE::Int32& offset    ,
                               CORE::Int32& size      ) const
 {
-    IndexVector::const_iterator i = m_index.index.begin();
-    while ( i != m_index.index.end() )
+    IndexLookupMap::const_iterator i = m_indexLookup.find( resourceId );
+    if ( i == m_indexLookup.end() )
+        return false;
+
+    // Resources are stored back to back, the size of a resource is the distance to the next one.
+    // For the last resource that is the distance to the end of the res file.
+    size_t position = (*i).second;
+    offset = m_index.index[ position ].offset;
+    if ( position + 1 < m_index.index.size() )
     {
-        if ( (*i).resourceNr == resourceId )
-        {
-            offset = (*i).offset;
-            ++i;
-            if ( i != m_index.index.end() )
-            {
-                size = (*i).offset - offset;
-            }
-            else
-            {
-                size = (CORE::Int32) ( CORE::FileSize( m_resPath ) - 2 - offset );
-            }
-            return true;
-        }
-        ++i;
+        size = m_index.index[ position + 1 ].offset - offset;
     }
-    return false;
+    else
+    {
+        size = m_resAccess.IsNULL() ? 0 : (CORE::Int32) ( m_resAccess->GetSize() - offset );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::IOAccessPtr
+CResArchive::GetResAccessForReading( void ) const
+{GUCEF_TRACE;
+
+    // If the data file can be cloned (for example a file on disk) every reader gets its own access
+    // which is the most robust. Otherwise all readers share the one access and its position gets moved around.
+    if ( !m_resAccess.IsNULL() )
+    {
+        CORE::CICloneable* clone = m_resAccess->Clone();
+        if ( GUCEF_NULL != clone )
+        {
+            CORE::CIOAccess* cloneAccess = static_cast< CORE::CIOAccess* >( clone );
+            return CORE::IOAccessPtr( cloneAccess );
+        }
+    }
+    return m_resAccess;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -359,6 +422,9 @@ CORE::IOAccessPtr
 CResArchive::LoadFile( const VFS::CString& file      ,
                        const VFS::UInt32 memLoadSize ) const
 {GUCEF_TRACE;
+
+    if ( m_resAccess.IsNULL() )
+        return CORE::IOAccessPtr();
 
     // First perform a sanity check on the resource type
     VFS::CString typeIdStr = file.SubstrToChar( '.', false );
@@ -372,25 +438,34 @@ CResArchive::LoadFile( const VFS::CString& file      ,
     CORE::Int32 resourceId = CORE::StringToInt32( file.SubstrToChar( '.', true ) );
     if ( !GetResourceInfo( resourceId ,
                            offset     ,
-                           size       ) )
+                           size       ) || size < 0 || offset < 0 )
     {
         return CORE::IOAccessPtr();
     }
+
+    CORE::IOAccessPtr resAccess = GetResAccessForReading();
+    if ( resAccess.IsNULL() )
+        return CORE::IOAccessPtr();
         
     if ( (CORE::UInt32) size <= memLoadSize )
     {
-        CORE::DynamicBufferAccessPtr memBuffer( GUCEF_NEW CORE::CDynamicBufferAccess() );
-        if ( memBuffer->LoadContentFromFile( m_resPath, offset, size ) )
+        CORE::CDynamicBuffer* buffer = GUCEF_NEW CORE::CDynamicBuffer( (CORE::UInt32) size, true );
+        resAccess->Setpos( (CORE::UInt64) offset );
+        bool readOk = resAccess->Tell() == (CORE::UInt64) offset;
+        readOk = readOk && ( 0 == size || 1 == resAccess->Read( buffer->GetBufferPtr(), (CORE::UInt32) size, 1 ) );
+        if ( readOk )
         {
-            return memBuffer;
+            buffer->SetDataSize( (CORE::UInt32) size );
+            return CORE::DynamicBufferAccessPtr( GUCEF_NEW CORE::CDynamicBufferAccess( buffer, true ) );
         } 
+        GUCEF_DELETE buffer;
     }
     else
     {
-        CORE::SubFileAccessPtr subFile( GUCEF_NEW CORE::CSubFileAccess() );
-        if ( subFile->Load( m_resPath, offset, size ) )
+        CORE::SubIOAccessPtr window( GUCEF_NEW CORE::CSubIOAccess() );
+        if ( window->Load( resAccess, (CORE::UInt64) offset, (CORE::UInt64) size ) )
         {
-            return subFile;
+            return window;
         }
     }
 
@@ -445,64 +520,79 @@ CResArchive::IsWriteable( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CResArchive::LoadIndex( void )
+CResArchive::LoadIndex( CORE::CIOAccess& file )
 {GUCEF_TRACE;
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CResArchive:LoadIndex: Starting index load" );
 
-    CORE::CFileAccess file;
-    if ( file.Open( m_idxPath, "rb" ) )
+    m_index.index.clear();
+    m_indexLookup.clear();
+
+    const CORE::UInt64 fileSize = file.GetSize();
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CResArchive:LoadIndex: Index is " << fileSize << " bytes" );
+
+    file.Setpos( 0 );
+    if ( fileSize < 2 || 0 != file.Tell() || !ReadLittleEndianInt16( file, m_index.recordType ) )
     {
-        CORE::UInt64 fileSize = file.GetSize();        
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CResArchive:LoadIndex: Successfully opened index file of " + CORE::ToString( fileSize ) + " bytes"  );
-        
-        if ( 1 != file.Read( &m_index.recordType, 2, 1 ) ) 
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadIndex: Failed to read index header at position " << file.Tell() );
+        return false;
+    }
+
+    // Get the nr of index entries plus do a sanity check
+    CORE::UInt32 nrOfEntries = (CORE::UInt32) fileSize - 2;
+    if ( 0 != nrOfEntries % 8 )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadIndex: The number of bytes in the index is not what we expected, the data will probably be corrupt" );
+    }
+    nrOfEntries /= 8;
+
+    // read all the index entries
+    for ( CORE::UInt32 i=0; i<nrOfEntries; ++i )
+    {
+        IdxRecord idxRecord;
+        if ( !ReadLittleEndianInt32( file, idxRecord.resourceNr ) || 
+             !ReadLittleEndianInt32( file, idxRecord.offset )      )
         { 
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to read index header at position " + CORE::ToString( file.Tell() ) );
-            file.Close(); 
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadIndex: Failed to read index entry at pos in index " << file.Tell() << 
+                " Entry " << (i+1) << "/" << nrOfEntries );
             return false; 
         }
 
-        // Get the nr of index entries plus do a sanity check
-        CORE::UInt32 nrOfEntries = (CORE::UInt32) fileSize - 2;
-        if ( 0 != nrOfEntries % 8 )
-        {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadIndex: The number of bytes in the index is not what we expected, the data will probably be corrupt" );
-        }
-        nrOfEntries /= 8;
-
-        // read all the index entries
-        for ( CORE::UInt32 i=0; i<nrOfEntries; ++i )
-        {
-            IdxRecord idxRecord;
-            if ( 1 != file.Read( &idxRecord.resourceNr, 4, 1 ) ) 
-            { 
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to read index entry at pos in index " + CORE::ToString( file.Tell() ) + 
-                    " Entry " + CORE::UInt32ToString( i+1 ) + "/" + CORE::UInt32ToString( nrOfEntries ) );
-
-                file.Close(); 
-                return false; 
-            }
-            if ( 1 != file.Read( &idxRecord.offset, 4, 1 ) ) 
-            { 
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to read index entry at pos in index " + CORE::ToString( file.Tell() ) + 
-                    " Entry " + CORE::UInt32ToString( i+1 ) + "/" + CORE::UInt32ToString( nrOfEntries ) );
-
-                file.Close(); 
-                return false; 
-            }
-
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Read index entry: id " + CORE::Int32ToString( idxRecord.resourceNr ) + 
-                ", offset " + CORE::Int32ToString( idxRecord.offset ) + ". Pos in index " + CORE::ToString( file.Tell() ) + 
-                " Entry " + CORE::UInt32ToString( i+1 ) + "/" + CORE::UInt32ToString( nrOfEntries ) );
-            
-            m_index.index.push_back( idxRecord );
-        }
-
-        file.Close();
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Read index entry: id " << idxRecord.resourceNr << 
+            ", offset " << idxRecord.offset << ". Pos in index " << file.Tell() << 
+            " Entry " << (i+1) << "/" << nrOfEntries );
+        
+        m_indexLookup[ idxRecord.resourceNr ] = m_index.index.size();
+        m_index.index.push_back( idxRecord );
     }
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CResArchive:LoadIndex: Successfully loaded " + CORE::ToString( m_index.index.size() ) + " entries from index"  );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CResArchive:LoadIndex: Successfully loaded " << m_index.index.size() << " entries from index" );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CResArchive::LoadArchive( const VFS::CString& archiveName ,
+                          const VFS::CString& archivePath ,
+                          CORE::IOAccessPtr idxAccess     ,
+                          CORE::IOAccessPtr resAccess     )
+{GUCEF_TRACE;
+
+    if ( idxAccess.IsNULL() || resAccess.IsNULL() )
+        return false;
+
+    UnloadArchive();
+
+    if ( !LoadIndex( *idxAccess ) )
+    {
+        UnloadArchive();
+        return false;
+    }
+
+    m_resAccess = resAccess;
+    m_archiveName = archiveName;
+    m_archivePath = archivePath;
     return true;
 }
 
@@ -518,42 +608,104 @@ CResArchive::LoadArchive( const VFS::CArchiveSettings& settings )
 
     // Since we always need both the index file and the resource file
     // already construct the paths for both
+    CORE::CString idxPath;
+    CORE::CString resPath;
 
     CORE::CString fileExt = CORE::ExtractFileExtention( settings.GetActualArchivePath() ).Uppercase();
     if ( fileExt.IsNULLOrEmpty() )
     {
-        m_idxPath = m_resPath = settings.GetActualArchivePath();
-        m_idxPath += ".IDX";
-        m_resPath += ".RES";
+        idxPath = resPath = settings.GetActualArchivePath();
+        idxPath += ".IDX";
+        resPath += ".RES";
     }
     else
     if ( fileExt.Equals( "RES", false ) )
     {
-        m_resPath = settings.GetActualArchivePath();
-        m_idxPath = settings.GetActualArchivePath().CutChars( 4, false, 0 ) + ".IDX";
+        resPath = settings.GetActualArchivePath();
+        idxPath = settings.GetActualArchivePath().CutChars( 4, false, 0 ) + ".IDX";
     }
     else
     if ( fileExt.Equals( "IDX", false ) )
     {
-        m_idxPath = settings.GetActualArchivePath();
-        m_resPath = settings.GetActualArchivePath().CutChars( 4, false, 0 ) + ".RES";
+        idxPath = settings.GetActualArchivePath();
+        resPath = settings.GetActualArchivePath().CutChars( 4, false, 0 ) + ".RES";
+    }
+    else
+    {
+        return false;
     }
 
-    m_archiveName = settings.GetArchiveName();
-    m_archivePath = settings.GetArchivePath();
+    CORE::IOAccessPtr idxAccess( GUCEF_NEW CORE::CFileAccess( idxPath, "rb" ) );
+    if ( !idxAccess->Opened() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadArchive: Failed to open index file: " << idxPath );
+        return false;
+    }
+    CORE::IOAccessPtr resAccess( GUCEF_NEW CORE::CFileAccess( resPath, "rb" ) );
+    if ( !resAccess->Opened() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadArchive: Failed to open resource file: " << resPath );
+        return false;
+    }
 
-    return LoadIndex();
+    return LoadArchive( settings.GetArchiveName(), settings.GetArchivePath(), idxAccess, resAccess );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool 
-CResArchive::LoadArchive( const VFS::CString& archiveName        ,
+CResArchive::LoadArchive( const VFS::CString& archiveName       ,
                           VFS::TBasicVfsResourcePtr vfsResource ,
                           const bool writeableRequest           )
 {GUCEF_TRACE;
 
-    return false;
+    // We do not support writable archives
+    if ( writeableRequest || vfsResource.IsNULL() || vfsResource->GetAccess().IsNULL() )
+        return false;
+
+    // The archive consists of an index and a data file. We were handed one of the two,
+    // the other is expected to sit next to it with the other extension, using the same case.
+    // Preferably we find it through the VFS path the resource was obtained from. Failing that the
+    // file path of the resource is the best we have, which for plain files on disk is a usable path.
+    const bool hasVfsPath = !vfsResource->GetVfsPath().IsNULLOrEmpty();
+    const VFS::CString givenPath = hasVfsPath ? vfsResource->GetVfsPath() : vfsResource->GetFilePath();
+    const CORE::CString givenExt = CORE::ExtractFileExtention( givenPath );
+    const bool givenIsRes = givenExt.Equals( "RES", false );
+    const bool givenIsIdx = givenExt.Equals( "IDX", false );
+    if ( !givenIsRes && !givenIsIdx )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadArchive: Resource \"" << givenPath << "\" is not an IDX or RES file" );
+        return false;
+    }
+
+    const bool lowerCase = givenExt == givenExt.Lowercase();
+    CORE::CString otherExt = givenIsRes ? "IDX" : "RES";
+    if ( lowerCase )
+        otherExt = otherExt.Lowercase();
+    const VFS::CString otherPath = givenPath.CutChars( givenExt.Length(), false, 0 ) + otherExt;
+
+    VFS::TBasicVfsResourcePtr otherResource = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( otherPath, "rb", false );
+    if ( otherResource.IsNULL() && !hasVfsPath )
+    {
+        CORE::IOAccessPtr otherFile( GUCEF_NEW CORE::CFileAccess( otherPath, "rb" ) );
+        if ( otherFile->Opened() )
+            otherResource = VFS::TBasicVfsResourcePtr( VFS::TVfsResourcePtr( GUCEF_NEW VFS::CVFSHandle( otherFile, CORE::ExtractFilename( otherPath ), otherPath ) ) );
+    }
+    if ( otherResource.IsNULL() || otherResource->GetAccess().IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CResArchive:LoadArchive: Failed to open companion file: " << otherPath );
+        return false;
+    }
+
+    VFS::TBasicVfsResourcePtr idxResource = givenIsIdx ? vfsResource : otherResource;
+    VFS::TBasicVfsResourcePtr resResource = givenIsRes ? vfsResource : otherResource;
+    if ( !LoadArchive( archiveName, givenPath, idxResource->GetAccess(), resResource->GetAccess() ) )
+        return false;
+
+    // Keep the resources themselves alive, they own the access and may own more
+    m_idxResource = idxResource;
+    m_resResource = resResource;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -564,6 +716,10 @@ CResArchive::UnloadArchive( void )
 
     // wipe the index
     m_index.index.clear();
+    m_indexLookup.clear();
+    m_resAccess.Unlink();
+    m_idxResource.Unlink();
+    m_resResource.Unlink();
     return true;
 }
 

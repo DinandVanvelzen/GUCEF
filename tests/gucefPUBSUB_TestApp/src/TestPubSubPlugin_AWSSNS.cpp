@@ -96,13 +96,38 @@ PerformPubSubPlugin_AWSSNSTests( void )
         return;
     }
 
-    // Test 1: Verify the plugin binary loads successfully
-    // Note: the AWSSNS plugin registers with an older factory interface (COMCORE)
-    // so we only verify that the plugin binary itself can be loaded without crashing
-    GUCEF_TESTFW_TESTCASE( "Test 1: Plugin binary loads without error" )
+    // Test 1: Verify the plugin registers its client type in the PubSub factory
+    GUCEF_TESTFW_TESTCASE( "Test 1: Plugin registers \"AwsSns\" client type in PubSubClientFactory" )
         try
         {
             ASSERT_TRUE( pluginLoaded );
+            PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
+            ASSERT_TRUE( factory.IsConstructible( "AwsSns" ) );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 2: A client can be created and tells what SNS can do: publish to topics but not pull messages from them
+    GUCEF_TESTFW_TESTCASE( "Test 2: Client supports publishing but not subscribing" )
+        try
+        {
+            PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
+            PUBSUB::CPubSubClientConfig cfg;
+            cfg.pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+            PUBSUB::CPubSubClientPtr client = factory.Create( "AwsSns", cfg );
+            ASSERT_FALSE( client.IsNULL() );
+            if ( !client.IsNULL() )
+            {
+                ASSERT_TRUE( client->GetType() == "AwsSns" );
+
+                PUBSUB::CPubSubClientFeatures features;
+                ASSERT_TRUE( client->GetSupportedFeatures( features ) );
+                ASSERT_TRUE( features.supportsPublishing );
+                ASSERT_FALSE( features.supportsSubscribing );
+                ASSERT_TRUE( features.supportsDiscoveryOfAvailableTopics );
+                ASSERT_TRUE( features.supportsPrimaryPayloadPerMsg );
+                ASSERT_FALSE( features.supportsBookmarkingConcept );
+            }
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END

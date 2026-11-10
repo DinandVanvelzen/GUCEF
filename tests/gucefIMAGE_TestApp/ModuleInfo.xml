@@ -1,6 +1,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefIMAGE_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
 			<Dependency Name="gucefIMAGE" />
@@ -18,6 +19,8 @@
 			<RuntimeDependency Name="imgpluginFreeImage" />
 			<RuntimeDependency Name="imgpluginFLIC" />
 			<RuntimeDependency Name="imgpluginDEVIL" />
+			<RuntimeDependency Name="imgupscalepluginNCNN" />
+			<RuntimeDependency Name="codecspluginZLIB" />
 			<RuntimeDependency Name="dstorepluginJSONPARSER" />
 			<RuntimeDependency Name="dstorepluginPARSIFALXML" />
 		</RuntimeDependencies>

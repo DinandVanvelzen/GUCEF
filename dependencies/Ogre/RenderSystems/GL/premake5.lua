@@ -186,6 +186,21 @@ files( {
 
 
 
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
 configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -217,6 +232,21 @@ configuration( { "ANDROID64" } )
 
 
 configuration( { "ARDUINO" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
@@ -321,6 +351,51 @@ configuration( { "IOS" } )
 
 
 
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
@@ -337,6 +412,66 @@ configuration( { "LINUX32" } )
 
 
 configuration( { "LINUX64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "MAC" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "MSWIN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
@@ -501,8 +636,26 @@ configuration( { "WIN64" } )
     } )
 
 
+
+configuration( { "WINDOWS" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
 configuration( {} )
 includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include", "src", "src/GLSL", "src/atifs", "include", "include/GL", "src/GLSL/include", "src/StateCacheManager", "src/atifs/include", "src/nvparse", "src/nvparse/winheaders" } )
+
+configuration( { "ANDROID" } )
+includedirs( { "src/StateCacheManager" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../OgreMain/include/Android", "src/StateCacheManager" } )
@@ -511,6 +664,9 @@ configuration( { "ANDROID64" } )
 includedirs( { "../../OgreMain/include/Android", "src/StateCacheManager" } )
 
 configuration( { "ARDUINO" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "EMSCRIPTEN" } )
 includedirs( { "src/StateCacheManager" } )
 
 configuration( { "EMSCRIPTEN32" } )
@@ -528,10 +684,31 @@ includedirs( { "include/gtk", "src/StateCacheManager", "src/gtk" } )
 configuration( { "IOS" } )
 includedirs( { "../../OgreMain/include/iOS", "src/StateCacheManager" } )
 
+configuration( { "IPHONE" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "IPHONEOS" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "LINUX" } )
+includedirs( { "src/StateCacheManager" } )
+
 configuration( { "LINUX32" } )
 includedirs( { "src/StateCacheManager" } )
 
 configuration( { "LINUX64" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "MAC" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "MACOS" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "MACOSX" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "MSWIN" } )
 includedirs( { "src/StateCacheManager" } )
 
 configuration( { "NACL" } )
@@ -556,4 +733,7 @@ configuration( { "WIN32" } )
 includedirs( { "../../OgreMain/include/WIN32", "../../OgreMain/src/WIN32", "include/Win32", "src/StateCacheManager", "src/Win32" } )
 
 configuration( { "WIN64" } )
+includedirs( { "src/StateCacheManager" } )
+
+configuration( { "WINDOWS" } )
 includedirs( { "src/StateCacheManager" } )

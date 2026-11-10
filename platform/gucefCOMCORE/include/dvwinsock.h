@@ -81,6 +81,7 @@ struct in_addr;
 struct timeval;
 
 #define DVSOCKET_EWOULDBLOCK    WSAEWOULDBLOCK
+#define DVSOCKET_EINPROGRESS    WSAEINPROGRESS
 
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -93,6 +94,7 @@ typedef int SOCKET;
 #define INVALID_SOCKET          (SOCKET)(~0)
 #define SOCKET_ERROR            (-1)
 #define DVSOCKET_EWOULDBLOCK    EWOULDBLOCK
+#define DVSOCKET_EINPROGRESS    EINPROGRESS
 #define SOCKADDR_IN             struct sockaddr_in
 
 #endif

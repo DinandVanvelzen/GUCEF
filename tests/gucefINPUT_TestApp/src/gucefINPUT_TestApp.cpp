@@ -23,6 +23,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/* the test framework is implemented in this source, before anything includes its header */
+#define GUCEF_TESTFW_IMPL
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -32,6 +35,23 @@
 #include "gucefINPUT.h"
 #define GUCEF_INPUT_H
 #endif /* GUCEF_INPUT_H ? */
+
+#ifndef GUCEF_INPUT_CINPUTGLOBAL_H
+#include "gucefINPUT_CInputGlobal.h"
+#define GUCEF_INPUT_CINPUTGLOBAL_H
+#endif /* GUCEF_INPUT_CINPUTGLOBAL_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
+#include "TestInputDevices.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -61,11 +81,21 @@ GUCEF_OSMAIN_BEGIN
         GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( &logger );
         
         GUCEF::CORE::CPlatformNativeConsoleLogger consoleOut;
-        GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( consoleOut.GetLogger() );
-        
-        // @TODO add tests here
+        if ( GUCEF_APP_TYPE == GUCEF_APP_TYPE_CONSOLE )
+            GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( consoleOut.GetLogger() );
 
-        return 1;                                                                            
+        GUCEF::INPUT::CInputGlobal::Instance();
+
+        GUCEF_TESTFW_INIT( "gucefINPUT_TestApp" );
+        GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
+
+        GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+        GUCEF::CORE::AppendToPath( xmlPath, "gucefINPUT_TestApp_Results.xml" );
+
+        PerformInputDeviceTests();
+
+        GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
+        return GUCEF_TESTFW_EXITCODE;                                                                            
     }
     catch ( ... )
     {

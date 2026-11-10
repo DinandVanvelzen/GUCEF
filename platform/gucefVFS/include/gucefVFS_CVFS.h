@@ -1,20 +1,18 @@
 /*
  *  gucefVFS: GUCEF module implementing a Virtual File System
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_VFS_CVFS_H
@@ -61,6 +59,11 @@
 #define GUCEF_CORE_CTABSTRACTFACTORY_H
 #endif /* GUCEF_CORE_CTABSTRACTFACTORY_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"     /* TSpecialDirSet */
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #ifndef GUCEF_CORE_CDATETIME_H
 #include "gucefCORE_CDateTime.h"
 #define GUCEF_CORE_CDATETIME_H
@@ -80,6 +83,11 @@
 #include "gucefVFS_CArchive.h"
 #define GUCEF_VFS_CARCHIVE_H
 #endif /* GUCEF_VFS_CARCHIVE_H ? */
+
+#ifndef GUCEF_VFS_CIARCHIVEWRITER_H
+#include "gucefVFS_CIArchiveWriter.h"
+#define GUCEF_VFS_CIARCHIVEWRITER_H
+#endif /* GUCEF_VFS_CIARCHIVEWRITER_H ? */
 
 #ifndef GUCEF_VFS_CARCHIVESETTINGS_H
 #include "gucefVFS_CArchiveSettings.h"
@@ -134,6 +142,9 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     typedef CORE::CTAbstractFactory< CString, CArchive, MT::CMutex >    TAbstractArchiveFactory;
     typedef TAbstractArchiveFactory::TProductPtr                        TArchivePtr;
     typedef TAbstractArchiveFactory::TFactory                           TArchiveFactory;
+    typedef CORE::CTAbstractFactory< CString, CIArchiveWriter, MT::CMutex > TAbstractArchiveWriterFactory;
+    typedef TAbstractArchiveWriterFactory::TProductPtr                  TArchiveWriterPtr;
+    typedef TAbstractArchiveWriterFactory::TFactory                     TArchiveWriterFactory;
     typedef CArchive::TStringVector                                     TStringVector;
     typedef CArchive::TStringSet                                        TStringSet;
     
@@ -210,8 +221,23 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
                                            CORE::CICloneable* requestorData = GUCEF_NULL              ,
                                            const CORE::CString& asyncRequestId = CORE::CString::Empty );
     
+    /**
+     *  Mounts an archive of the given type that is read from an already opened resource instead of a path.
+     *  This allows archives inside other archives, archives in memory, archives behind file descriptors etc.
+     *  Note that the archive type has to support loading from a resource, not all do.
+     */
     bool MountArchive( const CString& archiveName           ,
                        TBasicVfsResourcePtr archiveResource ,
+                       const CString& archiveType           ,
+                       const CString& mountPoint            ,
+                       const bool writeableRequest          );
+
+    /**
+     *  Convenience variant of the resource based MountArchive() for when only an IO access object is at hand.
+     *  The IO access object is wrapped into a resource named after the archive.
+     */
+    bool MountArchive( const CString& archiveName           ,
+                       CORE::IOAccessPtr archiveAccess      ,
                        const CString& archiveType           ,
                        const CString& mountPoint            ,
                        const bool writeableRequest          );
@@ -228,6 +254,44 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     void UnregisterAllArchiveFactories( void );
 
     void GetListOfSupportedArchiveTypes( TAbstractArchiveFactory::TKeySet& outList ) const;
+
+    /**
+     *  The file extensions (without a dot, e.g. "zip", "tar.gz") of the files an archive type opens, as its plugin
+     *  declares them. Types that are not files (a file system directory, a cloud bucket) declare none
+     */
+    void SetArchiveTypeFileExtensions( const CString& archiveType, const CString::StringSet& fileExtensions );
+
+    /** The file extensions of all archive types whose factory is registered now, lowercase */
+    void GetArchiveFileExtensions( CString::StringSet& fileExtensions ) const;
+
+    /**
+     *  The archive type that opens a file, by its extension: a registered type that declared the extension (the one that
+     *  declared it first when several did), else a registered type named like the extension
+     */
+    bool TryGetArchiveTypeForFile( const CString& filePath, CString& archiveType ) const;
+
+    /**
+     *  Makes an archive of the given type without mounting it, for archives that are built from other archives
+     *  (a CD image archive that reads the file system of its data track through the ISO 9660 archive, for example).
+     *  The caller loads it with LoadArchive() and unloads it when done. NULL when no factory handles the type
+     */
+    TArchivePtr CreateArchive( const CString& archiveType );
+
+    /**
+     *  Registers a factory for writers which create archives of the given type, typically done by plugins
+     */
+    void RegisterArchiveWriterFactory( const CString& archiveType            ,
+                                       TArchiveWriterFactory& writerFactory );
+
+    void UnregisterArchiveWriterFactory( const CString& archiveType );
+
+    void GetListOfSupportedArchiveWriterTypes( TAbstractArchiveWriterFactory::TKeySet& outList ) const;
+
+    /**
+     *  Creates a writer for creating a new archive of the given type
+     *  @return the writer or a NULL pointer if no writer is registered for the given type
+     */
+    TArchiveWriterPtr CreateArchiveWriter( const CString& archiveType ) const;
     
     TBasicVfsResourcePtr GetFile( const CORE::CString& file    ,
                                   const char* mode = "rb"      ,
@@ -528,10 +592,44 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
                    const CString& newFilePath ,
                    const bool overwrite       );
 
+    /**
+     *  Moves a file in one atomic step or not at all, through an archive that holds both paths and can rename
+     *  atomically (CArchive::MoveFileAtomically, a file system mount). Unlike MoveFile there is no copy and delete
+     *  across archives or when the archive refuses: a failure leaves the target as it was, so a replace of a file that
+     *  readers use never rewrites it in place. False when no such archive holds both paths or the rename is refused.
+     */
+    bool MoveFileAtomically( const CString& oldFilePath ,
+                             const CString& newFilePath ,
+                             const bool overwrite       );
+
     CORE::CFutureResult MoveFileAsync( const CString& oldFilePath                                 ,
                                        const CString& newFilePath                                 ,
                                        const bool overwrite                                       ,
                                        const CORE::CString& asyncRequestId = CORE::CString::Empty );
+
+    /**
+     *  Makes a directory, and the directories above it, in the first writeable mount that covers the path and whose
+     *  archive can make directories. False when none could
+     */
+    bool CreateDir( const CString& dirPath );
+
+    /** Deletes a directory in the first writeable mount that has it; without deleteContents only an empty one */
+    bool DeleteDir( const CString& dirPath, bool deleteContents );
+
+    /** Moves a directory with its contents; both paths must be in one writeable mount, there is no copy between archives */
+    bool MoveDir( const CString& oldDirPath, const CString& newDirPath );
+
+    /** Whether a writeable mount covers the path */
+    bool IsWriteable( const CString& path ) const;
+
+    /**
+     *  A special directory (home, downloads, ...) as a path of the VFS.
+     *  Not implemented: always false. TryResolveSpecialDir() gives the path of the file system underneath instead
+     */
+    bool TryResolveSpecialDirToVfsPath( CORE::TSpecialDirs specialDir, CString& vfsPath ) const;
+
+    /** The special directories TryResolveSpecialDirToVfsPath() can resolve. Not implemented: none */
+    bool ListAvailableSpecialDirs( CORE::TSpecialDirSet& specialDirs ) const;
 
     virtual bool GetFileList( TStringVector& outputList                       ,
                               const CString& location                         ,
@@ -573,6 +671,16 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      */
     bool IsMountedArchive( const CString& location ) const;
 
+    /**
+     *  Mounts the data files of a module (a library or plugin with a data dir, see GUCEF_deploy_data_files in the
+     *  CMake utils), read only, at the name of the module. They are in $MODULEDIR$/../data/<module>, on the web at
+     *  /data/<module>, where the build puts them; a web build run by node (the real file system, no preloaded files)
+     *  finds them next to the folder it runs in, $CURWORKDIR$/../data/<module>.
+     *
+     *  @return true when they are mounted, also when they already were
+     */
+    bool MountModuleData( const CString& moduleName );
+
     bool IsDelayedArchiveMountingCompleted( void ) const;
 
     /**
@@ -583,8 +691,17 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     bool IsInitialized( void ) const;
 
     /**
+     *  Explicitly triggers the mounting of any archives that were deferred to a later init stage
+     *  and marks delayed archive mounting as complete. This is the programmatic equivalent of
+     *  what happens when a global config finishes loading. Call this when you configure the VFS
+     *  directly (e.g. in unit tests or applications that do not load a global config) to unblock
+     *  components that wait for the VfsInitializationCompletedEvent before operating.
+     */
+    void MountAllDelayMountedArchives( void );
+
+    /**
      *  Obtains a snapshot-in-time evaluation of the current health of the archives
-     *  mounted into the VFS plus the overall VFS health. 
+     *  mounted into the VFS plus the overall VFS health.
      */
     bool IsHealthy( void ) const;
 
@@ -733,7 +850,7 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     
     private:
 
-    class GUCEF_VFS_PRIVATE_CPP MountEntry : public CORE::CTSharedObjCreator< MountEntry, MT::CNoLock >
+    class GUCEF_VFS_PRIVATE_CPP MountEntry : public CORE::CTSharedObjCreator< MountEntry, MT::CMutex >    // shared by the threads that read the VFS at once
     {
         public:
 
@@ -746,6 +863,7 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
         CORE::CString archiveType;   /**< the type of the archive that is mounted. must match one of the supported registered archive factories */
         CORE::CString mountPath;     /**< the path in the VFS where the archive is mounted */
         CORE::CString::StringSet mountPathAliases; /**< aliases for the mount path */
+        CORE::CString parentArchiveName;    /**< the archive that mounted this one as a sub archive, empty for none */
     };
     typedef MountEntry::TSharedPtrType TMountEntryPtr;
 
@@ -766,8 +884,10 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     typedef std::vector< TMountEntryPtr, gucef_allocator< TMountEntryPtr > >         TMountVector;
     typedef std::vector< TConstMountLinkPtr, gucef_allocator< TConstMountLinkPtr > > TConstMountLinkVector;
     typedef CORE::CTSharedPtr< CORE::CDynamicBuffer, MT::CMutex >                    TDynamicBufferPtr;
-    typedef std::vector< CArchiveSettings, gucef_allocator< CArchiveSettings > >     TArchiveSettingsVector;
+    typedef std::vector< CArchiveSettings, gucef_allocator< CArchiveSettings > >     TArchiveSettingsVector;
+    typedef std::vector< CORE::CDataNode, gucef_allocator< CORE::CDataNode > >       TDataNodeVector;
     typedef std::map< VFS::CArchive*, TMountEntryPtr >                               TArchivePtrToMountEntryMap;
+    typedef GUCEF::map< CString, CString::StringSet >                                TArchiveTypeExtensionsMap;
 
     typedef CORE::CTEventHandlerFunctor< CVFS >          TEventCallback;
     
@@ -783,8 +903,6 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     void OnGlobalConfigLoadFinished( CORE::CNotifier* notifier                 ,
                                      const CORE::CEvent& eventid               ,
                                      CORE::CICloneable* eventdata = GUCEF_NULL );
-
-    void MountAllDelayMountedArchives( void );
 
     VFS::CString ConformVfsDirPath( const VFS::CString& originalDirPath ) const;
 
@@ -807,13 +925,17 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     CString m_asyncOpsThreadpool;
     UInt32 m_asyncOpsMinWorkerThreads;
     TAbstractArchiveFactory m_abstractArchiveFactory;
+    TAbstractArchiveWriterFactory m_abstractArchiveWriterFactory;
     TFileSystemArchiveFactory m_fileSystemArchiveFactory;
-    TArchiveSettingsVector m_delayMountedArchiveSettings;
+    TArchiveSettingsVector m_delayMountedArchiveSettings;
+    TDataNodeVector m_configuredArchives;                   /**< the archive entries of the config as they were, which SaveConfig() writes back */
     TArchivePtrToMountEntryMap m_archivePtrToMountEntryLookup;
     bool m_delayedArchiveMountingIsComplete;
     CString m_vfsRootForVolumes;
     bool m_vfsVolumesAreWriteableIfPossible;
     bool m_autoMountFsVolumes;
+    TArchiveTypeExtensionsMap m_archiveTypeExtensions;
+    CString::StringVector m_archiveTypeExtensionsOrder;     /**< the types in the order their extensions were declared */
     MT::CReadWriteLock m_rwdataLock;
 };
 

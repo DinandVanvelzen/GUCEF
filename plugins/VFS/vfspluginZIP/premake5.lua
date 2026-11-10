@@ -39,8 +39,8 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "gucefCORE", "gucefMT", "gucefVFS", "zziplib" } )
-links( { "gucefCORE", "gucefMT", "gucefVFS", "zziplib" } )
+links( { "gucefCORE", "gucefMT", "gucefVFS", "minizip", "zziplib" } )
+links( { "gucefCORE", "gucefMT", "gucefVFS", "minizip", "zziplib" } )
 
 
 configuration( {} )
@@ -48,9 +48,15 @@ defines( { "GUCEF_VFSPLUGIN_ZIP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=vfspluginZ
   links( { "z" } )
   links( { "z" } )
   
+configuration( { EMSCRIPTEN32 } )
+links( { "zlib" } )
+  
 
 configuration( { EMSCRIPTEN32 } )
 defines( { "MODULE_API_PREFIX=vfspluginZIP" } )
+  
+configuration( { EMSCRIPTEN64 } )
+links( { "zlib" } )
   
 
 configuration( { EMSCRIPTEN64 } )
@@ -78,6 +84,7 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/vfspluginZIP.h",
   "include/vfspluginZIP_CZIPArchive.h",
+  "include/vfspluginZIP_CZipArchiveWriter.h",
   "include/vfspluginZIP_CZipIOAccess.h",
   "include/vfspluginZIP_config.h",
   "include/vfspluginZIP_macros.h"
@@ -90,18 +97,25 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/vfspluginZIP.cpp",
   "src/vfspluginZIP_CZIPArchive.cpp",
+  "src/vfspluginZIP_CZipArchiveWriter.cpp",
   "src/vfspluginZIP_CZipIOAccess.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/zziplib", "../../../dependencies/zziplib/zzip", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/minizip", "../../../dependencies/zziplib", "../../../dependencies/zziplib/zzip", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../../dependencies/zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../../../dependencies/zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/linux" } )

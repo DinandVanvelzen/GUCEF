@@ -46,6 +46,11 @@ files( {
   "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubClientTopic.h",
   "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.h",
   "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.h",
+  "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubIndexDef.h",
+  "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubIndexReader.h",
+  "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.h",
+  "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h",
+  "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_CStorageReplayTaskData.h",
   "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_config.h",
   "../pubsubpluginSTORAGE/include/pubsubpluginSTORAGE_macros.h",
   "include/pubsubpluginTEST.h",
@@ -68,6 +73,11 @@ files( {
   "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubClientTopic.cpp",
   "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubClientTopicConfig.cpp",
   "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubClientTopicVfsTask.cpp",
+  "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubIndexDef.cpp",
+  "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubIndexReader.cpp",
+  "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.cpp",
+  "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.cpp",
+  "../pubsubpluginSTORAGE/src/pubsubpluginSTORAGE_CStorageReplayTaskData.cpp",
   "src/pubsubpluginTEST.cpp",
   "src/pubsubpluginTEST_CTestPubSubClient.cpp",
   "src/pubsubpluginTEST_CTestPubSubClientConfig.cpp",
@@ -80,10 +90,10 @@ configuration( {} )
 includedirs( { "../../../common/include", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefPUBSUB/include", "../../../platform/gucefVFS/include", "../../../platform/gucefWEB/include", "../pubsubpluginSTORAGE/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../../platform/gucefCORE/include/android" } )
+includedirs( { "../../../platform/gucefCOMCORE/include/android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../../platform/gucefCORE/include/android" } )
+includedirs( { "../../../platform/gucefCOMCORE/include/android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../../platform/gucefCOMCORE/include/linux", "../../../platform/gucefCORE/include/linux" } )
@@ -92,7 +102,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../../platform/gucefCOMCORE/include/linux", "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../platform/gucefCOMCORE/include/mswin", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../platform/gucefCOMCORE/include/mswin", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "../../../platform/gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../platform/gucefCOMCORE/include/mswin", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../platform/gucefCOMCORE/include/mswin", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "../../../platform/gucefWEB/include/mswin" } )

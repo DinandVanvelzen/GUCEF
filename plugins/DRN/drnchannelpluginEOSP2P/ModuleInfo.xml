@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="drnchannelpluginEOSP2P" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefDRN channel plugin for the Epic Online Services P2P interface</DescriptionHeadline>
+            <DescriptionDetails>The DRN channel type eos-p2p: DRN packets as packets of the EOS P2P interface to a Product User Id on a socket id, with the connections accepted only from the peers a socket allows (the members of a lobby). The DRN handshake, authentication and packet protection run on top. The EOS platform is shared with the other EOS plugins through pluginglueEOS; without the SDK in the build the channel never connects.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="pluginglueEOS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="pluginglueEOS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_DRNPLUGIN_EOSP2P_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

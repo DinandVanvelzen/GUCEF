@@ -100,47 +100,103 @@ defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefIMAGE_TestApp" 
 
 
 configuration( { "LINUX32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestImageAnimation.h",
+      "include/TestImageCodecPlugins.h",
+      "include/TestImageUpscaler.h",
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestImageAnimation.cpp",
+      "src/TestImageCodecPlugins.cpp",
+      "src/TestImageUpscaler.cpp",
+      "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
 
 
 configuration( { "LINUX64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestImageAnimation.h",
+      "include/TestImageCodecPlugins.h",
+      "include/TestImageUpscaler.h",
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestImageAnimation.cpp",
+      "src/TestImageCodecPlugins.cpp",
+      "src/TestImageUpscaler.cpp",
+      "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
 
 
 configuration( { "WIN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestImageAnimation.h",
+      "include/TestImageCodecPlugins.h",
+      "include/TestImageUpscaler.h",
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestImageAnimation.cpp",
+      "src/TestImageCodecPlugins.cpp",
+      "src/TestImageUpscaler.cpp",
+      "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
 
 
 configuration( { "WIN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestImageAnimation.h",
+      "include/TestImageCodecPlugins.h",
+      "include/TestImageUpscaler.h",
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestImageAnimation.cpp",
+      "src/TestImageCodecPlugins.cpp",
+      "src/TestImageUpscaler.cpp",
+      "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../platform/gucefCORE/include/linux" } )
+includedirs( { "../../platform/gucefCORE/include/linux", "include" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../platform/gucefCORE/include/linux" } )
+includedirs( { "../../platform/gucefCORE/include/linux", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )

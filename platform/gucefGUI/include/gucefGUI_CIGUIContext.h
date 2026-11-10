@@ -60,6 +60,7 @@ namespace GUI {
 
 class CGUIDriver;
 class CForm;
+class CGUIContext;
 
 /*-------------------------------------------------------------------------*/
 
@@ -67,13 +68,17 @@ class GUCEF_GUI_PUBLIC_CPP CIGUIContext
 {    
     public:
     
-    typedef std::set< GUCEF::GUI::CWidget* >    TWidgetSet;
-    typedef std::set< GUCEF::GUI::CForm* >      TFormSet;
-    typedef std::set< CString >                 TStringSet;
+    typedef GUCEF::set< GUCEF::GUI::CWidget* >  TWidgetSet;
+    typedef GUCEF::set< GUCEF::GUI::CForm* >    TFormSet;
+    typedef GUCEF::set< CString >               TStringSet;
 
     virtual ~CIGUIContext();
-    
-    virtual CWidget* CreateWidget( const CString& widgetName ) = 0;
+
+    /** This context as a gucefGUI context, NULL when it is none (a context of a driver that is not built on CGUIContext); no run time type information needed */
+    virtual CGUIContext* AsGUIContext( void );
+
+    /** Makes a widget of the given registered type */
+    virtual CWidget* CreateWidget( const CString& widgetType ) = 0;
     
     virtual void DestroyWidget( CWidget* widget ) = 0;
     

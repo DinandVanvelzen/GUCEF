@@ -16,9 +16,10 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
+ 
 
-#ifndef TESTCODE_PINGTEST_H
-#define TESTCODE_PINGTEST_H
+#ifndef CTESTCODE_PINGTEST_H
+#define CTESTCODE_PINGTEST_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,9 +27,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** Tests of the ping facility */
 void
-PerformPingTest( void );
+PerformPingTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* TESTCODE_PINGTEST_H ? */
+#endif /* CTESTCODE_PINGTEST_H ? */

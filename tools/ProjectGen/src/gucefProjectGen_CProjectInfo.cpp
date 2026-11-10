@@ -3316,51 +3316,51 @@ CProjectInfo::SetKnownPlatformsToHardcodedDefaults( void )
     // Start from a clean slate
     m_knownPlatforms.clear();
 
-    // Set hardcoded default platforms
+    // Set hardcoded default platforms, each through a pointer to its own entry
 
-    TPlatformDefinition& platform = m_knownPlatforms[ KnownPlatforms::Android32 ];
-    platform.name = KnownPlatforms::Android32;
-    platform.aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
-    platform.platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android32 };
+    TPlatformDefinition* platform = &m_knownPlatforms[ KnownPlatforms::Android32 ];
+    platform->name = KnownPlatforms::Android32;
+    platform->aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
+    platform->platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android32 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Android64 ];
-    platform.name = KnownPlatforms::Android64;
-    platform.aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
-    platform.platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android64 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Android64 ];
+    platform->name = KnownPlatforms::Android64;
+    platform->aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
+    platform->platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android64 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Linux32 ];
-    platform.name = KnownPlatforms::Linux32;
-    platform.aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
-    platform.platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux32 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Linux32 ];
+    platform->name = KnownPlatforms::Linux32;
+    platform->aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
+    platform->platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux32 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Linux64 ];
-    platform.name = KnownPlatforms::Linux64;
-    platform.aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
-    platform.platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux64 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Linux64 ];
+    platform->name = KnownPlatforms::Linux64;
+    platform->aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
+    platform->platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux64 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Win32 ];
-    platform.name = KnownPlatforms::Win32;
-    platform.aliases = { KnownMultiPlatforms::MsWin };
-    platform.platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win32 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Win32 ];
+    platform->name = KnownPlatforms::Win32;
+    platform->aliases = { KnownMultiPlatforms::MsWin };
+    platform->platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win32 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Win64 ];
-    platform.name = KnownPlatforms::Win64;
-    platform.aliases = { KnownMultiPlatforms::MsWin };
-    platform.platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win64 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Win64 ];
+    platform->name = KnownPlatforms::Win64;
+    platform->aliases = { KnownMultiPlatforms::MsWin };
+    platform->platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win64 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Emscripten32 ];
-    platform.name = KnownPlatforms::Emscripten32;
-    platform.aliases = { KnownMultiPlatforms::Emscripten };
-    platform.platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten32 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Emscripten32 ];
+    platform->name = KnownPlatforms::Emscripten32;
+    platform->aliases = { KnownMultiPlatforms::Emscripten };
+    platform->platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten32 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Emscripten64 ];
-    platform.name = KnownPlatforms::Emscripten64;
-    platform.aliases = { KnownMultiPlatforms::Emscripten };
-    platform.platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten64 };
+    platform = &m_knownPlatforms[ KnownPlatforms::Emscripten64 ];
+    platform->name = KnownPlatforms::Emscripten64;
+    platform->aliases = { KnownMultiPlatforms::Emscripten };
+    platform->platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten64 };
 
-    platform = m_knownPlatforms[ KnownPlatforms::Arduino ];
-    platform.name = KnownPlatforms::Arduino;
-    platform.platformDirs = { KnownPlatforms::Arduino };
+    platform = &m_knownPlatforms[ KnownPlatforms::Arduino ];
+    platform->name = KnownPlatforms::Arduino;
+    platform->platformDirs = { KnownPlatforms::Arduino };
 }
 
 /*---------------------------------------------------------------------------*/
@@ -3601,10 +3601,36 @@ CProjectInfo::GetModulesMappedByBuildOrderForTarget( const CORE::CString& consen
 
 /*---------------------------------------------------------------------------*/
 
+/**
+ *  Whether the module has the given dependency for all platforms, as opposed to only for particular platforms
+ */
+static bool
+IsDependencyForAllPlatforms( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                             const CORE::CString& dependencyName        )
+{GUCEF_TRACE;
+
+    const CModuleInfoPtr allPlatformsInfo = moduleInfoEntry->FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
+    return !allPlatformsInfo.IsNULL() && allPlatformsInfo->GetNamesOfDependencies().find( dependencyName ) != allPlatformsInfo->GetNamesOfDependencies().end();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry            ,
                                                 const CModuleInfoEntryPtr dependencyModuleEntry ,
                                                 const CORE::CString& platformName               )
+{GUCEF_TRACE;
+
+    return GenerateModuleDependencyIncludesInto( moduleInfoEntry, dependencyModuleEntry, platformName, platformName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GenerateModuleDependencyIncludesInto( CModuleInfoEntryPtr& moduleInfoEntry            ,
+                                                    const CModuleInfoEntryPtr dependencyModuleEntry ,
+                                                    const CORE::CString& platformName               ,
+                                                    const CORE::CString& storePlatformName          )
 {GUCEF_TRACE;
 
     // Narrow it down to the platform we are interested in
@@ -3623,7 +3649,7 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
         if ( ( dependencyModule->moduleType == MODULETYPE_HEADER_INCLUDE_LOCATION ) ||
              ( dependencyModule->moduleType == MODULETYPE_BINARY_PACKAGE )           )
         {
-            moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platformName, true );
+            moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( storePlatformName, true );
 
             // Determine the relative path to this other module's root
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir()       ,
@@ -3654,7 +3680,7 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
             // to that end we will grab this module's definition for this platform or make a
             // new one if no entry exists yet
             if ( moduleInfo.IsNULL() )
-                moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platformName, true );
+                moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( storePlatformName, true );
 
             // Determine the relative path to this other module and subsequently the include dirs
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir()       ,
@@ -3664,6 +3690,13 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
             TStringSetMap::const_iterator n = headerFiles.begin();
             while ( n != headerFiles.end() )
             {
+                // Per the processing instructions some dirs of the dependency are not to be used as include search paths
+                if ( dependencyModule->IsIncludeDirExcludedFromSearchPaths( (*n).first ) )
+                {
+                    ++n;
+                    continue;
+                }
+
                 // If the path is a relative path we refine it to be from this module's location
                 CORE::CString dependencyInclDir = CORE::RelativePath( (*n).first );
                 if ( !CORE::IsAbsolutePath( dependencyInclDir ) && 0 != dependencyInclDir.HasSubstr( "#$#ENVVAR:", true ) )
@@ -3745,6 +3778,20 @@ CProjectInfo::GenerateModuleDependencyIncludesForPlatform( CModuleInfoEntryPtr& 
                     totalSuccess = GenerateModuleDependencyIncludes( moduleInfoEntry              ,
                                                                      dependencyModuleEntry        ,
                                                                      KnownPlatforms::AllPlatforms ) && totalSuccess;
+                }
+                else
+                if ( platformName != KnownPlatforms::AllPlatforms                                                  &&
+                     dependencyModuleEntry->HasAllPlatformsDefinition()                                            &&
+                     !IsDependencyForAllPlatforms( moduleInfoEntry, dependencyModuleEntry->GetConsensusName() )    )
+                {
+                    // The module depends on a dependency, which is defined for all platforms, only on this platform.
+                    // The include dirs of that dependency are thus needed for this platform and not for the others.
+                    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "ProjectInfo: Adding the include dirs of the all platforms dependency \"" + dependencyModuleEntry->GetConsensusName() +
+                                                            "\" to module \"" + moduleInfoEntry->GetConsensusName() + "\" for platform " + platformName );
+                    totalSuccess = GenerateModuleDependencyIncludesInto( moduleInfoEntry              ,
+                                                                         dependencyModuleEntry        ,
+                                                                         KnownPlatforms::AllPlatforms ,
+                                                                         platformName                 ) && totalSuccess;
                 }
             }
             ++i;

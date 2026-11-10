@@ -52,6 +52,12 @@ defines( { "ZZIP_HAVE_STDINT_H" } )
 configuration( { ANDROID64 } )
 defines( { "ZZIP_HAVE_STDINT_H" } )
   
+configuration( { EMSCRIPTEN32 } )
+links( { "zlib" } )
+  
+configuration( { EMSCRIPTEN64 } )
+links( { "zlib" } )
+  
 configuration( { LINUX32 } )
 links( { "zlib" } )
   links( { "zlib" } )
@@ -127,6 +133,12 @@ files( {
 
 configuration( {} )
 includedirs( { "../zziplib", "zzip" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )

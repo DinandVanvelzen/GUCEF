@@ -48,6 +48,11 @@ message(STATUS "Source dir: ${GUCEF_SOURCE_DIR}")
 message(STATUS "Binary dir: ${GUCEF_BINARY_DIR}")
 message(STATUS "CMake Binary dir: ${CMAKE_BINARY_DIR}")
 
+
+
+project( GUCEF_exe_ServerPortExtender )
+
+# The platform is known once project() has loaded the toolchain (cross builds) and found the compiler (pointer size)
 if ( NOT DEFINED GUCEF_SYSTEM_NAME )
   if ( DEFINED CMAKE_SYSTEM_NAME )
     set( GUCEF_SYSTEM_NAME ${CMAKE_SYSTEM_NAME} )
@@ -68,11 +73,32 @@ if ( GUCEF_SYSTEM_NAME STREQUAL "Linux" )
   endif()
 endif()
 
+if ( GUCEF_SYSTEM_NAME STREQUAL "Android" )
+  if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( ANDROID64 TRUE )
+    set( GUCEF_TARGET_PLATFORM "ANDROID64" )
+    message(STATUS "Determined that pointer size is 8 bytes so this is a 64bit Android system")
+  else ()
+    set( ANDROID32 TRUE )
+    set( GUCEF_TARGET_PLATFORM "ANDROID32" )
+    message(STATUS "Determined that pointer size is 4 bytes so this is a 32bit Android system")
+  endif()
+endif()
+
+if ( GUCEF_SYSTEM_NAME STREQUAL "Emscripten" )
+  if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( EMSCRIPTEN64 TRUE )
+    set( GUCEF_TARGET_PLATFORM "EMSCRIPTEN64" )
+    message(STATUS "Determined that pointer size is 8 bytes so this is a 64bit WebAssembly (Emscripten) system")
+  else ()
+    set( EMSCRIPTEN32 TRUE )
+    set( GUCEF_TARGET_PLATFORM "EMSCRIPTEN32" )
+    message(STATUS "Determined that pointer size is 4 bytes so this is a 32bit WebAssembly (Emscripten) system")
+  endif()
+endif()
+
 message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}" )
 message(STATUS "GUCEF_TARGET_PLATFORM: ${GUCEF_TARGET_PLATFORM}" )
-
-
-project( GUCEF_exe_ServerPortExtender )
 
 # Include necessary submodules
 set(CMAKE_MODULE_PATH

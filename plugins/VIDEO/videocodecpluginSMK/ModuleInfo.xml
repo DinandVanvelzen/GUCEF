@@ -1,0 +1,27 @@
+<ModuleInfoEntry>
+    <Module Name="videocodecpluginSMK" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefVIDEO codec plugin for Smacker video</DescriptionHeadline>
+            <DescriptionDetails>Decodes Smacker (.smk) videos: the palette pictures and the audio tracks, compressed or plain. Written in C against the gucefVIDEO codec plugin C interface from the published format description; links nothing from GUCEF.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="GUCEF_VIDEOCODECPLUGIN_SMK_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

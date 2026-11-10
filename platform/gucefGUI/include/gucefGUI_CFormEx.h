@@ -56,6 +56,10 @@ class GUCEF_GUI_PUBLIC_CPP CFormEx : public CForm
     
     virtual ~CFormEx();
 
+    // the overloads of CForm this class does not override stay visible: layouts from trees and with a codec
+    using CForm::LoadLayout;
+    using CForm::SaveLayout;
+
     virtual bool LoadLayout( const CString& layoutStoragePath );
 
     virtual bool SaveLayout( const CString& layoutStoragePath );

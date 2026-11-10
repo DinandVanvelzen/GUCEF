@@ -1,0 +1,29 @@
+<ModuleInfoEntry>
+    <Module Name="vfspluginISO9660" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>LGPL</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Generic GUCEF VFS plugin for ISO 9660 disc images</DescriptionHeadline>
+            <DescriptionDetails>Own implementation with random access. Supports Joliet and Rock Ridge names.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_VFSPLUGIN_ISO9660_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -115,6 +115,30 @@ CInputDriver::InjectKeyboardKeyChange( const Int32 contextId   ,
 /*-------------------------------------------------------------------------*/
 
 void
+CInputDriver::InjectMouseVariableChange( const Int32 contextId      ,
+                                         const Int32 deviceIndex    ,
+                                         const UInt32 variableIndex ,
+                                         const Int32 value          ,
+                                         const Int32 valueDelta     )
+{GUCEF_TRACE;
+
+    m_controller->SetMouseVariable( contextId, deviceIndex, variableIndex, value, valueDelta );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CInputDriver::InjectKeyboardText( const Int32 contextId   ,
+                                  const Int32 deviceIndex ,
+                                  const CString& utf8Text )
+{GUCEF_TRACE;
+
+    m_controller->SetKeyboardText( contextId, deviceIndex, utf8Text );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CInputDriver::AddMouse( const Int32 deviceID )
 {GUCEF_TRACE;
 

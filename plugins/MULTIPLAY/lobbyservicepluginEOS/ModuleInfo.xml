@@ -1,0 +1,41 @@
+<ModuleInfoEntry>
+    <Module Name="lobbyservicepluginEOS" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefMULTIPLAY lobby service plugin for Epic Online Services lobbies</DescriptionHeadline>
+            <DescriptionDetails>The lobby service eos: browsing lobbies with EOS_LobbySearch, hosting lobbies on the lobby interface of EOS (the owner of the lobby is the boss and applies the lobby rules), and handing the game to the members over EOS P2P. The EOS platform is shared with the other EOS plugins through pluginglueEOS; without the SDK in the build the service cannot connect.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="pluginglueEOS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="pluginglueEOS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_MULTIPLAYPLUGIN_EOS_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

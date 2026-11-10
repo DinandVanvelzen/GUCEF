@@ -21,18 +21,24 @@ LOCAL_MODULE := gucefMT_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestAtomic.cpp \
+  src/TestMutex.cpp \
   src/TestReaderWriterLock.cpp \
+  src/TestSemaphore.cpp \
+  src/TestSlotDataExchange.cpp \
+  src/TestSpscQueue.cpp \
+  src/TestThreadData.cpp \
   src/gucefMT_TestApp.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
-LOCAL_CFLAGS := -DGUCEF_MT_TESTAPP_BUILD_MODULE
+LOCAL_CFLAGS := -DGUCEF_MT_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMT_TestApp -DMODULE_NAME=gucefMT_TestApp
 
 
 LOCAL_SHARED_LIBRARIES := \

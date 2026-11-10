@@ -48,8 +48,31 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestCode_ClientServer.h",
   "include/TestCode_DNS.h",
+  "include/TestCode_Discovery.h",
   "include/TestCode_PingTest.h",
-  "include/TestCode_SimpleTCPClient.h"
+  "include/TestCode_Pump.h",
+  "include/TestCode_SimpleTCPClient.h",
+  "include/TestCode_TlsClient.h",
+  "include/TestCode_TlsLayer.h",
+  "include/TestCode_TlsOpenSsl.h",
+  "include/TestDatabaseClient.h",
+  "include/TestDatabaseClientFake.h",
+  "include/TestNoTlsProvider.h",
+  "include/TestRpcAllocationCounter.h",
+  "include/TestRpcCodec.h",
+  "include/TestRpcConformance.h",
+  "include/TestRpcContract.h",
+  "include/TestRpcEndpoint.h",
+  "include/TestRpcEndpointFixture.h",
+  "include/TestRpcLifecycle.h",
+  "include/TestRpcLossyTransport.h",
+  "include/TestRpcNotesService.h",
+  "include/TestRpcPerf.h",
+  "include/TestRpcSession.h",
+  "include/TestSocketReadiness.h",
+  "include/TestTcpSocketThreads.h",
+  "include/TestRpcSupport.h",
+  "include/TestRpcTransportSuite.h"
  } )
 
 
@@ -59,20 +82,33 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/TestCode_ClientServer.cpp",
   "src/TestCode_DNS.cpp",
+  "src/TestCode_Discovery.cpp",
   "src/TestCode_PingTest.cpp",
   "src/TestCode_SimpleTCPClient.cpp",
-  "src/gucefCOMCORE_TestApp.cpp"
+  "src/TestCode_TlsLayer.cpp",
+  "src/TestCode_TlsOpenSsl.cpp",
+  "src/TestRpcCodec.cpp",
+  "src/TestRpcContract.cpp",
+  "src/TestRpcEndpoint.cpp",
+  "src/TestRpcLifecycle.cpp",
+  "src/TestRpcPerf.cpp",
+  "src/TestRpcSession.cpp",
+  "src/TestSocketReadiness.cpp",
+  "src/TestTcpSocketThreads.cpp",
+  "src/gucefCOMCORE_TestApp.cpp",
+  "src/TestDatabaseClient.cpp",
+  "src/TestDatabaseClientFake.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )

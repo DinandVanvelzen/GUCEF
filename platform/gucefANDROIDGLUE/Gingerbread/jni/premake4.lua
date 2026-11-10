@@ -74,7 +74,7 @@ configuration( {} )
 includedirs( { "../../..", "../../../../common/include", "../../../gucefCORE", "../../../gucefCORE/include", "../../../gucefCORE/include/", "../../../gucefCORE/include/c_api", "../../../gucefCORE/include/c_api/", "../../../gucefLOADER/include", "../../../gucefMT", "../../../gucefMT/include", "../../../gucefMT/include/" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../../gucefCORE/include/", "../../../gucefCORE/include/android", "../../../gucefCORE/include/c_api/", "../../../gucefMT/include/" } )
+includedirs( { "../../../gucefCORE/include/", "../../../gucefCORE/include/android", "../../../gucefCORE/include/android/", "../../../gucefCORE/include/c_api/", "../../../gucefMT/include/" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../../gucefCORE/include/", "../../../gucefCORE/include/android", "../../../gucefCORE/include/c_api/", "../../../gucefMT/include/" } )
+includedirs( { "../../../gucefCORE/include/", "../../../gucefCORE/include/android", "../../../gucefCORE/include/android/", "../../../gucefCORE/include/c_api/", "../../../gucefMT/include/" } )

@@ -63,12 +63,14 @@ namespace MULTIPLAY {
 
 CPassiveURLServerListProvider::CPassiveURLServerListProvider( void )
     : CServerListProvider() ,
-      m_url()               ,
-      m_isBusy( false )     ,
       m_buffer( true )      ,
-      m_codecType( "xml" )
+      m_codecType( "xml" )  ,
+      m_url()               ,
+      m_retriever()         ,
+      m_isBusy( false )
 {GUCEF_TRACE;
 
+    SubscribeTo( &m_retriever );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -76,7 +78,7 @@ CPassiveURLServerListProvider::CPassiveURLServerListProvider( void )
 CPassiveURLServerListProvider::~CPassiveURLServerListProvider()
 {GUCEF_TRACE;
 
-    m_url.Deactivate();
+    // The retriever stops a retrieval that is still busy when it is destroyed
 }
 
 /*-------------------------------------------------------------------------*/
@@ -91,15 +93,16 @@ CPassiveURLServerListProvider::Start( const CORE::CValueList& params )
         // may have already been set
         if ( params.HasKey( "URL" ) )
         {
-            m_url.SetURL( params.GetValue( CORE::CString( "URL" ) ) );
+            m_url = params.GetValue( CORE::CString( "URL" ) );
         }
         if ( params.HasKey( "CodecType" ) )
         {
             m_codecType = params.GetValue( CORE::CString( "CodecType" ) );
         }
 
-        // Active the URL mechanism
-        m_isBusy = m_url.Activate();
+        // Start retrieving the list
+        m_buffer.Clear( true );
+        m_isBusy = m_retriever.Retrieve( CORE::CUri( m_url ), m_buffer ).HasAFuture();
         return m_isBusy;
     }
     return false;
@@ -122,9 +125,8 @@ CPassiveURLServerListProvider::Stop( void )
 
     if ( m_isBusy )
     {
-        m_url.Deactivate();
         m_isBusy = false;
-
+        m_retriever.Cancel( true );
         NotifyObservers( ServerListProviderAbortEvent );
     }
 }
@@ -137,26 +139,18 @@ CPassiveURLServerListProvider::OnNotify( CORE::CNotifier* notifier              
                                          CORE::CICloneable* eventdata /* = NULL */ )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_url )
+    if ( notifier == &m_retriever && m_isBusy )
     {
-        if ( CORE::CURL::URLActivateEvent == eventid )
+        if ( CORE::CAsyncUriResourceRetriever::RetrievalCompletedEvent == eventid )
         {
-            m_buffer.Clear( true );
-        }
-        else
-        if ( CORE::CURL::URLDataRecievedEvent == eventid )
-        {
-            // append the received data to the buffer
-            const CORE::CURL::TURLDataRecievedEventData* data = static_cast< CORE::CURL::TURLDataRecievedEventData* >( eventdata );
-            m_buffer.Append( data->GetData().GetConstBufferPtr(), data->GetData().GetDataSize() );
-        }
-        else
-        if ( CORE::CURL::URLAllDataRecievedEvent == eventid )
-        {
+            // The retrieved data went straight into the buffer. We are done retrieving, which allows
+            // observers of the events sent while processing the list to start the next retrieval.
+            m_isBusy = false;
             ProcessRetrievedList();
         }
         else
-        if ( CORE::CURL::URLDataRetrievalErrorEvent == eventid )
+        if ( CORE::CAsyncUriResourceRetriever::RetrievalFailedEvent == eventid ||
+             CORE::CAsyncUriResourceRetriever::RetrievalCancelledEvent == eventid )
         {
             m_buffer.Clear( true );
             m_isBusy = false;
@@ -174,7 +168,6 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
     const CORE::CDataNode* root = listRoot.Find( "ServerList" );
     if ( NULL != root )
     {
-        TServerInfo serverInfo;
         const CORE::CDataNode::TKeyValuePair* att = NULL;
         CORE::CDataNode::const_iterator i = root->ConstBegin();
         const CORE::CDataNode* entryNode = NULL;
@@ -185,6 +178,7 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
             entryNode = (*i);
             if ( "ServerEntry" == entryNode->GetName() )
             {
+                TServerInfo serverInfo;
                 att = entryNode->GetAttribute( "Name" );
                 if ( NULL != att )
                 {
@@ -213,6 +207,7 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
                                 }
                             }
 
+                            serverInfo.extra = valueList;
                             ServerInfoEventData eData( serverInfo );
                             NotifyObservers( ServerInfoEvent, &eData );
                         }
@@ -279,7 +274,10 @@ bool
 CPassiveURLServerListProvider::SetURL( const CORE::CString& url )
 {GUCEF_TRACE;
 
-    return m_url.SetURL( url );
+    if ( m_isBusy )
+        return false;
+    m_url = url;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -288,7 +286,7 @@ const CORE::CString&
 CPassiveURLServerListProvider::GetURL( void ) const
 {GUCEF_TRACE;
 
-    return m_url.GetURL();
+    return m_url;
 }
 
 /*-------------------------------------------------------------------------//

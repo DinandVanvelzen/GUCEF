@@ -90,15 +90,43 @@ Utf8SeqLen( unsigned char leadByte )
 /*-------------------------------------------------------------------------*/
 
 /*
+ *  Returns the number of bytes of the sequence starting at p that are actually there: a sequence stops at a null
+ *  and at limit bytes, whichever comes first. This keeps cut off input (continuation bytes still to arrive) from
+ *  running over its terminator or the end of its buffer.
+ *  complete tells whether all the bytes the lead byte announces are there. *p must not be '\0'.
+ */
+static inline UInt32
+Utf8SeqLenAt( const char* p, UInt32 limit, bool& complete )
+{
+    const UInt32 announced = Utf8SeqLen( static_cast<unsigned char>( *p ) );
+    UInt32 present = 1u;
+    while ( present < announced && present < limit && '\0' != p[ present ] )
+        ++present;
+    complete = ( present == announced );
+    return present;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*
  *  Decodes one UTF-8 code point starting at *ptr, advances *ptr past the
  *  sequence, and returns the decoded UInt32 code point.
  *  ptr must not be NULL and *ptr must not be '\0'.
  */
 static inline UInt32
-Utf8DecodeOne( const char*& ptr )
+Utf8DecodeOne( const char*& ptr, UInt32 limit = 0xFFFFFFFFu )
 {
     unsigned char lead = static_cast<unsigned char>( *ptr );
     UInt32 cp = 0u;
+
+    /* A cut off sequence does not hold a code point, it decodes as U+FFFD */
+    bool complete = true;
+    const UInt32 present = Utf8SeqLenAt( ptr, limit, complete );
+    if ( !complete )
+    {
+        ptr += present;
+        return 0xFFFDu;
+    }
 
     if ( lead < 0x80u )
     {
@@ -152,7 +180,8 @@ Utf8CountCodePoints( const char* src )
     const char* p = src;
     while ( '\0' != *p )
     {
-        p += Utf8SeqLen( static_cast<unsigned char>( *p ) );
+        bool complete = true;
+        p += Utf8SeqLenAt( p, 0xFFFFFFFFu, complete );
         ++count;
     }
     return count;
@@ -173,9 +202,10 @@ Utf8CountCodePointsInBytes( const char* src, UInt32 byteSize )
     UInt32 i = 0u;
     while ( i < byteSize && '\0' != src[ i ] )
     {
-        UInt32 seqLen = Utf8SeqLen( static_cast<unsigned char>( src[ i ] ) );
-        if ( i + seqLen > byteSize )
-            break;
+        bool complete = true;
+        UInt32 seqLen = Utf8SeqLenAt( src+i, byteSize-i, complete );
+        if ( !complete && i + seqLen >= byteSize )
+            break;   /* cut off by the end of the buffer */
         i += seqLen;
         ++count;
     }
@@ -342,7 +372,7 @@ AllocFromUtf8Bytes( const char* src, UInt32 byteSize, UInt32& outLength )
     UInt32 i = 0u;
     while ( p < end && '\0' != *p && i < cpCount )
     {
-        buf[ i++ ] = Utf8DecodeOne( p );
+        buf[ i++ ] = Utf8DecodeOne( p, (UInt32) ( end - p ) );
     }
     buf[ cpCount ] = 0u;
     outLength = cpCount;
@@ -358,6 +388,7 @@ AllocFromUtf8Bytes( const char* src, UInt32 byteSize, UInt32& outLength )
 CUtf32String::CUtf32String( void )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
 }
@@ -367,8 +398,10 @@ CUtf32String::CUtf32String( void )
 CUtf32String::CUtf32String( const CUtf32String& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
+    // Always deep-copy: never propagate linked state on copy
     if ( src.m_length > 0u )
     {
         m_length = src.m_length;
@@ -385,10 +418,12 @@ CUtf32String::CUtf32String( const CUtf32String& src )
 CUtf32String::CUtf32String( CUtf32String&& src ) GUCEF_NOEXCEPT
     : m_string( src.m_string )
     , m_length( src.m_length )
+    , m_linked( src.m_linked )
 {GUCEF_TRACE;
 
     src.m_string = GUCEF_NULL;
     src.m_length = 0u;
+    src.m_linked = false;
 }
 
 #endif /* GUCEF_RVALUE_REFERENCES_SUPPORTED */
@@ -398,6 +433,7 @@ CUtf32String::CUtf32String( CUtf32String&& src ) GUCEF_NOEXCEPT
 CUtf32String::CUtf32String( const CUtf8String& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     const char* utf8Buf = src.C_String();
@@ -412,6 +448,7 @@ CUtf32String::CUtf32String( const CUtf8String& src )
 CUtf32String::CUtf32String( const CAsciiString& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     UInt32 srcLen = src.Length();
@@ -434,6 +471,7 @@ CUtf32String::CUtf32String( const CAsciiString& src )
 CUtf32String::CUtf32String( const std::string& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( !src.empty() )
@@ -447,6 +485,7 @@ CUtf32String::CUtf32String( const std::string& src )
 CUtf32String::CUtf32String( const char* src ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && '\0' != *src )
@@ -462,6 +501,7 @@ CUtf32String::CUtf32String( const char* src              ,
                              bool reexamineByteSize       ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && 0u < byteSize )
@@ -487,6 +527,7 @@ CUtf32String::CUtf32String( const char* src              ,
 CUtf32String::CUtf32String( const UInt32* src ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src )
@@ -508,6 +549,7 @@ CUtf32String::CUtf32String( const UInt32* src                ,
                              bool reexamineLength             ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && 0u < lengthInCodePoints )
@@ -547,6 +589,7 @@ CUtf32String::CUtf32String( const UInt32* src                ,
 CUtf32String::CUtf32String( const UInt32 utf32CodePoint )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     UInt32 cp = utf32CodePoint;
@@ -558,6 +601,7 @@ CUtf32String::CUtf32String( const UInt32 utf32CodePoint )
 CUtf32String::CUtf32String( const int NULLvalue )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     assert( NULLvalue == static_cast<int>( GUCEF_NULL ) );
@@ -568,9 +612,11 @@ CUtf32String::CUtf32String( const int NULLvalue )
 CUtf32String::~CUtf32String()
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
     m_length = 0u;
+    m_linked = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -581,9 +627,11 @@ CUtf32String::operator=( const CUtf32String& src )
 
     if ( &src != this )
     {
-        GUCEF_DELETE []m_string;
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = GUCEF_NULL;
         m_length = src.m_length;
+        m_linked = false;
 
         if ( m_length > 0u )
         {
@@ -601,9 +649,11 @@ CUtf32String&
 CUtf32String::operator=( const char* src )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
     m_length = 0u;
+    m_linked = false;
 
     if ( GUCEF_NULL != src && '\0' != *src )
     {
@@ -685,10 +735,9 @@ bool
 CUtf32String::operator==( const CUtf32String& other ) const
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_string && GUCEF_NULL == other.m_string )
-        return true;
+    // empty is empty, with or without storage
     if ( GUCEF_NULL == m_string || GUCEF_NULL == other.m_string )
-        return false;
+        return m_length == other.m_length && 0u == m_length;
     if ( m_length != other.m_length )
         return false;
     return Utf32Strcmp( m_string, other.m_string ) == 0;
@@ -814,6 +863,7 @@ UInt32&
 CUtf32String::operator[]( const UInt32 index )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     static UInt32 outOfBoundsSlot = 0u;
     if ( index <= m_length )
         return m_string[ index ];
@@ -859,6 +909,14 @@ UInt32*
 CUtf32String::C_String( void )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
+    if ( GUCEF_NULL == m_string )
+    {
+        // an empty string without storage: give it a terminator, so the writable C string is empty as the const one is
+        m_string = GUCEF_NEW UInt32[ 1 ];
+        m_string[ 0 ] = 0u;
+        m_length = 0u;
+    }
     return m_string;
 }
 
@@ -868,8 +926,10 @@ UInt32*
 CUtf32String::Reserve( const UInt32 bufferSizeInCodePoints, Int32 newLength )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
+    m_linked = false;
 
     if ( bufferSizeInCodePoints > 0u )
     {
@@ -916,6 +976,7 @@ void
 CUtf32String::SetLength( UInt32 newLength )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     if ( GUCEF_NULL != m_string )
     {
         if ( m_length < newLength )
@@ -972,9 +1033,11 @@ CUtf32String::Set( const UInt32* str,
 
     if ( str != m_string )
     {
-        GUCEF_DELETE []m_string;
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = GUCEF_NULL;
         m_length = 0u;
+        m_linked = false;
 
         if ( GUCEF_NULL != str && lengthInCodePoints > 0u )
         {
@@ -1004,9 +1067,11 @@ void
 CUtf32String::Set( const char* src )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
     m_length = 0u;
+    m_linked = false;
 
     if ( GUCEF_NULL != src && '\0' != *src )
     {
@@ -1043,8 +1108,8 @@ CUtf32String::Append( const UInt32* appendStr,
                       UInt32 lengthInCodePoints )
 {GUCEF_TRACE;
 
-    if ( appendStr != m_string     &&
-         GUCEF_NULL != appendStr   &&
+    // Note that the string may be appended to itself: the new buffer is filled before the current one is released
+    if ( GUCEF_NULL != appendStr   &&
          lengthInCodePoints > 0u   )
     {
         if ( m_length > 0u )
@@ -1055,17 +1120,22 @@ CUtf32String::Append( const UInt32* appendStr,
             memcpy( newBuf + m_length, appendStr, lengthInCodePoints * sizeof( UInt32 ) );
             m_length = m_length + lengthInCodePoints;
             newBuf[ m_length ] = 0u;
-            GUCEF_DELETE []m_string;
+            if ( !m_linked )
+                GUCEF_DELETE []m_string;
             m_string = newBuf;
+            m_linked = false;
         }
         else
         {
-            GUCEF_DELETE []m_string;
+            UInt32* newBuf = GUCEF_NEW UInt32[ lengthInCodePoints + 1u ];
+            assert( GUCEF_NULL != newBuf );
+            memcpy( newBuf, appendStr, lengthInCodePoints * sizeof( UInt32 ) );
+            newBuf[ lengthInCodePoints ] = 0u;
+            if ( !m_linked )
+                GUCEF_DELETE []m_string;
+            m_string = newBuf;
             m_length = lengthInCodePoints;
-            m_string = GUCEF_NEW UInt32[ m_length + 1u ];
-            assert( GUCEF_NULL != m_string );
-            memcpy( m_string, appendStr, m_length * sizeof( UInt32 ) );
-            m_string[ m_length ] = 0u;
+            m_linked = false;
         }
     }
 }
@@ -1105,8 +1175,64 @@ CUtf32String::Clear( void )
 {GUCEF_TRACE;
 
     m_length = 0u;
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
+    m_linked = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUtf32String::PromoteToOwned( void )
+{GUCEF_TRACE;
+
+    if ( m_linked && GUCEF_NULL != m_string )
+    {
+        UInt32 len = m_length + 1u;
+        UInt32* copy = GUCEF_NEW UInt32[ len ];
+        ::memcpy( copy, m_string, len * sizeof( UInt32 ) );
+        m_string = copy;
+        m_linked = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUtf32String::IsLinked( void ) const
+{GUCEF_TRACE;
+
+    return m_linked;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf32String&
+CUtf32String::LinkTo( const UInt32* externalBuffer, UInt32 lengthInCodePoints )
+{GUCEF_TRACE;
+
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
+    m_string = const_cast< UInt32* >( externalBuffer );
+    m_length = lengthInCodePoints;
+    m_linked = ( GUCEF_NULL != externalBuffer );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf32String&
+CUtf32String::LinkTo( const CUtf32String& src )
+{GUCEF_TRACE;
+
+    if ( &src == this ) return *this;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
+    m_string = const_cast< UInt32* >( src.m_string );
+    m_length = src.m_length;
+    m_linked = ( GUCEF_NULL != src.m_string );
+    return *this;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1972,30 +2098,48 @@ CUtf32String::ParseUniqueElements( const UInt32* bufferPtr ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CUtf32String::WildcardEquals( const CUtf32String& strWithWildcards,
-                               UInt32 wildCardToken               ,
-                               bool caseSensitive                 ,
-                               bool biDirectional                 ) const
+CUtf32String::WildcardEquals( const CUtf32String& strWithWildcards ,
+                              UInt32 wildCardToken ,
+                              bool caseSensitive ,
+                              bool biDirectional ) const
 {GUCEF_TRACE;
 
-    if ( biDirectional )
-    {
-        if ( strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
-            return true;
-    }
-
-    if ( strWithWildcards == wildCardToken || *this == wildCardToken )
+    // Either string may be the pattern, when asked for
+    if ( biDirectional && strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
         return true;
 
-    CUtf32String::StringVector segs = strWithWildcards.ParseElements( wildCardToken, false );
-    Int32 lastSeg = 0;
-    CUtf32String::StringVector::iterator i = segs.begin();
-    while ( i != segs.end() )
+    const CUtf32String text = caseSensitive ? *this : Lowercase();
+    const CUtf32String pattern = caseSensitive ? strWithWildcards : strWithWildcards.Lowercase();
+
+    // Without a wildcard it is a plain comparison
+    Int32 firstWildcard = pattern.HasChar( wildCardToken, true );
+    if ( firstWildcard < 0 )
+        return text == pattern;
+
+    // The whole string is matched: the part before the first wildcard starts it, the part after the last one ends
+    // it, and the parts between the wildcards come in that order in between, a wildcard standing for any characters
+    bool anchoredStart = 0 != firstWildcard;
+    bool anchoredEnd = pattern.HasChar( wildCardToken, false ) != (Int32) pattern.Length() - 1;
+    StringVector segments = pattern.ParseElements( wildCardToken, false );
+    UInt32 textLength = text.Length();
+    UInt32 position = 0;
+    for ( size_t i=0; i<segments.size(); ++i )
     {
-        lastSeg = HasSubstr( (*i), lastSeg, true );
-        if ( 0 > lastSeg )
+        const CUtf32String& segment = segments[ i ];
+        UInt32 segmentLength = segment.Length();
+        if ( 0 == segmentLength )
+            continue;
+        if ( position + segmentLength > textLength )
             return false;
-        ++i;
+        if ( i + 1 == segments.size() && anchoredEnd )
+        {
+            UInt32 endStart = textLength - segmentLength;
+            return text.HasSubstr( segment, (Int32) endStart, true ) == (Int32) endStart;
+        }
+        Int32 found = text.HasSubstr( segment, (Int32) position, true );
+        if ( found < 0 || ( 0 == i && anchoredStart && 0 != found ) )
+            return false;
+        position = (UInt32) found + segmentLength;
     }
     return true;
 }
@@ -2008,9 +2152,6 @@ CUtf32String::WildcardEquals( const StringSet& strsWithWildcards,
                                bool caseSensitive                ,
                                bool biDirectional                ) const
 {GUCEF_TRACE;
-
-    if ( strsWithWildcards.empty() )
-        return WildcardEquals( Empty, wildCardToken, caseSensitive, biDirectional );
 
     StringSet::const_iterator i = strsWithWildcards.begin();
     while ( i != strsWithWildcards.end() )

@@ -71,7 +71,12 @@ class GUCEF_GUI_PUBLIC_CPP CUVector
     
     void SetY( const CUDim& newHeight );
     
-    const CUDim& GetY( void ) const;    
+    const CUDim& GetY( void ) const;
+
+    /** "x y" with each a CUDim string, for example "0.5,-20 0,10" */
+    CString ToString( void ) const;
+
+    static bool FromString( const CString& str, CUVector& vec );
     
     private:
     

@@ -62,6 +62,27 @@ namespace CORE {
 
 const CString CFileSystemUriResourceAccessor::SchemeName = "file";
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The path on the file system a file uri refers to. A uri without authority ("file:///dir/file") has an absolute path,
+ *  one with an authority ("file://dir/file") is treated as a relative path as it always was.
+ */
+static CString
+GetFileSystemPath( const CUri& uri )
+{GUCEF_TRACE;
+
+    CString fsPath = uri.GetAuthorityAndPath();
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    // an absolute windows path in a uri is "file:///C:/dir/file", where the path starts with a slash before the drive
+    if ( fsPath.Length() > 2 && '/' == fsPath[ 0 ] && ':' == fsPath[ 2 ] )
+        fsPath = fsPath.SubstrToIndex( 1, false );
+    #endif
+
+    return fsPath;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -111,7 +132,7 @@ CFileSystemUriResourceAccessor::CreateResource( const CUri& uri ,
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -155,7 +176,7 @@ CFileSystemUriResourceAccessor::GetResource( const CUri& uri        ,
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -200,7 +221,7 @@ CFileSystemUriResourceAccessor::GetResourceAccess( const CUri& uri              
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -253,7 +274,7 @@ CFileSystemUriResourceAccessor::GetPartialResource( const CUri& uri        ,
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -266,7 +287,7 @@ CFileSystemUriResourceAccessor::GetPartialResource( const CUri& uri        ,
         CFileAccess fsFile;
         if ( fsFile.Open( fsPath, "rb" ) )
         {
-            if ( 0 != fsFile.Seek( byteOffset, SEEK_SET ) )
+            if ( 0 == fsFile.Seek( byteOffset, SEEK_SET ) )
             {            
                 destination.Write( fsFile, bytesToGet );
                 fsFile.Close();
@@ -305,7 +326,7 @@ CFileSystemUriResourceAccessor::GetResourceMetaData( const CUri& uri            
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -336,7 +357,7 @@ CFileSystemUriResourceAccessor::UpdateResource( const CUri& uri ,
                                                 CIOAccess& src  )
 {GUCEF_TRACE;
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -372,7 +393,7 @@ CFileSystemUriResourceAccessor::UpdatePartialResource( const CUri& uri    ,
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -385,7 +406,7 @@ CFileSystemUriResourceAccessor::UpdatePartialResource( const CUri& uri    ,
         CFileAccess fsFile;
         if ( fsFile.Open( fsPath, "rb+" ) )
         {
-            if ( 0 != fsFile.Seek( byteOffset, SEEK_SET ) )
+            if ( 0 == fsFile.Seek( byteOffset, SEEK_SET ) )
             {            
                 fsFile.Write( src, bytesToWrite );
                 fsFile.Close();
@@ -424,7 +445,7 @@ CFileSystemUriResourceAccessor::UpdatePartialResource( const CUri& uri    ,
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -468,7 +489,7 @@ CFileSystemUriResourceAccessor::GetSupportedOperations( const CUri& uri         
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -502,7 +523,7 @@ CFileSystemUriResourceAccessor::DeleteResource( const CUri& uri )
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
     
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -523,7 +544,7 @@ CFileSystemUriResourceAccessor::IsACollectionResource( const CUri& uri ) const
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     fsPath = fsPath.ReplaceChar( '/', '\\' );
@@ -549,7 +570,7 @@ CFileSystemUriResourceAccessor::ResolveResourcesInCollection( const CUri& uri   
         return false;
     }
 
-    CString fsPath = uri.GetAuthorityAndPath();
+    CString fsPath = GetFileSystemPath( uri );
     bool totalSuccess = true;
 
     if ( DirExists( fsPath ) )

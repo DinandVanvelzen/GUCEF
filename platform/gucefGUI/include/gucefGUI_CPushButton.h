@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_GUI_CWIDGET_H
-#include "gucefGUI_CWidget.h"
-#define GUCEF_GUI_CWIDGET_H
-#endif /* GUCEF_GUI_CWIDGET_H ? */
+#ifndef GUCEF_GUI_CBUTTON_H
+#include "gucefGUI_CButton.h"
+#define GUCEF_GUI_CBUTTON_H
+#endif /* GUCEF_GUI_CBUTTON_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,30 +46,23 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class GUCEF_GUI_PUBLIC_CPP CPushButton : public CWidget
+/** A button; the same as CButton, kept as its own type for layouts and code that use it */
+class GUCEF_GUI_PUBLIC_CPP CPushButton : public CButton
 {
     public:
-    
-    static const CORE::CEvent ButtonDownEvent;
-    static const CORE::CEvent ButtonUpEvent;
-    static const CORE::CEvent ButtonClickedEvent;
-    
-    static void RegisterEvents( void );
-    
-    public:
-    
+
     CPushButton( void );
-    
-    ~CPushButton();
-    
-    virtual bool SetButtonText( const CString& newText );
-    
-    virtual bool GetButtonText( CString& text ) const;
-    
+
+    virtual ~CPushButton();
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    static CWidget* Create( void );
+
     private:
-    
+
     CPushButton( const CPushButton& src );
-    CPushButton& operator=( const CPushButton& src );        
+    CPushButton& operator=( const CPushButton& src );
 };
 
 /*-------------------------------------------------------------------------//
@@ -82,16 +75,5 @@ class GUCEF_GUI_PUBLIC_CPP CPushButton : public CWidget
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_GUI_CPUSHBUTTON_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 18-08-2007 :
-        - Dinand: Initial implementation
-
------------------------------------------------------------------------------*/

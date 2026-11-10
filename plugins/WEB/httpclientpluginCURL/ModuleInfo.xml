@@ -1,0 +1,21 @@
+<ModuleInfoEntry>
+    <Module Name="httpclientpluginCURL" Type="SharedLibrary" Platform="all" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="curl" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="curl" />
+        </Linker>
+        <Preprocessor>
+            <Define String="HTTPCLIENTPLUGIN_CURL_BUILD_PLUGIN_DLL" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

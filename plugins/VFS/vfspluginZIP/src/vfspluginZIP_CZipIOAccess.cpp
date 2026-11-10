@@ -28,6 +28,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #include "vfspluginZIP_CZipIOAccess.h"
 
 // Include the zzip header last because it performs some funky type
@@ -54,10 +59,12 @@ namespace ZIP {
 //-------------------------------------------------------------------------*/
 
 CZipIOAccess::CZipIOAccess( ZZIP_FILE* zzipFile     , 
-                            size_t uncompressedSize )
+                            size_t uncompressedSize ,
+                            MT::CMutex& zipLock     )
     : CORE::CIOAccess()          ,
       m_zzipFile( zzipFile )     ,
-      m_size( uncompressedSize )
+      m_size( uncompressedSize ) ,
+      m_zipLock( zipLock )
 {GUCEF_TRACE;
 
 }
@@ -85,6 +92,9 @@ void
 CZipIOAccess::Close( void )
 {GUCEF_TRACE;
 
+    if ( NULL == m_zzipFile )
+        return;
+    MT::CScopeMutex lock( m_zipLock );
     zzip_file_close( m_zzipFile );
     m_zzipFile = NULL;
 }
@@ -124,7 +134,14 @@ CZipIOAccess::Read( void *dest            ,
                     CORE::UInt32 elements )
 {GUCEF_TRACE;
 
-    return (CORE::UInt32) zzip_file_read( m_zzipFile, (char*)dest, esize*elements );
+    // like fread(): the number of whole elements read, zzip_file_read() gives bytes (or -1 on an error)
+    if ( 0 == esize || 0 == elements )
+        return 0;
+    MT::CScopeMutex lock( m_zipLock );
+    zzip_ssize_t bytesRead = zzip_file_read( m_zzipFile, (char*)dest, esize*elements );
+    if ( bytesRead <= 0 )
+        return 0;
+    return (CORE::UInt32) ( bytesRead / esize );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -133,6 +150,7 @@ CORE::UInt64
 CZipIOAccess::Tell( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_zipLock );
     return (CORE::UInt64) zzip_tell( m_zzipFile );
 }
 
@@ -143,7 +161,9 @@ CZipIOAccess::Seek( CORE::Int64 offset ,
                     CORE::Int32 origin )
 {GUCEF_TRACE;
 
-    return zzip_seek( m_zzipFile, static_cast<zzip_off_t>( offset ), origin );
+    // zzip_seek() returns the new offset, CIOAccess::Seek() returns 0 on success like fseek()
+    MT::CScopeMutex lock( m_zipLock );
+    return zzip_seek( m_zzipFile, static_cast<zzip_off_t>( offset ), origin ) < 0 ? -1 : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -163,6 +183,7 @@ bool
 CZipIOAccess::Eof( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_zipLock );
     return (zzip_tell( m_zzipFile ) >= static_cast<zzip_off_t>( m_size ) );
 }
 

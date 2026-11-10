@@ -27,6 +27,7 @@
 
 #ifdef GUCEF_LINUX_BUILD
 
+#include <string.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
@@ -167,54 +168,55 @@ CX11Window::GrabFocus( void )
 
 void
 CX11Window::SetFullscreenStatus( bool fullscreen )
-{
-//   XSetWindowAttributes  xattr;
-//   Atom  atom;
-//   int   one = 1;
-//
-//   xattr.override_redirect = False;
-//   XChangeWindowAttributes ( x_display, win, CWOverrideRedirect, &xattr );
-//
-//   atom = XInternAtom ( x_display, "_NET_WM_STATE_FULLSCREEN", True );
-//   XChangeProperty (
-//      x_display, win,
-//      XInternAtom ( x_display, "_NET_WM_STATE", True ),
-//      XA_ATOM,  32,  PropModeReplace,
-//      (unsigned char*) &atom,  1 );
-//
-//   XChangeProperty (
-//      x_display, win,
-//      XInternAtom ( x_display, "_HILDON_NON_COMPOSITED_WINDOW", True ),
-//      XA_INTEGER,  32,  PropModeReplace,
-//      (unsigned char*) &one,  1);
-//
-//   XWMHints hints;
-//   hints.input = True;
-//   hints.flags = InputHint;
-//   XSetWMHints(x_display, win, &hints);
+{GUCEF_TRACE;
 
-    // get identifiers for the provided atom name strings
-//    ::Atom wmState   = ::XInternAtom ( x_display, "_NET_WM_STATE", False );
-//    ::Atom wmFullscreenState = ::XInternAtom ( x_display, "_NET_WM_STATE_FULLSCREEN", False );
-//
-//    int fullscreenState = fullscreen ? 1 : 0;
-//
-//    ::XEvent xev;
-//    memset ( &xev, 0, sizeof(xev) );
-//
-//    xev.type                 = ClientMessage;
-//    xev.xclient.window       = win;
-//    xev.xclient.message_type = wmState;
-//    xev.xclient.format       = 32;
-//    xev.xclient.data.l[0]    = fullscreenState;
-//    xev.xclient.data.l[1]    = wmFullscreenState;
-//
-//    // send an event mask to the X-server
-//    ::XSendEvent( x_display,
-//                  DefaultRootWindow ( x_display ),
-//                  False,
-//                  SubstructureNotifyMask,
-//                  &xev );
+    if ( GUCEF_NULL == m_display || 0 == m_window )
+        return;
+
+    // ask the window manager (EWMH): add or remove the full screen state of the window
+    ::Atom wmState = ::XInternAtom( m_display, "_NET_WM_STATE", False );
+    ::Atom wmFullscreen = ::XInternAtom( m_display, "_NET_WM_STATE_FULLSCREEN", False );
+
+    ::XEvent event;
+    memset( &event, 0, sizeof( event ) );
+    event.type = ClientMessage;
+    event.xclient.window = m_window;
+    event.xclient.message_type = wmState;
+    event.xclient.format = 32;
+    event.xclient.data.l[ 0 ] = fullscreen ? 1 : 0;      // _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE
+    event.xclient.data.l[ 1 ] = (long) wmFullscreen;
+    event.xclient.data.l[ 2 ] = 0;
+    event.xclient.data.l[ 3 ] = 1;                        // a normal application asks
+    ::XSendEvent( m_display, DefaultRootWindow( m_display ), False, SubstructureRedirectMask | SubstructureNotifyMask, &event );
+    ::XFlush( m_display );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CX11Window::SetCursorVisible( bool visible )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_display || 0 == m_window )
+        return;
+
+    if ( visible )
+    {
+        ::XUndefineCursor( m_display, m_window );
+    }
+    else
+    {
+        // a cursor of a single see through pixel
+        static char empty[ 1 ] = { 0 };
+        ::XColor black;
+        memset( &black, 0, sizeof( black ) );
+        ::Pixmap pixmap = ::XCreateBitmapFromData( m_display, m_window, empty, 1, 1 );
+        ::Cursor cursor = ::XCreatePixmapCursor( m_display, pixmap, pixmap, &black, &black, 0, 0 );
+        ::XDefineCursor( m_display, m_window, cursor );
+        ::XFreeCursor( m_display, cursor );
+        ::XFreePixmap( m_display, pixmap );
+    }
+    ::XFlush( m_display );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,8 +279,8 @@ CX11Window::SetWindow( ::Window window )
         CX11EventDispatcher::Instance()->SubscribeOnBehalfOfWindow( AsObserver(), m_window );
 
         // register interest in the delete window message
-        ::Atom wmDeleteMessage = ::XInternAtom( m_display, "WM_DELETE_WINDOW", False );
-        ::XSetWMProtocols( m_display, m_window, &wmDeleteMessage, 1 );
+        m_wmDeleteWindow = ::XInternAtom( m_display, "WM_DELETE_WINDOW", False );
+        ::XSetWMProtocols( m_display, m_window, &m_wmDeleteWindow, 1 );
 
         Show();
         Repaint();
@@ -774,7 +776,8 @@ CX11Window::OnX11Event( const ::XEvent& event )
         }
         case ClientMessage:
         {
-            if ( m_wmDeleteWindow == event.xclient.message_type )
+            // the window manager's WM_PROTOCOLS message carries the protocol in its first value
+            if ( 0 != m_wmDeleteWindow && m_wmDeleteWindow == (::Atom) event.xclient.data.l[ 0 ] )
             {
                 NotifyObservers( WindowCloseEvent );
                 return;

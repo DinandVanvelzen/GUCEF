@@ -28,5 +28,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH) \
   $(MY_MODULE_PATH)/../json-parser
 
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=jsonbuilder -DMODULE_NAME=jsonbuilder
+
 include $(BUILD_STATIC_LIBRARY)
 

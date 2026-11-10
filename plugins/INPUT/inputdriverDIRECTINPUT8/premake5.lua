@@ -25,12 +25,6 @@ configuration( {} )
   targetdir( os.getenv( "PM5TARGETDIR" ) )
 
 configuration( {} )
-language( "C" )
-
-configuration( { "WIN32" } )
-language( "C++" )
-
-configuration( { "WIN64" } )
 language( "C++" )
 
 configuration( { "WIN32" } )
@@ -43,54 +37,48 @@ configuration( { "WIN64" } )
 
 configuration( { WIN64 } )
 kind( "SharedLib" )
-  
-configuration( { WIN32 } )
-links( { "DirectInput8", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "dinput8", "dxguid" } )
-  
-
-configuration( { WIN32 } )
-defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERDIRECTINPUT8_BUILD_MODULE" } )
-  
-configuration( { WIN64 } )
-links( { "DirectInput8", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "dinput8", "dxguid" } )
-  
-
-configuration( { WIN64 } )
-defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERDIRECTINPUT8_BUILD_MODULE" } )
-
-
-configuration( { "WIN32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/DLLMainInputDriverDI8.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/DLLMainInputDriverDI8.cpp"
-    } )
-
-
-
-configuration( { "WIN64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/DLLMainInputDriverDI8.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/DLLMainInputDriverDI8.cpp"
-    } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include" } )
+defines( { "MODULE_CONSENSUS_NAME=inputdriverDIRECTINPUT8" } )
+  
+configuration( { WIN32 } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+  links( { "dinput8", "dxguid" } )
+  
+
+configuration( { WIN32 } )
+defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERDIRECTINPUT8_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverDIRECTINPUT8" } )
+  
+configuration( { WIN64 } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+  links( { "dinput8", "dxguid" } )
+  
+
+configuration( { WIN64 } )
+defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERDIRECTINPUT8_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverDIRECTINPUT8" } )
+
+
+configuration( {} )
+vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+files( {
+  "include/DLLMainInputDriverDI8.h"
+ } )
+
+
+
+configuration( {} )
+vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+files( {
+  "src/DLLMainInputDriverDI8.cpp"
+ } )
+
+
+configuration( {} )
+includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../dependencies/external", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

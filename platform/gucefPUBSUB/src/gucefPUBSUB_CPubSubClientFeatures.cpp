@@ -79,6 +79,7 @@ CPubSubClientFeatures::CPubSubClientFeatures( void )
     , supportsGlobPatternTopicNames( false )
     , supportsPatternBasedAggregateTopic( false )
     , supportsMetrics( false )
+    , supportsReplay( false )
 {GUCEF_TRACE;
 
 }
@@ -131,6 +132,7 @@ CPubSubClientFeatures::SaveConfig( CORE::CDataNode& cfg ) const
     success = cfg.SetAttribute( "supportsGlobPatternTopicNames", supportsGlobPatternTopicNames ) && success;    
     success = cfg.SetAttribute( "supportsPatternBasedAggregateTopic", supportsPatternBasedAggregateTopic ) && success;
     success = cfg.SetAttribute( "supportsMetrics", supportsMetrics ) && success;
+    success = cfg.SetAttribute( "supportsReplay", supportsReplay ) && success;
 
     return success;
 }
@@ -175,6 +177,7 @@ CPubSubClientFeatures::LoadConfig( const CORE::CDataNode& cfg )
     supportsGlobPatternTopicNames = cfg.GetAttributeValueOrChildValueByName( "supportsGlobPatternTopicNames" ).AsBool( supportsGlobPatternTopicNames, true );    
     supportsPatternBasedAggregateTopic = cfg.GetAttributeValueOrChildValueByName( "supportsPatternBasedAggregateTopic" ).AsBool( supportsPatternBasedAggregateTopic, true );
     supportsMetrics = cfg.GetAttributeValueOrChildValueByName( "supportsMetrics" ).AsBool( supportsMetrics, true );
+    supportsReplay = cfg.GetAttributeValueOrChildValueByName( "supportsReplay" ).AsBool( supportsReplay, true );
 
     return true;
 }

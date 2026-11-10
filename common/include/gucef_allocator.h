@@ -71,7 +71,9 @@ namespace GUCEF {
 //-------------------------------------------------------------------------*/
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-  #define NOMINMAX
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
   #undef max
 #endif
 

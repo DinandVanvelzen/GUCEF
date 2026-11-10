@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -90,6 +88,21 @@
 #define GUCEF_CORE_CTHREADLOGBUFFERS_H
 #endif /* GUCEF_CORE_CTHREADLOGBUFFERS_H ? */
 
+#ifndef GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
+#include "gucefCORE_CPlatformNativeConsoleLogger.h"
+#define GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
+#endif /* GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H ? */
+
+#ifndef GUCEF_CORE_CLOGSTREAMSCOPE_H
+#include "gucefCORE_CLogStreamScope.h"
+#define GUCEF_CORE_CLOGSTREAMSCOPE_H
+#endif /* GUCEF_CORE_CLOGSTREAMSCOPE_H ? */
+
+#ifndef GUCEF_CORE_CUSERACTIONLOGGER_H
+#include "gucefCORE_CUserActionLogger.h"
+#define GUCEF_CORE_CUSERACTIONLOGGER_H
+#endif /* GUCEF_CORE_CUSERACTIONLOGGER_H ? */
+
 #include "CLogManager.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -148,9 +161,15 @@ static CharSepLoggingFormatterFactory g_charSepLoggingFormatterFactory;
 CLogManager::CLogManager( void )
     : CORE::CObserver()
     , m_loggers( GUCEF_NEW CMultiLogger() )
+    , m_nativeConsoleLogger( GUCEF_NULL )
+    , m_nativeConsoleLoggerInOwnWindow( false )
+    , m_nativeConsoleLoggerFormatAsConsoleUI( false )
+    , m_userActionLogger( GUCEF_NULL )
     , m_loggingTask()
     , m_useLogThread( false )
     , m_bootstrapLog()
+    , m_maxBootstrapLogEntries( DefaultMaxBootstrapLogEntries )
+    , m_droppedBootstrapLogEntries( 0 )
     , m_busyLogging( false )
     , m_redirectToLogQueue( false )
     , m_logFormatterFactory( false, false )
@@ -176,8 +195,15 @@ CLogManager::CLogManager( void )
 CLogManager::~CLogManager()
 {GUCEF_TRACE;
 
+    // normally gone already, see CLoggingGlobal
+    GUCEF_DELETE m_userActionLogger;
+    m_userActionLogger = GUCEF_NULL;
+
     ClearLoggers();
     ClearLoggingFormatters();
+
+    GUCEF_DELETE m_nativeConsoleLogger;
+    m_nativeConsoleLogger = GUCEF_NULL;
 
     m_loggingTask.Unlink();
 
@@ -212,6 +238,46 @@ CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
     buffers->SetThreadId( threadId, callerIsPulseGeneratorThread );
     m_threadBuffers[ threadId ] = buffers;
     return buffers;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::SetMaxBootstrapLogEntries( UInt32 maxEntries )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    m_maxBootstrapLogEntries = maxEntries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLogManager::GetMaxBootstrapLogEntries( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    return m_maxBootstrapLogEntries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLogManager::GetBootstrapLogEntryCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    return (UInt32) m_bootstrapLog.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CLogManager::GetDroppedBootstrapLogEntryCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    return m_droppedBootstrapLogEntries;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -260,8 +326,13 @@ CLogManager::FlushBootstrapLogEntriesToLogs( void )
 
             ++i;
         }
+        if ( m_droppedBootstrapLogEntries > 0 )
+        {
+            Log( LOG_SYSTEM, LOGLEVEL_NORMAL, "LogManager: " + UInt64ToString( m_droppedBootstrapLogEntries ) + " log entries were dropped while no logger took them and the bootstrap log was full" );
+            m_droppedBootstrapLogEntries = 0;
+        }
         FlushLogs();
-        m_bootstrapLog.clear();
+        TBootstrapLogVector().swap( m_bootstrapLog );      // the memory goes too
 
         Log( LOG_SYSTEM, LOGLEVEL_NORMAL, "LogManager: Finished flushing all bootstrap log entries to the currently registered loggers" );
     }
@@ -277,15 +348,25 @@ void
 CLogManager::AddLogger( CILogger* loggerImp )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    if ( m_useLogThread )
+    // Lock order: nothing is logged, and no task is paused or resumed, under the lock of the log manager. A log
+    // statement takes the lock of the thread buffer map, the thread pool takes locks of its own and logs under them,
+    // and a thread that flushes the thread buffers takes the lock of the log manager to hand their entries to the
+    // loggers: either would close a cycle with a thread that flushes
+    CLoggingTaskBasePtr loggingTask = PauseLoggingTask();
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetCurrentTaskId(), true );
+        MT::CObjectScopeLock lock( this );
+        m_loggers->AddLogger( loggerImp );
     }
-    m_loggers->AddLogger( loggerImp );
-    if ( m_useLogThread )
+    ResumeLoggingTask( loggingTask );
+
+    if ( GUCEF_NULL != loggerImp )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetCurrentTaskId() );
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "LogManager: Added logger" );
+    }
+    else
+    {
+        // Not an error: for example there is no console logger when there is no console to log to
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "LogManager: Null given for logger, nothing to add" );
     }
 }
 
@@ -295,16 +376,207 @@ void
 CLogManager::RemoveLogger( CILogger* loggerImp )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    if ( m_useLogThread )
+    // the lock order of AddLogger()
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "LogManager: Removing logger" );
+
+    CLoggingTaskBasePtr loggingTask = PauseLoggingTask();
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetCurrentTaskId(), true );
+        MT::CObjectScopeLock lock( this );
+        m_loggers->RemoveLogger( loggerImp );
     }
-    m_loggers->RemoveLogger( loggerImp );
-    if ( m_useLogThread )
+    ResumeLoggingTask( loggingTask );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLogManager::CLoggingTaskBasePtr
+CLogManager::PauseLoggingTask( void )
+{GUCEF_TRACE;
+
+    // the task is taken under the lock and paused without it, see AddLogger()
+    CLoggingTaskBasePtr loggingTask;
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetCurrentTaskId() );
+        MT::CObjectScopeLock lock( this );
+        if ( m_useLogThread )
+            loggingTask = m_loggingTask;
     }
+    if ( !loggingTask.IsNULL() )
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( loggingTask->GetCurrentTaskId(), true );
+    return loggingTask;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::ResumeLoggingTask( CLoggingTaskBasePtr& loggingTask )
+{GUCEF_TRACE;
+
+    if ( !loggingTask.IsNULL() )
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( loggingTask->GetCurrentTaskId() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::SetNativeConsoleLoggerEnabled( bool enabled )
+{GUCEF_TRACE;
+
+    if ( enabled == ( GUCEF_NULL != m_nativeConsoleLogger ) )
+        return;
+
+    if ( enabled )
+    {
+        m_nativeConsoleLogger = GUCEF_NEW CPlatformNativeConsoleLogger( m_nativeConsoleLoggerInOwnWindow );
+        if ( GUCEF_NULL != m_nativeConsoleLogger->GetLogger() )
+        {
+            m_nativeConsoleLogger->GetLogger()->SetFormatAsConsoleUI( m_nativeConsoleLoggerFormatAsConsoleUI );
+            AddLogger( m_nativeConsoleLogger->GetLogger() );
+        }
+    }
+    else
+    {
+        if ( GUCEF_NULL != m_nativeConsoleLogger->GetLogger() )
+            RemoveLogger( m_nativeConsoleLogger->GetLogger() );
+        GUCEF_DELETE m_nativeConsoleLogger;
+        m_nativeConsoleLogger = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::IsNativeConsoleLoggerEnabled( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_nativeConsoleLogger;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::SetNativeConsoleLoggerInOwnWindow( bool ownWindow )
+{GUCEF_TRACE;
+
+    if ( ownWindow == m_nativeConsoleLoggerInOwnWindow )
+        return;
+    m_nativeConsoleLoggerInOwnWindow = ownWindow;
+
+    // an enabled logger is made again in the console asked for
+    if ( IsNativeConsoleLoggerEnabled() )
+    {
+        SetNativeConsoleLoggerEnabled( false );
+        SetNativeConsoleLoggerEnabled( true );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::IsNativeConsoleLoggerInOwnWindow( void ) const
+{GUCEF_TRACE;
+
+    return m_nativeConsoleLoggerInOwnWindow;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIConsoleLogger*
+CLogManager::GetNativeConsoleLogger( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_nativeConsoleLogger ? m_nativeConsoleLogger->GetLogger() : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::SetNativeConsoleLoggerFormatAsConsoleUI( bool formatAsConsoleUI )
+{GUCEF_TRACE;
+
+    m_nativeConsoleLoggerFormatAsConsoleUI = formatAsConsoleUI;
+    CIConsoleLogger* logger = GetNativeConsoleLogger();
+    if ( GUCEF_NULL != logger )
+        logger->SetFormatAsConsoleUI( formatAsConsoleUI );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::IsNativeConsoleLoggerFormatAsConsoleUI( void ) const
+{GUCEF_TRACE;
+
+    return m_nativeConsoleLoggerFormatAsConsoleUI;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::SetUserActionLogEnabled( bool enabled, const CString& filePath )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_userActionLogger )
+    {
+        if ( enabled && m_userActionLogger->GetFilePath() == RelativePath( filePath ) )
+            return true;
+
+        // what was logged so far goes to the file before the logger goes
+        FlushLogs();
+        RemoveLogger( m_userActionLogger );
+        GUCEF_DELETE m_userActionLogger;
+        m_userActionLogger = GUCEF_NULL;
+    }
+    if ( !enabled )
+        return true;
+
+    CUserActionLogger* logger = GUCEF_NEW CUserActionLogger( filePath );
+    if ( !logger->IsOpen() )
+    {
+        GUCEF_DELETE logger;
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "LogManager: The user action log cannot be written to " << filePath );
+        return false;
+    }
+    m_userActionLogger = logger;
+    AddLogger( m_userActionLogger );
+
+    // a log of what the user does has nothing to log when the user messages are not made
+    SetUserLogEnabled( true );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::SetUserLogEnabled( bool enabled )
+{GUCEF_TRACE;
+
+    CLogStreamScope::SetUserLogEnabled( enabled );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::IsUserLogEnabled( void ) const
+{GUCEF_TRACE;
+
+    return CLogStreamScope::IsUserLogEnabled();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::IsUserActionLogEnabled( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_userActionLogger;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CLogManager::GetUserActionLogFile( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_userActionLogger ? m_userActionLogger->GetFilePath() : CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -313,16 +585,13 @@ void
 CLogManager::ClearLoggers( void )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    if ( m_useLogThread )
+    // the lock order of AddLogger()
+    CLoggingTaskBasePtr loggingTask = PauseLoggingTask();
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetCurrentTaskId(), true );
+        MT::CObjectScopeLock lock( this );
+        m_loggers->ClearLoggers();
     }
-    m_loggers->ClearLoggers();
-    if ( m_useLogThread )
-    {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetCurrentTaskId() );
-    }
+    ResumeLoggingTask( loggingTask );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -446,6 +715,10 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         )
 {GUCEF_TRACE;
 
+    // the user log is off: the caller gets a stream that goes nowhere, see CLogStreamScope
+    if ( LOG_USER == logMsgType && !CLogStreamScope::IsUserLogEnabled() )
+        return CLogStreamPtr();
+
     // Get or create per-thread buffers
     UInt32 threadId = MT::GetCurrentTaskID();
     CThreadLogBuffers* buffers = GetOrCreateThreadBuffers( threadId );
@@ -492,6 +765,9 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
+    if ( LOG_USER == logMsgType && !CLogStreamScope::IsUserLogEnabled() )
+        return;
+
     MT::CObjectScopeLock lock( this );
 
     // The loglevel must be such so that the message given falls under the global logging
@@ -534,7 +810,10 @@ CLogManager::Log( const TLogMsgType logMsgType ,
             entry.logMessage = logMessage;
             entry.threadId = threadId;
             entry.timestamp = timestamp;
-            m_bootstrapLog.push_back( entry );
+            if ( m_bootstrapLog.size() < m_maxBootstrapLogEntries )
+                m_bootstrapLog.push_back( entry );
+            else
+                ++m_droppedBootstrapLogEntries;
         }
     }
 }
@@ -559,6 +838,9 @@ CLogManager::Log( const TLogMsgType logMsgType     ,
                   const UInt32 threadId            ,
                   const CTimestamp& timestamp      )
 {GUCEF_TRACE;
+
+    if ( LOG_USER == logMsgType && !CLogStreamScope::IsUserLogEnabled() )
+        return;
 
     MT::CObjectScopeLock lock( this );
 
@@ -594,7 +876,10 @@ CLogManager::Log( const TLogMsgType logMsgType     ,
             entry.logMessage = logMessage.ToString();
             entry.threadId = threadId;
             entry.timestamp = timestamp;
-            m_bootstrapLog.push_back( entry );
+            if ( m_bootstrapLog.size() < m_maxBootstrapLogEntries )
+                m_bootstrapLog.push_back( entry );
+            else
+                ++m_droppedBootstrapLogEntries;
         }
     }
 }
@@ -703,8 +988,10 @@ CLogManager::FlushThreadStreamBuffer( CLogStreamPtr buffer )
     if ( buffer.IsNULL() )
         return 0;
 
-    // Successfully swapped - now drain the back buffer
+    // Successfully swapped - now drain the back buffer, nothing to do (nor to allocate) when nothing was logged
     CVariantStream& stream = buffer->GetStream();
+    if ( 0 == stream.GetDataSize() )
+        return 0;
     
     // Process all segments in the buffer
     stream.ResetReadPosition();
@@ -741,10 +1028,16 @@ UInt32
 CLogManager::FlushThreadStreamBuffers( void )
 {GUCEF_TRACE;
 
-    UInt32 flushedCount = 0;
-
-    // We need to iterate over all thread buffers
+    // Lock order: the lock of the log manager, then the lock of the thread buffer map, then the locks of the thread
+    // buffers (CThreadLogBuffers). The lock of the log manager is taken first because the entries of the buffers are
+    // handed to the loggers under it: taken only once the map lock is held, it would close a cycle with a thread that
+    // logs under the lock of the log manager (that log takes the map lock). The map lock is held while the buffers
+    // are drained: it keeps another flush from swapping a buffer this one still drains, and it holds up the threads
+    // that log meanwhile, so that a flush does not chase a thread that logs faster than the loggers take it
+    MT::CObjectScopeLock lock( this );
     MT::CScopeMutex mapLock( m_threadBuffersLock );
+
+    UInt32 flushedCount = 0;
     
     TThreadBufferMap::iterator i = m_threadBuffers.begin();
     while ( i != m_threadBuffers.end() )
@@ -777,18 +1070,18 @@ CLogManager::SetPulseGenerator( PulseGeneratorPtr pulseGenerator )
     if ( pulseGenerator.IsNULL() )
         return false;
 
-    MT::CObjectScopeLock lock( this );
-
-    //Unsubscribe
-
-    m_pulseGenerator = pulseGenerator;
+    // The pulse generator is kept under the lock of the thread buffer map, under which GetOrCreateThreadBuffers()
+    // reads it. The subscription is made without the lock of the log manager: a pulse flushes the thread buffers
+    // under the notification lock of the pulse generator, and the flush takes the lock of the log manager
+    {
+        MT::CScopeMutex mapLock( m_threadBuffersLock );
+        m_pulseGenerator = pulseGenerator;
+    }
 
     CLogManager::TEventCallback callback( this, &CLogManager::OnPulseCycle );
     SubscribeTo( pulseGenerator.GetPointerAlways() ,
                  CORE::CPulseGenerator::PulseEvent ,
                  callback                          );
-
-    lock.EarlyUnlock();
 
     UInt32 threadIdOfDriver = pulseGenerator->GetPulseDriverThreadId();
 
@@ -815,23 +1108,34 @@ void
 CLogManager::SetUseLoggingThread( bool useLogThread )
 {GUCEF_TRACE;
 
+    // The task is started and stopped without the lock of the log manager: the thread pool takes locks of its own and
+    // logs under them, see AddLogger()
     MT::CObjectScopeLock lock( this );
-    if ( useLogThread != m_useLogThread )
+    if ( useLogThread == m_useLogThread )
+        return;
+
+    if ( useLogThread )
     {
-        if ( useLogThread )
+        CLoggingTaskPtr loggingTask( GUCEF_NEW CLoggingTask( *m_loggers ) );
+        lock.EarlyUnlock();
+
+        if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( loggingTask, GUCEF_NULL ).HasAFuture() )
         {
-            CLoggingTaskPtr loggingTask( GUCEF_NEW CLoggingTask( *m_loggers ) );
+            MT::CObjectScopeLock startedLock( this );
             m_loggingTask = loggingTask;
-            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( loggingTask, GUCEF_NULL ).HasAFuture() )
-                m_useLogThread = useLogThread;
+            m_useLogThread = true;
         }
-        else
+    }
+    else
+    {
+        CLoggingTaskBasePtr loggingTask = m_loggingTask;
+        lock.EarlyUnlock();
+
+        if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( loggingTask->GetCurrentTaskId(), false ) )
         {
-            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( m_loggingTask->GetCurrentTaskId(), false ) )
-            {
-                m_useLogThread = useLogThread;
-                m_loggingTask.Unlink();
-            }
+            MT::CObjectScopeLock stoppedLock( this );
+            m_useLogThread = false;
+            m_loggingTask.Unlink();
         }
     }
 }

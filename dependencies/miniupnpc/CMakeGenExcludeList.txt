@@ -4,3 +4,4 @@ testupnpigd.py
 testupnpreplyparse.c
 miniupnpcmodule.c
 minixmlvalid.c
+upnpc.c

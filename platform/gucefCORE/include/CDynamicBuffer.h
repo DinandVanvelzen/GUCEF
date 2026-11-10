@@ -26,6 +26,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>     /* memcpy */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -77,6 +79,21 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
     public:
 
     typedef GUCEF::vector< CDynamicBuffer >        TDynamicBufferVector;
+
+    /**
+     *  How the buffer grows when an operation needs more room and auto enlarge is enabled
+     *  Explicit sizing (SetBufferSize(), SetDataSize()) is always exact
+     */
+    enum EGrowthStrategy
+    {
+        GROWTHSTRATEGY_EXACT     = 0,   /**< grow to exactly what is needed, the default */
+        GROWTHSTRATEGY_GEOMETRIC = 1,   /**< grow by a percentage of the current buffer size, at least to what is needed: amortized constant time appends */
+        GROWTHSTRATEGY_BLOCKS    = 2    /**< grow to what is needed rounded up to a multiple of a block size */
+    };
+    typedef enum EGrowthStrategy TGrowthStrategy;
+
+    static const UInt32 DefaultGeometricGrowthPercentage = 100;
+    static const UInt32 DefaultGrowthBlockSize = 4096;
 
     CDynamicBuffer( CIOAccess& ioAccess );
 
@@ -220,6 +237,24 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
     void SetAutoEnlarge( bool autoenlarge );
 
     bool GetAutoEnlarge( void ) const;
+
+    /**
+     *  Sets how the buffer grows when auto enlarge is enabled, see EGrowthStrategy
+     *  The parameter is the growth percentage for GROWTHSTRATEGY_GEOMETRIC and the block size in bytes for
+     *  GROWTHSTRATEGY_BLOCKS, 0 selects the default for the strategy. It is not used by GROWTHSTRATEGY_EXACT
+     */
+    void SetGrowthStrategy( TGrowthStrategy strategy, UInt32 strategyParam = 0 );
+
+    TGrowthStrategy GetGrowthStrategy( void ) const;
+
+    UInt32 GetGrowthStrategyParam( void ) const;
+
+    /**
+     *  Makes sure the buffer holds at least requiredSize bytes, growing it the way the given strategy says
+     *  This is what the implicit growth of the buffer uses with its own strategy, it allows users of the buffer
+     *  (CDynamicBufferAccess for example) to grow it with a strategy of their choosing. Honours auto enlarge.
+     */
+    bool EnsureBufferSizeForGrowth( UInt32 requiredSize, TGrowthStrategy strategy, UInt32 strategyParam );
 
     /**
      *  Special operation that allows you to link to data outside of the dynamic buffer
@@ -493,7 +528,20 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
 
     /**
      *  Utility member function:
+     *  Copies a value of the given type out of the buffer at the given offset. Unlike AsConstType() the offset does not
+     *  have to suit the alignment of the type, which is what reading packed data (serialized streams, file formats) needs
+     *
+     *  @throw EIllegalCast thrown when the buffer does not have the bytes of the type at the offset
+     */
+    template< typename T >
+    T ReadValue( const UInt32 byteOffset = 0 ) const;
+
+    /**
+     *  Utility member function:
      *  Performs easy casting to the given type as a pointer at the given offset
+     *
+     *  There has to be at least one T worth of data at the offset. A buffer without data therefore always refuses,
+     *  there is no pointer to give. Check GetDataSize() first if the buffer can be empty.
      *
      *  @throw EIllegalCast thrown when the cast cannot be performed with the data available in the buffer
      */
@@ -541,10 +589,18 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
         */
     void SecureLinkBeforeMutation( void );
 
+    /**
+     *  Makes sure the buffer holds at least requiredSize bytes for an operation that grows the buffer implicitly
+     *  Honours the auto enlarge setting and the growth strategy of the buffer
+     */
+    bool EnsureBufferSizeForGrowth( UInt32 requiredSize );
+
     private:
 
     bool m_linked;     /**< is the buffer only linked to data owned by someone else ? */
     bool _autoenlarge; /**< automatically enlarge buffer ? */
+    TGrowthStrategy m_growthStrategy;   /**< how to enlarge the buffer */
+    UInt32 m_growthStrategyParam;       /**< percentage or block size depending on the strategy, 0 = default */
     Int8* _buffer;     /**< our byte buffer */
     UInt32 _bsize;     /**< current size of the buffer */
     UInt32 m_dataSize; /**< logical buffer size, extend of the buffer actually filled with data */
@@ -594,6 +650,24 @@ CDynamicBuffer::AsConstType( const UInt32 byteOffset /* = 0 */ ) const
     }
 
     GUCEF_EMSGTHROW( EIllegalCast, "GUCEF::CORE::CDynamicBuffer::AsConstType(): Cannot cast to the given type. Need " + 
+        ToString( (UInt32) sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T >
+T
+CDynamicBuffer::ReadValue( const UInt32 byteOffset /* = 0 */ ) const
+{GUCEF_TRACE;
+
+    if ( byteOffset + sizeof( T ) <= GetDataSize() )
+    {
+        T value;
+        memcpy( &value, static_cast< const char* >( GetConstBufferPtr() ) + byteOffset, sizeof( T ) );
+        return value;
+    }
+
+    GUCEF_EMSGTHROW( EIllegalCast, "GUCEF::CORE::CDynamicBuffer::ReadValue(): Cannot read the given type. Need " +
         ToString( (UInt32) sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
 }
 
@@ -660,7 +734,7 @@ CDynamicBuffer::AppendValue( const T value, const bool appendToLogicalData )
 
 /*-------------------------------------------------------------------------*/
 
-inline CString ToString( const CDynamicBuffer& src ) {GUCEF_TRACE; return CString( src.AsConstTypePtr< char >(), src.GetDataSize(), src.GetDataSize(), true ); }
+inline CString ToString( const CDynamicBuffer& src ) {GUCEF_TRACE; return 0 == src.GetDataSize() ? CString() : CString( src.AsConstTypePtr< char >(), src.GetDataSize(), src.GetDataSize(), true ); }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

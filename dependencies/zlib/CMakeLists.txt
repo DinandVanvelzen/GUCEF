@@ -17,13 +17,13 @@ if (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
+    gzguts.h
     inffast.h
     inffixed.h
     inflate.h
     inftrees.h
     trees.h
     zconf.h
-    zconf.in.h
     zlib.h
     zutil.h
   )
@@ -36,7 +36,10 @@ if (EMSCRIPTEN32)
     compress.c
     crc32.c
     deflate.c
-    gzio.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
     infback.c
     inffast.c
     inflate.c
@@ -53,13 +56,13 @@ elseif (EMSCRIPTEN64)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
+    gzguts.h
     inffast.h
     inffixed.h
     inflate.h
     inftrees.h
     trees.h
     zconf.h
-    zconf.in.h
     zlib.h
     zutil.h
   )
@@ -72,7 +75,10 @@ elseif (EMSCRIPTEN64)
     compress.c
     crc32.c
     deflate.c
-    gzio.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
     infback.c
     inffast.c
     inflate.c
@@ -89,13 +95,13 @@ elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
+    gzguts.h
     inffast.h
     inffixed.h
     inflate.h
     inftrees.h
     trees.h
     zconf.h
-    zconf.in.h
     zlib.h
     zutil.h
   )
@@ -108,7 +114,10 @@ elseif (LINUX32)
     compress.c
     crc32.c
     deflate.c
-    gzio.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
     infback.c
     inffast.c
     inflate.c
@@ -125,13 +134,13 @@ elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
+    gzguts.h
     inffast.h
     inffixed.h
     inflate.h
     inftrees.h
     trees.h
     zconf.h
-    zconf.in.h
     zlib.h
     zutil.h
   )
@@ -144,7 +153,10 @@ elseif (LINUX64)
     compress.c
     crc32.c
     deflate.c
-    gzio.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
     infback.c
     inffast.c
     inflate.c
@@ -161,13 +173,13 @@ elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
+    gzguts.h
     inffast.h
     inffixed.h
     inflate.h
     inftrees.h
     trees.h
     zconf.h
-    zconf.in.h
     zlib.h
     zutil.h
   )
@@ -180,7 +192,10 @@ elseif (WIN32)
     compress.c
     crc32.c
     deflate.c
-    gzio.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
     infback.c
     inffast.c
     inflate.c
@@ -197,13 +212,13 @@ elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
+    gzguts.h
     inffast.h
     inffixed.h
     inflate.h
     inftrees.h
     trees.h
     zconf.h
-    zconf.in.h
     zlib.h
     zutil.h
   )
@@ -216,7 +231,10 @@ elseif (WIN64)
     compress.c
     crc32.c
     deflate.c
-    gzio.c
+    gzclose.c
+    gzlib.c
+    gzread.c
+    gzwrite.c
     infback.c
     inffast.c
     inflate.c
@@ -236,9 +254,9 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 
 if( EMSCRIPTEN32 )
-  set( MODULE_NAME "" )
+  set( MODULE_NAME "zlib" )
 elseif( EMSCRIPTEN64 )
-  set( MODULE_NAME "" )
+  set( MODULE_NAME "zlib" )
 elseif( LINUX32 )
   set( MODULE_NAME "zlib" )
 elseif( LINUX64 )
@@ -263,19 +281,19 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
 endif( WIN32 )
 
 if ( WIN64 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZZIP_HAVE_STDINT_H" )
 endif( WIN64 )
 
 

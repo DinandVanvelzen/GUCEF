@@ -1857,7 +1857,7 @@ RedisInfoService::GetRedisStreamInfo( struct redisReply* replyNode           ,
                         case REDIS_REPLY_ERROR:
                         case REDIS_REPLY_INTEGER:
                         {
-                            info.Set( infoElementName, replyNode->element[ i ]->integer );
+                            info.Set( infoElementName, (CORE::Int64) replyNode->element[ i ]->integer );
                             break;
                         }
                         case REDIS_REPLY_DOUBLE:

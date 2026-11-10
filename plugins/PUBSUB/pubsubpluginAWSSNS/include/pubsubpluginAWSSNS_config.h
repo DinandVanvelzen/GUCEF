@@ -1,5 +1,5 @@
 /*
- *  pubsubpluginAWSSQS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SQS
+ *  pubsubpluginAWSSNS: Generic GUCEF COMCORE plugin for providing pubsub via AWS's SNS
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
  *
@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_AWSSQS_CONFIG_H
-#define PUBSUBPLUGIN_AWSSQS_CONFIG_H
+#ifndef PUBSUBPLUGIN_AWSSNS_CONFIG_H
+#define PUBSUBPLUGIN_AWSSNS_CONFIG_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -25,10 +25,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#define PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_CPP_CODE
-#define PUBSUBPLUGIN_AWSSQS_PLUGIN_PUBLIC_C_CODE
+#define PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_CPP_CODE
+#define PUBSUBPLUGIN_AWSSNS_PLUGIN_PUBLIC_C_CODE
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_AWSSQS_CONFIG_H ? */
+#endif /* PUBSUBPLUGIN_AWSSNS_CONFIG_H ? */
 

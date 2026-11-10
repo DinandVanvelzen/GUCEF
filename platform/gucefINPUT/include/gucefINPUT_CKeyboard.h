@@ -76,6 +76,7 @@ class GUCEF_INPUT_PUBLIC_CPP CKeyboard : public CAbstractInputDevice
     
     static const CORE::CEvent KeyStateChangedEvent;      /**< event signaling that the state of a key changed, eventdata = CKeyStateChangedEventData */
     static const CORE::CEvent KeyModStateChangedEvent;   /**< event signaling that the state of a key modifier changed, eventdata = CKeyModStateChangedEventData */
+    static const CORE::CEvent TextInputEvent;            /**< text was typed (after keyboard layout and input method), eventdata = CKeyboardTextEventData */
     
     static void RegisterEvents( void );
 
@@ -129,6 +130,9 @@ class GUCEF_INPUT_PUBLIC_CPP CKeyboard : public CAbstractInputDevice
 
     void SetKeyModState( const KeyModifier keyMod , 
                          const bool pressedState  );
+
+    void SetText( const Int32 contextId ,
+                  const CString& text   );
                          
     void ResetKeyboardState( void );
        

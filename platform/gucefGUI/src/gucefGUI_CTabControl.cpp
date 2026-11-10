@@ -23,6 +23,21 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
+#ifndef GUCEF_GUI_CGUICONTEXT_H
+#include "gucefGUI_CGUIContext.h"
+#define GUCEF_GUI_CGUICONTEXT_H
+#endif /* GUCEF_GUI_CGUICONTEXT_H ? */
+
+#ifndef GUCEF_GUI_CTABCONTENTPANE_H
+#include "gucefGUI_CTabContentPane.h"
+#define GUCEF_GUI_CTABCONTENTPANE_H
+#endif /* GUCEF_GUI_CTABCONTENTPANE_H ? */
+
 #include "gucefGUI_CTabControl.h"
 
 /*-------------------------------------------------------------------------//
@@ -44,39 +59,41 @@ const CORE::CEvent CTabControl::ActiveTabChangedEvent = "GUCEF::GUI::CTabControl
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 void
 CTabControl::RegisterEvents( void )
-{
+{GUCEF_TRACE;
+
     ActiveTabChangedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CTabControl::CTabControl( void )
-    : CWidget()
+    : CWidget( "TabControl" )
 {GUCEF_TRACE;
 
     RegisterEvents();
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
 CTabControl::~CTabControl()
 {GUCEF_TRACE;
+
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-Int32
-CTabControl::GetActiveTab( void ) const
+CWidget*
+CTabControl::Create( void )
 {GUCEF_TRACE;
 
-    return -1;
+    return GUCEF_NEW CTabControl();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -85,7 +102,16 @@ bool
 CTabControl::SetActiveTab( const UInt32 tabIndex )
 {GUCEF_TRACE;
 
-    return false;
+    return SetIntProperty( EWidgetProperty_ActiveTab, (Int32) tabIndex );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CTabControl::GetActiveTab( void ) const
+{GUCEF_TRACE;
+
+    return GetIntProperty( EWidgetProperty_ActiveTab );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -94,11 +120,176 @@ CTabContentPane*
 CTabControl::GetTabContentPane( const UInt32 tabIndex )
 {GUCEF_TRACE;
 
-    return NULL;
+    UInt32 index = 0;
+    const TWidgetVector& children = GetChildren();
+    for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
+    {
+        CTabContentPane* pane = CWidget::As< CTabContentPane >( children[ i ] );
+        if ( GUCEF_NULL == pane )
+            continue;
+        if ( index == tabIndex )
+            return pane;
+        ++index;
+    }
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
+UInt32
+CTabControl::GetTabCount( void ) const
+{GUCEF_TRACE;
+
+    return (UInt32) GetStringListProperty( EWidgetProperty_Tabs ).size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRect
+CTabControl::GetTabRect( UInt32 tabIndex ) const
+{GUCEF_TRACE;
+
+    UInt32 count = GetTabCount();
+    if ( 0 == count || tabIndex >= count )
+        return CRect();
+    Int32 width = GetRect().width / (Int32) count;
+    return CRect( (Int32) tabIndex * width, 0, width, GetIntProperty( EWidgetProperty_TabHeight ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CTabControl::GetTabAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    UInt32 count = GetTabCount();
+    for ( UInt32 i=0; i<count; ++i )
+        if ( GetTabRect( i ).Contains( localX, localY ) )
+            return (Int32) i;
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CTabControl::GetTabTextRoom( UInt32 tabIndex ) const
+{GUCEF_TRACE;
+
+    Int32 room = GetTabRect( tabIndex ).width - 2 * TAB_TEXT_PADDING;
+    return room > 0 ? room : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTabControl::IsTabTitleCut( UInt32 tabIndex ) const
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    const TStringVector titles = GetStringListProperty( EWidgetProperty_Tabs );
+    if ( GUCEF_NULL == context || tabIndex >= (UInt32) titles.size() || titles[ tabIndex ].IsNULLOrEmpty() )
+        return false;
+    Int32 width = 0, height = 0;
+    context->MeasureText( GetPropertyRef( EWidgetProperty_Font ), titles[ tabIndex ], 0, width, height );
+    return width > GetTabTextRoom( tabIndex );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CTabControl::GetTooltipAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    if ( "Ellipsis" == GetPropertyRef( EWidgetProperty_TextOverflow ) )
+    {
+        const Int32 tab = GetTabAt( localX, localY );
+        if ( tab >= 0 && IsTabTitleCut( (UInt32) tab ) )
+            return GetStringListProperty( EWidgetProperty_Tabs )[ (UInt32) tab ];
+    }
+    return CWidget::GetTooltipAt( localX, localY );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTabControl::ShowActivePane( void )
+{GUCEF_TRACE;
+
+    Int32 active = GetActiveTab();
+    UInt32 index = 0;
+    const TWidgetVector& children = GetChildren();
+    for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
+    {
+        CTabContentPane* pane = CWidget::As< CTabContentPane >( children[ i ] );
+        if ( GUCEF_NULL == pane )
+            continue;
+        pane->SetVisibility( (Int32) index == active );
+        ++index;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTabControl::OnChildrenChanged( void )
+{GUCEF_TRACE;
+
+    ShowActivePane();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTabControl::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
+{GUCEF_TRACE;
+
+    if ( property == EWidgetProperty_ActiveTab )
+    {
+        ShowActivePane();
+        TActiveTabChangedEventData eventData( (UInt32) GetActiveTab() );
+        NotifyObservers( ActiveTabChangedEvent, &eventData );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTabControl::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData )
+{GUCEF_TRACE;
+
+    UInt32 count = GetTabCount();
+    if ( 0 == count )
+        return false;
+
+    if ( MouseClickEvent == eventId )
+    {
+        CPointerEventData* pointer = static_cast< CPointerEventData* >( &eventData );
+        if ( MOUSEBUTTON_LEFT != pointer->button )
+            return false;
+        for ( UInt32 i=0; i<count; ++i )
+        {
+            if ( GetTabRect( i ).Contains( pointer->localX, pointer->localY ) )
+            {
+                ChangeValueByUser( EWidgetProperty_ActiveTab, CORE::Int32ToString( (Int32) i ) );
+                return true;
+            }
+        }
+        return false;
+    }
+    if ( NavigationEvent == eventId )
+    {
+        CNavigationEventData* nav = static_cast< CNavigationEventData* >( &eventData );
+        Int32 active = GetActiveTab();
+        if ( NAVIGATION_LEFT == nav->direction && active > 0 )
+            return ChangeValueByUser( EWidgetProperty_ActiveTab, CORE::Int32ToString( active - 1 ) );
+        if ( NAVIGATION_RIGHT == nav->direction && active + 1 < (Int32) count )
+            return ChangeValueByUser( EWidgetProperty_ActiveTab, CORE::Int32ToString( active + 1 ) );
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CString&
 CTabControl::GetClassTypeName( void ) const
 {GUCEF_TRACE;
@@ -106,6 +297,9 @@ CTabControl::GetClassTypeName( void ) const
     static const CString classTypeName = "GUCEF::GUI::CTabControl";
     return classTypeName;
 }
+
+/*-------------------------------------------------------------------------*/
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

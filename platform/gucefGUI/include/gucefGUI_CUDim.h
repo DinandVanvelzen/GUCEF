@@ -53,7 +53,7 @@ class GUCEF_GUI_PUBLIC_CPP CUDim
     CUDim( void );
     
     CUDim( const Float32 relativeValue ,
-           const UInt32 pixelValue     );
+           const Int32 pixelValue      );
     
     CUDim( const CUDim& src );
     
@@ -69,14 +69,23 @@ class GUCEF_GUI_PUBLIC_CPP CUDim
     
     Float32 GetRelativeValue( void ) const;
     
-    void SetPixelValue( const UInt32 pixelValue );
+    void SetPixelValue( const Int32 pixelValue );
     
-    UInt32 GetPixelValue( void ) const;
+    Int32 GetPixelValue( void ) const;
+
+    /** The size in pixels for the given size of the parent: relative * parentSize + pixels, rounded */
+    Int32 Resolve( const Int32 parentSize ) const;
+
+    /** "relative,pixels", for example "0.5,-20" */
+    CString ToString( void ) const;
+
+    /** Accepts "relative,pixels" or a single number, which is taken as pixels */
+    static bool FromString( const CString& str, CUDim& dim );
     
     private:
     
     Float32 m_relativeValue;
-    UInt32 m_pixelValue;
+    Int32 m_pixelValue;
 };
 
 /*-------------------------------------------------------------------------//

@@ -40,24 +40,73 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=gucefCOM_TestApp", "MODULE_NAME=gucefCOM_TestApp" } )
+defines( { "GUCEF_COM_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCOM_TestApp", "MODULE_NAME=gucefCOM_TestApp" } )
+
+
+configuration( {} )
+vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+files( {
+  "include/TestCode_Pump.h",
+  "include/TestDiscovery.h",
+  "include/TestImapClient.h",
+  "include/TestIrc.h",
+  "include/TestJsonRpc.h",
+  "include/TestMailParsers.h",
+  "include/TestMailSetup.h",
+  "include/TestMailShared.h",
+  "include/TestMcpClientSupport.h",
+  "include/TestMcpCore.h",
+  "include/TestMcpLegacy.h",
+  "include/TestMcpPolicy.h",
+  "include/TestMcpRegistry.h",
+  "include/TestMcpStdio.h",
+  "include/TestMcpSupport.h",
+  "include/TestMcpTcp.h",
+  "include/TestMime.h",
+  "include/TestNatTraversal.h",
+  "include/TestPop3Client.h",
+  "include/TestRpcTcp.h",
+  "include/TestRttProbes.h",
+  "include/TestSmtpClient.h",
+  "include/TestStatsDClient.h"
+ } )
+
 
 
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestDiscovery.cpp",
+  "src/TestImapClient.cpp",
+  "src/TestIrc.cpp",
+  "src/TestJsonRpc.cpp",
+  "src/TestMailParsers.cpp",
+  "src/TestMailSetup.cpp",
+  "src/TestMcpCore.cpp",
+  "src/TestMcpLegacy.cpp",
+  "src/TestMcpPolicy.cpp",
+  "src/TestMcpRegistry.cpp",
+  "src/TestMcpStdio.cpp",
+  "src/TestMcpTcp.cpp",
+  "src/TestMime.cpp",
+  "src/TestNatTraversal.cpp",
+  "src/TestPop3Client.cpp",
+  "src/TestRpcTcp.cpp",
+  "src/TestRttProbes.cpp",
+  "src/TestSmtpClient.cpp",
+  "src/TestStatsDClient.cpp",
   "src/gucefCOM_TestApp_main.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../tests/gucefCOMCORE_TestApp/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
+includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )

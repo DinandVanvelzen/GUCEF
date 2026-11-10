@@ -74,6 +74,8 @@
 			<Define String="_XOPEN_SOURCE=500" /> 
 			<Define String="AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR" /> 
 			<Define String="PLATFORM_LINUX" /> 
+			<Define String="BYO_CRYPTO" /> <!-- must match aws-c-io, s2n is not available -->
+			<Define String="ENABLE_CURL_CLIENT=1" /> <!-- the HTTP client of the SDK on Linux, without it the SDK has no HTTP client at all -->
         </Preprocessor>
     </Module>
     <Module Platform="android">

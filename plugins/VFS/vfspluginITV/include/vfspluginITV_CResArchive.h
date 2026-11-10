@@ -26,7 +26,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <map>
 
 #ifndef GUCEF_VFS_CVFS_H
 #include "gucefVFS_CVFS.h"
@@ -115,9 +114,23 @@ class CResArchive : public VFS::CArchive
 
     virtual bool LoadArchive( const VFS::CArchiveSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Loads the archive from an already opened resource, which is either the index (IDX) or the resource data (RES) file.
+     *  The other half of the pair is looked up next to it, in the VFS, using the path of the given resource.
+     *  This is what allows the archive to live inside another archive, for example on a disc image.
+     */
     virtual bool LoadArchive( const VFS::CString& archiveName       ,
                               VFS::TBasicVfsResourcePtr vfsResource ,
                               const bool writeableRequest           ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Loads the archive from IO access objects for the index (IDX) and resource data (RES) files.
+     *  The resource access is kept for the lifetime of the archive.
+     */
+    bool LoadArchive( const VFS::CString& archiveName ,
+                      const VFS::CString& archivePath ,
+                      CORE::IOAccessPtr idxAccess     ,
+                      CORE::IOAccessPtr resAccess     );
     
     virtual bool UnloadArchive( void ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -159,7 +172,8 @@ class CResArchive : public VFS::CArchive
         CORE::Int32 offset;     // offset of resource in res file
     };
     typedef struct SIdxRecord IdxRecord;
-    typedef std::vector< IdxRecord > IndexVector;
+    typedef GUCEF::vector< IdxRecord > IndexVector;
+    typedef GUCEF::map< CORE::Int32, size_t > IndexLookupMap;     // resource id -> position in the IndexVector
 
     struct SIdx
     {
@@ -208,7 +222,13 @@ class CResArchive : public VFS::CArchive
     LoadFile( const VFS::CString& file      ,
               const VFS::UInt32 memLoadSize ) const;
 
-    bool LoadIndex( void );
+    bool LoadIndex( CORE::CIOAccess& idxAccess );
+
+    /**
+     *  Gives access to the resource data file that is safe to use independently of other users of the archive,
+     *  if the underlying access cannot provide that the shared access is returned
+     */
+    CORE::IOAccessPtr GetResAccessForReading( void ) const;
 
     bool GetResourceInfo( CORE::Int32 resourceId ,
                           CORE::Int32& offset    ,
@@ -218,9 +238,11 @@ class CResArchive : public VFS::CArchive
 
     CORE::CString m_archiveName;
     CORE::CString m_archivePath;
-    CORE::CString m_idxPath;
-    CORE::CString m_resPath;
+    CORE::IOAccessPtr m_resAccess;
+    VFS::TBasicVfsResourcePtr m_idxResource;
+    VFS::TBasicVfsResourcePtr m_resResource;
     Idx m_index;
+    IndexLookupMap m_indexLookup;
 };
 
 /*-------------------------------------------------------------------------//

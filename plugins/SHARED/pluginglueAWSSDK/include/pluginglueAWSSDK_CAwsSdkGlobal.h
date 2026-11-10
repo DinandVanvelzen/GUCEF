@@ -109,6 +109,8 @@ class GUCEF_PLUGINGLUE_AWSSDK_EXPORT_CPP CAwsSdkGlobal : public CORE::CObserving
 
     static void Deinstance( void );
 
+    static void ShutdownAtProcessExit( void );
+
     private:
 
     CAwsSdkGlobal( void );
@@ -125,6 +127,7 @@ class GUCEF_PLUGINGLUE_AWSSDK_EXPORT_CPP CAwsSdkGlobal : public CORE::CObserving
     Aws::SDKOptions m_awsSdkOptions;
     CredentialsProviderPtr m_credsProvider;
     CClientConfigurationPtr m_defaultClientConfig;
+    bool m_isAwsApiInitialized;
     
     static MT::CMutex g_dataLock;
     static CAwsSdkGlobal* g_instance;

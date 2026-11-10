@@ -1,0 +1,29 @@
+<ModuleInfoEntry>
+    <Module Name="audiodriverAAUDIO" Type="SharedLibrary" Platform="android" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefAUDIO driver plugin for AAudio on Android</DescriptionHeadline>
+            <DescriptionDetails>Plays audio through AAudio, the native audio interface of Android 8 and newer. libaaudio is loaded when the plugin loads, so building it needs nothing beyond the NDK and on older Android versions the plugin simply does not load.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefAUDIO" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_AUDIODRIVER_AAUDIO_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,9 @@
+common/include/*
+dependencies/libogg/*
+dependencies/libvorbis/*
+dependencies/opus/*
+platform/gucefAUDIO/include/*
+platform/gucefCORE/include/*
+platform/gucefMT/include/*
+plugins/AUDIO/audiocodecpluginOGG/*
+plugins/AUDIO/audiodriverALSA/*

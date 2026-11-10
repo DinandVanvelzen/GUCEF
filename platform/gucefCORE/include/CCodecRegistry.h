@@ -65,6 +65,13 @@ class CCoreGlobal;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The codecs of the process: a registry per family with a codec per type.
+ *
+ *  Several providers can offer the same family and type (the OS, a plugin, built in software). Each registration
+ *  through RegisterCodec() has a priority; the family registry holds the provider with the highest priority, so code
+ *  that looks codecs up in the family registries gets that one. GetCodecs() lists all of them.
+ */
 class GUCEF_CORE_PUBLIC_CPP CCodecRegistry : public CTONRegistry< CTONRegistry< CICodec, MT::CMutex >, MT::CMutex >
 {
     public:
@@ -75,11 +82,53 @@ class GUCEF_CORE_PUBLIC_CPP CCodecRegistry : public CTONRegistry< CTONRegistry< 
     typedef TCodecFamilyRegistry::TRegisteredObjPtr              TICodecPtr;
     typedef TCodecFamilyRegistry::TRegisteredObjTypedPtr         TICodecTypedPtr;
     typedef TCodecFamilyRegistry::TRegisteredObjPtrVector        TICodecPtrVector;
-    
+
+    static const Int32 SoftwareCodecPriority;   /**< built in portable code: 25, the fallback that is always there */
+    static const Int32 PluginCodecPriority;     /**< plugins: 50 unless the plugin or its configuration says otherwise */
+    static const Int32 OsCodecPriority;         /**< the operating system: 100 */
+
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    TICodecPtr TryGetCodec( const CString& codecFamily , 
+    /** The provider with the highest priority of the family and type (case insensitive), NULL when there is none */
+    TICodecPtr TryGetCodec( const CString& codecFamily ,
                             const CString& codecName   ) const;
+
+    /**
+     *  Adds a provider of the codec's family and type (GetFamilyName(), GetType()).
+     *  Equal priorities keep the order of registration. The family registry is made when needed.
+     *  Returns false when this codec object is already registered under that family and type
+     */
+    bool RegisterCodec( const TICodecPtr& codec                     ,
+                        Int32 priority = PluginCodecPriority        );
+
+    /** Adds a provider under the given family and type, for a codec that is offered under more than one name */
+    bool RegisterCodec( const CString& codecFamily     ,
+                        const CString& codecType       ,
+                        const TICodecPtr& codec        ,
+                        Int32 priority                 );
+
+    /**
+     *  Takes out every registration of this codec object. Other providers of the same types stay,
+     *  the one with the highest priority of them takes its place in the family registry
+     */
+    bool UnregisterCodec( const TICodecPtr& codec );
+
+    /** All providers of the family and type, highest priority first. False when there is none */
+    bool GetCodecs( const CString& codecFamily ,
+                    const CString& codecType   ,
+                    TICodecPtrVector& codecs   ) const;
+
+    /** The priority the codec object is registered with under the family and type, false when it is not */
+    bool TryGetCodecPriority( const CString& codecFamily ,
+                              const CString& codecType   ,
+                              const CICodec* codec       ,
+                              Int32& priority            ) const;
+
+    /** How many references to the codec object the registry holds, so an owner can tell whether others use it */
+    UInt32 GetHeldReferenceCount( const CICodec* codec ) const;
+
+    /** Takes out all families and all registrations */
+    virtual void UnregisterAll( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     protected:
 
@@ -95,12 +144,36 @@ class GUCEF_CORE_PUBLIC_CPP CCodecRegistry : public CTONRegistry< CTONRegistry< 
     virtual ~CCodecRegistry();
 
     private:
-    
+
     CCodecRegistry( const CCodecRegistry& src );              /**< not implemented, don't use */
     CCodecRegistry& operator=( const CCodecRegistry& src );   /**< not implemented, don't use */
 
+    struct SCodecRegistration
+    {
+        TICodecPtr codec;
+        Int32 priority;
+    };
+    typedef GUCEF::vector< SCodecRegistration > TCodecRegistrationVector;
+
+    /** The registrations of one family and type, highest priority first */
+    struct SCodecTypeRegistrations
+    {
+        CString codecFamily;
+        CString codecType;
+        TCodecRegistrationVector registrations;
+    };
+    typedef GUCEF::map< CString, SCodecTypeRegistrations > TCodecTypeRegistrationsMap;
+
+    static CString GetRegistrationKey( const CString& codecFamily, const CString& codecType );
+
+    TCodecFamilyRegistryPtr GetOrCreateFamilyRegistry( const CString& codecFamily );
+
+    void UpdateFamilyRegistry( const SCodecTypeRegistrations& typeRegistrations );
+
     private:
+
     MT::CMutex m_dataLock;
+    TCodecTypeRegistrationsMap m_registrations;
 };
 
 /*-------------------------------------------------------------------------//

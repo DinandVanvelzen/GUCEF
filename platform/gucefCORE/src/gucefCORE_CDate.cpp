@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -85,7 +83,7 @@ CDate::CDate( const time_t& src, bool isUtc )
 
     m_year = (Int16) brokenDownTime->tm_year+1900;
     m_month = (UInt8) brokenDownTime->tm_mon+1;
-    m_day = (UInt8) brokenDownTime->tm_wday+1;
+    m_day = (UInt8) brokenDownTime->tm_mday;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -129,7 +127,7 @@ CDate::TodaysUTCDate( void )
     ::GetSystemTime( &systemTime );
     return CDate( (UInt16) systemTime.wYear, (UInt8) systemTime.wMonth, (UInt8) systemTime.wDay );
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     struct timespec time;
     ::memset( &time, 0, sizeof(time) );
@@ -138,7 +136,7 @@ CDate::TodaysUTCDate( void )
     ::gmtime_r( &time.tv_sec, &utcTime );
     return CDate( (Int16) utcTime.tm_year+1900,
                   (UInt8) utcTime.tm_mon+1,
-                  (UInt8) utcTime.tm_wday+1);
+                  (UInt8) utcTime.tm_mday);
 
     #else
 
@@ -159,7 +157,7 @@ CDate::TodaysLocalDate( void )
     ::GetLocalTime( &systemTime );
     return CDate( (UInt16) systemTime.wYear, (UInt8) systemTime.wMonth, (UInt8) systemTime.wDay );
 
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     struct timespec time;
     ::memset( &time, 0, sizeof(time) );
@@ -168,7 +166,7 @@ CDate::TodaysLocalDate( void )
     ::localtime_r( &time.tv_sec, &hereTime );
     return CDate( (Int16) hereTime.tm_year+1900,
                   (UInt8) hereTime.tm_mon+1,
-                  (UInt8) hereTime.tm_wday+1);
+                  (UInt8) hereTime.tm_mday);
 
     #else
 
@@ -288,6 +286,192 @@ CDate::operator!=( const CDate& src ) const
 {GUCEF_TRACE;
 
     return m_year != src.m_year || m_month != src.m_month || m_day != src.m_day;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::operator<( const CDate& src ) const
+{GUCEF_TRACE;
+
+    if ( m_year != src.m_year )
+        return m_year < src.m_year;
+    if ( m_month != src.m_month )
+        return m_month < src.m_month;
+    return m_day < src.m_day;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::operator<=( const CDate& src ) const
+{GUCEF_TRACE;
+
+    return !( src < *this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::operator>( const CDate& src ) const
+{GUCEF_TRACE;
+
+    return src < *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::operator>=( const CDate& src ) const
+{GUCEF_TRACE;
+
+    return !( *this < src );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::IsValid( void ) const
+{GUCEF_TRACE;
+
+    return m_month >= 1 && m_month <= 12 && m_day >= 1 && m_day <= GetDaysInMonth();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Division that rounds towards negative infinity, C++98 leaves the rounding
+ *  of negative operands in integer division up to the implementation.
+ */
+static Int32
+FloorDiv( Int32 numerator, Int32 denominator )
+{GUCEF_TRACE;
+
+    Int32 quotient = numerator / denominator;
+    if ( ( numerator % denominator != 0 ) && ( ( numerator < 0 ) != ( denominator < 0 ) ) )
+        --quotient;
+    return quotient;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CDate::ToDaysSinceUnixEpoch( void ) const
+{GUCEF_TRACE;
+
+    // Days from civil algorithm, March based years so the leap day is the last day of the year
+    Int32 y = (Int32) m_year;
+    Int32 m = (Int32) m_month;
+    Int32 d = (Int32) m_day;
+    if ( m <= 2 )
+        --y;
+    Int32 era = FloorDiv( y, 400 );
+    Int32 yearOfEra = y - era * 400;                                          // [0, 399]
+    Int32 dayOfYear = ( 153 * ( m > 2 ? m - 3 : m + 9 ) + 2 ) / 5 + d - 1;    // [0, 365]
+    Int32 dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;    // [0, 146096]
+    return era * 146097 + dayOfEra - 719468;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::FromDaysSinceUnixEpoch( Int32 daysSinceUnixEpoch )
+{GUCEF_TRACE;
+
+    // 64 bit throughout: the shifted day count and the era product overflow 32 bits at both ends of the Int32 range
+    Int64 z = (Int64) daysSinceUnixEpoch + 719468;
+    Int64 era = z >= 0 ? z / 146097 : ( z - 146096 ) / 146097;
+    Int64 dayOfEra = z - era * 146097;                                                       // [0, 146096]
+    Int64 yearOfEra = ( dayOfEra - dayOfEra / 1460 + dayOfEra / 36524 - dayOfEra / 146096 ) / 365;    // [0, 399]
+    Int64 y = yearOfEra + era * 400;
+    Int64 dayOfYear = dayOfEra - ( 365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100 );      // [0, 365]
+    Int64 mp = ( 5 * dayOfYear + 2 ) / 153;                                                  // [0, 11]
+    Int64 d = dayOfYear - ( 153 * mp + 2 ) / 5 + 1;                                          // [1, 31]
+    Int64 m = mp < 10 ? mp + 3 : mp - 9;                                                     // [1, 12]
+    if ( m <= 2 )
+        ++y;
+
+    if ( y < -32768 || y > 32767 )
+        return false;
+
+    m_year = (Int16) y;
+    m_month = (UInt8) m;
+    m_day = (UInt8) d;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CDate::GetDaysTowards( const CDate& other ) const
+{GUCEF_TRACE;
+
+    return other.ToDaysSinceUnixEpoch() - ToDaysSinceUnixEpoch();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::AddDays( Int32 daysToAdd )
+{GUCEF_TRACE;
+
+    if ( !IsValid() )
+        return false;
+
+    Int64 target = (Int64) ToDaysSinceUnixEpoch() + daysToAdd;
+    if ( target > GUCEF_INT32MAX || target < GUCEF_INT32MIN )
+        return false;
+    return FromDaysSinceUnixEpoch( (Int32) target );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::AddWeeks( Int32 weeksToAdd )
+{GUCEF_TRACE;
+
+    if ( weeksToAdd > GUCEF_INT32MAX / 7 || weeksToAdd < GUCEF_INT32MIN / 7 )
+        return false;
+    return AddDays( weeksToAdd * 7 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::AddMonths( Int32 monthsToAdd )
+{GUCEF_TRACE;
+
+    if ( !IsValid() )
+        return false;
+
+    Int64 monthIndex = (Int64) m_year * 12 + ( m_month - 1 ) + monthsToAdd;
+    Int64 newYear = monthIndex / 12;
+    Int64 newMonth = monthIndex % 12;
+    if ( newMonth < 0 )
+    {
+        newMonth += 12;
+        --newYear;
+    }
+    if ( newYear < -32768 || newYear > 32767 )
+        return false;
+
+    CDate result( 0, (UInt8) ( newMonth + 1 ), 1 );
+    result.m_year = (Int16) newYear;
+    UInt8 daysInResultMonth = result.GetDaysInMonth();
+    result.m_day = m_day > daysInResultMonth ? daysInResultMonth : m_day;
+    *this = result;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDate::AddYears( Int32 yearsToAdd )
+{GUCEF_TRACE;
+
+    if ( yearsToAdd > GUCEF_INT32MAX / 12 || yearsToAdd < GUCEF_INT32MIN / 12 )
+        return false;
+    return AddMonths( yearsToAdd * 12 );
 }
 
 /*-------------------------------------------------------------------------*/

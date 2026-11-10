@@ -1,5 +1,8 @@
 <ModuleInfoEntry>
     <Module Name="libparsifal" Type="SharedLibrary" Platform="All">
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+        </Dependencies>
         <Preprocessor>
             <Define String="PARSIFAL_BUILD_MODULE" />
             <Define String="PARSIFAL_CUSTOM_GUCEF_BUILD" />

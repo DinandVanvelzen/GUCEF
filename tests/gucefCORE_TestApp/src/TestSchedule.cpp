@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -760,6 +758,48 @@ PerformScheduleTests( void )
             ASSERT_FALSE( s.IsValid() );
             ASSERT_FALSE( s.HasCronSchedule() );
             ASSERT_FALSE( s.HasTimeRange() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Regression: the search for an occurrence inside a window gave up after one year worth of steps,
+    // a window that starts more than a year after the search time was reported as having no occurrences
+    GUCEF_TESTFW_TESTCASE( "Test 41: GetNextOccurrence finds the first occurrence of a window that starts years from now" )
+        try
+        {
+            CORE::CDateTime windowStart( 2045, 3, 1, 12, 0, 0, 0, 0 );
+            CORE::CDateTime windowEnd( 2045, 3, 1, 18, 0, 0, 0, 0 );
+            CORE::CSchedule s( CORE::CCronSchedule( CORE::CString( "* * * * *" ) ),
+                               CORE::CDateTimeRange( windowStart, windowEnd ) );
+            CORE::CDateTime from( 2026, 11, 4, 9, 30, 15, 0, 0 );
+            CORE::CDateTime next;
+            ASSERT_TRUE( s.GetNextOccurrence( from, next ) );
+            ASSERT_TRUE( next == windowStart );
+
+            // the cron pattern is applied inside the window, hourly at 30 minutes past
+            CORE::CSchedule hourly( CORE::CCronSchedule( CORE::CString( "30 * * * *" ) ),
+                                    CORE::CDateTimeRange( windowStart, windowEnd ) );
+            ASSERT_TRUE( hourly.GetNextOccurrence( from, next ) );
+            ASSERT_TRUE( next == CORE::CDateTime( 2045, 3, 1, 12, 30, 0, 0, 0 ) );
+
+            // a window start between two minutes: the first minute at or after the start
+            CORE::CDateTime offsetStart( 2045, 3, 1, 12, 0, 30, 0, 0 );
+            CORE::CSchedule offset( CORE::CCronSchedule( CORE::CString( "* * * * *" ) ),
+                                    CORE::CDateTimeRange( offsetStart, windowEnd ) );
+            ASSERT_TRUE( offset.GetNextOccurrence( from, next ) );
+            ASSERT_TRUE( next == CORE::CDateTime( 2045, 3, 1, 12, 1, 0, 0, 0 ) );
+
+            // from inside the window is unchanged
+            CORE::CDateTime inside( 2045, 3, 1, 13, 10, 0, 0, 0 );
+            ASSERT_TRUE( s.GetNextOccurrence( inside, next ) );
+            ASSERT_TRUE( next == CORE::CDateTime( 2045, 3, 1, 13, 11, 0, 0, 0 ) );
+
+            // after the window there is nothing
+            CORE::CDateTime after( 2045, 3, 1, 18, 0, 0, 0, 0 );
+            ASSERT_FALSE( s.GetNextOccurrence( after, next ) );
         }
         catch( ... )
         {

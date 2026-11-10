@@ -61,15 +61,12 @@
   #define GUCEF_MULTIPLAY_BUILD_MODULE
 #endif /* GUCEFMULTIPLAY_BUILD_MODULE ? */
 
-#ifdef GUCEF_MSWIN_BUILD
-  #ifdef GUCEF_MULTIPLAY_BUILD_MODULE
-    #define GUCEF_MULTIPLAY_EXPORT __declspec( dllexport )
-  #else
-    #define GUCEF_MULTIPLAY_EXPORT __declspec( dllimport )
-  #endif /* GUCEF_MULTIPLAY_BUILD_MODULE ? */
+#undef GUCEF_MULTIPLAY_EXPORT
+#ifdef GUCEF_MULTIPLAY_BUILD_MODULE
+  #define GUCEF_MULTIPLAY_EXPORT GUCEF_EXPORT
 #else
-  #define GUCEF_MULTIPLAY_EXPORT   /* Linux does not need an additional directive */
-#endif /* GUCEF_MSWIN_BUILD ? */
+  #define GUCEF_MULTIPLAY_EXPORT GUCEF_IMPORT
+#endif /* GUCEF_MULTIPLAY_BUILD_MODULE ? */
 
 /*
  *  Are we exporting C++ code ?

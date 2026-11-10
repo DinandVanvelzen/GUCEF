@@ -92,7 +92,7 @@ class GUIDRIVERANDROIDGLES_PUBLIC_CPP CAndroidWindowManagerImp : public GUI::CWi
 
 /*-------------------------------------------------------------------------*/
 
-typedef CORE::CTSharedPtr< CAndroidWindowManagerImp > TAndroidWindowManagerImpPtr;
+typedef CORE::CTSharedPtr< CAndroidWindowManagerImp, MT::CMutex > TAndroidWindowManagerImpPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

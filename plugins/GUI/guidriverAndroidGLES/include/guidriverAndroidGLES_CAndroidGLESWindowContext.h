@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
 #ifndef GUCEF_GUI_CWINDOWCONTEXT_H
 #include "gucefGUI_CWindowContext.h"
 #define GUCEF_GUI_CWINDOWCONTEXT_H
@@ -63,37 +68,57 @@ namespace GUIDRIVERANDROIDGLES {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  The window of an Android app with an OpenGL ES 3 context on it. The native window comes from the
+ *  android_app of android_native_app_glue, given as the "android_app" parameter (a pointer as text, the
+ *  platform parameter the GUCEF Android glue passes on). Frames are drawn on the pulses of the
+ *  application (the frequency of the video settings) and swapped to the screen.
+ *
+ *  Properties: WINDOW (the ANativeWindow), GL_GETPROCADDRESS, GL_FRAMEBUFFER ("0"), GL_API ("GLES"), GL_VERSION ("3.0").
+ */
 class GUIDRIVERANDROIDGLES_PUBLIC_CPP CAndroidGLESWindowContext : public GUI::CWindowContext
-{        
+{
     public:
-    
+
     CAndroidGLESWindowContext( void );
-    
+
     virtual ~CAndroidGLESWindowContext();
 
-    virtual GUI::UInt32 GetWidth( void ) const;
+    virtual GUI::UInt32 GetWidth( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual GUI::UInt32 GetHeight( void ) const;
+    virtual GUI::UInt32 GetHeight( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual GUI::CString GetProperty( const GUI::CString& propertyName ) const;
-    
-    virtual void SetGuiContext( GUI::TGuiContextPtr& context );
-    
-    virtual GUI::TGuiContextPtr GetGuiContext( void );
-    
-    virtual GUI::UInt32 GetID( void ) const;
-    
-    virtual bool IsActive( void ) const;
-    
-    virtual GUI::CString GetName( void ) const;
+    virtual GUI::CString GetProperty( const GUI::CString& propertyName ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    bool Initialize( const GUI::CVideoSettings& videoSettings );
+    virtual void SetGuiContext( GUI::TGuiContextPtr& context ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual GUI::TGuiContextPtr GetGuiContext( void ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual GUI::UInt32 GetID( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsActive( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual GUI::CString GetName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    bool Initialize( const GUI::CString& title, const GUI::CVideoSettings& videoSettings, const CORE::CValueList* params );
+
+    /**
+     *  Waiting for the vertical blank or not. The window always covers the screen: the system decides its size,
+     *  resolution and full screen in the settings are not used
+     */
+    bool ApplyVideoSettings( const GUI::CVideoSettings& videoSettings );
 
     void Shutdown( void );
-    
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier                 ,
+                           const CORE::CEvent& eventId               ,
+                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
-    
-    CAndroidGLESWindowContext( const CAndroidGLESWindowContext& src );            /**< private because: must be unique */ 
+
+    CAndroidGLESWindowContext( const CAndroidGLESWindowContext& src );            /**< private because: must be unique */
     CAndroidGLESWindowContext& operator=( const CAndroidGLESWindowContext& src ); /**< private because: must be unique */
 
     private:
@@ -104,11 +129,13 @@ class GUIDRIVERANDROIDGLES_PUBLIC_CPP CAndroidGLESWindowContext : public GUI::CW
     EGLDisplay m_display;
     EGLSurface m_surface;
     EGLContext m_context;
+    void* m_nativeWindow;
+    bool m_drivesRedraws;
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CORE::CTSharedPtr< CAndroidGLESWindowContext >  TAndroidGLESWindowContextPtr;
+typedef CORE::CTSharedPtr< CAndroidGLESWindowContext, MT::CMutex >  TAndroidGLESWindowContextPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

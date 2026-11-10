@@ -482,6 +482,7 @@ ProcessMouseDI8( TDI8Data* data )
                                                 delta = -1;
                                         }
                                         data->callbacks.onMouseVarChanged( data->callbacks.userData, i, 0, data->mouseWheelVar, delta );
+                                        break;
                                 }
                                 case DIMOFS_BUTTON0 :
                                 case DIMOFS_BUTTON1 :

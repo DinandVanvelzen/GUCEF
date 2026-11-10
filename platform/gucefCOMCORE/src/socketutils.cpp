@@ -71,7 +71,7 @@ SetBlockingMode( SOCKET sock ,
 	}
 	if ( block )
 	{
-	    opts = (opts & O_NONBLOCK);
+	    opts = (opts & ~O_NONBLOCK);
 	}
 	else
 	{

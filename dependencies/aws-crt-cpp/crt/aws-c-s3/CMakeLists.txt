@@ -46,6 +46,14 @@ add_dependencies( ${MODULE_NAME} aws-c-auth aws-c-common aws-c-http aws-c-io aws
 target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-auth aws-c-common aws-c-http aws-c-io aws-c-sdkutils aws-checksums )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_c_s3;MODULE_NAME=aws_c_s3" )
 
+if ( LINUX32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYO_CRYPTO" )
+endif( LINUX64 )
+
 include_directories( ../aws-c-auth/include ../aws-c-cal/include ../aws-c-common/include ../aws-c-http/include ../aws-c-io/include ../aws-c-io/source ../aws-c-sdkutils/include ../aws-checksums/include include )
 
 

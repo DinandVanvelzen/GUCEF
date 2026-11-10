@@ -31,10 +31,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
-  $(MY_MODULE_PATH)/../../../dependencies/MyGui/Common/FileSystemInfo \
   $(MY_MODULE_PATH)/../../../dependencies/MyGui/MyGUIEngine/include \
-  $(MY_MODULE_PATH)/../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include \
-  $(MY_MODULE_PATH)/../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/GL \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/config \
@@ -42,18 +39,20 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefINPUT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
-  $(MY_MODULE_PATH)/../guidriverMyGUI/include \
-  $(MY_MODULE_PATH)/OpenGLESPlatform/include
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../guidriverMyGUI/include
 
-LOCAL_CFLAGS := -DGUIDRIVERMYGUIOPENGL_BUILD_MODULE
+LOCAL_CFLAGS := -DGUIDRIVERMYGUIOPENGL_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUIOpenGL
 
 
 LOCAL_SHARED_LIBRARIES := \
@@ -66,14 +65,6 @@ LOCAL_SHARED_LIBRARIES := \
   gucefMT \
   gucefVFS \
   guidriverMyGUI
-
-
-LOCAL_STATIC_LIBRARIES := \
-  MyGUI.OpenGLESPlatform
-
-
-LOCAL_LDLIBS := \
-  -lGLESv1_CM
 
 include $(BUILD_SHARED_LIBRARY)
 
