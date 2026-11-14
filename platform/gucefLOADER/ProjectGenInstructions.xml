@@ -93,7 +93,9 @@
         <ITEM NAME="../gucefCORE/src/dvfileutils.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/dvfileutils.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/dvcppfileutils.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_SecureMemory.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/dvcppfileutils.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_SecureMemory.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_IFileSystemIterator.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/dvcppstringutils.cpp" TYPE="FILE" />

@@ -24,6 +24,7 @@ set( HEADER_FILES
   ../gucefCORE/include/MFILE.h
   ../gucefCORE/include/PAFILE.h
   ../gucefCORE/include/dvcppfileutils.h
+  ../gucefCORE/include/gucefCORE_SecureMemory.h
   ../gucefCORE/include/dvcppstringutils.h
   ../gucefCORE/include/dvfileutils.h
   ../gucefCORE/include/dvmd5utils.h
@@ -84,6 +85,7 @@ set( SOURCE_FILES
   ../gucefCORE/src/MFILE.c
   ../gucefCORE/src/PAFILE.c
   ../gucefCORE/src/dvcppfileutils.cpp
+  ../gucefCORE/src/gucefCORE_SecureMemory.cpp
   ../gucefCORE/src/dvcppstringutils.cpp
   ../gucefCORE/src/dvfileutils.cpp
   ../gucefCORE/src/dvmd5utils.c
@@ -140,6 +142,7 @@ if (ANDROID)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -199,6 +202,7 @@ if (ANDROID)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -255,6 +259,7 @@ elseif (ANDROID32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -315,6 +320,7 @@ elseif (ANDROID32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -372,6 +378,7 @@ elseif (ANDROID64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -432,6 +439,7 @@ elseif (ANDROID64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -489,6 +497,7 @@ elseif (ARDUINO)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -548,6 +557,7 @@ elseif (ARDUINO)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -604,6 +614,7 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -663,6 +674,7 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -719,6 +731,7 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -778,6 +791,7 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -834,6 +848,7 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -893,6 +908,7 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -949,6 +965,7 @@ elseif (GLX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1008,6 +1025,7 @@ elseif (GLX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1064,6 +1082,7 @@ elseif (GTK)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1123,6 +1142,7 @@ elseif (GTK)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1179,6 +1199,7 @@ elseif (IOS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1238,6 +1259,7 @@ elseif (IOS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1294,6 +1316,7 @@ elseif (IPHONE)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1353,6 +1376,7 @@ elseif (IPHONE)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1409,6 +1433,7 @@ elseif (IPHONEOS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1468,6 +1493,7 @@ elseif (IPHONEOS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1524,6 +1550,7 @@ elseif (LINUX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1583,6 +1610,7 @@ elseif (LINUX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1639,6 +1667,7 @@ elseif (LINUX32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1698,6 +1727,7 @@ elseif (LINUX32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1754,6 +1784,7 @@ elseif (LINUX64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1813,6 +1844,7 @@ elseif (LINUX64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1869,6 +1901,7 @@ elseif (MAC)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1928,6 +1961,7 @@ elseif (MAC)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1984,6 +2018,7 @@ elseif (MACOS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2043,6 +2078,7 @@ elseif (MACOS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2099,6 +2135,7 @@ elseif (MACOSX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2158,6 +2195,7 @@ elseif (MACOSX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2214,6 +2252,7 @@ elseif (MSWIN)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2273,6 +2312,7 @@ elseif (MSWIN)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2329,6 +2369,7 @@ elseif (NACL)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2388,6 +2429,7 @@ elseif (NACL)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2444,6 +2486,7 @@ elseif (OSX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2503,6 +2546,7 @@ elseif (OSX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2559,6 +2603,7 @@ elseif (POSIX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2618,6 +2663,7 @@ elseif (POSIX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2674,6 +2720,7 @@ elseif (SDL)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2733,6 +2780,7 @@ elseif (SDL)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2789,6 +2837,7 @@ elseif (SYMBIAN)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2848,6 +2897,7 @@ elseif (SYMBIAN)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2904,6 +2954,7 @@ elseif (UNIX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2963,6 +3014,7 @@ elseif (UNIX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3019,6 +3071,7 @@ elseif (WIN32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -3081,6 +3134,7 @@ elseif (WIN32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3140,6 +3194,7 @@ elseif (WIN64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -3202,6 +3257,7 @@ elseif (WIN64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3261,6 +3317,7 @@ elseif (WINDOWS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -3320,6 +3377,7 @@ elseif (WINDOWS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c

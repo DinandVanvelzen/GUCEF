@@ -105,12 +105,12 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
-#ifdef GUCEF_LINUX_BUILD
+#if defined( GUCEF_LINUX_BUILD ) && !defined( GUCEF_LOADER_BUILD_MODULE )  /* the bootstrap loader does not carry the X11 clipboard */
   #ifndef GUCEF_CORE_CX11CLIPBOARD_H
   #include "gucefCORE_CX11Clipboard.h"   /* the X11 clipboard behind StringToClipboard() and StringFromClipboard() */
   #define GUCEF_CORE_CX11CLIPBOARD_H
   #endif /* GUCEF_CORE_CX11CLIPBOARD_H ? */
-#endif /* GUCEF_LINUX_BUILD ? */
+#endif /* GUCEF_LINUX_BUILD && !GUCEF_LOADER_BUILD_MODULE ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -1326,7 +1326,7 @@ StringToClipboard( const char *str )
     }
     return OSWRAP_FALSE;
 
-    #elif defined( GUCEF_LINUX_BUILD )
+    #elif defined( GUCEF_LINUX_BUILD ) && !defined( GUCEF_LOADER_BUILD_MODULE )
 
     if ( GUCEF_NULL == str )
         return OSWRAP_FALSE;
@@ -1415,7 +1415,7 @@ StringFromClipboard( char *dest     ,
         }
         return OSWRAP_FALSE;
 
-        #elif defined( GUCEF_LINUX_BUILD )
+        #elif defined( GUCEF_LINUX_BUILD ) && !defined( GUCEF_LOADER_BUILD_MODULE )
 
         // Same semantics as above: *wbytes is the offset on entry, at most size-1 bytes are copied, dest is terminated
         if ( GUCEF_NULL == dest || GUCEF_NULL == wbytes || size < 2 )
