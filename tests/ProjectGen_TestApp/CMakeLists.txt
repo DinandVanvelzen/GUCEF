@@ -14,6 +14,7 @@
 set( HEADER_FILES 
   include/TestGeneratorFeatures.h
   include/TestIncludeDirInstruction.h
+  include/TestMsvcCompilerFlags.h
   include/TestModuleInfoMerge.h
 )
 
@@ -21,6 +22,7 @@ set( SOURCE_FILES
   src/ProjectGen_TestApp_main.cpp
   src/TestGeneratorFeatures.cpp
   src/TestIncludeDirInstruction.cpp
+  src/TestMsvcCompilerFlags.cpp
   src/TestModuleInfoMerge.cpp
 )
 

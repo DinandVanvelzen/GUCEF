@@ -1124,7 +1124,9 @@ GenerateCMakeModuleCompilerFlagsLine( const CModuleInfoPtr& moduleInfo  ,
         const CORE::CString& compilerName = (*i).first;
         bool isCxx = compilerName.Equals( "G++", false );
         bool isC = compilerName.Equals( "GCC", false );
-        if ( isCxx || isC )
+        // MSVC (alias CL) is the Microsoft compiler, for both C and C++ code
+        bool isMsvc = compilerName.Equals( "MSVC", false ) || compilerName.Equals( "CL", false );
+        if ( isCxx || isC || isMsvc )
         {
             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module compiler options for module " + moduleName + " and platform " + platformName );
 
@@ -1136,7 +1138,14 @@ GenerateCMakeModuleCompilerFlagsLine( const CModuleInfoPtr& moduleInfo  ,
                     flagList += ( flagList.IsNULLOrEmpty() ? "" : ";" ) + ConvertEnvVarStrings( (*f) );
             }
 
-            if ( !flagList.IsNULLOrEmpty() )
+            if ( !flagList.IsNULLOrEmpty() && isMsvc )
+            {
+                // Target options come after the directory level ones (such as /fp:fast) so these win
+                sectionContent += "if ( MSVC )\n"
+                                  "  target_compile_options( ${MODULE_NAME} PRIVATE " + flagList + " )\n"
+                                  "endif()\n";
+            }
+            else if ( !flagList.IsNULLOrEmpty() )
             {
                 CORE::CString language = isCxx ? "CXX" : "C";
                 sectionContent += "if ( CMAKE_" + language + "_COMPILER_ID STREQUAL \"GNU\" OR CMAKE_" + language + "_COMPILER_ID MATCHES \"Clang\" )\n" +

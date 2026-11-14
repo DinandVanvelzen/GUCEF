@@ -48,6 +48,7 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestGeneratorFeatures.h",
   "include/TestIncludeDirInstruction.h",
+  "include/TestMsvcCompilerFlags.h",
   "include/TestModuleInfoMerge.h"
  } )
 
@@ -59,6 +60,7 @@ files( {
   "src/ProjectGen_TestApp_main.cpp",
   "src/TestGeneratorFeatures.cpp",
   "src/TestIncludeDirInstruction.cpp",
+  "src/TestMsvcCompilerFlags.cpp",
   "src/TestModuleInfoMerge.cpp"
  } )
 

@@ -24,6 +24,7 @@ LOCAL_SRC_FILES := \
   src/ProjectGen_TestApp_main.cpp \
   src/TestGeneratorFeatures.cpp \
   src/TestIncludeDirInstruction.cpp \
+  src/TestMsvcCompilerFlags.cpp \
   src/TestModuleInfoMerge.cpp
 
 LOCAL_C_INCLUDES := \

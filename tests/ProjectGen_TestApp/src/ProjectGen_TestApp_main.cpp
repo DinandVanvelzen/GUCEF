@@ -54,6 +54,7 @@
 #include "TestModuleInfoMerge.h"
 
 #include "TestGeneratorFeatures.h"
+#include "TestMsvcCompilerFlags.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -89,6 +90,7 @@ GUCEF_OSMAIN_BEGIN
         PerformIncludeDirInstructionTests();
         PerformModuleInfoMergeTests();
         PerformGeneratorFeatureTests();
+        PerformMsvcCompilerFlagsTests();
 
         GUCEF::CORE::CLogStreamScope::FlushLogs();
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
