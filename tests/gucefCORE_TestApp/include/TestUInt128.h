@@ -25,7 +25,7 @@
 //-------------------------------------------------------------------------*/
 
 /**
- *  Tests the internal portable 128 bit helper used by the decimal arithmetic: multiply, checked multiply,
+ *  Tests the portable 128 bit unsigned integer (also used by the decimal arithmetic): multiply, checked multiply,
  *  division with remainder, shifts and comparison, checked against an independent base 10^9 reference.
  *  Sets a user break when a test fails.
  */

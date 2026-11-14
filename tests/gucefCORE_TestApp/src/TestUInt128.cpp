@@ -31,9 +31,8 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-/* the helper is internal to gucefCORE: not exported, header only, so the test compiles the same code */
 #ifndef GUCEF_CORE_CUINT128_H
-#include "../../../platform/gucefCORE/src/gucefCORE_CUInt128.h"
+#include "gucefCORE_CUInt128.h"
 #define GUCEF_CORE_CUINT128_H
 #endif /* GUCEF_CORE_CUINT128_H ? */
 

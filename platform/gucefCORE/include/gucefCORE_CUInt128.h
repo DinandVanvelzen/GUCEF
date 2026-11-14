@@ -1,6 +1,6 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,7 +46,8 @@ namespace CORE {
 
 /**
  *  Portable unsigned 128 bit integer made of two 64 bit words.
- *  Internal helper of the gucefCORE decimal arithmetic: it is not exported and not part of the public API.
+ *  Public, header only value class: every function is inline, nothing is exported from the module.
+ *  Used by the decimal arithmetic, by CInt128 and by the exact fraction arithmetic.
  *  Everything is header only and uses C++98 constructs and unsigned 64 bit arithmetic only, where wrapping is defined.
  *  No compiler specific 128 bit type is used.
  */
@@ -326,6 +327,171 @@ class CUInt128
             remainder = r;
         }
     }
+
+    /** Bitwise AND */
+    static CUInt128 And( const CUInt128& a, const CUInt128& b )
+    {
+        return CUInt128( a.high & b.high, a.low & b.low );
+    }
+
+    /** Bitwise OR */
+    static CUInt128 Or( const CUInt128& a, const CUInt128& b )
+    {
+        return CUInt128( a.high | b.high, a.low | b.low );
+    }
+
+    /** Bitwise XOR */
+    static CUInt128 Xor( const CUInt128& a, const CUInt128& b )
+    {
+        return CUInt128( a.high ^ b.high, a.low ^ b.low );
+    }
+
+    /** Bitwise complement */
+    static CUInt128 Not( const CUInt128& a )
+    {
+        return CUInt128( ~a.high, ~a.low );
+    }
+
+    /** Number of trailing zero bits of a 64 bit word, 64 for 0 */
+    static UInt32 CountTrailingZeros( UInt64 value )
+    {
+        if ( 0 == value )
+            return 64;
+        // isolate the lowest set bit, then count the zeros above it
+        UInt64 lowestBit = value & ( 0 - value );
+        return 63 - CountLeadingZeros( lowestBit );
+    }
+
+    /** Number of trailing zero bits, 128 for 0 */
+    UInt32 CountTrailingZeros( void ) const
+    {
+        if ( 0 != low )
+            return CountTrailingZeros( low );
+        return 64 + CountTrailingZeros( high );
+    }
+
+    /** Comparison operators, implemented with Compare. There are deliberately no arithmetic operators */
+    bool operator==( const CUInt128& other ) const { return high == other.high && low == other.low; }
+    bool operator!=( const CUInt128& other ) const { return !( *this == other ); }
+    bool operator<( const CUInt128& other ) const { return Compare( *this, other ) < 0; }
+    bool operator<=( const CUInt128& other ) const { return Compare( *this, other ) <= 0; }
+    bool operator>( const CUInt128& other ) const { return Compare( *this, other ) > 0; }
+    bool operator>=( const CUInt128& other ) const { return Compare( *this, other ) >= 0; }
+
+    /**
+     *  128x128 -> 128 bit product, returns false when the product does not fit 128 bits (out is then undefined).
+     *  A product with both high words non-zero is always an overflow.
+     */
+    static bool MultiplyChecked( const CUInt128& a, const CUInt128& b, CUInt128& out )
+    {
+        if ( 0 != a.high && 0 != b.high )
+            return false;
+        if ( 0 == b.high )
+            return MultiplyChecked( a, b.low, out );
+        return MultiplyChecked( b, a.low, out );
+    }
+
+    /** 128x128 -> low 128 bits of the product (wrapping) */
+    static CUInt128 Multiply128Low( const CUInt128& a, const CUInt128& b )
+    {
+        CUInt128 r = Multiply( a.low, b.low );
+        r.high += a.high * b.low + a.low * b.high;
+        return r;
+    }
+
+    /**
+     *  n / d with remainder for a 128 bit divisor. d must not be 0.
+     *  A divisor that fits 64 bits forwards to the 128 by 64 path. Otherwise the quotient fits 64 bits:
+     *  Knuth algorithm D with two 64 bit digits, estimate from the top words and correct.
+     */
+    static void DivMod( const CUInt128& n, const CUInt128& d, CUInt128& quotient, CUInt128& remainder )
+    {
+        if ( 0 == d.high )
+        {
+            UInt64 r = 0;
+            CUInt128 q;
+            DivMod( n, d.low, q, r );
+            quotient = q;
+            remainder = CUInt128( r );
+            return;
+        }
+        if ( Compare( n, d ) < 0 )
+        {
+            CUInt128 r = n;
+            quotient = CUInt128();
+            remainder = r;
+            return;
+        }
+
+        // normalize so that the top bit of the divisor is set, the quotient then fits 64 bits
+        UInt32 s = CountLeadingZeros( d.high );
+        CUInt128 v = ShiftLeft( d, s );
+        // numerator needs 192 bits after the shift: the overflow word is the bits shifted out of the top
+        UInt64 un2 = 0 == s ? 0 : ( n.high >> ( 64 - s ) );
+        CUInt128 un = ShiftLeft( n, s );
+
+        // estimate the quotient from the top two words of the numerator (un2:un.high) and v.high
+        UInt64 qhat = 0;
+        UInt64 rhat = 0;
+        bool rhatOverflow = false;
+        if ( un2 >= v.high )
+        {
+            // 2^64 estimate: clamp to 2^64 - 1 as Knuth does
+            qhat = ~0ULL;
+            // rhat = ( un2:un.high ) - qhat * v.high, with un2 == v.high here
+            CUInt128 t = Multiply( qhat, v.high );
+            CUInt128 top( un2, un.high );
+            CUInt128 diff = Subtract( top, t );
+            if ( 0 != diff.high )
+                rhatOverflow = true;
+            rhat = diff.low;
+        }
+        else
+        {
+            UInt64 r = 0;
+            qhat = DivideNormalizedStep( un2, un.high, v.high, r );
+            rhat = r;
+        }
+
+        // refine: while qhat * v.low > ( rhat : un.low ) decrement
+        while ( !rhatOverflow )
+        {
+            CUInt128 prod = Multiply( qhat, v.low );
+            CUInt128 rhs( rhat, un.low );
+            if ( Compare( prod, rhs ) <= 0 )
+                break;
+            --qhat;
+            UInt64 sum = rhat + v.high;
+            if ( sum < rhat )
+                rhatOverflow = true;
+            rhat = sum;
+        }
+
+        // multiply and subtract: numerator ( 192 bits ) - qhat * v ( up to 192 bits )
+        CUInt128 lowProd = Multiply( qhat, v.low );
+        CUInt128 highProd = Multiply( qhat, v.high );
+        // qhat * v = highProd << 64 + lowProd, as three words w2:w1:w0
+        UInt64 w0 = lowProd.low;
+        UInt64 w1 = lowProd.high + highProd.low;
+        UInt64 w2 = highProd.high + ( w1 < lowProd.high ? 1 : 0 );
+        // numerator words un2:un.high:un.low minus w2:w1:w0
+        UInt64 d0 = un.low - w0;
+        UInt64 borrow = un.low < w0 ? 1 : 0;
+        UInt64 d1 = un.high - w1 - borrow;
+        borrow = ( un.high < w1 || ( un.high == w1 && 0 != borrow ) ) ? 1 : 0;
+        UInt64 d2 = un2 - w2 - borrow;
+        bool negative = un2 < w2 || ( un2 == w2 && 0 != borrow );
+        CUInt128 rem( d1, d0 );
+        if ( negative || 0 != d2 )
+        {
+            // qhat was one too large: add the divisor back
+            --qhat;
+            rem = Add( rem, v );
+        }
+        quotient = CUInt128( qhat );
+        remainder = ShiftRight( rem, s );
+    }
+
 };
 
 /*-------------------------------------------------------------------------//

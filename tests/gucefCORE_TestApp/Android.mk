@@ -27,6 +27,7 @@ LOCAL_SRC_FILES := \
   src/TestAllocationCounter.cpp \
   src/TestAsyncUriResourceRetriever.cpp \
   src/TestBase64Url.cpp \
+  src/TestBigInteger.cpp \
   src/TestBigUnsigned.cpp \
   src/TestBinaryWire.cpp \
   src/TestBusyWaitPulseGeneratorDriver.cpp \
@@ -74,6 +75,7 @@ LOCAL_SRC_FILES := \
   src/TestFreeList.cpp \
   src/TestFutureResultSource.cpp \
   src/TestIniParser.cpp \
+  src/TestInt128.cpp \
   src/TestJsonDataNodeFidelity.cpp \
   src/TestJsonSchema.cpp \
   src/TestJsonSyntaxValidator.cpp \

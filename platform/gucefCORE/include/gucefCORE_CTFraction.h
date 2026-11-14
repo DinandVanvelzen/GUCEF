@@ -28,10 +28,6 @@
 #include <iostream>
 #include <stdexcept>
 
-#if __cplusplus >= 201703L // numeric header was added in C++17
-  #include <numeric> // For std::gcd
-#endif
-
 #include <algorithm>
 
 #ifndef GUCEF_EXCEPTIONS_H
@@ -64,6 +60,16 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_CDECIMAL_H
+#include "gucefCORE_CDecimal.h"
+#define GUCEF_CORE_CDECIMAL_H
+#endif /* GUCEF_CORE_CDECIMAL_H ? */
+
+#ifndef GUCEF_CORE_CTFRACTIONINTEGEROPS_H
+#include "gucefCORE_CTFractionIntegerOps.h"
+#define GUCEF_CORE_CTFRACTIONINTEGEROPS_H
+#endif /* GUCEF_CORE_CTFRACTIONINTEGEROPS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -89,6 +95,7 @@ class CTFraction
 
     typedef NumeratorType   TNumeratorType;
     typedef DenominatorType TDenominatorType;
+    typedef CTFractionIntegerOps< NumeratorType, DenominatorType > TIntegerOps;
 
 
     CTFraction( NumeratorType numerator = 0, DenominatorType denominator = 1 );
@@ -122,6 +129,22 @@ class CTFraction
     CTFraction< NumeratorType, DenominatorType >& operator-=( NumeratorType value );
     CTFraction< NumeratorType, DenominatorType >& operator*=( NumeratorType value );
     CTFraction< NumeratorType, DenominatorType >& operator/=( NumeratorType value );
+
+    /**
+     *  Non throwing arithmetic: returns false when the exact result does not fit the numerator and denominator
+     *  types (only possible for the Int64 specialization of the integer operations), the fraction is then unchanged.
+     *  A zero divisor in TryDivide returns false as well.
+     */
+    bool TryAdd( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const;
+    bool TrySubtract( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const;
+    bool TryMultiply( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const;
+    bool TryDivide( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const;
+
+    /** One rounding: numerator / denominator rounded as the context states. Returns the status of the division */
+    TDecimalStatus ToDecimal( const CDecimalContext& context, CDecimal& result ) const;
+
+    /** Exact: unscaled / 10^scale in lowest terms. false when the value does not fit the numerator and denominator types */
+    bool FromDecimal( const CDecimal& value );
 
     CString ToString( void ) const;
     bool FromString( const CString& str );
@@ -196,25 +219,25 @@ class CTFraction
     friend bool operator<( const CTFraction< NumeratorType, DenominatorType >& lhs, const CTFraction< NumeratorType, DenominatorType >& rhs )
     {GUCEF_TRACE;
 
-        return lhs.m_numerator * rhs.m_denominator < rhs.m_numerator * lhs.m_denominator;
+        return TIntegerOps::Compare( lhs.m_numerator, lhs.m_denominator, rhs.m_numerator, rhs.m_denominator ) < 0;
     }
 
     friend bool operator<=( const CTFraction< NumeratorType, DenominatorType >& lhs, const CTFraction< NumeratorType, DenominatorType >& rhs )
     {GUCEF_TRACE;
 
-        return lhs.m_numerator * rhs.m_denominator <= rhs.m_numerator * lhs.m_denominator;
+        return TIntegerOps::Compare( lhs.m_numerator, lhs.m_denominator, rhs.m_numerator, rhs.m_denominator ) <= 0;
     }
 
     friend bool operator>( const CTFraction< NumeratorType, DenominatorType >& lhs, const CTFraction< NumeratorType, DenominatorType >& rhs )
     {GUCEF_TRACE;
 
-        return lhs.m_numerator * rhs.m_denominator > rhs.m_numerator * lhs.m_denominator;
+        return TIntegerOps::Compare( lhs.m_numerator, lhs.m_denominator, rhs.m_numerator, rhs.m_denominator ) > 0;
     }
 
     friend bool operator>=( const CTFraction< NumeratorType, DenominatorType >& lhs, const CTFraction< NumeratorType, DenominatorType >& rhs )
     {GUCEF_TRACE;
 
-        return lhs.m_numerator * rhs.m_denominator >= rhs.m_numerator * lhs.m_denominator;
+        return TIntegerOps::Compare( lhs.m_numerator, lhs.m_denominator, rhs.m_numerator, rhs.m_denominator ) >= 0;
     }
 
     friend std::ostream& operator<<( std::ostream& os, const CTFraction< NumeratorType, DenominatorType >& fraction )
@@ -224,6 +247,7 @@ class CTFraction
         return os;
     }
 
+    /** Euclid, kept for source compatibility. Normalization itself goes through the integer operations policy */
     template< typename T >
     inline T gcd( T a, T b )
     {
@@ -241,13 +265,8 @@ class CTFraction
 
     void Normalize( void );
 
-    template < typename T = DenominatorType >
-    typename EnableIf< TypeIsUnsigned< T >::value, void >::type
-    MakeDenominatorPositive( T denomTypeVar );
-
-    template < typename T = DenominatorType >
-    typename EnableIfNot< TypeIsUnsigned< T >::value, void >::type
-    MakeDenominatorPositive( T denomTypeVar );
+    /** Throws std::overflow_error when the exact result does not fit */
+    static void ThrowOnOverflow( bool fits );
 
     private:
 
@@ -391,9 +410,7 @@ template < typename NumeratorType, typename DenominatorType >
 CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, DenominatorType >::operator+=( const CTFraction< NumeratorType, DenominatorType >& other )
 {GUCEF_TRACE;
 
-    m_numerator = m_numerator * other.m_denominator + other.m_numerator * m_denominator;
-    m_denominator *= other.m_denominator;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::Add( m_numerator, m_denominator, other.m_numerator, other.m_denominator ) );
     return *this;
 }
 
@@ -403,9 +420,7 @@ template < typename NumeratorType, typename DenominatorType >
 CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, DenominatorType >::operator-=( const CTFraction< NumeratorType, DenominatorType >& other )
 {GUCEF_TRACE;
 
-    m_numerator = m_numerator * other.m_denominator - other.m_numerator * m_denominator;
-    m_denominator *= other.m_denominator;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::Subtract( m_numerator, m_denominator, other.m_numerator, other.m_denominator ) );
     return *this;
 }
 
@@ -415,9 +430,7 @@ template < typename NumeratorType, typename DenominatorType >
 CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, DenominatorType >::operator*=( const CTFraction< NumeratorType, DenominatorType >& other )
 {GUCEF_TRACE;
 
-    m_numerator *= other.m_numerator;
-    m_denominator *= other.m_denominator;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::Multiply( m_numerator, m_denominator, other.m_numerator, other.m_denominator ) );
     return *this;
 }
 
@@ -431,9 +444,7 @@ CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, Denomin
     {
         GUCEF_EMSGTHROW( GUCEF::invalid_argument, "Division by zero" );
     }
-    m_numerator *= other.m_denominator;
-    m_denominator *= other.m_numerator;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::Divide( m_numerator, m_denominator, other.m_numerator, other.m_denominator ) );
     return *this;
 }
 
@@ -443,8 +454,7 @@ template < typename NumeratorType, typename DenominatorType >
 CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, DenominatorType >::operator+=( NumeratorType value )
 {GUCEF_TRACE;
 
-    m_numerator += value * m_denominator;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::AddScalar( m_numerator, m_denominator, value ) );
     return *this;
 }
 
@@ -454,8 +464,7 @@ template < typename NumeratorType, typename DenominatorType >
 CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, DenominatorType >::operator-=( NumeratorType value )
 {GUCEF_TRACE;
 
-    m_numerator -= value * m_denominator;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::SubtractScalar( m_numerator, m_denominator, value ) );
     return *this;
 }
 
@@ -465,8 +474,7 @@ template < typename NumeratorType, typename DenominatorType >
 CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, DenominatorType >::operator*=( NumeratorType value )
 {GUCEF_TRACE;
 
-    m_numerator *= value;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::MultiplyScalar( m_numerator, m_denominator, value ) );
     return *this;
 }
 
@@ -480,8 +488,7 @@ CTFraction< NumeratorType, DenominatorType >& CTFraction< NumeratorType, Denomin
     {
         GUCEF_EMSGTHROW( GUCEF::invalid_argument, "Division by zero" );
     }
-    m_denominator *= value;
-    Normalize();
+    ThrowOnOverflow( TIntegerOps::DivideScalar( m_numerator, m_denominator, value ) );
     return *this;
 }
 
@@ -505,34 +512,23 @@ void
 CTFraction< NumeratorType, DenominatorType >::FromMixedFraction( NumeratorType wholePart, const CTFraction< NumeratorType, DenominatorType >& fractionalPart )
 {GUCEF_TRACE;
 
-    m_numerator = wholePart * fractionalPart.m_denominator + fractionalPart.m_numerator;
-    m_denominator = fractionalPart.m_denominator;
-    Normalize();
-}
-
-///*-------------------------------------------------------------------------*/
-
-template < typename NumeratorType, typename DenominatorType >
-template < typename T >
-typename EnableIf< TypeIsUnsigned<T>::value, void >::type
-CTFraction< NumeratorType, DenominatorType >::MakeDenominatorPositive( T /*denomTypeVar*/ )
-{GUCEF_TRACE;
-
-    // Nothing to do here for unsigned denominators
+    NumeratorType numerator = m_numerator;
+    DenominatorType denominator = m_denominator;
+    ThrowOnOverflow( TIntegerOps::FromMixed( numerator, denominator, wholePart, fractionalPart.m_numerator, fractionalPart.m_denominator ) );
+    m_numerator = numerator;
+    m_denominator = denominator;
 }
 
 /*-------------------------------------------------------------------------*/
 
 template < typename NumeratorType, typename DenominatorType >
-template < typename T >
-typename EnableIfNot< TypeIsUnsigned<T>::value, void >::type
-CTFraction< NumeratorType, DenominatorType >::MakeDenominatorPositive( T /*denomTypeVar*/ )
+void
+CTFraction< NumeratorType, DenominatorType >::ThrowOnOverflow( bool fits )
 {GUCEF_TRACE;
 
-    if ( m_denominator < 0 )
+    if ( !fits )
     {
-        m_numerator = -m_numerator;
-        m_denominator = -m_denominator;
+        throw std::overflow_error( "CTFraction: the exact result does not fit the numerator and denominator types" );
     }
 }
 
@@ -543,30 +539,101 @@ void
 CTFraction< NumeratorType, DenominatorType >::Normalize( void )
 {GUCEF_TRACE;
 
-    MakeDenominatorPositive( m_denominator );
-    
-    #if __cplusplus >= 201703L // numeric header was added in C++17
-    NumeratorType gcdValue = static_cast< NumeratorType >( std::gcd( m_numerator, m_denominator ) );
-    #else
-      //#if ( GUCEF_COMPILER == GUCEF_COMPILER_GNUC )
-      //  #if ( __GNUC__ >= 5 ) // use GCC compiler build-in
-      //  NumeratorType gcdValue = static_cast< NumeratorType >( std::__gcd( m_numerator, m_denominator ) );
-      //  #else // use our own template's version
-      //  NumeratorType gcdValue = gcd< NumeratorType >( m_numerator, static_cast< NumeratorType >( m_denominator ) );
-      //  #endif
-      //#else // use our own template's version
-      // gcd requires non-negative inputs to return a correct positive result.
-      // After MakeDenominatorPositive(), m_denominator is always >= 0.
-      // The numerator may be negative for signed types, so we pass its absolute value.
-      NumeratorType absNumerator = m_numerator;
-      if ( absNumerator < NumeratorType( 0 ) )
-          absNumerator = NumeratorType( 0 ) - absNumerator;
-      NumeratorType gcdValue = gcd< NumeratorType >( absNumerator, static_cast< NumeratorType >( m_denominator ) );
-      //#endif
-    #endif
+    ThrowOnOverflow( TIntegerOps::Normalize( m_numerator, m_denominator ) );
+}
 
-    m_numerator /= gcdValue;
-    m_denominator /= static_cast< DenominatorType >( gcdValue );
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+bool
+CTFraction< NumeratorType, DenominatorType >::TryAdd( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const
+{GUCEF_TRACE;
+
+    NumeratorType n = m_numerator;
+    DenominatorType d = m_denominator;
+    if ( !TIntegerOps::Add( n, d, other.m_numerator, other.m_denominator ) )
+        return false;
+    result.m_numerator = n;
+    result.m_denominator = d;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+bool
+CTFraction< NumeratorType, DenominatorType >::TrySubtract( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const
+{GUCEF_TRACE;
+
+    NumeratorType n = m_numerator;
+    DenominatorType d = m_denominator;
+    if ( !TIntegerOps::Subtract( n, d, other.m_numerator, other.m_denominator ) )
+        return false;
+    result.m_numerator = n;
+    result.m_denominator = d;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+bool
+CTFraction< NumeratorType, DenominatorType >::TryMultiply( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const
+{GUCEF_TRACE;
+
+    NumeratorType n = m_numerator;
+    DenominatorType d = m_denominator;
+    if ( !TIntegerOps::Multiply( n, d, other.m_numerator, other.m_denominator ) )
+        return false;
+    result.m_numerator = n;
+    result.m_denominator = d;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+bool
+CTFraction< NumeratorType, DenominatorType >::TryDivide( const CTFraction< NumeratorType, DenominatorType >& other, CTFraction< NumeratorType, DenominatorType >& result ) const
+{GUCEF_TRACE;
+
+    if ( other.m_numerator == 0 )
+        return false;
+    NumeratorType n = m_numerator;
+    DenominatorType d = m_denominator;
+    if ( !TIntegerOps::Divide( n, d, other.m_numerator, other.m_denominator ) )
+        return false;
+    result.m_numerator = n;
+    result.m_denominator = d;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+TDecimalStatus
+CTFraction< NumeratorType, DenominatorType >::ToDecimal( const CDecimalContext& context, CDecimal& result ) const
+{GUCEF_TRACE;
+
+    return TIntegerOps::ToDecimal( m_numerator, m_denominator, context, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+bool
+CTFraction< NumeratorType, DenominatorType >::FromDecimal( const CDecimal& value )
+{GUCEF_TRACE;
+
+    NumeratorType n = m_numerator;
+    DenominatorType d = m_denominator;
+    if ( !TIntegerOps::FromDecimal( value, n, d ) )
+        return false;
+    if ( !TIntegerOps::Normalize( n, d ) )
+        return false;
+    m_numerator = n;
+    m_denominator = d;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -576,7 +643,7 @@ Float32
 CTFraction< NumeratorType, DenominatorType >::ToFloat32( void ) const
 {GUCEF_TRACE;
 
-    return static_cast< Float32 >( m_numerator ) / m_denominator;
+    return TIntegerOps::ToFloat32( m_numerator, m_denominator );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -609,7 +676,7 @@ Float64
 CTFraction< NumeratorType, DenominatorType >::ToFloat64( void ) const
 {GUCEF_TRACE;
 
-    return static_cast< Float64 >( m_numerator ) / m_denominator;
+    return TIntegerOps::ToFloat64( m_numerator, m_denominator );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -642,7 +709,7 @@ CString
 CTFraction< NumeratorType, DenominatorType >::ToString( void ) const
 {GUCEF_TRACE;
 
-    return CORE::ToString( m_numerator ) + "/" + CORE::ToString( m_denominator );
+    return TIntegerOps::ToString( m_numerator, m_denominator );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -659,11 +726,12 @@ CTFraction< NumeratorType, DenominatorType >::FromString( const CString& str )
     CString numStr = str.SubstrToIndex( slashPos, true );
     CString denStr = str.SubstrToIndex( slashPos+1, false );
 
-    DenominatorType denominator = StringToNumber< DenominatorType >( denStr );
-    if ( 0 == denominator )
+    NumeratorType numerator = m_numerator;
+    DenominatorType denominator = m_denominator;
+    if ( !TIntegerOps::FromString( numStr, denStr, numerator, denominator ) )
         return false;
 
-    m_numerator = StringToNumber< NumeratorType >( numStr );
+    m_numerator = numerator;
     m_denominator = denominator;
     Normalize();
     return true;

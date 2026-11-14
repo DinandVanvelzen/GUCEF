@@ -177,6 +177,7 @@ files( {
   "include/gucefCORE_CBackoffPolicy.h",
   "include/gucefCORE_CBasicAbstractFactoryBase.h",
   "include/gucefCORE_CBasicBracketLoggingFormatter.h",
+  "include/gucefCORE_CBigInteger.h",
   "include/gucefCORE_CBigUnsigned.h",
   "include/gucefCORE_CBinaryWireReader.h",
   "include/gucefCORE_CBinaryWireWriter.h",
@@ -294,6 +295,7 @@ files( {
   "include/gucefCORE_CIValueToDataNodeSerializer.h",
   "include/gucefCORE_CIniDataStoreCodec.h",
   "include/gucefCORE_CIniParser.h",
+  "include/gucefCORE_CInt128.h",
   "include/gucefCORE_CInstanceBasedCodec.h",
   "include/gucefCORE_CJsonLoggingFormatter.h",
   "include/gucefCORE_CJsonSchema.h",
@@ -358,6 +360,7 @@ files( {
   "include/gucefCORE_CTEventHandlerFunctor.h",
   "include/gucefCORE_CTEventHandlerFunctorProxy.h",
   "include/gucefCORE_CTFraction.h",
+  "include/gucefCORE_CTFractionIntegerOps.h",
   "include/gucefCORE_CTFreeList.h",
   "include/gucefCORE_CTGlobalONRegistry.h",
   "include/gucefCORE_CTIOAccessToStlStream.h",
@@ -385,6 +388,7 @@ files( {
   "include/gucefCORE_CTimeZoneRules.h",
   "include/gucefCORE_CTimestamp.h",
   "include/gucefCORE_CTokenizer.h",
+  "include/gucefCORE_CUInt128.h",
   "include/gucefCORE_CUri.h",
   "include/gucefCORE_CUriResourceAccessor.h",
   "include/gucefCORE_CUriResourceAccessorFactory.h",
@@ -470,8 +474,7 @@ files( {
   "src/gucefCORE_CCsvTableText.h",
   "src/gucefCORE_CCsvTableWriter.h",
   "src/gucefCORE_CDataTableBufferPoolCore.h",
-  "src/gucefCORE_CDataTableScanTask.h",
-  "src/gucefCORE_CUInt128.h"
+  "src/gucefCORE_CDataTableScanTask.h"
  } )
 
 
@@ -594,6 +597,7 @@ files( {
   "src/gucefCORE_CBackoffPolicy.cpp",
   "src/gucefCORE_CBasicAbstractFactoryBase.cpp",
   "src/gucefCORE_CBasicBracketLoggingFormatter.cpp",
+  "src/gucefCORE_CBigInteger.cpp",
   "src/gucefCORE_CBigUnsigned.cpp",
   "src/gucefCORE_CBuiltInCodecs.cpp",
   "src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp",

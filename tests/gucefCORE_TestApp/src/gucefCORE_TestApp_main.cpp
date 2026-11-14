@@ -163,6 +163,8 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTUINT128_H
 #include "TestUInt128.h"
+#include "TestInt128.h"
+#include "TestBigInteger.h"
 #define GUCEF_CORE_TESTAPP_TESTUINT128_H
 #endif /* GUCEF_CORE_TESTAPP_TESTUINT128_H ? */
 
@@ -528,6 +530,8 @@ GUCEF_OSMAIN_BEGIN
         PerformFileUtilsTests();
         PerformFractionTests();
         PerformUInt128Tests();
+        PerformInt128Tests();
+        PerformBigIntegerTests();
         PerformDecimalTests();
         PerformAbstractFactoryTests();
         PerformAbstractFactoryParityTests();

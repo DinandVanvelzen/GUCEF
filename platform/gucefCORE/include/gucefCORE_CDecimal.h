@@ -214,6 +214,9 @@ class GUCEF_CORE_PUBLIC_CPP CDecimal
     /** Nearest double, ties to even */
     Float64 ToFloat64( void ) const;
 
+    /** Nearest float, ties to even, rounded once from the exact value (not through Float64, which would round twice) */
+    Float32 ToFloat32( void ) const;
+
     /** Integer value rounded with 'mode' */
     TDecimalStatus ToInt64( TRoundingMode mode, Int64& result ) const;
 

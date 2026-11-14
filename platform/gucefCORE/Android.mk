@@ -137,6 +137,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CBackoffPolicy.cpp \
   src/gucefCORE_CBasicAbstractFactoryBase.cpp \
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp \
+  src/gucefCORE_CBigInteger.cpp \
   src/gucefCORE_CBigUnsigned.cpp \
   src/gucefCORE_CBinaryWireReader.cpp \
   src/gucefCORE_CBinaryWireWriter.cpp \

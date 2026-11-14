@@ -18,6 +18,7 @@ set( HEADER_FILES
   include/TestAllocationCounter.h
   include/TestAsyncUriResourceRetriever.h
   include/TestBase64Url.h
+  include/TestBigInteger.h
   include/TestBigUnsigned.h
   include/TestBinaryWire.h
   include/TestBusyWaitPulseGeneratorDriver.h
@@ -69,6 +70,7 @@ set( HEADER_FILES
   include/TestFrameworkSuites.h
   include/TestFutureResultSource.h
   include/TestIniParser.h
+  include/TestInt128.h
   include/TestJsonDataNodeFidelity.h
   include/TestJsonSchema.h
   include/TestJsonSyntaxValidator.h
@@ -135,6 +137,7 @@ set( SOURCE_FILES
   src/TestAllocationCounter.cpp
   src/TestAsyncUriResourceRetriever.cpp
   src/TestBase64Url.cpp
+  src/TestBigInteger.cpp
   src/TestBigUnsigned.cpp
   src/TestBrowserLauncher.cpp
   src/TestCodecPlugins.cpp
@@ -181,6 +184,7 @@ set( SOURCE_FILES
   src/TestFreeList.cpp
   src/TestFutureResultSource.cpp
   src/TestIniParser.cpp
+  src/TestInt128.cpp
   src/TestJsonDataNodeFidelity.cpp
   src/TestJsonSchema.cpp
   src/TestJsonSyntaxValidator.cpp

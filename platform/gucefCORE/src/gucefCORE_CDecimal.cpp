@@ -903,6 +903,38 @@ CDecimal::ToFloat64( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+Float32
+CDecimal::ToFloat32( void ) const
+{GUCEF_TRACE;
+
+    if ( 0 == m_unscaled )
+        return 0.0f;
+
+    // scaled division producing a quotient of at least 68 significant bits plus a sticky bit, rounded once to 24 bits.
+    // The range of a decimal (1e-18 .. 9.3e18) lies within the normal floats, so there is no subnormal or overflow case
+    UInt64 magnitude = MagnitudeOf( m_unscaled );
+    UInt32 bitLength = 64 - CUInt128::CountLeadingZeros( magnitude );
+    UInt32 shift = 128 - bitLength;
+    CUInt128 numerator = CUInt128::ShiftLeft( CUInt128( magnitude ), shift );
+    CUInt128 quotient;
+    UInt64 remainder = 0;
+    CUInt128::DivMod( numerator, g_decimalPow10[ m_scale ], quotient, remainder );
+
+    UInt32 drop = quotient.BitLength() - 24;
+    CUInt128 significand = CUInt128::ShiftRight( quotient, drop );
+    CUInt128 discarded = CUInt128::Subtract( quotient, CUInt128::ShiftLeft( significand, drop ) );
+    CUInt128 half = CUInt128::ShiftLeft( CUInt128( 1 ), drop - 1 );
+    Int32 cmp = CUInt128::Compare( discarded, half );
+    bool roundUp = cmp > 0 || ( 0 == cmp && ( 0 != remainder || significand.IsOdd() ) );
+    UInt64 bits = significand.low;
+    if ( roundUp )
+        ++bits;     // 2^24 is still exact
+    Float64 value = ldexp( (Float64) bits, (int) drop - (int) shift );      // exact: 24 significant bits
+    return (Float32) ( m_unscaled < 0 ? -value : value );
+}
+
+/*-------------------------------------------------------------------------*/
+
 TDecimalStatus
 CDecimal::ToInt64( TRoundingMode mode, Int64& result ) const
 {GUCEF_TRACE;
