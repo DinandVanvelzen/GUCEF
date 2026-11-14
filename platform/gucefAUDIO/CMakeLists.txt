@@ -226,13 +226,13 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefAUDIO" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
+add_dependencies( ${MODULE_NAME} gucefCORE gucefMATH gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMATH gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEFAUDIO_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefAUDIO;MODULE_NAME=gucefAUDIO;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include include/c_api )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMATH/include ../gucefMT/include include include/c_api )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )

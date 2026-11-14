@@ -37,6 +37,11 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
+
+namespace MATH {
+class CRealFft;
+}
+
 namespace AUDIO {
 
 /*-------------------------------------------------------------------------//
@@ -47,7 +52,8 @@ namespace AUDIO {
 
 /**
  *  Fast Fourier transform of real signals, for spectral processing (noise suppression, echo cancellation, analysis).
- *  A DSP block of gucefAUDIO until gucefMATH has an FFT of its own, at which point this class forwards to it.
+ *  The transform is done by MATH::CRealFft of gucefMATH; this class keeps the range of sizes and the interface that
+ *  the DSP blocks of gucefAUDIO use and forwards every call to it, with identical results.
  *
  *  The size N is a power of two from MIN_SIZE (64) to MAX_SIZE (4096). The transform is done as a complex
  *  transform of size N/2 (split-radix, decimation in time, recursive with the tables of Prepare()), with the
@@ -117,13 +123,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CRealFft
 
     private:
 
-    UInt32 m_size;
-    GUCEF::vector< Float32 > m_twiddles32;      /**< exp( -2 pi i j / N ) for j below N, real and imaginary part alternating */
-    GUCEF::vector< Float32 > m_workA32;         /**< N/2 complex numbers */
-    GUCEF::vector< Float32 > m_workB32;         /**< N/2 complex numbers */
-    GUCEF::vector< Float64 > m_twiddles64;
-    GUCEF::vector< Float64 > m_workA64;
-    GUCEF::vector< Float64 > m_workB64;
+    MATH::CRealFft* m_fft;                      /**< the transform, owned; a pointer so that users of this header need no gucefMATH headers */
 };
 
 /*-------------------------------------------------------------------------//
