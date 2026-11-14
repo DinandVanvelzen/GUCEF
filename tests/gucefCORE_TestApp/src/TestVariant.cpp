@@ -95,6 +95,128 @@ using namespace GUCEF;
 
 /*-------------------------------------------------------------------------*/
 
+/** All twelve fraction variants, as the little endian ids and as the big endian ids, with the text they have to give */
+static void
+PerformVariantFractionTextTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "CVariant fractions: AsString gives numerator/denominator for every fraction variant id" )
+        try
+        {
+            CORE::CVariant fractions[ 6 ];
+            fractions[ 0 ] = CORE::CVariant( CORE::TInt32Fraction( -1, 3 ) );
+            fractions[ 1 ] = CORE::CVariant( CORE::TUInt32Fraction( 4000000000U, 3 ) );
+            fractions[ 2 ] = CORE::CVariant( CORE::TInt64Fraction( 9007199254740993LL, 7 ) );
+            fractions[ 3 ] = CORE::CVariant( CORE::TUInt64Fraction( 18446744073709551615ULL, 7 ) );
+            fractions[ 4 ] = CORE::CVariant( CORE::TInt64Int32Fraction( -9007199254740993LL, 5 ) );
+            fractions[ 5 ] = CORE::CVariant( CORE::TUInt64UInt32Fraction( 9007199254740993ULL, 5 ) );
+            const char* expected[ 6 ] = { "-1/3", "4000000000/3", "9007199254740993/7", "18446744073709551615/7", "-9007199254740993/5", "9007199254740993/5" };
+
+            for ( int i = 0; i < 6; ++i )
+            {
+                CORE::CVariant native( fractions[ i ] );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fraction text: native id " << (int) native.GetTypeId() << " gives \"" << native.AsString() << "\", expected \"" << expected[ i ] << "\"" );
+                ASSERT_TRUE( native.AsString() == expected[ i ] );
+                ASSERT_TRUE( native.AsString( CORE::CString::Empty, true ) == expected[ i ] );
+
+                CORE::CVariant nonNative( fractions[ i ] );
+                nonNative.ToBigEndian();
+                if ( native.IsLittleEndian() )
+                    ASSERT_TRUE( nonNative.GetTypeId() == native.GetTypeId() + 1 );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fraction text: byte swapped id " << (int) nonNative.GetTypeId() << " gives \"" << nonNative.AsString() << "\"" );
+                ASSERT_TRUE( nonNative.AsString() == expected[ i ] );
+                ASSERT_TRUE( nonNative.AsString( CORE::CString::Empty, true ) == expected[ i ] );
+
+                // the same text as the fraction class itself writes
+                CORE::CVariant fromText( native.AsString() );
+                ASSERT_TRUE( fromText.AsString() == expected[ i ] );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CVariant fractions: the text of a fraction variant reads back through the AsXFraction conversions" )
+        try
+        {
+            const CORE::CString text( CORE::CVariant( CORE::TInt64Fraction( 9007199254740993LL, 7 ) ).AsString() );
+            const CORE::TInt64Fraction a = CORE::CVariant( text ).AsInt64Fraction();
+            ASSERT_TRUE( 9007199254740993LL == a.GetNumerator() && 7 == a.GetDenominator() );
+            const CORE::TInt64Int32Fraction b = CORE::CVariant( CORE::CVariant( CORE::TInt64Int32Fraction( -9007199254740993LL, 5 ) ).AsString() ).AsInt64Int32Fraction();
+            ASSERT_TRUE( -9007199254740993LL == b.GetNumerator() && 5 == b.GetDenominator() );
+            const CORE::TInt32Fraction c = CORE::CVariant( CORE::CVariant( CORE::TInt32Fraction( 1, 3 ) ).AsString() ).AsInt32Fraction();
+            ASSERT_TRUE( 1 == c.GetNumerator() && 3 == c.GetDenominator() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CVariant fractions: the 64 bit AsXFraction conversions keep the full numerator and denominator" )
+        try
+        {
+            // the 64 bit target types hold every 64 bit value of the same signedness exactly
+            const CORE::TInt64Fraction a = CORE::CVariant( CORE::TInt64Fraction( 9007199254740993LL, 9007199254740991LL ) ).AsInt64Fraction();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fraction conversion: Int64 fraction as Int64 fraction gives " << a.ToString() );
+            ASSERT_TRUE( 9007199254740993LL == a.GetNumerator() && 9007199254740991LL == a.GetDenominator() );
+            const CORE::TUInt64Fraction b = CORE::CVariant( CORE::TUInt64Fraction( 18446744073709551615ULL, 18446744073709551614ULL ) ).AsUInt64Fraction();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fraction conversion: UInt64 fraction as UInt64 fraction gives " << b.ToString() );
+            ASSERT_TRUE( 18446744073709551615ULL == b.GetNumerator() && 18446744073709551614ULL == b.GetDenominator() );
+
+            // 64 bit numerator with 32 bit denominator source types
+            const CORE::TInt64Fraction c = CORE::CVariant( CORE::TInt64Int32Fraction( -9007199254740993LL, 5 ) ).AsInt64Fraction();
+            ASSERT_TRUE( -9007199254740993LL == c.GetNumerator() && 5 == c.GetDenominator() );
+            const CORE::TUInt64Fraction d = CORE::CVariant( CORE::TUInt64UInt32Fraction( 18446744073709551615ULL, 7 ) ).AsUInt64Fraction();
+            ASSERT_TRUE( 18446744073709551615ULL == d.GetNumerator() && 7 == d.GetDenominator() );
+
+            // 32 bit sources that do not fit a signed 32 bit value but do fit the 64 bit target
+            const CORE::TInt64Fraction e = CORE::CVariant( CORE::TUInt32Fraction( 4000000000U, 3 ) ).AsInt64Fraction();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fraction conversion: UInt32 fraction as Int64 fraction gives " << e.ToString() );
+            ASSERT_TRUE( 4000000000LL == e.GetNumerator() && 3 == e.GetDenominator() );
+            const CORE::TUInt64Fraction f = CORE::CVariant( CORE::TUInt32Fraction( 4000000000U, 3 ) ).AsUInt64Fraction();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fraction conversion: UInt32 fraction as UInt64 fraction gives " << f.ToString() );
+            ASSERT_TRUE( 4000000000ULL == f.GetNumerator() && 3 == f.GetDenominator() );
+            const CORE::TInt64Fraction g = CORE::CVariant( CORE::TInt32Fraction( -5, 3 ) ).AsInt64Fraction();
+            ASSERT_TRUE( -5 == g.GetNumerator() && 3 == g.GetDenominator() );
+
+            // the 64 bit sources of the 32 bit targets keep what fits
+            const CORE::TInt32Fraction h = CORE::CVariant( CORE::TInt64Fraction( -1234567, 891011 ) ).AsInt32Fraction();
+            ASSERT_TRUE( -1234567 == h.GetNumerator() && 891011 == h.GetDenominator() );
+            const CORE::TInt64Int32Fraction i = CORE::CVariant( CORE::TInt64Fraction( 9007199254740993LL, 7 ) ).AsInt64Int32Fraction();
+            ASSERT_TRUE( 9007199254740993LL == i.GetNumerator() && 7 == i.GetDenominator() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "CVariant fractions: values the target type cannot hold convert like the integer conversions do" )
+        try
+        {
+            // AsInt32 of a too large Int64 is the plain narrowing conversion, the fraction conversions follow it
+            const Int64 big = 4294967301LL;
+            const Int32 narrowed = CORE::CVariant( big ).AsInt32();
+            const CORE::TInt32Fraction a = CORE::CVariant( CORE::TInt64Fraction( big, 7 ) ).AsInt32Fraction();
+            ASSERT_TRUE( narrowed == a.GetNumerator() && 7 == a.GetDenominator() );
+
+            const UInt64 huge = 18446744073709551615ULL;
+            const Int64 reinterpreted = CORE::CVariant( huge ).AsInt64();
+            const CORE::TInt64Fraction b = CORE::CVariant( CORE::TUInt64Fraction( huge, 7 ) ).AsInt64Fraction();
+            ASSERT_TRUE( reinterpreted == b.GetNumerator() && 7 == b.GetDenominator() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformVariantTests( void )
 {
@@ -1537,6 +1659,8 @@ PerformVariantTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+    PerformVariantFractionTextTests();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariant TESTS COMPLETED" );

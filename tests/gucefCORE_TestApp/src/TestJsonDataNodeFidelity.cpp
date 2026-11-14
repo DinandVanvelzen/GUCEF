@@ -687,6 +687,404 @@ PerformEscapeTests( void )
     GUCEF_TESTFW_TESTCASE_END;
 }
 
+
+/*-------------------------------------------------------------------------*/
+
+/** The text without spaces, so that a search does not depend on the whitespace the serializer puts around ':' and ',' */
+static CORE::CString
+WithoutSpaces( const CORE::CString& text )
+{GUCEF_TRACE;
+
+    CORE::CString result;
+    const char* data = text.C_String();
+    const UInt32 length = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
+    for ( UInt32 i=0; i<length; ++i )
+        if ( ' ' != data[ i ] )
+            result += CORE::CString( data + i, 1 );
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+TextHas( const CORE::CString& text, const char* needle )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != strstr( WithoutSpaces( text ).C_String(), needle );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A member as written, up to the end of its value: followed by ',' or, as the last member, by '}' (members are written in key order) */
+static bool
+HasMember( const CORE::CString& text, const char* member )
+{GUCEF_TRACE;
+
+    return TextHas( text, ( CORE::CString( member ) + "," ).C_String() ) || TextHas( text, ( CORE::CString( member ) + "}" ).C_String() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+SameBits( Float64 a, Float64 b )
+{GUCEF_TRACE;
+
+    return 0 == memcmp( &a, &b, sizeof( Float64 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** xorshift64: a fixed seed gives the same values on every platform */
+static UInt64
+NextRandom( UInt64& state )
+{GUCEF_TRACE;
+
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+    return state;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static Float64
+DoubleFromBits( UInt64 bits )
+{GUCEF_TRACE;
+
+    Float64 value;
+    memcpy( &value, &bits, sizeof value );
+    return value;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+IsFiniteDouble( Float64 value )
+{GUCEF_TRACE;
+
+    return value == value && value - value == 0.0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformLosslessNumberTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: 10000 seeded doubles are written and read back bit-identical" )
+        try
+        {
+            static const Float64 specials[] = { 5e-324, 2.2250738585072014e-308, 1.7976931348623157e308, -1.7976931348623157e308, 0.0, -0.0,
+                                                0.1, 1.0 / 3.0, 1e22, -1e22, 1.0, -1.0, 0.30000000000000004, 123456789.123456789, 4.35, 1e-7,
+                                                0.1234567, 1234567.0, 9007199254740993.0, 1e21, 1e23, 2.5e-5 };
+            const UInt32 specialCount = sizeof( specials ) / sizeof( Float64 );
+            const UInt32 count = 10000;
+            GUCEF::vector< Float64 > values;
+            UInt64 state = 0x9E3779B97F4A7C15ULL;
+            for ( UInt32 i=0; i<specialCount; ++i )
+                values.push_back( specials[ i ] );
+            while ( values.size() < count )
+            {
+                const UInt64 bits = NextRandom( state );
+                Float64 value = 0.0;
+                switch ( values.size() % 4 )
+                {
+                    case 0:  value = DoubleFromBits( bits ); break;                                                            // any bit pattern
+                    case 1:  value = DoubleFromBits( bits & 0x800FFFFFFFFFFFFFULL ); break;                                    // subnormals and zero
+                    case 2:  value = (Float64) (Int64) ( NextRandom( state ) % 2000001 ) / 1000.0 - 1000.0; break;           // short decimals
+                    default: value = (Float64) (Int64) ( bits % 1000003 ) / (Float64) (Int64) ( 1 + NextRandom( state ) % 99991 ); break;  // ratios
+                }
+                if ( IsFiniteDouble( value ) )
+                    values.push_back( value );
+            }
+
+            CORE::CDataNode tree;
+            CORE::CDataNode* list = tree.AddChild( "list", GUCEF_DATATYPE_ARRAY );
+            for ( UInt32 i=0; i<count; ++i )
+                list->AddValueAsChild( CORE::CVariant( (Float64) values[ i ] ) );
+
+            CORE::CDataNode again;
+            CORE::CString text;
+            ASSERT_TRUE( RoundTrip( tree, again, text ) );
+            const CORE::CDataNode* readList = DirectChild( again, "list" );
+            ASSERT_TRUE( GUCEF_NULL != readList && count == readList->GetNrOfDirectChildNodes() );
+            if ( GUCEF_NULL != readList && count == readList->GetNrOfDirectChildNodes() )
+            {
+                UInt32 mismatches = 0;
+                for ( UInt32 i=0; i<count; ++i )
+                {
+                    const CORE::CVariant& v = readList->GetChildAtIndex( i )->GetValue();
+                    // a double without a fraction or exponent that is whole is written with a ".0" and so stays a double
+                    if ( GUCEF_DATATYPE_FLOAT64 != v.GetTypeId() || !SameBits( values[ i ], v.AsFloat64() ) )
+                    {
+                        if ( mismatches < 5 )
+                            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "JsonLossless: value " << i << " type " << (int) v.GetTypeId() << " was not read back bit-identical" );
+                        ++mismatches;
+                    }
+                }
+                ASSERT_TRUE( 0 == mismatches );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: Float32 values are stored as the double they widen to and read back exactly" )
+        try
+        {
+            GUCEF::vector< Float32 > values;
+            values.push_back( 0.1f );
+            values.push_back( 3.4028235e38f );
+            values.push_back( 1.17549435e-38f );
+            values.push_back( 1e-45f );
+            values.push_back( -0.0f );
+            values.push_back( 16777217.0f );
+            UInt64 state = 0xD1B54A32D192ED03ULL;
+            while ( values.size() < 2000 )
+            {
+                const UInt32 bits = (UInt32) ( NextRandom( state ) >> 16 );
+                Float32 value;
+                memcpy( &value, &bits, sizeof value );
+                if ( IsFiniteDouble( (Float64) value ) )
+                    values.push_back( value );
+            }
+            CORE::CDataNode tree;
+            CORE::CDataNode* list = tree.AddChild( "list", GUCEF_DATATYPE_ARRAY );
+            for ( UInt32 i=0; i<values.size(); ++i )
+                list->AddValueAsChild( CORE::CVariant( (Float32) values[ i ] ) );
+            CORE::CDataNode again;
+            CORE::CString text;
+            ASSERT_TRUE( RoundTrip( tree, again, text ) );
+            const CORE::CDataNode* readList = DirectChild( again, "list" );
+            ASSERT_TRUE( GUCEF_NULL != readList && values.size() == readList->GetNrOfDirectChildNodes() );
+            if ( GUCEF_NULL != readList && values.size() == readList->GetNrOfDirectChildNodes() )
+            {
+                UInt32 mismatches = 0;
+                for ( UInt32 i=0; i<values.size(); ++i )
+                {
+                    const CORE::CVariant& v = readList->GetChildAtIndex( i )->GetValue();
+                    const Float32 narrowed = (Float32) v.AsFloat64();
+                    if ( GUCEF_DATATYPE_FLOAT64 != v.GetTypeId() || !SameBits( (Float64) values[ i ], v.AsFloat64() ) || 0 != memcmp( &narrowed, &values[ i ], sizeof narrowed ) )
+                        ++mismatches;
+                }
+                ASSERT_TRUE( 0 == mismatches );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: doubles are written as the shortest text that reads back, whole ones keep a .0" )
+        try
+        {
+            CORE::CDataNode tree;
+            tree.SetAttribute( "a", CORE::CVariant( (Float64) 0.1 ) );
+            tree.SetAttribute( "b", CORE::CVariant( (Float64) 1.0 ) );
+            tree.SetAttribute( "c", CORE::CVariant( (Float64) 0.1234567 ) );
+            tree.SetAttribute( "d", CORE::CVariant( (Float64) 1234567.0 ) );
+            tree.SetAttribute( "e", CORE::CVariant( (Float64) -2.5 ) );
+            CORE::CString text;
+            ASSERT_TRUE( WriteJsonTestText( tree, text ) );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "JsonLossless: written: " << text );
+            ASSERT_TRUE( HasMember( text, "\"a\":0.1" ) );
+            ASSERT_TRUE( HasMember( text, "\"b\":1.0" ) );
+            ASSERT_TRUE( HasMember( text, "\"c\":0.1234567" ) );
+            ASSERT_TRUE( HasMember( text, "\"d\":1234567.0" ) );
+            ASSERT_TRUE( HasMember( text, "\"e\":-2.5" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: a double written by another producer reads as the nearest double" )
+        try
+        {
+            CORE::CDataNode tree;
+            ASSERT_TRUE( ParseLogged( "{ \"a\": 0.30000000000000004, \"b\": 5e-324, \"c\": 1.7976931348623157e308, \"d\": -0.0, \"e\": 4.35, \"f\": 1E-7, \"g\": 123456789012345678.5 }", tree ) );
+            ASSERT_TRUE( SameBits( 0.30000000000000004, tree.GetAttributeValue( "a" ).AsFloat64() ) );
+            ASSERT_TRUE( SameBits( 5e-324, tree.GetAttributeValue( "b" ).AsFloat64() ) );
+            ASSERT_TRUE( SameBits( 1.7976931348623157e308, tree.GetAttributeValue( "c" ).AsFloat64() ) );
+            ASSERT_TRUE( SameBits( -0.0, tree.GetAttributeValue( "d" ).AsFloat64() ) );
+            ASSERT_TRUE( SameBits( 4.35, tree.GetAttributeValue( "e" ).AsFloat64() ) );
+            ASSERT_TRUE( SameBits( 1E-7, tree.GetAttributeValue( "f" ).AsFloat64() ) );
+            ASSERT_TRUE( SameBits( 123456789012345678.5, tree.GetAttributeValue( "g" ).AsFloat64() ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: 64 bit integers inside +-(2^53-1) stay numbers, outside they travel as strings" )
+        try
+        {
+            CORE::CDataNode tree;
+            tree.SetAttribute( "i32", (Int32) -5 );
+            tree.SetAttribute( "safe", (Int64) 9007199254740991LL );
+            tree.SetAttribute( "safeNeg", (Int64) -9007199254740991LL );
+            tree.SetAttribute( "usafe", (UInt64) 9007199254740991ULL );
+            tree.SetAttribute( "big", (Int64) 9007199254740993LL );
+            tree.SetAttribute( "bigNeg", (Int64) -9007199254740993LL );
+            tree.SetAttribute( "pow53", (Int64) 9007199254740992LL );
+            tree.SetAttribute( "i64max", (Int64) GUCEF_INT64MAX );
+            tree.SetAttribute( "i64min", (Int64) ( -GUCEF_INT64MAX - 1 ) );
+            tree.SetAttribute( "ubig", (UInt64) 18446744073709551615ULL );
+            CORE::CDataNode again;
+            CORE::CString text;
+            ASSERT_TRUE( RoundTrip( tree, again, text ) );
+            ASSERT_TRUE( HasMember( text, "\"i32\":-5" ) );
+            ASSERT_TRUE( HasMember( text, "\"safe\":9007199254740991" ) );
+            ASSERT_TRUE( HasMember( text, "\"safeNeg\":-9007199254740991" ) );
+            ASSERT_TRUE( HasMember( text, "\"usafe\":9007199254740991" ) );
+            ASSERT_TRUE( HasMember( text, "\"big\":\"9007199254740993\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"bigNeg\":\"-9007199254740993\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"pow53\":\"9007199254740992\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"i64max\":\"9223372036854775807\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"i64min\":\"-9223372036854775808\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"ubig\":\"18446744073709551615\"" ) );
+
+            ASSERT_TRUE( GUCEF_DATATYPE_INT64 == AttributeType( again, "safe" ) );
+            ASSERT_TRUE( 9007199254740991LL == again.GetAttributeValue( "safe" ).AsInt64() );
+            ASSERT_TRUE( -9007199254740991LL == again.GetAttributeValue( "safeNeg" ).AsInt64() );
+            ASSERT_TRUE( 9007199254740991LL == again.GetAttributeValue( "usafe" ).AsInt64() );
+            // the reader leaves the strings as strings, the conversions of the variant read them exactly
+            ASSERT_TRUE( GUCEF_DATATYPE_UTF8_STRING == AttributeType( again, "big" ) );
+            ASSERT_TRUE( 9007199254740993LL == again.GetAttributeValue( "big" ).AsInt64() );
+            ASSERT_TRUE( -9007199254740993LL == again.GetAttributeValue( "bigNeg" ).AsInt64() );
+            ASSERT_TRUE( 9007199254740992LL == again.GetAttributeValue( "pow53" ).AsInt64() );
+            ASSERT_TRUE( GUCEF_INT64MAX == again.GetAttributeValue( "i64max" ).AsInt64() );
+            ASSERT_TRUE( ( -GUCEF_INT64MAX - 1 ) == again.GetAttributeValue( "i64min" ).AsInt64( 0 ) );
+            ASSERT_TRUE( 18446744073709551615ULL == again.GetAttributeValue( "ubig" ).AsUInt64() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: decimals are written as strings and read back exactly, a number reads as well" )
+        try
+        {
+            const CORE::CDecimal original = CORE::CDecimal::Parse( "12345678901234.56789" );
+            CORE::CDataNode tree;
+            tree.SetAttribute( "dec", CORE::CVariant( original ) );
+            tree.SetAttribute( "neg", CORE::CVariant( CORE::CDecimal::Parse( "-0.000000000000000001" ) ) );
+            tree.SetAttribute( "whole", CORE::CVariant( CORE::CDecimal::Parse( "7" ) ) );
+            CORE::CDataNode again;
+            CORE::CString text;
+            ASSERT_TRUE( RoundTrip( tree, again, text ) );
+            ASSERT_TRUE( HasMember( text, "\"dec\":\"12345678901234.56789\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"neg\":\"-0.000000000000000001\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"whole\":\"7\"" ) );
+            ASSERT_TRUE( GUCEF_DATATYPE_UTF8_STRING == AttributeType( again, "dec" ) );
+            CORE::CDecimal read;
+            ASSERT_TRUE( CORE::DECIMALSTATUS_OK == again.GetAttributeValue( "dec" ).GetDecimal( read ) );
+            ASSERT_TRUE( original == read && original.ToString() == read.ToString() );
+            ASSERT_TRUE( CORE::DECIMALSTATUS_OK == again.GetAttributeValue( "neg" ).GetDecimal( read ) );
+            ASSERT_TRUE( CORE::CDecimal::Parse( "-0.000000000000000001" ).ToString() == read.ToString() );
+            ASSERT_TRUE( CORE::DECIMALSTATUS_OK == again.GetAttributeValue( "whole" ).GetDecimal( read ) );
+            ASSERT_TRUE( CORE::CDecimal::Parse( "7" ).ToString() == read.ToString() );
+
+            // the number form reads too: a document from another producer
+            CORE::CDataNode other;
+            ASSERT_TRUE( ParseLogged( "{ \"dec\": 12.5 }", other ) );
+            ASSERT_TRUE( CORE::DECIMALSTATUS_OK == other.GetAttributeValue( "dec" ).GetDecimal( read ) );
+            ASSERT_TRUE( CORE::CDecimal::Parse( "12.5" ) == read );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "JSON numbers: fractions are written as strings and read back exactly" )
+        try
+        {
+            CORE::CDataNode tree;
+            tree.SetAttribute( "f32", CORE::CVariant( CORE::TInt32Fraction( -1, 3 ) ) );
+            tree.SetAttribute( "fu32", CORE::CVariant( CORE::TUInt32Fraction( 4000000000U, 3 ) ) );
+            tree.SetAttribute( "f64", CORE::CVariant( CORE::TInt64Fraction( 9007199254740993LL, 7 ) ) );
+            tree.SetAttribute( "fu64", CORE::CVariant( CORE::TUInt64Fraction( 18446744073709551615ULL, 7 ) ) );
+            tree.SetAttribute( "f6432", CORE::CVariant( CORE::TInt64Int32Fraction( -9007199254740993LL, 5 ) ) );
+            tree.SetAttribute( "fu6432", CORE::CVariant( CORE::TUInt64UInt32Fraction( 9007199254740993ULL, 5 ) ) );
+            CORE::CDataNode again;
+            CORE::CString text;
+            ASSERT_TRUE( RoundTrip( tree, again, text ) );
+            ASSERT_TRUE( HasMember( text, "\"f32\":\"-1/3\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"fu32\":\"4000000000/3\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"f64\":\"9007199254740993/7\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"fu64\":\"18446744073709551615/7\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"f6432\":\"-9007199254740993/5\"" ) );
+            ASSERT_TRUE( HasMember( text, "\"fu6432\":\"9007199254740993/5\"" ) );
+
+            const CORE::TInt32Fraction a = again.GetAttributeValue( "f32" ).AsInt32Fraction();
+            ASSERT_TRUE( -1 == a.GetNumerator() && 3 == a.GetDenominator() );
+            const CORE::TUInt32Fraction b = again.GetAttributeValue( "fu32" ).AsUInt32Fraction();
+            ASSERT_TRUE( 4000000000U == b.GetNumerator() && 3 == b.GetDenominator() );
+            const CORE::TInt64Fraction c = again.GetAttributeValue( "f64" ).AsInt64Fraction();
+            ASSERT_TRUE( 9007199254740993LL == c.GetNumerator() && 7 == c.GetDenominator() );
+            const CORE::TUInt64Fraction d = again.GetAttributeValue( "fu64" ).AsUInt64Fraction();
+            ASSERT_TRUE( 18446744073709551615ULL == d.GetNumerator() && 7 == d.GetDenominator() );
+            const CORE::TInt64Int32Fraction e = again.GetAttributeValue( "f6432" ).AsInt64Int32Fraction();
+            ASSERT_TRUE( -9007199254740993LL == e.GetNumerator() && 5 == e.GetDenominator() );
+            const CORE::TUInt64UInt32Fraction f = again.GetAttributeValue( "fu6432" ).AsUInt64UInt32Fraction();
+            ASSERT_TRUE( 9007199254740993ULL == f.GetNumerator() && 5 == f.GetDenominator() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+    GUCEF_TESTFW_TESTCASE( "JSON timestamps: nanosecond, second and millisecond timestamps are written as their tick count text and read back exactly" )
+        try
+        {
+            const UInt8 ids[ 3 ] = { GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH, GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH, GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH };
+            // beyond 2^53 for the nanosecond case, before the epoch, and an ordinary one
+            const Int64 values[ 3 ] = { 1700000000123456789LL, -86400123LL, 1700000000123LL };
+            const char* texts[ 3 ] = { "1700000000123456789", "-86400123", "1700000000123" };
+
+            for ( int i = 0; i < 3; ++i )
+            {
+                for ( int swapped = 0; swapped < 2; ++swapped )
+                {
+                    CORE::CVariant original( &values[ i ], (UInt32) sizeof( Int64 ), ids[ i ] );
+                    if ( 0 != swapped )
+                        original.ToBigEndian();
+
+                    CORE::CDataNode tree;
+                    tree.SetAttribute( "t", original );
+                    CORE::CDataNode again;
+                    CORE::CString text;
+                    ASSERT_TRUE( RoundTrip( tree, again, text ) );
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "JsonTimestamp: type id " << (int) original.GetTypeId() << " written: " << text );
+                    ASSERT_TRUE( HasMember( text, ( CORE::CString( "\"t\":\"" ) + texts[ i ] + "\"" ).C_String() ) );
+
+                    // the reader leaves the text as a string, the conversions of the variant read it exactly and keep the type id
+                    ASSERT_TRUE( GUCEF_DATATYPE_UTF8_STRING == AttributeType( again, "t" ) );
+                    const CORE::CVariant readBack = again.GetAttributeValue( "t" );
+                    ASSERT_TRUE( values[ i ] == readBack.AsInt64() );
+                    CORE::CVariant typed( original.GetTypeId(), readBack.AsString(), CORE::CVariant() );
+                    ASSERT_TRUE( typed.GetTypeId() == original.GetTypeId() );
+                    ASSERT_TRUE( values[ i ] == typed.AsInt64() );
+                    ASSERT_TRUE( typed.AsString() == original.AsString() );
+                    if ( values[ i ] >= 0 )
+                        ASSERT_TRUE( typed.AsTimestamp() == original.AsTimestamp() );
+                }
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
 /*-------------------------------------------------------------------------*/
 
 void
@@ -705,6 +1103,7 @@ PerformJsonDataNodeFidelityTests( void )
         return;
 
     PerformScalarTypeTests();
+    PerformLosslessNumberTests();
     PerformStructureTests();
     PerformEscapeTests();
     PerformParserBoundsTests();

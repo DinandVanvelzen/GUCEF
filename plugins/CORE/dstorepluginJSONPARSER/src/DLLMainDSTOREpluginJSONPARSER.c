@@ -215,6 +215,180 @@ Base64Encode( const void* inByteBuffer ,
 
 /*---------------------------------------------------------------------------*/
 
+/*
+ *  Numbers that need exactness beyond an IEEE double travel as JSON strings (I-JSON, RFC 7493 section 2.2): 64 bit
+ *  integers outside +-(2^53-1), decimals and fractions. Readers hand such a string on as a string variant: the consumer
+ *  converts it (CVariant AsInt64(), AsUInt64(), AsDecimal() and the AsXFraction() conversions parse the text exactly).
+ *  Doubles are written by json-builder as the shortest text that reads back bit-identical.
+ */
+#define JSON_MAX_SAFE_INTEGER   9007199254740991LL
+
+/*---------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM_BYTEORDER_ENDIAN == GUCEF_BYTEORDER_LITTLE_ENDIAN )
+  #define JSON_HOST_IS_LITTLE_ENDIAN    1
+#else
+  #define JSON_HOST_IS_LITTLE_ENDIAN    0
+#endif
+
+/*---------------------------------------------------------------------------*/
+
+static UInt64
+SwapBytes64( UInt64 value )
+{
+    UInt64 result = 0;
+    int i;
+    for ( i=0; i<8; ++i )
+    {
+        result = ( result << 8 ) | ( value & 0xFF );
+        value >>= 8;
+    }
+    return result;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static UInt32
+SwapBytes32( UInt32 value )
+{
+    return (UInt32) ( ( SwapBytes64( (UInt64) value ) >> 32 ) & 0xFFFFFFFFUL );
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** Adds the value to the object or array that is being built, as the attribute 'attname' or, without one, as a member named 'nodename' */
+static void
+PushValue( TDestFileData* fd, const char* nodename, const char* attname, json_value* att )
+{
+    if ( fd->currentJsonNode->type == json_array )
+        json_array_push( fd->currentJsonNode, att );
+    else
+    if ( fd->currentJsonNode->type == json_object )
+    {
+        if ( GUCEF_NULL != attname )
+            json_object_push( fd->currentJsonNode, attname, att );
+        else
+            json_object_push( fd->currentJsonNode, nodename, att );
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** Canonical decimal text: '-' when negative, the integer digits, and for scale > 0 a '.' followed by exactly 'scale' digits */
+static void
+DecimalToText( char* buffer, Int64 unscaled, UInt8 scale )
+{
+    char digits[ 24 ];
+    int count = 0, i;
+    UInt64 magnitude = unscaled < 0 ? (UInt64) 0 - (UInt64) unscaled : (UInt64) unscaled;
+    do
+    {
+        digits[ count++ ] = (char) ( '0' + (int) ( magnitude % 10 ) );
+        magnitude /= 10;
+    }
+    while ( magnitude > 0 );
+    while ( count <= (int) scale )
+        digits[ count++ ] = '0';
+
+    if ( unscaled < 0 )
+        *buffer++ = '-';
+    for ( i=count-1; i>=0; --i )
+    {
+        *buffer++ = digits[ i ];
+        if ( i == (int) scale && scale > 0 )
+            *buffer++ = '.';
+    }
+    *buffer = '\0';
+}
+
+/*---------------------------------------------------------------------------*/
+
+/** The text form of the decimal and fraction variant types, as a json string, or NULL when the type is not one of those or its data is not there */
+static json_value*
+NewExactNumberString( const TVariantData* v )
+{
+    char text[ 96 ];
+    const int id = (int) v->containedType;
+    const int swap = ( 0 == ( id % 2 ) ) != JSON_HOST_IS_LITTLE_ENDIAN;   /* even ids are the little endian variants */
+
+    switch ( id )
+    {
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 unscaled = v->union_data.decimal_data.unscaled;
+            if ( swap )
+                unscaled = (Int64) SwapBytes64( (UInt64) unscaled );
+            DecimalToText( text, unscaled, v->union_data.decimal_data.scale );
+            return json_string_new( text );
+        }
+        case GUCEF_DATATYPE_INT32T2_LE_FRACTION:
+        case GUCEF_DATATYPE_INT32T2_BE_FRACTION:
+        {
+            Int32 n = v->union_data.fraction_data.union_data.int32t2_data.numerator;
+            Int32 d = v->union_data.fraction_data.union_data.int32t2_data.denominator;
+            if ( swap ) { n = (Int32) SwapBytes32( (UInt32) n ); d = (Int32) SwapBytes32( (UInt32) d ); }
+            sprintf( text, "%ld/%ld", (long) n, (long) d );
+            return json_string_new( text );
+        }
+        case GUCEF_DATATYPE_UINT32T2_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT32T2_BE_FRACTION:
+        {
+            UInt32 n = v->union_data.fraction_data.union_data.uint32t2_data.numerator;
+            UInt32 d = v->union_data.fraction_data.union_data.uint32t2_data.denominator;
+            if ( swap ) { n = SwapBytes32( n ); d = SwapBytes32( d ); }
+            sprintf( text, "%lu/%lu", (unsigned long) n, (unsigned long) d );
+            return json_string_new( text );
+        }
+        case GUCEF_DATATYPE_INT64_INT32_LE_FRACTION:
+        case GUCEF_DATATYPE_INT64_INT32_BE_FRACTION:
+        {
+            Int64 n = v->union_data.fraction_data.union_data.int64_int32_data.numerator;
+            Int32 d = v->union_data.fraction_data.union_data.int64_int32_data.denominator;
+            if ( swap ) { n = (Int64) SwapBytes64( (UInt64) n ); d = (Int32) SwapBytes32( (UInt32) d ); }
+            sprintf( text, "%lld/%ld", (long long) n, (long) d );
+            return json_string_new( text );
+        }
+        case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION:
+        {
+            UInt64 n = v->union_data.fraction_data.union_data.uint64_uint32_data.numerator;
+            UInt32 d = v->union_data.fraction_data.union_data.uint64_uint32_data.denominator;
+            if ( swap ) { n = SwapBytes64( n ); d = SwapBytes32( d ); }
+            sprintf( text, "%llu/%lu", (unsigned long long) n, (unsigned long) d );
+            return json_string_new( text );
+        }
+        case GUCEF_DATATYPE_INT64T2_LE_FRACTION:
+        case GUCEF_DATATYPE_INT64T2_BE_FRACTION:
+        {
+            Int64 n, d;
+            if ( GUCEF_NULL == v->union_data.heap_data.union_data.void_heap_data || v->union_data.heap_data.heap_data_size < sizeof( TInt64T2Fraction ) )
+                return GUCEF_NULL;
+            n = v->union_data.heap_data.union_data.fraction_int64t2_data->numerator;
+            d = v->union_data.heap_data.union_data.fraction_int64t2_data->denominator;
+            if ( swap ) { n = (Int64) SwapBytes64( (UInt64) n ); d = (Int64) SwapBytes64( (UInt64) d ); }
+            sprintf( text, "%lld/%lld", (long long) n, (long long) d );
+            return json_string_new( text );
+        }
+        case GUCEF_DATATYPE_UINT64T2_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT64T2_BE_FRACTION:
+        {
+            UInt64 n, d;
+            if ( GUCEF_NULL == v->union_data.heap_data.union_data.void_heap_data || v->union_data.heap_data.heap_data_size < sizeof( TUInt64T2Fraction ) )
+                return GUCEF_NULL;
+            n = v->union_data.heap_data.union_data.fraction_uint64t2_data->numerator;
+            d = v->union_data.heap_data.union_data.fraction_uint64t2_data->denominator;
+            if ( swap ) { n = SwapBytes64( n ); d = SwapBytes64( d ); }
+            sprintf( text, "%llu/%llu", (unsigned long long) n, (unsigned long long) d );
+            return json_string_new( text );
+        }
+        default:
+            return GUCEF_NULL;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
@@ -558,7 +732,22 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                 case GUCEF_DATATYPE_UINT64: { integer = (long long) attvalue->union_data.uint64_data; break; }
             }
 
-            att = json_integer_new( integer );
+            /* 64 bit integers outside +-(2^53-1) travel as strings: a reader that holds numbers as doubles would round them */
+            if ( GUCEF_DATATYPE_UINT64 == attvalue->containedType && attvalue->union_data.uint64_data > (UInt64) JSON_MAX_SAFE_INTEGER )
+            {
+                char text[ 32 ];
+                sprintf( text, "%llu", (unsigned long long) attvalue->union_data.uint64_data );
+                att = json_string_new( text );
+            }
+            else
+            if ( GUCEF_DATATYPE_INT64 == attvalue->containedType && ( integer > JSON_MAX_SAFE_INTEGER || integer < -JSON_MAX_SAFE_INTEGER ) )
+            {
+                char text[ 32 ];
+                sprintf( text, "%lld", integer );
+                att = json_string_new( text );
+            }
+            else
+                att = json_integer_new( integer );
             if ( fd->currentJsonNode->type == json_array )
                 json_array_push( fd->currentJsonNode, att );
             else
@@ -567,6 +756,27 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                     json_object_push( fd->currentJsonNode, attname, att );
                 else
                     json_object_push( fd->currentJsonNode, nodename, att );
+            break;
+        }
+        case GUCEF_DATATYPE_INT32T2_LE_FRACTION:
+        case GUCEF_DATATYPE_INT32T2_BE_FRACTION:
+        case GUCEF_DATATYPE_UINT32T2_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT32T2_BE_FRACTION:
+        case GUCEF_DATATYPE_INT64T2_LE_FRACTION:
+        case GUCEF_DATATYPE_INT64T2_BE_FRACTION:
+        case GUCEF_DATATYPE_UINT64T2_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT64T2_BE_FRACTION:
+        case GUCEF_DATATYPE_INT64_INT32_LE_FRACTION:
+        case GUCEF_DATATYPE_INT64_INT32_BE_FRACTION:
+        case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION:
+        case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION:
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            /* values that need exactness beyond a double: written as their text, see NewExactNumberString() */
+            json_value* att = NewExactNumberString( attvalue );
+            if ( GUCEF_NULL != att )
+                PushValue( fd, nodename, attname, att );
             break;
         }
         case GUCEF_DATATYPE_BINARY_BLOB:

@@ -292,6 +292,9 @@ NodeIdFromName( const char* nodename )
  *  (a number would be read back as a double, losing exactness and scale) and plugins do not need to know the type.
  *  Dates and microsecond timestamps are passed as their ISO 8601 text (yyyy-mm-dd, yyyy-mm-ddThh:mm:ss.ffffffZ) for
  *  the same reason: plugins do not know these inline types.
+ *  Nanosecond, second and millisecond timestamps are passed as the text of their signed tick count, which is what
+ *  CVariant::SetFromString() reads back for those type ids. As text the nanosecond counts stay exact where a
+ *  double of a number format would round them.
  *  'textForm' provides the storage of the converted value and has to outlive the use of the returned pointer
  */
 static const TVariantData*
@@ -303,7 +306,13 @@ ValueForCodecPlugin( const CVariant& value, CVariant& textForm )
          GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId          ||
          GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId          ||
          GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   ||
-         GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   )
+         GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   ||
+         GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH == typeId    ||
+         GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH == typeId    ||
+         GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH == typeId     ||
+         GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH == typeId     ||
+         GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH == typeId       ||
+         GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH == typeId       )
     {
         textForm = value.AsUtf8String();
         return textForm.CStyleAccess();
