@@ -245,9 +245,9 @@
 #define HAVE_OPENDIR 1
 
 /* Define to 1 if you have the memset_explicit (C23) function. */
-/* DV edit: glibc has it from 2.37 on; with an older glibc libcurl would not load (undefined symbol) */
+/* DV edit: glibc has it from 2.43 on (Debian 13 has 2.41); with an older glibc libcurl would not load (undefined symbol) */
 #include <limits.h>
-#if defined( __GLIBC__ ) && ( ( __GLIBC__ > 2 ) || ( ( __GLIBC__ == 2 ) && ( __GLIBC_MINOR__ >= 37 ) ) )
+#if defined( __GLIBC__ ) && ( ( __GLIBC__ > 2 ) || ( ( __GLIBC__ == 2 ) && ( __GLIBC_MINOR__ >= 43 ) ) )
 #define HAVE_MEMSET_EXPLICIT 1
 #endif
 

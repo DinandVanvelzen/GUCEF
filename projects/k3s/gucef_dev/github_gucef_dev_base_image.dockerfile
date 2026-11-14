@@ -25,7 +25,7 @@ RUN chmod +x /repo_setup.sh
 # Switch to root to perform file operations
 USER root
 
-RUN mkdir /var/run/sshd
+RUN mkdir -p /var/run/sshd
 
 # Set root password for SSH access (change 'admin' to your desired password)
 RUN echo 'root:admin' | chpasswd
