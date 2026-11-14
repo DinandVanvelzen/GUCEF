@@ -1,20 +1,19 @@
 /*
- *  gucefMATH: GUCEF module providing basic math classes
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  gucefMATH: GUCEF module providing math: scalar, vector, matrix and numeric classes
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_MATH_CMODULE_H
@@ -46,15 +45,20 @@ namespace MATH {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CModule
+/**
+ *  Entry points that the shared module initialisation calls when the library is loaded and unloaded.
+ */
+class GUCEF_MATH_PRIVATE_CPP CModule
 {
     public:
-    
+
+    /** Loading more than once is harmless: the work is done the first time */
     static bool Load( void );
-    
+
     static bool Unload( void );
-    
+
     private:
+
     CModule( void );
     CModule( const CModule& src );
     ~CModule();
@@ -63,24 +67,33 @@ class CModule
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      UTILITIES                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/**
+ *  Probe for the tests: true once CModule::Load() has run and CModule::Unload() has not.
+ *  Being exported and callable from another module is also the proof that the export specification of the module works.
+ */
+GUCEF_MATH_PUBLIC_CPP bool
+MathModuleLoadProbe( void );
+
+/**
+ *  Probe for the tests: true when the export specification of the module expands, inside the build of the module,
+ *  to the one that exports symbols.
+ */
+GUCEF_MATH_PUBLIC_CPP bool
+MathModulePublicSpecProbe( void );
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MATH */
-}; /* namespace GUCEF */
+}  /* namespace MATH */
+}  /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-          
+
 #endif /* GUCEF_MATH_CMODULE_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 12-02-2005 :
-        - Initial implementation
-
------------------------------------------------------------------------------*/

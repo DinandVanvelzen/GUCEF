@@ -22,7 +22,25 @@ LOCAL_MODULE_FILENAME := libgucefMATH
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  src/gucefMATH_CModule.cpp
+  src/gucefMATH.cpp \
+  src/gucefMATH_AngleFunctions.cpp \
+  src/gucefMATH_CComplexFft.cpp \
+  src/gucefMATH_CDecimalStatistics.cpp \
+  src/gucefMATH_CFloat16.cpp \
+  src/gucefMATH_CMathGlobal.cpp \
+  src/gucefMATH_CModule.cpp \
+  src/gucefMATH_CRealFft.cpp \
+  src/gucefMATH_CTCompensatedSum.cpp \
+  src/gucefMATH_CTDegree.cpp \
+  src/gucefMATH_CTFixedPoint.cpp \
+  src/gucefMATH_CTNumericTraits.cpp \
+  src/gucefMATH_CTRadian.cpp \
+  src/gucefMATH_DecimalConversions.cpp \
+  src/gucefMATH_DirectionInstantiations.cpp \
+  src/gucefMATH_FractionInstantiations.cpp \
+  src/gucefMATH_PointInstantiations.cpp \
+  src/gucefMATH_VectorInstantiations.cpp \
+  src/gucefMATH_ScalarFunctions.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
@@ -32,6 +50,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEF_MATH_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMATH -DMODULE_NAME=gucefMATH -DMODULE_SEMVER=0_1_0_0
+
+LOCAL_CPPFLAGS += -ffp-contract=off
 
 
 LOCAL_SHARED_LIBRARIES := \

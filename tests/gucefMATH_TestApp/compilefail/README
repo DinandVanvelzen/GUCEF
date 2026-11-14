@@ -1,0 +1,16 @@
+Negative compile tests of gucefMATH
+
+Each translation unit in this directory is expected NOT to compile. They are not part of any build.
+A test passes when the compiler rejects the file and its error output names the identifier that the
+file states in the comment "the compiler error must name ...".
+
+Procedure for one file, with the include directories of the module build (adapt the compiler as needed):
+
+  g++ -fsyntax-only \
+      -I../../../common/include -I../../../platform/gucefMATH/include \
+      -I../../../platform/gucefCORE/include -I../../../platform/gucefCORE/include/c_api \
+      -I../../../platform/gucefCORE/include/linux -I../../../platform/gucefMT/include \
+      static_assert_false.cpp 2>&1 | grep GucefMathExpectedStaticAssertFailure
+
+Pass: g++ exits with an error AND grep prints a line. Fail: g++ succeeds, or the error does not name the identifier.
+Run it with -std=c++98 and with the default standard: both forms of GUCEF_MATH_STATIC_ASSERT must name it.

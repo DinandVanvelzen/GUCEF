@@ -1,20 +1,19 @@
 /*
- *  gucefMATH: GUCEF module providing basic math classes
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  gucefMATH: GUCEF module providing math: scalar, vector, matrix and numeric classes
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -23,12 +22,14 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_LOGGING_H
-#include "gucefCORE_Logging.h"
-#define GUCEF_CORE_LOGGING_H
-#endif /* GUCEF_CORE_LOGGING_H ? */
+#include <string.h>
 
-#include "gucefMATH_CModule.h" 
+#include "gucefMATH_CModule.h"
+
+#ifndef GUCEF_MATH_CMATHGLOBAL_H
+#include "gucefMATH_CMathGlobal.h"
+#define GUCEF_MATH_CMATHGLOBAL_H
+#endif /* GUCEF_MATH_CMATHGLOBAL_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -41,24 +42,54 @@ namespace MATH {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILTIIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#define GUCEF_MATH_STRINGIFY2( x ) #x
+#define GUCEF_MATH_STRINGIFY( x ) GUCEF_MATH_STRINGIFY2( x )
+
+/*-------------------------------------------------------------------------*/
+
+static bool g_moduleLoaded = false;
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CModule::Load( void )
-{GUCEF_TRACE;
-
+{
+    g_moduleLoaded = true;
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
-    
+
 bool
 CModule::Unload( void )
-{GUCEF_TRACE;
-
+{
+    g_moduleLoaded = false;
+    CMathGlobal::Deinstance();
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+MathModuleLoadProbe( void )
+{
+    return g_moduleLoaded;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+MathModulePublicSpecProbe( void )
+{
+    #ifdef GUCEF_MATH_BUILD_MODULE
+    return 0 == strcmp( GUCEF_MATH_STRINGIFY( GUCEF_MATH_PUBLIC_CPP ), GUCEF_MATH_STRINGIFY( GUCEF_EXPORT ) );
+    #else
+    return false;
+    #endif
 }
 
 /*-------------------------------------------------------------------------//
@@ -67,7 +98,7 @@ CModule::Unload( void )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MATH */
-}; /* namespace GUCEF */
+}  /* namespace MATH */
+}  /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/

@@ -1,17 +1,17 @@
 <ModuleInfoEntry>
     <Module Name="gucefMATH" Type="SharedLibrary" Platform="All" Tags="platform">
-		<ModuleMetaData>
-			<License>APACHEv2</License>
-			<SemVer>0.1.0.0</SemVer>
-			<DescriptionHeadline>GUCEF module providing basic math classes</DescriptionHeadline>
-			<DescriptionDetails></DescriptionDetails>
-			<Authors>
-				<Author>Dinand Vanvelzen</Author>
-			</Authors>
-			<Maintainers>
-				<Maintainer>Dinand Vanvelzen</Maintainer>
-			</Maintainers>
-		</ModuleMetaData>
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF module providing math: scalar, vector, matrix and numeric classes</DescriptionHeadline>
+            <DescriptionDetails>Numeric traits, vectors, points, matrices, quaternions, transforms, interpolation, random numbers, spatial audio mathematics and batch functions with CPU backends</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
         <Dependencies>
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />
@@ -24,5 +24,9 @@
         <Preprocessor>
             <Define String="GUCEF_MATH_BUILD_MODULE" />
         </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-ffp-contract=off" />
+            <CompilerFlags CompilerName="MSVC" Flags="/fp:precise" />
+        </Compiler>
     </Module>
 </ModuleInfoEntry>

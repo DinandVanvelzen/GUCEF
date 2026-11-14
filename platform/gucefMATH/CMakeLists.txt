@@ -13,26 +13,87 @@
 
 set( HEADER_FILES 
   include/gucefMATH.h
+  include/gucefMATH_AngleFunctions.h
+  include/gucefMATH_BitFunctions.h
+  include/gucefMATH_CComplexFft.h
+  include/gucefMATH_CDecimalStatistics.h
+  include/gucefMATH_CFloat16.h
+  include/gucefMATH_CMathGlobal.h
   include/gucefMATH_CModule.h
+  include/gucefMATH_CPcg32.h
+  include/gucefMATH_CRealFft.h
+  include/gucefMATH_CSplitMix64.h
+  include/gucefMATH_CTCompensatedSum.h
+  include/gucefMATH_CTComplex.h
+  include/gucefMATH_CTDegree.h
   include/gucefMATH_CTDirectionVector2D.h
   include/gucefMATH_CTDirectionVector3D.h
+  include/gucefMATH_CTDirectivityPattern.h
+  include/gucefMATH_CTDistanceAttenuation.h
+  include/gucefMATH_CTFixedPoint.h
+  include/gucefMATH_CTLinearColour.h
+  include/gucefMATH_CTMathConstants.h
   include/gucefMATH_CTMatrix3D.h
   include/gucefMATH_CTMatrix4D.h
+  include/gucefMATH_CTNumericConverter.h
+  include/gucefMATH_CTNumericTraits.h
+  include/gucefMATH_CTNumericTraitsFixedPoint.h
+  include/gucefMATH_CTNumericTraitsFraction.h
+  include/gucefMATH_CTPiecewiseLinearCurve.h
   include/gucefMATH_CTPoint2D.h
   include/gucefMATH_CTPoint3D.h
-  include/gucefMATH_CTSpace.h
-  include/gucefMATH_CTVector1D.h
+  include/gucefMATH_CTPolynomialSolver.h
+  include/gucefMATH_CTRadian.h
+  include/gucefMATH_CTRunningStatistics.h
   include/gucefMATH_CTVector2D.h
   include/gucefMATH_CTVector3D.h
+  include/gucefMATH_CTVector4D.h
+  include/gucefMATH_CTVector4Ops.h
+  include/gucefMATH_CXoshiro256StarStar.h
+  include/gucefMATH_ColourFunctions.h
+  include/gucefMATH_ComponentFunctions.h
+  include/gucefMATH_CoreStructInterop.h
+  include/gucefMATH_DecimalConversions.h
   include/gucefMATH_ETypes.h
+  include/gucefMATH_EasingFunctions.h
+  include/gucefMATH_FixedPointFunctions.h
+  include/gucefMATH_FloatDecomposition.h
+  include/gucefMATH_MathStatus.h
+  include/gucefMATH_NumericRoundingFunctions.h
+  include/gucefMATH_PackingFunctions.h
+  include/gucefMATH_ScalarFunctions.h
+  include/gucefMATH_SpatialAudioFunctions.h
+  include/gucefMATH_StatisticsFunctions.h
   include/gucefMATH_config.h
+  include/gucefMATH_directions.h
+  include/gucefMATH_fixedpoint.h
+  include/gucefMATH_fractiontypes.h
   include/gucefMATH_macros.h
   include/gucefMATH_points.h
   include/gucefMATH_vectors.h
+  src/gucefMATH_FftKernels.h
 )
 
 set( SOURCE_FILES 
+  src/gucefMATH.cpp
+  src/gucefMATH_AngleFunctions.cpp
+  src/gucefMATH_CComplexFft.cpp
+  src/gucefMATH_CDecimalStatistics.cpp
+  src/gucefMATH_CFloat16.cpp
+  src/gucefMATH_CMathGlobal.cpp
   src/gucefMATH_CModule.cpp
+  src/gucefMATH_CRealFft.cpp
+  src/gucefMATH_CTCompensatedSum.cpp
+  src/gucefMATH_CTDegree.cpp
+  src/gucefMATH_CTFixedPoint.cpp
+  src/gucefMATH_CTNumericTraits.cpp
+  src/gucefMATH_CTRadian.cpp
+  src/gucefMATH_DecimalConversions.cpp
+  src/gucefMATH_DirectionInstantiations.cpp
+  src/gucefMATH_FractionInstantiations.cpp
+  src/gucefMATH_PointInstantiations.cpp
+  src/gucefMATH_VectorInstantiations.cpp
+  src/gucefMATH_ScalarFunctions.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -49,10 +110,16 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_MATH_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefMATH;MODULE_NAME=gucefMATH;MODULE_SEMVER=0_1_0_0" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-ffp-contract=off> )
+endif()
+if ( MSVC )
+  target_compile_options( ${MODULE_NAME} PRIVATE /fp:precise )
+endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include src )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )
