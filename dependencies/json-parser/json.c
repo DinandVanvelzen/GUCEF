@@ -42,6 +42,8 @@ const struct _json_value json_value_none;
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdlib.h>
+#include <locale.h>
 
 typedef unsigned int json_uchar;
 
@@ -246,6 +248,7 @@ json_value * json_parse_ex (json_settings * settings,
    long flags = 0;
    double num_digits = 0, num_e = 0;
    double num_fraction = 0;
+   const json_char * num_start = 0;   /* DV edit: first character of the number being parsed, for the strtod conversion */
 
    /* Skip UTF-8 BOM
     */
@@ -689,6 +692,7 @@ json_value * json_parse_ex (json_settings * settings,
                            num_digits = 0;
                            num_fraction = 0;
                            num_e = 0;
+                           num_start = state.ptr;
 
                            if (b != '-')
                            {
@@ -860,6 +864,39 @@ json_value * json_parse_ex (json_settings * settings,
                   }
 
                   top->u.dbl *= pow (10.0, (flags & flag_num_e_negative ? - num_e : num_e));
+               }
+
+               /* DV edit: the digit-by-digit double arithmetic above (integer part + fraction / 10^n, then * 10^e) is not
+                * correctly rounded: 0.30000000000000004 and 5e-324 did not read back as the double that was written.
+                * A double is now converted from the text of the number with strtod, which is correctly rounded, so what
+                * json-builder writes reads back bit-identical. Upstream json-parser (1.1.0 and master) has the same
+                * arithmetic and no fix. The text holds the sign. The '.' is swapped for the decimal separator of the
+                * current locale first, since strtod follows the locale.
+                */
+               if (top->type == json_double && num_start && state.ptr > num_start)
+               {
+                  char num_buf [64];
+                  char * num_text = num_buf;
+                  size_t num_len = (size_t) (state.ptr - num_start);
+                  const char * lc_point = localeconv ()->decimal_point;
+                  size_t i;
+
+                  if (num_len >= sizeof (num_buf))
+                     num_text = (char *) state.settings.mem_alloc (num_len + 1, 0, state.settings.user_data);
+
+                  if (num_text)
+                  {
+                     for (i = 0; i < num_len; ++ i)
+                        num_text [i] = (num_start [i] == '.' && lc_point && lc_point [0] && !lc_point [1])
+                                          ? lc_point [0] : num_start [i];
+                     num_text [num_len] = 0;
+
+                     top->u.dbl = strtod (num_text, 0);
+                     flags &= ~ flag_num_negative;  /* the sign is part of the text */
+
+                     if (num_text != num_buf)
+                        state.settings.mem_free (num_text, state.settings.user_data);
+                  }
                }
 
                if (flags & flag_num_negative)

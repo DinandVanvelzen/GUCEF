@@ -33,10 +33,35 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _MSC_VER
     #define snprintf _snprintf
 #endif
+
+/* DV edit: json-builder wrote doubles with "%g" (6 significant digits), which loses precision: 0.1234567 came back as
+ * 0.123457 and 1234567.0 as 1.23457e+06. Upstream json-builder (latest, 1.0 / master) has the same code and no fix.
+ * Doubles are now written as the shortest of %.15g, %.16g and %.17g that reads back bit-identical with strtod (what
+ * JavaScript, Python and serde_json produce). The read-back check parses the text as sprintf wrote it, before the
+ * ',' -> '.' locale fix of the serializer, so it is safe for a locale that uses ',' as decimal separator.
+ * Non-finite values keep the previous behaviour: sprintf writes "inf", "-inf", "nan" or "-nan", which is not valid
+ * JSON (the serializer appends ".0" to those as before).
+ * Returns the length of the text in 'buf', which must hold at least 32 bytes (the longest is "-1.7976931348623157e+308").
+ */
+static int dbl_to_shortest_text (char * buf, double value)
+{
+   int precision;
+
+   for (precision = 15; precision <= 17; ++ precision)
+   {
+      sprintf (buf, "%.*g", precision, value);
+
+      if (precision == 17 || strtod (buf, 0) == value)
+         break;
+   }
+
+   return (int) strlen (buf);
+}
 
 static const json_serialize_opts default_opts =
 {
@@ -662,7 +687,11 @@ size_t json_measure_ex (json_value * value, json_serialize_opts opts)
 
          case json_double:
 
-            total += snprintf (NULL, 0, "%g", value->u.dbl);
+            /* DV edit: shortest round-trip text, see dbl_to_shortest_text() */
+            {
+               char dbl_buf [32];
+               total += dbl_to_shortest_text (dbl_buf, value->u.dbl);
+            }
 
             /* Because sometimes we need to add ".0" if sprintf does not do it
              * for us. Downside is that we allocate more bytes than strictly
@@ -881,7 +910,8 @@ void json_serialize_ex (json_char * buf, json_value * value, json_serialize_opts
 
             ptr = buf;
 
-            buf += sprintf (buf, "%g", value->u.dbl);
+            /* DV edit: shortest round-trip text, see dbl_to_shortest_text() */
+            buf += dbl_to_shortest_text (buf, value->u.dbl);
 
             if ((dot = strchr (ptr, ',')))
             {
