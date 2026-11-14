@@ -48,7 +48,7 @@ if ( EMSCRIPTEN )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=audiocodecpluginFLAC" )
 endif( EMSCRIPTEN )
 
-include_directories( ../../../dependencies/dr_libs ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+include_directories( ../../../dependencies/dr_libs ../../../platform/gucefAUDIO/include ../../../platform/gucefMATH/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
 
 if ( ANDROID )
   include_directories( ../../../platform/gucefCORE/include/android )
