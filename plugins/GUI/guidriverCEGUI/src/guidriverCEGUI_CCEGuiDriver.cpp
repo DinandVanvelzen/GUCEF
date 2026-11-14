@@ -153,7 +153,7 @@ CCEGUIDriver::CreateWidget( const GUI::CString& widgetName )
     //    return widgetWrapper;
     //}
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -199,7 +199,7 @@ CCEGUIDriver::LoadConfig( const CORE::CDataNode& treeroot )
 {GUCEF_TRACE;
 
     const CORE::CDataNode* ceguiConfig = treeroot.Find( "CEGUI" );
-    if ( nullptr == ceguiConfig )
+    if ( GUCEF_NULL == ceguiConfig )
     {   
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CGUIDriver:LoadConfig: Cannot find CEGUI config and as such will not be able to initialize" );
         return false;
@@ -235,15 +235,15 @@ CCEGUIDriver::LoadConfig( const CORE::CDataNode& treeroot )
 
     // setup default group for validation schemas
     CEGUI::System* ceguiSystem = CEGUI::System::getSingletonPtr();
-    if ( nullptr != ceguiSystem )
+    if ( GUCEF_NULL != ceguiSystem )
     {
         CEGUI::XMLParser* parser = ceguiSystem->getXMLParser();
-        if ( nullptr != parser && parser->isPropertyPresent( "SchemaDefaultResourceGroup" )  )
+        if ( GUCEF_NULL != parser && parser->isPropertyPresent( "SchemaDefaultResourceGroup" )  )
             parser->setProperty( "SchemaDefaultResourceGroup", m_schemasResourceGroup );
     }
 
     const CORE::CDataNode* ceguiVfsConfig = treeroot.Search( "CEGUI/VFSAdapter", '/', false );
-    if ( nullptr != ceguiVfsConfig )
+    if ( GUCEF_NULL != ceguiVfsConfig )
     {   
         CORE::CDataNode::TConstDataNodeSet grpNodes = ceguiVfsConfig->FindChildrenOfType( "ResourceGroup" );
         CORE::CDataNode::TConstDataNodeSet::iterator i = grpNodes.begin();

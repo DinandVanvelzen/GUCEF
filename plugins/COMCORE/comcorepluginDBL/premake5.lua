@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 

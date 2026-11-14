@@ -780,7 +780,7 @@ CNatPmpPortMapper::OnRequestFailed( size_t index, const CORE::CString& reason )
     GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "NatPmpPortMapper: A request to the gateway " << m_gateway.AddressAndPortAsString() << " failed: " << reason );
 
     if ( request.hasFuture )
-        request.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        request.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
 
     if ( REQUESTKIND_EXTERNAL_ADDRESS == request.kind )
         CompleteAddressWaiters( false );

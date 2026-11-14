@@ -115,6 +115,15 @@ PathMatches( const CString& requestPath, const CString& cookiePath )
 
 /*-------------------------------------------------------------------------*/
 
+static bool
+LongerPathFirst( const CHttpCookie* a, const CHttpCookie* b )
+{GUCEF_TRACE;
+
+    return a->path.Length() > b->path.Length();
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** the default path of a cookie as per RFC 6265 section 5.1.4 */
 static CString
 DefaultCookiePath( const CString& requestPath )
@@ -461,11 +470,7 @@ CHttpCookieJar::GetCookieHeaderValue( const CString& requestHost ,
         }
 
         // Cookies with longer paths are listed first, RFC 6265 section 5.4
-        struct SLongerPathFirst
-        {
-            bool operator()( const CHttpCookie* a, const CHttpCookie* b ) const { return a->path.Length() > b->path.Length(); }
-        };
-        std::stable_sort( matches.begin(), matches.end(), SLongerPathFirst() );
+        std::stable_sort( matches.begin(), matches.end(), LongerPathFirst );
 
         CString header;
         for ( TCookiePtrVector::const_iterator i = matches.begin(); i != matches.end(); ++i )

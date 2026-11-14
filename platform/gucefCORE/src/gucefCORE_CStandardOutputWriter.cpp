@@ -500,7 +500,7 @@ CStandardOutputWriter::Start( void )
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CStandardOutputWriter: there is no output stream to write to" );
         return false;
     }
-    m_wakeEvent = (void*) ::CreateEventA( NULL, FALSE, FALSE, NULL );
+    m_wakeEvent = (void*) ::CreateEventA( GUCEF_NULL, FALSE, FALSE, GUCEF_NULL );
     if ( GUCEF_NULL == m_wakeEvent )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CStandardOutputWriter: cannot create the wake event" );
@@ -683,7 +683,7 @@ CStandardOutputWriter::WriteAll( const char* data, UInt32 size )
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
         DWORD written = 0;
-        if ( !::WriteFile( (HANDLE) m_stream, data + offset, (DWORD) chunk, &written, NULL ) )
+        if ( !::WriteFile( (HANDLE) m_stream, data + offset, (DWORD) chunk, &written, GUCEF_NULL ) )
         {
             DWORD errorCode = ::GetLastError();
             if ( ERROR_OPERATION_ABORTED == errorCode )
@@ -751,7 +751,7 @@ CStandardOutputWriter::WriteLoop( void )
 {GUCEF_TRACE;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    HANDLE threadHandle = NULL;
+    HANDLE threadHandle = GUCEF_NULL;
     ::DuplicateHandle( ::GetCurrentProcess(), ::GetCurrentThread(), ::GetCurrentProcess(), &threadHandle, 0, FALSE, DUPLICATE_SAME_ACCESS );
     {
         MT::CScopeMutex lock( m_queueLock );
@@ -804,7 +804,7 @@ CStandardOutputWriter::WriteLoop( void )
         #endif
     }
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    if ( NULL != threadHandle )
+    if ( GUCEF_NULL != threadHandle )
         ::CloseHandle( threadHandle );
     #endif
 }

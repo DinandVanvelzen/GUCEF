@@ -30,20 +30,26 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "zlib" } )
+
+configuration( {} )
 links( { "zlib" } )
 
 
 configuration( {} )
 defines( { "LIBRDKAFKACPP_EXPORTS", "LIBRDKAFKA_EXPORTS", "MODULE_CONSENSUS_NAME=RdKafka", "MODULE_NAME=RdKafka" } )
-  links( { "dl" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "dl" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "WITH_LIBDL" } )
-  links( { "dl" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "dl" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "WITH_LIBDL" } )
 
 

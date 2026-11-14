@@ -476,7 +476,7 @@ CBrowserSession::Judge( const std::string& url, SFetchResult& result, const std:
     }
     result.ok = result.status >= 200 && result.status < 300;
     if ( !result.ok )
-        result.error = "the site answered " + std::to_string( (long long) result.status );
+        result.error = "the site answered " + CORE::ToString( (CORE::Int64) result.status ).STL_String();
 }
 
 /*-------------------------------------------------------------------------*/

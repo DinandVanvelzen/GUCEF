@@ -26,12 +26,12 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -40,16 +40,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=tablecodecpluginPARQUET", "MODULE_IS_PLUGIN=1", "MODULE_NAME=tablecodecpluginPARQUET", "TABLECODECPLUGIN_PARQUET_BUILD_MODULE" } )
+defines( { "MODULE_CONSENSUS_NAME=tablecodecpluginPARQUET", "MODULE_IS_PLUGIN=1", "MODULE_NAME=tablecodecpluginPARQUET", "MODULE_SEMVER=1_0_0_0", "TABLECODECPLUGIN_PARQUET_BUILD_MODULE" } )
 
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=tablecodecpluginPARQUET" } )
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=tablecodecpluginPARQUET" } )
 
 

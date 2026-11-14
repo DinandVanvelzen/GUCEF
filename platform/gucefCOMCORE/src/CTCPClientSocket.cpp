@@ -168,7 +168,7 @@ CTCPClientSocket::CTCPClientSocket( CORE::PulseGeneratorPtr pulseGenerator ,
     RegisterEvents();
 
     _data = GUCEF_NEW TTCPClientSockData;
-    assert( _data != NULL );
+    assert( _data != GUCEF_NULL );
     memset( &_data->timeout, 0, sizeof( struct timeval ) );
 
     TEventCallback callback( this, &CTCPClientSocket::OnPulse );
@@ -212,7 +212,7 @@ CTCPClientSocket::CTCPClientSocket( bool blocking )
     RegisterEvents();
 
     _data = GUCEF_NEW TTCPClientSockData;
-    assert( _data != NULL );
+    assert( _data != GUCEF_NULL );
     memset( &_data->timeout, 0, sizeof( struct timeval ) );
 
     TEventCallback callback( this, &CTCPClientSocket::OnPulse );
@@ -228,7 +228,7 @@ CTCPClientSocket::~CTCPClientSocket()
 
     Close();
     GUCEF_DELETE _data;
-    _data = NULL;
+    _data = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -520,9 +520,9 @@ CTCPClientSocket::Connect( bool blocking )
                 while ( m_isConnecting && _active )
                 {
                     // We will manually cycle here to wait for the call to complete
-                    OnPulse( NULL                              ,
+                    OnPulse( GUCEF_NULL                              ,
                              CORE::CPulseGenerator::PulseEvent ,
-                             NULL                              );
+                             GUCEF_NULL                              );
 
                     if ( m_isConnecting && _active )
                         MT::PrecisionDelay( 25 );

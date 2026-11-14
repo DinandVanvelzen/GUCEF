@@ -66,7 +66,7 @@ namespace VFS {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum EAsyncVfsOperationType : int
+enum EAsyncVfsOperationType GUCEF_ENUM_BASE( int )
 {
     ASYNCVFSOPERATIONTYPE_UNKNOWN           = 0,
     ASYNCVFSOPERATIONTYPE_MOUNTARCHIVE         ,

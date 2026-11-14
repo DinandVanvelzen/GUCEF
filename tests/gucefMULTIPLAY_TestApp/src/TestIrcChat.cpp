@@ -378,7 +378,7 @@ FutureSucceeded( const CORE::CFutureResult& future )
     if ( !future.IsReady() )
         return false;
     CORE::CTaskPtr task = future.GetResult( 0 );
-    return !task.IsNULL() && CORE::TTaskStatus::TASKSTATUS_FINISHED == task->GetTaskStatus();
+    return !task.IsNULL() && CORE::TASKSTATUS_FINISHED == task->GetTaskStatus();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -448,7 +448,7 @@ PerformIrcChatTests( void )
             MULTIPLAY::CPlayerIdentity identity;
             identity.userId = "alice-id";
             identity.displayName = "Alice Smith";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( chat.Connect( identity, future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) && FutureSucceeded( future ) );
             ASSERT_TRUE( chat.IsConnected() && "Alice_Smith" == chat.GetLocalUserName() );
@@ -556,7 +556,7 @@ PerformIrcChatTests( void )
             MULTIPLAY::CPlayerIdentity identity;
             identity.userId = "alice-id";
             identity.displayName = "Alice";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             chat.Connect( identity, future );
             ASSERT_TRUE( PumpUntilReady( future, 10000 ) );
             ASSERT_FALSE( FutureSucceeded( future ) );

@@ -23,13 +23,21 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "WIN32" } )
 
+
+configuration( { "WIN32" } )
+kind( "WindowedApp" )
+configuration( { "NOT WIN32" } )
+  
 
 configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "dbpluginVFSTABLES", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS", "tablecodecpluginPARQUET" } )
+
+configuration( {} )
 links( { "dbpluginVFSTABLES", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS", "tablecodecpluginPARQUET" } )
 
 

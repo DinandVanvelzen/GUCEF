@@ -269,7 +269,7 @@ PerformPluginLoadingTests( void )
             AUTH::CAuthSettings startSettings = manager.GetSettings();
             ASSERT_TRUE( startSettings.autoLogin );
             AUTH::CIAuthProvider* plugin = manager.GetProvider( "steam" );
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( plugin->TrySilentLogin( silent ) );
             CORE::CString hintName;
             bool hintRunning = false;
@@ -405,7 +405,7 @@ PerformPluginLoadingTests( void )
             ASSERT_TRUE( manager.IsProviderOffered( "steam" ) );
 
             CProviderRecorder none;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( manager.AutoLogin( future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
 

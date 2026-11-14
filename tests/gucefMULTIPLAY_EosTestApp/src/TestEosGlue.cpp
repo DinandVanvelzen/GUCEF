@@ -711,7 +711,7 @@ PerformEosGlueTests( void )
                 UInt32 createdBefore = context.peer.createPlatformCalls;
                 ASSERT_TRUE( platformsBefore == glue->GetPlatformCount() && createdBefore == context.peer.releaseCalls );
 
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( provider.TrySilentLogin( future ) && PumpUntilReady( future, 3000 ) );
                 AUTH::CAuthResult result;
                 ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );

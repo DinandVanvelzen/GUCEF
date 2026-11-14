@@ -82,7 +82,7 @@ CORE::CFutureResult
 MakeFailedFuture( const CORE::CString& reason )
 {
     CORE::CFutureResultSource source;
-    source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+    source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
     return source.GetFuture();
 }
 

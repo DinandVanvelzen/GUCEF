@@ -162,13 +162,13 @@ class CLobbyFixture
         CORE::CString::StringVector endpoints;
         endpoints.push_back( "udp://127.0.0.1:" + CORE::ToString( 5001 + index ) );
         service.SetLocalEndpoints( endpoints );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         return service.Connect( identity, future ) && service.IsConnected();
     }
 
     MULTIPLAY::CILobbyPtr Join( UInt32 index, bool asSpectator )
     {
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CILobbyPtr lobby;
         if ( services[ index ].JoinLobby( lobbyId, CORE::CString::Empty, asSpectator, future ) )
             MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, lobby );
@@ -181,7 +181,7 @@ class CLobbyFixture
              !Connect( 2, "carol-id", "Carol" ) || !Connect( 3, "dave-id", "Dave" ) )
             return false;
 
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !services[ 0 ].CreateLobby( params, future ) || !MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, alice ) )
             return false;
         aliceEvents.Watch( alice );
@@ -677,7 +677,7 @@ PerformLobbyTests( void )
             MULTIPLAY::CPlayerIdentity erin;
             erin.userId = "erin-id";
             erin.displayName = "Erin";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( late.Connect( erin, future ) );
             fixture.dave->SetSpectator( false );                   // dave plays: 4 players
             ASSERT_TRUE( 4 == state.GetPlayerCount() );
@@ -883,7 +883,7 @@ PerformLobbyTests( void )
             MULTIPLAY::CPlayerIdentity erin;
             erin.userId = "erin-id";
             erin.displayName = "Erin";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( late.Connect( erin, future ) );
 
             // The listing shows a game in progress

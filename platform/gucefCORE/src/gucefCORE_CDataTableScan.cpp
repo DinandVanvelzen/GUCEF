@@ -492,7 +492,7 @@ CDataTableScanState::CDataTableScanState( const CDataTableScanSourcePtr& source,
     , m_idleContexts()
     , m_allContexts()
     , m_availableEventPending( false )
-    , m_future( TTaskStatus::TASKSTATUS_QUEUED )
+    , m_future( CORE::TASKSTATUS_QUEUED )
     , m_stats()
     , m_poolMissesAtStart( 0 )
     , m_syncContext()
@@ -733,7 +733,7 @@ CDataTableScanState::EndLocked( TDataTableStatus status, const CString& message,
         if ( m_async )
         {
             const CString extraInfo = CString( DataTableStatusToString( status ) ) + ": " + message;
-            m_future.Fail( TTaskStatus::TASKSTATUS_STARTUP_FAILED, extraInfo );
+            m_future.Fail( CORE::TASKSTATUS_STARTUP_FAILED, extraInfo );
         }
     }
 }
@@ -834,7 +834,7 @@ CDataTableScanState::Start( const CDataTableQuery& query, bool async, ThreadPool
             if ( GUCEF_NULL != future )
             {
                 CFutureResultSource refused;
-                refused.Fail( TTaskStatus::TASKSTATUS_TASKDATA_INVALID, m_errorMessage );
+                refused.Fail( CORE::TASKSTATUS_TASKDATA_INVALID, m_errorMessage );
                 *future = refused.GetFuture();
             }
             return DATATABLE_STATUS_INVALID_ARGUMENT;
@@ -957,7 +957,7 @@ CDataTableScanState::Start( const CDataTableQuery& query, bool async, ThreadPool
                     m_freeSlotHead = 0;
                     m_freeSlots = credits;
                     m_requeueThreshold = credits / 2 > 0 ? credits / 2 : 1;
-                    m_future.SetStatus( TTaskStatus::TASKSTATUS_RUNNING );
+                    m_future.SetStatus( CORE::TASKSTATUS_RUNNING );
                     workersToQueue = ScheduleWorkersLocked( true );
                 }
             }
@@ -2611,7 +2611,7 @@ CFutureResult
 CDataTableScan::StartAsync( const CDataTableQuery& query, ThreadPoolPtr threadPool )
 {GUCEF_TRACE;
 
-    CFutureResult future( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    CFutureResult future( CORE::TASKSTATUS_TASKDATA_INVALID );
     m_state->Start( query, true, threadPool, &future );
     return future;
 }

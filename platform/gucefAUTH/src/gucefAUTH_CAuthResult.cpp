@@ -309,7 +309,7 @@ CAuthResult::TryGetFromFuture( const CORE::CFutureResult& future, CAuthResult& r
     if ( future.HasNoFuture() || !future.IsReady() )
         return false;
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
     // the futures of this module that finish well carry a CAuthResult, anything else is refused

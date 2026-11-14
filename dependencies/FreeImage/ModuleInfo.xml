@@ -15,7 +15,8 @@
         <Linker>
             <Dependency Name="zlib" />
         </Linker>
-        <Compiler>
+        <!-- builds as C++14: C++17 removed the register keyword and dynamic exception specifications it uses, see the -std flag -->
+        <Compiler MinCppStandard="14">
             <CompilerFlags CompilerName="G++" Flags="-std=gnu++14 -Wno-narrowing" />
         </Compiler>
     </Module>

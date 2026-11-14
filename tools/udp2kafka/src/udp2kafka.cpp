@@ -181,7 +181,7 @@ Udp2KafkaChannel::ChannelSettings::ChannelSettings( void )
     , collectMetrics( false )
     , metricsPrefix()
     , wantsTestPackage( false )
-    , mode( Udp2KafkaChannel::EChannelMode::KAFKA_PRODUCER )
+    , mode( Udp2KafkaChannel::KAFKA_PRODUCER )
     , consumerModeStartOffset( "stored" )
     , consumerModeGroupId( "0" )
     , consumerModeUdpDestinations()
@@ -373,7 +373,7 @@ Udp2KafkaChannel::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
 {GUCEF_TRACE;
 
     m_metrics.kafkaErrorReplies = GetKafkaErrorRepliesCounter( true );
-    if ( EChannelMode::KAFKA_PRODUCER == m_channelSettings.mode || EChannelMode::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
+    if ( Udp2KafkaChannel::KAFKA_PRODUCER == m_channelSettings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
     {
         m_metrics.udpBytesReceived = m_udpSocket->GetBytesReceived( true );
         m_metrics.udpMessagesReceived = m_udpSocket->GetNrOfDataReceivedEvents( true );
@@ -381,7 +381,7 @@ Udp2KafkaChannel::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
         m_metrics.kafkaTransmitOverflowQueueSize = (CORE::UInt32) m_kafkaMsgQueueOverflowQueue.size();   
         m_metrics.kafkaMessagesTransmitted = GetKafkaMsgsTransmittedCounter( true );
     }
-    if ( EChannelMode::KAFKA_CONSUMER == m_channelSettings.mode || EChannelMode::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
+    if ( Udp2KafkaChannel::KAFKA_CONSUMER == m_channelSettings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
     {
         m_metrics.udpBytesTransmitted = m_udpSocket->GetBytesTransmitted( true );
         m_metrics.udpMessagesTransmitted = m_udpSocket->GetNrOfDataSentEvents( true );
@@ -620,7 +620,7 @@ Udp2KafkaChannel::consume_cb( RdKafka::Message& message, void* opaque )
         case RdKafka::ERR_NO_ERROR:
         {
             #ifdef GUCEF_DEBUG_MODE
-            if ( nullptr != message.key() )
+            if ( GUCEF_NULL != message.key() )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Udp2KafkaChannel:consume_cb: Received " + CORE::UInt64ToString( CORE::UInt64( message.len() ) ) + " byte message on topic \"" +          
                         m_channelSettings.channelTopicName + "\" with key \"" + *message.key() + "\" and offset " + CORE::Int64ToString( message.offset() ) );
@@ -799,17 +799,17 @@ Udp2KafkaChannel::MsgStatusToString( RdKafka::Message::Status status )
 
     switch ( status )
     {
-        case RdKafka::Message::Status::MSG_STATUS_NOT_PERSISTED:
+        case RdKafka::Message::MSG_STATUS_NOT_PERSISTED:
         {
             static const std::string statusStr = "status:not_persisted";
             return statusStr;
         }
-        case RdKafka::Message::Status::MSG_STATUS_POSSIBLY_PERSISTED:
+        case RdKafka::Message::MSG_STATUS_POSSIBLY_PERSISTED:
         {
             static const std::string statusStr = "status:possibly_persisted";
             return statusStr;
         }
-        case RdKafka::Message::Status::MSG_STATUS_PERSISTED:
+        case RdKafka::Message::MSG_STATUS_PERSISTED:
         {
             static const std::string statusStr = "status:persisted";
             return statusStr;
@@ -873,9 +873,9 @@ Udp2KafkaChannel::KafkaProduce( const COMCORE::CIPv4Address& sourceAddress ,
                                            RdKafka::Producer::RK_MSG_COPY,                       // <- Copy payload, tradeoff against blocking on kafka produce
                                            const_cast< void* >( udpPacket.GetConstBufferPtr() ), // <- MSG_COPY flag will cause buffer to be copied, const cast to avoid copying again
                                            (size_t)udpPacket.GetDataSize(), 
-                                           NULL, 0,
+                                           GUCEF_NULL, 0,
                                            headers,
-                                           NULL );
+                                           GUCEF_NULL );
     
     if ( retCode != RdKafka::ERR_NO_ERROR )
     {
@@ -915,7 +915,7 @@ Udp2KafkaChannel::OnUDPPacketsRecieved( CORE::CNotifier* notifier   ,
                                         CORE::CICloneable* evenData )
 {GUCEF_TRACE;
 
-    if ( EChannelMode::KAFKA_PRODUCER != m_channelSettings.mode && EChannelMode::KAFKA_PRODUCER_AND_CONSUMER != m_channelSettings.mode )
+    if ( Udp2KafkaChannel::KAFKA_PRODUCER != m_channelSettings.mode && Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER != m_channelSettings.mode )
     {
         // If we are not a producer we ignore incoming UDP data
         return;
@@ -1131,7 +1131,7 @@ Udp2KafkaChannel::OnTaskStart( CORE::CTaskPtr task )
     if ( m_kafkaBrokers.empty() )
         return false;
 
-	if ( TChannelMode::KAFKA_PRODUCER == m_channelSettings.mode || TChannelMode::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
+	if ( Udp2KafkaChannel::KAFKA_PRODUCER == m_channelSettings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
     {
         std::string errStr;
         RdKafka::Conf* kafkaConf = RdKafka::Conf::create( RdKafka::Conf::CONF_GLOBAL );
@@ -1172,7 +1172,7 @@ Udp2KafkaChannel::OnTaskStart( CORE::CTaskPtr task )
         m_kafkaProducerTopicConf = kafkaProducerTopicConfig;
         
         RdKafka::Producer* producer = RdKafka::Producer::create( m_kafkaProducerConf, errStr );
-	    if ( producer == nullptr ) 
+	    if ( producer == GUCEF_NULL ) 
         {
 		    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Udp2KafkaChannel:OnTaskStart: Failed to create Kafka producer for topic \"" + 
                 m_channelSettings.channelTopicName + "\", error message: " + errStr );
@@ -1184,7 +1184,7 @@ Udp2KafkaChannel::OnTaskStart( CORE::CTaskPtr task )
             m_channelSettings.channelTopicName + "\"" );
         
         RdKafka::Topic* topic = RdKafka::Topic::create( m_kafkaProducer, m_channelSettings.channelTopicName, m_kafkaProducerTopicConf, errStr );
-	    if ( topic == nullptr ) 
+	    if ( topic == GUCEF_NULL ) 
         {
 		    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Udp2KafkaChannel:OnTaskStart: Failed to obtain Kafka Producer Topic handle for topic \"" + 
                 m_channelSettings.channelTopicName + "\", error message: " + errStr );
@@ -1195,7 +1195,7 @@ Udp2KafkaChannel::OnTaskStart( CORE::CTaskPtr task )
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Udp2KafkaChannel:OnTaskStart: Successfully created Kafka Producer Topic handle for topic: " + m_channelSettings.channelTopicName );
     }
 
-    if ( TChannelMode::KAFKA_CONSUMER == m_channelSettings.mode || TChannelMode::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
+    if ( Udp2KafkaChannel::KAFKA_CONSUMER == m_channelSettings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
     {
         std::string errStr;
         RdKafka::Conf* kafkaConf = RdKafka::Conf::create( RdKafka::Conf::CONF_GLOBAL );
@@ -1289,7 +1289,7 @@ Udp2KafkaChannel::OnTaskStart( CORE::CTaskPtr task )
             return false;
         }
         RdKafka::KafkaConsumer* consumer = RdKafka::KafkaConsumer::create( m_kafkaConsumerConf, errStr );
-	    if ( consumer == nullptr ) 
+	    if ( consumer == GUCEF_NULL ) 
         {
 		    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Udp2KafkaChannel:OnTaskStart: Failed to create Kafka consumer, error message: " + errStr );
             ++m_kafkaErrorReplies;
@@ -1469,7 +1469,7 @@ Udp2KafkaChannel::OnTaskEnded( CORE::CTaskPtr task ,
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Udp2KafkaChannel:OnTaskEnded" );
 
-    if ( TChannelMode::KAFKA_PRODUCER == m_channelSettings.mode || TChannelMode::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
+    if ( Udp2KafkaChannel::KAFKA_PRODUCER == m_channelSettings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
     {
         // First stop the influx of new messages
         m_udpSocket->Close();
@@ -1517,7 +1517,7 @@ Udp2KafkaChannel::OnTaskEnded( CORE::CTaskPtr task ,
         m_kafkaProducerConf =  GUCEF_NULL;
     }
 
-    if ( TChannelMode::KAFKA_CONSUMER == m_channelSettings.mode || TChannelMode::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
+    if ( Udp2KafkaChannel::KAFKA_CONSUMER == m_channelSettings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == m_channelSettings.mode )
     {
         // Stop the influx of new messages from Kafka
         m_kafkaConsumer->close();
@@ -1666,7 +1666,7 @@ Udp2Kafka::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
 
         GUCEF_METRIC_COUNT( settings.metricsPrefix + "kafkaErrorReplies", metrics.kafkaErrorReplies, 1.0f );
 
-        if ( Udp2KafkaChannel::EChannelMode::KAFKA_PRODUCER == settings.mode || Udp2KafkaChannel::EChannelMode::KAFKA_PRODUCER_AND_CONSUMER == settings.mode )
+        if ( Udp2KafkaChannel::KAFKA_PRODUCER == settings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == settings.mode )
         {
             GUCEF_METRIC_COUNT( settings.metricsPrefix + "kafkaMessagesTransmitted", metrics.kafkaMessagesTransmitted, 1.0f );
             GUCEF_METRIC_GAUGE( settings.metricsPrefix + "kafkaTransmitQueueSize", metrics.kafkaTransmitQueueSize, 1.0f );
@@ -1674,7 +1674,7 @@ Udp2Kafka::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
             GUCEF_METRIC_COUNT( settings.metricsPrefix + "udpBytesReceived", metrics.udpBytesReceived, 1.0f );
             GUCEF_METRIC_COUNT( settings.metricsPrefix + "udpMessagesReceived", metrics.udpMessagesReceived, 1.0f );
         }
-        if ( Udp2KafkaChannel::EChannelMode::KAFKA_CONSUMER == settings.mode || Udp2KafkaChannel::EChannelMode::KAFKA_PRODUCER_AND_CONSUMER == settings.mode )
+        if ( Udp2KafkaChannel::KAFKA_CONSUMER == settings.mode || Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER == settings.mode )
         {
             GUCEF_METRIC_COUNT( settings.metricsPrefix + "kafkaMessagesReceived", metrics.kafkaMessagesReceived, 1.0f );
             GUCEF_METRIC_COUNT( settings.metricsPrefix + "kafkaMessagesFiltered", metrics.kafkaMessagesFiltered, 1.0f );
@@ -1873,16 +1873,16 @@ Udp2Kafka::LoadConfig( const CORE::CValueList& appConfig   ,
         settingValue = CORE::ResolveVars( appConfig.GetValueAlways( settingName, "producer" ) ).Lowercase();
         if ( settingValue == "consumer" )
         {
-            channelSettings.mode = Udp2KafkaChannel::EChannelMode::KAFKA_CONSUMER;
+            channelSettings.mode = Udp2KafkaChannel::KAFKA_CONSUMER;
         }
         else
         if ( settingValue == "both" || settingValue == "producer_and_consumer" )
         {
-            channelSettings.mode = Udp2KafkaChannel::EChannelMode::KAFKA_PRODUCER_AND_CONSUMER;
+            channelSettings.mode = Udp2KafkaChannel::KAFKA_PRODUCER_AND_CONSUMER;
         }
         else
         {
-            channelSettings.mode = Udp2KafkaChannel::EChannelMode::KAFKA_PRODUCER;
+            channelSettings.mode = Udp2KafkaChannel::KAFKA_PRODUCER;
         }
 
         settingName = settingPrefix + ".ConsumerMode.StartOffset";

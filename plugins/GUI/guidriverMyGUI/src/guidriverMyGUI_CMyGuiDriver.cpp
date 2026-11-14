@@ -131,7 +131,7 @@ CMyGUIDriver::CreateWidget( const GUI::CString& widgetName )
         return widgetWrapper;
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

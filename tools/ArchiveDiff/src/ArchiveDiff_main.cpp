@@ -200,7 +200,7 @@ WinMain( HINSTANCE hinstance     ,
 
     int argc = 0;
     char** argv = &lpcmdline;
-    if ( lpcmdline != NULL )
+    if ( lpcmdline != GUCEF_NULL )
     {
         if ( *lpcmdline != '\0' )
         {

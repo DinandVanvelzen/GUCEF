@@ -46,7 +46,7 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum ETaskStatus : UInt8
+enum ETaskStatus GUCEF_ENUM_BASE( UInt8 )
 {
     TASKSTATUS_UNDEFINED        = 0,    /**< not a real task status but rather an initialization value */
 
@@ -95,7 +95,7 @@ TaskStatusStringToTaskStatus( const char* taskStatusStr );
 /*-------------------------------------------------------------------------*/
 
 inline bool
-TaskStatusIsAnError( TTaskStatus taskStatus ) { return taskStatus < TTaskStatus::TASKSTATUS_SETUP; }
+TaskStatusIsAnError( TTaskStatus taskStatus ) { return taskStatus < CORE::TASKSTATUS_SETUP; }
 
 /*-------------------------------------------------------------------------*/
 

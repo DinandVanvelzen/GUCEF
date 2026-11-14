@@ -605,7 +605,7 @@ class CEMailTable
     {
         MULTIPLAY::CMatchPackage package = TESTFW::MakeTestPackage( 1, GUCEF_NULL, "game|setup|start" );
         MULTIPLAY::CMatchPreview preview = TESTFW::MakeTestPreview( record.info, players[ creator ]->identity, package, firstHolder >= 0 ? &players[ firstHolder ]->identity : GUCEF_NULL, MULTIPLAY::MATCHSTATUS_ACTIVE, clock.nowMs );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !players[ creator ]->provider->CreateMatch( record, package, preview, future ) )
             return false;
         return Await( future, result );
@@ -618,7 +618,7 @@ class CEMailTable
         MULTIPLAY::CMatchPreview preview;
         if ( !MakeTurn( player, matchId, nextHolder, move, status, package, preview ) )
             return false;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !players[ player ]->provider->Submit( matchId, package.revision - 1, preview, package, future ) )
             return false;
         return Await( future, result );
@@ -632,7 +632,7 @@ class CEMailTable
         MULTIPLAY::CMatchAcceptance acceptance;
         if ( !acceptance.Sign( players[ player ]->identity, info, accept ) )
             return false;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !players[ player ]->provider->Respond( matchId, acceptance, future ) )
             return false;
         return Await( future, result );

@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <locale.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
@@ -1795,7 +1796,7 @@ UnifyStringEol( const char* eolString ,
     // If no desired eol format is given then use the platform
     // native format
     const char* eolStrToUse = eolString;
-    if ( NULL == eolStrToUse || *eolStrToUse == '\0' )
+    if ( GUCEF_NULL == eolStrToUse || *eolStrToUse == '\0' )
     {
         eolStrToUse = GUCEF_EOL;
     }
@@ -1870,7 +1871,7 @@ LoadTextFileAsString( const CString& filePath ,
     fileContent.Clear();
 
     FILE* fptr = fopen( filePath.C_String(), "rb" );
-    if ( NULL != fptr )
+    if ( GUCEF_NULL != fptr )
     {
         char charBuffer[ 1024 ];
 
@@ -2082,7 +2083,7 @@ Utf8toUtf16( const std::string& str ,
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    size_t charsNeeded = ::MultiByteToWideChar( CP_UTF8, 0, str.data(), (int)str.size(), NULL, 0 );
+    size_t charsNeeded = ::MultiByteToWideChar( CP_UTF8, 0, str.data(), (int)str.size(), GUCEF_NULL, 0 );
     if ( charsNeeded == 0 )
         return false; // Failed converting UTF-8 string to UTF-16
 

@@ -281,7 +281,7 @@ CDefaultHttpServerRequestHandler::PerformReadOperation( const CHttpRequestData& 
         const CString& resourceURI = request.requestUri;
 
         CIHTTPServerRouter* resourceRouter = m_routerController->GetHandler( resourceURI );
-        if ( NULL == resourceRouter )
+        if ( GUCEF_NULL == resourceRouter )
         {
             // No handler is mounted to handle this Uri
             response.statusCode = 404;
@@ -381,7 +381,7 @@ CDefaultHttpServerRequestHandler::OnUpdate( const CHttpRequestData& request ,
         const CString& resourceURI = request.requestUri;
 
         CIHTTPServerRouter* resourceRouter = m_routerController->GetHandler( resourceURI );
-        if ( NULL == resourceRouter )
+        if ( GUCEF_NULL == resourceRouter )
         {
             // No system has been set for providing handlers
             response.statusCode = 500;
@@ -520,7 +520,7 @@ CDefaultHttpServerRequestHandler::OnCreate( const CHttpRequestData& request ,
         const CString& resourceURI = request.requestUri;
 
         CIHTTPServerRouter* resourceRouter = m_routerController->GetHandler( resourceURI );
-        if ( NULL == resourceRouter )
+        if ( GUCEF_NULL == resourceRouter )
         {
             // No system has been set for providing handlers
             // There is nothing the client can do here.
@@ -645,7 +645,7 @@ CDefaultHttpServerRequestHandler::OnDelete( const CHttpRequestData& request ,
         const CString& resourceURI = request.requestUri;
 
         CIHTTPServerRouter* resourceRouter = m_routerController->GetHandler( resourceURI );
-        if ( NULL == resourceRouter )
+        if ( GUCEF_NULL == resourceRouter )
         {
             // No system has been set for providing handlers
             response.statusCode = 404;

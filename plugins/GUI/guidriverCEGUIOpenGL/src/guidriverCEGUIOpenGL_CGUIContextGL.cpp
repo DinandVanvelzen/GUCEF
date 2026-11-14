@@ -88,7 +88,7 @@ CGUIContextGL::OnNotify( CORE::CNotifier* notifier   ,
          eventID == GUI::CWindowContext::WindowContextActivateEvent  )
     {
         CEGUI::System* guiSystem = m_driver->GetCEGui();
-        if ( NULL != guiSystem && NULL != m_ceGuiContext ) 
+        if ( GUCEF_NULL != guiSystem && GUCEF_NULL != m_ceGuiContext ) 
         {       
             clock_t now = clock();
             float elapsedGuiTime = ( now - m_lastTimeInjection ) * 0.001f;        

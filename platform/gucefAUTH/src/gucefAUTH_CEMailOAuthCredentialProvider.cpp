@@ -92,7 +92,7 @@ CEMailOAuthCredentialProvider::CEMailOAuthCredentialProvider( void )
     , m_mailUserName()
     , m_accessToken()
     , m_expiresAtMs( 0 )
-    , m_refreshFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    , m_refreshFuture( CORE::TASKSTATUS_UNDEFINED )
     , m_refreshing( false )
     , m_refreshFailed( false )
     , m_failedAtMs( 0 )
@@ -296,7 +296,7 @@ CEMailOAuthCredentialProvider::StartRefresh( void )
         return false;
     }
     ++m_refreshCount;
-    m_refreshFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    m_refreshFuture = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     if ( !provider->Refresh( m_account, refreshToken, m_refreshFuture ) )
     {
         m_refreshFailed = true;
@@ -337,7 +337,7 @@ CEMailOAuthCredentialProvider::FinishRefresh( void )
         m_expiresAtMs = 0;
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MailOAuthCredentialProvider: The access token of the mailbox could not be renewed" );
     }
-    m_refreshFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    m_refreshFuture = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
 
     // the clients that wait ask again: they get the new token, or no credential
     GUCEF::vector< UInt32 > waiting;

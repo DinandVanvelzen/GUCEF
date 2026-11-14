@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "freetype" } )
+
+configuration( {} )
 links( { "freetype" } )
 
 

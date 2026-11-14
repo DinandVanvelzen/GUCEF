@@ -366,7 +366,7 @@ CGUCEFApplication::Main( HINSTANCE hinstance     ,
     }
     else
     {
-        data.argv = NULL;
+        data.argv = GUCEF_NULL;
     }
 
     // A stop asked for by a signal before the application ran is honoured before anything starts

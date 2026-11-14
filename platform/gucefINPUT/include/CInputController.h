@@ -205,13 +205,13 @@ class GUCEF_INPUT_PUBLIC_CPP CInputController : public CORE::CTSGNotifier
      */
     virtual void OnPumpedNotify( CORE::CNotifier* notifier           ,
                                  const CORE::CEvent& eventid         ,
-                                 CORE::CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                                 CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
         
     typedef CORE::CTEventHandlerFunctor< CInputController > TEventCallback;
     
     void OnPulse( CORE::CNotifier* notifier           ,
                   const CORE::CEvent& eventid         ,
-                  CORE::CICloneable* eventdata = NULL );
+                  CORE::CICloneable* eventdata = GUCEF_NULL );
 
     private:
     friend class CInputGlobal;

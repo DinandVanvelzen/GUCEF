@@ -84,7 +84,7 @@ class CChildView : public CWnd                    ,
 
     virtual void OnNotify( GUCEF::CORE::CNotifier* notifier           ,
                            const GUCEF::CORE::CEvent& eventid         ,
-                           GUCEF::CORE::CICloneable* eventdata = NULL );
+                           GUCEF::CORE::CICloneable* eventdata = GUCEF_NULL );
 
     private:
     

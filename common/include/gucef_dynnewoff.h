@@ -69,6 +69,9 @@
 
 #endif /* GUCEF_USE_MEMORY_LEAK_CHECKER && GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER? */
 
+/* malloc, calloc, realloc and free which the macros below map to */
+#include <stdlib.h>
+
 #undef GUCEF_MALLOC
 #undef GUCEF_CALLOC
 #undef GUCEF_REALLOC

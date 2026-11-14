@@ -292,7 +292,7 @@ Get_Current_Dir( char* dest_buffer, UInt32 buf_length )
     /*
      *	Function that returns the current directory
      */
-    if ( !dest_buffer ) return NULL;
+    if ( !dest_buffer ) return GUCEF_NULL;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
@@ -311,7 +311,7 @@ Get_Current_Dir( char* dest_buffer, UInt32 buf_length )
     /*
      *	Unsupported O/S build
      */
-    return NULL;
+    return GUCEF_NULL;
 
     #endif
 }
@@ -426,7 +426,7 @@ Module_Path( char *dest, UInt32 dest_size )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    return !GetModuleFileName( NULL, dest, dest_size );
+    return !GetModuleFileName( GUCEF_NULL, dest, dest_size );
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE )
 
@@ -442,7 +442,7 @@ Module_Path( char *dest, UInt32 dest_size )
     PSN.lowLongOfPSN = kCurrentProcess;
     /* set up info block */
     pinfo.processInfoLength = sizeof(pinfo);
-    pinfo.processName = NULL;
+    pinfo.processName = GUCEF_NULL;
     pinfo.processAppSpec = &pspec;
     /* grab the vrefnum and directory */
     err = GetProcessInformation(&PSN, &pinfo);
@@ -675,12 +675,12 @@ ExecuteProgramEx( const char *filename,
     BOOL bres;
     char *tmp_lstr;
     si.cb = sizeof( si );
-    si.lpReserved = NULL;
-    si.lpDesktop = NULL;
-    si.lpTitle = NULL,
+    si.lpReserved = GUCEF_NULL;
+    si.lpDesktop = GUCEF_NULL;
+    si.lpTitle = GUCEF_NULL,
     si.dwFlags = STARTF_FORCEONFEEDBACK;
     si.cbReserved2 = 0;
-    si.lpReserved2 = NULL;
+    si.lpReserved2 = GUCEF_NULL;
     if ( cmdline )
     {
         /*
@@ -692,15 +692,15 @@ ExecuteProgramEx( const char *filename,
          */
         tmp_lstr = (char*) calloc( strlen( filename )+strlen( cmdline )+2, 1 );
         sprintf( tmp_lstr, "%s %s", filename, cmdline );
-        bres = CreateProcess( NULL, tmp_lstr, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+        bres = CreateProcess( GUCEF_NULL, tmp_lstr, GUCEF_NULL, GUCEF_NULL, FALSE, 0, GUCEF_NULL, GUCEF_NULL, &si, &pi);
         free( tmp_lstr );
     }
     else
     {
-        bres = CreateProcess( filename, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+        bres = CreateProcess( filename, GUCEF_NULL, GUCEF_NULL, GUCEF_NULL, FALSE, 0, GUCEF_NULL, GUCEF_NULL, &si, &pi);
     }
     if ( bres ) return pi.hProcess;
-    return NULL;
+    return GUCEF_NULL;
 }
 
 #endif /* GUCEF_PLATFORM_MSWIN ? */
@@ -716,7 +716,7 @@ Execute_Program( const char *filename ,
                  const char *cmdline  )
 {GUCEF_TRACE;
 
-    if ( NULL != filename )
+    if ( GUCEF_NULL != filename )
     {
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
@@ -732,7 +732,7 @@ Execute_Program( const char *filename ,
 
         // Like on Windows the program is started and left to run on its own, we do not wait for it
         CORE::CProcess::TStringVector args;
-        if ( NULL != cmdline )
+        if ( GUCEF_NULL != cmdline )
             args = CORE::CProcess::SplitCommandLine( cmdline );
 
         CORE::CProcess process;

@@ -195,7 +195,7 @@ StatusOf( const CORE::CFutureResult& future )
 
     CORE::CTaskPtr task = future.GetResult();
     if ( task.IsNULL() )
-        return CORE::TTaskStatus::TASKSTATUS_UNDEFINED;
+        return CORE::TASKSTATUS_UNDEFINED;
     return task->GetTaskStatus();
 }
 
@@ -371,7 +371,7 @@ PerformAuthManagerTests( void )
 
                 // nothing to prefill at the first login
                 AUTH::CAuthOptions options;
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_FALSE( f.manager.HasLoginHints() );
                 ASSERT_TRUE( f.manager.Login( "hintful", options, future ) && Await( future, 3000 ) );
                 PumpFor( 20 );
@@ -451,7 +451,7 @@ PerformAuthManagerTests( void )
                 one->resultLoginHint = "me@example.invalid";
 
                 AUTH::CAuthOptions options;
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
                 // fails
                 one->loginBehaviour = FAKE_FAIL;
@@ -496,7 +496,7 @@ PerformAuthManagerTests( void )
             CFixture f( "mgr_timeout" );
             CFakeAuthProvider* alpha = f.AddFake( "alpha" );
             REQUIRE_TRUE( GUCEF_NULL != alpha );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             // ten minutes unless told otherwise
             ASSERT_TRUE( f.manager.Login( "alpha", AUTH::CAuthOptions(), future ) && Await( future, 3000 ) );
@@ -568,7 +568,7 @@ PerformAuthManagerTests( void )
             options.loginHint = "alice";
             options.forceInteractive = true;
             options.preferDeviceCode = true;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "alpha", options, future ) );
             ASSERT_TRUE( f.manager.IsLoginPending( "alpha" ) && !future.IsReady() );
             ASSERT_TRUE( Await( future, 3000 ) );
@@ -632,11 +632,11 @@ PerformAuthManagerTests( void )
             CFakeAuthProvider* alpha = f.AddFake( "alpha" );
             alpha->loginBehaviour = FAKE_FAIL;
             alpha->failReason = AUTH::AUTHFAIL_DENIED;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "alpha", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( Await( future, 3000 ) );
             PumpFor( 20 );
-            ASSERT_TRUE( future.HasNoFuture() && CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == StatusOf( future ) );
+            ASSERT_TRUE( future.HasNoFuture() && CORE::TASKSTATUS_STARTUP_FAILED == StatusOf( future ) );
             AUTH::CAuthResult none;
             ASSERT_FALSE( AUTH::CAuthResult::TryGetFromFuture( future, none ) );
             ASSERT_TRUE( 1 == f.recorder.Count( CAuthRecorder::KIND_FAILED ) && 0 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) );
@@ -674,7 +674,7 @@ PerformAuthManagerTests( void )
             CFakeAuthProvider* hanging = f.AddFake( "hanging" );
             hanging->loginBehaviour = FAKE_HANG;
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.manager.Login( "refusing", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( future.IsReady() && future.HasNoFuture() );
             ASSERT_FALSE( f.manager.IsLoginPending( "refusing" ) );
@@ -687,7 +687,7 @@ PerformAuthManagerTests( void )
 
             // one login at a time per provider
             ASSERT_TRUE( f.manager.Login( "hanging", AUTH::CAuthOptions(), future ) );
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.manager.Login( "hanging", AUTH::CAuthOptions(), second ) );
             ASSERT_TRUE( second.IsReady() && 1 == hanging->beginCount );
             ASSERT_TRUE( AUTH::AUTHFAIL_IN_PROGRESS == f.recorder.Last( CAuthRecorder::KIND_FAILED )->failure.reason );
@@ -708,11 +708,11 @@ PerformAuthManagerTests( void )
             CFakeAuthProvider* fake = f.AddFake( "strayprov" );
             fake->loginBehaviour = FAKE_HANG;
             fake->refreshBehaviour = FAKE_COMPLETE;
-            CORE::CFutureResult login( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult login( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "strayprov", AUTH::CAuthOptions(), login ) );
             UInt32 failedBefore = f.recorder.Count( CAuthRecorder::KIND_FAILED );
 
-            CORE::CFutureResult renewal( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult renewal( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fake->Refresh( AUTH::CAccountRef( "fake", "player-1" ), AUTH::CSecretString( "refresh-of-a-keeper" ), renewal ) );
             PumpFor( 50 );
             ASSERT_TRUE( renewal.IsReady() && !login.IsReady() && f.manager.IsLoginPending( "strayprov" ) );
@@ -720,7 +720,7 @@ PerformAuthManagerTests( void )
 
             fake->refreshBehaviour = FAKE_FAIL;
             fake->failReason = AUTH::AUTHFAIL_INVALID_GRANT;
-            renewal = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            renewal = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fake->Refresh( AUTH::CAccountRef( "fake", "player-1" ), AUTH::CSecretString( "refresh-of-a-keeper" ), renewal ) );
             PumpFor( 50 );
             ASSERT_TRUE( renewal.IsReady() && !login.IsReady() && f.manager.IsLoginPending( "strayprov" ) );
@@ -744,7 +744,7 @@ PerformAuthManagerTests( void )
             CFakeAuthProvider* alpha = f.AddFake( "alpha" );
             alpha->loginBehaviour = FAKE_SLOW;
             alpha->delayMs = 150;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "alpha", AUTH::CAuthOptions(), future ) );
             PumpFor( 40 );
             ASSERT_TRUE( !future.IsReady() && f.manager.IsLoginPending( "alpha" ) && 0 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) );
@@ -781,13 +781,13 @@ PerformAuthManagerTests( void )
             deaf->loginBehaviour = FAKE_IGNORE_CANCEL;
 
             // cancelled by the requester
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "hanging", AUTH::CAuthOptions(), future ) );
             PumpFor( 30 );
             ASSERT_TRUE( !future.IsReady() && f.manager.CancelLogin( "hanging" ) );
             ASSERT_TRUE( Await( future, 3000 ) );
             PumpFor( 20 );
-            ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( future ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == StatusOf( future ) );
             ASSERT_TRUE( 1 == f.recorder.Count( CAuthRecorder::KIND_FAILED ) && AUTH::AUTHFAIL_CANCELLED == f.recorder.Last( CAuthRecorder::KIND_FAILED )->failure.reason );
             ASSERT_FALSE( f.manager.IsLoginPending( "hanging" ) );
             ASSERT_TRUE( AUTH::AUTHLOGINSTATE_GUEST == f.manager.GetLoginState() );
@@ -812,7 +812,7 @@ PerformAuthManagerTests( void )
             ASSERT_TRUE( !future.IsReady() );
             ASSERT_TRUE( Await( future, 5000 ) );
             PumpFor( 20 );
-            ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( future ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == StatusOf( future ) );
             ASSERT_TRUE( 3 == f.recorder.Count( CAuthRecorder::KIND_FAILED ) && AUTH::AUTHFAIL_CANCELLED == f.recorder.Last( CAuthRecorder::KIND_FAILED )->failure.reason );
             ASSERT_FALSE( f.manager.IsLoginPending( "deaf" ) );
             ASSERT_TRUE( 0 == f.LinkCount() );
@@ -830,7 +830,7 @@ PerformAuthManagerTests( void )
             CFixture f( "mgr_noevent" );
             CFakeAuthProvider* quiet = f.AddFake( "quiet" );
             quiet->loginBehaviour = FAKE_NO_EVENT;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "quiet", AUTH::CAuthOptions(), future ) );
             PumpFor( 50 );
             ASSERT_TRUE( future.IsReady() == false && f.manager.IsLoginPending( "quiet" ) );
@@ -857,8 +857,8 @@ PerformAuthManagerTests( void )
             ann->delayMs = 300;
             bob->loginBehaviour = FAKE_COMPLETE;
 
-            CORE::CFutureResult annFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-            CORE::CFutureResult bobFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult annFuture( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult bobFuture( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "ann-provider", AUTH::CAuthOptions(), annFuture ) );
             ASSERT_TRUE( f.manager.Login( "bob-provider", AUTH::CAuthOptions(), bobFuture ) );
             ASSERT_TRUE( f.manager.IsLoginPending( "ann-provider" ) && f.manager.IsLoginPending( "bob-provider" ) );
@@ -900,7 +900,7 @@ PerformAuthManagerTests( void )
             CFixture f( "mgr_unlink" );
             CFakeAuthProvider* a = f.AddFake( "pa", "a1", "fake" );
             CFakeAuthProvider* b = f.AddFake( "pb", "b1", "fake" );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "pa", AUTH::CAuthOptions(), future ) && Await( future, 3000 ) );
             ASSERT_TRUE( f.manager.Login( "pb", AUTH::CAuthOptions(), future ) && Await( future, 3000 ) );
             PumpFor( 20 );
@@ -973,7 +973,7 @@ PerformAuthManagerTests( void )
             settings.lastUsedProviders.push_back( "p1" );
             f.manager.SetSettings( settings );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.AutoLogin( future ) );
             ASSERT_TRUE( Await( future, 5000 ) );
             PumpFor( 20 );
@@ -1028,7 +1028,7 @@ PerformAuthManagerTests( void )
             settings.lastUsedProviders.push_back( "offline" );
             f.manager.SetSettings( settings );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.AutoLogin( future ) && Await( future, 5000 ) );
             PumpFor( 20 );
             ASSERT_TRUE( 2 == f.recorder.Count( CAuthRecorder::KIND_FAILED ) && 0 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) );
@@ -1059,7 +1059,7 @@ PerformAuthManagerTests( void )
                 AUTH::CAuthSettings settings = f.manager.GetSettings();
                 settings.autoLogin = false;
                 f.manager.SetSettings( settings );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.AutoLogin( future ) && future.IsReady() && !f.manager.IsAutoLoginRunning() );
                 PumpFor( 20 );
                 ASSERT_TRUE( 0 == p->silentCount && 1 == f.recorder.Count( CAuthRecorder::KIND_AUTOFINISHED ) && 0 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) );
@@ -1069,7 +1069,7 @@ PerformAuthManagerTests( void )
             {
                 CFixture f( "mgr_auto_nothing" );
                 f.AddFake( "p", "one" );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.AutoLogin( future ) && Await( future, 3000 ) );
                 PumpFor( 20 );
                 ASSERT_TRUE( 1 == f.recorder.Count( CAuthRecorder::KIND_AUTOFINISHED ) && AUTH::AUTHLOGINSTATE_GUEST == f.recorder.Last( CAuthRecorder::KIND_AUTOFINISHED )->state.state );
@@ -1089,10 +1089,10 @@ PerformAuthManagerTests( void )
                 settings.lastUsedProviders.push_back( "slow" );
                 settings.lastUsedProviders.push_back( "quick" );
                 f.manager.SetSettings( settings );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.AutoLogin( future ) );
                 // running a second time returns the same sequence
-                CORE::CFutureResult again( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult again( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.AutoLogin( again ) && f.manager.IsAutoLoginRunning() && again.GetTaskId() == future.GetTaskId() );
                 ASSERT_TRUE( Await( future, 6000 ) );
                 PumpFor( 20 );
@@ -1116,7 +1116,7 @@ PerformAuthManagerTests( void )
                 settings.lastUsedProviders.push_back( "first" );
                 settings.lastUsedProviders.push_back( "second" );
                 f.manager.SetSettings( settings );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.AutoLogin( future ) );
                 PumpFor( 40 );
                 ASSERT_TRUE( 1 == first->refreshCount && f.manager.IsAutoLoginRunning() );
@@ -1132,9 +1132,9 @@ PerformAuthManagerTests( void )
                 CFakeAuthProvider* busy = f.AddFake( "busy", "b1" );
                 busy->capabilities |= AUTH::AUTHCAP_SILENT;
                 busy->loginBehaviour = FAKE_HANG;
-                CORE::CFutureResult loginFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult loginFuture( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.Login( "busy", AUTH::CAuthOptions(), loginFuture ) );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.AutoLogin( future ) && Await( future, 3000 ) );
                 ASSERT_TRUE( 0 == busy->silentCount && f.manager.IsLoginPending( "busy" ) );
                 f.manager.CancelLogin( "busy" );
@@ -1170,7 +1170,7 @@ PerformAuthManagerTests( void )
                 CFakeAuthProvider* alpha = static_cast< CFakeAuthProvider* >( product.GetPointerAlways() );
                 alpha->name = "alpha";
                 ASSERT_TRUE( manager.AddProvider( product ) );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( manager.Login( "alpha", AUTH::CAuthOptions(), future ) && Await( future, 3000 ) );
                 PumpFor( 20 );
                 AUTH::CAuthResult session;
@@ -1207,7 +1207,7 @@ PerformAuthManagerTests( void )
             ASSERT_TRUE( sessions.empty() );
 
             // the startup policy brings the login back from the stored refresh token, without the user
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( manager.AutoLogin( future ) && Await( future, 5000 ) );
             PumpFor( 20 );
             ASSERT_TRUE( 1 == alpha->refreshCount && firstToken == alpha->lastRefreshTokenSeen && 0 == alpha->beginCount );
@@ -1246,7 +1246,7 @@ PerformAuthManagerTests( void )
             theirs->name = "alpha";
             ASSERT_TRUE( other.AddProvider( product ) );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "alpha", AUTH::CAuthOptions(), future ) && Await( future, 3000 ) );
             PumpFor( 20 );
             ASSERT_TRUE( 1 == f.LinkCount() && mine->beginCount == 1 );
@@ -1295,7 +1295,7 @@ PerformAuthManagerTests( void )
                 CFixture f( "mgr_nosigner", false );
                 CFakeAuthProvider* alpha = f.AddFake( "alpha" );
                 ASSERT_TRUE( f.manager.GetProfileKeyId().IsNULLOrEmpty() );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.Login( "alpha", AUTH::CAuthOptions(), future ) && Await( future, 3000 ) );
                 PumpFor( 20 );
                 ASSERT_TRUE( 1 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) && 0 == f.recorder.Count( CAuthRecorder::KIND_LINKED ) );
@@ -1316,7 +1316,7 @@ PerformAuthManagerTests( void )
                 f.AddFake( "alpha" );
                 AUTH::CAuthOptions options;
                 options.linkToProfile = false;
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.Login( "alpha", options, future ) && Await( future, 3000 ) );
                 PumpFor( 20 );
                 ASSERT_TRUE( 1 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) && 0 == f.LinkCount() && AUTH::AUTHLOGINSTATE_GUEST == f.manager.GetLoginState() );
@@ -1345,7 +1345,7 @@ PerformAuthManagerTests( void )
         {
             CFixture f( "mgr_stray" );
             CFakeAuthProvider* alpha = f.AddFake( "alpha" );
-            CORE::CFutureResult direct( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult direct( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( alpha->BeginLogin( AUTH::CAuthOptions(), direct ) );
             PumpFor( 60 );
             ASSERT_TRUE( 0 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) && AUTH::AUTHLOGINSTATE_GUEST == f.manager.GetLoginState() );
@@ -1355,11 +1355,11 @@ PerformAuthManagerTests( void )
 
             CFakeAuthProvider* hanging = f.AddFake( "hanging", "h1" );
             hanging->loginBehaviour = FAKE_HANG;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "hanging", AUTH::CAuthOptions(), future ) );
             PumpFor( 30 );
             ASSERT_TRUE( f.manager.RemoveProvider( "hanging" ) );
-            ASSERT_TRUE( future.IsReady() && CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( future ) );
+            ASSERT_TRUE( future.IsReady() && CORE::TASKSTATUS_CANCELLED == StatusOf( future ) );
             ASSERT_FALSE( f.manager.IsLoginPending( "hanging" ) );
             PumpFor( 100 );
         }
@@ -1404,7 +1404,7 @@ PerformAuthManagerTests( void )
             ASSERT_FALSE( AUTH::ContainsString( offered, "microsoft" ) );
             ASSERT_FALSE( AUTH::ContainsString( offered, "epic" ) );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( manager.Login( "google", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( Await( future, 3000 ) );
             PumpFor( 20 );

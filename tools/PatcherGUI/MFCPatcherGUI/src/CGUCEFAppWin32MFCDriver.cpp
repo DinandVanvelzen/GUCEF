@@ -71,7 +71,7 @@ CGUCEFAppWin32MFCDriver::CGUCEFAppWin32MFCDriver( void )
       m_frequency( 10 )                     ,
       m_initialized( false )                ,
       m_useTimer( false )                   ,
-      m_pulseGenerator( NULL )
+      m_pulseGenerator( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -86,9 +86,9 @@ CGUCEFAppWin32MFCDriver::~CGUCEFAppWin32MFCDriver()
         OnStopUpdateTimer( 0, 0 );
         DestroyWindow();
     }
-    if ( NULL != m_pulseGenerator )
+    if ( GUCEF_NULL != m_pulseGenerator )
     {
-        m_pulseGenerator->SetPulseGeneratorDriver( NULL );
+        m_pulseGenerator->SetPulseGeneratorDriver( GUCEF_NULL );
     }
 }
 
@@ -101,7 +101,7 @@ CGUCEFAppWin32MFCDriver::Init( CWnd* pParentWnd                             ,
 
     if ( !m_initialized )
     {
-        if ( Create( NULL                                     ,
+        if ( Create( GUCEF_NULL                                     ,
                      (LPCTSTR)"CGUCEFAppWin32MFCDriverWindow" ,
                      WS_CHILD|WS_VISIBLE                      ,
                      CRect(0, 0, 0, 0)                        ,
@@ -211,9 +211,9 @@ CGUCEFAppWin32MFCDriver::OnClose()
         PostMessage( GUCEFWIN32DRIVERMSG_STOPTIMER );
     }
     
-    if ( NULL != m_pulseGenerator )
+    if ( GUCEF_NULL != m_pulseGenerator )
     {
-        m_pulseGenerator->SetPulseGeneratorDriver( NULL );
+        m_pulseGenerator->SetPulseGeneratorDriver( GUCEF_NULL );
     }
     CWnd::OnClose();
 }
@@ -228,7 +228,7 @@ CGUCEFAppWin32MFCDriver::OnTimer( UINT nIDEvent )
     {
         if ( GetSafeHwnd() )
         {
-            if ( NULL != m_pulseGenerator )
+            if ( GUCEF_NULL != m_pulseGenerator )
             {
                 SendDriverPulse( *m_pulseGenerator );
             }

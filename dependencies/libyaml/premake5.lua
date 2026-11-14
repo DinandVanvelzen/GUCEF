@@ -26,12 +26,12 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 

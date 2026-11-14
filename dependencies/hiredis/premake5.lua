@@ -31,8 +31,12 @@ kind( "StaticLib" )
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=hiredis", "MODULE_NAME=hiredis" } )
-  links( { "ws2_32" } )
-  links( { "ws2_32" } )
+
+configuration( { "WIN32" } )
+links( { "ws2_32" } )
+
+configuration( { "WIN64" } )
+links( { "ws2_32" } )
 
 
 configuration( {} )

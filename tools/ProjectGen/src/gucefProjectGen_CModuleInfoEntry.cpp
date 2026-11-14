@@ -375,7 +375,7 @@ CModuleInfoEntry::GetConsensusName( CModuleInfoPtr* moduleInfo ,
     //@TODO: popular platform check
 
     CString consensusName = (*topNames.begin());
-    if ( NULL != moduleInfo )
+    if ( GUCEF_NULL != moduleInfo )
     {
         // Now turn the consensus name back into a module pointer
         n = m_modulesPerPlatform.begin();
@@ -697,18 +697,12 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
             }
             else
             {
-                // Check if there is more then one include dir
-                // If so we have create an include for an empty include dir
-                // to ensure files in subdirs can include the file with the zero length
-                // subdir.
-                if ( 1 < moduleInfo->GetIncludeDirs().size() )
-                {
-                    CORE::CString includeDir = "../" + CORE::LastSubDir( moduleEntry->GetAbsolutePathToModuleRootDir() ) + " ";
-                    CORE::CDataNode includeNode;
-                    includeNode.SetName( "Include" );
-                    includeNode.SetAttribute( "Path", includeDir );
-                    includesInfoNode.AddChild( includeNode );
-                }
+                // The module root dir itself is an include dir. It is stored as an empty path so that loading
+                // the stored info restores the same include dir, the generators decide how to refer to it
+                CORE::CDataNode includeNode;
+                includeNode.SetName( "Include" );
+                includeNode.SetAttribute( "Path", CORE::CString::Empty );
+                includesInfoNode.AddChild( includeNode );
             }
             ++n;
         }
@@ -810,6 +804,7 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
 
     CORE::CDataNodeSerializableSettings defaultSettings;
     moduleInfo->linkerSettings.Serialize( moduleInfoNode, defaultSettings );
+    moduleInfo->compilerSettings.Serialize( moduleInfoNode, defaultSettings );
 
     // Add all the info for this module to the overall project
     parentNode.AddChild( moduleInfoNode );
@@ -1573,6 +1568,9 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
     m_projRelRootDir = domRootNode.GetAttributeValue( "ProjRelRootDir", m_projRelRootDir ).AsString( m_projRelRootDir, true );
     m_definitionFileLastModifiedDt = domRootNode.GetAttributeValue( "DefFileLastModified", m_definitionFileLastModifiedDt ).AsDateTime( m_definitionFileLastModifiedDt, true );    
 
+    // Stored project information has each module definition under its exact platform, see CProjectInfo::Serialize()
+    bool platformKeysAreExact = domRootNode.GetAttributeValue( "PlatformKeysAreExact" ).AsBool( false, true );
+
     const CORE::CDataNode::TConstDataNodeSet moduleInfoNodes = domRootNode.FindChildrenOfType( "Module" );
     if ( moduleInfoNodes.size() == 0 ) 
         return false;
@@ -1603,6 +1601,18 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to locate a Platform value for a module, will default to all platforms but this may not be correct" );
                 platforms.push_back( KnownPlatforms::AllPlatforms );
+            }
+
+            if ( platformKeysAreExact )
+            {
+                TStringVector::iterator i = platforms.begin();
+                while ( i != platforms.end() )
+                {
+                    SetModuleInfo( moduleInfoForPlatform, (*i) );
+                    ++i;
+                }
+                ++n;
+                continue;
             }
 
             TStringVector::iterator i = platforms.begin();

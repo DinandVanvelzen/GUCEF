@@ -92,6 +92,16 @@
 #define GUCEF_PROJECTGEN_CPROJECTINFO_H
 #endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
+#ifndef GUCEF_CORE_CSHA256_H
+#include "gucefCORE_CSha256.h"
+#define GUCEF_CORE_CSHA256_H
+#endif /* GUCEF_CORE_CSHA256_H ? */
+
 #include "gucefProjectGen_CDirCrawlingProjectInfoGatherer.h"
 
 /*-------------------------------------------------------------------------//
@@ -1137,7 +1147,7 @@ LoadAllProcessingInstructions( const CProjectInfo& projectInfo                  
 
     // Recurse through sub-dirs to find more instructions
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( rootDir.C_String() );
-    if ( NULL != sdiData )
+    if ( GUCEF_NULL != sdiData )
     {
         do
         {
@@ -1160,7 +1170,7 @@ LoadAllProcessingInstructions( const CProjectInfo& projectInfo                  
                         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Skipping the search for processing instructions, based on global dir exclude list, for dir \"" + subRoot + "\"" );
                     }
                     else
-                    if ( NULL != dirInstructions )
+                    if ( GUCEF_NULL != dirInstructions )
                     {
                         TStringVectorMap::const_iterator i = dirInstructions->dirExcludeList.find( KnownPlatforms::AllPlatforms );
                         if ( i != dirInstructions->dirExcludeList.end() )
@@ -2600,6 +2610,132 @@ ProcessModuleInformation( CORE::ThreadPoolPtr threadPool        ,
 
 /*-------------------------------------------------------------------------*/
 
+// Version of the input fingerprint format. Change it whenever the gathering logic or the way project information is
+// stored changes in a way which makes project information stored by a previous version unfit for reuse
+static const char* g_inputFingerprintFormat = "ProjectGenInputFingerprint/3";
+
+/*-------------------------------------------------------------------------*/
+
+void
+GetProjectDefinitionFileNames( TStringSet& lcFileNames )
+{GUCEF_TRACE;
+
+    // Files whose content is read while gathering project information, in lower case
+    lcFileNames.insert( "moduleinfo.xml" );
+    lcFileNames.insert( "cmakelistssuffix.txt" );
+    lcFileNames.insert( "projectgeninstructions.xml" );
+    lcFileNames.insert( "cmakegeninstructions.xml" );
+    lcFileNames.insert( "projectgenexcludelist.txt" );
+    lcFileNames.insert( "cmakegenexcludelist.txt" );
+
+    const CORE::CString::StringSet& licenseFiles = GetKnownLicenseFiles();
+    lcFileNames.insert( licenseFiles.begin(), licenseFiles.end() );
+    const CORE::CString::StringSet& semverFiles = GetKnownSemVerFiles();
+    lcFileNames.insert( semverFiles.begin(), semverFiles.end() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+GetFileContentHashForInputFingerprint( const CORE::CString& filePath )
+{GUCEF_TRACE;
+
+    CORE::CDynamicBuffer content;
+    if ( !content.LoadContentFromFile( filePath ) )
+        return "unreadable";
+
+    // CR LF is hashed as LF so a checkout with converted line endings gives the same hash
+    CORE::CSha256 sha256;
+    UInt32 dataSize = content.GetDataSize();
+    if ( dataSize > 0 )
+    {
+        const char* data = static_cast< const char* >( content.GetConstBufferPtr() );
+        UInt32 segmentStart = 0;
+        for ( UInt32 i=0; i+1<dataSize; ++i )
+        {
+            if ( data[ i ] == '\r' && data[ i+1 ] == '\n' )
+            {
+                sha256.Update( data + segmentStart, i - segmentStart );
+                segmentStart = i + 1;
+            }
+        }
+        sha256.Update( data + segmentStart, dataSize - segmentStart );
+    }
+
+    UInt8 digest[ CORE::CSha256::DigestSize ];
+    sha256.Final( digest );
+    return CORE::Base16Encode( digest, CORE::CSha256::DigestSize );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+DescribeDirForInputFingerprint( const CProjectInfo& projectInfo                       ,
+                                const CORE::CString& absDir                           ,
+                                const CORE::CString& relDir                           ,
+                                const TStringSet& lcDefinitionFileNames               ,
+                                TStringSet& lines                                     ,
+                                TDirProcessingInstructionsMap& processingInstructions )
+{GUCEF_TRACE;
+
+    // Dirs are not described on their own: modules are identified by their definition files and platform dirs by the
+    // paths of the files in them. This keeps output dirs created by generators from altering the fingerprint
+    TStringSet subDirs;
+    CORE::CFileSystemIterator fsIterator;
+    if ( fsIterator.FindFirst( absDir ) )
+    {
+        do
+        {
+            CORE::CString name = fsIterator.GetResourceName();
+            if ( ( name != "." ) && ( name != ".." ) )
+            {
+                if ( fsIterator.IsADirectory() )
+                {
+                    if ( !IsStringInList( projectInfo.globalDirExcludeList, false, name ) )
+                        subDirs.insert( name );
+                }
+                else
+                {
+                    CORE::CString relPath = relDir + '/' + name;
+                    if ( lcDefinitionFileNames.find( name.Lowercase() ) != lcDefinitionFileNames.end() )
+                    {
+                        // the content of definition files is read during gathering
+                        lines.insert( "H " + relPath + ' ' + GetFileContentHashForInputFingerprint( CORE::CombinePath( absDir, name ) ) );
+                    }
+                    else
+                    {
+                        // for source and header files only their presence matters during gathering
+                        CORE::CString extension = CORE::ExtractFileExtention( name );
+                        if ( IsStringInList( GetSourceFileExtensions(), false, extension ) ||
+                             IsStringInList( GetHeaderFileExtensions(), false, extension )  )
+                        {
+                            lines.insert( "F " + relPath );
+                        }
+                    }
+                }
+            }
+        }
+        while ( fsIterator.FindNext() );
+    }
+
+    // Dirs excluded by processing instructions are never gathered from
+    ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo, absDir, subDirs, processingInstructions );
+
+    TStringSet::iterator i = subDirs.begin();
+    while ( i != subDirs.end() )
+    {
+        DescribeDirForInputFingerprint( projectInfo                       ,
+                                        CORE::CombinePath( absDir, (*i) ) ,
+                                        relDir + '/' + (*i)               ,
+                                        lcDefinitionFileNames             ,
+                                        lines                             ,
+                                        processingInstructions            );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDirCrawlingProjectInfoGatherer::CDirCrawlingProjectInfoGatherer( void )
 {GUCEF_TRACE;
 
@@ -2682,6 +2818,55 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_NORMAL, "Unknown exception occurred while gathering project info: " + CORE::CString( e.what() ) );
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDirCrawlingProjectInfoGatherer::ComputeInputFingerprint( const TStringVector& rootDirs   ,
+                                                          const CProjectInfo& projectInfo ,
+                                                          CORE::CString& fingerprint      )
+{GUCEF_TRACE;
+
+    CORE::CDateTime start = CORE::CDateTime::NowUTCDateTime();
+
+    TStringSet lines;
+    lines.insert( CORE::CString( "V " ) + g_inputFingerprintFormat );
+    projectInfo.GetInputSettingsDescription( lines );
+
+    TStringSet lcDefinitionFileNames;
+    GetProjectDefinitionFileNames( lcDefinitionFileNames );
+
+    TDirProcessingInstructionsMap processingInstructions;
+    for ( size_t i=0; i<rootDirs.size(); ++i )
+    {
+        CORE::CString rootDir = CORE::RelativePath( rootDirs[ i ], true );
+        if ( !CORE::DirExists( rootDir ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ComputeInputFingerprint: Root dir does not exist: " + rootDir );
+            return false;
+        }
+
+        // Paths are described relative to the root dir, identified by its index, to keep the fingerprint machine independent
+        DescribeDirForInputFingerprint( projectInfo, rootDir, CORE::ToString( i ), lcDefinitionFileNames, lines, processingInstructions );
+    }
+
+    CORE::CSha256 sha256;
+    TStringSet::iterator n = lines.begin();
+    while ( n != lines.end() )
+    {
+        sha256.Update( (*n).C_String(), (*n).ByteSize() );
+        sha256.Update( "\n", 1 );
+        ++n;
+    }
+    UInt8 digest[ CORE::CSha256::DigestSize ];
+    sha256.Final( digest );
+    fingerprint = CORE::Base16Encode( digest, CORE::CSha256::DigestSize );
+
+    CORE::CDateTime end = CORE::CDateTime::NowUTCDateTime();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ComputeInputFingerprint: Fingerprint " + fingerprint + " over " + CORE::ToString( lines.size() ) +
+        " entries took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end ) ) + "ms" );
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

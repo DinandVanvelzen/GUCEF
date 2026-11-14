@@ -143,7 +143,7 @@ class GUCEF_PATCHER_EXPORT_CPP CPatchListEngine : public CORE::CForwardingNotifi
         
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
 
     private:
     

@@ -52,17 +52,17 @@ namespace GUIDRIVEROGRE {
 
 COgreLogAdapter::COgreLogAdapter( void )
     : Ogre::LogListener() ,
-      m_log( nullptr )
+      m_log( GUCEF_NULL )
 {GUCEF_TRACE;
 
     Ogre::LogManager* logManager = Ogre::LogManager::getSingletonPtr();
-    if ( nullptr == logManager )
+    if ( GUCEF_NULL == logManager )
     {
         logManager = OGRE_NEW Ogre::LogManager();
     }
     
     m_log = logManager->createLog( "OgreLogAdapter", true , true, true ); 
-    if ( nullptr != m_log )
+    if ( GUCEF_NULL != m_log )
     {
         m_log->addListener( this );
     }
@@ -73,7 +73,7 @@ COgreLogAdapter::COgreLogAdapter( void )
 COgreLogAdapter::~COgreLogAdapter()
 {GUCEF_TRACE;
 
-    if ( nullptr != m_log )
+    if ( GUCEF_NULL != m_log )
     {
         m_log->removeListener( this );
         Ogre::LogManager::getSingleton().destroyLog( m_log );
@@ -92,17 +92,17 @@ COgreLogAdapter::messageLogged( const Ogre::String& message ,
 
     switch ( lml )
     {
-        case Ogre::LogMessageLevel::LML_CRITICAL :
+        case Ogre::LML_CRITICAL :
         {        
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_CRITICAL, message );
             break;
         }
-        case Ogre::LogMessageLevel::LML_TRIVIAL :
+        case Ogre::LML_TRIVIAL :
         {
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_BELOW_NORMAL, message );
             break;
         }
-        case Ogre::LogMessageLevel::LML_NORMAL :
+        case Ogre::LML_NORMAL :
         default:
         {
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, message );

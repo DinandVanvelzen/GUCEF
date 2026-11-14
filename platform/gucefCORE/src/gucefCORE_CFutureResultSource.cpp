@@ -46,7 +46,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CFutureResultSource::CFutureResultSource( void )
-    : m_task( CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RUNNING ) )
+    : m_task( CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RUNNING ) )
 {GUCEF_TRACE;
 
 }
@@ -58,8 +58,8 @@ CFutureResultSource::CFutureResultSource( TTaskStatus initialStatus )
 {GUCEF_TRACE;
 
     // an end state at creation makes no sense: that is a future that was never pending
-    if ( TaskStatusIsAnEndState( initialStatus ) || TTaskStatus::TASKSTATUS_UNDEFINED == initialStatus )
-        initialStatus = TTaskStatus::TASKSTATUS_RUNNING;
+    if ( TaskStatusIsAnEndState( initialStatus ) || CORE::TASKSTATUS_UNDEFINED == initialStatus )
+        initialStatus = CORE::TASKSTATUS_RUNNING;
 
     m_task = CTask::CreateSharedObjWithParam( initialStatus );
 }
@@ -105,7 +105,7 @@ bool
 CFutureResultSource::SetStatus( TTaskStatus status )
 {GUCEF_TRACE;
 
-    if ( m_task.IsNULL() || TaskStatusIsAnEndState( status ) || TTaskStatus::TASKSTATUS_UNDEFINED == status )
+    if ( m_task.IsNULL() || TaskStatusIsAnEndState( status ) || CORE::TASKSTATUS_UNDEFINED == status )
         return false;
 
     MT::CScopeMutex lock( m_task->m_lock );
@@ -149,7 +149,7 @@ bool
 CFutureResultSource::Complete( void )
 {GUCEF_TRACE;
 
-    return EndWith( TTaskStatus::TASKSTATUS_FINISHED, CString::Empty, GUCEF_NULL, false );
+    return EndWith( CORE::TASKSTATUS_FINISHED, CString::Empty, GUCEF_NULL, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -158,7 +158,7 @@ bool
 CFutureResultSource::Complete( CICloneable* resultData, bool assumeOwnershipOfResultData )
 {GUCEF_TRACE;
 
-    return EndWith( TTaskStatus::TASKSTATUS_FINISHED, CString::Empty, resultData, assumeOwnershipOfResultData );
+    return EndWith( CORE::TASKSTATUS_FINISHED, CString::Empty, resultData, assumeOwnershipOfResultData );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -176,7 +176,7 @@ bool
 CFutureResultSource::Fail( TTaskStatus errorStatus, const CString& extraInfo )
 {GUCEF_TRACE;
 
-    if ( TTaskStatus::TASKSTATUS_UNDEFINED == errorStatus || !TaskStatusIsAnError( errorStatus ) || !TaskStatusIsAnEndState( errorStatus ) )
+    if ( CORE::TASKSTATUS_UNDEFINED == errorStatus || !TaskStatusIsAnError( errorStatus ) || !TaskStatusIsAnEndState( errorStatus ) )
         return false;
     return EndWith( errorStatus, extraInfo, GUCEF_NULL, false );
 }
@@ -187,7 +187,7 @@ bool
 CFutureResultSource::Cancel( void )
 {GUCEF_TRACE;
 
-    return EndWith( TTaskStatus::TASKSTATUS_CANCELLED, CString::Empty, GUCEF_NULL, false );
+    return EndWith( CORE::TASKSTATUS_CANCELLED, CString::Empty, GUCEF_NULL, false );
 }
 
 /*-------------------------------------------------------------------------*/

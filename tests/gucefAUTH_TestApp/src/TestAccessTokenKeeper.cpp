@@ -386,7 +386,7 @@ class CKeeperFixture
     {
         AUTH::CAuthOptions options;
         options.linkToProfile = false;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !manager.Login( "broker", options, future ) )
             return false;
         for ( UInt32 waited=0; waited<5000 && !future.IsReady(); ++waited )
@@ -456,7 +456,7 @@ PerformKeeperBasicTests( void )
             ASSERT_FALSE( f.keeper.HasLogin() );
             f.UseAccount();
             ASSERT_TRUE( AUTH::NO_LOGIN == f.Ask( token ) );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.keeper.RequestRefresh( future ) );
             ASSERT_TRUE( future.HasNoFuture() );
 
@@ -578,8 +578,8 @@ PerformKeeperBasicTests( void )
             ASSERT_TRUE( AUTH::TOKEN_PENDING == f.keeper.WaitForAccessToken( secret, expiresAtMs, 5000 ) );
             ASSERT_TRUE( AUTH::GetMonotonicTimeInMs() - startedAt < 1000 );
 
-            CORE::CFutureResult first( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult first( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.keeper.RequestRefresh( first ) && f.keeper.RequestRefresh( second ) );
             ASSERT_TRUE( 0 != first.GetTaskId() && first.GetTaskId() == second.GetTaskId() );
 
@@ -674,7 +674,7 @@ PerformKeeperBasicTests( void )
             ASSERT_TRUE( f.keeper.IsReauthRequired() && AUTH::REAUTH_REFRESH_TOKEN_REJECTED == f.keeper.GetReauthReason() );
             ASSERT_TRUE( f.StoredRefreshToken().IsNULLOrEmpty() );
             ASSERT_TRUE( AUTH::NO_LOGIN == f.Ask() );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.keeper.RequestRefresh( future ) );
             ASSERT_TRUE( future.HasNoFuture() );
             PumpFor( 50 );
@@ -721,7 +721,7 @@ PerformKeeperBasicTests( void )
                 ASSERT_TRUE( PumpUntilAtLeast( f.events.failed, i + 1, 3000 ) );
                 ASSERT_TRUE( AUTH::AUTHFAIL_NETWORK == f.events.lastFailed.failureReason && now + delays[ i ] == f.events.lastFailed.retryAtMs );
                 ASSERT_TRUE( AUTH::TOKEN_FAILED == f.Ask() );
-                CORE::CFutureResult refused( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult refused( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_FALSE( f.keeper.RequestRefresh( refused ) );
                 f.clock.Set( now + delays[ i ] - 1 );
                 PumpFor( 20 );
@@ -767,8 +767,8 @@ PerformKeeperBasicTests( void )
             CORE::CString token;
             ASSERT_TRUE( AUTH::TOKEN_READY == f.Ask( token ) && LoginAccessToken == token );
 
-            CORE::CFutureResult first( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult first( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.keeper.ReportTokenRejected( AUTH::CSecretString( LoginAccessToken ), first ) );
             ASSERT_TRUE( AUTH::TOKEN_PENDING == f.Ask() );
             ASSERT_TRUE( f.keeper.ReportTokenRejected( AUTH::CSecretString( LoginAccessToken ), second ) && first.GetTaskId() == second.GetTaskId() );
@@ -778,7 +778,7 @@ PerformKeeperBasicTests( void )
                 PumpFor( 1 );
             ASSERT_TRUE( first.IsReady() && !first.HasNoFuture() );
 
-            CORE::CFutureResult late( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult late( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.keeper.ReportTokenRejected( AUTH::CSecretString( LoginAccessToken ), late ) );
             ASSERT_TRUE( late.IsReady() && !late.HasNoFuture() );
             PumpFor( 30 );
@@ -947,7 +947,7 @@ PerformKeeperShutdownTests( void )
             ASSERT_TRUE( 0 == f.events.refreshed && 0 == f.events.failed );
             ASSERT_TRUE( AUTH::NO_LOGIN == f.Ask() && !f.keeper.HasLogin() );
             ASSERT_TRUE( LoginRefreshToken == f.StoredRefreshToken() );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.keeper.RequestRefresh( future ) );
 
             // set up again it works again
@@ -968,7 +968,7 @@ PerformKeeperShutdownTests( void )
             gone->SetCredentialStore( &f.store );
             gone->SetAccount( "broker", f.account );
             f.clock.Set( T0 + 3 * LoginLifeMs );
-            CORE::CFutureResult waiting( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult waiting( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( gone->RequestRefresh( waiting ) );
             ASSERT_TRUE( f.PumpUntilRefreshes( 3 ) );
             size_t index = f.provider->pending.size() - 1;
@@ -1060,7 +1060,7 @@ PerformKeeperShutdownTests( void )
                 ASSERT_TRUE( f.PumpUntilRefreshes( 1 ) );
                 ASSERT_TRUE( f.provider->Succeed( "SECRET-AT-logged-2", T0 + 2 * LoginLifeMs, "SECRET-RT-logged-2" ) );
                 ASSERT_TRUE( PumpUntilAtLeast( f.events.refreshed, 1, 3000 ) );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.keeper.ReportTokenRejected( AUTH::CSecretString( "SECRET-AT-logged-2" ), future ) );
                 ASSERT_TRUE( f.PumpUntilRefreshes( 2 ) );
                 ASSERT_TRUE( f.provider->FailWith( AUTH::AUTHFAIL_NETWORK ) );

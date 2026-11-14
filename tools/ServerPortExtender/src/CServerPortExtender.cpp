@@ -61,7 +61,7 @@ CServerPortExtender::CServerPortExtender( CORE::PulseGeneratorPtr pulseGenerator
       m_reversedServerControlSocket( pulseGenerator, false ) ,
       m_reversedServerSocket( pulseGenerator, false )        ,
       m_serverSocket( pulseGenerator, false )                ,
-      m_controlConnection( NULL )                            ,
+      m_controlConnection( GUCEF_NULL )                            ,
       m_cConnectionBuffers()                                 ,
       m_rsConnectionBuffers()                                ,
       m_unmappedClientConnections()                          ,
@@ -105,7 +105,7 @@ CServerPortExtender::Disconnect( void )
     m_reversedServerControlSocket.Close();
     
     m_controlConnectionInitialized = false;
-    m_controlConnection = NULL;
+    m_controlConnection = GUCEF_NULL;
     
     m_cConnectionBuffers.clear();
     m_rsConnectionBuffers.clear();
@@ -171,7 +171,7 @@ CServerPortExtender::OnPulse( CORE::CNotifier* notifier    ,
         {        
             // Since we have data to transfer check if the corresponding connection is available for transfer
             COMCORE::CTCPServerConnection* serverConnection = GetRemoteConnectionForLocalConnection( (*i).first->GetSocketID() );
-            if ( NULL != serverConnection )
+            if ( GUCEF_NULL != serverConnection )
             {
                 // transfer the data
                 CORE::UInt32 bytesRead;
@@ -200,7 +200,7 @@ CServerPortExtender::OnPulse( CORE::CNotifier* notifier    ,
         {        
             // Since we have data to transfer check if the corresponding connection is available for transfer
             COMCORE::CTCPServerConnection* serverConnection = GetLocalConnectionForRemoteConnection( (*i).first->GetSocketID() );
-            if ( NULL != serverConnection )
+            if ( GUCEF_NULL != serverConnection )
             {
                 // transfer the data
                 CORE::UInt32 bytesRead;
@@ -243,10 +243,10 @@ CServerPortExtender::OnRSControlClientConnected( CORE::CNotifier* notifier    ,
     
     // If we already have an existing control connection we should close it
     // we only support 1 control connection at a time.
-    if ( NULL != m_controlConnection )
+    if ( GUCEF_NULL != m_controlConnection )
     {
         m_controlConnection->Close();
-        m_controlConnection = NULL;
+        m_controlConnection = GUCEF_NULL;
     }
     m_controlConnection = connection;
 }
@@ -262,7 +262,7 @@ CServerPortExtender::OnRSControlClientDisconnected( CORE::CNotifier* notifier   
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ServerPortExtender: Control connection has been disconnected" );
 
     m_controlConnectionInitialized = false;
-    m_controlConnection = NULL;
+    m_controlConnection = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -287,7 +287,7 @@ CServerPortExtender::OnRSControlClientSocketError( CORE::CNotifier* notifier    
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ServerPortExtender: Socket error on the control connection" );
     
     m_controlConnectionInitialized = false;
-    m_controlConnection = NULL;
+    m_controlConnection = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -331,7 +331,7 @@ CServerPortExtender::OnRSControlClientDataRecieved( CORE::CNotifier* notifier   
     if ( dataSize > 0 )
     {
         TServerPortExtenderProtocolEnum msgType = (TServerPortExtenderProtocolEnum) data.AsConstType< CORE::Int8 >( 0 );
-        const CORE::UInt8* dataPtr = dataSize > 1 ? (const CORE::UInt8*) data.GetConstBufferPtr( 1 ) : NULL;
+        const CORE::UInt8* dataPtr = dataSize > 1 ? (const CORE::UInt8*) data.GetConstBufferPtr( 1 ) : GUCEF_NULL;
         OnControlMsg( msgType, dataPtr );
     }
 }
@@ -367,7 +367,7 @@ CServerPortExtender::GetLocalConnectionForRemoteConnection( CORE::UInt32 rsSocke
     {
         return m_serverSocket.GetConnectionBySocketId( (*i).second );
     }
-    return NULL; 
+    return GUCEF_NULL; 
 }
 
 /*-------------------------------------------------------------------------*/
@@ -385,7 +385,7 @@ CServerPortExtender::GetRemoteConnectionForLocalConnection( CORE::UInt32 localSo
         }
         ++i;
     }
-    return NULL; 
+    return GUCEF_NULL; 
 }
 
 /*-------------------------------------------------------------------------*/
@@ -400,7 +400,7 @@ CServerPortExtender::OnRSClientDisconnected( CORE::CNotifier* notifier    ,
     // the same virtual socket connection    
     COMCORE::CTCPServerConnection* rsConnection = static_cast< COMCORE::CTCPServerConnection* >( notifier );
     COMCORE::CTCPServerConnection* lConnection = GetLocalConnectionForRemoteConnection( rsConnection->GetSocketID() );
-    if ( NULL != lConnection )
+    if ( GUCEF_NULL != lConnection )
     {
         // the local connection still exists,... close it
         lConnection->Close();
@@ -464,7 +464,7 @@ CServerPortExtender::OnRSClientDataRecieved( CORE::CNotifier* notifier    ,
     
     COMCORE::CTCPServerConnection* rsConnection = static_cast< COMCORE::CTCPServerConnection* >( notifier );
     COMCORE::CTCPServerConnection* lConnection = GetLocalConnectionForRemoteConnection( rsConnection->GetSocketID() );
-    if ( NULL != lConnection )
+    if ( GUCEF_NULL != lConnection )
     {
         // write data to the cyclic buffer and process the data transfer to the local client connection        
         COMCORE::CTCPServerConnection::TDataRecievedEventData* eData = static_cast< COMCORE::CTCPServerConnection::TDataRecievedEventData* >( eventdata );
@@ -511,7 +511,7 @@ CServerPortExtender::OnClientConnected( CORE::CNotifier* notifier    ,
     COMCORE::CTCPServerConnection* clientConnection = static_cast< COMCORE::CTCPServerConnection* >( notifier );
     
     // Initial sanity check
-    if ( NULL == m_controlConnection )
+    if ( GUCEF_NULL == m_controlConnection )
     {
         // Nothing we can do with this connection
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ServerPortExtender: Client connection established without a control connection, unable to proceed,.. disconnecting client" );
@@ -549,7 +549,7 @@ CServerPortExtender::OnClientDisconnected( CORE::CNotifier* notifier    ,
     
     COMCORE::CTCPServerConnection* clientConnection = static_cast< COMCORE::CTCPServerConnection* >( notifier );    
     COMCORE::CTCPServerConnection* rsConnection = GetRemoteConnectionForLocalConnection( clientConnection->GetSocketID() );
-    if ( NULL != rsConnection )
+    if ( GUCEF_NULL != rsConnection )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ServerPortExtender: Closing reversed client-server connection for a client who disconnected" );
         
@@ -584,7 +584,7 @@ CServerPortExtender::OnClientSocketError( CORE::CNotifier* notifier    ,
     
     COMCORE::CTCPServerConnection* clientConnection = static_cast< COMCORE::CTCPServerConnection* >( notifier );    
     COMCORE::CTCPServerConnection* rsConnection = GetRemoteConnectionForLocalConnection( clientConnection->GetSocketID() );
-    if ( NULL != rsConnection )
+    if ( GUCEF_NULL != rsConnection )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ServerPortExtender: Closing reversed client-server connection for a client who a client had a socket error" );
         
@@ -616,7 +616,7 @@ CServerPortExtender::OnClientDataRecieved( CORE::CNotifier* notifier    ,
     
     // Check to see if we have the connection to the remote SPE client established
     // If so we can proceed with sending all the data
-    if ( NULL != rsConnection )
+    if ( GUCEF_NULL != rsConnection )
     {
         // now we process all data in the buffer
         CORE::CDynamicBuffer readBuffer;
@@ -676,7 +676,7 @@ CServerPortExtender::OnReversedServerControlSocketNotify( CORE::CNotifier* notif
                      COMCORE::CTCPServerConnection::DataRecievedEvent ,
                      callback5                                        );
 
-       OnRSControlClientConnected( connectionInfo.connection, COMCORE::CTCPConnection::ConnectedEvent, NULL );
+       OnRSControlClientConnected( connectionInfo.connection, COMCORE::CTCPConnection::ConnectedEvent, GUCEF_NULL );
     }
     else
     if ( COMCORE::CTCPServerSocket::ClientDisconnectedEvent == eventid )
@@ -762,7 +762,7 @@ CServerPortExtender::OnReversedServerSocketNotify( CORE::CNotifier* notifier    
                      COMCORE::CTCPServerConnection::DataRecievedEvent ,
                      callback5                                        );
 
-        OnRSClientConnected( connectionInfo.connection, COMCORE::CTCPServerConnection::ConnectedEvent, NULL );                   
+        OnRSClientConnected( connectionInfo.connection, COMCORE::CTCPServerConnection::ConnectedEvent, GUCEF_NULL );                   
     }
     else
     if ( COMCORE::CTCPServerSocket::ClientDisconnectedEvent == eventid )
@@ -842,7 +842,7 @@ CServerPortExtender::OnServerSocketClientConnected( CORE::CNotifier* notifier   
                  COMCORE::CTCPServerConnection::DataRecievedEvent ,
                  callback5                                        );
 
-    OnClientConnected( connectionInfo.connection, COMCORE::CTCPServerConnection::ConnectedEvent, NULL );
+    OnClientConnected( connectionInfo.connection, COMCORE::CTCPServerConnection::ConnectedEvent, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/

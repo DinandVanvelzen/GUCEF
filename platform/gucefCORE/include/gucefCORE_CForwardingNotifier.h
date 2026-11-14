@@ -120,7 +120,7 @@ class GUCEF_CORE_PUBLIC_CPP CForwardingNotifier : public CObservingNotifier
      */
     bool AddForwardingForEvent( const CEvent& eventid                 ,
                                 const TEventOriginFilter originFilter ,
-                                CNotifier* notifier = NULL            ,
+                                CNotifier* notifier = GUCEF_NULL            ,
                                 const bool enabled = true             );
 
     /**
@@ -134,7 +134,7 @@ class GUCEF_CORE_PUBLIC_CPP CForwardingNotifier : public CObservingNotifier
      *  @param notifier otherwise the event is always forwarded
      */
     void RemoveForwardingForEvent( const CEvent& eventid      ,
-                                   CNotifier* notifier = NULL );
+                                   CNotifier* notifier = GUCEF_NULL );
 
     /**
      *  Removes all references to the given notifier from our forwarding
@@ -167,7 +167,7 @@ class GUCEF_CORE_PUBLIC_CPP CForwardingNotifier : public CObservingNotifier
      */
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL );
+                           CICloneable* eventdata = GUCEF_NULL );
 
     private:
     struct SForwardState

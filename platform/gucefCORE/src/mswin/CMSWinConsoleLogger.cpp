@@ -86,7 +86,7 @@ CMSWinConsoleLogger::CMSWinConsoleLogger( bool ownWindow )
     : CIConsoleLogger()
     , m_minimalLogLevel( LOGLEVEL_BELOW_NORMAL )
     , m_formatForUiPurpose( false )
-    , m_consoleHandle( NULL )
+    , m_consoleHandle( GUCEF_NULL )
     , m_ownedConsole( false )
     , m_leftParentConsole( false )
     , m_originalConsoleAttribs( FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE )
@@ -94,14 +94,14 @@ CMSWinConsoleLogger::CMSWinConsoleLogger( bool ownWindow )
 {GUCEF_TRACE;
 
     HWND consoleWindow = ::GetConsoleWindow();
-    if ( NULL != consoleWindow && ownWindow )
+    if ( GUCEF_NULL != consoleWindow && ownWindow )
     {
         // a process has one console: the one it was started from is let go for a window of its own
         ::FreeConsole();
         m_leftParentConsole = true;
-        consoleWindow = NULL;
+        consoleWindow = GUCEF_NULL;
     }
-    if ( NULL == consoleWindow )
+    if ( GUCEF_NULL == consoleWindow )
     {
         ::AllocConsole();
         m_ownedConsole = true;
@@ -202,7 +202,7 @@ CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
 
             DWORD charsWritten = 0;
             ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
-            ::WriteConsoleA( m_consoleHandle, actualLogMsg.C_String(), (DWORD)actualLogMsg.Length(), &charsWritten, NULL );
+            ::WriteConsoleA( m_consoleHandle, actualLogMsg.C_String(), (DWORD)actualLogMsg.Length(), &charsWritten, GUCEF_NULL );
             ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
@@ -212,7 +212,7 @@ CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
         {
             DWORD charsWritten = 0;
             ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
-            ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
+            ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, GUCEF_NULL );
             ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
@@ -239,7 +239,7 @@ CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
         {
             DWORD charsWritten = 0;
             ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
-            ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
+            ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, GUCEF_NULL );
             ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
@@ -249,7 +249,7 @@ CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
         {
             DWORD charsWritten = 0;
             ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
-            ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
+            ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, GUCEF_NULL );
             ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }

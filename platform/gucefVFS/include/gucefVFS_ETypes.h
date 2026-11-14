@@ -111,7 +111,7 @@ typedef CORE::CString CString;
 
 /*--------------------------------------------------------------------------*/
 
-enum EVfsFilePropertyTypes : Int32
+enum EVfsFilePropertyTypes GUCEF_ENUM_BASE( Int32 )
 {
     Unknown             = GUCEF_VFS_FILE_PROPERTY_UNKNOWN,
     Name                = GUCEF_VFS_FILE_PROPERTY_NAME,

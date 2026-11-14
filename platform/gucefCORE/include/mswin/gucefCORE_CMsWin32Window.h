@@ -82,7 +82,7 @@ class GUCEF_CORE_PUBLIC_CPP CMsWin32Window : public COSWindow
                                const Int32 yPosition          ,
                                const UInt32 width             ,
                                const UInt32 height            ,
-                               const HWND hWndParent = NULL   );
+                               const HWND hWndParent = GUCEF_NULL   );
 
     virtual bool WindowCreate( const CString& windowTitle     ,
                                const Int32 xPosition          ,
@@ -174,7 +174,7 @@ class GUCEF_CORE_PUBLIC_CPP CMsWin32Window : public COSWindow
     
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE; 
+                           CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE; 
 
     static LRESULT WndProc( HWND hwnd     , 
                             UINT msg      ,

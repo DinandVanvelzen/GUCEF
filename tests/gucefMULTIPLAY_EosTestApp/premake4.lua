@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,6 +36,8 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "authpluginEOS", "drnchannelpluginEOSP2P", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "lobbyservicepluginEOS", "pluginglueEOS" } )
+
+configuration( {} )
 links( { "authpluginEOS", "drnchannelpluginEOSP2P", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "lobbyservicepluginEOS", "pluginglueEOS" } )
 
 

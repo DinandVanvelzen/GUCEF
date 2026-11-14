@@ -282,7 +282,7 @@ OpenFakeLobby( CFakeAsyncLobbyBackend& backend, MULTIPLAY::CAsyncLobbyService& s
 {
     MULTIPLAY::CPlayerIdentity identity;
     identity.userId = "me";
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     service.Connect( identity, future );
     return service.OpenLobby( id );
 }

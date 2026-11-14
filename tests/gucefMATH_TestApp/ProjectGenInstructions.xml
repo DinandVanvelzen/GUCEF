@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- negative compile tests, each file must fail to compile; see compilefail/README -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="compilefail" TYPE="DIR" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

@@ -12,7 +12,10 @@
 -- Configuration for module: libvorbis
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "libvorbis" )
+
+configuration( { "ANDROID64" } )
   project( "libvorbis" )
 
 configuration( { "LINUX32" } )
@@ -33,7 +36,10 @@ configuration( {} )
 configuration( {} )
   targetdir( os.getenv( "PM4TARGETDIR" ) )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C" )
+
+configuration( { "ANDROID64" } )
 language( "C" )
 
 configuration( { "LINUX32" } )
@@ -48,74 +54,177 @@ language( "C" )
 configuration( { "WIN64" } )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "StaticLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  
-configuration( { ANDROID } )
-links( { "libogg" } )
-  links( { "libogg", "m" } )
-  
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+links( { "libogg" } )
+
+configuration( { "ANDROID32" } )
+links( { "libogg", "m" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "HAVE_ALLOCA_H", "MODULE_NAME=libvorbis", "MODULE_SEMVER=1_3_7_0" } )
-  
-configuration( { LINUX32 } )
-links( { "libogg" } )
-  links( { "libogg", "m" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "ANDROID64" } )
+links( { "libogg" } )
+
+configuration( { "ANDROID64" } )
+links( { "libogg", "m" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "HAVE_ALLOCA_H", "MODULE_NAME=libvorbis", "MODULE_SEMVER=1_3_7_0" } )
-  
-configuration( { LINUX64 } )
-links( { "libogg" } )
-  links( { "libogg", "m" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX32" } )
+links( { "libogg" } )
+
+configuration( { "LINUX32" } )
+links( { "libogg", "m" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "HAVE_ALLOCA_H", "MODULE_NAME=libvorbis", "MODULE_SEMVER=1_3_7_0" } )
-  
-configuration( { WIN32 } )
-links( { "libogg" } )
-  links( { "libogg" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "LINUX64" } )
+links( { "libogg" } )
+
+configuration( { "LINUX64" } )
+links( { "libogg", "m" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "HAVE_ALLOCA_H", "MODULE_NAME=libvorbis", "MODULE_SEMVER=1_3_7_0" } )
+
+configuration( { "WIN32" } )
+links( { "libogg" } )
+
+configuration( { "WIN32" } )
+links( { "libogg" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=libvorbis", "MODULE_SEMVER=1_3_7_0" } )
-  
-configuration( { WIN64 } )
-links( { "libogg" } )
-  links( { "libogg" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "libogg" } )
+
+configuration( { "WIN64" } )
+links( { "libogg" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=libvorbis", "MODULE_SEMVER=1_3_7_0" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/vorbis/codec.h",
+      "include/vorbis/vorbisenc.h",
+      "include/vorbis/vorbisfile.h",
+      "lib/backends.h",
+      "lib/bitrate.h",
+      "lib/codebook.h",
+      "lib/codec_internal.h",
+      "lib/envelope.h",
+      "lib/highlevel.h",
+      "lib/lookup.h",
+      "lib/lookup_data.h",
+      "lib/lpc.h",
+      "lib/lsp.h",
+      "lib/masking.h",
+      "lib/mdct.h",
+      "lib/misc.h",
+      "lib/os.h",
+      "lib/psy.h",
+      "lib/registry.h",
+      "lib/scales.h",
+      "lib/smallft.h",
+      "lib/window.h",
+      "lib/books/coupled/res_books_51.h",
+      "lib/books/coupled/res_books_stereo.h",
+      "lib/books/floor/floor_books.h",
+      "lib/books/uncoupled/res_books_uncoupled.h",
+      "lib/modes/floor_all.h",
+      "lib/modes/psych_11.h",
+      "lib/modes/psych_16.h",
+      "lib/modes/psych_44.h",
+      "lib/modes/psych_8.h",
+      "lib/modes/residue_16.h",
+      "lib/modes/residue_44.h",
+      "lib/modes/residue_44p51.h",
+      "lib/modes/residue_44u.h",
+      "lib/modes/residue_8.h",
+      "lib/modes/setup_11.h",
+      "lib/modes/setup_16.h",
+      "lib/modes/setup_22.h",
+      "lib/modes/setup_32.h",
+      "lib/modes/setup_44.h",
+      "lib/modes/setup_44p51.h",
+      "lib/modes/setup_44u.h",
+      "lib/modes/setup_8.h",
+      "lib/modes/setup_X.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "lib/analysis.c",
+      "lib/bitrate.c",
+      "lib/block.c",
+      "lib/codebook.c",
+      "lib/envelope.c",
+      "lib/floor0.c",
+      "lib/floor1.c",
+      "lib/info.c",
+      "lib/lookup.c",
+      "lib/lpc.c",
+      "lib/lsp.c",
+      "lib/mapping0.c",
+      "lib/mdct.c",
+      "lib/psy.c",
+      "lib/registry.c",
+      "lib/res0.c",
+      "lib/sharedbook.c",
+      "lib/smallft.c",
+      "lib/synthesis.c",
+      "lib/vorbisenc.c",
+      "lib/vorbisfile.c",
+      "lib/window.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/vorbis/codec.h",
@@ -504,7 +613,10 @@ configuration( { "WIN64" } )
     } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../libogg/include", "../libogg/include/ogg", "../libogg/src", "include", "include/vorbis", "lib", "lib/books/coupled", "lib/books/floor", "lib/books/uncoupled", "lib/modes" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../libogg/include", "../libogg/include/ogg", "../libogg/src", "include", "include/vorbis", "lib", "lib/books/coupled", "lib/books/floor", "lib/books/uncoupled", "lib/modes" } )
 
 configuration( { "LINUX32" } )

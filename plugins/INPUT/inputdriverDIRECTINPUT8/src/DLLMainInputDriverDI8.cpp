@@ -169,7 +169,7 @@ ParseArgListItemUInt32( const int argc    ,
                         const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
         UInt32 result = 0UL;
         sscanf( value, "%d", &result );
@@ -186,9 +186,9 @@ ParseArgListItemPointer( const int argc    ,
                          const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
-        void* result = NULL;
+        void* result = GUCEF_NULL;
         sscanf( value, "%p", &result );
         return result;
     }
@@ -229,7 +229,7 @@ EnumJoysticksCallback( const DIDEVICEINSTANCE* pdidInstance ,
         TDI8Data* data = (TDI8Data*) pContext;
         HRESULT hr;
 
-        hr = data->pDI->CreateDevice( pdidInstance->guidInstance, &data->pDIJoy, NULL );
+        hr = data->pDI->CreateDevice( pdidInstance->guidInstance, &data->pDIJoy, GUCEF_NULL );
 
         if ( FAILED( hr ) ) 
         {
@@ -256,7 +256,7 @@ InitDI8( TDI8Data* data )
                                          DIRECTINPUT_VERSION          , 
                                          ((REFIID)IID_IDirectInput8)  , 
                                          ((void**)&data->pDI)         , 
-                                         NULL                         ) )
+                                         GUCEF_NULL                         ) )
         {                                         
                 return E_FAIL;
         }                
@@ -264,7 +264,7 @@ InitDI8( TDI8Data* data )
 	/* Set up keyboard input */
 	if( FAILED( data->pDI->CreateDevice( GUID_SysKeyboard , 
 	                                     &data->pDIKeybrd , 
-	                                     NULL             ) ) )
+	                                     GUCEF_NULL             ) ) )
         {	                                     
 		return E_FAIL;
         }
@@ -295,7 +295,7 @@ InitDI8( TDI8Data* data )
 
         if( FAILED( data->pDI->CreateDevice( GUID_SysMouse   , 
                                              &data->pDIMouse , 
-                                             NULL            ) ) )
+                                             GUCEF_NULL            ) ) )
         {                                             
                 return E_FAIL;
         }                
@@ -319,7 +319,7 @@ InitDI8( TDI8Data* data )
 
         data->hMouse = CreateEvent( 0, 0, 0, 0 );
 
-        if ( data->hMouse == NULL )
+        if ( data->hMouse == GUCEF_NULL )
         {
                 ShutdownDI8( data );
                 return 0;
@@ -397,24 +397,24 @@ ShutdownDI8( TDI8Data* data )
                 {
                         data->pDIKeybrd->Unacquire();
                         data->pDIKeybrd->Release();
-                        data->pDIKeybrd = NULL;
+                        data->pDIKeybrd = GUCEF_NULL;
                 }
 
                 if ( data->pDIMouse )
                 {
                         data->pDIMouse->Unacquire();
                         data->pDIMouse->Release();
-                        data->pDIMouse = NULL;
+                        data->pDIMouse = GUCEF_NULL;
                 }
         
                 if ( data->pDIJoy )
                 {
                         data->pDIJoy->Unacquire();
                         data->pDIJoy->Release();
-                        data->pDIJoy = NULL;
+                        data->pDIJoy = GUCEF_NULL;
                 }
                 data->pDI->Release();
-                data->pDI = NULL;
+                data->pDI = GUCEF_NULL;
         }	
 }
 
@@ -706,7 +706,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 INPUTDRIVERPLUG_Init( void** plugdata    ,
                       const char*** args ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-        *plugdata = NULL;
+        *plugdata = GUCEF_NULL;
         return 1;
 }
 
@@ -775,10 +775,10 @@ INPUTDRIVERPLUG_CreateContext( void* plugdata                   ,
         data->hWnd = (HWND) ParseArgListItemUInt32( argc, argv, "HWND" );
         data->hInstance = (HINSTANCE) ParseArgListItemUInt32( argc, argv, "HINSTANCE" );
         
-        data->pDI = NULL;
-        data->pDIKeybrd	= NULL;
-        data->pDIMouse = NULL;
-        data->pDIJoy = NULL;
+        data->pDI = GUCEF_NULL;
+        data->pDIKeybrd	= GUCEF_NULL;
+        data->pDIMouse = GUCEF_NULL;
+        data->pDIJoy = GUCEF_NULL;
         data->pMousePos	= (POINT*) malloc( sizeof( POINT ) );
         data->pMousePos->x = 0l;
         data->pMousePos->y = 0l;
@@ -792,7 +792,7 @@ INPUTDRIVERPLUG_CreateContext( void* plugdata                   ,
         if ( FAILED( InitDI8( data ) ) )
         {
                 free( data );
-                *contextdata = NULL;
+                *contextdata = GUCEF_NULL;
                 return 0;        
         }
         
@@ -859,7 +859,7 @@ INPUTDRIVERPLUG_GetKeyBoardKeyStates( void* plugdata    ,
         if ( FAILED( data->hr ) ) 
         { 
                 data->pDIKeybrd->Acquire();
-                return NULL;                
+                return GUCEF_NULL;                
         }
         
         for ( UInt32 i=0; i<256; ++i )

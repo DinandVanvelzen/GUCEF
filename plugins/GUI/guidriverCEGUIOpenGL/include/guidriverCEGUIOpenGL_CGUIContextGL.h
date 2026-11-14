@@ -86,7 +86,7 @@ class GUCEF_GUIDRIVERCEGUIGL_EXPORT_CPP CGUIContextGL : public GUIDRIVERCEGUI::C
 
     virtual void OnNotify( CORE::CNotifier* notifier          ,
                            const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
+                           CORE::CICloneable* evenData = GUCEF_NULL );
 
     private:
 

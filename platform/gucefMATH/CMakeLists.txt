@@ -92,8 +92,8 @@ set( SOURCE_FILES
   src/gucefMATH_DirectionInstantiations.cpp
   src/gucefMATH_FractionInstantiations.cpp
   src/gucefMATH_PointInstantiations.cpp
-  src/gucefMATH_VectorInstantiations.cpp
   src/gucefMATH_ScalarFunctions.cpp
+  src/gucefMATH_VectorInstantiations.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -119,7 +119,7 @@ endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include src )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include src )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )
@@ -144,6 +144,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
 
 
 

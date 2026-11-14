@@ -30,6 +30,8 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "hiredis" } )
+
+configuration( {} )
 links( { "hiredis" } )
 
 

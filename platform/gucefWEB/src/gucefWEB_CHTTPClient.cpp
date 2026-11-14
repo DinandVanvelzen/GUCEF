@@ -225,7 +225,7 @@ CHTTPClient::QueueRequest( const CHttpRequestData& request          ,
     if ( threadPool.IsNULL() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HTTPClient: No thread pool is available to carry out the request" );
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
     }
 
     // The task data is handed over to the task, it holds everything the request needs for its lifetime

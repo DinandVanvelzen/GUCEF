@@ -31,30 +31,42 @@ kind( "StaticLib" )
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=minizip", "MODULE_NAME=minizip" } )
-  links( { "z" } )
-  links( { "z" } )
-  
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "ANDROID32" } )
+links( { "z" } )
+
+configuration( { "ANDROID64" } )
+links( { "z" } )
+
+configuration( { "EMSCRIPTEN32" } )
 links( { "zlib" } )
-  
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 links( { "zlib" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { LINUX64 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
 
 
 configuration( {} )

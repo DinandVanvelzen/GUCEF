@@ -13,13 +13,13 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/audiocodecpluginOGG.h
     include/audiocodecpluginOGG_internal.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -29,7 +29,26 @@ if (ANDROID)
     src/audiocodecpluginOGG_vorbis.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/audiocodecpluginOGG.h
+    include/audiocodecpluginOGG_internal.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/audiocodecpluginOGG.c
+    src/audiocodecpluginOGG_common.c
+    src/audiocodecpluginOGG_opus.c
+    src/audiocodecpluginOGG_vorbis.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -114,7 +133,9 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "audiocodecpluginOGG" )
+elseif( ANDROID64 )
   set( MODULE_NAME "audiocodecpluginOGG" )
 elseif( LINUX32 )
   set( MODULE_NAME "audiocodecpluginOGG" )
@@ -125,7 +146,9 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "audiocodecpluginOGG" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -137,14 +160,23 @@ elseif( WIN64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefMT libogg libvorbis opus opusfile )
   target_link_libraries( ${MODULE_NAME} PUBLIC libogg libvorbis opus opusfile )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE;GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS;MODULE_IS_PLUGIN=1;MODULE_NAME=audiocodecpluginOGG;MODULE_SEMVER=0_1_0_0" )
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
 endif()
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefMT libogg libvorbis opus opusfile )
+  target_link_libraries( ${MODULE_NAME} PUBLIC libogg libvorbis opus opusfile )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE;GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS;MODULE_IS_PLUGIN=1;MODULE_NAME=audiocodecpluginOGG;MODULE_SEMVER=0_1_0_0" )
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
+endif()
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefMT libogg libvorbis opus opusfile )
@@ -182,24 +214,54 @@ if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
 endif()
 endif( WIN64 )
 
-if ( ANDROID )
-  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
-endif( ANDROID )
+if ( ANDROID32 )
+  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
+endif( ANDROID64 )
 
 if ( LINUX32 )
-  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefCORE/src ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefCORE/src ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../dependencies/libogg/include ../../../dependencies/libogg/include/ogg ../../../dependencies/libogg/src ../../../dependencies/libvorbis/include ../../../dependencies/libvorbis/include/vorbis ../../../dependencies/libvorbis/lib ../../../dependencies/libvorbis/lib/books/coupled ../../../dependencies/libvorbis/lib/books/floor ../../../dependencies/libvorbis/lib/books/uncoupled ../../../dependencies/libvorbis/lib/modes ../../../dependencies/opus/. ../../../dependencies/opus/celt ../../../dependencies/opus/celt/arm ../../../dependencies/opus/celt/mips ../../../dependencies/opus/celt/x86 ../../../dependencies/opus/include ../../../dependencies/opus/silk ../../../dependencies/opus/silk/arm ../../../dependencies/opus/silk/fixed ../../../dependencies/opus/silk/fixed/arm ../../../dependencies/opus/silk/fixed/mips ../../../dependencies/opus/silk/float ../../../dependencies/opus/silk/mips ../../../dependencies/opus/silk/x86 ../../../dependencies/opus/src ../../../dependencies/opusfile/include ../../../dependencies/opusfile/src ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
+endif( ANDROID64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
 endif( WIN64 )
 
 
@@ -209,7 +271,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )

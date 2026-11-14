@@ -184,7 +184,7 @@ CAsyncHttpServerRequestHandler::OnTaskCycle( CORE::CTaskPtr task )
     if ( task.IsNULL() )
         return true; // true means we are done
 
-    time_t startTime = time( NULL );
+    time_t startTime = time( GUCEF_NULL );
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::PointerToString( this ) + "):OnTaskCycle" );
 
     CORE::CICloneable* opaqueTaskData = task->GetTaskData();

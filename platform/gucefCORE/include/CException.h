@@ -73,7 +73,7 @@ class GUCEF_CORE_PUBLIC_CPP CException : public std::exception
 
     CException( const CException& src );
 
-    virtual ~CException() throw();
+    virtual ~CException() GUCEF_NOTHROW;
 
     CException& operator=( const CException& src );
 
@@ -81,7 +81,7 @@ class GUCEF_CORE_PUBLIC_CPP CException : public std::exception
 
     Int32 GetOriginLineNr( void ) const;
 
-    virtual const char* what( void ) const throw();
+    virtual const char* what( void ) const GUCEF_NOTHROW;
 
     const char* What( void ) const;
 

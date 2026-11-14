@@ -90,9 +90,9 @@ FailureStatusFor( CORE::TDataTableStatus status )
         case CORE::DATATABLE_STATUS_CONFLICT:
         case CORE::DATATABLE_STATUS_UNSUPPORTED:
         case CORE::DATATABLE_STATUS_READ_ONLY:
-            return CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID;
+            return CORE::TASKSTATUS_TASKDATA_INVALID;
         default:
-            return CORE::TTaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN;
+            return CORE::TASKSTATUS_EXCEPTION_DURING_RUN;
     }
 }
 
@@ -164,7 +164,7 @@ CDatabaseClientBase::QueueOperation( EOperation operation, const CDatabaseClient
     if ( threadPool.IsNULL() )
         threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( settings.threadPoolName.IsNULLOrEmpty() ? CORE::CString( "DataTables" ) : settings.threadPoolName );
     if ( threadPool.IsNULL() )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     CORE::CFutureResultSource source;
     CDatabaseClientOperationData* data = GUCEF_NEW CDatabaseClientOperationData();
@@ -181,7 +181,7 @@ CDatabaseClientBase::QueueOperation( EOperation operation, const CDatabaseClient
     if ( queued.HasNoFuture() )
     {
         --m_pendingOperations;
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED, "The operation could not be queued on the thread pool" );
+        source.Fail( CORE::TASKSTATUS_QUEUEING_FAILED, "The operation could not be queued on the thread pool" );
     }
     return source.GetFuture();
 }

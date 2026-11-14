@@ -214,26 +214,26 @@ FileTypeConfig::GetStringForFileType( const TFileType fileType )
 
     switch ( fileType )
     {
-        case TFileType::FILETYPE_TEXT: return "text";
-        case TFileType::FILETYPE_BINARY: return "binary";
-        case TFileType::FILETYPE_IMAGE: return "image";
-        case TFileType::FILETYPE_AUDIO: return "audio";
-        case TFileType::FILETYPE_VIDEO: return "video";
-        case TFileType::FILETYPE_ARCHIVE: return "archive";
-        case TFileType::FILETYPE_DOCUMENT: return "document";
-        case TFileType::FILETYPE_PRESENTATION: return "presentation";
-        case TFileType::FILETYPE_SPREADSHEET: return "spreadsheet";
-        case TFileType::FILETYPE_DATABASE: return "database";
-        case TFileType::FILETYPE_EXECUTABLE: return "executable";
-        case TFileType::FILETYPE_SCRIPT: return "script";
-        case TFileType::FILETYPE_WEBPAGE: return "webpage";
-        case TFileType::FILETYPE_SOURCECODE: return "sourcecode";
-        case TFileType::FILETYPE_CONFIGURATION: return "configuration";
-        case TFileType::FILETYPE_LOG: return "log";
-        case TFileType::FILETYPE_TEMPORARY: return "temporary";
-        case TFileType::FILETYPE_COMPRESSED: return "compressed";
-        case TFileType::FILETYPE_OTHER: return "other";
-        case TFileType::FILETYPE_UNKNOWN: return "unknown";
+        case FILETYPE_TEXT: return "text";
+        case FILETYPE_BINARY: return "binary";
+        case FILETYPE_IMAGE: return "image";
+        case FILETYPE_AUDIO: return "audio";
+        case FILETYPE_VIDEO: return "video";
+        case FILETYPE_ARCHIVE: return "archive";
+        case FILETYPE_DOCUMENT: return "document";
+        case FILETYPE_PRESENTATION: return "presentation";
+        case FILETYPE_SPREADSHEET: return "spreadsheet";
+        case FILETYPE_DATABASE: return "database";
+        case FILETYPE_EXECUTABLE: return "executable";
+        case FILETYPE_SCRIPT: return "script";
+        case FILETYPE_WEBPAGE: return "webpage";
+        case FILETYPE_SOURCECODE: return "sourcecode";
+        case FILETYPE_CONFIGURATION: return "configuration";
+        case FILETYPE_LOG: return "log";
+        case FILETYPE_TEMPORARY: return "temporary";
+        case FILETYPE_COMPRESSED: return "compressed";
+        case FILETYPE_OTHER: return "other";
+        case FILETYPE_UNKNOWN: return "unknown";
         default: return "unknown";
     }
 }
@@ -253,43 +253,43 @@ FileTypeConfig::GetFileTypeForString( const CORE::CString& fileTypeStr )
     if ( "image" == fileTypeStrLc )
         return FILETYPE_IMAGE;
     if ( "audio" == fileTypeStrLc )
-        return TFileType::FILETYPE_AUDIO;
+        return FILETYPE_AUDIO;
     if ( "video" == fileTypeStrLc )
-        return TFileType::FILETYPE_VIDEO;
+        return FILETYPE_VIDEO;
     if ( "archive" == fileTypeStrLc )
-        return TFileType::FILETYPE_ARCHIVE;
+        return FILETYPE_ARCHIVE;
     if ( "document" == fileTypeStrLc )
-        return TFileType::FILETYPE_DOCUMENT;
+        return FILETYPE_DOCUMENT;
     if ( "presentation" == fileTypeStrLc )
-        return TFileType::FILETYPE_PRESENTATION;
+        return FILETYPE_PRESENTATION;
     if ( "spreadsheet" == fileTypeStrLc )
-        return TFileType::FILETYPE_SPREADSHEET;
+        return FILETYPE_SPREADSHEET;
     if ( "database" == fileTypeStrLc )
-        return TFileType::FILETYPE_DATABASE;
+        return FILETYPE_DATABASE;
     if ( "database" == fileTypeStrLc )
-        return TFileType::FILETYPE_DATABASE;
+        return FILETYPE_DATABASE;
     if ( "executable" == fileTypeStrLc )
-        return TFileType::FILETYPE_EXECUTABLE;
+        return FILETYPE_EXECUTABLE;
     if ( "script" == fileTypeStrLc )
-        return TFileType::FILETYPE_SCRIPT;
+        return FILETYPE_SCRIPT;
     if ( "webpage" == fileTypeStrLc )
-        return TFileType::FILETYPE_WEBPAGE;
+        return FILETYPE_WEBPAGE;
     if ( "sourcecode" == fileTypeStrLc )
-        return TFileType::FILETYPE_SOURCECODE;
+        return FILETYPE_SOURCECODE;
     if ( "configuration" == fileTypeStrLc )
-        return TFileType::FILETYPE_CONFIGURATION;
+        return FILETYPE_CONFIGURATION;
     if ( "log" == fileTypeStrLc )
-        return TFileType::FILETYPE_LOG;
+        return FILETYPE_LOG;
     if ( "temporary" == fileTypeStrLc )
-        return TFileType::FILETYPE_TEMPORARY;
+        return FILETYPE_TEMPORARY;
     if ( "compressed" == fileTypeStrLc )
-        return TFileType::FILETYPE_COMPRESSED;
+        return FILETYPE_COMPRESSED;
     if ( "other" == fileTypeStrLc )
-        return TFileType::FILETYPE_OTHER;
+        return FILETYPE_OTHER;
     if ( "unknown" == fileTypeStrLc )
-        return TFileType::FILETYPE_UNKNOWN;
+        return FILETYPE_UNKNOWN;
 
-    return TFileType::FILETYPE_UNKNOWN;
+    return FILETYPE_UNKNOWN;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -370,7 +370,7 @@ FileTypeConfig::GetFileTypeForFileExtension( const CORE::CString& fileExt ) cons
     TStringToFileTypeMap::const_iterator i = m_fileExtToTypeMap.find( fileExt.Lowercase() );
     if ( i != m_fileExtToTypeMap.end() )
         return (*i).second;
-    return TFileType::FILETYPE_UNKNOWN;
+    return FILETYPE_UNKNOWN;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -649,7 +649,7 @@ FileSorter::SortFile( const CORE::CString& currentVfsFilePath )
     
     // Some variables we may or may not be able to source from resource meta-data
     MediaMetaData mediaMetaData;
-    if ( fileType == TFileType::FILETYPE_IMAGE &&
+    if ( fileType == FILETYPE_IMAGE &&
          m_appConfig.tryToGetMetaDataInfoFromImages )
     {
        GetMediaMetaDataFromImage( currentVfsFilePath, mediaMetaData );

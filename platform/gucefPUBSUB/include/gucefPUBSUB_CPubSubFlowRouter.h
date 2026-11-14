@@ -113,7 +113,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
 
     bool PublishMsgs( CPubSubClientSide* fromSide                          ,
                       const CPubSubClientTopic::TPubSubMsgsRefVector& msgs ,
-                      RouteType routeType = RouteType::Primary             );
+                      RouteType routeType = Primary             );
     
     bool AcknowledgeReceiptForSide( CPubSubClientSide* msgReceiverSide ,
                                     CIPubSubMsg::TNoLockSharedPtr& msg );

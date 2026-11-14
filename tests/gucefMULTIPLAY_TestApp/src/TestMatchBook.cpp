@@ -193,7 +193,7 @@ static CORE::CFutureResult
 NoFuture( void )
 {GUCEF_TRACE;
 
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
 }
 
 /*-------------------------------------------------------------------------*/

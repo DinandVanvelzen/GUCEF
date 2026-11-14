@@ -167,8 +167,8 @@ CIMGCodec::Encode( const CImage& inputImage       ,
         frameInfo.version = GUCEF_IMAGE_TIMAGEFRAMEINFO_VERSION;
         TImageMipMapLevelInfo mipMapInfo;
         mipMapInfo.version = GUCEF_IMAGE_TIMAGEMIPMAPLEVELINFO_VERSION;
-        const CImage::TMipMapList* mipMapList = NULL;
-        const TPixelMapPtr* pixelMap = NULL;
+        const CImage::TMipMapList* mipMapList = GUCEF_NULL;
+        const TPixelMapPtr* pixelMap = GUCEF_NULL;
         for ( UInt32 frameNr=0; frameNr<imageInfo.nrOfFramesInImage; ++frameNr )
         {   
             mipMapList = &inputImage.GetFrame( frameNr );

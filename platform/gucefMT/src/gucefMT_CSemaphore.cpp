@@ -136,7 +136,7 @@ CSemaphore::CSemaphore( UInt32 initial_value )
         return;
     }
 
-    m_data->handle = ::CreateSemaphore( NULL, (::LONG) initial_value, 0x7FFFFFFF, NULL );
+    m_data->handle = ::CreateSemaphore( GUCEF_NULL, (::LONG) initial_value, 0x7FFFFFFF, GUCEF_NULL );
     if ( GUCEF_NULL == m_data->handle )
     {
         GUCEF_DELETE m_data;
@@ -377,7 +377,7 @@ CSemaphore::Post( void )
 
     // counted before the release so that Value() never goes below what is really available
     ::InterlockedIncrement( &m_data->count );
-    if ( FALSE == ::ReleaseSemaphore( m_data->handle, 1, NULL ) )
+    if ( FALSE == ::ReleaseSemaphore( m_data->handle, 1, GUCEF_NULL ) )
     {
         ::InterlockedDecrement( &m_data->count );
         return false;

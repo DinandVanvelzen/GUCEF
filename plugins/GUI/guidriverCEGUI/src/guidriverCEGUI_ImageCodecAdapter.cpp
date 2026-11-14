@@ -154,16 +154,16 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
                          CEGUI::Texture* result              )
 {GUCEF_TRACE;
 
-    if ( NULL == result ) 
+    if ( GUCEF_NULL == result ) 
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: Unable to load texture since no texture object was provided" );
-        return NULL;
+        return GUCEF_NULL;
     }
 
     CORE::CString imgType = CORE::ExtractFileExtention( result->getName() );
     if ( imgType.IsNULLOrEmpty() )
     {
-        if ( NULL != m_vfsResourceProvider )
+        if ( GUCEF_NULL != m_vfsResourceProvider )
         {
             VfsResourceProvider::DataContainerInfoPtr containerInfo = m_vfsResourceProvider->GetInfoOnLoadedContainer( data );
             if ( !containerInfo.IsNULL() )
@@ -176,7 +176,7 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
     if ( imgType.IsNULLOrEmpty() )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: Unable to load texture since no image type could be derived from the the texture name" );
-        return NULL;
+        return GUCEF_NULL;
     }
 
     IMAGE::CImageCodecRegistry& codecRegistry = IMAGE::CImageGlobal::Instance()->GetImageCodecRegistry();
@@ -185,7 +185,7 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
     if ( !codecRegistry.TryLookup( imgType, codec ) )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: Unable to load texture since no image codec could be found for type: " + imgType );
-        return NULL;
+        return GUCEF_NULL;
     }
 
     CORE::CDynamicBufferAccess bufferAccess;
@@ -195,21 +195,21 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
     if ( !codec->Decode( bufferAccess, image ) )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: Unable to load texture since the image codec decoding failed for type: " + imgType );
-        return NULL;
+        return GUCEF_NULL;
     }
 
     IMAGE::TPixelMapPtr pixelMap;
     if ( !image.TryGetPixelMap( 0, 0, pixelMap ) )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: Unable to get the pixel map from the image" );
-        return NULL;
+        return GUCEF_NULL;
     }
     
     // CEGUI does not support single channel formats
     if ( pixelMap->GetNumberOfChannelsPerPixel() < 3 )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: CEGUI cannot handle images with less than 3 channels per pixels" );
-        return NULL;        
+        return GUCEF_NULL;        
     }
     
     // CEGUI only supports a subset of formats, convert as needed
@@ -222,7 +222,7 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
             if ( !pixelMap->ConvertFormatTo( IMAGE::PSF_RGB, DATATYPE_UINT8, newPixelMap ) )
             {
                 GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: CEGUI cannot handle BGR images and we were unable to convert" );
-                return NULL;
+                return GUCEF_NULL;
             }
             if ( newPixelMap )
             {
@@ -237,7 +237,7 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
             if ( !pixelMap->ConvertFormatTo( IMAGE::PSF_RGBA, DATATYPE_UINT8, newPixelMap ) )
             {
                 GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: CEGUI cannot handle BGRA images and we were unable to convert" );
-                return NULL;
+                return GUCEF_NULL;
             }
             if ( newPixelMap )
             {
@@ -259,7 +259,7 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
         if ( !pixelMap->ConvertFormatTo( sourceFormat, DATATYPE_UINT8, newPixelMap ) )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: CEGUI cannot handle images with multi-byte channels and we were unable to convert" );
-            return NULL;
+            return GUCEF_NULL;
         }
         
         if ( newPixelMap )
@@ -275,7 +275,7 @@ ImageCodecAdapter::load( const CEGUI::RawDataContainer& data ,
     if ( !TryConvertPixelFormat( pixelMap->GetPixelStorageFormat(), channelSize, ceguiPixelFormat ) )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ImageCodecAdapter:load: Failed to map pixel storage format to a CEGUI supported type" );
-        return NULL;        
+        return GUCEF_NULL;        
     }
         
     CEGUI::Sizef imageSizeInPixels( (float) pixelMap->GetWidthInPixels(), (float) pixelMap->GetHeightInPixels() );

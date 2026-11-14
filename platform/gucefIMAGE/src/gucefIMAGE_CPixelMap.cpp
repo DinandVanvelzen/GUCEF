@@ -64,7 +64,7 @@ CPixelMap::CPixelMap( const TImageMipMapLevel& mipmapLevel )
       m_heightInPixels( mipmapLevel.mipLevelInfo.frameHeight )                                       ,
       m_widthInPixels( mipmapLevel.mipLevelInfo.frameWidth )                                         ,
       m_isNormalizedAsPercentage( false )                                                            ,
-      m_pixelMapData( NULL )
+      m_pixelMapData( GUCEF_NULL )
 {GUCEF_TRACE;
 
     m_pixelMapData = new UInt8[ mipmapLevel.pixelDataSizeInBytes ];
@@ -83,7 +83,7 @@ CPixelMap::CPixelMap( const void* pixelMapData                      ,
       m_heightInPixels( 0 )                              ,
       m_widthInPixels( 0 )                               ,
       m_isNormalizedAsPercentage( false )                ,
-      m_pixelMapData( NULL )
+      m_pixelMapData( GUCEF_NULL )
 {GUCEF_TRACE;
 
     Assign( pixelMapData           ,
@@ -101,7 +101,7 @@ CPixelMap::CPixelMap( const CPixelMap& src )
       m_heightInPixels( 0 )                                    ,
       m_widthInPixels( 0 )                                     ,
       m_isNormalizedAsPercentage( src.m_isNormalizedAsPercentage ) ,
-      m_pixelMapData( NULL )
+      m_pixelMapData( GUCEF_NULL )
 {GUCEF_TRACE;
 
     Assign( src.m_pixelMapData           ,
@@ -586,7 +586,7 @@ CPixelMap::ApplyPalette( TPixelMapPtr palette, TPixelMapPtr& resultImage ) const
     if ( m_pixelStorageFormat == PSF_PALETTE_INDICES )
     {
         // Allocate a new blank pixelmap with the right dimensions
-        resultImage = TPixelMapPtr( new CPixelMap( NULL, m_widthInPixels, m_heightInPixels, palette->GetPixelStorageFormat(), palette->GetPixelComponentDataType() ) );
+        resultImage = TPixelMapPtr( new CPixelMap( GUCEF_NULL, m_widthInPixels, m_heightInPixels, palette->GetPixelStorageFormat(), palette->GetPixelComponentDataType() ) );
         
         UInt32 totalPaletteBytes = palette->GetTotalSizeInBytes();
         UInt32 maxPaletteIndex = palette->GetPixelCount()-1;
@@ -704,7 +704,7 @@ CPixelMap::ApplyPalette( TPixelMapPtr palette )
         m_pixelStorageFormat = resultImage->m_pixelStorageFormat;
         m_pixelComponentDataType = resultImage->m_pixelComponentDataType;
         m_pixelMapData = resultImage->m_pixelMapData;
-        resultImage->m_pixelMapData = NULL;
+        resultImage->m_pixelMapData = GUCEF_NULL;
         return true;
     }
     return false;
@@ -734,7 +734,7 @@ CPixelMap::Assign( const void* pixelMapData                      ,
     
     // If no source data is given we will generate our own pixel map
     // The user can fill in the actual data at a later time
-    if ( NULL == pixelMapData )
+    if ( GUCEF_NULL == pixelMapData )
     {
         memset( m_pixelMapData, 0, totalSize );
     }
@@ -969,7 +969,7 @@ CPixelMap::Clear( void )
     m_heightInPixels = 0;
 
     delete []m_pixelMapData;    
-    m_pixelMapData = NULL;
+    m_pixelMapData = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -982,7 +982,7 @@ CPixelMap::RelinquishPixelDataOwnership( void )
     m_heightInPixels = 0;
 
     void* pixelData = m_pixelMapData;    
-    m_pixelMapData = NULL;
+    m_pixelMapData = GUCEF_NULL;
     return pixelData;
 }
 
@@ -1006,7 +1006,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                                TPixelMapPtr& newMap                          )
 {
     // create new pixelmap with enough space
-    newMap = TPixelMapPtr( new CPixelMap( NULL, m_widthInPixels, m_heightInPixels, pixelStorageFormat, pixelComponentDataType ) );
+    newMap = TPixelMapPtr( new CPixelMap( GUCEF_NULL, m_widthInPixels, m_heightInPixels, pixelStorageFormat, pixelComponentDataType ) );
     
     UInt32 pixelCount = GetPixelCount();
     UInt32 channelCount = GetNumberOfChannelsPerPixel();
@@ -1268,7 +1268,7 @@ CPixelMap::ConvertFormatToImp( T* pixelMapData                               ,
                         
                         // Luminance (perceived option 1): (0.299*R + 0.587*G + 0.114*B)                       
                         CORE::Float64 luminance = ( 0.114f * orgPixelData[ 0 ] ) + ( 0.587f * orgPixelData[ 1 ] ) + ( 0.299f * orgPixelData[ 2 ] );
-                        T pixelData[ 1 ] { (T) round( luminance ) };
+                        T pixelData[ 1 ] = { (T) round( luminance ) };
 
                         // Assign new pixel value and convert data type from T to its type
                         newMap->AssignToPixel< T >( i, pixelData );
@@ -1972,7 +1972,7 @@ CPixelMap::ConvertFormatTo( const TPixelStorageFormat pixelStorageFormat  ,
         m_pixelStorageFormat = resultImage->m_pixelStorageFormat;
         m_pixelComponentDataType = resultImage->m_pixelComponentDataType;
         m_pixelMapData = resultImage->m_pixelMapData;
-        resultImage->m_pixelMapData = NULL;
+        resultImage->m_pixelMapData = GUCEF_NULL;
         return true;
     }
     return false;

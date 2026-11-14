@@ -354,7 +354,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
 
     virtual void OnPumpedNotify( CNotifier* notifier           ,
                                  const CEvent& eventid         ,
-                                 CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                                 CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     void OnThreadPoolThreadStarted( CNotifier* notifier    ,
                                     const CEvent& eventId  ,

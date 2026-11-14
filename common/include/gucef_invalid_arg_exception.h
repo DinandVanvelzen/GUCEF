@@ -75,19 +75,19 @@ class invalid_argument : public std::invalid_argument
     explicit invalid_argument( void ) 
         : std::invalid_argument( "invalid_argument" ) 
         , m_line( 0 )
-        , m_file( nullptr )
+        , m_file( GUCEF_NULL )
     {GUCEF_TRACE; }
 
     explicit invalid_argument( const std::string& message ) 
         : std::invalid_argument( message.c_str() ) 
         , m_line( 0 )
-        , m_file( nullptr )
+        , m_file( GUCEF_NULL )
     {GUCEF_TRACE; }
 
     explicit invalid_argument( const char* message ) 
         : std::invalid_argument( message ) 
         , m_line( 0 )
-        , m_file( nullptr )
+        , m_file( GUCEF_NULL )
     {GUCEF_TRACE; }
 
     explicit invalid_argument( const char* file, int line, const char* message ) 

@@ -152,7 +152,7 @@ PerformPingTests( void )
             CPingRecorder recorder;
             ASSERT_TRUE( recorder.m_ping.Start( "127.0.0.1", 1, 32, 1000 ) );
 
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.m_stopped > 0; }, 10000 ) );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.m_stopped, 1, 10000 ) );
             ASSERT_TRUE( 1 == recorder.m_started );
             ASSERT_TRUE( 1 == recorder.m_responses );
             ASSERT_TRUE( 0 == recorder.m_timeouts );

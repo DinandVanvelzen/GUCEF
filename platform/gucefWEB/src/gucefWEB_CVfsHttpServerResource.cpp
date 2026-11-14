@@ -126,7 +126,7 @@ CVfsHttpServerResource::CreateResource( const CORE::CString& resourcePath       
 {GUCEF_TRACE;
 
     // For the dummy resource everything always fake succeeds
-    return TCreateState::CREATESTATE_CREATED;
+    return CIHTTPServerResource::CREATESTATE_CREATED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -162,10 +162,10 @@ CVfsHttpServerResource::Deserialize( const CORE::CString& resourcePath       ,
 {GUCEF_TRACE;
 
     if ( isDeltaUpdateOnly )
-        return TDeserializeState::DESERIALIZESTATE_NOTSUPPORTED;
+        return CIHTTPServerResource::DESERIALIZESTATE_NOTSUPPORTED;
     
     bool success = VFS::CVfsGlobal::Instance()->GetVfs().StoreAsFile( resourcePath, inputBuffer, 0, true );
-    return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+    return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
 }
 
 /*-------------------------------------------------------------------------//

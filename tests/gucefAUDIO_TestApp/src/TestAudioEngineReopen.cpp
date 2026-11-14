@@ -128,7 +128,7 @@ CORE::TTaskStatus
 StatusOf( const CORE::CFutureResult& future )
 {
     CORE::CTaskPtr task = future.GetResult( 1000 );
-    return task.IsNULL() ? CORE::TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 /** Cooperative mode: Update() until the future is ready (the device is opened on a pool task meanwhile) */
@@ -249,14 +249,14 @@ PerformReopenTests( void )
 
         // a second request while one is pending fails at once, synchronous or not
         CORE::CFutureResult second = engine.ReopenDeviceAsync( NullParams( 48000, 2 ) );
-        ASSERT_TRUE( second.HasNoFuture() && CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED == StatusOf( second ) );
+        ASSERT_TRUE( second.HasNoFuture() && CORE::TASKSTATUS_SETUP_FAILED == StatusOf( second ) );
         ASSERT_FALSE( engine.ReopenDevice( NullParams( 48000, 2 ) ) );
 
         // the old device renders until the swap
         Render( engine, 256 );
         ASSERT_TRUE( UpdateUntilReady( engine, reopened ) );
         ASSERT_FALSE( reopened.HasNoFuture() );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == StatusOf( reopened ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == StatusOf( reopened ) );
         ASSERT_TRUE( 32000 == engine.GetMixFormat().GetSampleRate() && 4 == engine.GetMixFormat().GetChannelCount() );
         ASSERT_TRUE( 1 == engine.GetActiveVoiceCount() && engine.FindBus( "music" ) == scene.music );
         Render( engine, 2048 );
@@ -271,7 +271,7 @@ PerformReopenTests( void )
         // a reopen still pending at shutdown is cancelled
         CORE::CFutureResult abandoned = engine.ReopenDeviceAsync( NullParams( 44100, 2 ) );
         engine.Shutdown();
-        ASSERT_TRUE( abandoned.IsReady() && CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( abandoned ) );
+        ASSERT_TRUE( abandoned.IsReady() && CORE::TASKSTATUS_CANCELLED == StatusOf( abandoned ) );
     }
     catch( ... )
     {
@@ -299,7 +299,7 @@ PerformReopenTests( void )
         CORE::CFutureResult failed = engine.ReopenDeviceAsync( unknown );
         ASSERT_FALSE( failed.HasNoFuture() );                                               // known only once the task has tried
         ASSERT_TRUE( UpdateUntilReady( engine, failed ) );
-        ASSERT_TRUE( failed.HasNoFuture() && CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == StatusOf( failed ) );
+        ASSERT_TRUE( failed.HasNoFuture() && CORE::TASKSTATUS_STARTUP_FAILED == StatusOf( failed ) );
         ASSERT_TRUE( engine.GetDevice() == device );
         device->AsNullDevice()->ClearRenderedAudio();
         Render( engine, 1024 );
@@ -442,7 +442,7 @@ PerformReopenTests( void )
         wanted = engine.GetParams();
         wanted.SetLimiterMode( AUDIO::AUDIOLIMITERMODE_OFF );
         CORE::CFutureResult reopened = engine.ReopenDeviceAsync( wanted );
-        ASSERT_TRUE( UpdateUntilReady( engine, reopened ) && CORE::TTaskStatus::TASKSTATUS_FINISHED == StatusOf( reopened ) );
+        ASSERT_TRUE( UpdateUntilReady( engine, reopened ) && CORE::TASKSTATUS_FINISHED == StatusOf( reopened ) );
         ASSERT_TRUE( 0 == engine.GetMixLatencyInFrames() && AUDIO::AUDIOLIMITERMODE_OFF == engine.GetParams().GetLimiterMode() );
         Render( engine, 4096 );
         engine.Update();

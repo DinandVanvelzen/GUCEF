@@ -76,21 +76,21 @@ class GUCEFPATCHER_EXPORT_CPP CPatchSetGenerator
     bool GeneratePatchSet( const CORE::CString& localRoot             ,
                            const CORE::CString& URLRoot               ,
                            TPatchSet& patchSet                        ,
-                           const TStringSet* dirsToIgnore = NULL      ,
-                           const TStringSet* fileTypesToIgnore = NULL ) const;
+                           const TStringSet* dirsToIgnore = GUCEF_NULL      ,
+                           const TStringSet* fileTypesToIgnore = GUCEF_NULL ) const;
 
     bool GeneratePatchSet( const CORE::CString& localRoot             ,
                            const CORE::CString& URLRoot               ,
                            CORE::CDataNode& patchSet                  ,
-                           const TStringSet* dirsToIgnore = NULL      ,
-                           const TStringSet* fileTypesToIgnore = NULL ) const;
+                           const TStringSet* dirsToIgnore = GUCEF_NULL      ,
+                           const TStringSet* fileTypesToIgnore = GUCEF_NULL ) const;
 
     bool GeneratePatchSet( const CORE::CString& localRoot             ,
                            const CORE::CString& URLRoot               ,
                            const CORE::CString& storageCodec          ,
                            CORE::CIOAccess& patchSetStorage           ,
-                           const TStringSet* dirsToIgnore = NULL      ,
-                           const TStringSet* fileTypesToIgnore = NULL ) const;
+                           const TStringSet* dirsToIgnore = GUCEF_NULL      ,
+                           const TStringSet* fileTypesToIgnore = GUCEF_NULL ) const;
                            
     private:
     
@@ -100,8 +100,8 @@ class GUCEFPATCHER_EXPORT_CPP CPatchSetGenerator
     bool GeneratePatchSet( const CORE::CString& localRoot             ,
                            const CORE::CString& URLRoot               ,
                            TDirEntry& currentDir                      ,
-                           const TStringSet* dirsToIgnore = NULL      ,
-                           const TStringSet* fileTypesToIgnore = NULL ) const;
+                           const TStringSet* dirsToIgnore = GUCEF_NULL      ,
+                           const TStringSet* fileTypesToIgnore = GUCEF_NULL ) const;
 };
 
 /*-------------------------------------------------------------------------//

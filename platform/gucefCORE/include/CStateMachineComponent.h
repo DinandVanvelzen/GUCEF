@@ -70,7 +70,7 @@ class GUCEF_CORE_PUBLIC_CPP CStateMachineComponent : public CObservingNotifier
                                     const UInt32 newStateID       ,
                                     const UInt32 triggerEventID   ,
                                     CNotifier* triggerNotifier    ,
-                                    CICloneable* eventdata = NULL ) = 0;
+                                    CICloneable* eventdata = GUCEF_NULL ) = 0;
 
     void AddTransition( const UInt32 currentStateID ,
                         const UInt32 newStateID     ,
@@ -92,7 +92,7 @@ class GUCEF_CORE_PUBLIC_CPP CStateMachineComponent : public CObservingNotifier
      */
     virtual void OnNotify( CNotifier* notifier           ,
                            const UInt32 eventid          ,
-                           CICloneable* eventdata = NULL );
+                           CICloneable* eventdata = GUCEF_NULL );
 
     private:
 

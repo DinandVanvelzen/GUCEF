@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "pluginglueEOS" } )
+
+configuration( {} )
 links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "pluginglueEOS" } )
 
 

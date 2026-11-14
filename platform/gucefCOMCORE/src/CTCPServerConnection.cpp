@@ -90,7 +90,7 @@ typedef struct STCPServerConData TTCPServerConData;
 CTCPServerConnection::CTCPServerConnection( CTCPServerSocket *tcp_serversock ,
                                             UInt32 connection_idx            )
     : CTCPConnection()                    
-    , _data( NULL )                       
+    , _data( GUCEF_NULL )                       
     , _blocking( false )                  
     , _active( false )                    
     , m_readbuffer()                      
@@ -939,7 +939,7 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
         int errorCode = 0;
         if ( dvsocket_select( _data->sockid+1   ,
                               &readfds          ,
-                              NULL              , // We don't care about socket writes here
+                              GUCEF_NULL              , // We don't care about socket writes here
                               &exceptfds        ,
                               &_data->timeout   ,
                               &errorCode        ) != SOCKET_ERROR )

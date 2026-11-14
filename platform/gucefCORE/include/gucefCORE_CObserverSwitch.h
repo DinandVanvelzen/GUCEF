@@ -90,7 +90,7 @@ class GUCEF_CORE_PUBLIC_CPP CObserverSwitch : public CObservingNotifier
      */
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL );
+                           CICloneable* eventdata = GUCEF_NULL );
 
     private:
 

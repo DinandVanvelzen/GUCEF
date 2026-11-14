@@ -905,7 +905,7 @@ PerformFormLayoutTests( void )
             MULTIPLAY::CPlayerIdentity bobIdentity;
             bobIdentity.userId = "bob-id";
             bobIdentity.displayName = "Bob";
-            CORE::CFutureResult connected( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult connected( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( aliceChat.Connect( aliceIdentity, connected ) && bobChat.Connect( bobIdentity, connected ) );
 
             GAMEGUI::CLobbyForm form( context );

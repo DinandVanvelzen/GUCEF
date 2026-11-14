@@ -63,13 +63,13 @@ class CTIOAccessToStlStreambuff : public base_streambuf_type
 {   
     public:
  
-    using Base = base_streambuf_type;
-    using int_type = typename Base::int_type;
-    using char_type = typename Base::char_type;
-    using traits_type = typename Base::traits_type;
-    using pos_type = typename traits_type::pos_type;
-    using off_type = typename traits_type::off_type;
-    using streamsize = typename std::streamsize;
+    typedef base_streambuf_type                 Base;
+    typedef typename Base::int_type             int_type;
+    typedef typename Base::char_type            char_type;
+    typedef typename Base::traits_type          traits_type;
+    typedef typename traits_type::pos_type      pos_type;
+    typedef typename traits_type::off_type      off_type;
+    typedef std::streamsize                     streamsize;
 
     /**
      *  Default constructor. 

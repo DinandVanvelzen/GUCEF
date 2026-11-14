@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
 
 
@@ -124,13 +126,13 @@ files( {
   "src/gucefMATH_DirectionInstantiations.cpp",
   "src/gucefMATH_FractionInstantiations.cpp",
   "src/gucefMATH_PointInstantiations.cpp",
-  "src/gucefMATH_VectorInstantiations.cpp",
-  "src/gucefMATH_ScalarFunctions.cpp"
+  "src/gucefMATH_ScalarFunctions.cpp",
+  "src/gucefMATH_VectorInstantiations.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include", "src" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../gucefCORE/include/android" } )

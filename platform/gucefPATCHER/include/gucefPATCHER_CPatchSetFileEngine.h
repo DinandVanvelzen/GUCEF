@@ -86,7 +86,7 @@ class GUCEFPATCHER_EXPORT_CPP CPatchSetFileEngine : public CORE::CObservingNotif
         
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
 
     private:
     

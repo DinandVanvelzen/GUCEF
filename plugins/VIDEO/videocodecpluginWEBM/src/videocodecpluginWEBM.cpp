@@ -137,9 +137,9 @@ class CIOAccessReader : public mkvparser::IMkvReader
     virtual int Length( long long* total, long long* available )
     {
         const UInt64 size = m_input->size( m_input );
-        if ( NULL != total )
+        if ( GUCEF_NULL != total )
             *total = (long long) size;
-        if ( NULL != available )
+        if ( GUCEF_NULL != available )
             *available = (long long) size;
         return 0;
     }
@@ -177,7 +177,7 @@ class CIOAccessWriter : public mkvmuxer::IMkvWriter
 
     virtual bool Seekable( void ) const
     {
-        return NULL != m_output->setpos;
+        return GUCEF_NULL != m_output->setpos;
     }
 
     virtual void ElementStartNotify( mkvmuxer::uint64, mkvmuxer::int64 )
@@ -291,8 +291,8 @@ GetTextOption( const TVariantMapApi* map, const char* key )
     CORE::TVariantData keyData;
     CORE::TVariantData valueData;
 
-    if ( NULL == map || NULL == map->at_key )
-        return NULL;
+    if ( GUCEF_NULL == map || GUCEF_NULL == map->at_key )
+        return GUCEF_NULL;
 
     memset( &keyData, 0, sizeof( keyData ) );
     keyData.containedType = GUCEF_DATATYPE_ASCII_STRING;
@@ -303,7 +303,7 @@ GetTextOption( const TVariantMapApi* map, const char* key )
     memset( &valueData, 0, sizeof( valueData ) );
     map->at_key( map->privateData, &keyData, &valueData );
     if ( GUCEF_DATATYPE_ASCII_STRING != valueData.containedType && GUCEF_DATATYPE_UTF8_STRING != valueData.containedType )
-        return NULL;
+        return GUCEF_NULL;
     return valueData.union_data.heap_data.union_data.const_char_heap_data;
 }
 
@@ -313,9 +313,9 @@ Int32
 GetIntOption( const TVariantMapApi* map, const char* key, Int32 defaultValue, Int32 minValue, Int32 maxValue )
 {
     const char* text = GetTextOption( map, key );
-    if ( NULL == text || '\0' == *text )
+    if ( GUCEF_NULL == text || '\0' == *text )
         return defaultValue;
-    long value = strtol( text, NULL, 10 );
+    long value = strtol( text, GUCEF_NULL, 10 );
     if ( value < minValue ) value = minValue;
     if ( value > maxValue ) value = maxValue;
     return (Int32) value;
@@ -480,12 +480,12 @@ WriteLE32( UInt8* p, UInt32 value )
 void
 CloseSource( SWebmSource* source )
 {
-    if ( NULL == source )
+    if ( GUCEF_NULL == source )
         return;
     if ( source->decoderOpen )
         vpx_codec_destroy( &source->decoder );
     for ( size_t t=0; t<source->audioTracks.size(); ++t )
-        if ( NULL != source->audioTracks[ t ].decoder )
+        if ( GUCEF_NULL != source->audioTracks[ t ].decoder )
             opus_decoder_destroy( source->audioTracks[ t ].decoder );
     delete source->segment;
     delete source->reader;
@@ -567,7 +567,7 @@ DecodeAudioBlock( SWebmSource* source, const SBlockRef& ref, const TVideoAudioOu
         }
         UInt32 skip = track.preSkipLeft < (UInt32) samples ? track.preSkipLeft : (UInt32) samples;
         track.preSkipLeft -= skip;
-        if ( NULL != audio && NULL != audio->onAudio && (UInt32) samples > skip )
+        if ( GUCEF_NULL != audio && GUCEF_NULL != audio->onAudio && (UInt32) samples > skip )
             audio->onAudio( audio->userData, trackIndex, &source->pcm[ (size_t) skip * track.channels ], (UInt32) samples - skip );
     }
     return true;
@@ -598,24 +598,24 @@ DecodeNext( SWebmSource* source, TVideoPictureBuffer* picture, const TVideoAudio
         {
             if ( !ReadFrame( source, block->GetFrame( f ) ) )
                 return false;
-            if ( VPX_CODEC_OK != vpx_codec_decode( &source->decoder, &source->packet[ 0 ], (unsigned int) source->packet.size(), NULL, 0 ) )
+            if ( VPX_CODEC_OK != vpx_codec_decode( &source->decoder, &source->packet[ 0 ], (unsigned int) source->packet.size(), GUCEF_NULL, 0 ) )
             {
                 GUCEF_C_ERROR_LOG( source->plugin->libApi, GUCEF_LOGLEVEL_NORMAL, "videocodecpluginWEBM: a picture cannot be decoded" );
                 return false;
             }
-            vpx_codec_iter_t iter = NULL;
-            const vpx_image_t* image = NULL;
-            const vpx_image_t* shown = NULL;
-            while ( NULL != ( image = vpx_codec_get_frame( &source->decoder, &iter ) ) )
+            vpx_codec_iter_t iter = GUCEF_NULL;
+            const vpx_image_t* image = GUCEF_NULL;
+            const vpx_image_t* shown = GUCEF_NULL;
+            while ( GUCEF_NULL != ( image = vpx_codec_get_frame( &source->decoder, &iter ) ) )
                 shown = image;
-            if ( NULL == shown )
+            if ( GUCEF_NULL == shown )
                 continue;
             if ( shown->d_w != source->width || shown->d_h != source->height || ( VPX_IMG_FMT_I420 != shown->fmt && VPX_IMG_FMT_I422 != shown->fmt && VPX_IMG_FMT_I444 != shown->fmt && VPX_IMG_FMT_I440 != shown->fmt ) )
             {
                 GUCEF_C_ERROR_LOG( source->plugin->libApi, GUCEF_LOGLEVEL_NORMAL, "videocodecpluginWEBM: a picture changes size or has a pixel format that is not supported" );
                 return false;
             }
-            if ( NULL != picture && NULL != picture->pixels )
+            if ( GUCEF_NULL != picture && GUCEF_NULL != picture->pixels )
                 ImageToRgba( shown, static_cast< UInt8* >( picture->pixels ), picture->pitch );
             gotPicture = true;
         }
@@ -649,16 +649,16 @@ DeletePackets( GUCEF::vector< SPacket* >& queue )
 void
 CloseSink( SWebmSink* sink )
 {
-    if ( NULL == sink )
+    if ( GUCEF_NULL == sink )
         return;
     if ( sink->encoderOpen )
         vpx_codec_destroy( &sink->encoder );
-    if ( NULL != sink->image )
+    if ( GUCEF_NULL != sink->image )
         vpx_img_free( sink->image );
     DeletePackets( sink->videoQueue );
     for ( size_t t=0; t<sink->audioTracks.size(); ++t )
     {
-        if ( NULL != sink->audioTracks[ t ].encoder )
+        if ( GUCEF_NULL != sink->audioTracks[ t ].encoder )
             opus_encoder_destroy( sink->audioTracks[ t ].encoder );
         DeletePackets( sink->audioTracks[ t ].queue );
     }
@@ -678,7 +678,7 @@ WriteQueued( SWebmSink* sink, bool all )
 {
     while ( true )
     {
-        GUCEF::vector< SPacket* >* earliest = NULL;
+        GUCEF::vector< SPacket* >* earliest = GUCEF_NULL;
         bool waiting = false;
 
         GUCEF::vector< GUCEF::vector< SPacket* >* > queues;
@@ -693,15 +693,15 @@ WriteQueued( SWebmSink* sink, bool all )
                 waiting = true;
                 continue;
             }
-            if ( NULL == earliest || queues[ q ]->front()->timestampNs < earliest->front()->timestampNs )
+            if ( GUCEF_NULL == earliest || queues[ q ]->front()->timestampNs < earliest->front()->timestampNs )
                 earliest = queues[ q ];
         }
-        if ( NULL == earliest || ( waiting && !all ) )
+        if ( GUCEF_NULL == earliest || ( waiting && !all ) )
             return true;
 
         SPacket* packet = earliest->front();
         earliest->erase( earliest->begin() );
-        const bool written = sink->segment->AddFrame( packet->data.empty() ? NULL : &packet->data[ 0 ], packet->data.size(), packet->trackNumber, packet->timestampNs, packet->isKey );
+        const bool written = sink->segment->AddFrame( packet->data.empty() ? GUCEF_NULL : &packet->data[ 0 ], packet->data.size(), packet->trackNumber, packet->timestampNs, packet->isKey );
         delete packet;
         if ( !written )
         {
@@ -717,9 +717,9 @@ WriteQueued( SWebmSink* sink, bool all )
 bool
 CollectVideoPackets( SWebmSink* sink )
 {
-    vpx_codec_iter_t iter = NULL;
-    const vpx_codec_cx_pkt_t* packet = NULL;
-    while ( NULL != ( packet = vpx_codec_get_cx_data( &sink->encoder, &iter ) ) )
+    vpx_codec_iter_t iter = GUCEF_NULL;
+    const vpx_codec_cx_pkt_t* packet = GUCEF_NULL;
+    while ( GUCEF_NULL != ( packet = vpx_codec_get_cx_data( &sink->encoder, &iter ) ) )
     {
         if ( VPX_CODEC_CX_FRAME_PKT != packet->kind )
             continue;
@@ -785,7 +785,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Init )( void** plugdata, TGucefCoreCApi* lib
 {
     SWebmPlugin* plugin = new SWebmPlugin();
     memset( &plugin->libApi, 0, sizeof( plugin->libApi ) );
-    if ( NULL != libApi )
+    if ( GUCEF_NULL != libApi )
         plugin->libApi = *libApi;
     *plugdata = plugin;
 
@@ -799,7 +799,7 @@ void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Shutdown )( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     delete static_cast< SWebmPlugin* >( *plugdata );
-    *plugdata = NULL;
+    *plugdata = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -845,7 +845,7 @@ const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Type )( const void* plugdata, UInt32 index ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( index >= sizeof( g_codecTypes ) / sizeof( g_codecTypes[ 0 ] ) )
-        return NULL;
+        return GUCEF_NULL;
     return g_codecTypes[ index ];
 }
 
@@ -855,8 +855,8 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Create_Codec )( void** plugdata, const char* codecType, void** codecdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     // one container, no per codec state
-    *codecdata = NULL;
-    if ( NULL == codecType )
+    *codecdata = GUCEF_NULL;
+    if ( GUCEF_NULL == codecType )
         return 0;
     for ( size_t i=0; i<sizeof( g_codecTypes ) / sizeof( g_codecTypes[ 0 ] ); ++i )
         if ( 0 == strcmp( codecType, g_codecTypes[ i ] ) )
@@ -869,7 +869,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Create_Codec )( void** plugdata, const char*
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Destroy_Codec )( void** plugdata, void** codecdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    *codecdata = NULL;
+    *codecdata = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -878,14 +878,14 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdata, void** sourcedata, TIOAccess* input, const TVariantMapApi* options, TVideoFormatInfo* format, UInt64* frameCount ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmPlugin* plugin = static_cast< SWebmPlugin* >( *plugdata );
-    *sourcedata = NULL;
-    if ( NULL == input || NULL == input->read || NULL == input->setpos || NULL == input->size || NULL == format )
+    *sourcedata = GUCEF_NULL;
+    if ( GUCEF_NULL == input || GUCEF_NULL == input->read || GUCEF_NULL == input->setpos || GUCEF_NULL == input->size || GUCEF_NULL == format )
         return 0;
 
     SWebmSource* source = new SWebmSource();
     source->plugin = plugin;
     source->reader = new CIOAccessReader( input );
-    source->segment = NULL;
+    source->segment = GUCEF_NULL;
     source->videoTrackNumber = -1;
     source->width = 0;
     source->height = 0;
@@ -896,9 +896,9 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdat
     // the header and the segment with all its clusters
     long long pos = 0;
     mkvparser::EBMLHeader header;
-    if ( header.Parse( source->reader, pos ) < 0 || NULL == header.m_docType ||
+    if ( header.Parse( source->reader, pos ) < 0 || GUCEF_NULL == header.m_docType ||
          ( 0 != strcmp( header.m_docType, "webm" ) && 0 != strcmp( header.m_docType, "matroska" ) ) ||
-         0 != mkvparser::Segment::CreateInstance( source->reader, pos, source->segment ) || NULL == source->segment ||
+         0 != mkvparser::Segment::CreateInstance( source->reader, pos, source->segment ) || GUCEF_NULL == source->segment ||
          source->segment->Load() < 0 )
     {
         CloseSource( source );
@@ -907,13 +907,13 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdat
 
     // the first VP8 / VP9 track is the picture, Opus tracks are the sound
     const mkvparser::Tracks* tracks = source->segment->GetTracks();
-    const char* videoCodec = NULL;
+    const char* videoCodec = GUCEF_NULL;
     double frameRate = 0.0;
     UInt64 defaultDuration = 0;
-    for ( unsigned long i=0; NULL != tracks && i<tracks->GetTracksCount(); ++i )
+    for ( unsigned long i=0; GUCEF_NULL != tracks && i<tracks->GetTracksCount(); ++i )
     {
         const mkvparser::Track* track = tracks->GetTrackByIndex( i );
-        if ( NULL == track || NULL == track->GetCodecId() )
+        if ( GUCEF_NULL == track || GUCEF_NULL == track->GetCodecId() )
             continue;
         if ( mkvparser::Track::kVideo == track->GetType() )
         {
@@ -937,7 +937,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdat
         {
             size_t privateSize = 0;
             const unsigned char* privateData = track->GetCodecPrivate( privateSize );
-            if ( 0 != strcmp( track->GetCodecId(), "A_OPUS" ) || NULL == privateData || privateSize < 19 || 0 != memcmp( privateData, "OpusHead", 8 ) )
+            if ( 0 != strcmp( track->GetCodecId(), "A_OPUS" ) || GUCEF_NULL == privateData || privateSize < 19 || 0 != memcmp( privateData, "OpusHead", 8 ) )
             {
                 GUCEF_C_LOG( plugin->libApi, GUCEF_LOGLEVEL_NORMAL, "videocodecpluginWEBM: an audio track with a codec other than Opus is left out" );
                 continue;
@@ -955,7 +955,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdat
             audioTrack.preSkipLeft = audioTrack.preSkip;
             int error = 0;
             audioTrack.decoder = opus_decoder_create( (opus_int32) OpusSampleRate, (int) channels, &error );
-            if ( NULL == audioTrack.decoder || OPUS_OK != error )
+            if ( GUCEF_NULL == audioTrack.decoder || OPUS_OK != error )
             {
                 CloseSource( source );
                 return 0;
@@ -973,15 +973,15 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdat
     // all blocks in file order, and where the pictures are
     long long firstTime = -1, lastTime = -1;
     const mkvparser::Cluster* cluster = source->segment->GetFirst();
-    while ( NULL != cluster && !cluster->EOS() )
+    while ( GUCEF_NULL != cluster && !cluster->EOS() )
     {
-        const mkvparser::BlockEntry* entry = NULL;
+        const mkvparser::BlockEntry* entry = GUCEF_NULL;
         if ( cluster->GetFirst( entry ) < 0 )
             break;
-        while ( NULL != entry && !entry->EOS() )
+        while ( GUCEF_NULL != entry && !entry->EOS() )
         {
             const mkvparser::Block* block = entry->GetBlock();
-            if ( NULL != block )
+            if ( GUCEF_NULL != block )
             {
                 SBlockRef ref;
                 ref.cluster = cluster;
@@ -1047,7 +1047,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Open )( void** plugdata, void** codecdat
     format->frameRateNumerator = (UInt32) numerator;
     format->frameRateDenominator = (UInt32) ( 0 == denominator ? 1 : denominator );
     format->audioTrackCount = (UInt32) source->audioTracks.size();
-    if ( NULL != frameCount )
+    if ( GUCEF_NULL != frameCount )
         *frameCount = (UInt64) source->videoBlocks.size();
     *sourcedata = source;
     return 1;
@@ -1059,7 +1059,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Get_Audio_Track_Format )( void** plugdata, void** codecdata, void** sourcedata, UInt32 track, TAudioFormatInfo* format ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmSource* source = static_cast< SWebmSource* >( *sourcedata );
-    if ( NULL == source || NULL == format || track >= source->audioTracks.size() )
+    if ( GUCEF_NULL == source || GUCEF_NULL == format || track >= source->audioTracks.size() )
         return 0;
 
     format->sampleRate = OpusSampleRate;
@@ -1075,7 +1075,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Decode_Frame )( void** plugdata, void** codecdata, void** sourcedata, TVideoPictureBuffer* picture, const TVideoAudioOutput* audio, UInt32* endOfStream ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmSource* source = static_cast< SWebmSource* >( *sourcedata );
-    if ( NULL == source || NULL == endOfStream )
+    if ( GUCEF_NULL == source || GUCEF_NULL == endOfStream )
         return 0;
 
     *endOfStream = 0;
@@ -1104,7 +1104,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Seek_Frame )( void** plugdata, void** codecdata, void** sourcedata, UInt64 frame ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmSource* source = static_cast< SWebmSource* >( *sourcedata );
-    if ( NULL == source || frame > source->videoBlocks.size() )
+    if ( GUCEF_NULL == source || frame > source->videoBlocks.size() )
         return 0;
 
     // from the key frame at or before the frame (the first picture is always one)
@@ -1112,7 +1112,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Seek_Frame )( void** plugdata, void** co
     while ( keyFrame > 0 && !source->blocks[ source->videoBlocks[ keyFrame ] ].entry->GetBlock()->IsKey() )
         --keyFrame;
     const mkvparser::Track* track = source->segment->GetTracks()->GetTrackByNumber( source->videoTrackNumber );
-    if ( NULL == track || !ResetDecoders( source, track->GetCodecId() ) )
+    if ( GUCEF_NULL == track || !ResetDecoders( source, track->GetCodecId() ) )
         return 0;
 
     // the sound from the key frame on goes with the pictures; what lies before it is not played
@@ -1126,7 +1126,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Seek_Frame )( void** plugdata, void** co
     while ( source->position < frame )
     {
         bool gotPicture = false;
-        if ( !DecodeNext( source, NULL, NULL, gotPicture ) || !gotPicture )
+        if ( !DecodeNext( source, GUCEF_NULL, GUCEF_NULL, gotPicture ) || !gotPicture )
             return 0;
         ++source->position;
     }
@@ -1139,7 +1139,7 @@ void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Src_Close )( void** plugdata, void** codecdata, void** sourcedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     CloseSource( static_cast< SWebmSource* >( *sourcedata ) );
-    *sourcedata = NULL;
+    *sourcedata = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1148,10 +1148,10 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Open )( void** plugdata, void** codecdata, void** sinkdata, TIOAccess* output, const TVariantMapApi* options, TVideoFormatInfo* format, UInt32 audioTrackCount, TAudioFormatInfo* audioTrackFormats ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmPlugin* plugin = static_cast< SWebmPlugin* >( *plugdata );
-    *sinkdata = NULL;
-    if ( NULL == output || NULL == output->write || NULL == output->tell || NULL == output->setpos || NULL == format ||
+    *sinkdata = GUCEF_NULL;
+    if ( GUCEF_NULL == output || GUCEF_NULL == output->write || GUCEF_NULL == output->tell || GUCEF_NULL == output->setpos || GUCEF_NULL == format ||
          0 == format->width || 0 == format->height || 0 == format->frameRateNumerator || 0 == format->frameRateDenominator ||
-         ( audioTrackCount > 0 && NULL == audioTrackFormats ) )
+         ( audioTrackCount > 0 && GUCEF_NULL == audioTrackFormats ) )
         return 0;
 
     const Int32 quality = GetIntOption( options, "quality", 75, 0, 100 );
@@ -1170,7 +1170,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Open )( void** plugdata, void** codecdat
     sink->frameRateNumerator = format->frameRateNumerator;
     sink->frameRateDenominator = format->frameRateDenominator;
     sink->encoderOpen = false;
-    sink->image = NULL;
+    sink->image = GUCEF_NULL;
     sink->framesIn = 0;
     sink->deadline = speed >= 6 ? VPX_DL_REALTIME : VPX_DL_GOOD_QUALITY;
 
@@ -1206,8 +1206,8 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Open )( void** plugdata, void** codecdat
     vpx_codec_control( &sink->encoder, VP9E_SET_TILE_COLUMNS, TileColumnsLog2( format->width, threads ) );
     vpx_codec_control( &sink->encoder, VP8E_SET_ENABLEAUTOALTREF, speed >= 6 ? 0 : 1 );
     vpx_codec_control( &sink->encoder, VP9E_SET_COLOR_SPACE, VPX_CS_BT_601 );
-    sink->image = vpx_img_alloc( NULL, VPX_IMG_FMT_I420, format->width, format->height, 16 );
-    if ( NULL == sink->image )
+    sink->image = vpx_img_alloc( GUCEF_NULL, VPX_IMG_FMT_I420, format->width, format->height, 16 );
+    if ( GUCEF_NULL == sink->image )
     {
         CloseSink( sink );
         return 0;
@@ -1224,7 +1224,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Open )( void** plugdata, void** codecdat
     sink->segment->GetSegmentInfo()->set_writing_app( "GUCEF videocodecpluginWEBM" );
     sink->videoTrackNumber = sink->segment->AddVideoTrack( (int) format->width, (int) format->height, 0 );
     mkvmuxer::VideoTrack* videoTrack = static_cast< mkvmuxer::VideoTrack* >( sink->segment->GetTrackByNumber( sink->videoTrackNumber ) );
-    if ( NULL == videoTrack || !sink->segment->CuesTrack( sink->videoTrackNumber ) )
+    if ( GUCEF_NULL == videoTrack || !sink->segment->CuesTrack( sink->videoTrackNumber ) )
     {
         CloseSink( sink );
         return 0;
@@ -1240,7 +1240,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Open )( void** plugdata, void** codecdat
         track.samplesEncoded = 0;
         int error = 0;
         track.encoder = opus_encoder_create( (opus_int32) OpusSampleRate, (int) track.channels, OPUS_APPLICATION_AUDIO, &error );
-        if ( NULL == track.encoder || OPUS_OK != error )
+        if ( GUCEF_NULL == track.encoder || OPUS_OK != error )
         {
             CloseSink( sink );
             return 0;
@@ -1261,7 +1261,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Open )( void** plugdata, void** codecdat
         opusHead[ 18 ] = 0;
         sink->audioTracks.back().trackNumber = sink->segment->AddAudioTrack( (int) OpusSampleRate, (int) track.channels, 0 );
         mkvmuxer::AudioTrack* audioTrack = static_cast< mkvmuxer::AudioTrack* >( sink->segment->GetTrackByNumber( sink->audioTracks.back().trackNumber ) );
-        if ( NULL == audioTrack || !audioTrack->SetCodecPrivate( opusHead, sizeof( opusHead ) ) )
+        if ( GUCEF_NULL == audioTrack || !audioTrack->SetCodecPrivate( opusHead, sizeof( opusHead ) ) )
         {
             CloseSink( sink );
             return 0;
@@ -1288,7 +1288,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Write_Frame )( void** plugdata, void** codecdata, void** sinkdata, const TVideoPictureBuffer* picture ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmSink* sink = static_cast< SWebmSink* >( *sinkdata );
-    if ( NULL == sink || NULL == picture || NULL == picture->pixels )
+    if ( GUCEF_NULL == sink || GUCEF_NULL == picture || GUCEF_NULL == picture->pixels )
         return 0;
 
     RgbaToImage( static_cast< const UInt8* >( picture->pixels ), picture->pitch, sink->width, sink->height, sink->image );
@@ -1307,9 +1307,9 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Write_Audio )( void** plugdata, void** codecdata, void** sinkdata, UInt32 track, const void* frames, UInt32 frameCount ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmSink* sink = static_cast< SWebmSink* >( *sinkdata );
-    if ( NULL == sink || track >= sink->audioTracks.size() )
+    if ( GUCEF_NULL == sink || track >= sink->audioTracks.size() )
         return 0;
-    if ( NULL == frames || 0 == frameCount )
+    if ( GUCEF_NULL == frames || 0 == frameCount )
         return 1;
 
     SSinkAudioTrack& audioTrack = sink->audioTracks[ track ];
@@ -1324,7 +1324,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Close )( void** plugdata, void** codecdata, void** sinkdata, UInt32 finish ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     SWebmSink* sink = static_cast< SWebmSink* >( *sinkdata );
-    if ( NULL == sink )
+    if ( GUCEF_NULL == sink )
         return 0;
 
     bool success = true;
@@ -1333,7 +1333,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Close )( void** plugdata, void** codecda
         // what the encoders still hold, then everything in time order, then the cues and the duration
         while ( success )
         {
-            if ( VPX_CODEC_OK != vpx_codec_encode( &sink->encoder, NULL, 0, 1, 0, sink->deadline ) )
+            if ( VPX_CODEC_OK != vpx_codec_encode( &sink->encoder, GUCEF_NULL, 0, 1, 0, sink->deadline ) )
             {
                 success = false;
                 break;
@@ -1350,7 +1350,7 @@ MODULE_API_FUNCTION( VIDEOCODECPLUG_Snk_Close )( void** plugdata, void** codecda
             GUCEF_C_ERROR_LOG( sink->plugin->libApi, GUCEF_LOGLEVEL_NORMAL, "videocodecpluginWEBM: the file cannot be completed" );
     }
     CloseSink( sink );
-    *sinkdata = NULL;
+    *sinkdata = GUCEF_NULL;
     return success ? 1 : 0;
 }
 

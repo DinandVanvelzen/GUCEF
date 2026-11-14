@@ -103,7 +103,7 @@ class GUCEF_GUI_PUBLIC_CPP CWindowManagerBackend : public CORE::CObservingNotifi
 
     virtual TWindowContextPtr CreateWindowContext( const CString& title                  ,
                                                    const CVideoSettings& settings        ,
-                                                   const CORE::CValueList* params = NULL ) = 0;
+                                                   const CORE::CValueList* params = GUCEF_NULL ) = 0;
 
     virtual TWindowContextPtr CreateWindowContext( const CString& title           ,
                                                    const UInt32 width             ,

@@ -156,7 +156,7 @@ class COAuth2Fixture
     /** Starts a login and waits for the manager to be done with it; true when it ended well */
     bool Login( const GUCEF::CORE::CString& providerName, const GUCEF::AUTH::CAuthOptions& options, GUCEF::AUTH::CAuthResult& result, GUCEF::UInt32 timeoutInMs = 20000 )
     {
-        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TASKSTATUS_UNDEFINED );
         if ( !manager.Login( providerName, options, future ) )
             return false;
         for ( GUCEF::UInt32 waited=0; waited<timeoutInMs && !future.IsReady(); ++waited )
@@ -183,7 +183,7 @@ class COAuth2Fixture
     bool Fails( const GUCEF::CORE::CString& providerName, const GUCEF::AUTH::CAuthOptions& options, GUCEF::AUTH::TAuthFailureReason reason, GUCEF::UInt32 timeoutInMs = 20000 )
     {
         GUCEF::UInt32 before = FailureCount();
-        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TASKSTATUS_UNDEFINED );
         if ( !manager.Login( providerName, options, future ) )
             return false;
         for ( GUCEF::UInt32 waited=0; waited<timeoutInMs && !future.IsReady(); ++waited )

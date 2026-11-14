@@ -23,10 +23,15 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN } )
+configuration( { "EMSCRIPTEN32" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -39,9 +44,13 @@ links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
 
 configuration( {} )
 defines( { "GUCEF_AUDIOCODECPLUGIN_MP3_BUILD_MODULE", "MODULE_CONSENSUS_NAME=audiocodecpluginMP3", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginMP3", "MODULE_SEMVER=0_1_0_0" } )
-  
 
-configuration( { EMSCRIPTEN } )
+
+configuration( { "EMSCRIPTEN32" } )
+defines( { "MODULE_API_PREFIX=audiocodecpluginMP3" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=audiocodecpluginMP3" } )
 
 
@@ -63,9 +72,12 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../dependencies/dr_libs", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefCORE/src", "../../../platform/gucefMT/include", "include" } )
+includedirs( { "../../../dependencies/dr_libs", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

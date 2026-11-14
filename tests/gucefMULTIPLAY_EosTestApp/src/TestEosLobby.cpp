@@ -71,20 +71,20 @@ PerformEosLobbyTests( void )
             // Without the SDK of the build and without tables of functions
             {
                 CEosLobbyService service;
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 MULTIPLAY::CPlayerIdentity identity;
                 ASSERT_FALSE( service.Connect( identity, future ) );
                 ASSERT_TRUE( future.IsReady() );
                 ASSERT_TRUE( FailureOf( future ).HasSubstr( "not part of this build" ) >= 0 );
                 ASSERT_FALSE( service.IsConnected() );
                 // and the calls say that there is no connection, they do not hang
-                CORE::CFutureResult browse( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult browse( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_FALSE( service.Browse( MULTIPLAY::CGameListingFilter(), browse ) );
                 ASSERT_TRUE( browse.IsReady() );
-                CORE::CFutureResult create( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult create( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_FALSE( service.CreateLobby( CEosFixture::MakeParams(), create ) );
                 ASSERT_TRUE( create.IsReady() );
-                CORE::CFutureResult join( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult join( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_FALSE( service.JoinLobby( "abc", "", false, join ) );
                 ASSERT_TRUE( join.IsReady() );
             }
@@ -93,7 +93,7 @@ PerformEosLobbyTests( void )
             CEosPeerContext& player = fixture[ 0 ];
             PLUGINGLUE::EOS::SEosP2PShim p2p = player.peer.P2PShim();
             player.service.SetShim( player.peer.LobbyShim(), &p2p );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             // the SDK is not there
             player.peer.sdkAvailable = false;

@@ -133,7 +133,7 @@ TryNtOpenProcess( PHANDLE ProcessHandle               ,
 {GUCEF_TRACE;
 
     static pNtOP NtOpenProcess = (pNtOP) ::GetProcAddress( GetModuleHandle("ntdll.dll"), "NtOpenProcess" );
-	if ( NULL == NtOpenProcess ) 
+	if ( GUCEF_NULL == NtOpenProcess ) 
         return NTSTATUS_NOT_SUPPORTED;
 
     return NtOpenProcess( ProcessHandle, DesiredAccess, ObjectAttributes, ClientId );
@@ -150,7 +150,7 @@ TryNtQueryInformationProcess ( HANDLE ProcessHandle                     ,
 {GUCEF_TRACE;
 
     static pNtQIP NtQueryInformationProcess = (pNtQIP) ::GetProcAddress( GetModuleHandle("ntdll.dll"), "NtQueryInformationProcess" );
-	if ( NULL == NtQueryInformationProcess ) 
+	if ( GUCEF_NULL == NtQueryInformationProcess ) 
         return NTSTATUS_NOT_SUPPORTED;
 
     return NtQueryInformationProcess( ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength );
@@ -166,7 +166,7 @@ TryNtQuerySystemInformation( SYSTEM_INFORMATION_CLASS SystemInformationClass ,
 {GUCEF_TRACE;
 
     static pNtQSI NtQuerySystemInformation = (pNtQSI) ::GetProcAddress( GetModuleHandle("ntdll.dll"), "NtQuerySystemInformation" );
-	if ( NULL == NtQuerySystemInformation ) 
+	if ( GUCEF_NULL == NtQuerySystemInformation ) 
         return NTSTATUS_NOT_SUPPORTED;
 
     return NtQuerySystemInformation( SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength );
@@ -183,7 +183,7 @@ TryNtReadVirtualMemory( HANDLE ThreadHandle        ,
 {GUCEF_TRACE;
 
     static pNtRVM NtReadVirtualMemory = (pNtRVM) ::GetProcAddress( GetModuleHandle("ntdll.dll"), "NtReadVirtualMemory" );
-	if ( NULL == NtReadVirtualMemory ) 
+	if ( GUCEF_NULL == NtReadVirtualMemory ) 
         return NTSTATUS_NOT_SUPPORTED;
 
     return NtReadVirtualMemory( ThreadHandle, BaseAddress, Buffer, NumberOfBytesToRead, NumberOfBytesRead );

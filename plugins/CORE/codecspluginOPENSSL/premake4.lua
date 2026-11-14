@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefMT" } )
-  links( { "crypto" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "crypto" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=codecspluginOPENSSL", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefMT" } )
-  links( { "crypto" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "crypto" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=codecspluginOPENSSL", "MODULE_SEMVER=0_1_0_0" } )
 
 

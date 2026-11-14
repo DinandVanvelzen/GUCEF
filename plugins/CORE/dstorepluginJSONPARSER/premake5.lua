@@ -26,12 +26,12 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -40,18 +40,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT", "jsonbuilder", "jsonparser" } )
+
+configuration( {} )
 links( { "jsonbuilder", "jsonparser" } )
 
 
 configuration( {} )
 defines( { "DSTOREPLUGINJSONPARSER_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dstorepluginJSONPARSER", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dstorepluginJSONPARSER" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=dstorepluginJSONPARSER" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=dstorepluginJSONPARSER" } )
 
 

@@ -81,11 +81,19 @@ if ( EMSCRIPTEN64 )
 endif( EMSCRIPTEN64 )
 
 if ( EMSCRIPTEN32 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
+endif( EMSCRIPTEN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( EMSCRIPTEN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+endif( EMSCRIPTEN32 )
+if ( EMSCRIPTEN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 endif( EMSCRIPTEN64 )
 
 

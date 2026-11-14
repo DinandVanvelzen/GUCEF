@@ -182,7 +182,7 @@ GUCEF_OSMAIN_BEGIN
     }
 
     // Do we want to use the console logger?
-    CORE::CPlatformNativeConsoleLogger* consoleOut = NULL;
+    CORE::CPlatformNativeConsoleLogger* consoleOut = GUCEF_NULL;
     bool useConsoleLogger = defaultUseConsoleLoggerState;
     if ( keyValueList.TryGetValue( "useConsoleLogger", value ) )
     {
@@ -237,7 +237,7 @@ GUCEF_OSMAIN_BEGIN
     CORE::CCoreGlobal::Instance()->GetLogManager().ClearLoggers();
 
     delete consoleOut;
-    consoleOut = NULL;
+    consoleOut = GUCEF_NULL;
 
     return appRetValue;
 }

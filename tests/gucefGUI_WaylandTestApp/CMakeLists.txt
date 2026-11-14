@@ -111,11 +111,19 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverWAYLAND/include ../../plugins/INPUT/inputdriverWAYLAND/include ../../plugins/SHARED/pluginglueWAYLAND/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverWAYLAND/include ../../plugins/INPUT/inputdriverWAYLAND/include ../../plugins/SHARED/pluginglueWAYLAND/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverWAYLAND/include ../../plugins/INPUT/inputdriverWAYLAND/include ../../plugins/SHARED/pluginglueWAYLAND/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverWAYLAND/include ../../plugins/INPUT/inputdriverWAYLAND/include ../../plugins/SHARED/pluginglueWAYLAND/include include )
+endif( LINUX64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( LINUX32 )
+  GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders gucefTestHeaders )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders gucefTestHeaders )
 endif( LINUX64 )
 
 

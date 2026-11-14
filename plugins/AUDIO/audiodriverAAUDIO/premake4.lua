@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "SharedLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "GUCEF_AUDIODRIVER_AAUDIO_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverAAUDIO", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { ANDROID64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "GUCEF_AUDIODRIVER_AAUDIO_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverAAUDIO", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -99,7 +103,7 @@ configuration( { "ANDROID64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android", "include" } )

@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,6 +36,8 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "ProjectGen", "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "ProjectGen", "gucefCORE", "gucefMT" } )
 
 
@@ -48,8 +50,8 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestGeneratorFeatures.h",
   "include/TestIncludeDirInstruction.h",
-  "include/TestMsvcCompilerFlags.h",
-  "include/TestModuleInfoMerge.h"
+  "include/TestModuleInfoMerge.h",
+  "include/TestMsvcCompilerFlags.h"
  } )
 
 
@@ -60,8 +62,8 @@ files( {
   "src/ProjectGen_TestApp_main.cpp",
   "src/TestGeneratorFeatures.cpp",
   "src/TestIncludeDirInstruction.cpp",
-  "src/TestMsvcCompilerFlags.cpp",
-  "src/TestModuleInfoMerge.cpp"
+  "src/TestModuleInfoMerge.cpp",
+  "src/TestMsvcCompilerFlags.cpp"
  } )
 
 

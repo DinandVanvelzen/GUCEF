@@ -76,7 +76,7 @@ CException::CException( const CException& src )
 
 /*-------------------------------------------------------------------------*/
 
-CException::~CException() throw()
+CException::~CException() GUCEF_NOTHROW
 {GUCEF_TRACE;
 
 }
@@ -116,7 +116,7 @@ CException::GetOriginLineNr( void ) const
 /*-------------------------------------------------------------------------*/
 
 const char*
-CException::what( void ) const throw()
+CException::what( void ) const GUCEF_NOTHROW
 {GUCEF_TRACE;
 
     static CString whatStr;

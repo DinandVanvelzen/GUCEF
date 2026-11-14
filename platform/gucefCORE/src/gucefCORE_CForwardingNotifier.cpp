@@ -122,7 +122,7 @@ CForwardingNotifier::SetForwardingActiveStateForEvent( const CEvent& eventid ,
     
     Lock();
     
-    if ( NULL == notifier )
+    if ( GUCEF_NULL == notifier )
     {
         TEventMap::iterator i = m_forwardAllList.find( eventid );
         if ( i != m_forwardAllList.end() )
@@ -159,7 +159,7 @@ CForwardingNotifier::AddForwardingForAllEvents( CNotifier& notifier             
                                                 const bool enabled                    )
 {GUCEF_TRACE;
 
-    assert( NULL != &notifier );
+    assert( GUCEF_NULL != &notifier );
     
     Lock();
     TForwardState& state = m_forwardAllForNotifierList[ &notifier ];
@@ -179,7 +179,7 @@ CForwardingNotifier::AddForwardingForEvent( const CEvent& eventid               
     
     Lock();
     
-    if ( NULL == notifier )
+    if ( GUCEF_NULL == notifier )
     {
         TForwardState& state = m_forwardAllList[ eventid ];
         state.filter = originFilter;
@@ -202,7 +202,7 @@ void
 CForwardingNotifier::RemoveForwardingForAllEvents( CNotifier& notifier )
 {GUCEF_TRACE;
 
-    assert( NULL != &notifier );
+    assert( GUCEF_NULL != &notifier );
     
     Lock();
     m_forwardAllForNotifierList.erase( &notifier );
@@ -261,7 +261,7 @@ CForwardingNotifier::OnNotify( CNotifier* notifier                 ,
                                CICloneable* eventdata /* = NULL */ )
 {GUCEF_TRACE;
 
-    assert( NULL != notifier );
+    assert( GUCEF_NULL != notifier );
     
     // Check for administration updates
     if ( eventid == DestructionEvent )

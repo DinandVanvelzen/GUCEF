@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { WIN32 } )
-links( { "Ogre" } )
-  links( { "Ogre", "d3d9", "d3dx9" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "Ogre" } )
+
+configuration( { "WIN32" } )
+links( { "Ogre", "d3d9", "d3dx9" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
-  
-configuration( { WIN64 } )
-links( { "Ogre" } )
-  links( { "Ogre", "d3d9", "d3dx9" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "Ogre" } )
+
+configuration( { "WIN64" } )
+links( { "Ogre", "d3d9", "d3dx9" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "OGRED3DENGINEDLL_EXPORTS_", "_USRDLL_" } )
 
 

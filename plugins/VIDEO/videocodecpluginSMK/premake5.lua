@@ -26,12 +26,12 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -44,13 +44,13 @@ links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO" } )
 
 configuration( {} )
 defines( { "GUCEF_VIDEOCODECPLUGIN_SMK_BUILD_MODULE", "MODULE_CONSENSUS_NAME=videocodecpluginSMK", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginSMK", "MODULE_SEMVER=0_1_0_0" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=videocodecpluginSMK" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=videocodecpluginSMK" } )
 
 

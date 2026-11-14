@@ -30,17 +30,31 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefMT" } )
+
+configuration( {} )
 links( { "gucefMT" } )
 
 
 configuration( {} )
 defines( { "GUCEF_CORE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCORE", "MODULE_NAME=gucefCORE", "MODULE_SEMVER=0_1_0_0" } )
-  links( { "dl" } )
-  links( { "dl" } )
-  links( { "X11", "dl", "rt" } )
-  links( { "X11", "dl", "rt" } )
-  links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
-  links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
+
+configuration( { "ANDROID32" } )
+links( { "dl" } )
+
+configuration( { "ANDROID64" } )
+links( { "dl" } )
+
+configuration( { "LINUX32" } )
+links( { "X11", "dl", "rt" } )
+
+configuration( { "LINUX64" } )
+links( { "X11", "dl", "rt" } )
+
+configuration( { "WIN32" } )
+links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
+
+configuration( { "WIN64" } )
+links( { "Bcrypt.lib", "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
 
 
 configuration( {} )
@@ -193,7 +207,6 @@ files( {
   "include/gucefCORE_CDataDrivenDStoreCodec.h",
   "include/gucefCORE_CDataDrivenDStoreCodecFactory.h",
   "include/gucefCORE_CDataDrivenDStoreCodecMeta.h",
-  "include/gucefCORE_CDenormalFlushScope.h",
   "include/gucefCORE_CDataNodeBinarySerializer.h",
   "include/gucefCORE_CDataNodeDefinition.h",
   "include/gucefCORE_CDataNodeDocumentBuilder.h",
@@ -233,6 +246,7 @@ files( {
   "include/gucefCORE_CDecimalAccumulator.h",
   "include/gucefCORE_CDefaultCodecInstance.h",
   "include/gucefCORE_CDeferredTask.h",
+  "include/gucefCORE_CDenormalFlushScope.h",
   "include/gucefCORE_CDirectoryWatcherEvents.h",
   "include/gucefCORE_CDocumentStreamWriter.h",
   "include/gucefCORE_CDynamicBufferStringStream.h",
@@ -295,8 +309,8 @@ files( {
   "include/gucefCORE_CIValueToDataNodeSerializer.h",
   "include/gucefCORE_CIniDataStoreCodec.h",
   "include/gucefCORE_CIniParser.h",
-  "include/gucefCORE_CInt128.h",
   "include/gucefCORE_CInstanceBasedCodec.h",
+  "include/gucefCORE_CInt128.h",
   "include/gucefCORE_CJsonLoggingFormatter.h",
   "include/gucefCORE_CJsonSchema.h",
   "include/gucefCORE_CJsonSchemaValidator.h",
@@ -346,7 +360,6 @@ files( {
   "include/gucefCORE_CSoftwareCryptoCodecs.h",
   "include/gucefCORE_CStandardInputReader.h",
   "include/gucefCORE_CStandardOutputWriter.h",
-  "include/gucefCORE_StdoutClaim.h",
   "include/gucefCORE_CStdDataNodeSerializableTaskData.h",
   "include/gucefCORE_CStopwatch.h",
   "include/gucefCORE_CString.h",
@@ -427,6 +440,7 @@ files( {
   "include/gucefCORE_RoundingMode.h",
   "include/gucefCORE_SFINAE_utils.h",
   "include/gucefCORE_SecureMemory.h",
+  "include/gucefCORE_StdoutClaim.h",
   "include/gucefCORE_StringLoggingMacros.h",
   "include/gucefCORE_TableCodecPluginAPI.h",
   "include/gucefCORE_TaskStatus.h",
@@ -464,8 +478,6 @@ files( {
   "include/c_api/gucefCORE_c_variantdata.h",
   "include/c_api/gucefCORE_c_variantmap.h",
   "include/c_api/gucefCORE_c_variantvector.h",
-  "src/gucefCORE_CBinaryWireReader.cpp",
-  "src/gucefCORE_CBinaryWireWriter.cpp",
   "src/gucefCORE_CCsvColumnConverter.h",
   "src/gucefCORE_CCsvRecordParser.h",
   "src/gucefCORE_CCsvSchemaResolver.h",
@@ -599,6 +611,8 @@ files( {
   "src/gucefCORE_CBasicBracketLoggingFormatter.cpp",
   "src/gucefCORE_CBigInteger.cpp",
   "src/gucefCORE_CBigUnsigned.cpp",
+  "src/gucefCORE_CBinaryWireReader.cpp",
+  "src/gucefCORE_CBinaryWireWriter.cpp",
   "src/gucefCORE_CBuiltInCodecs.cpp",
   "src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp",
   "src/gucefCORE_CCharSepLoggingFormatter.cpp",
@@ -618,7 +632,6 @@ files( {
   "src/gucefCORE_CDataDrivenDStoreCodec.cpp",
   "src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp",
   "src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp",
-  "src/gucefCORE_CDenormalFlushScope.cpp",
   "src/gucefCORE_CDataNodeBinarySerializer.cpp",
   "src/gucefCORE_CDataNodeDefinition.cpp",
   "src/gucefCORE_CDataNodeDocumentBuilder.cpp",
@@ -656,6 +669,7 @@ files( {
   "src/gucefCORE_CDecimal.cpp",
   "src/gucefCORE_CDecimalAccumulator.cpp",
   "src/gucefCORE_CDefaultCodecInstance.cpp",
+  "src/gucefCORE_CDenormalFlushScope.cpp",
   "src/gucefCORE_CDirectoryWatcherEvents.cpp",
   "src/gucefCORE_CDocumentStreamWriter.cpp",
   "src/gucefCORE_CDynamicBufferStringStream.cpp",
@@ -766,7 +780,6 @@ files( {
   "src/gucefCORE_CSoftwareCryptoCodecs.cpp",
   "src/gucefCORE_CStandardInputReader.cpp",
   "src/gucefCORE_CStandardOutputWriter.cpp",
-  "src/gucefCORE_StdoutClaim.cpp",
   "src/gucefCORE_CStdDataNodeSerializableTaskData.cpp",
   "src/gucefCORE_CStopwatch.cpp",
   "src/gucefCORE_CStringLogHelper.cpp",
@@ -826,6 +839,7 @@ files( {
   "src/gucefCORE_LogLevels.cpp",
   "src/gucefCORE_ProcessArguments.cpp",
   "src/gucefCORE_SecureMemory.cpp",
+  "src/gucefCORE_StdoutClaim.cpp",
   "src/gucefCORE_TaskStatus.cpp",
   "src/gucefCORE_ThreadStatus.cpp",
   "src/gucefCORE_c_api_impl.cpp",
@@ -984,7 +998,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefMT/include", "include", "include/c_api", "src" } )
+includedirs( { "../../common/include", "../gucefMT/include", "include", "include/c_api" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "include/android" } )

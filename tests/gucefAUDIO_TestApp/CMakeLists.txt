@@ -15,6 +15,7 @@ set( HEADER_FILES
   include/TestAudioAlsa.h
   include/TestAudioAutomaticGain.h
   include/TestAudioBenchmark.h
+  include/TestAudioBuiltinEffects.h
   include/TestAudioBusLayout.h
   include/TestAudioCapture.h
   include/TestAudioCodecFlac.h
@@ -24,26 +25,25 @@ set( HEADER_FILES
   include/TestAudioCodecPlugin.h
   include/TestAudioCodecSupport.h
   include/TestAudioCodecs.h
+  include/TestAudioCompressor.h
   include/TestAudioConversion.h
+  include/TestAudioDelay.h
   include/TestAudioDevices.h
   include/TestAudioDsp.h
   include/TestAudioDucker.h
   include/TestAudioEchoCanceller.h
   include/TestAudioEchoSimulation.h
-  include/TestAudioEffects.h
-  include/TestAudioBuiltinEffects.h
-  include/TestAudioCompressor.h
-  include/TestAudioDelay.h
   include/TestAudioEffectSupport.h
-  include/TestAudioEqualizer.h
-  include/TestAudioLimiter.h
+  include/TestAudioEffects.h
   include/TestAudioEngine.h
   include/TestAudioEngineReopen.h
+  include/TestAudioEqualizer.h
   include/TestAudioFormat.h
   include/TestAudioHalfDuplex.h
   include/TestAudioIntercomHardware.h
   include/TestAudioIntercomScenario.h
   include/TestAudioIntercomUnit.h
+  include/TestAudioLimiter.h
   include/TestAudioMixer.h
   include/TestAudioNoiseGate.h
   include/TestAudioNoiseSuppressor.h
@@ -78,6 +78,7 @@ set( SOURCE_FILES
   src/TestAudioAlsa.cpp
   src/TestAudioAutomaticGain.cpp
   src/TestAudioBenchmark.cpp
+  src/TestAudioBuiltinEffects.cpp
   src/TestAudioBusLayout.cpp
   src/TestAudioCapture.cpp
   src/TestAudioCodecFlac.cpp
@@ -85,22 +86,21 @@ set( SOURCE_FILES
   src/TestAudioCodecOgg.cpp
   src/TestAudioCodecPlugin.cpp
   src/TestAudioCodecs.cpp
+  src/TestAudioCompressor.cpp
   src/TestAudioConversion.cpp
+  src/TestAudioDelay.cpp
   src/TestAudioDevices.cpp
   src/TestAudioDsp.cpp
   src/TestAudioDucker.cpp
   src/TestAudioEchoCanceller.cpp
   src/TestAudioEffects.cpp
-  src/TestAudioBuiltinEffects.cpp
-  src/TestAudioCompressor.cpp
-  src/TestAudioDelay.cpp
-  src/TestAudioEqualizer.cpp
-  src/TestAudioLimiter.cpp
   src/TestAudioEngine.cpp
   src/TestAudioEngineReopen.cpp
+  src/TestAudioEqualizer.cpp
   src/TestAudioFormat.cpp
   src/TestAudioHalfDuplex.cpp
   src/TestAudioIntercomHardware.cpp
+  src/TestAudioLimiter.cpp
   src/TestAudioMixer.cpp
   src/TestAudioNoiseGate.cpp
   src/TestAudioNoiseSuppressor.cpp
@@ -155,7 +155,7 @@ if ( EMSCRIPTEN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC audiodriverWEBAUDIO )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )
@@ -188,6 +188,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 
 
 

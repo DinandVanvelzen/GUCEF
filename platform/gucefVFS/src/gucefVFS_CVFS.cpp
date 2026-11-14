@@ -310,7 +310,7 @@ CVFS::StoreAsFileAsync( const CORE::CString& filepath       ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:StoreAsFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -342,7 +342,7 @@ CVFS::MountArchiveAsync( const CArchiveSettings& settings    ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:MountArchiveAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -772,7 +772,7 @@ CVFS::MoveFileAsync( const CORE::CString& oldFilePath    ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:MoveFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1001,7 +1001,7 @@ CVFS::CopyFileContentAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:CopyFileContentAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1117,7 +1117,7 @@ CVFS::CopyFileAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:CopyFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1206,7 +1206,7 @@ CVFS::EncodeFileAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:EncodeFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1338,7 +1338,7 @@ CVFS::EncodeAsFileAsync( const CORE::CDynamicBuffer& data     ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:EncodeAsFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1466,7 +1466,7 @@ CVFS::DecodeFileAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:DecodeFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/

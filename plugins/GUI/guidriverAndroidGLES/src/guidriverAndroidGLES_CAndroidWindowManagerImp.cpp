@@ -72,7 +72,7 @@ CAndroidWindowManagerImp::CreateWindowContext( const GUI::CString& title ,
 
     return CreateWindowContext( title         ,
                                 videoSettings ,
-                                NULL          );
+                                GUCEF_NULL          );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -117,7 +117,7 @@ CAndroidWindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowCo
 {GUCEF_TRACE;
 
     CAndroidGLESWindowContext* glContext = static_cast<CAndroidGLESWindowContext*>( windowContext.GetPointerAlways() );
-    if ( NULL != glContext )
+    if ( GUCEF_NULL != glContext )
     {
         glContext->Shutdown();
     }

@@ -225,7 +225,7 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPMasterSocket : public CORE::CObservingNotifie
     
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
     
     private:
 

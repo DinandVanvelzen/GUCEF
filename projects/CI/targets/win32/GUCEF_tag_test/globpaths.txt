@@ -60,6 +60,8 @@ platform/gucefGAMEGUI/*
 platform/gucefGUI/*
 platform/gucefIMAGE/include/*
 platform/gucefINPUT/*
+platform/gucefMATH/include/*
+platform/gucefMATH/src/*
 platform/gucefMT/include/*
 platform/gucefMT/src//*
 platform/gucefMULTIPLAY/include/*
@@ -91,6 +93,8 @@ plugins/SHARED/pluginglueAWSSDK/include/*
 plugins/VIDEO/videocodecpluginWEBM/*
 tests/MemoryLeakFinder_TestApp/*
 tests/gucefAUTHGUI_TestApp/*
+tests/gucefCOMCORE_TestApp/include/*
+tests/gucefCOM_TestApp/include/*
 tests/gucefDRN_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*

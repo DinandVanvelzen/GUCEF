@@ -47,13 +47,21 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of guidriverRmlUI and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( guidriverRmlUI "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "guidriverRmlUI" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} RmlUI_Core gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
 target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUIDRIVERRMLUI_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRmlUI;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverRmlUI" )
 
-include_directories( ../../../common/include ../../../dependencies/RmlUi/Include ../../../dependencies/RmlUi/Include/RmlUi ../../../dependencies/RmlUi/Include/RmlUi/Config ../../../dependencies/RmlUi/Include/RmlUi/Core ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../../dependencies/RmlUi/Include/RmlUi/Debugger ../../../dependencies/RmlUi/Include/RmlUi/Lottie ../../../dependencies/RmlUi/Include/RmlUi/Lua ../../../dependencies/RmlUi/Include/RmlUi/SVG ../../../dependencies/RmlUi/Source/Core ../../../dependencies/RmlUi/Source/Core/Elements ../../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../../dependencies/RmlUi/Source/Core/Layout ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
+include_directories( ../../../common/include ../../../dependencies/RmlUi/Include ../../../dependencies/RmlUi/Include/RmlUi ../../../dependencies/RmlUi/Include/RmlUi/Config ../../../dependencies/RmlUi/Include/RmlUi/Core ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../../dependencies/RmlUi/Include/RmlUi/Debugger ../../../dependencies/RmlUi/Include/RmlUi/Lottie ../../../dependencies/RmlUi/Include/RmlUi/Lua ../../../dependencies/RmlUi/Include/RmlUi/SVG ../../../dependencies/RmlUi/Source/Core ../../../dependencies/RmlUi/Source/Core/Elements ../../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../../dependencies/RmlUi/Source/Core/Layout ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
@@ -78,6 +86,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 
 
 

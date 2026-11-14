@@ -153,7 +153,7 @@ CCodecBasedHTTPServerResource::CreateResource( const CString& resourcePath      
 {GUCEF_TRACE;
 
     if ( !m_allowCreate )
-        return TCreateState::CREATESTATE_NOTSUPPORTED;
+        return CIHTTPServerResource::CREATESTATE_NOTSUPPORTED;
 
     CHttpCodecLinks& codecLinks = CWebGlobal::Instance()->GetGlobalHttpCodecLinks();
     CHttpCodecLinks::TMimeTypeCodecPtr codec = codecLinks.GetDeserializationCodec( representation );
@@ -172,7 +172,7 @@ CCodecBasedHTTPServerResource::CreateResource( const CString& resourcePath      
                                    supportedRepresentationsOutput );
         }
     }
-    return TCreateState::CREATESTATE_DESERIALIZATIONFAILED;
+    return CIHTTPServerResource::CREATESTATE_DESERIALIZATIONFAILED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -189,7 +189,7 @@ CCodecBasedHTTPServerResource::CreateResource( const CString& resourcePath      
 
     // By default we don't allow or implement more complex interaction patterns
     // such as dynamic resources or collections
-    return TCreateState::CREATESTATE_FAILED;
+    return CIHTTPServerResource::CREATESTATE_FAILED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -242,7 +242,7 @@ CCodecBasedHTTPServerResource::Deserialize( const CString& resourcePath         
 {GUCEF_TRACE;
 
     if ( !m_allowDeserialize )
-        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 
     CHttpCodecLinks& codecLinks = CWebGlobal::Instance()->GetGlobalHttpCodecLinks();
     CHttpCodecLinks::TMimeTypeCodecPtr codec = codecLinks.GetDeserializationCodec( representation );
@@ -255,7 +255,7 @@ CCodecBasedHTTPServerResource::Deserialize( const CString& resourcePath         
             return Deserialize( resourcePath, rootNode, representation, isDeltaUpdateOnly );
         }
     }
-    return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+    return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -266,7 +266,7 @@ CCodecBasedHTTPServerResource::Deserialize( const CString& resourcePath   ,
                                             const CString& representation ,
                                             bool isDeltaUpdateOnly        )
 {
-    return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+    return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 }
 
 /*-------------------------------------------------------------------------*/

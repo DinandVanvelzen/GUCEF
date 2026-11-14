@@ -641,6 +641,16 @@ CReporter::DumpExceptionReport( FILE*              fp                        ,
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+typedef std::pair< UInt64, const CCallsiteStats* > TCallsiteSortEntry;
+
+static bool
+LargerLiveBytesFirst( const TCallsiteSortEntry& a, const TCallsiteSortEntry& b )
+{
+    return a.first > b.first;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CReporter::DumpCallsiteReport( UInt32 topN )
 {
@@ -659,7 +669,7 @@ CReporter::DumpCallsiteReport( UInt32 topN )
     const CMemoryTracker::TCallsiteMap& csmap = tracker->GetCallsiteMap();
 
     /* Collect and sort by currentLiveBytes descending */
-    typedef std::pair< UInt64, const CCallsiteStats* > TSortEntry;
+    typedef TCallsiteSortEntry TSortEntry;
     std::vector< TSortEntry > sorted;
     sorted.reserve( csmap.size() );
     CMemoryTracker::TCallsiteMap::const_iterator it = csmap.begin();
@@ -668,7 +678,7 @@ CReporter::DumpCallsiteReport( UInt32 topN )
         sorted.push_back( TSortEntry( it->second.currentLiveBytes, &it->second ) );
         ++it;
     }
-    std::sort( sorted.begin(), sorted.end(), [](const TSortEntry& a, const TSortEntry& b){ return a.first > b.first; } );
+    std::sort( sorted.begin(), sorted.end(), LargerLiveBytesFirst );
 
     fprintf( fp, "\r\n" );
     fprintf( fp, "******************************************************************************* \r\n" );

@@ -508,7 +508,7 @@ CVPArchive::LoadArchive( const VFS::CArchiveSettings& settings )
         return false;
 
     FILE* fptr = fopen( settings.GetActualArchivePath().C_String(), "rb" );
-    if ( NULL == fptr ) return false;
+    if ( GUCEF_NULL == fptr ) return false;
 
     if ( fread( &m_header, VP_HEADER_SIZE, 1, fptr ) == 1 )
     {
@@ -618,8 +618,8 @@ CVPArchive::UnloadArchive( void )
 {GUCEF_TRACE;
 
     m_index.clear();
-    m_archiveName = NULL;
-    m_archivePath = NULL;
+    m_archiveName = GUCEF_NULL;
+    m_archivePath = GUCEF_NULL;
     return true;
 }
 

@@ -155,7 +155,7 @@ CAndroidSystemLogger::CAndroidSystemLogger( void )
 
     // We load the log module dynamically to avoid adding dependencies
     void* logModule = LoadModuleDynamicly( "log.so" );
-    if ( NULL != logModule )
+    if ( GUCEF_NULL != logModule )
     {
         // Find the address of the Android log function
         void* funcAddr = GetFunctionAddress( logModule                                     ,

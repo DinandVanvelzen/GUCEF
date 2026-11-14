@@ -140,7 +140,7 @@ BuildFileList( const CORE::CString& srcDir         ,
 {GUCEF_TRACE;
 
     struct CORE::SDI_Data* dirEntry = CORE::DI_First_Dir_Entry( srcDir.C_String() );
-    if ( dirEntry != NULL )    
+    if ( dirEntry != GUCEF_NULL )    
     {
         do 
         {
@@ -151,7 +151,7 @@ BuildFileList( const CORE::CString& srcDir         ,
                 // Check if this is a dir we have to ignore
                 if ( 0 == CORE::DI_Is_It_A_File( dirEntry ) )
                 {
-                    if ( NULL != dirsToIgnore )
+                    if ( GUCEF_NULL != dirsToIgnore )
                     {
                         if ( dirsToIgnore->find( entryName.Lowercase() ) != dirsToIgnore->end() )
                         {
@@ -166,7 +166,7 @@ BuildFileList( const CORE::CString& srcDir         ,
                 
                 if ( 0 != CORE::DI_Is_It_A_File( dirEntry ) )
                 {
-                    if ( NULL != fileTypes )
+                    if ( GUCEF_NULL != fileTypes )
                     {
                         CORE::CString fileExt = CORE::Extract_File_Ext( entryName.C_String() );
                         fileExt = fileExt.Lowercase();

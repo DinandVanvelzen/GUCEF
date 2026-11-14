@@ -32,15 +32,19 @@ language( "C" )
 
 configuration( { "WIN32" } )
 configuration( { "WIN64" } )
-  links( { "dinput8", "dxguid" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "dinput8", "dxguid" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=DirectInput8" } )
-  links( { "dinput8", "dxguid" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "dinput8", "dxguid" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=DirectInput8" } )
 
 configuration( { "WIN32" } )

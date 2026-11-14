@@ -30,18 +30,20 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "aws-c-common", "aws-c-http", "aws-c-io", "aws-c-sdkutils" } )
+
+configuration( {} )
 links( { "aws-c-common", "aws-c-http", "aws-c-io", "aws-c-sdkutils" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=aws_c_auth", "MODULE_NAME=aws_c_auth" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "BYO_CRYPTO" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "BYO_CRYPTO" } )
 
 

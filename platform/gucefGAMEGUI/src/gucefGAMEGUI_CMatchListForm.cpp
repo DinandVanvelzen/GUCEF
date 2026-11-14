@@ -1806,7 +1806,7 @@ CMatchListForm::PerformRowAction( const CORE::CString& matchId, const CORE::CStr
     MULTIPLAY::CIMatchProviderPtr provider = m_book->GetProviderOfMatch( matchId );
     if ( provider.IsNULL() )
         return false;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     if ( item == ItemNudge )
     {
         CORE::CString userId;

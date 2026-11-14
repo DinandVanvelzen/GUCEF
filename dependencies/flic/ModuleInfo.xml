@@ -6,5 +6,7 @@
         </Linker>
         <Preprocessor>
         </Preprocessor>
+        <!-- flic requires C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
 </ModuleInfoEntry>

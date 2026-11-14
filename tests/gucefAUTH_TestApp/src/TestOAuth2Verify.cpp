@@ -592,7 +592,7 @@ PerformMultipleAudienceTests( void )
             ASSERT_FALSE( g.manager.IsProviderOffered( "google" ) );
             AUTH::CAuthUnavailableProvider unavailable;
             ASSERT_TRUE( g.manager.GetUnavailableProvider( "google", unavailable ) && AUTH::AUTHUNAVAILABLE_NO_CLIENT_ID == unavailable.reason );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( g.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             // the server role works all the same
             ASSERT_TRUE( VerifyProof( g, "google", IdTokenProof( g, TokenFor( "android-client.example.invalid" ) ), verified ) );

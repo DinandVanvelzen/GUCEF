@@ -89,6 +89,7 @@ CProjectInfo::CProjectInfo( void )
     , m_knownPlatforms()
     , m_disabledPlatforms()
     , m_projectName()
+    , m_inputFingerprint()
     , m_projectTargets()
     , m_rwLock( true )
 {GUCEF_TRACE;
@@ -110,6 +111,7 @@ CProjectInfo::CProjectInfo( const CProjectInfo& src )
     , m_knownPlatforms( src.m_knownPlatforms )
     , m_disabledPlatforms( src.m_disabledPlatforms )
     , m_projectName( src.m_projectName )
+    , m_inputFingerprint( src.m_inputFingerprint )
     , m_projectTargets( src.m_projectTargets )
     , m_rwLock( true )
 {GUCEF_TRACE;
@@ -3022,6 +3024,8 @@ CProjectInfo::Serialize( CORE::CDataNode& domRootNode                        ,
     domRootNode.SetName( "Project" );
     domRootNode.SetAttribute( "ModuleCount", CORE::ToString( modules.size() ) );
     domRootNode.SetAttribute( "Name", m_projectName );
+    if ( !m_inputFingerprint.IsNULLOrEmpty() )
+        domRootNode.SetAttribute( "InputFingerprint", m_inputFingerprint );
 
     // Add info for each module
     TStringToModuleInfoEntryPtrMap::const_iterator i = modules.begin();
@@ -3035,6 +3039,10 @@ CProjectInfo::Serialize( CORE::CDataNode& domRootNode                        ,
             {
                 totalSuccess = false;
             }
+
+            // The module info is stored per platform exactly as it was after processing, platform aliases included.
+            // Restoring it must not resolve aliases again like it is done for module definition files
+            moduleNode->SetAttribute( "PlatformKeysAreExact", "true" );
         }
         ++i;
     }
@@ -3259,6 +3267,7 @@ CProjectInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
     }
 
     m_projectName = node->GetAttributeValueOrChildValueByName( "Name" ).AsString( m_projectName );
+    m_inputFingerprint = node->GetAttributeValueOrChildValueByName( "InputFingerprint" ).AsString();
     size_t suggestedNrOfModules = node->GetAttributeValueOrChildValueByName( "ModuleCount" ).AsSizeT();
 
     bool deserializeSuccess = DeserializeModuleEntries( *node, settings, suggestedNrOfModules );
@@ -3320,47 +3329,59 @@ CProjectInfo::SetKnownPlatformsToHardcodedDefaults( void )
 
     TPlatformDefinition* platform = &m_knownPlatforms[ KnownPlatforms::Android32 ];
     platform->name = KnownPlatforms::Android32;
-    platform->aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
-    platform->platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android32 };
+    platform->aliases.insert( KnownMultiPlatforms::Android );
+    platform->aliases.insert( KnownMultiPlatforms::LinuxLike );
+    platform->platformDirs.insert( KnownMultiPlatforms::Android );
+    platform->platformDirs.insert( KnownPlatforms::Android32 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Android64 ];
     platform->name = KnownPlatforms::Android64;
-    platform->aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
-    platform->platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android64 };
+    platform->aliases.insert( KnownMultiPlatforms::Android );
+    platform->aliases.insert( KnownMultiPlatforms::LinuxLike );
+    platform->platformDirs.insert( KnownMultiPlatforms::Android );
+    platform->platformDirs.insert( KnownPlatforms::Android64 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Linux32 ];
     platform->name = KnownPlatforms::Linux32;
-    platform->aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
-    platform->platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux32 };
+    platform->aliases.insert( KnownMultiPlatforms::Linux );
+    platform->aliases.insert( KnownMultiPlatforms::LinuxLike );
+    platform->platformDirs.insert( KnownMultiPlatforms::Linux );
+    platform->platformDirs.insert( KnownPlatforms::Linux32 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Linux64 ];
     platform->name = KnownPlatforms::Linux64;
-    platform->aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
-    platform->platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux64 };
+    platform->aliases.insert( KnownMultiPlatforms::Linux );
+    platform->aliases.insert( KnownMultiPlatforms::LinuxLike );
+    platform->platformDirs.insert( KnownMultiPlatforms::Linux );
+    platform->platformDirs.insert( KnownPlatforms::Linux64 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Win32 ];
     platform->name = KnownPlatforms::Win32;
-    platform->aliases = { KnownMultiPlatforms::MsWin };
-    platform->platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win32 };
+    platform->aliases.insert( KnownMultiPlatforms::MsWin );
+    platform->platformDirs.insert( KnownMultiPlatforms::MsWin );
+    platform->platformDirs.insert( KnownPlatforms::Win32 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Win64 ];
     platform->name = KnownPlatforms::Win64;
-    platform->aliases = { KnownMultiPlatforms::MsWin };
-    platform->platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win64 };
+    platform->aliases.insert( KnownMultiPlatforms::MsWin );
+    platform->platformDirs.insert( KnownMultiPlatforms::MsWin );
+    platform->platformDirs.insert( KnownPlatforms::Win64 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Emscripten32 ];
     platform->name = KnownPlatforms::Emscripten32;
-    platform->aliases = { KnownMultiPlatforms::Emscripten };
-    platform->platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten32 };
+    platform->aliases.insert( KnownMultiPlatforms::Emscripten );
+    platform->platformDirs.insert( KnownMultiPlatforms::Emscripten );
+    platform->platformDirs.insert( KnownPlatforms::Emscripten32 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Emscripten64 ];
     platform->name = KnownPlatforms::Emscripten64;
-    platform->aliases = { KnownMultiPlatforms::Emscripten };
-    platform->platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten64 };
+    platform->aliases.insert( KnownMultiPlatforms::Emscripten );
+    platform->platformDirs.insert( KnownMultiPlatforms::Emscripten );
+    platform->platformDirs.insert( KnownPlatforms::Emscripten64 );
 
     platform = &m_knownPlatforms[ KnownPlatforms::Arduino ];
     platform->name = KnownPlatforms::Arduino;
-    platform->platformDirs = { KnownPlatforms::Arduino };
+    platform->platformDirs.insert( KnownPlatforms::Arduino );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4296,6 +4317,111 @@ CProjectInfo::GetProjectName( void ) const
 {GUCEF_TRACE;
 
     return m_projectName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CProjectInfo::GetMinCppStandardYear( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                     const CORE::CString& targetPlatform        ) const
+{GUCEF_TRACE;
+
+    UInt32 minYear = 0;
+    if ( moduleInfoEntry.IsNULL() )
+        return minYear;
+
+    const CModuleInfoPtr allPlatformsInfo = moduleInfoEntry->FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
+    if ( !allPlatformsInfo.IsNULL() )
+        minYear = CppStandardToYear( allPlatformsInfo->compilerSettings.GetMinCppStandard() );
+
+    if ( targetPlatform != KnownPlatforms::AllPlatforms )
+    {
+        const CModuleInfoPtr platformInfo = moduleInfoEntry->FindModuleInfoForPlatform( targetPlatform );
+        if ( !platformInfo.IsNULL() )
+        {
+            UInt32 platformYear = CppStandardToYear( platformInfo->compilerSettings.GetMinCppStandard() );
+            if ( platformYear > minYear )
+                minYear = platformYear;
+        }
+    }
+    return minYear;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CProjectInfo::GetEffectiveMinCppStandardYear( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                              const CORE::CString& targetPlatform        ) const
+{GUCEF_TRACE;
+
+    UInt32 minYear = GetMinCppStandardYear( moduleInfoEntry, targetPlatform );
+
+    TModuleInfoEntryPtrSet dependencies;
+    GetModuleDependencies( moduleInfoEntry, targetPlatform, dependencies, true, false, true );
+    TModuleInfoEntryPtrSet::const_iterator i = dependencies.begin();
+    while ( i != dependencies.end() )
+    {
+        UInt32 dependencyYear = GetMinCppStandardYear( (*i), targetPlatform );
+        if ( dependencyYear > minYear )
+            minYear = dependencyYear;
+        ++i;
+    }
+    return minYear;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetInputSettingsDescription( TStringSet& lines ) const
+{GUCEF_TRACE;
+
+    // The settings which are read while gathering project information
+    static const char* gatheringSettings[] = { "projectName", "dirsToIgnore", "disabledPlatforms", "TagsOfModulesToRemove" };
+    for ( size_t i=0; i<sizeof(gatheringSettings)/sizeof(gatheringSettings[0]); ++i )
+    {
+        lines.insert( CORE::CString( "S " ) + gatheringSettings[ i ] + '=' + m_settings.GetValueAlways( gatheringSettings[ i ] ).AsString() );
+    }
+
+    // The platform definitions decide which dirs hold platform specific files and which names are aliases
+    TPlatformDefinitionMap::const_iterator p = m_knownPlatforms.begin();
+    while ( p != m_knownPlatforms.end() )
+    {
+        const TPlatformDefinition& platform = (*p).second;
+        CORE::CString line = "P " + platform.name + " aliases=";
+        TStringSet::const_iterator n = platform.aliases.begin();
+        while ( n != platform.aliases.end() )
+        {
+            line += (*n) + ';';
+            ++n;
+        }
+        line += " dirs=";
+        n = platform.platformDirs.begin();
+        while ( n != platform.platformDirs.end() )
+        {
+            line += (*n) + ';';
+            ++n;
+        }
+        lines.insert( line );
+        ++p;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SetInputFingerprint( const CORE::CString& inputFingerprint )
+{GUCEF_TRACE;
+
+    m_inputFingerprint = inputFingerprint;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CProjectInfo::GetInputFingerprint( void ) const
+{GUCEF_TRACE;
+
+    return m_inputFingerprint;
 }
 
 /*-------------------------------------------------------------------------*/

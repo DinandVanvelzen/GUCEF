@@ -134,7 +134,7 @@ class GUCEF_COM_PUBLIC_CPP CMySQLClient : public CORE::CObservingNotifier
         /**
          *      Resets the MySQL error string to NULL.
          */
-        void Clear_MySQL_Error( void ) { mysql_error = NULL; }
+        void Clear_MySQL_Error( void ) { mysql_error = GUCEF_NULL; }
 
         /**
          *      Send a MySQL query to the server. The resulting data will be

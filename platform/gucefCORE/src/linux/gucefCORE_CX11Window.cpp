@@ -69,7 +69,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CX11Window::CX11Window( void )
-    : m_display( NULL )   ,
+    : m_display( GUCEF_NULL )   ,
       m_screenNr( 0 )     ,
       m_window( 0 )       ,
       m_wmDeleteWindow()
@@ -83,7 +83,7 @@ CX11Window::~CX11Window()
 {GUCEF_TRACE;
 
     WindowDestroy();
-    SetDisplay( NULL );
+    SetDisplay( GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -130,7 +130,7 @@ void
 CX11Window::WindowDestroy( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         // Since we are getting rid of the window we don't need to listnen to events for it anymore
         CX11EventDispatcher::Instance()->UnsubscribeOnBehalfOfWindow( AsObserver(), m_window );
@@ -146,7 +146,7 @@ void
 CX11Window::SendToForegound( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XRaiseWindow( m_display, m_window );
     }
@@ -158,7 +158,7 @@ void
 CX11Window::GrabFocus( void )
 {GUCEF_TRACE;
 
-    if ( ( NULL != m_display ) && ( 0 != m_window ) )
+    if ( ( GUCEF_NULL != m_display ) && ( 0 != m_window ) )
     {
         XSetInputFocus( m_display, m_window, RevertToNone, CurrentTime );
     }
@@ -224,7 +224,7 @@ CX11Window::SetCursorVisible( bool visible )
 bool
 CX11Window::Show( void )
 {
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XMapWindow( m_display, m_window );
         return true;
@@ -237,7 +237,7 @@ CX11Window::Show( void )
 bool
 CX11Window::Hide( void )
 {
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XUnmapWindow( m_display, m_window );
         return true;
@@ -302,7 +302,7 @@ CX11Window::GetWindow( void ) const
 CX11Window::GetParentWindow( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XWindowAttributes windowAttrs;
         ::XGetWindowAttributes( m_display, m_window, &windowAttrs );
@@ -326,7 +326,7 @@ bool
 CX11Window::SetWindowAreaPosition( int x, int y )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XMoveWindow( m_display, m_window, x, y );
         return true;
@@ -340,7 +340,7 @@ bool
 CX11Window::GetWindowAreaPosition( int& x, int& y ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XWindowAttributes windowAttrs;
         ::XGetWindowAttributes( m_display, m_window, &windowAttrs );
@@ -357,7 +357,7 @@ bool
 CX11Window::GetClientAreaPosition( int& x, int& y ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XWindowAttributes windowAttrs;
         ::XGetWindowAttributes( m_display, m_window, &windowAttrs );
@@ -374,7 +374,7 @@ bool
 CX11Window::GetClientArea( int& x, int& y, int& width, int& height ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XWindowAttributes windowAttrs;
         ::XGetWindowAttributes( m_display, m_window, &windowAttrs );
@@ -393,7 +393,7 @@ bool
 CX11Window::GetWindowArea( int& x, int& y, int& width, int& height ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XWindowAttributes windowAttrs;
         ::XGetWindowAttributes( m_display, m_window, &windowAttrs );
@@ -457,7 +457,7 @@ void
 CX11Window::WindowAreaResize( int x, int y, int width, int height, bool repaint )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XMoveResizeWindow( m_display, m_window, x, y, width, height );
         if ( repaint )
@@ -473,7 +473,7 @@ void
 CX11Window::WindowAreaResize( int width, int height, bool repaint )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XResizeWindow( m_display, m_window, width, height );
         if ( repaint )
@@ -489,7 +489,7 @@ void
 CX11Window::ClientAreaResize( int x, int y, int width, int height, bool repaint )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XMoveResizeWindow( m_display, m_window, x, y, width, height );
         if ( repaint )
@@ -505,7 +505,7 @@ void
 CX11Window::ClientAreaResize( int width, int height, bool repaint )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XResizeWindow( m_display, m_window, width, height );
         if ( repaint )
@@ -608,7 +608,7 @@ void
 CX11Window::Repaint( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         ::XClearWindow( m_display, m_window );
     }
@@ -620,7 +620,7 @@ void
 CX11Window::SetText( const CString& text )
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         // We use the XTextProperty structure to store the title.
         ::XTextProperty windowName;
@@ -641,7 +641,7 @@ CString
 CX11Window::GetText( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_display && 0 != m_window )
+    if ( GUCEF_NULL != m_display && 0 != m_window )
     {
         // Tell X to ask the window manager to get the window title.
         // X11 itself doesn't provide window title functionality.
@@ -699,11 +699,11 @@ CX11Window::X11WindowCreate( const CString& windowTitle ,
     // If we already have a window destroy it
     WindowDestroy();
 
-    if ( NULL == m_display )
+    if ( GUCEF_NULL == m_display )
     {
         m_display = CX11EventDispatcher::Instance()->GetDisplay();
     }
-    if ( NULL == m_display )
+    if ( GUCEF_NULL == m_display )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "CX11Window::WindowCreate(): Failed to open display" );
         return false;

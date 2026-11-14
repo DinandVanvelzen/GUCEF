@@ -30,6 +30,8 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "aws-c-common" } )
+
+configuration( {} )
 links( { "aws-c-common" } )
 
 

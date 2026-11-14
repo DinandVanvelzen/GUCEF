@@ -155,7 +155,7 @@ CPatchManager::StartTask( const CString& taskName                  ,
         CPatchTaskData taskData( *this, patchEngineConfig, taskName );
         CORE::CFutureResult result = m_taskManager->GetThreadPool()->StartTask( CPatchTaskConsumer::GetTypeString() ,
                                                                                 &taskData                           ,
-                                                                                GUCEF_NULL                          );
+                                                                                false                               );
         return result.HasAFuture();
     }
     return false;

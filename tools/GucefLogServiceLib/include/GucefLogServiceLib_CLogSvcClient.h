@@ -111,7 +111,7 @@ class GUCEF_LOGSERVICELIB_EXPORT_CPP CLogSvcClient : public CORE::CLoggingTask
      */
     virtual void OnPumpedNotify( CORE::CNotifier* notifier           ,
                                  const CORE::CEvent& eventid         ,
-                                 CORE::CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                                 CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool OnTaskCycleLog( const CORE::TLogMsgType logMsgType ,
                                  const CORE::Int32 logLevel         ,

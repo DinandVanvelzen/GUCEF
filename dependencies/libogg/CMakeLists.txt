@@ -13,7 +13,7 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/ogg/config_types.h
     include/ogg/ogg.h
@@ -21,7 +21,7 @@ if (ANDROID)
     src/crctable.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -29,7 +29,26 @@ if (ANDROID)
     src/framing.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/ogg/config_types.h
+    include/ogg/ogg.h
+    include/ogg/os_types.h
+    src/crctable.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/bitwise.c
+    src/framing.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -114,7 +133,9 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "libogg" )
+elseif( ANDROID64 )
   set( MODULE_NAME "libogg" )
 elseif( LINUX32 )
   set( MODULE_NAME "libogg" )
@@ -125,7 +146,9 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "libogg" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
@@ -137,12 +160,19 @@ elseif( WIN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 endif()
 
-if ( ANDROID )
+if ( ANDROID32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=libogg;MODULE_SEMVER=1_3_6_0" )
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
 endif()
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=libogg;MODULE_SEMVER=1_3_6_0" )
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
+endif()
+endif( ANDROID64 )
 
 if ( LINUX32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=libogg;MODULE_SEMVER=1_3_6_0" )
@@ -172,9 +202,13 @@ if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
 endif()
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( include include/ogg src )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( include include/ogg src )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( include include/ogg src )
@@ -190,6 +224,26 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( include include/ogg src )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/ogg src )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/ogg src )
+endif( ANDROID64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/ogg src )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/ogg src )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/ogg src )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/ogg src )
 endif( WIN64 )
 
 
@@ -199,7 +253,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )

@@ -189,7 +189,7 @@ CILobbyService::TryGetLobbyFromFuture( const CORE::CFutureResult& future, CILobb
     if ( future.HasNoFuture() || !future.IsReady() )
         return false;
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
     const CLobbyResultData* data = CORE::CICloneable::CloneableAs< CLobbyResultData >( task->GetTaskData() );
     if ( GUCEF_NULL == data || data->GetData().IsNULL() )

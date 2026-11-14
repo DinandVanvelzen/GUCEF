@@ -1082,7 +1082,7 @@ PerformRefusalTests( void )
     try
     {
         AUDIO::CAudioEngine notRunning;
-        ASSERT_TRUE( IsFailedWith( notRunning.ApplyBusLayout( MakeSampleLayout() ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( notRunning.ApplyBusLayout( MakeSampleLayout() ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         AUDIO::CAudioEngine engine;
         ASSERT_TRUE( engine.Initialize( NullParams() ) );
@@ -1173,7 +1173,7 @@ PerformRefusalTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "AudioBusLayout: refusal case: " << cases[ c ].what );
             CORE::CFutureResult refused = engine.ApplyBusLayout( cases[ c ].layout );
-            ASSERT_TRUE( IsFailedWith( refused, CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+            ASSERT_TRUE( IsFailedWith( refused, CORE::TASKSTATUS_SETUP_FAILED ) );
 
             // nothing changed, also not the valid part that came first, and nothing waits for the audio thread
             AUDIO::CAudioBusLayout after;
@@ -1199,7 +1199,7 @@ PerformRefusalTests( void )
         AUDIO::CAudioBusLayout crowded;
         for ( int b=0; b<4; ++b )
             crowded.AddBus( b == 0 ? "a" : b == 1 ? "b" : b == 2 ? "c" : "d" );
-        ASSERT_TRUE( IsFailedWith( smallEngine.ApplyBusLayout( crowded ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( smallEngine.ApplyBusLayout( crowded ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( GUCEF_NULL == smallEngine.FindBus( "a" ) );
         crowded.GetBuses().pop_back();
         ASSERT_TRUE( ApplyAndWait( smallEngine, crowded ) && GUCEF_NULL != smallEngine.FindBus( "c" ) );
@@ -1261,7 +1261,7 @@ PerformRefusalTests( void )
             ASSERT_TRUE( engine.GetBusLayout( captured ) && 5 == captured.GetBuses().size() && 2 == captured.FindBus( "sfx" )->effects.size() );
         }
 
-        CORE::CFutureResult orphan( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        CORE::CFutureResult orphan( CORE::TASKSTATUS_SETUP_FAILED );
         {
             AUDIO::CAudioEngine engine;
             ASSERT_TRUE( engine.Initialize( NullParams() ) );
@@ -1271,7 +1271,7 @@ PerformRefusalTests( void )
         }
         ASSERT_TRUE( orphan.IsReady() );
         CORE::CTaskPtr orphanTask = orphan.GetResult( 1000 );
-        ASSERT_TRUE( !orphanTask.IsNULL() && CORE::TTaskStatus::TASKSTATUS_CANCELLED == orphanTask->GetTaskStatus() );
+        ASSERT_TRUE( !orphanTask.IsNULL() && CORE::TASKSTATUS_CANCELLED == orphanTask->GetTaskStatus() );
     }
     catch ( ... )
     {

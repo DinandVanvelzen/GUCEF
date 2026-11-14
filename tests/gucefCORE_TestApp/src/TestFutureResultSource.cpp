@@ -119,7 +119,7 @@ class CCompletingThread : public MT::CActiveObject
         switch ( m_action )
         {
             case ACTION_COMPLETE : won = m_source.Complete(); break;
-            case ACTION_FAIL     : won = m_source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "thread says no" ); break;
+            case ACTION_FAIL     : won = m_source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "thread says no" ); break;
             default              : won = m_source.Cancel(); break;
         }
         m_won.Store( won, MT::MEMORDER_RELEASE );
@@ -188,7 +188,7 @@ PerformBasicTests( void )
         future.Await( 1000 );
         CORE::CTaskPtr task = future.GetResult( 1000 );
         ASSERT_FALSE( task.IsNULL() );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == task->GetTaskStatus() );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == task->GetTaskStatus() );
     }
     catch( ... )
     {
@@ -201,13 +201,13 @@ PerformBasicTests( void )
     {
         CORE::CFutureResultSource source;
         CORE::CFutureResult future = source.GetFuture();
-        ASSERT_TRUE( source.Fail( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED, "no room" ) );
+        ASSERT_TRUE( source.Fail( CORE::TASKSTATUS_SETUP_FAILED, "no room" ) );
         ASSERT_FALSE( source.Complete() );
         ASSERT_FALSE( source.Cancel() );
-        ASSERT_FALSE( source.Fail( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_FALSE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_RUNNING ) );
+        ASSERT_FALSE( source.Fail( CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_FALSE( source.SetStatus( CORE::TASKSTATUS_RUNNING ) );
         CORE::CTaskPtr task = future.GetResult( 1000 );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED == task->GetTaskStatus() );
+        ASSERT_TRUE( CORE::TASKSTATUS_SETUP_FAILED == task->GetTaskStatus() );
         ASSERT_TRUE( task->IsTaskInErrorState() );
         ASSERT_TRUE( task->GetTaskStatusExtraInfo() == "no room" );
     }
@@ -224,22 +224,22 @@ PerformBasicTests( void )
         CORE::CFutureResult future = source.GetFuture();
 
         // RESOURCE_LIMIT_REACHED and RESOURCE_NOT_AVAILABLE are not end states: Fail() refuses them
-        ASSERT_FALSE( source.Fail( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED ) );
-        ASSERT_FALSE( source.Fail( CORE::TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE ) );
-        ASSERT_FALSE( source.Fail( CORE::TTaskStatus::TASKSTATUS_RUNNING ) );           // not an error at all
+        ASSERT_FALSE( source.Fail( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED ) );
+        ASSERT_FALSE( source.Fail( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE ) );
+        ASSERT_FALSE( source.Fail( CORE::TASKSTATUS_RUNNING ) );           // not an error at all
         ASSERT_FALSE( future.IsReady() );
 
         // reported as the current status instead: the caller sees the error through HasNoFuture() while it lasts
-        ASSERT_TRUE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED ) );
+        ASSERT_TRUE( source.SetStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED ) );
         ASSERT_FALSE( future.IsReady() );
         ASSERT_TRUE( future.HasNoFuture() );
 
         // the limit clears, the work goes on and finishes
-        ASSERT_TRUE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_RUNNING ) );
+        ASSERT_TRUE( source.SetStatus( CORE::TASKSTATUS_RUNNING ) );
         ASSERT_FALSE( future.HasNoFuture() );
         ASSERT_TRUE( source.Complete() );
         ASSERT_TRUE( future.IsReady() );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == future.GetResult( 1000 )->GetTaskStatus() );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == future.GetResult( 1000 )->GetTaskStatus() );
     }
     catch( ... )
     {
@@ -250,20 +250,20 @@ PerformBasicTests( void )
     GUCEF_TESTFW_TESTCASE( "FutureResultSource: Status moves through the non end states and rejects bad requests" )
     try
     {
-        CORE::CFutureResultSource source( CORE::TTaskStatus::TASKSTATUS_QUEUED );
+        CORE::CFutureResultSource source( CORE::TASKSTATUS_QUEUED );
         CORE::CFutureResult future = source.GetFuture();
-        ASSERT_TRUE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_RUNNING ) );
-        ASSERT_TRUE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_PAUSED ) );
-        ASSERT_TRUE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_RESUMED ) );
-        ASSERT_FALSE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_FINISHED ) );     // end states go through Complete()
-        ASSERT_FALSE( source.SetStatus( CORE::TTaskStatus::TASKSTATUS_UNDEFINED ) );
-        ASSERT_FALSE( source.Complete( CORE::TTaskStatus::TASKSTATUS_RUNNING ) );        // not an end state
+        ASSERT_TRUE( source.SetStatus( CORE::TASKSTATUS_RUNNING ) );
+        ASSERT_TRUE( source.SetStatus( CORE::TASKSTATUS_PAUSED ) );
+        ASSERT_TRUE( source.SetStatus( CORE::TASKSTATUS_RESUMED ) );
+        ASSERT_FALSE( source.SetStatus( CORE::TASKSTATUS_FINISHED ) );     // end states go through Complete()
+        ASSERT_FALSE( source.SetStatus( CORE::TASKSTATUS_UNDEFINED ) );
+        ASSERT_FALSE( source.Complete( CORE::TASKSTATUS_RUNNING ) );        // not an end state
         ASSERT_FALSE( future.IsReady() );
-        ASSERT_TRUE( source.Complete( CORE::TTaskStatus::TASKSTATUS_STOPPED, "stopped by test" ) );
+        ASSERT_TRUE( source.Complete( CORE::TASKSTATUS_STOPPED, "stopped by test" ) );
         ASSERT_TRUE( future.IsReady() );
 
         // an end state as initial state is not a pending future, it is turned into running
-        CORE::CFutureResultSource odd( CORE::TTaskStatus::TASKSTATUS_FINISHED );
+        CORE::CFutureResultSource odd( CORE::TASKSTATUS_FINISHED );
         ASSERT_FALSE( odd.GetFuture().IsReady() );
     }
     catch( ... )
@@ -397,7 +397,7 @@ PerformThreadTests( void )
         ASSERT_TRUE( future.IsReady() );
         ASSERT_TRUE( thread.WaitUntilDone( 5000 ) );
         ASSERT_TRUE( thread.Won() );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == future.GetResult( 1000 )->GetTaskStatus() );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == future.GetResult( 1000 )->GetTaskStatus() );
     }
     catch( ... )
     {

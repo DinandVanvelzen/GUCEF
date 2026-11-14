@@ -1,0 +1,14 @@
+common/include/*
+common/test/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
+platform/gucefCOMCORE/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+plugins/COMCORE/dbpluginVFSTABLES/*
+plugins/CORE/codecspluginZLIB/*
+plugins/CORE/dstorepluginJSONPARSER/*
+plugins/CORE/tablecodecpluginPARQUET/*
+tests/dbpluginVFSTABLES_TestApp/*
+tests/gucefCORE_TestApp/include/*

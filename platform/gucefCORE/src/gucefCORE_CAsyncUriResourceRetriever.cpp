@@ -209,14 +209,14 @@ CAsyncUriResourceRetriever::QueueRetrieval( const CUri& uri            ,
     if ( m_busy )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncUriResourceRetriever: A retrieval is already busy, cannot start retrieving \"" << CRedactor::ForUrl().RedactUrl( uri.ToUriInStringForm() ) << "\"" );
-        return CFutureResult( TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
     }
 
     ThreadPoolPtr threadPool = GetThreadPool();
     if ( threadPool.IsNULL() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncUriResourceRetriever: No thread pool available to carry out the retrieval" );
-        return CFutureResult( TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
     }
 
     CAsyncUriRetrievalTaskData* taskData = GUCEF_NEW CAsyncUriRetrievalTaskData();

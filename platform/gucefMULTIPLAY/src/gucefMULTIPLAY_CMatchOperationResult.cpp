@@ -129,7 +129,7 @@ CMatchOperationResult::TryGetFromFuture( const CORE::CFutureResult& future, CMat
     if ( future.HasNoFuture() || !future.IsReady() )
         return false;
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
     const CMatchOperationResult* data = CORE::CICloneable::CloneableAs< CMatchOperationResult >( task->GetTaskData() );
     if ( GUCEF_NULL == data )

@@ -130,7 +130,7 @@ CUDPSocket::CUDPSocket( const CORE::PulseGeneratorPtr& pulseGenerator ,
     : CSocket()
     , m_autoReopenOnError( false )
     , _blocking( blocking )
-    , _data( NULL )
+    , _data( GUCEF_NULL )
     , m_hostAddress()
     , m_underlyingReceiveBuffer()
     , m_receiveBuffers()
@@ -167,7 +167,7 @@ CUDPSocket::CUDPSocket( bool blocking )
     : CSocket()
     , m_autoReopenOnError( false )
     , _blocking( blocking )
-    , _data( NULL )
+    , _data( GUCEF_NULL )
     , m_hostAddress()
     , m_underlyingReceiveBuffer()
     , m_receiveBuffers()
@@ -206,7 +206,7 @@ CUDPSocket::~CUDPSocket()
     Close( false );
 
     GUCEF_DELETE _data;
-    _data = NULL;
+    _data = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -507,7 +507,7 @@ CUDPSocket::Update( bool performRead )
 
             if ( dvsocket_select( (int)sockid+1        ,
                                   &readfds             ,
-                                  NULL                 , // We don't care about socket writes here
+                                  GUCEF_NULL                 , // We don't care about socket writes here
                                   &exceptfds           ,
                                   &_data->timeout      ,
                                   &errorCode           ) != SOCKET_ERROR )

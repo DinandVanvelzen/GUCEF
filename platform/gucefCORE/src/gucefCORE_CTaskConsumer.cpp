@@ -132,7 +132,7 @@ CTaskConsumer::SetIsInPhasedSetup( bool inPhasedSetup )
         CTaskPtr currentTask = m_currentTask;
         if ( !currentTask.IsNULL() )
         {
-            currentTask->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP );
+            currentTask->SetTaskStatus( CORE::TASKSTATUS_SETUP );
         }
     }
     // Clearing the flag is the go signal for the delegator thread which waits on it: releasing it publishes all
@@ -459,7 +459,7 @@ CTaskConsumer::GetTaskStatus( void ) const
     {
         return task->GetTaskStatus();
     }
-    return TTaskStatus::TASKSTATUS_UNDEFINED;
+    return CORE::TASKSTATUS_UNDEFINED;
 }
 
 /*-------------------------------------------------------------------------*/

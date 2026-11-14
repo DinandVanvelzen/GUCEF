@@ -73,8 +73,8 @@ class GUCEF_COM_PUBLIC_CPP CDBField
 
         Int32 AsInteger( void ) { return CORE::Str_To_Int( value ); }
 
-        CDBField( void ) { value = NULL; }
-        virtual ~CDBField() { if(value != NULL) delete[] value; }
+        CDBField( void ) { value = GUCEF_NULL; }
+        virtual ~CDBField() { if(value != GUCEF_NULL) delete[] value; }
 };
 
 /*-------------------------------------------------------------------------//

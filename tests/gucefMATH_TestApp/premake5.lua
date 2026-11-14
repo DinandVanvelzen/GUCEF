@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,11 +36,14 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMATH", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMATH", "gucefMT" } )
 
 
 configuration( {} )
 defines( { "GUCEF_MATH_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMATH_TestApp", "MODULE_NAME=gucefMATH_TestApp" } )
+
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
@@ -109,7 +112,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMATH/include", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

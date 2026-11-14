@@ -78,7 +78,7 @@ namespace MYGUI {
 CFormBackendImp::CFormBackendImp( void )
     : CFormBackend()        ,
       m_widgetMap()         ,
-      m_rootWindow( NULL )  ,
+      m_rootWindow( GUCEF_NULL )  ,
       m_widgetNamePrefix()  ,
       m_resourceGroupName() //,
       //m_dummyArchive( NULL )
@@ -109,7 +109,7 @@ GUCEF::GUI::CWidget*
 CFormBackendImp::CreateAndHookWrapperForWindow( MyGUI::Widget* widget )
 {GUCEF_TRACE;
 
-    GUCEF::GUI::CWidget* widgetWrapper = NULL;
+    GUCEF::GUI::CWidget* widgetWrapper = GUCEF_NULL;
     CString typeName( CString( widget->getTypeName().c_str() ).SubstrToChar( '/', false ) );
 
     if ( "Widget" == typeName )
@@ -209,7 +209,7 @@ CFormBackendImp::CreateAndHookWrapperForWindow( MyGUI::Widget* widget )
         GUCEF_ERROR_LOG( GUCEF::CORE::LOGLEVEL_IMPORTANT, "CFormBackendImp(" + GUCEF::CORE::PointerToString( this ) + "): Unable match widget type to wrapper for widget type: " + typeName );
     }
 
-    if ( NULL != widgetWrapper )
+    if ( GUCEF_NULL != widgetWrapper )
     {
         GUCEF_DEBUG_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "CFormBackendImp(" + GUCEF::CORE::PointerToString( this ) + "): Wrapped and hooked GUI widget of type " + widgetWrapper->GetType() + " for MyGUI widget of type " + typeName );
     }
@@ -222,15 +222,15 @@ void
 CFormBackendImp::WrapAndHookChildWindows( MyGUI::Widget* widget )
 {GUCEF_TRACE;
 
-    GUCEF::GUI::CWidget* wrappedWidget = NULL;
-    MyGUI::Widget* childWidget = NULL;
+    GUCEF::GUI::CWidget* wrappedWidget = GUCEF_NULL;
+    MyGUI::Widget* childWidget = GUCEF_NULL;
 
     MyGUI::EnumeratorWidgetPtr childWidgets = widget->getEnumerator();
     while ( childWidgets.next() )
     {
         childWidget = childWidgets.current();
         wrappedWidget = CreateAndHookWrapperForWindow( childWidget );
-        if ( NULL != wrappedWidget )
+        if ( GUCEF_NULL != wrappedWidget )
         {
             CString localWidgetName = wrappedWidget->GetName().SubstrToChar( '/', false );
             m_widgetMap[ localWidgetName ] = wrappedWidget;
@@ -264,18 +264,18 @@ CFormBackendImp::LoadLayout( const GUCEF::CORE::CString& layoutStoragePath )
     }
 
     // Now that we completed loading lets see what we got from MyGUI
-    m_rootWindow = NULL;
+    m_rootWindow = GUCEF_NULL;
     MyGUI::VectorWidgetPtr::iterator i = rootWidgets.begin();
     while ( i != rootWidgets.end() )
     {
         // Begin by providing a wrapper for the root window
         MyGUI::Widget* rootWidget = (*i);
         GUCEF::GUI::CWidget* wrappedRootWidget = CreateAndHookWrapperForWindow( rootWidget );
-        if ( NULL != wrappedRootWidget )
+        if ( GUCEF_NULL != wrappedRootWidget )
         {
             CString localWidgetName = wrappedRootWidget->GetName().SubstrToChar( '/', false );
             m_widgetMap[ localWidgetName ] = wrappedRootWidget;
-            if ( NULL == m_rootWindow )
+            if ( GUCEF_NULL == m_rootWindow )
             {
                 m_rootWindow = wrappedRootWidget;
             }
@@ -346,7 +346,7 @@ CFormBackendImp::GetWidget( const CString& widgetName )
         return (*i).second;
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

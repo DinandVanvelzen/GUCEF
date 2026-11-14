@@ -80,7 +80,7 @@ namespace INPUT {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CInputGlobal* CInputGlobal::g_instance = NULL;
+CInputGlobal* CInputGlobal::g_instance = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -92,7 +92,7 @@ CInputGlobal*
 CInputGlobal::Instance()
 {GUCEF_TRACE;
 
-    if ( NULL == g_instance )
+    if ( GUCEF_NULL == g_instance )
     {
         g_instance = new CInputGlobal();
         g_instance->Initialize();
@@ -107,7 +107,7 @@ CInputGlobal::Deinstance( void )
 {GUCEF_TRACE;
 
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -143,8 +143,8 @@ CInputGlobal::Initialize( void )
 /*-------------------------------------------------------------------------*/
 
 CInputGlobal::CInputGlobal( void )
-    : m_inputController( NULL )          ,
-      m_inputDriverPluginManager( NULL )
+    : m_inputController( GUCEF_NULL )          ,
+      m_inputDriverPluginManager( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -163,9 +163,9 @@ CInputGlobal::~CInputGlobal()
      */
 
     delete m_inputDriverPluginManager;
-    m_inputDriverPluginManager = NULL;
+    m_inputDriverPluginManager = GUCEF_NULL;
     delete m_inputController;
-    m_inputController = NULL;
+    m_inputController = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

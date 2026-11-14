@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "zlib" } )
+
+configuration( {} )
 links( { "zlib" } )
 
 

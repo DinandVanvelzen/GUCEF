@@ -69,7 +69,7 @@ CUDPChannel::CUDPChannel( CUDPMasterSocket& parentSocket ,
       m_parentSocket( &parentSocket )
 {GUCEF_TRACE;
 
-    assert( m_parentSocket != NULL );
+    assert( m_parentSocket != GUCEF_NULL );
     RegisterEvents();
 }
 

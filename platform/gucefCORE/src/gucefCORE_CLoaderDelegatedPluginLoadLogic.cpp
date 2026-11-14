@@ -91,7 +91,7 @@ CLoaderDelegatedPluginLoadLogic::LoadPlugin( const CString& rootDir        ,
     Initialize();
 
     TGucefLoaderCInterface* cInterface = (TGucefLoaderCInterface*) m_cInterface;
-    if ( NULL == cInterface ) return NULL;
+    if ( GUCEF_NULL == cInterface ) return GUCEF_NULL;
 
     TVersion moduleVersion;
     memset( &moduleVersion, -1, sizeof(moduleVersion) );
@@ -118,7 +118,7 @@ CLoaderDelegatedPluginLoadLogic::UnloadPlugin( void* modulePtr )
     Initialize();
 
     TGucefLoaderCInterface* cInterface = (TGucefLoaderCInterface*) m_cInterface;
-    if ( NULL == cInterface ) return;
+    if ( GUCEF_NULL == cInterface ) return;
 
     cInterface->unloadModule( modulePtr );
 }
@@ -129,15 +129,15 @@ void
 CLoaderDelegatedPluginLoadLogic::Initialize( void )
 {GUCEF_TRACE;
 
-    if ( NULL == m_cInterface )
+    if ( GUCEF_NULL == m_cInterface )
     {
         // Link to the already loaded gucefLOADER module
         void* modulePtr = GetModulePointer( "gucefLOADER" );
-        if ( NULL == modulePtr )
+        if ( GUCEF_NULL == modulePtr )
         {
             modulePtr = GetModulePointer( "gucefLOADER_d" );
         }
-        if ( NULL != modulePtr )
+        if ( GUCEF_NULL != modulePtr )
         {
             TGucefLoaderCInterface* cInterface = GUCEF_NEW TGucefLoaderCInterface();
             memset( cInterface, 0, sizeof(TGucefLoaderCInterface) );
@@ -145,15 +145,15 @@ CLoaderDelegatedPluginLoadLogic::Initialize( void )
             cInterface->loadModule = (TGUCEFLOADERCINTERFACE_LoadModule) GetFunctionAddress( modulePtr, "LoadSpecificModule", 3*sizeof(const char*) + 4*sizeof(long) ).funcPtr;
             cInterface->unloadModule = (TGUCEFLOADERCINTERFACE_UnloadModule) GetFunctionAddress( modulePtr, "UnloadSpecificModule", sizeof(void*) ).funcPtr;
 
-            if ( ( NULL != cInterface->loadModule )   &&
-                 ( NULL != cInterface->unloadModule )  )
+            if ( ( GUCEF_NULL != cInterface->loadModule )   &&
+                 ( GUCEF_NULL != cInterface->unloadModule )  )
             {
                 m_cInterface = cInterface;
             }
             else
             {
                 GUCEF_DELETE cInterface;
-                m_cInterface = NULL;
+                m_cInterface = GUCEF_NULL;
             }
         }
     }
@@ -163,7 +163,7 @@ CLoaderDelegatedPluginLoadLogic::Initialize( void )
 /*-------------------------------------------------------------------------*/
 
 CLoaderDelegatedPluginLoadLogic::CLoaderDelegatedPluginLoadLogic( void )
-    : m_cInterface( NULL )
+    : m_cInterface( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -173,10 +173,10 @@ CLoaderDelegatedPluginLoadLogic::CLoaderDelegatedPluginLoadLogic( void )
 CLoaderDelegatedPluginLoadLogic::~CLoaderDelegatedPluginLoadLogic()
 {GUCEF_TRACE;
 
-    if ( NULL != m_cInterface )
+    if ( GUCEF_NULL != m_cInterface )
     {
         GUCEF_DELETE (TGucefLoaderCInterface*) m_cInterface;
-        m_cInterface = NULL;
+        m_cInterface = GUCEF_NULL;
     }
 }
 

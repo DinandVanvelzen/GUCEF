@@ -622,7 +622,7 @@ CAccountsPanel::Login( const CORE::CString& providerName )
     AUTH::CAuthOptions options;
     options.linkToProfile = true;
     options.preferDeviceCode = m_preferDeviceCode;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     SProgress& progress = GetOrMakeProgress( providerName );
     progress.message.Clear();
     progress.action = AUTH::CAuthActionRequired();

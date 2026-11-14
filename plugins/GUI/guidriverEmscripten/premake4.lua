@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
-  
-configuration( { EMSCRIPTEN32 } )
-links( { "gucefCORE", "gucefGUI", "gucefMT" } )
-  links( { "-sMAX_WEBGL_VERSION=2", "-sMIN_WEBGL_VERSION=2", "gucefCORE", "gucefGUI", "gucefMT" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "-sMAX_WEBGL_VERSION=2", "-sMIN_WEBGL_VERSION=2", "gucefCORE", "gucefGUI", "gucefMT" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "GUIDRIVEREMSCRIPTEN_BUILD_MODULE", "MODULE_API_PREFIX=guidriverEmscripten", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverEmscripten", "MODULE_SEMVER=1_0_0_0" } )
-  
-configuration( { EMSCRIPTEN64 } )
-links( { "gucefCORE", "gucefGUI", "gucefMT" } )
-  links( { "-sMAX_WEBGL_VERSION=2", "-sMIN_WEBGL_VERSION=2", "gucefCORE", "gucefGUI", "gucefMT" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "-sMAX_WEBGL_VERSION=2", "-sMIN_WEBGL_VERSION=2", "gucefCORE", "gucefGUI", "gucefMT" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "GUIDRIVEREMSCRIPTEN_BUILD_MODULE", "MODULE_API_PREFIX=guidriverEmscripten", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverEmscripten", "MODULE_SEMVER=1_0_0_0" } )
 
 
@@ -99,7 +103,7 @@ configuration( { "EMSCRIPTEN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api" } )
 
 configuration( { "EMSCRIPTEN32" } )
 includedirs( { "include" } )

@@ -77,7 +77,7 @@ COgreWindowManagerImp::CreateWindowContext( const GUI::CString& title ,
 
     return CreateWindowContext( title         ,
                                 videoSettings ,
-                                NULL          );
+                                GUCEF_NULL          );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -123,7 +123,7 @@ COgreWindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowConte
 {GUCEF_TRACE;
 
     COgreWindowContext* ogreContext = static_cast<COgreWindowContext*>( windowContext.GetPointerAlways() );
-    if ( NULL != ogreContext )
+    if ( GUCEF_NULL != ogreContext )
     {
         ogreContext->Shutdown();
     }
@@ -155,10 +155,10 @@ COgreWindowManagerImp::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
       
     const CORE::CDataNode* n = config.Find( "OgreWindowManager" );
-    if ( nullptr != n )
+    if ( GUCEF_NULL != n )
     {
         Ogre::Root* root = Ogre::Root::getSingletonPtr();
-        if ( nullptr == root )
+        if ( GUCEF_NULL == root )
         {
             // No plugins file or config file specified
             root = new Ogre::Root( "", "", "ogre.log" );

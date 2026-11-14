@@ -137,7 +137,7 @@ void
 CObservingNotifier::SubscribeTo( CNotifier* notifier )
 {GUCEF_TRACE;
 
-    if ( NULL != notifier )
+    if ( GUCEF_NULL != notifier )
     {
         CNotifierScopeLock lock( this );
         notifier->Subscribe( &m_observer );

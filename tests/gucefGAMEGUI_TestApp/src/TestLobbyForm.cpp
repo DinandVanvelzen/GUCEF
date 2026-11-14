@@ -562,7 +562,7 @@ PerformLobbyFormTests( void )
         MULTIPLAY::CPlayerIdentity bobIdentity;
         bobIdentity.userId = "bob-id";
         bobIdentity.displayName = "Bob";
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( aliceChat.Connect( aliceIdentity, future ) && bobChat.Connect( bobIdentity, future ) );
 
         GAMEGUI::CLobbyForm aliceForm( context );

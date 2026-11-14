@@ -403,7 +403,7 @@ CTaskManager::UnregisterThreadPool( const CString& threadPoolName )
 
     MT::CObjectScopeLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
 
-    ThreadPoolMap::const_iterator i = m_threadPools.find( threadPoolName );
+    ThreadPoolMap::iterator i = m_threadPools.find( threadPoolName );
     if ( i != m_threadPools.end() )
     {
         ThreadPoolPtr threadPool = (*i).second;
@@ -474,7 +474,7 @@ CTaskManager::QueueTask( const CString& threadPoolName  ,
                                       assumeOwnershipOfTaskData );
     }
 
-    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+    return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -487,7 +487,7 @@ CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
 
     if ( GUCEF_NULL == taskData )
     {
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
     
     const CString& threadPoolName = taskData->GetThreadPoolName();
@@ -496,7 +496,7 @@ CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
     if ( !IsTaskOfTaskTypeExecutable( taskType, threadPoolName ) )
     {
         GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Task type \"" + taskType + "\" is not an executable task type, aborting" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKTYPE_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKTYPE_INVALID );
     }
 
     ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, !taskData->GetOnlyUseExistingThreadPool() );        
@@ -521,9 +521,9 @@ CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
     else
     {
         if ( taskData->GetOnlyUseExistingThreadPool() )
-            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+            return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
         else
-            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+            return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
     }
 }
 
@@ -552,7 +552,7 @@ CTaskManager::StartOrQueueTask( const CDataNode& taskData ,
             {
                 GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Unable to deserialize custom task properties from provide DOM for task with type " + genericTaskData->GetTaskTypeName() );
                 GUCEF_DELETE genericTaskData;
-                return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+                return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKDATA_INVALID );
             }
         }
         else
@@ -567,7 +567,7 @@ CTaskManager::StartOrQueueTask( const CDataNode& taskData ,
     {
         GUCEF_DELETE genericTaskData;
         GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Unable to derive standard task properties from provide DOM" ); 
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
 }
 
@@ -585,7 +585,7 @@ CTaskManager::StartTask( const CString& threadPoolName ,
         return threadPool->StartTask( taskType ,
                                       taskData );
     }
-    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+    return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -602,7 +602,7 @@ CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName ,
         return threadPool->StartTaskIfNoneExists( taskType ,
                                                   taskData );
     }
-    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+    return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -619,7 +619,7 @@ CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName ,
         return threadPool->StartTaskIfNoneExists( taskType ,
                                                   taskData );
     }
-    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+    return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/

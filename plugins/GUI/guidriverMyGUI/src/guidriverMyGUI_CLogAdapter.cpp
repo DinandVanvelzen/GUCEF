@@ -55,7 +55,7 @@ CLogAdapter::CLogAdapter()
 	
 CLogAdapter::~CLogAdapter()
 {
-    m_logManager = NULL;
+    m_logManager = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

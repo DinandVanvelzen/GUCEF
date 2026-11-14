@@ -48,54 +48,62 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "WindowedApp" )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefMT" } )
-  links( { "gucefCORE", "gucefMT" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefMT" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefMT" } )
-  links( { "gucefCORE", "gucefMT" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefMT" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefMT" } )
-  links( { "gucefCORE", "gucefMT" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefMT" } )
+
+
+configuration( { "WIN32" } )
 defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefMT" } )
-  links( { "gucefCORE", "gucefMT" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefMT" } )
+
+
+configuration( { "WIN64" } )
 defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
 
 

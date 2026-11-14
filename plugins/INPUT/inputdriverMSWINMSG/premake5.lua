@@ -30,30 +30,30 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=inputdriverMSWINMSG" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "WIN32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERMSWINMSG_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverMSWINMSG" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "WIN64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERMSWINMSG_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverMSWINMSG" } )
 
 

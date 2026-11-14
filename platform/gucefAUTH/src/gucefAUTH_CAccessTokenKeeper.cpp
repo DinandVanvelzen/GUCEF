@@ -101,7 +101,7 @@ FailureReasonOfFuture( const CORE::CFutureResult& future )
     CORE::CTaskPtr task = future.GetResult( 0 );
     if ( task.IsNULL() )
         return AUTHFAIL_UNKNOWN;
-    if ( CORE::TTaskStatus::TASKSTATUS_CANCELLED == task->GetTaskStatus() )
+    if ( CORE::TASKSTATUS_CANCELLED == task->GetTaskStatus() )
         return AUTHFAIL_CANCELLED;
     CORE::CString extraInfo = task->GetTaskStatusExtraInfo();
     CORE::CString name = extraInfo.SubstrToChar( ':', true );
@@ -119,7 +119,7 @@ MakeRefusedFuture( const char* why )
 {GUCEF_TRACE;
 
     CORE::CFutureResultSource source;
-    source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, why );
+    source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, why );
     return source.GetFuture();
 }
 
@@ -184,7 +184,7 @@ CAccessTokenKeeper::CAccessTokenKeeper( void )
     , m_refreshing( false )
     , m_hasWaitSource( false )
     , m_waitSource()
-    , m_providerFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    , m_providerFuture( CORE::TASKSTATUS_UNDEFINED )
     , m_sentRefreshToken()
     , m_refreshStartedAtMonotonicMs( 0 )
     , m_consecutiveFailures( 0 )
@@ -701,7 +701,7 @@ CAccessTokenKeeper::WaitForAccessToken( CSecretString& token, UInt64& expiresAtM
     if ( TOKEN_PENDING != status )
         return status;
 
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     RefreshStoreKnowledge();
     bool requested = false;
     {
@@ -997,7 +997,7 @@ CAccessTokenKeeper::OnTimer( CORE::CNotifier* notifier, const CORE::CEvent& even
     }
 
     if ( refuseWaiters )
-        refused.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "retry-delay" );
+        refused.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "retry-delay" );
     if ( finish )
         FinishRefresh( timedOut );
     else
@@ -1048,7 +1048,7 @@ CAccessTokenKeeper::StartRefresh( void )
     CSecretString refreshToken;
     bool haveToken = GUCEF_NULL != store && store->Load( providerName, account.ToString(), refreshToken ) && !refreshToken.IsEmpty();
 
-    CORE::CFutureResult providerFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult providerFuture( CORE::TASKSTATUS_UNDEFINED );
     bool started = false;
     if ( haveToken && GUCEF_NULL != provider )
     {
@@ -1119,7 +1119,7 @@ CAccessTokenKeeper::StartRefresh( void )
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AccessTokenKeeper: " << providerName << ": the provider cannot renew the access token now" );
     }
     if ( releaseWaiters )
-        waiters.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, haveToken ? "not-available" : ReauthReasonToString( REAUTH_NO_REFRESH_TOKEN ) );
+        waiters.Fail( CORE::TASKSTATUS_STARTUP_FAILED, haveToken ? "not-available" : ReauthReasonToString( REAUTH_NO_REFRESH_TOKEN ) );
     RaiseEvent( TokenRefreshFailedEvent, failed );
     if ( raiseReauth )
         RaiseEvent( ReauthRequiredEvent, reauth );
@@ -1131,7 +1131,7 @@ void
 CAccessTokenKeeper::FinishRefresh( bool timedOut )
 {GUCEF_TRACE;
 
-    CORE::CFutureResult providerFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult providerFuture( CORE::TASKSTATUS_UNDEFINED );
     CSecretString sentRefreshToken;
     CORE::CString providerName;
     CAccountRef account;
@@ -1141,7 +1141,7 @@ CAccessTokenKeeper::FinishRefresh( bool timedOut )
         providerFuture = m_providerFuture;
         sentRefreshToken = m_sentRefreshToken;
         m_sentRefreshToken.Clear();
-        m_providerFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        m_providerFuture = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
         providerName = m_providerName;
         account = m_account;
         store = m_store;
@@ -1233,7 +1233,7 @@ CAccessTokenKeeper::FinishRefresh( bool timedOut )
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AccessTokenKeeper: " << providerName << ": the access token could not be renewed (" << AuthFailureReasonToString( reason ) << ")" );
     if ( releaseWaiters )
-        waiters.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, AuthFailureReasonToString( reason ) );
+        waiters.Fail( CORE::TASKSTATUS_STARTUP_FAILED, AuthFailureReasonToString( reason ) );
     RaiseEvent( TokenRefreshFailedEvent, data );
     if ( raiseReauth )
     {

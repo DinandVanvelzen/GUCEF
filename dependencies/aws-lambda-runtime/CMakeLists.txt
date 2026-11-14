@@ -35,13 +35,25 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of aws-lambda-runtime and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 11 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( aws-lambda-runtime "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "aws-lambda-runtime" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} curl )
 target_link_libraries( ${MODULE_NAME} PUBLIC curl )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_lambda_runtime;MODULE_NAME=aws_lambda_runtime" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_11 )
 
 include_directories( ../curl/include ../curl/lib include include/aws include/aws/http include/aws/lambda-runtime include/aws/logging src )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/aws/http include/aws/lambda-runtime include/aws/logging src )
 
 
 

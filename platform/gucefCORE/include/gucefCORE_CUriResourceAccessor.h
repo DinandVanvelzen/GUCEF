@@ -77,7 +77,7 @@ class GUCEF_CORE_PUBLIC_CPP CUriResourceAccessor
     typedef CUri::UriVector     UriVector;
     typedef CUri::UriSet        UriSet;
 
-    enum URI_RESOURCEACCESS_MODE : UInt8
+    enum URI_RESOURCEACCESS_MODE GUCEF_ENUM_BASE( UInt8 )
     {
         URI_RESOURCEACCESS_MODE_UNDEFINED = 0,
 

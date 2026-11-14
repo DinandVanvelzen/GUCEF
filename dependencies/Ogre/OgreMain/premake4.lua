@@ -30,22 +30,32 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "freetype" } )
+
+configuration( {} )
 links( { "freetype" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "OGRE_NONCLIENT_BUILD", "OGRE_NO_CONFIG_DIALOG" } )
-  links( { "atomic", "dl" } )
-  links( { "atomic", "dl" } )
-  links( { "atomic", "dl" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
+links( { "atomic", "dl" } )
+
+configuration( { "ANDROID64" } )
+links( { "atomic", "dl" } )
+
+configuration( { "LINUX32" } )
+links( { "atomic", "dl" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "_GNU_SOURCE" } )
-  links( { "atomic", "dl" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "atomic", "dl" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "_GNU_SOURCE" } )
 
 

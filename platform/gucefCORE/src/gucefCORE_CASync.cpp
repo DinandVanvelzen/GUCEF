@@ -304,7 +304,7 @@ CASync::ThenCallbackCommonImpl( CICloneable* taskData )
         GUCEF_DELETE taskData;
         taskData = GUCEF_NULL;
 
-        m_state->m_tasks.push_back( CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED ) );
+        m_state->m_tasks.push_back( CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASK_CHAINING_FAILED ) );
         return *this;
     }
 
@@ -323,8 +323,8 @@ CASync::ThenCallbackCommonImpl( CICloneable* taskData )
         else
         {
             GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: Failed setting ThenCallback() based next task in chain with id " + ToString( newLastTask->GetTaskId() ) );
-            SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
-            newLastTask->SetTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+            SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
+            newLastTask->SetTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
             GUCEF_DELETE taskData;
             taskData = GUCEF_NULL;
@@ -424,7 +424,7 @@ CASync::Submit( void )
 
     if GUCEF_PREDICT_FALSE( m_state.IsNULL() )
     {
-        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+        return CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
     }
     if ( !m_state->m_chainIsHealthy || m_state->m_threadPool.IsNULL() )
     {
@@ -441,7 +441,7 @@ CASync::Submit( void )
             }
         }
 
-        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+        return CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
     }
 
     // this chain has not been submitted yet (not a redundant Submit() call)

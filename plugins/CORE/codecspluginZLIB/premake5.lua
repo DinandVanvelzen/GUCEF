@@ -26,12 +26,12 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -44,38 +44,50 @@ links( { "gucefCORE", "gucefMT" } )
 
 configuration( {} )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=codecspluginZLIB", "MODULE_IS_PLUGIN=1", "MODULE_NAME=codecspluginZLIB" } )
-  links( { "z" } )
-  links( { "z" } )
-  
-configuration( { EMSCRIPTEN32 } )
-links( { "zlib" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
-defines( { "MODULE_API_PREFIX=codecspluginZLIB" } )
-  
-configuration( { EMSCRIPTEN64 } )
-links( { "zlib" } )
-  
+configuration( { "ANDROID32" } )
+links( { "z" } )
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "ANDROID64" } )
+links( { "z" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "zlib" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=codecspluginZLIB" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "EMSCRIPTEN64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { LINUX64 } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+defines( { "MODULE_API_PREFIX=codecspluginZLIB" } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
+
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
 
 
 configuration( {} )

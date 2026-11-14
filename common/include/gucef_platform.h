@@ -339,4 +339,33 @@
 
 /*-------------------------------------------------------------------------*/
 
+#undef NULL
+#if defined(__cplusplus)
+  #ifndef __CPP09NULLPTRSUPPORTED
+    #if GUCEF_COMPILER == GUCEF_COMPILER_GNUC
+      #define NULL __null
+    #else
+      #define NULL (0)
+    #endif
+  #else
+    #define NULL (nullptr)
+  #endif
+#else
+  #define NULL ((void*)0)
+#endif
+
+/*
+ *  The null pointer constant to use in GUCEF code: nullptr where the compiler supports it, so that it only converts to
+ *  pointer types and selects pointer overloads, and NULL before that
+ */
+#undef GUCEF_NULLPTR_IS_SUPPORTED
+#if defined(__cplusplus) && ( ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && ( _MSC_VER >= 1600 ) ) )
+  #define GUCEF_NULLPTR_IS_SUPPORTED 1
+  #define GUCEF_NULL nullptr
+#else
+  #define GUCEF_NULL NULL
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* GUCEF_PLATFORM_H ? */

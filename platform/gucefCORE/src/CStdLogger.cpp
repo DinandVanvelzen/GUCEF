@@ -74,7 +74,7 @@ namespace CORE {
 
 CStdLogger::CStdLogger( void )
     : CILogger()                                 
-    , m_output( NULL )                           
+    , m_output( GUCEF_NULL )                           
     , m_minimalLogLevel( LOGLEVEL_BELOW_NORMAL ) 
     , m_logFormatter( CCoreGlobal::Instance()->GetLogManager().CreateDefaultLoggingFormatter() )
 {GUCEF_TRACE;
@@ -90,8 +90,8 @@ CStdLogger::CStdLogger( CIOAccess& output )
     , m_logFormatter( CCoreGlobal::Instance()->GetLogManager().CreateDefaultLoggingFormatter() )
 {GUCEF_TRACE;
 
-    assert( &output != NULL );
-    assert( m_output != NULL );
+    assert( &output != GUCEF_NULL );
+    assert( m_output != GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -109,7 +109,7 @@ void
 CStdLogger::SetOutput( CIOAccess& output )
 {GUCEF_TRACE;
 
-    assert( &output != NULL );
+    assert( &output != GUCEF_NULL );
     m_output = &output;
     m_output->Open();
 }
@@ -124,7 +124,7 @@ CStdLogger::Log( const TLogMsgType logMsgType ,
                  const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
-    if ( m_output != NULL )
+    if ( m_output != GUCEF_NULL )
     {
         if ( logLevel >= m_minimalLogLevel )
         {
@@ -151,7 +151,7 @@ CStdLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                   const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
-    if ( m_output != NULL )
+    if ( m_output != GUCEF_NULL )
     {
         if ( logLevel >= m_minimalLogLevel )
         {
@@ -195,7 +195,7 @@ void
 CStdLogger::FlushLog( void )
 {GUCEF_TRACE;
 
-    if ( m_output != NULL )
+    if ( m_output != GUCEF_NULL )
     {
         m_output->Flush();
     }

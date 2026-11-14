@@ -265,7 +265,7 @@ typedef CTFactory< CUriResourceAccessor, CDataUriResourceAccessor, MT::CMutex > 
 //-------------------------------------------------------------------------*/
 
 MT::CMutex CCoreGlobal::g_dataLock;
-CCoreGlobal* CCoreGlobal::g_instance = NULL;
+CCoreGlobal* CCoreGlobal::g_instance = GUCEF_NULL;
 
 TFileSystemUriResourceAccessorFactory g_fileSystemUriResourceAccessorFactory;
 TDataUriResourceAccessorFactory g_dataUriResourceAccessorFactory;

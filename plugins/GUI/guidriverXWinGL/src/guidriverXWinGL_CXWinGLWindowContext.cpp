@@ -117,10 +117,10 @@ CXWinGLWindowContext::CXWinGLWindowContext( void )
       m_id()                   ,
       m_name()                 ,
       m_window()               ,
-      m_renderContext( NULL )  ,
+      m_renderContext( GUCEF_NULL )  ,
       m_isCoreProfile( false ) ,
       m_shown( false )         ,
-      m_activation( NULL )
+      m_activation( GUCEF_NULL )
 {GUCEF_TRACE;
 
     TEventCallback paint( this, &CXWinGLWindowContext::OnWindowPaint );
@@ -197,23 +197,23 @@ CXWinGLWindowContext::Shutdown( void )
     pulseGenerator->RequestStopOfPeriodicUpdates( this );
     UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
 
-    if ( NULL != m_activation )
+    if ( GUCEF_NULL != m_activation )
     {
         if ( CORE::GetActivationTokenProvider() == m_activation )
             CORE::SetActivationTokenProvider( GUCEF_NULL );
         delete m_activation;
-        m_activation = NULL;
+        m_activation = GUCEF_NULL;
     }
 
-    if ( NULL != m_renderContext )
+    if ( GUCEF_NULL != m_renderContext )
     {
         ::Display* display = CORE::CX11EventDispatcher::Instance()->GetDisplay();
-        if ( NULL != display )
+        if ( GUCEF_NULL != display )
         {
-            glXMakeCurrent( display, None, NULL );
+            glXMakeCurrent( display, None, GUCEF_NULL );
             glXDestroyContext( display, (GLXContext) m_renderContext );
         }
-        m_renderContext = NULL;
+        m_renderContext = GUCEF_NULL;
     }
     if ( 0 != m_window.GetWindow() )
     {
@@ -285,7 +285,7 @@ CXWinGLWindowContext::GetProperty( const GUI::CString& propertyName ) const
     {
         // where the frame of the window is on the screen: what Initialize() takes as X and Y to put it there again
         ::Display* display = m_window.GetDisplay();
-        if ( NULL == display || 0 == m_window.GetWindow() )
+        if ( GUCEF_NULL == display || 0 == m_window.GetWindow() )
             return GUI::CString();
         int x = 0, y = 0;
         ::Window child = 0;
@@ -298,15 +298,15 @@ CXWinGLWindowContext::GetProperty( const GUI::CString& propertyName ) const
             ::Atom type = None;
             int format = 0;
             unsigned long count = 0, after = 0;
-            unsigned char* data = NULL;
+            unsigned char* data = GUCEF_NULL;
             if ( Success == ::XGetWindowProperty( display, m_window.GetWindow(), extentsAtom, 0, 4, False, XA_CARDINAL, &type, &format, &count, &after, &data ) &&
-                 NULL != data && 4 == count && 32 == format )
+                 GUCEF_NULL != data && 4 == count && 32 == format )
             {
                 const long* extents = (const long*) data;
                 x -= (int) extents[ 0 ];
                 y -= (int) extents[ 2 ];
             }
-            if ( NULL != data )
+            if ( GUCEF_NULL != data )
                 ::XFree( data );
         }
         return CORE::Int32ToString( x ) + "," + CORE::Int32ToString( y );
@@ -321,7 +321,7 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
                                   const GUI::CVideoSettings& videoSettings )
 {GUCEF_TRACE;
 
-    return Initialize( title, videoSettings, NULL );
+    return Initialize( title, videoSettings, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -337,7 +337,7 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
 
     // First get access to the display
     ::Display* display = CORE::CX11EventDispatcher::Instance()->GetDisplay();
-    if ( NULL == display )
+    if ( GUCEF_NULL == display )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CXWinGLWindowContext: Could not open display" );
         return false;
@@ -356,36 +356,36 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
     static const int frameBufferAttributes[] = { GLX_X_RENDERABLE, True, GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT, GLX_RENDER_TYPE, GLX_RGBA_BIT,
                                                  GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8,
                                                  GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, True, None };
-    XVisualInfo* vi = NULL;
-    GLXContext cx = NULL;
+    XVisualInfo* vi = GUCEF_NULL;
+    GLXContext cx = GUCEF_NULL;
     int configCount = 0;
     GLXFBConfig* configs = glXChooseFBConfig( display, DefaultScreen( display ), frameBufferAttributes, &configCount );
-    if ( NULL != configs && configCount > 0 )
+    if ( GUCEF_NULL != configs && configCount > 0 )
     {
         vi = glXGetVisualFromFBConfig( display, configs[ 0 ] );
 
         // OpenGL 3.3 core, what the renderers of the GUI drivers draw with
         typedef GLXContext ( *TCreateContextAttribs )( ::Display*, GLXFBConfig, GLXContext, Bool, const int* );
         TCreateContextAttribs createContextAttribs = (TCreateContextAttribs) glXGetProcAddressARB( (const GLubyte*) "glXCreateContextAttribsARB" );
-        if ( NULL != createContextAttribs && NULL != vi )
+        if ( GUCEF_NULL != createContextAttribs && GUCEF_NULL != vi )
         {
             static const int contextAttributes[] = { GLX_CONTEXT_MAJOR_VERSION_ARB, 3, GLX_CONTEXT_MINOR_VERSION_ARB, 3,
                                                      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB, None };
-            cx = createContextAttribs( display, configs[ 0 ], NULL, True, contextAttributes );
+            cx = createContextAttribs( display, configs[ 0 ], GUCEF_NULL, True, contextAttributes );
         }
         ::XFree( configs );
     }
-    m_isCoreProfile = NULL != cx;
+    m_isCoreProfile = GUCEF_NULL != cx;
 
-    if ( NULL == cx )
+    if ( GUCEF_NULL == cx )
     {
         // an older driver: a legacy context on any double buffered RGBA visual
-        if ( NULL == vi )
+        if ( GUCEF_NULL == vi )
         {
             static int attributes[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
             vi = glXChooseVisual( display, DefaultScreen( display ), attributes );
         }
-        if ( NULL == vi )
+        if ( GUCEF_NULL == vi )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CXWinGLWindowContext: Could not get visual info for display" );
             Shutdown();
@@ -393,7 +393,7 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
         }
         cx = glXCreateContext( display, vi, None, GL_TRUE );
     }
-    if ( NULL == cx )
+    if ( GUCEF_NULL == cx )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CXWinGLWindowContext: Could not create rendering context" );
         XFree( vi );
@@ -414,7 +414,7 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
     // a place asked for, when it is on the screen (a screen that changed since the place was kept leaves the window to the window manager)
     int windowX = 0, windowY = 0;
     bool placed = false;
-    if ( NULL != params && params->HasKey( "X" ) && params->HasKey( "Y" ) )
+    if ( GUCEF_NULL != params && params->HasKey( "X" ) && params->HasKey( "Y" ) )
     {
         windowX = params->GetValueAlways( "X" ).AsInt32( 0 );
         windowY = params->GetValueAlways( "Y" ).AsInt32( 0 );
@@ -460,7 +460,7 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
     {
         // the window manager is told that the place is the user's choice
         ::XSizeHints* hints = ::XAllocSizeHints();
-        if ( NULL != hints )
+        if ( GUCEF_NULL != hints )
         {
             hints->flags = USPosition | USSize;
             hints->x = windowX;
@@ -535,13 +535,13 @@ CXWinGLWindowContext::ApplySwapInterval( bool vsync )
     TSwapIntervalEXT swapIntervalEXT = (TSwapIntervalEXT) glXGetProcAddressARB( (const GLubyte*) "glXSwapIntervalEXT" );
     TSwapInterval swapIntervalMESA = (TSwapInterval) glXGetProcAddressARB( (const GLubyte*) "glXSwapIntervalMESA" );
     TSwapInterval swapIntervalSGI = (TSwapInterval) glXGetProcAddressARB( (const GLubyte*) "glXSwapIntervalSGI" );
-    if ( NULL != swapIntervalEXT )
+    if ( GUCEF_NULL != swapIntervalEXT )
         swapIntervalEXT( m_window.GetDisplay(), m_window.GetWindow(), swapInterval );
     else
-    if ( NULL != swapIntervalMESA )
+    if ( GUCEF_NULL != swapIntervalMESA )
         swapIntervalMESA( swapInterval );
     else
-    if ( NULL != swapIntervalSGI && swapInterval > 0 )
+    if ( GUCEF_NULL != swapIntervalSGI && swapInterval > 0 )
         swapIntervalSGI( swapInterval );
     else
         return false;

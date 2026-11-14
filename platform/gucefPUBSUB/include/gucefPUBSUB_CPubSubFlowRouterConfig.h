@@ -56,7 +56,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouterConfig : public CORE::CIConfigura
 
     typedef CPubSubFlowRouteConfig::PubSubFlowRouteConfigPtrVector     PubSubFlowRouteConfigPtrVector;
 
-    enum AckStyle : Int32
+    enum AckStyle GUCEF_ENUM_BASE( Int32 )
     {
         AllOrNothing    = 0 ,   /**< all sides have to ack for successful ack (default) */
         FireAndForget   = 1 ,   /**< dont pass along any acks */

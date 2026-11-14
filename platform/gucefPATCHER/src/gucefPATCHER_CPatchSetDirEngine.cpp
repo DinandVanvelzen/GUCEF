@@ -64,8 +64,8 @@ CPatchSetDirEngine::CPatchSetDirEngine( void )
     : CORE::CForwardingNotifier()            ,
       CPatchSetFileEngineEvents()            ,
       m_curSubDirIndex( 0 )                  ,
-      m_subDirPatchEngine( NULL )            ,
-      m_filePatchEngine( NULL )              ,
+      m_subDirPatchEngine( GUCEF_NULL )            ,
+      m_filePatchEngine( GUCEF_NULL )              ,
       m_dir()                                ,
       m_isActive( false )                    ,
       m_stopSignalGiven( false )             ,
@@ -85,8 +85,8 @@ CPatchSetDirEngine::CPatchSetDirEngine( const CORE::PulseGeneratorPtr& pulseGene
     : CORE::CForwardingNotifier()             ,
       CPatchSetFileEngineEvents()             ,
       m_curSubDirIndex( 0 )                   ,
-      m_subDirPatchEngine( NULL )             ,
-      m_filePatchEngine( NULL )               , 
+      m_subDirPatchEngine( GUCEF_NULL )             ,
+      m_filePatchEngine( GUCEF_NULL )               , 
       m_dir()                                 ,
       m_isActive( false )                     ,
       m_stopSignalGiven( false )              ,
@@ -160,7 +160,7 @@ CPatchSetDirEngine::ProcessFilesInDir( void )
     if ( m_dir.files.size() > 0 )
     {
         // We will be needing an engine for our file processing
-        if ( m_filePatchEngine == NULL )
+        if ( m_filePatchEngine == GUCEF_NULL )
         {
             if ( !m_pulseGenerator.IsNULL() )
             {
@@ -199,7 +199,7 @@ CPatchSetDirEngine::ProcessCurSubDir( void )
         NotifyObservers( SubDirProcessingStartedEvent );
         
         // We will be needing an engine for our sub-dir processing
-        if ( m_subDirPatchEngine == NULL )
+        if ( m_subDirPatchEngine == GUCEF_NULL )
         {
             if ( !m_pulseGenerator.IsNULL() )
             {
@@ -241,7 +241,7 @@ CPatchSetDirEngine::Start( const TDirEntry& startingDir            ,
                            const bool stopOnFileReplacementFailure )
 {GUCEF_TRACE;
 
-    assert( &startingDir != NULL );
+    assert( &startingDir != GUCEF_NULL );
     
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetDirEngine(" + CORE::PointerToString( this ) + "): Started" );
     
@@ -292,14 +292,14 @@ CPatchSetDirEngine::Stop( void )
         
         m_stopSignalGiven = true;
         
-        if ( m_filePatchEngine != NULL )
+        if ( m_filePatchEngine != GUCEF_NULL )
         {
             if ( m_filePatchEngine->IsActive() )
             {
                 m_filePatchEngine->Stop();
             }
         }
-        if ( m_subDirPatchEngine != NULL )
+        if ( m_subDirPatchEngine != GUCEF_NULL )
         {
             if ( m_subDirPatchEngine->IsActive() )
             {
@@ -358,7 +358,7 @@ CPatchSetDirEngine::OnNotify( CORE::CNotifier* notifier                 ,
                                              eventid   ,
                                              eventdata );
         
-        if ( ( m_filePatchEngine != NULL ) && ( notifier == m_filePatchEngine ) )
+        if ( ( m_filePatchEngine != GUCEF_NULL ) && ( notifier == m_filePatchEngine ) )
         {
             if ( ( eventid == CPatchSetFileEngineEvents::FileRetrievalProgressEvent ) ||
                  ( eventid == CPatchSetFileEngineEvents::LocalFileIsOKEvent )         ||
@@ -396,7 +396,7 @@ CPatchSetDirEngine::OnNotify( CORE::CNotifier* notifier                 ,
             }
         }
         else
-        if ( ( m_subDirPatchEngine != NULL ) && ( notifier == m_subDirPatchEngine ) )
+        if ( ( m_subDirPatchEngine != GUCEF_NULL ) && ( notifier == m_subDirPatchEngine ) )
         {
             if ( eventid == DirProcessingProgressEvent )
             {

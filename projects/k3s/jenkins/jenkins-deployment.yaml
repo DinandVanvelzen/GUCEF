@@ -23,28 +23,15 @@ spec:
           command: ['sh', '-c']
           args:
             - |
-              echo "Before permissions fix: (jenkins_home)";
-              ls -ld /var/jenkins_home;
-              ls -l /var/jenkins_home;
-              echo "Fixing permissions... (jenkins_home)";
+              echo "Fixing permissions of persistent JENKINS_HOME";
               chown -R 1000:1000 /var/jenkins_home;
-              echo "After permissions fix: (jenkins_home)";
               ls -ld /var/jenkins_home;
-              ls -l /var/jenkins_home;
-              echo "Before permissions fix: (jenkins_home/data)";
-              ls -ld /var/jenkins_home/data;
-              ls -l /var/jenkins_home/data;
-              echo "Fixing permissions... (jenkins_home/data)";
-              chown -R 1000:1000 /var/jenkins_home/data;
-              echo "After permissions fix: (jenkins_home/data)";
-              ls -ld /var/jenkins_home/data;
-              ls -l /var/jenkins_home/data;
           securityContext:
             runAsUser: 0  # Ensure root privileges for the initContainer to run chown
             allowPrivilegeEscalation: true
           volumeMounts:
             - name: jenkins-data
-              mountPath: /var/jenkins_home/data
+              mountPath: /var/jenkins_home
       containers:
         - name: jenkins
           # Reference our locally created image
@@ -87,7 +74,7 @@ spec:
             failureThreshold: 3
           volumeMounts:
             - name: jenkins-data
-              mountPath: /var/jenkins_home/data
+              mountPath: /var/jenkins_home
             - name: jenkins-workspace
               mountPath: /var/jenkins_home/workspace
             - name: jenkins-casc-volume

@@ -31,7 +31,9 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "audiocodecpluginMP3" )
-if( EMSCRIPTEN )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -44,15 +46,23 @@ endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=audiocodecpluginMP3" )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
 
-include_directories( ../../../dependencies/dr_libs ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=audiocodecpluginMP3" )
+endif( EMSCRIPTEN64 )
 
-if ( ANDROID )
+include_directories( ../../../dependencies/dr_libs ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
+
+if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../platform/gucefCORE/include/linux )
@@ -69,6 +79,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES dr_libs INCLUDE_ONLY_MODULES gucefAUDIO gucefCORE gucefMT )
 
 
 

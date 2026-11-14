@@ -74,13 +74,13 @@ namespace COMCORE {
 //-------------------------------------------------------------------------*/
 
 UInt32 DllRefCount = 0;
-void* DllHandle = NULL;
-TIcmpCreateFilePtr IcmpCreateFile = NULL;
-TIcmpCloseHandlePtr IcmpCloseHandle = NULL;
-TIcmpParseRepliesPtr IcmpParseReplies = NULL;
-TIcmpSendEchoPtr IcmpSendEcho = NULL;
-TIcmpSendEcho2Ptr IcmpSendEcho2 = NULL;
-TIcmpSendEcho2VistaPtr IcmpSendEcho2Vista = NULL;
+void* DllHandle = GUCEF_NULL;
+TIcmpCreateFilePtr IcmpCreateFile = GUCEF_NULL;
+TIcmpCloseHandlePtr IcmpCloseHandle = GUCEF_NULL;
+TIcmpParseRepliesPtr IcmpParseReplies = GUCEF_NULL;
+TIcmpSendEchoPtr IcmpSendEcho = GUCEF_NULL;
+TIcmpSendEcho2Ptr IcmpSendEcho2 = GUCEF_NULL;
+TIcmpSendEcho2VistaPtr IcmpSendEcho2Vista = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -93,10 +93,10 @@ LinkICMPModule( const char* moduleName )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( win32ApiLinkerMutex );
-    if ( DllHandle == NULL )
+    if ( DllHandle == GUCEF_NULL )
     {
         DllHandle = CORE::LoadModuleDynamicly( moduleName );
-        if ( DllHandle != NULL )
+        if ( DllHandle != GUCEF_NULL )
         {
             IcmpCreateFile = (TIcmpCreateFilePtr) CORE::GetFunctionAddress( DllHandle         ,
                                                                             "IcmpCreateFile"  ,
@@ -117,11 +117,11 @@ LinkICMPModule( const char* moduleName )
                                                                           "IcmpSendEcho2"    ,
                                                                           2*sizeof( HANDLE ) + sizeof( PIO_APC_ROUTINE_OLD ) + sizeof( PVOID ) + sizeof( IPAddr ) + 2*sizeof( LPVOID ) + sizeof( WORD ) + sizeof( PIP_OPTION_INFORMATION ) + 2*sizeof( DWORD ) ).funcPtr;
                                                                           
-            bool foundFunctions = ( IcmpCreateFile != NULL ) && ( IcmpCloseHandle != NULL ) && ( IcmpSendEcho != NULL ) && ( IcmpParseReplies != NULL );
+            bool foundFunctions = ( IcmpCreateFile != GUCEF_NULL ) && ( IcmpCloseHandle != GUCEF_NULL ) && ( IcmpSendEcho != GUCEF_NULL ) && ( IcmpParseReplies != GUCEF_NULL );
             if ( !foundFunctions )
             {
                 CORE::UnloadModuleDynamicly( DllHandle );
-                DllHandle = NULL;
+                DllHandle = GUCEF_NULL;
                 DllRefCount = 0;
                 return false;            
             }
@@ -130,7 +130,7 @@ LinkICMPModule( const char* moduleName )
         }
         else
         {
-            DllHandle = NULL;
+            DllHandle = GUCEF_NULL;
             DllRefCount = 0;
             return false;            
         }
@@ -165,12 +165,12 @@ UnlinkICMP( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( win32ApiLinkerMutex );    
-    if ( DllHandle != NULL )
+    if ( DllHandle != GUCEF_NULL )
     {
         if ( DllRefCount == 1 )
         {
             CORE::UnloadModuleDynamicly( DllHandle );
-            DllHandle = NULL;            
+            DllHandle = GUCEF_NULL;            
             --DllRefCount;
         }
     }

@@ -52,7 +52,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CMemoryBlockPool::CMemoryBlockPool( void )
-        : _pool( NULL )   ,
+        : _pool( GUCEF_NULL )   ,
           _capacity( 0 )  ,
           _blocksize( 0 )
 {

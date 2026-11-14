@@ -323,7 +323,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "udp2rediscluster" )
     pulseGenerator->RequestPulseInterval( 25 );
     pulseGenerator->RequestPulsesPerImmediatePulseRequest( 25 );
 
-    auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+    CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
     returnValue = app.main( argc, argv, true );
     udp2RedisCluster.SetStandbyMode( true );
 

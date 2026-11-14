@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
-  
-configuration( { EMSCRIPTEN32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "INPUTDRIVEREMSCRIPTEN_BUILD_MODULE", "MODULE_API_PREFIX=inputdriverEMSCRIPTEN", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverEMSCRIPTEN", "MODULE_SEMVER=1_0_0_0" } )
-  
-configuration( { EMSCRIPTEN64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "INPUTDRIVEREMSCRIPTEN_BUILD_MODULE", "MODULE_API_PREFIX=inputdriverEMSCRIPTEN", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverEMSCRIPTEN", "MODULE_SEMVER=1_0_0_0" } )
 
 

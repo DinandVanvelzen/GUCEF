@@ -4,6 +4,8 @@ dependencies/libvorbis/*
 dependencies/opus/*
 platform/gucefAUDIO/include/*
 platform/gucefCORE/include/*
+platform/gucefMATH/include/*
+platform/gucefMATH/src/*
 platform/gucefMT/include/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverALSA/*

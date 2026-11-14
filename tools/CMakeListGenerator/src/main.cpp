@@ -920,7 +920,7 @@ GetProcessingInstructions( TProjectInfo& projectInfo ,
         return &instructions;
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -935,7 +935,7 @@ LoadAllProcessingInstructions( TProjectInfo& projectInfo    ,
 
     // Recurse through sub-dirs to find more instructions
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( rootDir.C_String() );
-    if ( NULL != sdiData )
+    if ( GUCEF_NULL != sdiData )
     {
         do
         {
@@ -982,7 +982,7 @@ ExcludeOrIncludeDirEntriesAsSpecifiedForDir( TProjectInfo& projectInfo     ,
         ++n;
     }
 
-    if ( NULL != instructionStorage )
+    if ( GUCEF_NULL != instructionStorage )
     {
         // Carry out the process using the fetched instructions
         ExcludeOrIncludeDirEntriesAsSpecifiedForDir( dir, *instructionStorage, platform, applyPlatformChangesOnly, allEntries );
@@ -1002,7 +1002,7 @@ ExcludeOrIncludeFileEntriesAsSpecifiedForDir( TProjectInfo& projectInfo     ,
     // Fetch processing instructions from directory
     TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir );
 
-    if ( NULL != instructionStorage )
+    if ( GUCEF_NULL != instructionStorage )
     {
         // Carry out the process using the fetched instructions
         ExcludeOrIncludeFileEntriesAsSpecifiedForDir( dir, *instructionStorage, platform, applyPlatformChangesOnly, allEntries );
@@ -1048,7 +1048,7 @@ PopulateFileListFromDir( const CORE::CString& path      ,
 {GUCEF_TRACE;
 
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( path.C_String() );
-    if ( NULL != sdiData )
+    if ( GUCEF_NULL != sdiData )
     {
         do
         {
@@ -1076,7 +1076,7 @@ PopulateDirListFromDir( const CORE::CString& path ,
 {GUCEF_TRACE;
 
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( path.C_String() );
-    if ( NULL != sdiData )
+    if ( GUCEF_NULL != sdiData )
     {
         do
         {
@@ -1485,7 +1485,7 @@ ApplyDirProcessingInstructionsToModule( TProjectInfo& projectInfo     ,
 
     // Get the processing instructions for this dir which we know is a module dir
     TDirProcessingInstructions* instructions = GetProcessingInstructions( projectInfo, fullDir );
-    if ( NULL != instructions )
+    if ( GUCEF_NULL != instructions )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Applying processing instructions to module \"" + moduleInfo.name + "\" for module directory \"" + (*i).first + "\"" );
 
@@ -1590,7 +1590,7 @@ ApplyDirProcessingInstructionsToModule( TProjectInfo& projectInfo ,
         {
             // Get the processing instructions for this dir which we know is a module dir
             TDirProcessingInstructions* instructions = GetProcessingInstructions( projectInfo, (*p) );
-            if ( NULL != instructions )
+            if ( GUCEF_NULL != instructions )
             {
                 // See if we have any instructions for this specific platform
                 i = instructions->filePlatformExcludeList.find( (*r) );
@@ -2087,7 +2087,7 @@ GetModuleInfo( const TProjectInfo& projectInfo ,
         }
         ++i;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2152,7 +2152,7 @@ GenerateModuleIncludesForPlatform( const TProjectInfo& projectInfo   ,
     {
         // Get a dependency module which is already fully processed
         const TModuleInfo* dependencyModule = GetModuleInfo( projectInfo, (*i) );
-        if ( NULL != dependencyModule )
+        if ( GUCEF_NULL != dependencyModule )
         {
             // Determine the relative path to this other module
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfo.rootDir        ,
@@ -2329,7 +2329,7 @@ GenerateModuleIncludes( const TProjectInfo& projectInfo ,
     {
         // Get a dependency module which is already fully processed
         const TModuleInfo* dependencyModule = GetModuleInfo( projectInfo, (*i) );
-        if ( NULL != dependencyModule )
+        if ( GUCEF_NULL != dependencyModule )
         {
             // Determine the relative path to this other module
             CORE::CString relativePath = GetRelativePathToOtherPathRoot( moduleInfo.rootDir        ,
@@ -3394,7 +3394,7 @@ WinMain( HINSTANCE hinstance     ,
 
     int argc = 0;
     char** argv = &lpcmdline;
-    if ( lpcmdline != NULL )
+    if ( lpcmdline != GUCEF_NULL )
     {
         if ( *lpcmdline != '\0' )
         {

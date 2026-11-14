@@ -159,7 +159,6 @@ set( HEADER_FILES
   include/gucefCORE_CDataDrivenDStoreCodec.h
   include/gucefCORE_CDataDrivenDStoreCodecFactory.h
   include/gucefCORE_CDataDrivenDStoreCodecMeta.h
-  include/gucefCORE_CDenormalFlushScope.h
   include/gucefCORE_CDataNodeBinarySerializer.h
   include/gucefCORE_CDataNodeDefinition.h
   include/gucefCORE_CDataNodeDocumentBuilder.h
@@ -199,6 +198,7 @@ set( HEADER_FILES
   include/gucefCORE_CDecimalAccumulator.h
   include/gucefCORE_CDefaultCodecInstance.h
   include/gucefCORE_CDeferredTask.h
+  include/gucefCORE_CDenormalFlushScope.h
   include/gucefCORE_CDirectoryWatcherEvents.h
   include/gucefCORE_CDocumentStreamWriter.h
   include/gucefCORE_CDynamicBufferStringStream.h
@@ -430,8 +430,6 @@ set( HEADER_FILES
   include/c_api/gucefCORE_c_variantdata.h
   include/c_api/gucefCORE_c_variantmap.h
   include/c_api/gucefCORE_c_variantvector.h
-  src/gucefCORE_CBinaryWireReader.cpp
-  src/gucefCORE_CBinaryWireWriter.cpp
   src/gucefCORE_CCsvColumnConverter.h
   src/gucefCORE_CCsvRecordParser.h
   src/gucefCORE_CCsvSchemaResolver.h
@@ -561,6 +559,8 @@ set( SOURCE_FILES
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp
   src/gucefCORE_CBigInteger.cpp
   src/gucefCORE_CBigUnsigned.cpp
+  src/gucefCORE_CBinaryWireReader.cpp
+  src/gucefCORE_CBinaryWireWriter.cpp
   src/gucefCORE_CBuiltInCodecs.cpp
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp
   src/gucefCORE_CCharSepLoggingFormatter.cpp
@@ -580,7 +580,6 @@ set( SOURCE_FILES
   src/gucefCORE_CDataDrivenDStoreCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp
   src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp
-  src/gucefCORE_CDenormalFlushScope.cpp
   src/gucefCORE_CDataNodeBinarySerializer.cpp
   src/gucefCORE_CDataNodeDefinition.cpp
   src/gucefCORE_CDataNodeDocumentBuilder.cpp
@@ -618,6 +617,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDecimal.cpp
   src/gucefCORE_CDecimalAccumulator.cpp
   src/gucefCORE_CDefaultCodecInstance.cpp
+  src/gucefCORE_CDenormalFlushScope.cpp
   src/gucefCORE_CDirectoryWatcherEvents.cpp
   src/gucefCORE_CDocumentStreamWriter.cpp
   src/gucefCORE_CDynamicBufferStringStream.cpp
@@ -995,7 +995,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Bcrypt.lib PowrProf.lib Shlwapi.lib Ws2_32.lib )
 endif( WIN64 )
 
-include_directories( ../../common/include ../gucefMT/include include include/c_api src )
+include_directories( ../../common/include ../gucefMT/include include include/c_api )
 
 if ( ANDROID32 )
   include_directories( include/android )
@@ -1019,6 +1019,27 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( ../gucefMT/include/mswin include/mswin )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/c_api )
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/android )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/android )
+endif( ANDROID64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/linux )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/linux )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/mswin )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/mswin )
 endif( WIN64 )
 
 

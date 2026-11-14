@@ -141,7 +141,7 @@ CWin32WindowContext::Shutdown( void )
     pulseGenerator->RequestStopOfPeriodicUpdates( this );
     UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
 
-    if ( NULL != m_window.GetHwnd() )
+    if ( GUCEF_NULL != m_window.GetHwnd() )
     {
         CORE::CMsWin32Window::UnregisterWindowClass( m_window.GetText() );
         m_window.WindowDestroy();

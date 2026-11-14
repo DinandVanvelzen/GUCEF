@@ -30,40 +30,46 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "aws-c-auth", "aws-c-cal", "aws-c-common", "aws-c-compression", "aws-c-event-stream", "aws-c-http", "aws-c-io", "aws-c-mqtt", "aws-c-s3", "aws-c-sdkutils", "aws-checksums", "aws-crt-cpp", "curl" } )
+
+configuration( {} )
 links( { "aws-c-auth", "aws-c-cal", "aws-c-common", "aws-c-compression", "aws-c-event-stream", "aws-c-http", "aws-c-io", "aws-c-mqtt", "aws-c-s3", "aws-c-sdkutils", "aws-checksums", "aws-crt-cpp", "curl" } )
 
 
 configuration( {} )
 defines( { "AWS_CORE_EXPORTS=1", "MODULE_CONSENSUS_NAME=aws_cpp_sdk_core", "MODULE_NAME=aws_cpp_sdk_core", "USE_IMPORT_EXPORT=1" } )
-  
 
-configuration( { ANDROID32 } )
+
+configuration( { "ANDROID32" } )
 defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
-  
 
-configuration( { ANDROID64 } )
+
+configuration( { "ANDROID64" } )
 defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "BYO_CRYPTO", "ENABLE_CURL_CLIENT=1", "ENABLE_OPENSSL_ENCRYPTION", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "BYO_CRYPTO", "ENABLE_CURL_CLIENT=1", "ENABLE_OPENSSL_ENCRYPTION", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
-  
 
-configuration( { OSX } )
+
+configuration( { "OSX" } )
 defines( { "ENABLE_COMMONCRYPTO_ENCRYPTION" } )
-  links( { "Secur32.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib", "shlwapi.lib" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "Secur32.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib", "shlwapi.lib" } )
+
+
+configuration( { "WIN32" } )
 defines( { "BYPASS_DEFAULT_PROXY", "ENABLE_BCRYPT_ENCRYPTION", "ENABLE_WINDOWS_CLIENT", "ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT", "NTDDI_VERSION=NTDDI_WIN7", "PLATFORM_WINDOWS" } )
-  links( { "Secur32.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib", "shlwapi.lib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "Secur32.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib", "shlwapi.lib" } )
+
+
+configuration( { "WIN64" } )
 defines( { "BYPASS_DEFAULT_PROXY", "ENABLE_BCRYPT_ENCRYPTION", "ENABLE_WINDOWS_CLIENT", "ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT", "NTDDI_VERSION=NTDDI_WIN7", "PLATFORM_WINDOWS" } )
 
 

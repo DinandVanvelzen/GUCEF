@@ -1,0 +1,7 @@
+common/include/*
+common/test/include/*
+platform/gucefCORE/*
+platform/gucefGEOMETRY/*
+platform/gucefMATH/*
+platform/gucefMT/*
+tests/gucefGEOMETRY_TestApp/*

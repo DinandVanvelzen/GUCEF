@@ -63,6 +63,18 @@
 #include <unordered_map>
 #endif
 
+/*
+ *  Erases the element an iterator points at from an associative container (map, set, multimap, multiset) and moves the
+ *  iterator to the next element. Where erase() returns the next iterator (C++11) that result is used, which avoids
+ *  a second tree traversal; before C++11 erase() returns void and the iterator is advanced before erasing.
+ *  Usage:  GUCEF_ERASE_AND_ADVANCE( myMap, i );  inside a loop that does not otherwise increment i
+ */
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
+    #define GUCEF_ERASE_AND_ADVANCE( container, iterator )  ( iterator ) = ( container ).erase( iterator )
+#else
+    #define GUCEF_ERASE_AND_ADVANCE( container, iterator )  ( container ).erase( ( iterator )++ )
+#endif
+
 #ifndef GUCEF_CONFIG_H
 #include "gucef_config.h"        /* GUCEF configuration */
 #define GUCEF_CONFIG_H

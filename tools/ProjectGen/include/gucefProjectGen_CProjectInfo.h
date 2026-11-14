@@ -257,6 +257,20 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
                                 bool includeRuntimeDependencies            ,
                                 bool includeLogicalDependencies            ) const;
 
+    /**
+     *  The year of the minimum C++ standard the module itself declares for the given platform, taking its definition
+     *  for all platforms into account. 0 if it declares none. See CCompilerSettings::GetMinCppStandard()
+     */
+    UInt32 GetMinCppStandardYear( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                  const CORE::CString& targetPlatform        ) const;
+
+    /**
+     *  The year of the minimum C++ standard needed to build the module for the given platform: the highest minimum
+     *  declared by the module and the modules it depends on to build, runtime dependencies excluded. 0 if none declare one.
+     */
+    UInt32 GetEffectiveMinCppStandardYear( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                           const CORE::CString& targetPlatform        ) const;
+
     bool
     FindModulesWhichDependOnModuleForPlatform( TMutableModuleInfoEntryPairVector& foundModules ,
                                                const CORE::CString& targetPlatform             ,
@@ -550,6 +564,20 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     void SetRootDir( const CORE::CString& rootDir );
 
+    /**
+     *  Describes the settings which influence the gathering of project information, one line per setting.
+     *  Together with the files on disk these settings determine the gathered project information.
+     */
+    void GetInputSettingsDescription( TStringSet& lines ) const;
+
+    /**
+     *  The fingerprint of all inputs the project information was gathered from.
+     *  See CDirCrawlingProjectInfoGatherer::ComputeInputFingerprint()
+     */
+    void SetInputFingerprint( const CORE::CString& inputFingerprint );
+
+    const CORE::CString& GetInputFingerprint( void ) const;
+
     CORE::CString GetRelativePathFromProjectSubDirToProjectRootDir( const CORE::CString& projectSubDir ) const;
 
     CProjectInfo( void );
@@ -640,6 +668,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     TPlatformDefinitionMap m_knownPlatforms;        // known platforms for this project
     CORE::CStringSet m_disabledPlatforms;           // platforms which we will ignore for processing
     CORE::CString m_projectName;                    // Name of the overall project
+    CORE::CString m_inputFingerprint;               // Fingerprint of the inputs the project information was gathered from
     CProjectTargetInfoBundlePtr m_projectTargets; 
     MT::CReadWriteLock m_rwLock;
 

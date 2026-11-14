@@ -62,6 +62,7 @@ LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=AncestryDotComBackupLib -DMODULE_NAME=An
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefCOM \
   gucefCOMCORE \
   gucefCORE \
   gucefMT \

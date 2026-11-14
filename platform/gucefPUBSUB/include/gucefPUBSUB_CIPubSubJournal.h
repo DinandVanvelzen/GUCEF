@@ -69,7 +69,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CIPubSubJournal
 {
     public:
 
-    enum EPubSubActionType : UInt8
+    enum EPubSubActionType GUCEF_ENUM_BASE( UInt8 )
     {
         PUBSUBACTION_UNDEFINED = 0,
 

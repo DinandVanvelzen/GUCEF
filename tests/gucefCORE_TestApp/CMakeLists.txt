@@ -16,15 +16,17 @@ set( HEADER_FILES
   include/TestAbstractFactory.h
   include/TestAbstractFactoryParity.h
   include/TestAllocationCounter.h
+  include/TestAppStopWithTasks.h
   include/TestAsyncUriResourceRetriever.h
   include/TestBase64Url.h
   include/TestBigInteger.h
   include/TestBigUnsigned.h
   include/TestBinaryWire.h
-  include/TestBusyWaitPulseGeneratorDriver.h
   include/TestBrowserLauncher.h
+  include/TestBusyWaitPulseGeneratorDriver.h
   include/TestCodecPlugins.h
   include/TestConfigStore.h
+  include/TestCoreGlobalTeardown.h
   include/TestCronSchedule.h
   include/TestCryptoCodecs.h
   include/TestCsvTableCodec.h
@@ -74,12 +76,8 @@ set( HEADER_FILES
   include/TestJsonDataNodeFidelity.h
   include/TestJsonSchema.h
   include/TestJsonSyntaxValidator.h
-  include/TestLogging.h
   include/TestLogManagerLockOrder.h
-  include/TestPumpedObserverLockOrder.h
-  include/TestPumpedObserverMail.h
-  include/TestAppStopWithTasks.h
-  include/TestCoreGlobalTeardown.h
+  include/TestLogging.h
   include/TestMemoryDataTable.h
   include/TestNotificationCost.h
   include/TestNotifierDelivery.h
@@ -87,6 +85,8 @@ set( HEADER_FILES
   include/TestPbkdf2HmacSha256.h
   include/TestPluginUnload.h
   include/TestProcess.h
+  include/TestPumpedObserverLockOrder.h
+  include/TestPumpedObserverMail.h
   include/TestRandom.h
   include/TestRateLimiting.h
   include/TestRedactor.h
@@ -125,8 +125,6 @@ set( HEADER_FILES
   include/TestX11ClipboardPeer.h
   include/TestX11EventDispatcher.h
   include/TestXmlDStoreCodec.h
-  src/TestBinaryWire.cpp
-  src/TestBusyWaitPulseGeneratorDriver.cpp
   src/TestFreeList.h
 )
 
@@ -135,13 +133,17 @@ set( SOURCE_FILES
   src/TestAbstractFactory.cpp
   src/TestAbstractFactoryParity.cpp
   src/TestAllocationCounter.cpp
+  src/TestAppStopWithTasks.cpp
   src/TestAsyncUriResourceRetriever.cpp
   src/TestBase64Url.cpp
   src/TestBigInteger.cpp
   src/TestBigUnsigned.cpp
+  src/TestBinaryWire.cpp
   src/TestBrowserLauncher.cpp
+  src/TestBusyWaitPulseGeneratorDriver.cpp
   src/TestCodecPlugins.cpp
   src/TestConfigStore.cpp
+  src/TestCoreGlobalTeardown.cpp
   src/TestCronSchedule.cpp
   src/TestCryptoCodecs.cpp
   src/TestCsvTableCodec.cpp
@@ -188,12 +190,8 @@ set( SOURCE_FILES
   src/TestJsonDataNodeFidelity.cpp
   src/TestJsonSchema.cpp
   src/TestJsonSyntaxValidator.cpp
-  src/TestLogging.cpp
   src/TestLogManagerLockOrder.cpp
-  src/TestPumpedObserverLockOrder.cpp
-  src/TestPumpedObserverMail.cpp
-  src/TestAppStopWithTasks.cpp
-  src/TestCoreGlobalTeardown.cpp
+  src/TestLogging.cpp
   src/TestMemoryDataTable.cpp
   src/TestNotificationCost.cpp
   src/TestNotifierDelivery.cpp
@@ -201,6 +199,8 @@ set( SOURCE_FILES
   src/TestPbkdf2HmacSha256.cpp
   src/TestPluginUnload.cpp
   src/TestProcess.cpp
+  src/TestPumpedObserverLockOrder.cpp
+  src/TestPumpedObserverMail.cpp
   src/TestRandom.cpp
   src/TestRateLimiting.cpp
   src/TestRedactor.cpp
@@ -293,6 +293,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 
 
 

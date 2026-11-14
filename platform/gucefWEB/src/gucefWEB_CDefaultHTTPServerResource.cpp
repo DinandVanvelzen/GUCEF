@@ -238,7 +238,7 @@ CDefaultHTTPServerResource::CreateResource( const CORE::CString& resourcePath   
 
     // By default we don't allow or implement more complex interaction patterns
     // such as dynamic resources or collections
-    return ECreateState::CREATESTATE_FAILED;
+    return CIHTTPServerResource::CREATESTATE_FAILED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -300,7 +300,7 @@ CDefaultHTTPServerResource::Deserialize( const CORE::CString& resourcePath      
                                          bool isDeltaUpdateOnly                  )
 {GUCEF_TRACE;
 
-    return EDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+    return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 }
 
 /*-------------------------------------------------------------------------*/

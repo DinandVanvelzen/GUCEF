@@ -30,6 +30,8 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "libjpeg", "zlib" } )
+
+configuration( {} )
 links( { "libjpeg", "zlib" } )
 
 

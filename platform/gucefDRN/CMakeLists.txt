@@ -37,9 +37,9 @@ set( HEADER_FILES
   include/gucefDRN_CDRNLinkMonitor.h
   include/gucefDRN_CDRNLinkReliability.h
   include/gucefDRN_CDRNNode.h
+  include/gucefDRN_CDRNNodePulseDriver.h
   include/gucefDRN_CDRNNodeSettings.h
   include/gucefDRN_CDRNNodeTask.h
-  include/gucefDRN_CDRNNodePulseDriver.h
   include/gucefDRN_CDRNPacketCodec.h
   include/gucefDRN_CDRNPacketProtection.h
   include/gucefDRN_CDRNPeerLink.h
@@ -120,9 +120,9 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNLinkMonitor.cpp
   src/gucefDRN_CDRNLinkReliability.cpp
   src/gucefDRN_CDRNNode.cpp
+  src/gucefDRN_CDRNNodePulseDriver.cpp
   src/gucefDRN_CDRNNodeSettings.cpp
   src/gucefDRN_CDRNNodeTask.cpp
-  src/gucefDRN_CDRNNodePulseDriver.cpp
   src/gucefDRN_CDRNPacketCodec.cpp
   src/gucefDRN_CDRNPacketProtection.cpp
   src/gucefDRN_CDRNPeerLink.cpp
@@ -190,7 +190,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
@@ -215,6 +215,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 
 
 

@@ -45,8 +45,10 @@ echo "Using the following jar as the jenkins-cli.jar: ${JENKINS_CLIJAR}"
 
 # Copy the Jenkins CLI JAR to the user bin for convenient use
 mkdir -p /usr/local/bin/
-mv -f "${JENKINS_CLIJAR}" /var/jenkins_home/jenkins-cli.jar
-chmod +x /var/jenkins_home/jenkins-cli.jar
+# Staged in the ref folder so jenkins.sh copies it into the persistent JENKINS_HOME on start
+mkdir -p /usr/share/jenkins/ref/
+mv -f "${JENKINS_CLIJAR}" /usr/share/jenkins/ref/jenkins-cli.jar.override
+chmod +x /usr/share/jenkins/ref/jenkins-cli.jar.override
 
 # cleanup our tmp folder, we are done using it
 echo "Cleaning up /tmp extracted jenkins war"

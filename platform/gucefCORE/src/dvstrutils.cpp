@@ -93,7 +93,7 @@ Extract_Filename( const char *filepath )
      *      Extract the filename, if there is any path prefix it will be
      *      removed
      */
-    if ( NULL != filepath )
+    if ( GUCEF_NULL != filepath )
     {
         Int32 i, length = (Int32)strlen( filepath );
         for ( i = length; i >= 0; --i )
@@ -274,7 +274,7 @@ Get_Substr( UInt32 start, UInt32 end, const char *wholestr )
                 /*
                  *      Invalid range
                  */
-                return( NULL )                                          ;
+                return( GUCEF_NULL )                                          ;
         }
 }
 
@@ -630,7 +630,7 @@ Extract_File_Ext( const char *filename )
     {
         if ( *i == GUCEF_DIRSEPCHAR )
         {
-            return NULL;
+            return GUCEF_NULL;
         }
         if ( ( *i == '.' ) && ( n != len ) )
         {
@@ -641,7 +641,7 @@ Extract_File_Ext( const char *filename )
         }
         --i;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -653,7 +653,7 @@ Str_To_Int( const char *digits )
          *      Converts an null-terminated string to a int
          */
         int i, num;
-        if ( digits == NULL ) return 0;
+        if ( digits == GUCEF_NULL ) return 0;
 
         /*
          *      Convert each digit char and add into result.
@@ -834,7 +834,7 @@ Tab_To_Space( char *buffer, UInt32 numspace )
 UInt32
 Check_If_IPv4( const char* buffer )
 {
-    if ( NULL != buffer )
+    if ( GUCEF_NULL != buffer )
     {
 
         /*

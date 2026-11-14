@@ -57,60 +57,68 @@ language( "C" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "StaticLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  links( { "m" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "m" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "HAVE_ALLOCA_H", "HAVE_LRINT", "HAVE_LRINTF", "MODULE_NAME=opus", "MODULE_SEMVER=1_5_2_0", "OPUS_BUILD", "USE_ALLOCA" } )
-  links( { "m" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "m" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "HAVE_ALLOCA_H", "HAVE_LRINT", "HAVE_LRINTF", "MODULE_NAME=opus", "MODULE_SEMVER=1_5_2_0", "OPUS_BUILD", "USE_ALLOCA" } )
-  links( { "m" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "m" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "HAVE_ALLOCA_H", "HAVE_LRINT", "HAVE_LRINTF", "MODULE_NAME=opus", "MODULE_SEMVER=1_5_2_0", "OPUS_BUILD", "USE_ALLOCA" } )
-  links( { "m" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "m" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "HAVE_ALLOCA_H", "HAVE_LRINT", "HAVE_LRINTF", "MODULE_NAME=opus", "MODULE_SEMVER=1_5_2_0", "OPUS_BUILD", "USE_ALLOCA" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=opus", "MODULE_SEMVER=1_5_2_0", "OPUS_BUILD", "USE_ALLOCA" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=opus", "MODULE_SEMVER=1_5_2_0", "OPUS_BUILD", "USE_ALLOCA" } )
 
 

@@ -30,6 +30,8 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "curl" } )
+
+configuration( {} )
 links( { "curl" } )
 
 

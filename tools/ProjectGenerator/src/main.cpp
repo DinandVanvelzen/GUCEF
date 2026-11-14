@@ -249,12 +249,16 @@ GUCEF_OSMAIN_BEGIN
     ParseParams( argc, argv, keyValueList );
     CORE::CString bootstrapConfigPathParam = keyValueList.GetValueAlways( "BootstrapConfigPath" );
     CORE::CString configPathParam = keyValueList.GetValueAlways( "ConfigPath" );
-    keyValueList.Clear();
-    
-    // Load settings from a config file (if any) and then override with params (if any)
+
+    // Load settings from a config file (if any) as the baseline. Command line params override and augment it:
+    // per key the command line values come first, so single value lookups get the command line value while
+    // multi value lookups see the command line values followed by the config file values
     CORE::CDataNode loadedConfig;
-    LoadConfig( bootstrapConfigPathParam, configPathParam, keyValueList, &loadedConfig );
-    ParseParams( argc, argv, keyValueList );
+    CORE::CValueList configKeyValueList;
+    LoadConfig( bootstrapConfigPathParam, configPathParam, configKeyValueList, &loadedConfig );
+    keyValueList.SetAllowDuplicates( false );
+    keyValueList.SetAllowMultipleValues( true );
+    keyValueList.SetMultiple( configKeyValueList );
 
     CORE::Int32 minLogLevel = CORE::LOGLEVEL_BELOW_NORMAL;
     CORE::CString valueStr = keyValueList.GetValueAlways( "MinimalLogLevel" );

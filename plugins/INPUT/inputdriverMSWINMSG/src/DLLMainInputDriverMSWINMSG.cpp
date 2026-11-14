@@ -312,7 +312,7 @@ typedef struct SDriverData TDriverData;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static TDriverData* driverData = NULL;
+static TDriverData* driverData = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -345,7 +345,7 @@ ParseArgListItemUInt32( const int argc    ,
                         const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
         UInt32 result = 0UL;
         sscanf( value, "%d", &result );
@@ -362,9 +362,9 @@ ParseArgListItemPointer( const int argc    ,
                          const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
-        void* result = NULL;
+        void* result = GUCEF_NULL;
         sscanf( value, "%p", &result );
         return result;
     }
@@ -397,9 +397,9 @@ GetFreeContext( void )
                  return &driverData->contextList[ i ];
             }
         }
-        return NULL;
+        return GUCEF_NULL;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -436,10 +436,10 @@ LookupDataForHWND( HWND whnd )
                 
                 if ( checked == driverData->contextCount )
                 {
-                        return NULL;
+                        return GUCEF_NULL;
                 }                        
         }
-        return NULL;        
+        return GUCEF_NULL;        
 }
 
 /*---------------------------------------------------------------------------*/
@@ -522,7 +522,7 @@ GrabWindowCursorInput( TContextData* data ,
 		/*
 		 *      Allow the cursor to move anywhere
 		 */
-		ClipCursor( NULL );		
+		ClipCursor( GUCEF_NULL );		
 		data->doGrab = 0;	
     }
     return 0;
@@ -829,7 +829,7 @@ InputDriverProcessMSWINMSG( HWND whnd     ,
                             LPARAM lparam )
 {
     TContextData* data = LookupDataForHWND( whnd );
-    if ( NULL == data ) return 0;
+    if ( GUCEF_NULL == data ) return 0;
         
     switch ( message )
     {
@@ -1139,14 +1139,14 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 INPUTDRIVERPLUG_Init( void** plugdata    ,
                       const char*** args ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    if ( NULL != driverData )
+    if ( GUCEF_NULL != driverData )
     {
         /* we should not get here, init called more then once ? */
         return 1;
     }
     *plugdata = driverData = ( TDriverData* ) malloc( sizeof( TDriverData ) );
         
-    if ( NULL == driverData )
+    if ( GUCEF_NULL == driverData )
     {
         /* allocation failed */
         return 0;
@@ -1162,7 +1162,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 INPUTDRIVERPLUG_Shutdown( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     free( driverData );
-    driverData = NULL;
+    driverData = GUCEF_NULL;
     return 1;                        
 }
 

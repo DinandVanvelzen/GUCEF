@@ -90,10 +90,10 @@ class GUCEF_CORE_PUBLIC_CPP CTransactionEventControl : public CForwardingNotifie
                          const TEventFilterAction filterAction ,
                          const TEventOriginFilter originFilter ,
                          const bool preserveEventData          ,
-                         const CNotifier* sender = NULL        );
+                         const CNotifier* sender = GUCEF_NULL        );
 
     bool RemoveEventFilter( const CEvent& eventID           ,
-                            const CNotifier* sender = NULL  );
+                            const CNotifier* sender = GUCEF_NULL  );
 
     bool IsEventFiltered( const CEvent& eventID   ,
                           const CNotifier* sender ) const;
@@ -112,7 +112,7 @@ class GUCEF_CORE_PUBLIC_CPP CTransactionEventControl : public CForwardingNotifie
 
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL );
+                           CICloneable* eventdata = GUCEF_NULL );
 
     private:
 

@@ -72,106 +72,122 @@ language( "C++" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "ConsoleApp" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "ConsoleApp" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "ConsoleApp" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "WindowedApp" )
-  
-configuration( { ANDROID32 } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  
 
-configuration( { ANDROID32 } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { ANDROID64 } )
+configuration( { "ANDROID32" } )
 links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "ANDROID64" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "EMSCRIPTEN32" } )
 links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-  links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN32" } )
 links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-  links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { LINUX32 } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "EMSCRIPTEN64" } )
+links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { LINUX64 } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX32" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { WIN32 } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "LINUX64" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-  
-configuration( { WIN64 } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN32" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "WIN32" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "WIN64" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
 
 
@@ -503,7 +519,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/RmlUi/Include", "../../dependencies/RmlUi/Include/RmlUi", "../../dependencies/RmlUi/Include/RmlUi/Config", "../../dependencies/RmlUi/Include/RmlUi/Core", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../dependencies/RmlUi/Include/RmlUi/Lua", "../../dependencies/RmlUi/Include/RmlUi/SVG", "../../dependencies/RmlUi/Source/Core", "../../dependencies/RmlUi/Source/Core/Elements", "../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../dependencies/RmlUi/Source/Core/Layout", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/fontpluginFREETYPE/include", "../../plugins/GUI/guidriverNull/include", "../../plugins/GUI/guidriverRmlUI/include", "../../plugins/GUI/guidriverRmlUIOpenGL/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/RmlUi/Include", "../../dependencies/RmlUi/Include/RmlUi", "../../dependencies/RmlUi/Include/RmlUi/Config", "../../dependencies/RmlUi/Include/RmlUi/Core", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../dependencies/RmlUi/Include/RmlUi/Lua", "../../dependencies/RmlUi/Include/RmlUi/SVG", "../../dependencies/RmlUi/Source/Core", "../../dependencies/RmlUi/Source/Core/Elements", "../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../dependencies/RmlUi/Source/Core/Layout", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/fontpluginFREETYPE/include", "../../plugins/GUI/guidriverNull/include", "../../plugins/GUI/guidriverRmlUI/include", "../../plugins/GUI/guidriverRmlUIOpenGL/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android", "include" } )

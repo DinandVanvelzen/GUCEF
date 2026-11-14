@@ -48,7 +48,7 @@ namespace CORE {
 CLinkedTransferBuffer::CLinkedTransferBuffer( void )
     : CTLinkedCloneableObj< CDynamicBuffer >() ,
       m_transferProgress( 0 )                  ,
-      m_additionalData( NULL )                 ,
+      m_additionalData( GUCEF_NULL )                 ,
       m_totalSize( -1 )
 {GUCEF_TRACE;
 
@@ -62,11 +62,11 @@ CLinkedTransferBuffer::CLinkedTransferBuffer( const CDynamicBuffer* buffer      
                                               const CICloneable* additionalData /* = NULL */ )
     : CTLinkedCloneableObj< CDynamicBuffer >() ,
       m_transferProgress( transferProgress )   ,
-      m_additionalData( NULL )                 ,
+      m_additionalData( GUCEF_NULL )                 ,
       m_totalSize( totalSize )
 {GUCEF_TRACE;
 
-    if ( NULL != additionalData )
+    if ( GUCEF_NULL != additionalData )
     {
         m_additionalData = additionalData->Clone(); 
     }
@@ -77,11 +77,11 @@ CLinkedTransferBuffer::CLinkedTransferBuffer( const CDynamicBuffer* buffer      
 CLinkedTransferBuffer::CLinkedTransferBuffer( const CLinkedTransferBuffer& src )
     : CTLinkedCloneableObj< CDynamicBuffer >( src ) ,
       m_transferProgress( src.m_transferProgress )  ,
-      m_additionalData( NULL )                      ,
+      m_additionalData( GUCEF_NULL )                      ,
       m_totalSize( src.m_totalSize )
 {GUCEF_TRACE;
 
-    if ( NULL != src.m_additionalData )
+    if ( GUCEF_NULL != src.m_additionalData )
     {
         m_additionalData = src.m_additionalData->Clone(); 
     }
@@ -105,13 +105,13 @@ CLinkedTransferBuffer::operator=( const CLinkedTransferBuffer& src )
     m_transferProgress = src.m_transferProgress;
     m_totalSize = src.m_totalSize;
     
-    if ( NULL != src.m_additionalData )
+    if ( GUCEF_NULL != src.m_additionalData )
     {
         m_additionalData = src.m_additionalData->Clone(); 
     }
     else
     {
-        m_additionalData = NULL;
+        m_additionalData = GUCEF_NULL;
     }
     return *this;
 }

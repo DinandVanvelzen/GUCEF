@@ -42,41 +42,47 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "MyGUI.Engine", "Ogre" } )
-  links( { "MyGUI.Engine", "Ogre" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "MyGUI.Engine", "Ogre" } )
+
+configuration( { "LINUX32" } )
+links( { "MyGUI.Engine", "Ogre" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=MyGUI_OgrePlatform" } )
-  
-configuration( { LINUX64 } )
-links( { "MyGUI.Engine", "Ogre" } )
-  links( { "MyGUI.Engine", "Ogre" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "MyGUI.Engine", "Ogre" } )
+
+configuration( { "LINUX64" } )
+links( { "MyGUI.Engine", "Ogre" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "MODULE_NAME=MyGUI_OgrePlatform" } )
-  
-configuration( { WIN32 } )
-links( { "MyGUI.Engine", "Ogre" } )
-  links( { "MyGUI.Engine", "Ogre" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "MyGUI.Engine", "Ogre" } )
+
+configuration( { "WIN32" } )
+links( { "MyGUI.Engine", "Ogre" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=MyGUI_OgrePlatform" } )
 
 

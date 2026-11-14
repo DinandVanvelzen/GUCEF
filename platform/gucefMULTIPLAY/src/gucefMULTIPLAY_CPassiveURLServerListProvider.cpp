@@ -166,11 +166,11 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
 {GUCEF_TRACE;
 
     const CORE::CDataNode* root = listRoot.Find( "ServerList" );
-    if ( NULL != root )
+    if ( GUCEF_NULL != root )
     {
-        const CORE::CDataNode::TKeyValuePair* att = NULL;
+        const CORE::CDataNode::TKeyValuePair* att = GUCEF_NULL;
         CORE::CDataNode::const_iterator i = root->ConstBegin();
-        const CORE::CDataNode* entryNode = NULL;
+        const CORE::CDataNode* entryNode = GUCEF_NULL;
         CORE::CValueList valueList;
 
         while ( i != root->ConstEnd() )
@@ -180,15 +180,15 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
             {
                 TServerInfo serverInfo;
                 att = entryNode->GetAttribute( "Name" );
-                if ( NULL != att )
+                if ( GUCEF_NULL != att )
                 {
                     serverInfo.name = att->second;
                     att = entryNode->GetAttribute( "Address" );
-                    if ( NULL != att )
+                    if ( GUCEF_NULL != att )
                     {
                         serverInfo.hostAddress.SetHostname( att->second );
                         att = entryNode->GetAttribute( "Port" );
-                        if ( NULL != att )
+                        if ( GUCEF_NULL != att )
                         {
                             serverInfo.hostAddress.SetPortInHostByteOrder( CORE::StringToUInt16( att->second ) );
 

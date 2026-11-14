@@ -461,7 +461,7 @@ PerformListingTests( void )
             empty.Complete( GUCEF_NULL, true );
             ASSERT_FALSE( MULTIPLAY::CGameListingList::TryGetFromFuture( empty.GetFuture(), untouched ) );
             CORE::CFutureResultSource failed;
-            failed.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "denied" );
+            failed.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "denied" );
             ASSERT_FALSE( MULTIPLAY::CGameListingList::TryGetFromFuture( failed.GetFuture(), untouched ) );
         }
         catch ( ... )
@@ -672,7 +672,7 @@ PerformListingTests( void )
             MULTIPLAY::CPlayerIdentity identity;
             identity.userId = "host-id";
             identity.displayName = "Host";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service->Connect( identity, future ) );
 
             MULTIPLAY::CLobbyCreateParams params;

@@ -640,7 +640,7 @@ void
 UnloadModuleDynamicly( void *sohandle )
 {GUCEF_TRACE;
 
-    if ( NULL == sohandle )
+    if ( GUCEF_NULL == sohandle )
         return;
 
     #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
@@ -722,7 +722,7 @@ GetFunctionAddress( void* sohandle              ,
      */
     fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle       ,
                                                      functionname.C_String() );
-    if ( fptr.funcPtr == NULL )
+    if ( fptr.funcPtr == GUCEF_NULL )
     {
         char buffer[ 1024 ];
         UInt32 len = functionname.Length();
@@ -743,7 +743,7 @@ GetFunctionAddress( void* sohandle              ,
          *
          *      Type: _Function@n
          */
-        if ( fptr.funcPtr == NULL )
+        if ( fptr.funcPtr == GUCEF_NULL )
         {
             sprintf( buffer+len+1, "@%d", parambytes );
             fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
@@ -754,7 +754,7 @@ GetFunctionAddress( void* sohandle              ,
              *
              *      Type: Function@n
              */
-            if ( fptr.funcPtr == NULL )
+            if ( fptr.funcPtr == GUCEF_NULL )
             {
                 fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
                                                                   buffer+1         );
@@ -956,11 +956,11 @@ GetCurrentUserDisplayName( void )
     // GetUserNameExW lives in secur32.dll, which is looked up here so that no import library is needed
     CString displayName;
     HMODULE security = ::LoadLibraryW( L"secur32.dll" );
-    if ( NULL != security )
+    if ( GUCEF_NULL != security )
     {
         typedef BOOLEAN ( WINAPI *TGetUserNameExW )( int nameFormat, LPWSTR nameBuffer, PULONG size );
         TGetUserNameExW getUserNameEx = (TGetUserNameExW) ::GetProcAddress( security, "GetUserNameExW" );
-        if ( NULL != getUserNameEx )
+        if ( GUCEF_NULL != getUserNameEx )
         {
             const int NameDisplayFormat = 3;     // EXTENDED_NAME_FORMAT::NameDisplay
             WCHAR nameBuffer[ 257 ];
@@ -1023,7 +1023,7 @@ IsRunningAsSysVinitService( pid_t pid )
             CString path = "/etc/rc.d/" + fsIterator.GetResourceName();
             if ( FileExists( path ) )
             {
-                std::ifstream file( path );
+                std::ifstream file( path.C_String() );
                 if ( file.is_open() )
                 {
                     std::string line;
@@ -1062,7 +1062,7 @@ IsRunningAsUpstartService( pid_t pid )
             CString path = "/etc/init/" + fsIterator.GetResourceName();
             if ( FileExists( path ) )
             {
-                std::ifstream file( path );
+                std::ifstream file( path.C_String() );
                 if ( file.is_open() )
                 {
                     std::string line;
@@ -1101,7 +1101,7 @@ IsRunningAsOpenRCService( pid_t pid )
             CString path = "/etc/init.d/" + fsIterator.GetResourceName();
             if ( FileExists( path ) )
             {
-                std::ifstream file( path );
+                std::ifstream file( path.C_String() );
                 if ( file.is_open() )
                 {
                     std::string line;
@@ -1221,8 +1221,8 @@ IsProcessRunningAsService( TProcessId pid )
     ::SERVICE_STATUS_PROCESS serviceStatus;
     DWORD bytesNeeded = 0;
 
-    ::SC_HANDLE scm = ::OpenSCManagerW( NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE );
-    if ( NULL == scm )
+    ::SC_HANDLE scm = ::OpenSCManagerW( GUCEF_NULL, GUCEF_NULL, SC_MANAGER_ENUMERATE_SERVICE );
+    if ( GUCEF_NULL == scm )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "IsRunningAsService: Failed to open Service Control Manager" );
         return false;
@@ -1244,7 +1244,7 @@ IsProcessRunningAsService( TProcessId pid )
         &bytesNeeded2,
         &servicesReturned,
         &resumeHandle,
-        NULL
+        GUCEF_NULL
     );
 
     if ( FALSE == success && ::GetLastError() != ERROR_MORE_DATA )
@@ -1265,7 +1265,7 @@ IsProcessRunningAsService( TProcessId pid )
         &bytesNeeded2,
         &servicesReturned,
         &resumeHandle,
-        NULL
+        GUCEF_NULL
     );
 
     if ( FALSE == success )
@@ -1282,7 +1282,7 @@ IsProcessRunningAsService( TProcessId pid )
         if ( services[ i ].ServiceStatusProcess.dwProcessId == (DWORD) pid )
         {
             service = ::OpenServiceW( scm, services[ i ].lpServiceName, SERVICE_QUERY_STATUS );
-            if ( NULL != service)
+            if ( GUCEF_NULL != service)
             {
                 success = ::QueryServiceStatusEx( service, SC_STATUS_PROCESS_INFO, (LPBYTE)&serviceStatus, sizeof(SERVICE_STATUS_PROCESS), &bytesNeeded );
                 ::CloseServiceHandle( service );
@@ -1540,12 +1540,12 @@ CommandLineExecute( const CString& command ,
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    HANDLE hPipeRead = NULL;
-    HANDLE hPipeWrite = NULL;
+    HANDLE hPipeRead = GUCEF_NULL;
+    HANDLE hPipeWrite = GUCEF_NULL;
 
     SECURITY_ATTRIBUTES saAttr = {sizeof(SECURITY_ATTRIBUTES)};
     saAttr.bInheritHandle = TRUE; // Pipe handles are inherited by child process.
-    saAttr.lpSecurityDescriptor = NULL;
+    saAttr.lpSecurityDescriptor = GUCEF_NULL;
 
     // Create a pipe to get results from child's stdout.
     if ( FALSE == ::CreatePipe( &hPipeRead, &hPipeWrite, &saAttr, 0 ) )
@@ -1564,7 +1564,7 @@ CommandLineExecute( const CString& command ,
     std::wstring wCommand = ToWString( command );
     PROCESS_INFORMATION pi;
     ZeroMemory(&pi, sizeof(pi));
-    BOOL fSuccess = ::CreateProcessW( NULL, (LPWSTR) wCommand.c_str(), NULL, NULL, TRUE, CREATE_NEW_CONSOLE, NULL, NULL, &si, &pi );
+    BOOL fSuccess = ::CreateProcessW( GUCEF_NULL, (LPWSTR) wCommand.c_str(), GUCEF_NULL, GUCEF_NULL, TRUE, CREATE_NEW_CONSOLE, GUCEF_NULL, GUCEF_NULL, &si, &pi );
     if ( FALSE == fSuccess )
     {
         ::CloseHandle( hPipeWrite );
@@ -1588,13 +1588,13 @@ CommandLineExecute( const CString& command ,
                 DWORD dwRead = 0;
                 DWORD dwAvail = 0;
 
-                if ( !::PeekNamedPipe( hPipeRead, NULL, 0, NULL, &dwAvail, NULL ) )
+                if ( !::PeekNamedPipe( hPipeRead, GUCEF_NULL, 0, GUCEF_NULL, &dwAvail, GUCEF_NULL ) )
                     break;
 
                 if (!dwAvail) // No data available, return
                     break;
 
-                if ( !::ReadFile( hPipeRead, buf, SMALLEST( sizeof(buf)-1, dwAvail ), &dwRead, NULL ) || !dwRead )
+                if ( !::ReadFile( hPipeRead, buf, SMALLEST( sizeof(buf)-1, dwAvail ), &dwRead, GUCEF_NULL ) || !dwRead )
                 {
                     // Error, the child process might have ended
                     break;
@@ -1617,12 +1617,12 @@ CommandLineExecute( const CString& command ,
     char buffer[ 128 ];
     result = "";
     FILE* pipe = popen( command.C_String(), "r" );
-    if ( NULL == pipe )
+    if ( GUCEF_NULL == pipe )
         return false;
 
     try
     {
-        while ( fgets( buffer, sizeof buffer, pipe ) != NULL )
+        while ( fgets( buffer, sizeof buffer, pipe ) != GUCEF_NULL )
         {
             result += buffer;
         }
@@ -1701,8 +1701,8 @@ GetProcessList( TProcessIdVector& processList )
     processList.reserve( 1024 );
 
     DIR* dp = ::opendir( "/proc/" );
-    struct dirent* dirFilesys = NULL;
-    while ( NULL != ( dirFilesys = ::readdir( dp ) ) )
+    struct dirent* dirFilesys = GUCEF_NULL;
+    while ( GUCEF_NULL != ( dirFilesys = ::readdir( dp ) ) )
     {
         if ( dirFilesys->d_type == DT_DIR )
         {
@@ -1910,11 +1910,11 @@ CProcessInformation::TryGetProcessInformation( TProcessId pid            ,
         // First open a handle to the other process
 
         CLIENT_ID clientId;
-        clientId.UniqueThread = NULL;
+        clientId.UniqueThread = GUCEF_NULL;
         clientId.UniqueProcess = UlongToHandle( pid );
 
         OBJECT_ATTRIBUTES objAttribs;
-        InitializeObjectAttributes( &objAttribs, NULL, 0, NULL, NULL );
+        InitializeObjectAttributes( &objAttribs, GUCEF_NULL, 0, GUCEF_NULL, GUCEF_NULL );
 
         HANDLE hProcess = 0;
         ::NTSTATUS status = TryNtOpenProcess( &hProcess,
@@ -1932,7 +1932,7 @@ CProcessInformation::TryGetProcessInformation( TProcessId pid            ,
         bool totalSuccess = true;
 
         PROCESS_BASIC_INFORMATION pbi;
-        _RTL_USER_PROCESS_PARAMETERS* pv = NULL;
+        _RTL_USER_PROCESS_PARAMETERS* pv = GUCEF_NULL;
         _RTL_USER_PROCESS_PARAMETERS procParameters;
         memset( &procParameters, 0, sizeof( procParameters ) );
 

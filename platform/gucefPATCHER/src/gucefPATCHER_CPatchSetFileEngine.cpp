@@ -78,7 +78,7 @@ CPatchSetFileEngine::CPatchSetFileEngine( void )
       m_localRoot()                      ,
       m_tempStorageRoot()                ,
       m_retriever()                      ,
-      m_fileAccess( NULL )               ,
+      m_fileAccess( GUCEF_NULL )               ,
       m_fileList()                       ,
       m_curFileLocIndex( 0 )             ,
       m_curFileIndex( 0 )                ,
@@ -100,7 +100,7 @@ CPatchSetFileEngine::CPatchSetFileEngine( const CORE::PulseGeneratorPtr& pulseGe
       m_localRoot()                      ,
       m_tempStorageRoot()                ,
       m_retriever( pulseGenerator )      ,
-      m_fileAccess( NULL )               ,
+      m_fileAccess( GUCEF_NULL )               ,
       m_fileList()                       ,
       m_curFileLocIndex( 0 )             ,
       m_curFileIndex( 0 )                ,
@@ -120,7 +120,7 @@ CPatchSetFileEngine::~CPatchSetFileEngine()
     // Whatever is retrieving into our file has to stop before the file goes away
     m_retriever.Cancel( true );
     delete m_fileAccess;
-    m_fileAccess = NULL;
+    m_fileAccess = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -334,7 +334,7 @@ CPatchSetFileEngine::ProcessCurrentFile( void )
                         
                         // we ran out of options,.. the end
                         delete m_fileAccess;
-                        m_fileAccess = NULL;
+                        m_fileAccess = GUCEF_NULL;
                         NotifyObservers( FileListProcessingAbortedEvent, CreateEventStatusObj() );
                         m_stopSignalGiven = false;
                         m_isActive = false;
@@ -351,7 +351,7 @@ CPatchSetFileEngine::ProcessCurrentFile( void )
             // We failed to obtain writable access to our temp file storage
             // we ran out of options,.. the end
             delete m_fileAccess;
-            m_fileAccess = NULL;
+            m_fileAccess = GUCEF_NULL;
             NotifyObservers( FileStorageErrorEvent, CreateEventStatusObj() );
             m_stopSignalGiven = false;
             m_isActive = false;                
@@ -457,11 +457,11 @@ CPatchSetFileEngine::ProceedToNextFile( void )
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): Proceeding to the next file" );
     
     // Close the last file if it is still opened
-    if ( m_fileAccess != NULL )
+    if ( m_fileAccess != GUCEF_NULL )
     {
         m_fileAccess->Close();
         delete m_fileAccess;
-        m_fileAccess = NULL;
+        m_fileAccess = GUCEF_NULL;
     }
     
     m_curFileLocIndex = 0;
@@ -510,7 +510,7 @@ CPatchSetFileEngine::OnNotify( CORE::CNotifier* notifier                 ,
                 m_currentFileReceivedBytes = completed->bytesTransferred;
 
                 // The file has to be written completely and released before it can be moved
-                if ( m_fileAccess != NULL )
+                if ( m_fileAccess != GUCEF_NULL )
                     m_fileAccess->Close();
 
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): All data for the file has been received" );
@@ -521,8 +521,8 @@ CPatchSetFileEngine::OnNotify( CORE::CNotifier* notifier                 ,
                     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetFileEngine(" + CORE::PointerToString( this ) + "): The new file is stored in a temporary location" );
                     
                     // safety check,.. just in case
-                    assert( m_fileAccess != NULL );
-                    if ( m_fileAccess != NULL )
+                    assert( m_fileAccess != GUCEF_NULL );
+                    if ( m_fileAccess != GUCEF_NULL )
                     {
                         // Create the destination path
                         CORE::CString destPath( m_localRoot );

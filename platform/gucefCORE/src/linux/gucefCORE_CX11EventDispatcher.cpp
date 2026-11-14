@@ -55,7 +55,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 MT::CMutex CX11EventDispatcher::g_mutex;
-CX11EventDispatcher* CX11EventDispatcher::g_instance = NULL;
+CX11EventDispatcher* CX11EventDispatcher::g_instance = GUCEF_NULL;
 
 const CEvent CX11EventDispatcher::X11Event = "GUCEF::CORE::CX11EventDispatcher::X11Event";
 
@@ -76,7 +76,7 @@ CX11EventDispatcher::RegisterEvents( void )
 
 CX11EventDispatcher::CX11EventDispatcher( void )
     : m_windowObserverMap(),
-      m_display( NULL ),
+      m_display( GUCEF_NULL ),
       m_lastUserInputTime( 0 )
 {GUCEF_TRACE;
 
@@ -85,8 +85,8 @@ CX11EventDispatcher::CX11EventDispatcher( void )
     pulseGenerator->RequestPeriodicPulses( this, 10 );
 
     // Open the connection to the X client
-    m_display = ::XOpenDisplay( NULL );
-    if ( NULL == m_display )
+    m_display = ::XOpenDisplay( GUCEF_NULL );
+    if ( GUCEF_NULL == m_display )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "CX11Window::WindowCreate(): Failed to open display" );
     }
@@ -106,10 +106,10 @@ CX11EventDispatcher*
 CX11EventDispatcher::Instance( void )
 {GUCEF_TRACE;
 
-    if ( NULL == g_instance )
+    if ( GUCEF_NULL == g_instance )
     {
         g_mutex.Lock();
-        if ( NULL == g_instance )
+        if ( GUCEF_NULL == g_instance )
         {
             g_instance = new CX11EventDispatcher();
         }
@@ -126,7 +126,7 @@ CX11EventDispatcher::Deinstance( void )
 
     g_mutex.Lock();
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
     g_mutex.Unlock();
 }
 

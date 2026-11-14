@@ -109,7 +109,7 @@ CProductInfoList::LoadConfig( const GUCEF::CORE::CDataNode& node )
 {GUCEF_TRACE;
 
     const GUCEF::CORE::CDataNode* n = node.Find( "ProductList" );
-    if ( NULL != n )
+    if ( GUCEF_NULL != n )
     {
         GUCEF::CORE::CDataNode::const_iterator i = n->ConstBegin();
         while ( i != n->ConstEnd() )
@@ -187,7 +187,7 @@ CProductInfoList::RetrieveProductInfo( const CString& combinedProductString )
                 i = m_downloadingProducts.find( combinedProductString );
                 if ( i == m_downloadingProducts.end() )
                 {
-                    return NULL;
+                    return GUCEF_NULL;
                 }            
             }            
         }
@@ -214,7 +214,7 @@ CProductInfoList::RetrieveProductInfo( const CString& combinedProductString ) co
                 i = m_downloadingProducts.find( combinedProductString );
                 if ( i == m_downloadingProducts.end() )
                 {
-                    return NULL;
+                    return GUCEF_NULL;
                 }            
             }            
         }

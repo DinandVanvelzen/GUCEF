@@ -1552,7 +1552,7 @@ CPubSubClientSide::TopicLink::OnCheckForTimedOutInFlightMessagesTimerCycle( CORE
                     ++n;
                 }
 
-                if ( flowRouter->PublishMsgs( side, discardedMsgs, RouteType::DeadLetter ) )
+                if ( flowRouter->PublishMsgs( side, discardedMsgs, DeadLetter ) )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
                         "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we successfully sent a total of " + CORE::SizeTToString( nrOfDiscardedMsgs ) +
@@ -1723,7 +1723,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
                                         CPubSubClientSide::GetMsgAttributesForLog( *retryEntry.msg ) );
 
                                     inFlightDiscardList.insert( retryEntry.publishActionId );
-                                    n = publishFailedMsgs.erase( n );
+                                    GUCEF_ERASE_AND_ADVANCE( publishFailedMsgs, n );
                                     continue;
                                 }
                                 else
@@ -1740,7 +1740,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
                                             CPubSubClientSide::GetMsgAttributesForLog( *retryEntry.msg ) );
 
                                         inFlightDiscardList.insert( retryEntry.publishActionId );
-                                        n = publishFailedMsgs.erase( n );
+                                        GUCEF_ERASE_AND_ADVANCE( publishFailedMsgs, n );
                                         continue;
                                     }
                                 }
@@ -1784,7 +1784,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
                                         CPubSubClientSide::GetMsgAttributesForLog( *retryEntry.msg ) );
 
                                     inFlightDiscardList.insert( retryEntry.publishActionId );
-                                    n = publishFailedMsgs.erase( n );
+                                    GUCEF_ERASE_AND_ADVANCE( publishFailedMsgs, n );
                                     continue;
                                 }
                                 else
@@ -1801,7 +1801,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
                                             CPubSubClientSide::GetMsgAttributesForLog( *retryEntry.msg ) );
 
                                         inFlightDiscardList.insert( retryEntry.publishActionId );
-                                        n = publishFailedMsgs.erase( n );
+                                        GUCEF_ERASE_AND_ADVANCE( publishFailedMsgs, n );
                                         continue;
                                     }
                                 }
@@ -1825,7 +1825,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
                                         ". output publishActionId=" + CORE::ToString( publishActionId ) + ". input publishActionId=" + CORE::ToString( retryEntry.publishActionId ) + ". " +
                                         CPubSubClientSide::GetMsgAttributesForLog( *retryEntry.msg ) );
 
-                                    n = publishFailedMsgs.erase( n );
+                                    GUCEF_ERASE_AND_ADVANCE( publishFailedMsgs, n );
                                 }
                                 else
                                 {
@@ -2102,7 +2102,7 @@ CPubSubClientSide::TopicLink::OnPubSubTopicMsgsReceived( CORE::CNotifier* notifi
             // We now broadcast the received messages to all other sides which is the purpose of this class
             if ( GUCEF_NULL != flowRouter )
             {
-                bool totalSuccess = flowRouter->PublishMsgs( side, msgs, RouteType::Active );
+                bool totalSuccess = flowRouter->PublishMsgs( side, msgs, Active );
                 if ( totalSuccess )
                 {
                     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "TopicLink(" + CORE::ToString( this ) +

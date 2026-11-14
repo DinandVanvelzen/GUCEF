@@ -54,8 +54,8 @@ CStack::CStack( void )
         /*
          *      Default contructor
          */
-        first = NULL;
-        last = NULL;
+        first = GUCEF_NULL;
+        last = GUCEF_NULL;
         nodecount = 0;
         GUCEF_END;
 }
@@ -138,14 +138,14 @@ CStack::Pop( void **data )
                 /*
                  *      Stack is empty, nothing to pop
                  */
-                *data = NULL;
+                *data = GUCEF_NULL;
                 GUCEF_END;
                 return;
         }
 
         CLLNode *tmp_node = first;
         first = first->GetNext();
-        if ( first ) first->SetPrev( NULL );
+        if ( first ) first->SetPrev( GUCEF_NULL );
         nodecount--;
         *data = tmp_node->GetLink();
         if ( tmp_node == last )
@@ -153,8 +153,8 @@ CStack::Pop( void **data )
                 /*
                  *      Stack is now empty
                  */
-                first = NULL;
-                last = NULL;
+                first = GUCEF_NULL;
+                last = GUCEF_NULL;
         }
         GUCEF_DELETE tmp_node;
         GUCEF_END;
@@ -179,7 +179,7 @@ CStack::Get_Top( void **data )
                 *data = tmp_node->GetLink();
                 if ( first == tmp_node )
                 {
-                	first = NULL;
+                	first = GUCEF_NULL;
                 }
                 GUCEF_CHECKMEM( tmp_node, sizeof(CLLNode) );
                 GUCEF_DELETE tmp_node;
@@ -187,7 +187,7 @@ CStack::Get_Top( void **data )
                 GUCEF_END;
                 return;
         }
-        *data = NULL;
+        *data = GUCEF_NULL;
         GUCEF_END;
         return;
 }

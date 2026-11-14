@@ -85,7 +85,7 @@ const CORE::CEvent CInputController::KeyboardAttachedEvent = "GUCEF::INPUT::Keyb
 const CORE::CEvent CInputController::KeyboardDetachedEvent = "GUCEF::INPUT::KeyboardDetachedEvent";
 const CORE::CEvent CInputController::JoystickAttachedEvent = "GUCEF::INPUT::JoystickAttachedEvent";
 const CORE::CEvent CInputController::JoystickDetachedEvent = "GUCEF::INPUT::JoystickDetachedEvent";
-CInputController* CInputController::m_instance = NULL;
+CInputController* CInputController::m_instance = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -173,7 +173,7 @@ CInputController::CreateContext( const CString& driverName      ,
 
         #endif
 
-        if ( NULL != context )
+        if ( GUCEF_NULL != context )
         {
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Created input context using driver " + driverName );
             TIdGenerator::TNumericID id = m_idGenerator->GenerateID();
@@ -185,7 +185,7 @@ CInputController::CreateContext( const CString& driverName      ,
 
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to created input context using driver " + driverName );
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

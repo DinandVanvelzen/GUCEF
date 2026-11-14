@@ -67,7 +67,7 @@ CGUIContext::CGUIContext( CMyGUIDriver& myGuiDriver          ,
       m_inputAdapter()
 {GUCEF_TRACE;
 
-    assert( NULL != m_driver );
+    assert( GUCEF_NULL != m_driver );
     m_inputAdapter.SetInputContext( inputContext );
     m_inputAdapter.StartListningForInputEvents();
 }
@@ -103,12 +103,12 @@ CGUIContext::CreateWidget( const CString& widgetName )
 {GUCEF_TRACE;
 
     GUCEF::GUI::CWidget* widget = m_driver->CreateWidget( widgetName );
-    if ( NULL != widget )
+    if ( GUCEF_NULL != widget )
     {
         m_widgetSet.insert( widget );
         return widget;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,7 +134,7 @@ CGUIContext::CreateForm( const CString& formName )
         return form;
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

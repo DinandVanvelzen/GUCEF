@@ -326,7 +326,7 @@ struct CMcpServer::SInFlight
 
     SInFlight( void )
         : dispatch()
-        , future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+        , future( CORE::TASKSTATUS_UNDEFINED )
         , hasFuture( false )
         , deadlineInMs( 0 )
         , hasSentProgress( false )
@@ -2148,7 +2148,7 @@ CMcpServer::RunCall( SDispatch& dispatch, CMcpOperationTaskData& call, EMcpExecu
     }
 
     CORE::ThreadPoolPtr pool = GetThreadPool();
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_QUEUEING_FAILED );
     if ( !pool.IsNULL() )
     {
         RegisterInFlight( dispatch, maxDurationMs );
@@ -3507,7 +3507,7 @@ CMcpServer::QueueInProcess( CMcpOperationTaskData& data )
     {
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "McpServer: Failed to queue an in-process call: " << e.what() );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/

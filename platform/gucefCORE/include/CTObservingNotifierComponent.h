@@ -107,7 +107,7 @@ class CTObservingNotifierComponent : public CObservingNotifier
      *  @return Alive state of the notifier, if false then the notifier died itself as a result of the notification.
      */
     bool DoNotifyObservers( const CEvent& eventid         ,
-                            CICloneable* eventData = NULL );
+                            CICloneable* eventData = GUCEF_NULL );
 
     /**
      *  The same as DoNotifyObservers( CEvent, CICloneable )
@@ -121,7 +121,7 @@ class CTObservingNotifierComponent : public CObservingNotifier
      */
     bool DoNotifyObservers( CNotifier& sender             ,
                             const CEvent& eventid         ,
-                            CICloneable* eventData = NULL );
+                            CICloneable* eventData = GUCEF_NULL );
     
     virtual const CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
@@ -159,7 +159,7 @@ class CTObservingNotifierComponent : public CObservingNotifier
 template < class TOwnerClass >
 CTObservingNotifierComponent< TOwnerClass >::CTObservingNotifierComponent( void )
     : CObservingNotifier()     ,
-      m_componentOwner( NULL )
+      m_componentOwner( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -169,7 +169,7 @@ CTObservingNotifierComponent< TOwnerClass >::CTObservingNotifierComponent( void 
 template < class TOwnerClass >
 CTObservingNotifierComponent< TOwnerClass >::CTObservingNotifierComponent( const CTObservingNotifierComponent& src )
     : CObservingNotifier( src ) ,
-      m_componentOwner( NULL )
+      m_componentOwner( GUCEF_NULL )
 {GUCEF_TRACE;
     
 }

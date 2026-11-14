@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { WIN32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT", "ole32" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "ole32" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_AUDIODRIVER_WASAPI_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverWASAPI", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT", "ole32" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "ole32" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_AUDIODRIVER_WASAPI_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverWASAPI", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -95,7 +99,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )

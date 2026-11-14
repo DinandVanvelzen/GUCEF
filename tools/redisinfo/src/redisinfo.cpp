@@ -3041,7 +3041,7 @@ RestApiRedisInfoConfigResource::Deserialize( const CORE::CString& resourcePath  
 
             // First put the app in standby mode before we mess with the settings
             if ( !m_app->SetStandbyMode( true ) )
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 
             const CORE::CDataNode& globalConfig = m_app->GetGlobalConfig();
             if ( m_app->LoadConfig( loadedAppConfig, globalConfig ) )
@@ -3049,23 +3049,23 @@ RestApiRedisInfoConfigResource::Deserialize( const CORE::CString& resourcePath  
                 if ( !m_app->IsGlobalStandbyEnabled() )
                 {
                     if ( m_app->SetStandbyMode( false ) )
-                        return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                        return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
                     else
-                        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
                 }
                 else
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "RestApiRedisInfoConfigResource: IsGlobalStandbyEnabled is true. We will leave the app in standby mode" );
-                    return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                    return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
                 }
             }
             else
             {
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
             }
         }
 
-        return TDeserializeState::DESERIALIZESTATE_CORRUPTEDINPUT;
+        return CIHTTPServerResource::DESERIALIZESTATE_CORRUPTEDINPUT;
     }
     else
     {
@@ -3078,26 +3078,26 @@ RestApiRedisInfoConfigResource::Deserialize( const CORE::CString& resourcePath  
             //    const CORE::CValueList& loadedAppConfig = m_app->GetAppConfig();
             //    if ( m_app->LoadConfig( loadedAppConfig, globalConfigCopy ) )
             //    {
-            //        return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+            //        return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
             //    }
             //    else
             //    {
-            //        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+            //        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
             //    }
             //}
 
-            return TDeserializeState::DESERIALIZESTATE_CORRUPTEDINPUT;
+            return CIHTTPServerResource::DESERIALIZESTATE_CORRUPTEDINPUT;
         }
         else
         {
             const CORE::CValueList& loadedAppConfig = m_app->GetAppConfig();
             if ( m_app->LoadConfig( loadedAppConfig, input ) )
             {
-                return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
             }
             else
             {
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
             }
         }
     }

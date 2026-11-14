@@ -48,54 +48,62 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "IMGUPSCALEPLUGINNCNN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgupscalepluginNCNN", "MODULE_SEMVER=1_0_0_0", "NCNN_STATIC_DEFINE" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "IMGUPSCALEPLUGINNCNN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgupscalepluginNCNN", "MODULE_SEMVER=1_0_0_0", "NCNN_STATIC_DEFINE" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+
+configuration( { "WIN32" } )
 defines( { "IMGUPSCALEPLUGINNCNN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgupscalepluginNCNN", "MODULE_SEMVER=1_0_0_0", "NCNN_STATIC_DEFINE" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS", "ncnn" } )
+
+
+configuration( { "WIN64" } )
 defines( { "IMGUPSCALEPLUGINNCNN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgupscalepluginNCNN", "MODULE_SEMVER=1_0_0_0", "NCNN_STATIC_DEFINE" } )
 
 

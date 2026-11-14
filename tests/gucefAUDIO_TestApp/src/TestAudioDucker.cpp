@@ -799,7 +799,7 @@ PerformEngineTests( void )
         // inserts
         AUDIO::TAudioEffectPtr refused = engine.CreateEffect( "ducker", onNothing );
         ASSERT_FALSE( refused.IsNULL() );
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( music, 0, refused ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( music, 0, refused ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( engine.GetBusEffect( music, 0 ).IsNULL() );
         RenderBlocks( engine, 2, 256 );
 
@@ -903,7 +903,7 @@ PerformEngineTests( void )
         onNothing.Set( "keyBus", "nosuchbus" );
         AUDIO::TAudioEffectPtr brokenEffect = AUDIO::CAudioGlobal::Instance()->GetAudioEffectRegistry().CreateEffect( "ducker", onNothing );
         ASSERT_TRUE( brokenEffect->SaveConfig( brokenBus.AddEffect( 0, "ducker" ).config ) );
-        ASSERT_TRUE( IsFailedWith( third.ApplyBusLayout( broken ), CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( third.ApplyBusLayout( broken ), CORE::TASKSTATUS_STARTUP_FAILED ) );
         ASSERT_TRUE( third.GetBusEffect( third.FindBus( "broken" ), 0 ).IsNULL() );
         third.Shutdown();
     }

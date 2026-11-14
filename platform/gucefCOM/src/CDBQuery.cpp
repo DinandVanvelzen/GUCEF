@@ -52,8 +52,8 @@ namespace COM {
 
 CDBQuery::CDBQuery(void)
 {GUCEF_TRACE;
-        column = NULL;
-        field = NULL;
+        column = GUCEF_NULL;
+        field = GUCEF_NULL;
 
         columns = 0;
         rows = 0;
@@ -85,9 +85,9 @@ void
 CDBQuery::FreeColumns(void)
 {GUCEF_TRACE;
 
-        if(column != NULL) {
+        if(column != GUCEF_NULL) {
                 delete[] column;
-                column = NULL;
+                column = GUCEF_NULL;
         }
 
         columns = 0;
@@ -99,9 +99,9 @@ void
 CDBQuery::FreeRows(void)
 {GUCEF_TRACE;
 
-        if(field != NULL) {
+        if(field != GUCEF_NULL) {
                 delete[] field;
-                field = NULL;
+                field = GUCEF_NULL;
         }
 
         rows = 0;

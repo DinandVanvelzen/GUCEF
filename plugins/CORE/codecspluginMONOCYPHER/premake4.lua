@@ -26,12 +26,12 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -40,18 +40,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT", "monocypher" } )
+
+configuration( {} )
 links( { "monocypher" } )
 
 
 configuration( {} )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=codecspluginMONOCYPHER", "MODULE_IS_PLUGIN=1", "MODULE_NAME=codecspluginMONOCYPHER" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=codecspluginMONOCYPHER" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=codecspluginMONOCYPHER" } )
 
 

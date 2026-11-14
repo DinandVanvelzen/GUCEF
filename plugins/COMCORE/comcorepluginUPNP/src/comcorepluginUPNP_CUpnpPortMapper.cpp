@@ -396,7 +396,7 @@ CUpnpPortMapperTask::OnTaskCycle( CORE::CTaskPtr task )
     if ( success )
         data->source.Complete( result.Clone(), true );
     else
-        data->source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, error );
+        data->source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, error );
     return true;
 }
 
@@ -420,7 +420,7 @@ CUpnpPortMapper::SPendingRequest::SPendingRequest( void )
     : kind( REQUESTKIND_MAP )
     , protocol( COMCORE::CPortMappingResult::PROTOCOL_UDP )
     , internalPort( 0 )
-    , future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    , future( CORE::TASKSTATUS_UNDEFINED )
 {GUCEF_TRACE;
 
 }

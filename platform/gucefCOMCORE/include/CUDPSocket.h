@@ -464,7 +464,7 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
 
     void OnPulse( CORE::CNotifier* notifier           ,
                   const CORE::CEvent& eventid         ,
-                  CORE::CICloneable* eventdata = NULL );
+                  CORE::CICloneable* eventdata = GUCEF_NULL );
 
     bool Update( bool performRead );  /**< checks the socket for queued incoming data */
 

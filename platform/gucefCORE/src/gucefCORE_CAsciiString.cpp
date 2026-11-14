@@ -74,7 +74,7 @@ const CAsciiString::StringSet CAsciiString::EmptyStringSet;
 //-------------------------------------------------------------------------*/
 
 CAsciiString::CAsciiString( void )
-        : m_string( NULL ) ,
+        : m_string( GUCEF_NULL ) ,
           m_length( 0 )    ,
           m_linked( false )
 {GUCEF_TRACE;
@@ -84,7 +84,7 @@ CAsciiString::CAsciiString( void )
 /*-------------------------------------------------------------------------*/
 
 CAsciiString::CAsciiString( const CAsciiString &src )
-        : m_string( NULL ) ,
+        : m_string( GUCEF_NULL ) ,
           m_length( 0 )    ,
           m_linked( false )
 {GUCEF_TRACE;
@@ -93,7 +93,7 @@ CAsciiString::CAsciiString( const CAsciiString &src )
     if ( src.m_length > 0 )
     {
         m_string = GUCEF_NEW char[ src.m_length+1 ];
-        assert( m_string != NULL );
+        assert( m_string != GUCEF_NULL );
         m_length = src.m_length;
         memcpy( m_string, src.m_string, m_length+1 );
     }
@@ -113,7 +113,7 @@ CAsciiString::CAsciiString( const CUtf8String &src ) GUCEF_NOEXCEPT
 /*-------------------------------------------------------------------------*/
 
 CAsciiString::CAsciiString( const std::string& src ) GUCEF_NOEXCEPT
-        : m_string( NULL ) ,
+        : m_string( GUCEF_NULL ) ,
           m_length( 0 )    ,
           m_linked( false )
 {GUCEF_TRACE;
@@ -122,7 +122,7 @@ CAsciiString::CAsciiString( const std::string& src ) GUCEF_NOEXCEPT
     {
         m_length = (UInt32)src.size();
         m_string = GUCEF_NEW char[ m_length+1 ];
-        assert( m_string != NULL );
+        assert( m_string != GUCEF_NULL );
         memcpy( m_string, src.c_str(), m_length+1 );
     }
 }
@@ -137,7 +137,7 @@ CAsciiString::CAsciiString( CAsciiString&& src ) GUCEF_NOEXCEPT
 {GUCEF_TRACE;
 
     // Transfer ownership (or link state); source becomes null/unlinked
-    src.m_string = NULL;
+    src.m_string = GUCEF_NULL;
     src.m_length = 0;
     src.m_linked = false;
 }
@@ -151,7 +151,7 @@ CAsciiString::CAsciiString( const char* src ) GUCEF_NOEXCEPT
           m_linked( false )
 {GUCEF_TRACE;
 
-    if ( src != NULL )
+    if ( src != GUCEF_NULL )
     {
         m_length = (UInt32)strlen( src );
         m_string = GUCEF_NEW char[ m_length+1 ];
@@ -165,7 +165,7 @@ CAsciiString::CAsciiString( const char* src ) GUCEF_NOEXCEPT
 CAsciiString::CAsciiString( const char* src      ,
                             UInt32 length        ,
                             bool reexamineLength )  GUCEF_NOEXCEPT
-        : m_string( NULL ) ,
+        : m_string( GUCEF_NULL ) ,
           m_length( 0 )    ,
           m_linked( false )
 {GUCEF_TRACE;
@@ -199,7 +199,7 @@ CAsciiString::CAsciiString( const char* src      ,
 /*-------------------------------------------------------------------------*/
 
 CAsciiString::CAsciiString( const char src )
-    : m_string( NULL ) ,
+    : m_string( GUCEF_NULL ) ,
       m_length( 0 )    ,
       m_linked( false )
 {GUCEF_TRACE;
@@ -210,12 +210,12 @@ CAsciiString::CAsciiString( const char src )
 /*-------------------------------------------------------------------------*/
 
 CAsciiString::CAsciiString( const int NULLvalue )
-    : m_string( NULL ) ,
+    : m_string( GUCEF_NULL ) ,
       m_length( 0 )    ,
       m_linked( false )
 {GUCEF_TRACE;
 
-    assert( NULLvalue == (int) NULL );
+    assert( 0 == NULLvalue );
 }
 /*-------------------------------------------------------------------------*/
 
@@ -224,7 +224,7 @@ CAsciiString::~CAsciiString()
 
     if ( !m_linked )
         GUCEF_DELETE []m_string;
-    m_string = NULL;
+    m_string = GUCEF_NULL;
     m_length = 0;
     m_linked = false;
 }
@@ -240,7 +240,7 @@ CAsciiString::operator=( const CAsciiString &src )
         // Always deep-copy: never propagate linked state via assignment
         if ( !m_linked )
             GUCEF_DELETE []m_string;
-        m_string = NULL;
+        m_string = GUCEF_NULL;
         m_length = src.m_length;
         m_linked = false;
 
@@ -262,7 +262,7 @@ CAsciiString::operator=( const std::string& src )
 
     if ( !m_linked )
         GUCEF_DELETE []m_string;
-    m_string = NULL;
+    m_string = GUCEF_NULL;
     m_length = (UInt32) src.size();
     m_linked = false;
 
@@ -286,11 +286,11 @@ CAsciiString::operator=( const char *src )
     {
         if ( !m_linked )
             GUCEF_DELETE []m_string;
-        m_string = NULL;
+        m_string = GUCEF_NULL;
         m_length = 0;
         m_linked = false;
 
-        if ( src != NULL )
+        if ( src != GUCEF_NULL )
         {
             m_length = (UInt32)strlen( src );
             if ( m_length > 0 )
@@ -338,7 +338,7 @@ bool
 CAsciiString::operator!=( const int NULLvalue ) const
 {GUCEF_TRACE;
 
-    if ( NULLvalue == static_cast< int >( GUCEF_NULL ) )
+    if ( NULLvalue == 0 )
     {
         return m_length > 0;
     }
@@ -352,7 +352,7 @@ bool
 CAsciiString::operator==( const int NULLvalue ) const
 {GUCEF_TRACE;
 
-    if ( NULLvalue == static_cast< int >( GUCEF_NULL ) )
+    if ( NULLvalue == 0 )
     {
         return m_length == 0;
     }
@@ -461,11 +461,11 @@ bool
 CAsciiString::operator<( const CAsciiString& other ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_string && NULL != other.m_string )
+    if ( GUCEF_NULL != m_string && GUCEF_NULL != other.m_string )
     {
         return strcmp( m_string, other.m_string ) < 0;
     }
-    if ( NULL == m_string && NULL != other.m_string )
+    if ( GUCEF_NULL == m_string && GUCEF_NULL != other.m_string )
     {
         return true;
     }
@@ -522,16 +522,16 @@ CAsciiString::Set( const char *new_str ,
     {
         if ( !m_linked )
             GUCEF_DELETE []m_string;
-        m_string = NULL;
+        m_string = GUCEF_NULL;
         m_length = 0;
         m_linked = false;
 
-        if ( ( new_str != NULL ) &&
+        if ( ( new_str != GUCEF_NULL ) &&
              ( len > 0 )          )
         {
             m_length = len;
             m_string = GUCEF_NEW char[ len+1 ];
-            assert( m_string != NULL );
+            assert( m_string != GUCEF_NULL );
             memcpy( m_string, new_str, m_length );    // the given bytes only: new_str need not be terminated
             m_string[ len ] = '\0';
         }
@@ -646,13 +646,13 @@ CAsciiString::Append( const char *appendstr ,
 {GUCEF_TRACE;
 
     // Note that the string may be appended to itself: the new buffer is filled before the current one is released
-    if ( ( appendstr != NULL ) &&
+    if ( ( appendstr != GUCEF_NULL ) &&
          ( len > 0 )            )
     {
         if ( m_length > 0 )
         {
             char* newString = GUCEF_NEW char[ m_length+len+1 ];
-            assert( newString != NULL );
+            assert( newString != GUCEF_NULL );
             memcpy( newString, m_string, m_length );
             memcpy( newString+m_length, appendstr, len );
             m_length = m_length+len;
@@ -665,7 +665,7 @@ CAsciiString::Append( const char *appendstr ,
         else
         {
             char* newString = GUCEF_NEW char[ len+1 ];
-            assert( newString != NULL );
+            assert( newString != GUCEF_NULL );
             memcpy( newString, appendstr, len );
             newString[ len ] = 0;
             if ( !m_linked )
@@ -1017,7 +1017,7 @@ CAsciiString::Clear( void )
     m_length = 0;
     if ( !m_linked )
         GUCEF_DELETE []m_string;
-    m_string = NULL;
+    m_string = GUCEF_NULL;
     m_linked = false;
 }
 
@@ -1845,7 +1845,7 @@ CAsciiString::Scan( const char* newStr     ,
                     const UInt32 maxLength )
 {GUCEF_TRACE;
 
-    if ( newStr != NULL )
+    if ( newStr != GUCEF_NULL )
     {
         for ( UInt32 i=0; i<maxLength; ++i )
         {

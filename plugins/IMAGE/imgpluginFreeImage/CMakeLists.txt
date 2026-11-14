@@ -108,6 +108,25 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of imgpluginFreeImage and the modules it depends on
+if ( LINUX32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX32 )
+if ( LINUX64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX64 )
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( imgpluginFreeImage "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 
 if( EMSCRIPTEN32 )
   set( MODULE_NAME "imgpluginFreeImage" )
@@ -183,6 +202,20 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( ../../../common/include ../../../dependencies/FreeImage/Source ../../../dependencies/FreeImage/Source/DeprecationManager ../../../dependencies/FreeImage/Source/FreeImage ../../../dependencies/FreeImage/Source/FreeImageToolkit ../../../dependencies/FreeImage/Source/LibJPEG ../../../dependencies/FreeImage/Source/LibJXR/common/include ../../../dependencies/FreeImage/Source/LibJXR/image/decode ../../../dependencies/FreeImage/Source/LibJXR/image/encode ../../../dependencies/FreeImage/Source/LibJXR/image/sys ../../../dependencies/FreeImage/Source/LibJXR/image/x86 ../../../dependencies/FreeImage/Source/LibJXR/jxrgluelib ../../../dependencies/FreeImage/Source/LibOpenJPEG ../../../dependencies/FreeImage/Source/LibPNG ../../../dependencies/FreeImage/Source/LibRawLite/internal ../../../dependencies/FreeImage/Source/LibRawLite/libraw ../../../dependencies/FreeImage/Source/LibTIFF4 ../../../dependencies/FreeImage/Source/LibWebP/src/dec ../../../dependencies/FreeImage/Source/LibWebP/src/dsp ../../../dependencies/FreeImage/Source/LibWebP/src/enc ../../../dependencies/FreeImage/Source/LibWebP/src/mux ../../../dependencies/FreeImage/Source/LibWebP/src/utils ../../../dependencies/FreeImage/Source/LibWebP/src/webp ../../../dependencies/FreeImage/Source/Metadata ../../../dependencies/FreeImage/Source/OpenEXR ../../../dependencies/FreeImage/Source/OpenEXR/Half ../../../dependencies/FreeImage/Source/OpenEXR/Iex ../../../dependencies/FreeImage/Source/OpenEXR/IexMath ../../../dependencies/FreeImage/Source/OpenEXR/IlmImf ../../../dependencies/FreeImage/Source/OpenEXR/IlmThread ../../../dependencies/FreeImage/Source/OpenEXR/Imath ../../../dependencies/zlib ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( LINUX32 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
 endif( WIN64 )
 
 

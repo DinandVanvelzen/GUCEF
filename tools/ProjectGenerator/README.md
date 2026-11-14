@@ -186,6 +186,7 @@ The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each m
 | `<RuntimeDependencies>` | run-time dependencies | Inclusion of plugins in output project |
 | `<Linker>` | Link-time dependencies | Libraries to link |
 | `<Preprocessor>` | Compiler definitions | #define statements |
+| `<Compiler>` | Compiler settings | `MinCppStandard` attribute: the minimum C++ standard the module needs (`11`, `14`, `17`, ...). Generated CMake requests it as a PUBLIC compile feature so dependents get it too; a module root fails to configure when `CMAKE_CXX_STANDARD` is below the minimum of the module and the modules it depends on. `<CompilerFlags CompilerName="G++" Flags="..."/>` children pass options to the GNU and Clang compilers, for example to pin a module to an older standard it needs at most |
 
 ### Module Attributes
 
@@ -285,9 +286,11 @@ output/
 | `envOverridesFile` | Path to a text file which includes overrides for environment variables for use in restrictive environments | Not used by default |
 | `outputDir` | Directory where the log file will be written. Independent of ProjectGenerator output | Current working directory |
 | `projectName` | Name of the overall project, the overarching name of the body of work | Auto-detected: root dir name |
-| `useProjectInfoCache` | Directory where the log file will be written. Independent of ProjectGenerator output | `false` |
+| `useProjectInfoCache` | Reuse the project information stored in `Project.xml` instead of gathering it again, when its input fingerprint matches the current inputs: the gathering settings, the names of all source and header files and the content of all definition files (`ModuleInfo.xml`, processing instructions, license and semver files). Line ending differences and file timestamps do not affect the fingerprint | `false` |
 | `generators` | Semicolon-separated list of generators | `xml` |
 | `dirsToIgnore` | Semicolon-separated ignore list | Empty |
+
+Parameters given on the command line override the `[Bootstrap\Main\AppArgs]` values of the config file. For parameters which take multiple values the command line values come first, followed by the config file values.
 
 
 ### Generator-Specific Parameters

@@ -30,6 +30,8 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "lua", "tolua" } )
+
+configuration( {} )
 links( { "lua", "tolua" } )
 
 

@@ -210,7 +210,7 @@ CSystemSteamHostView::IsProcessRunning( UInt32 processId, const CORE::CString& n
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     HANDLE process = ::OpenProcess( PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD) processId );
-    if ( NULL == process )
+    if ( GUCEF_NULL == process )
         return false;
     bool running = false;
     DWORD exitCode = 0;
@@ -252,14 +252,14 @@ CSystemSteamHostView::ReadRegistryString( const CORE::CString& key, const CORE::
     // the Win32 wide registry API forces wide strings at this boundary only
     const std::wstring wideKey = CORE::ToWString( key );
     const std::wstring wideValue = CORE::ToWString( valueName );
-    HKEY handle = NULL;
+    HKEY handle = GUCEF_NULL;
     if ( ERROR_SUCCESS != ::RegOpenKeyExW( HKEY_CURRENT_USER, wideKey.c_str(), 0, KEY_READ, &handle ) )
         return false;
     WCHAR buffer[ 2048 ];
     DWORD bufferSize = sizeof( buffer ) - sizeof( WCHAR );
     DWORD type = 0;
     bool found = false;
-    if ( ERROR_SUCCESS == ::RegQueryValueExW( handle, wideValue.c_str(), NULL, &type, (LPBYTE) buffer, &bufferSize ) && REG_SZ == type )
+    if ( ERROR_SUCCESS == ::RegQueryValueExW( handle, wideValue.c_str(), GUCEF_NULL, &type, (LPBYTE) buffer, &bufferSize ) && REG_SZ == type )
     {
         buffer[ bufferSize / sizeof( WCHAR ) ] = 0;
         value = CORE::ToUtf8String( std::wstring( buffer ) );
@@ -288,13 +288,13 @@ CSystemSteamHostView::ReadRegistryDword( const CORE::CString& key, const CORE::C
     // the Win32 wide registry API forces wide strings at this boundary only
     const std::wstring wideKey = CORE::ToWString( key );
     const std::wstring wideValue = CORE::ToWString( valueName );
-    HKEY handle = NULL;
+    HKEY handle = GUCEF_NULL;
     if ( ERROR_SUCCESS != ::RegOpenKeyExW( HKEY_CURRENT_USER, wideKey.c_str(), 0, KEY_READ, &handle ) )
         return false;
     DWORD data = 0;
     DWORD dataSize = sizeof( data );
     DWORD type = 0;
-    bool found = ERROR_SUCCESS == ::RegQueryValueExW( handle, wideValue.c_str(), NULL, &type, (LPBYTE) &data, &dataSize ) && REG_DWORD == type;
+    bool found = ERROR_SUCCESS == ::RegQueryValueExW( handle, wideValue.c_str(), GUCEF_NULL, &type, (LPBYTE) &data, &dataSize ) && REG_DWORD == type;
     ::RegCloseKey( handle );
     if ( found )
         value = (UInt32) data;

@@ -104,7 +104,7 @@ class GUCEF_CORE_PUBLIC_CPP CINotifier : public virtual MT::CILockable ,
      */
     virtual bool Subscribe( CObserver* observer                        ,
                             const CEvent& eventid                      ,
-                            CIEventHandlerFunctorBase* callback = NULL ) = 0;
+                            CIEventHandlerFunctorBase* callback = GUCEF_NULL ) = 0;
 
     /**
      *  Detaches the given observer from the notifier.

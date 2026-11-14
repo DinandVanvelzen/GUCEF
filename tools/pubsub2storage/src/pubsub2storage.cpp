@@ -407,7 +407,7 @@ void
 CPubSubClientChannel::RegisterTopicEventHandlers( PUBSUB::CPubSubClientTopic& topic )
 {GUCEF_TRACE;
 
-    if ( m_channelSettings.mode == TChannelMode::CHANNELMODE_PUBSUB_TO_STORAGE )
+    if ( m_channelSettings.mode == ChannelSettings::CHANNELMODE_PUBSUB_TO_STORAGE )
     {
         TEventCallback callback( this, &CPubSubClientChannel::OnPubSubTopicMsgsReceived );
         SubscribeTo( &topic                                         ,
@@ -879,7 +879,7 @@ bool
 CPubSubClientChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;    
 
-    if ( m_channelSettings.mode == TChannelMode::CHANNELMODE_STORAGE_TO_PUBSUB )
+    if ( m_channelSettings.mode == ChannelSettings::CHANNELMODE_STORAGE_TO_PUBSUB )
     {
         TransmitNextPubSubMsgBuffer();
     }
@@ -1207,7 +1207,7 @@ CStorageChannel::OnTaskStart( CORE::CTaskPtr task )
         }
     }
 
-    if ( ( m_channelSettings.mode == TChannelMode::CHANNELMODE_STORAGE_TO_PUBSUB ) && ( m_channelSettings.autoPushAfterStartupIfStorageToPubSub ) )
+    if ( ( m_channelSettings.mode == ChannelSettings::CHANNELMODE_STORAGE_TO_PUBSUB ) && ( m_channelSettings.autoPushAfterStartupIfStorageToPubSub ) )
     {
         AddStorageToPubSubRequest( StorageToPubSubRequest( m_channelSettings.oldestStoragePubSubMsgFileToLoad, m_channelSettings.youngestStoragePubSubMsgFileToLoad ) );
     }
@@ -1755,12 +1755,12 @@ CStorageChannel::OnTaskCycle( CORE::CTaskPtr task )
 
     switch ( m_channelSettings.mode )
     {
-        case TChannelMode::CHANNELMODE_PUBSUB_TO_STORAGE:
+        case ChannelSettings::CHANNELMODE_PUBSUB_TO_STORAGE:
         {
             StoreNextReceivedPubSubBuffer();
             break;
         }
-        case TChannelMode::CHANNELMODE_STORAGE_TO_PUBSUB:
+        case ChannelSettings::CHANNELMODE_STORAGE_TO_PUBSUB:
         {
             ProcessNextStorageToPubSubRequest();
             break;
@@ -1930,7 +1930,7 @@ RestApiPubSub2StorageConfigResource::Deserialize( const CORE::CString& resourceP
 
             // First put the app in standby mode before we mess with the settings
             if ( !m_app->SetStandbyMode( true ) )
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 
             const CORE::CDataNode& globalConfig = m_app->GetGlobalConfig();
             if ( m_app->LoadConfig( loadedAppConfig ) )
@@ -1938,23 +1938,23 @@ RestApiPubSub2StorageConfigResource::Deserialize( const CORE::CString& resourceP
                 if ( !m_app->IsGlobalStandbyEnabled() )
                 {
                     if ( m_app->SetStandbyMode( false ) )
-                        return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                        return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
                     else
-                        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
                 }
                 else
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "RestApiUdp2RedisConfigResource: IsGlobalStandbyEnabled is true. We will leave the app in standby mode" );
-                    return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                    return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
                 }
             }
             else
             {
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
             }
         }
 
-        return TDeserializeState::DESERIALIZESTATE_CORRUPTEDINPUT;
+        return CIHTTPServerResource::DESERIALIZESTATE_CORRUPTEDINPUT;
     }
     else
     {
@@ -1967,26 +1967,26 @@ RestApiPubSub2StorageConfigResource::Deserialize( const CORE::CString& resourceP
             //    const CORE::CValueList& loadedAppConfig = m_app->GetAppConfig();
             //    if ( m_app->LoadConfig( loadedAppConfig, globalConfigCopy ) )
             //    {
-            //        return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+            //        return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
             //    }
             //    else
             //    {
-            //        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+            //        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
             //    }
             //}
 
-            return TDeserializeState::DESERIALIZESTATE_CORRUPTEDINPUT;
+            return CIHTTPServerResource::DESERIALIZESTATE_CORRUPTEDINPUT;
         }
         else
         {
             const CORE::CValueList& loadedAppConfig = m_app->GetAppConfig();
             if ( m_app->LoadConfig( input ) )
             {
-                return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
             }
             else
             {
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
             }
         }
     }

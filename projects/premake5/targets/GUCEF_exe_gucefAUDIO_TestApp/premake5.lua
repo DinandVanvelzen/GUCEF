@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_gucefAUDIO_TestApp" )
 
-  platforms( { "ALL", "ANDROID", "ARDUINO", "EMSCRIPTEN", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
+  platforms( { "ALL", "ANDROID", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "IPHONE", "IPHONEOS", "LINUX", "LINUX32", "LINUX64", "MAC", "MACOS", "MACOSX", "MSWIN", "OSX", "WIN32", "WIN64", "WINDOWS" } )
 
   location( "projects/premake5/targets" )
 
@@ -23,6 +23,7 @@ workspace( "GUCEF_exe_gucefAUDIO_TestApp" )
 filter "ALL"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -31,12 +32,41 @@ filter "ALL"
   include( "tests/gucefAUDIO_TestCodecPlugin" )
 
 filter "ANDROID"
+  include( "platform/gucefAUDIO" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
+  include( "platform/gucefMT" )
+  include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
+
+filter "ANDROID32"
   include( "dependencies/libogg" )
   include( "dependencies/libvorbis" )
   include( "dependencies/opus" )
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
+  include( "platform/gucefMT" )
+  include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiocodecpluginOGG" )
+  include( "plugins/AUDIO/audiovoicecodecOPUS" )
+  include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
+
+filter "ANDROID64"
+  include( "dependencies/libogg" )
+  include( "dependencies/libvorbis" )
+  include( "dependencies/opus" )
+  include( "dependencies/opusfile" )
+  include( "platform/gucefAUDIO" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -49,6 +79,7 @@ filter "ANDROID"
 filter "ARDUINO"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -59,6 +90,30 @@ filter "ARDUINO"
 filter "EMSCRIPTEN"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
+  include( "platform/gucefMT" )
+  include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefAUDIO" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
+  include( "platform/gucefMT" )
+  include( "plugins/AUDIO/audiocodecpluginAU" )
+  include( "plugins/AUDIO/audiocodecpluginFLAC" )
+  include( "plugins/AUDIO/audiocodecpluginMP3" )
+  include( "plugins/AUDIO/audiodriverWEBAUDIO" )
+  include( "tests/gucefAUDIO_TestApp" )
+  include( "tests/gucefAUDIO_TestCodecPlugin" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefAUDIO" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -70,6 +125,7 @@ filter "EMSCRIPTEN"
 filter "IOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -80,6 +136,7 @@ filter "IOS"
 filter "IPHONE"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -90,6 +147,7 @@ filter "IPHONE"
 filter "IPHONEOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -100,6 +158,7 @@ filter "IPHONEOS"
 filter "LINUX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -114,6 +173,7 @@ filter "LINUX32"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -131,6 +191,7 @@ filter "LINUX64"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -144,6 +205,7 @@ filter "LINUX64"
 filter "MAC"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -154,6 +216,7 @@ filter "MAC"
 filter "MACOS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -164,6 +227,7 @@ filter "MACOS"
 filter "MACOSX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -174,6 +238,7 @@ filter "MACOSX"
 filter "MSWIN"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -184,6 +249,7 @@ filter "MSWIN"
 filter "OSX"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -198,6 +264,7 @@ filter "WIN32"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -214,6 +281,7 @@ filter "WIN64"
   include( "dependencies/opusfile" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )
@@ -226,6 +294,7 @@ filter "WIN64"
 filter "WINDOWS"
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefMATH" )
   include( "platform/gucefMT" )
   include( "plugins/AUDIO/audiocodecpluginAU" )
   include( "plugins/AUDIO/audiocodecpluginFLAC" )

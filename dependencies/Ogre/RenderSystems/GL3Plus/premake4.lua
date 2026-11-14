@@ -30,15 +30,25 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "Ogre" } )
+
+configuration( {} )
 links( { "Ogre" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus", "MODULE_NAME=OgreRenderSystem_GL3Plus", "RenderSystem_GL3Plus_EXPORTS" } )
-  links( { "GL" } )
-  links( { "GL" } )
-  links( { "opengl32" } )
-  links( { "opengl32" } )
+
+configuration( { "LINUX32" } )
+links( { "GL" } )
+
+configuration( { "LINUX64" } )
+links( { "GL" } )
+
+configuration( { "WIN32" } )
+links( { "opengl32" } )
+
+configuration( { "WIN64" } )
+links( { "opengl32" } )
 
 
 configuration( {} )

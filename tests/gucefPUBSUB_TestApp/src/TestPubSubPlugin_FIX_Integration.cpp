@@ -239,6 +239,93 @@ PumpUntil( CORE::CBusyWaitPulseGeneratorDriver& driver ,
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Conditions for PumpUntil()
+ */
+
+/** the client or topic the pointer refers to is connected */
+template< class TPtr >
+class CTIsConnected
+{
+    public:
+    explicit CTIsConnected( const TPtr& ptr ) : m_ptr( ptr ) {}
+    bool operator()( void ) const { return m_ptr->IsConnected(); }
+    private:
+    const TPtr& m_ptr;
+};
+
+template< class TPtr >
+inline CTIsConnected< TPtr >
+IsConnected( const TPtr& ptr ) { return CTIsConnected< TPtr >( ptr ); }
+
+/** the client or topic the pointer refers to is not connected */
+template< class TPtr >
+class CTIsDisconnected
+{
+    public:
+    explicit CTIsDisconnected( const TPtr& ptr ) : m_ptr( ptr ) {}
+    bool operator()( void ) const { return !m_ptr->IsConnected(); }
+    private:
+    const TPtr& m_ptr;
+};
+
+template< class TPtr >
+inline CTIsDisconnected< TPtr >
+IsDisconnected( const TPtr& ptr ) { return CTIsDisconnected< TPtr >( ptr ); }
+
+/** both clients are connected */
+class CBothConnected
+{
+    public:
+    CBothConnected( const PUBSUB::CPubSubClientPtr& a, const PUBSUB::CPubSubClientPtr& b ) : m_a( a ), m_b( b ) {}
+    bool operator()( void ) const { return m_a->IsConnected() && m_b->IsConnected(); }
+    private:
+    const PUBSUB::CPubSubClientPtr& m_a;
+    const PUBSUB::CPubSubClientPtr& m_b;
+};
+
+/** each client is either absent or not connected */
+class CBothDown
+{
+    public:
+    CBothDown( const PUBSUB::CPubSubClientPtr& a, const PUBSUB::CPubSubClientPtr& b ) : m_a( a ), m_b( b ) {}
+    bool operator()( void ) const
+    {
+        bool aDown = m_a.IsNULL() || !m_a->IsConnected();
+        bool bDown = m_b.IsNULL() || !m_b->IsConnected();
+        return aDown && bDown;
+    }
+    private:
+    const PUBSUB::CPubSubClientPtr& m_a;
+    const PUBSUB::CPubSubClientPtr& m_b;
+};
+
+/** the observer received at least the given number of messages */
+class CMsgsReceivedAtLeast
+{
+    public:
+    CMsgsReceivedAtLeast( const CFIXIntegrationTestObserver& observer, CORE::UInt32 count ) : m_observer( observer ), m_count( count ) {}
+    bool operator()( void ) const { return m_observer.msgsReceived >= m_count; }
+    private:
+    const CFIXIntegrationTestObserver& m_observer;
+    CORE::UInt32 m_count;
+};
+
+/** both observers received at least the given number of messages */
+class CBothReceivedAtLeast
+{
+    public:
+    CBothReceivedAtLeast( const CFIXIntegrationTestObserver& a, const CFIXIntegrationTestObserver& b, CORE::UInt32 count )
+        : m_a( a ), m_b( b ), m_count( count ) {}
+    bool operator()( void ) const { return m_a.msgsReceived >= m_count && m_b.msgsReceived >= m_count; }
+    private:
+    const CFIXIntegrationTestObserver& m_a;
+    const CFIXIntegrationTestObserver& m_b;
+    CORE::UInt32 m_count;
+};
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  Build a minimal valid FIX 4.2 application-level message with correct
  *  BodyLength and CheckSum.  The sequence number is caller-supplied so
@@ -532,11 +619,7 @@ TeardownSession( PUBSUB::CPubSubClientPtr client                    ,
 
     // Pump briefly to let disconnect events propagate and sockets close
     PumpUntil( driver, pg,
-        [&]() -> bool {
-            bool clientDown = client.IsNULL() || !client->IsConnected();
-            bool serverDown = server.IsNULL() || !server->IsConnected();
-            return clientDown && serverDown;
-        },
+        CBothDown( client, server ),
         DISCONNECT_TIMEOUT_MS );
 
     // Extra pump cycles to ensure OS resources are released
@@ -696,7 +779,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Pump until client is connected (session active = Logon exchange complete)
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
 
@@ -734,7 +817,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
 
@@ -778,7 +861,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Wait for session
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
 
@@ -799,7 +882,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
                 // Pump briefly to check if any session-level msgs arrive via newly subscribed observer.
                 // In practice the Logon fires on connect so subscribe early enough for C tests.
                 PumpUntil( driver, pg,
-                    [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                    CMsgsReceivedAtLeast( serverObs, 1 ),
                     MSG_FLOW_TIMEOUT_MS );
 
                 // We can't guarantee Logon is re-delivered to a late subscriber,
@@ -839,7 +922,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -883,7 +966,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Pump until server receives the message
             bool msgReceived = PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                CMsgsReceivedAtLeast( serverObs, 1 ),
                 MSG_FLOW_TIMEOUT_MS );
             ASSERT_TRUE( msgReceived );
 
@@ -926,7 +1009,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -969,7 +1052,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( publishOk );
 
             bool msgReceived = PumpUntil( driver, pg,
-                [&]() -> bool { return clientObs.msgsReceived >= 1; },
+                CMsgsReceivedAtLeast( clientObs, 1 ),
                 MSG_FLOW_TIMEOUT_MS );
             ASSERT_TRUE( msgReceived );
 
@@ -1008,7 +1091,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1067,9 +1150,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Pump until all 10 messages are received
             bool allReceived = PumpUntil( driver, pg,
-                [&]() -> bool {
-                    return serverObs.msgsReceived >= 5 && clientObs.msgsReceived >= 5;
-                },
+                CBothReceivedAtLeast( serverObs, clientObs, 5 ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( allReceived );
             ASSERT_TRUE( serverObs.msgsReceived >= 5 );
@@ -1107,7 +1188,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1149,7 +1230,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             }
 
             PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 3; },
+                CMsgsReceivedAtLeast( serverObs, 3 ),
                 MSG_FLOW_TIMEOUT_MS );
             ASSERT_TRUE( serverObs.msgsReceived >= 3 );
 
@@ -1189,7 +1270,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1209,7 +1290,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             client->Disconnect();
 
             bool clientDisconnected = PumpUntil( driver, pg,
-                [&]() -> bool { return !client->IsConnected(); },
+                IsDisconnected( client ),
                 DISCONNECT_TIMEOUT_MS );
             ASSERT_TRUE( clientDisconnected );
             ASSERT_TRUE( !client->IsConnected() );
@@ -1219,7 +1300,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             {
                 // Give server time to detect TCP close
                 PumpUntil( driver, pg,
-                    [&]() -> bool { return !clientTopic->IsConnected(); },
+                    IsDisconnected( clientTopic ),
                     DISCONNECT_TIMEOUT_MS );
             }
 
@@ -1267,7 +1348,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // First session established
             bool firstSession = PumpUntil( driver, pg,
-                [&]() -> bool { return client1->IsConnected() && server->IsConnected(); },
+                CBothConnected( client1, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( firstSession );
 
@@ -1275,7 +1356,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client2->Connect( false ) );
 
             bool secondSession = PumpUntil( driver, pg,
-                [&]() -> bool { return client2->IsConnected(); },
+                IsConnected( client2 ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( secondSession );
 
@@ -1302,7 +1383,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
                     clientTopic2->Publish( aid, msg, false );
 
                     PumpUntil( driver, pg,
-                        [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                        CMsgsReceivedAtLeast( serverObs, 1 ),
                         MSG_FLOW_TIMEOUT_MS );
                     ASSERT_TRUE( serverObs.msgsReceived >= 1 );
                 }
@@ -1339,7 +1420,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1356,12 +1437,12 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Client should detect the drop
             PumpUntil( driver, pg,
-                [&]() -> bool { return !client->IsConnected(); },
+                IsDisconnected( client ),
                 DISCONNECT_TIMEOUT_MS );
 
             // Client should reconnect automatically within reconnectDelayInMs + margin
             bool reconnected = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 RECONNECT_TIMEOUT_MS );
             ASSERT_TRUE( reconnected );
 
@@ -1404,7 +1485,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1463,7 +1544,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             }
 
             bool msgReceived = PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived > msgsAfterHeartbeat; },
+                CMsgsReceivedAtLeast( serverObs, msgsAfterHeartbeat + 1 ),
                 MSG_FLOW_TIMEOUT_MS );
             ASSERT_TRUE( msgReceived );
 
@@ -1503,7 +1584,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1547,7 +1628,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             }
 
             bool allReceived = PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 3; },
+                CMsgsReceivedAtLeast( serverObs, 3 ),
                 MSG_FLOW_TIMEOUT_MS );
             ASSERT_TRUE( allReceived );
             ASSERT_TRUE( serverObs.msgsReceived >= 3 );
@@ -1587,7 +1668,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1619,7 +1700,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Server should close the connection after 3 consecutive checksum failures
             bool disconnected = PumpUntil( driver, pg,
-                [&]() -> bool { return !client->IsConnected(); },
+                IsDisconnected( client ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( disconnected );
 
@@ -1659,7 +1740,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1710,7 +1791,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             clientTopic->Publish( aid, msg, false );
 
             bool disconnected = PumpUntil( driver, pg,
-                [&]() -> bool { return !client->IsConnected(); },
+                IsDisconnected( client ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( disconnected );
 
@@ -1761,7 +1842,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1803,7 +1884,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Pump until server has had a chance to process both
             PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                CMsgsReceivedAtLeast( serverObs, 1 ),
                 MSG_FLOW_TIMEOUT_MS );
 
             // Deliver exactly once — second copy has seqnum < expected and must be
@@ -1839,7 +1920,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1884,7 +1965,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             // Both gap messages are still delivered to subscribers (out-of-order delivery
             // is not filtered), so wait for at least 2 deliveries.
             PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 2; },
+                CMsgsReceivedAtLeast( serverObs, 2 ),
                 MSG_FLOW_TIMEOUT_MS );
 
             // Verify the session was not corrupted — send the expected seqnum=1 message
@@ -1899,7 +1980,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             clientTopic->Publish( aid, nextPubMsg, false );
 
             bool thirdDelivery = PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 3; },
+                CMsgsReceivedAtLeast( serverObs, 3 ),
                 MSG_FLOW_TIMEOUT_MS );
             ASSERT_TRUE( thirdDelivery );
             ASSERT_TRUE( serverObs.msgsReceived == 3 );
@@ -1946,7 +2027,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -1991,7 +2072,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             // Both messages were queued before any pump cycle so the server reads both in
             // the first pulse; Fix A drops the second before HandleHeartbeat is called.
             PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                CMsgsReceivedAtLeast( serverObs, 1 ),
                 MSG_FLOW_TIMEOUT_MS );
 
             // Exactly one delivery — the second copy has seqnum < expected and was
@@ -2039,7 +2120,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -2084,7 +2165,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             // We assert at the server before the Heartbeat response reaches the client,
             // so the Heartbeat echo-loop does not affect serverObs.
             PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                CMsgsReceivedAtLeast( serverObs, 1 ),
                 MSG_FLOW_TIMEOUT_MS );
 
             // Exactly one delivery — the second copy has seqnum < expected and was
@@ -2127,7 +2208,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             ASSERT_TRUE( client->Connect( false ) );
 
             bool sessionEstablished = PumpUntil( driver, pg,
-                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                CBothConnected( client, server ),
                 SESSION_TIMEOUT_MS );
             ASSERT_TRUE( sessionEstablished );
             if ( !sessionEstablished )
@@ -2171,7 +2252,7 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
 
             // Wait for the server to deliver the ResendRequest to the observer
             PumpUntil( driver, pg,
-                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                CMsgsReceivedAtLeast( serverObs, 1 ),
                 MSG_FLOW_TIMEOUT_MS );
 
             // Exactly one ResendRequest delivered — the second was dropped by Fix A

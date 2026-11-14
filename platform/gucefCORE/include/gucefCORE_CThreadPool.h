@@ -533,7 +533,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
 
     virtual void OnPumpedNotify( CNotifier* notifier           ,
                                  const CEvent& eventid         ,
-                                 CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                                 CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
     friend class CTaskDelegator;
@@ -701,7 +701,7 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //
 //    CICloneable* taskData = CDeferredTask::Construct( f );
 //    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 //
 //    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
 //                                      taskData                               ,
@@ -719,7 +719,7 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //
 //    CICloneable* taskData = CDeferredTask::Construct( f, a1 );
 //    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 //
 //    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
 //                                      taskData                               ,
@@ -737,7 +737,7 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //
 //    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2 );
 //    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 //
 //    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
 //                                      taskData                               ,
@@ -755,7 +755,7 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //
 //    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3 );
 //    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 //
 //    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
 //                                      taskData                               ,
@@ -773,7 +773,7 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //
 //    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3, a4 );
 //    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 //
 //    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
 //                                      taskData                               ,
@@ -790,14 +790,14 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //{GUCEF_TRACE;
 //
 //    if ( prereqTask.IsNULL() )
-//        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+//        return CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
 //
 //    // Ensure that the prereq task is the last in its chain
 //    // We do not allow branched chains at this time
 //    if ( prereqTask->IsLastTaskInAChain() )
 //    {
 //        if ( prereqTask->IsTaskInErrorState() )
-//            return TTaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED;
+//            return CORE::TASKSTATUS_CHAIN_PREREQ_FAILED;
 //
 //        CTaskPtr task = PrepTaskObj( CGenericCallbackTaskConsumer::TaskType ,
 //                                     GUCEF_NULL                             ,
@@ -819,7 +819,7 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //        }
 //        return task;
 //    }
-//    return TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
+//    return CORE::TASKSTATUS_TASK_CHAINING_FAILED;
 //}
 
 /*-------------------------------------------------------------------------//

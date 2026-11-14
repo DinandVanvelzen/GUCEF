@@ -15,4 +15,6 @@ plugins/CORE/codecspluginMONOCYPHER/*
 plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
+tests/gucefCOMCORE_TestApp/include/*
+tests/gucefCOM_TestApp/include/*
 tests/gucefDRN_TestApp/*

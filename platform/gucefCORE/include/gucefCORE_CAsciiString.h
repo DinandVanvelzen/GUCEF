@@ -30,12 +30,16 @@
 #include <set>
 #include <string>
 #include <map>
-#include <unordered_map>
 
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"    /* macros that are GUCEF specific and generic macros */
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
+
+/* unordered containers are a C++11 addition */
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
+#include <unordered_map>
+#endif
 
 #ifndef GUCEF_CORE_ETYPES_H
 #include "ETypes.h"              /* simple types used */
@@ -70,30 +74,32 @@ class GUCEF_CORE_PUBLIC_CPP CAsciiString
     typedef GUCEF::set< CAsciiString, std::less< CAsciiString >, gucef_allocator< CAsciiString > >                                  StringSet;
     typedef std::pair< const CAsciiString, CAsciiString >                                                                         StringPair;
     typedef GUCEF::map< CAsciiString, CAsciiString, std::less< CAsciiString >, gucef_allocator< StringPair > >                      StringMap;
-    typedef std::unordered_map< CAsciiString, CAsciiString, std::less< CAsciiString >, gucef_allocator< StringPair > >            StringUMap;
     typedef std::pair< const CAsciiString, StringSet >                                                                            StringStringSetPair;
     typedef GUCEF::map< CAsciiString, StringSet, std::less< CAsciiString >, gucef_allocator< StringStringSetPair > >                StringMapSet;
-    typedef std::unordered_map< CAsciiString, StringSet, std::less< CAsciiString >, gucef_allocator< StringStringSetPair > >      StringUMapSet;
     typedef std::pair< const CAsciiString, StringMap >                                                                            StringStringMapPair;
-    typedef std::pair< const CAsciiString, StringUMap >                                                                           StringStringUMapPair;
     typedef GUCEF::map< CAsciiString, StringMap, std::less< CAsciiString >, gucef_allocator< StringStringMapPair > >                StringMapMap;
-    typedef std::unordered_map< CAsciiString, StringMap, std::less< CAsciiString >, gucef_allocator< StringStringUMapPair > >     StringUMapUMap;
     typedef std::pair< const CAsciiString, StringMapSet >                                                                         StringStringMapSetPair;
-    typedef std::pair< const CAsciiString, StringUMapSet >                                                                        StringStringUMapSetPair;
     typedef GUCEF::map< CAsciiString, StringMapSet, std::less< CAsciiString >, gucef_allocator< StringStringMapSetPair > >          StringMapMapSet;
-    typedef std::unordered_map< CAsciiString, StringUMapSet, std::less< CAsciiString >, gucef_allocator< StringStringUMapSetPair > >    StringUMapUMapSet;
     typedef std::pair< const CAsciiString, StringMapMap >                                                                               StringStringMapMapPair;
-    typedef std::pair< const CAsciiString, StringUMapUMap >                                                                             StringStringUMapUMapPair;
     typedef GUCEF::map< CAsciiString, StringMapMap, std::less< CAsciiString >, gucef_allocator< StringStringMapMapPair > >                StringMapMapMap;
-    typedef std::unordered_map< CAsciiString, StringUMapUMap, std::less< CAsciiString >, gucef_allocator< StringStringUMapUMapPair > >  StringUMapUMapUMap;
     typedef std::pair< const CAsciiString, StringMapMapMap >                                                                            StringStringMapMapMapPair;
-    typedef std::pair< const CAsciiString, StringUMapUMapUMap >                                                                         StringStringUMapUMapUMapPair;
     typedef GUCEF::map< CAsciiString, StringMapMapMap, std::less< CAsciiString >, gucef_allocator< StringStringMapMapMapPair > >                      StringMapMapMapMap;
-    typedef std::unordered_map< CAsciiString, StringUMapUMapUMap, std::less< CAsciiString >, gucef_allocator< StringStringUMapUMapUMapPair > >      StringUMapUMapUMapUMap;
     typedef std::pair< const CAsciiString, StringMapMapSet >                                                                                        StringStringMapMapSetPair;
-    typedef std::pair< const CAsciiString, StringUMapUMapSet >                                                                                      StringStringUMapUMapSetPair;
     typedef GUCEF::map< CAsciiString, StringMapMapSet, std::less< CAsciiString >, gucef_allocator< StringStringMapMapSetPair > >                      StringMapMapMapSet;
+    #ifdef GUCEF_STL_HAVE_CXX11_FEATURES
+    typedef std::unordered_map< CAsciiString, CAsciiString, std::less< CAsciiString >, gucef_allocator< StringPair > >            StringUMap;
+    typedef std::unordered_map< CAsciiString, StringSet, std::less< CAsciiString >, gucef_allocator< StringStringSetPair > >      StringUMapSet;
+    typedef std::pair< const CAsciiString, StringUMap >                                                                           StringStringUMapPair;
+    typedef std::unordered_map< CAsciiString, StringMap, std::less< CAsciiString >, gucef_allocator< StringStringUMapPair > >     StringUMapUMap;
+    typedef std::pair< const CAsciiString, StringUMapSet >                                                                        StringStringUMapSetPair;
+    typedef std::unordered_map< CAsciiString, StringUMapSet, std::less< CAsciiString >, gucef_allocator< StringStringUMapSetPair > >    StringUMapUMapSet;
+    typedef std::pair< const CAsciiString, StringUMapUMap >                                                                             StringStringUMapUMapPair;
+    typedef std::unordered_map< CAsciiString, StringUMapUMap, std::less< CAsciiString >, gucef_allocator< StringStringUMapUMapPair > >  StringUMapUMapUMap;
+    typedef std::pair< const CAsciiString, StringUMapUMapUMap >                                                                         StringStringUMapUMapUMapPair;
+    typedef std::unordered_map< CAsciiString, StringUMapUMapUMap, std::less< CAsciiString >, gucef_allocator< StringStringUMapUMapUMapPair > >      StringUMapUMapUMapUMap;
+    typedef std::pair< const CAsciiString, StringUMapUMapSet >                                                                                      StringStringUMapUMapSetPair;
     typedef std::unordered_map< CAsciiString, StringUMapUMapSet, std::less< CAsciiString >, gucef_allocator< StringStringUMapUMapSetPair > >        StringUMapUMapUMapSet;
+    #endif
 
     static const CAsciiString   Empty;
     static const StringVector   EmptyStringVector;

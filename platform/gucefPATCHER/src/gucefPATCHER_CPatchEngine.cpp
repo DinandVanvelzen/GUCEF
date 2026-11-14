@@ -125,7 +125,7 @@ void
 CPatchEngine::Initialize( void )
 {GUCEF_TRACE;
 
-    assert( m_patchListEngine != NULL );
+    assert( m_patchListEngine != GUCEF_NULL );
 
     RegisterEvents();
 
@@ -186,7 +186,7 @@ CPatchEngine::~CPatchEngine()
     Stop();
 
     delete m_patchListEngine;
-    m_patchListEngine = NULL;
+    m_patchListEngine = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -233,7 +233,7 @@ CPFileChunkAccess::Close( void )
 bool 
 CPFileChunkAccess::Opened( void ) const
 {
-        return _pafile != NULL;
+        return _pafile != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

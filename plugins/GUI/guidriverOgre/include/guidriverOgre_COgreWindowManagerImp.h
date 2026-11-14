@@ -71,7 +71,7 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowManagerImp : public GUI::CWindowManage
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title             ,
                                                         const GUI::CVideoSettings& settings   ,
-                                                        const CORE::CValueList* params = NULL );
+                                                        const CORE::CValueList* params = GUCEF_NULL );
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title      ,
                                                         const GUI::UInt32 width        ,

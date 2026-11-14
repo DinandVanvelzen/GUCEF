@@ -1,0 +1,10 @@
+common/include/*
+dependencies/monocypher/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefDRN/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+tools/gucefLabLink/*

@@ -135,7 +135,7 @@ GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_S
         blockingConnect = value.AsBool( blockingConnect );
     }
 
-    if ( NULL == g_svcClient )
+    if ( GUCEF_NULL == g_svcClient )
     {
         g_svcClient = new CLogSvcClient(); 
     }
@@ -156,7 +156,7 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     CORE::CCoreGlobal::Instance()->GetLogManager().RemoveLogger( g_svcClient );
 
     delete g_svcClient;
-    g_svcClient = NULL;
+    g_svcClient = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/

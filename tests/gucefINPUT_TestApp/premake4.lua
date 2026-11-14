@@ -54,54 +54,62 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "WindowedApp" )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
 
 

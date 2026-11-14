@@ -31,29 +31,29 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "HAVE_CONFIG_H", "MODULE_CONSENSUS_NAME=pcre", "MODULE_NAME=pcre" } )
-  
 
-configuration( { ANDROID32 } )
+
+configuration( { "ANDROID32" } )
 defines( { "HAVE_STDLIB_H", "HAVE_SYS_STAT_H", "HAVE_SYS_TYPES_H" } )
-  
 
-configuration( { ANDROID64 } )
+
+configuration( { "ANDROID64" } )
 defines( { "HAVE_STDLIB_H", "HAVE_SYS_STAT_H", "HAVE_SYS_TYPES_H" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "HAVE_STDLIB_H", "HAVE_SYS_STAT_H", "HAVE_SYS_TYPES_H" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "HAVE_STDLIB_H", "HAVE_SYS_STAT_H", "HAVE_SYS_TYPES_H" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "HAVE_STDLIB_H", "HAVE_STRING_H", "HAVE_WINDOWS_H" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "HAVE_STDLIB_H", "HAVE_STRING_H", "HAVE_WINDOWS_H" } )
 
 

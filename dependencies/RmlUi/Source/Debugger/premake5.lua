@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "RmlUI_Core", "freetype" } )
+
+configuration( {} )
 links( { "RmlUI_Core", "freetype" } )
 
 

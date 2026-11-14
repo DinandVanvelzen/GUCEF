@@ -124,6 +124,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMATH/include \
+  $(MY_MODULE_PATH)/../gucefMATH/src \
   $(MY_MODULE_PATH)/../gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEFAUDIO_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefAUDIO -DMODULE_NAME=gucefAUDIO -DMODULE_SEMVER=0_1_0_0

@@ -72,6 +72,17 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CDirCrawlingProjectInfoGatherer : public CIPro
                              CProjectInfoPtr projectInfo                                 ,
                              const CORE::CValueList& params                              ,
                              const CORE::CString& threadPoolToUse = CORE::CString::Empty ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Computes a fingerprint over everything GatherInfo() derives project information from: the gathering settings
+     *  of the project info, the directory structure below the root dirs, the names of the source and header files and
+     *  the content of the definition files (ModuleInfo.xml, processing instructions, legacy CMake suffix files,
+     *  license and semver files). Paths are relative to the root dirs so the fingerprint is the same on every machine.
+     *  Equal fingerprints mean GatherInfo() produces the same project information.
+     */
+    bool ComputeInputFingerprint( const TStringVector& rootDirs   ,
+                                  const CProjectInfo& projectInfo ,
+                                  CORE::CString& fingerprint      );
                               
     private:
     

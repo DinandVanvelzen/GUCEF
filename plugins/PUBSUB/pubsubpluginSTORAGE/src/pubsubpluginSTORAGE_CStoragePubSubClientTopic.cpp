@@ -687,7 +687,7 @@ CStoragePubSubClientTopic::Publish( TPublishActionIdVector& publishActionIds ,
 template < typename T >
 bool
 CStoragePubSubClientTopic::PublishViaMsgPtrs( TPublishActionIdVector& publishActionIds           ,
-                                              const std::vector< T, gucef_allocator< T > >& msgs ,
+                                              const GUCEF::vector< T, gucef_allocator< T > >& msgs ,
                                               bool notify                                        )
 {GUCEF_TRACE;
 
@@ -1934,8 +1934,8 @@ CStoragePubSubClientTopic::GetBookmarkInfoForReceiveActionId( CORE::UInt64 recei
         if ( GUCEF_NULL != metaData )
             *metaData = mData;
 
-        CORE::UInt64 containerReceiveActionIdMin = *mData->actionIds.cbegin();
-        CORE::UInt64 containerReceiveActionIdMax = *mData->actionIds.crbegin();
+        CORE::UInt64 containerReceiveActionIdMin = *mData->actionIds.begin();
+        CORE::UInt64 containerReceiveActionIdMax = *mData->actionIds.rbegin();
 
         // Now we need to find the actual entry
         // for this we again use our knowledge of the 'receiveActionId' to try and forgo

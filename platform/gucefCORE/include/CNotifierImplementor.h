@@ -186,7 +186,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
      *  consider allocating a copy and passing that in as the data argument.
      */
     bool NotifyObservers( const CEvent& eventid         ,
-                          CICloneable* eventData = NULL );
+                          CICloneable* eventData = GUCEF_NULL );
 
     /**
      *  The same as NotifyObservers( CEvent, CICloneable )
@@ -211,7 +211,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
      */
     bool NotifyObserversFrom( CNotifier& sender             ,
                               const CEvent& eventid         ,
-                              CICloneable* eventData = NULL );    
+                              CICloneable* eventData = GUCEF_NULL );    
     
     /**
      *  The same as NotifyObservers( CEvent, CICloneable )
@@ -226,7 +226,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
      */
     bool NotifySpecificObserver( CObserver& specificObserver   ,
                                  const CEvent& eventid         ,
-                                 CICloneable* eventData = NULL );
+                                 CICloneable* eventData = GUCEF_NULL );
                           
     /**
      *  The same as NotifyObservers( CNotifier, CEvent, CICloneable )
@@ -262,7 +262,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     bool NotifySpecificObserverFrom( CNotifier& sender             ,
                                      CObserver& specificObserver   ,
                                      const CEvent& eventid         ,
-                                     CICloneable* eventData = NULL );
+                                     CICloneable* eventData = GUCEF_NULL );
 
     /**
      *  Handler for observers that are deleted without having been
@@ -281,7 +281,7 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     void ScheduleForDestruction( void );
    
     bool ForceNotifyObserversOnce( const CEvent& eventid    ,
-                                   CICloneable* data = NULL );
+                                   CICloneable* data = GUCEF_NULL );
 
     void UnsubscribeFromAllEvents( CObserver* observer            ,
                                    const bool notifyObserver      ,

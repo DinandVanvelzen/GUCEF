@@ -65,7 +65,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataNodeSerializableSettings : public CIConfigurabl
 
     static const CString ClassTypeName;
 
-    enum EDataNodeSerializableLod : UInt32
+    enum EDataNodeSerializableLod GUCEF_ENUM_BASE( UInt32 )
     {
         DataNodeSerializableLod_Undefined = 0,
         

@@ -622,7 +622,7 @@ class CGucefFixture
         endpoints.push_back( GameEndpoint( index ) );
         service.SetLocalEndpoints( endpoints );
 
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !service.Connect( identity, future ) )
             return false;
         CFutureReady ready( future );
@@ -631,7 +631,7 @@ class CGucefFixture
 
     bool Enter( UInt32 index, bool create, bool asSpectator )
     {
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         bool sent = create ? services[ index ]->CreateLobby( params, future ) : services[ index ]->JoinLobby( lobbyId, params.password, asSpectator, future );
         if ( !sent )
             return false;
@@ -937,7 +937,7 @@ PerformGucefLobbyTests( void )
             ASSERT_TRUE( fixture.services[ 1 ]->PublishListing( elsewhere ) );
             PumpFor( 200 );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fixture.services[ 1 ]->Browse( MULTIPLAY::CGameListingFilter(), future ) );
             CFutureReady ready( future );
             ASSERT_TRUE( PumpUntil( ready, 5000 ) );
@@ -1240,7 +1240,7 @@ PerformGucefLobbyTests( void )
             REQUIRE_TRUE( fixture.Connect( 4 ) );
             CStateCondition inGame( lobbies[ 0 ], CStateCondition::PHASE, CORE::CString::Empty, CORE::CString::Empty, MULTIPLAY::LOBBYPHASE_IN_GAME );
             ASSERT_TRUE( PumpUntil( inGame, 5000 ) );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fixture.services[ 4 ]->Browse( MULTIPLAY::CGameListingFilter(), future ) );
             CFutureReady browsed( future );
             ASSERT_TRUE( PumpUntil( browsed, 5000 ) );
@@ -1480,7 +1480,7 @@ PerformGucefLobbyTests( void )
                     endpoints.Add( DRN::CDRNEndpoint( found.endpoints[ i ] ) );
                 fixture.Service( 1 ).SetServerEndpoints( endpoints );
                 MULTIPLAY::CPlayerIdentity bob( Identities[ 1 ] );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( fixture.services[ 1 ]->Connect( bob, future ) );
                 CFutureReady connected( future );
                 REQUIRE_TRUE( PumpUntil( connected, 10000 ) && fixture.services[ 1 ]->IsConnected() );
@@ -1587,7 +1587,7 @@ PerformGucefLobbyTests( void )
             aliceEvents.SubscribeTo( &aliceChat );
             bobEvents.SubscribeTo( &bobChat );
             MULTIPLAY::CPlayerIdentity alice( Identities[ 0 ] );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( aliceChat.Connect( alice, future ) && aliceChat.IsConnected() );
             ASSERT_TRUE( "Alice" == aliceChat.GetLocalUserName() );
 
@@ -1740,7 +1740,7 @@ PerformGucefLobbyTests( void )
             REQUIRE_TRUE( fixture.Connect( 0 ) );
             REQUIRE_TRUE( fixture.Enter( 0, true, false ) );
             PumpFor( 200 );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fixture.services[ 0 ]->Browse( MULTIPLAY::CGameListingFilter(), future ) );
             CFutureReady browsed( future );
             ASSERT_TRUE( PumpUntil( browsed, 5000 ) );
@@ -2069,7 +2069,7 @@ PerformGucefLobbyTests( void )
             serviceConfig.SetAttribute( "server", "tcp://127.0.0.1:" + CORE::ToString( port ) );
             ASSERT_TRUE( client.services[ 0 ]->LoadConfig( serviceConfig ) );
             MULTIPLAY::CPlayerIdentity identity( Identities[ 0 ] );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( client.services[ 0 ]->Connect( identity, future ) );
             CFutureReady connected( future );
             REQUIRE_TRUE( PumpUntil( connected, 10000 ) && client.services[ 0 ]->IsConnected() );
@@ -2142,7 +2142,7 @@ PerformGucefLobbyTests( void )
             bool connected = false;
             for ( UInt32 attempt=0; attempt<20 && !connected; ++attempt )
             {
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 client.services[ 0 ]->Connect( identity, future );
                 CFutureReady ready( future );
                 PumpUntil( ready, 3000 );

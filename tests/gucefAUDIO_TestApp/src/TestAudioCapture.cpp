@@ -1279,7 +1279,7 @@ CORE::TTaskStatus
 FutureStatus( const CORE::CFutureResult& future )
 {
     CORE::CTaskPtr task = future.GetResult( 1000 );
-    return task.IsNULL() ? CORE::TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 bool
@@ -1417,11 +1417,11 @@ PerformEngineCaptureSetupTests( void )
         ASSERT_TRUE( engine.CreateCaptureEffect( "limiter" ).IsNULL() );
 
         CRecordingConsumer consumer( 16 );
-        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &consumer ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &consumer ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( 0 == consumer.prepareCount );
         AUDIO::TAudioEffectPtr effect( GUCEF_NEW CTestAudioEffect() );
         ASSERT_TRUE( effect->Prepare( AUDIO::CAudioFormat( 48000, 1, AUDIO::SAMPLETYPE_FLOAT32 ), 4096 ) );
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 0, effect ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 0, effect ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( engine.GetCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 0 ).IsNULL() );
         engine.SetCaptureEffectEnabled( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 0, false );     // harmless
         ASSERT_TRUE( 0 == engine.GetCaptureOverrunCount() );
@@ -1468,7 +1468,7 @@ PerformEngineCaptureSetupTests( void )
             ASSERT_FALSE( engine.IsCaptureAvailable() );
             ASSERT_TRUE( engine.GetCaptureDevice().IsNULL() );
             CRecordingConsumer consumer( 16 );
-            ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &consumer ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+            ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &consumer ), CORE::TASKSTATUS_SETUP_FAILED ) );
             ASSERT_TRUE( engine.CreateCaptureEffect( "limiter" ).IsNULL() );
 
             engine.Play( clip );
@@ -1751,24 +1751,24 @@ PerformEngineCaptureStructureTests( void )
         // what is refused at once
         AUDIO::TAudioEffectPtr other( GUCEF_NEW CTestAudioEffect() );
         ASSERT_TRUE( other->Prepare( engine.GetMixFormat(), 4096 ) );                // the mix format: stereo
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, other ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( other->Prepare( processing, 4096 ) );
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 2, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );    // occupied
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 8, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );    // no such slot
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_COUNT, 0, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );      // no such stage
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, pre ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );    // in a slot already
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, AUDIO::TAudioEffectPtr() ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( FailedWith( engine.RemoveCaptureEffect( other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );                                         // not in a slot
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 2, other ), CORE::TASKSTATUS_SETUP_FAILED ) );    // occupied
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 8, other ), CORE::TASKSTATUS_SETUP_FAILED ) );    // no such slot
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_COUNT, 0, other ), CORE::TASKSTATUS_SETUP_FAILED ) );      // no such stage
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, pre ), CORE::TASKSTATUS_SETUP_FAILED ) );    // in a slot already
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, AUDIO::TAudioEffectPtr() ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.RemoveCaptureEffect( other ), CORE::TASKSTATUS_SETUP_FAILED ) );                                         // not in a slot
 
         // one owner at a time: a capture effect is not a bus effect, a bus effect not a capture effect
         AUDIO::TAudioEffectPtr busEffect = engine.CreateEffect( "testeffect" );
         ASSERT_FALSE( busEffect.IsNULL() );
         CORE::CFutureResult busIn = engine.InsertEffect( engine.GetMasterBus(), 0, busEffect );
         ASSERT_FALSE( busIn.HasNoFuture() );
-        ASSERT_TRUE( FailedWith( engine.InsertEffect( engine.GetMasterBus(), 1, pre ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.InsertEffect( engine.GetMasterBus(), 1, pre ), CORE::TASKSTATUS_SETUP_FAILED ) );
         AUDIO::TAudioVoicePtr voice = engine.CreateVoice( MakeToneSource( engine.GetMixFormat(), 480, 100.0, 0.1f, 0.1f ) );
         voice->AddEffect( post );
-        ASSERT_TRUE( FailedWith( engine.Start( voice ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.Start( voice ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         ASSERT_FALSE( preIn.IsReady() );
         RenderCapture( engine, 480 );
@@ -1789,7 +1789,7 @@ PerformEngineCaptureStructureTests( void )
         const UInt32 destroyedBefore = CTestAudioEffect::DestroyedCount().Load();
         CORE::CFutureResult preOut = engine.RemoveCaptureEffect( pre );
         ASSERT_FALSE( preOut.HasNoFuture() );
-        ASSERT_TRUE( FailedWith( engine.RemoveCaptureEffect( pre ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );   // on its way out
+        ASSERT_TRUE( FailedWith( engine.RemoveCaptureEffect( pre ), CORE::TASKSTATUS_SETUP_FAILED ) );   // on its way out
         ASSERT_TRUE( engine.GetCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 2 ).IsNULL() );
         CORE::CFutureResult otherIn = engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_PRE_ECHO, 2, other );
         ASSERT_FALSE( otherIn.HasNoFuture() );
@@ -1832,17 +1832,17 @@ PerformEngineCaptureStructureTests( void )
 
         CRecordingConsumer a( 48000 ), b( 48000 ), c( 48000 );
         CRecordingConsumer refusing( 16, 16, false );
-        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( GUCEF_NULL ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &refusing ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( GUCEF_NULL ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &refusing ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( 1 == refusing.prepareCount );
         CORE::CFutureResult addA = engine.AddCaptureConsumer( &a );
         CORE::CFutureResult addB = engine.AddCaptureConsumer( &b );
         ASSERT_FALSE( addA.HasNoFuture() || addB.HasNoFuture() );
-        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &a ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );      // registered already
-        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &c ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );      // the table is full
+        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &a ), CORE::TASKSTATUS_SETUP_FAILED ) );      // registered already
+        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &c ), CORE::TASKSTATUS_SETUP_FAILED ) );      // the table is full
         ASSERT_TRUE( 1 == a.prepareCount && 0 == c.prepareCount );
-        ASSERT_TRUE( FailedWith( engine.RemoveCaptureConsumer( &a ), CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED ) ); // two commands on their way fill the queue
-        ASSERT_TRUE( FailedWith( engine.RemoveCaptureConsumer( &c ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );   // not registered
+        ASSERT_TRUE( FailedWith( engine.RemoveCaptureConsumer( &a ), CORE::TASKSTATUS_QUEUEING_FAILED ) ); // two commands on their way fill the queue
+        ASSERT_TRUE( FailedWith( engine.RemoveCaptureConsumer( &c ), CORE::TASKSTATUS_SETUP_FAILED ) );   // not registered
 
         RenderCapture( engine, 960 );
         ASSERT_TRUE( addA.IsReady() && !addA.HasNoFuture() && addB.IsReady() && !addB.HasNoFuture() );
@@ -1851,7 +1851,7 @@ PerformEngineCaptureStructureTests( void )
         // the place of a consumer that leaves is free at once; the consumer itself is not, until the capture thread let go
         CORE::CFutureResult removeA = engine.RemoveCaptureConsumer( &a );
         ASSERT_FALSE( removeA.HasNoFuture() );
-        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &a ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );      // still on its way out
+        ASSERT_TRUE( FailedWith( engine.AddCaptureConsumer( &a ), CORE::TASKSTATUS_SETUP_FAILED ) );      // still on its way out
         CORE::CFutureResult addC = engine.AddCaptureConsumer( &c );
         ASSERT_FALSE( addC.HasNoFuture() );
         RenderCapture( engine, 480 );
@@ -1907,7 +1907,7 @@ PerformEngineCaptureStructureTests( void )
         ASSERT_TRUE( 1 == keyed.StaticCast< CResolvingTestEffect >()->resolveCalls );
         ASSERT_TRUE( music == keyed.StaticCast< CResolvingTestEffect >()->resolvedBus );
         AUDIO::TAudioEffectPtr unresolved = engine.CreateEffect( "resolvingtesteffect", keyedOnNothing );
-        ASSERT_TRUE( FailedWith( engine.InsertEffect( engine.GetMasterBus(), 1, unresolved ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.InsertEffect( engine.GetMasterBus(), 1, unresolved ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( 1 == unresolved.StaticCast< CResolvingTestEffect >()->resolveCalls );
         ASSERT_TRUE( engine.GetBusEffect( engine.GetMasterBus(), 1 ).IsNULL() );
         AUDIO::TAudioEffectPtr plain = engine.CreateEffect( "resolvingtesteffect" );
@@ -1918,7 +1918,7 @@ PerformEngineCaptureStructureTests( void )
         ASSERT_FALSE( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 0, captureKeyed ).HasNoFuture() );
         ASSERT_TRUE( music == captureKeyed.StaticCast< CResolvingTestEffect >()->resolvedBus );
         AUDIO::TAudioEffectPtr captureUnresolved = engine.CreateCaptureEffect( "resolvingtesteffect", keyedOnNothing );
-        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, captureUnresolved ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( engine.InsertCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1, captureUnresolved ), CORE::TASKSTATUS_SETUP_FAILED ) );
         ASSERT_TRUE( engine.GetCaptureEffect( AUDIO::AUDIOCAPTURESTAGE_POST_ECHO, 1 ).IsNULL() );
         PlaybackNull( engine )->Render( 256 );
         RenderCapture( engine, 256 );
@@ -1955,7 +1955,7 @@ PerformEngineCaptureStructureTests( void )
         AUDIO::TAudioEffectPtr brokenEffect = AUDIO::CAudioGlobal::Instance()->GetAudioEffectRegistry().CreateEffect( "resolvingtesteffect", keyedOnNothing );
         ASSERT_TRUE( brokenEffect->SaveConfig( brokenBus.AddEffect( 0, "resolvingtesteffect" ).config ) );
         CORE::CFutureResult brokenApplied = engine.ApplyBusLayout( broken );
-        ASSERT_TRUE( FailedWith( brokenApplied, CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED ) );
+        ASSERT_TRUE( FailedWith( brokenApplied, CORE::TASKSTATUS_STARTUP_FAILED ) );
         ASSERT_TRUE( engine.GetBusEffect( engine.FindBus( "broken" ), 0 ).IsNULL() );
         engine.Shutdown();
     }

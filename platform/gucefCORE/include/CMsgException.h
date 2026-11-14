@@ -72,13 +72,13 @@ class GUCEF_CORE_PUBLIC_CPP CMsgException : public CException
 
     CMsgException( const CMsgException& src );
 
-    virtual ~CMsgException() throw();
+    virtual ~CMsgException() GUCEF_NOTHROW;
 
     CMsgException& operator=( const CMsgException& src );
 
     const char* GetErrorMsg( void ) const;
 
-    virtual const char* what( void ) const throw();
+    virtual const char* what( void ) const GUCEF_NOTHROW;
 
     private:
 

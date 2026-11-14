@@ -39,11 +39,12 @@ LOCAL_SRC_FILES := \
   src/gucefMATH_DirectionInstantiations.cpp \
   src/gucefMATH_FractionInstantiations.cpp \
   src/gucefMATH_PointInstantiations.cpp \
-  src/gucefMATH_VectorInstantiations.cpp \
-  src/gucefMATH_ScalarFunctions.cpp
+  src/gucefMATH_ScalarFunctions.cpp \
+  src/gucefMATH_VectorInstantiations.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
+  $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
@@ -51,7 +52,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := -DGUCEF_MATH_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMATH -DMODULE_NAME=gucefMATH -DMODULE_SEMVER=0_1_0_0
 
-LOCAL_CPPFLAGS += -ffp-contract=off
+LOCAL_CPPFLAGS +=-ffp-contract=off
 
 
 LOCAL_SHARED_LIBRARIES := \

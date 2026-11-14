@@ -30,13 +30,19 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS" } )
+
+configuration( {} )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
 defines( { "GUCEF_WEB_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefWEB", "MODULE_NAME=gucefWEB", "MODULE_SEMVER=0_1_0_0" } )
-  links( { "winhttp.lib" } )
-  links( { "winhttp.lib" } )
+
+configuration( { "WIN32" } )
+links( { "winhttp.lib" } )
+
+configuration( { "WIN64" } )
+links( { "winhttp.lib" } )
 
 
 configuration( {} )

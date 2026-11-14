@@ -114,22 +114,26 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  links( { "Winmm" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "Winmm" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DRGUP_BUILD_MODULE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
-  links( { "Winmm" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "Winmm" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DRGUP_BUILD_MODULE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
 
 

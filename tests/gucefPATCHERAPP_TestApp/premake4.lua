@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,19 +36,25 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPATCHER" } )
+
+configuration( {} )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPATCHER" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=gucefPATCHERAPP_TestApp", "MODULE_NAME=gucefPATCHERAPP_TestApp" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 links( { "gucefLOADER" } )
-  links( { "gucefLOADER" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "WIN32" } )
 links( { "gucefLOADER" } )
-  links( { "gucefLOADER" } )
+
+configuration( { "WIN64" } )
+links( { "gucefLOADER" } )
+
+configuration( { "WIN64" } )
+links( { "gucefLOADER" } )
 
 
 configuration( {} )

@@ -8,14 +8,12 @@
 #fi
 
 
-# first get a listing of the current container for analysis
-docker run jenkins/jenkins --version
-docker inspect jenkins/jenkins
-#docker run jenkins/jenkins:lts --version
-#docker inspect jenkins/jenkins:lts
+set -e
 
 # build the derived jenkins server image
-docker build -f jenkins_server_build_image.dockerfile . -t vanvelzen/jenkins-server-base:latest
+# --pull refreshes the base image: plugins resolve to their latest releases, which require a recent Jenkins core
+docker build --pull -f jenkins_server_build_image.dockerfile . -t vanvelzen/jenkins-server-base:latest
+docker run --rm --entrypoint java vanvelzen/jenkins-server-base:latest -jar /usr/share/jenkins/jenkins.war --version
 
 # save the image as a local tar file
 docker save --output ./vanvelzen-jenkins-server-base-latest.tar vanvelzen/jenkins-server-base:latest

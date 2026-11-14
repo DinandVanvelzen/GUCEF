@@ -182,7 +182,7 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
      */
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                           CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
     
     bool ProxySubscribeTo( CNotifier* threadedNotifier         ,
                            const CEvent& eventid               ,
@@ -228,7 +228,7 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
 
     void OnPulse( CNotifier* notifier           ,
                   const CEvent& eventid         ,
-                  CICloneable* eventdata = NULL );
+                  CICloneable* eventdata = GUCEF_NULL );
 
     void RegisterPulseGeneratorEventHandlers( void );
 

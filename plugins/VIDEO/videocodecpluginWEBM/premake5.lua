@@ -60,80 +60,92 @@ language( "C++" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "SharedLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
-  links( { "libvpx", "libwebm", "opus" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
+
+configuration( { "ANDROID32" } )
+links( { "libvpx", "libwebm", "opus" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginWEBM", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { ANDROID64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
-  links( { "libvpx", "libwebm", "opus" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
+
+configuration( { "ANDROID64" } )
+links( { "libvpx", "libwebm", "opus" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginWEBM", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
-  links( { "libvpx", "libwebm", "opus" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
+
+configuration( { "LINUX32" } )
+links( { "libvpx", "libwebm", "opus" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginWEBM", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
-  links( { "libvpx", "libwebm", "opus" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
+
+configuration( { "LINUX64" } )
+links( { "libvpx", "libwebm", "opus" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginWEBM", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
-  links( { "libvpx", "libwebm", "opus" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
+
+configuration( { "WIN32" } )
+links( { "libvpx", "libwebm", "opus" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginWEBM", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
-  links( { "libvpx", "libwebm", "opus" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "gucefVIDEO", "libvpx", "libwebm", "opus" } )
+
+configuration( { "WIN64" } )
+links( { "libvpx", "libwebm", "opus" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_VIDEOCODECPLUGIN_WEBM_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=videocodecpluginWEBM", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -215,7 +227,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/libvpx/.", "../../../dependencies/libvpx/generated", "../../../dependencies/libvpx/vp8/common", "../../../dependencies/libvpx/vp8/decoder", "../../../dependencies/libvpx/vp9", "../../../dependencies/libvpx/vp9/common", "../../../dependencies/libvpx/vp9/decoder", "../../../dependencies/libvpx/vp9/encoder", "../../../dependencies/libvpx/vpx", "../../../dependencies/libvpx/vpx/internal", "../../../dependencies/libvpx/vpx_dsp", "../../../dependencies/libvpx/vpx_mem", "../../../dependencies/libvpx/vpx_mem/include", "../../../dependencies/libvpx/vpx_ports", "../../../dependencies/libvpx/vpx_scale", "../../../dependencies/libvpx/vpx_util", "../../../dependencies/libwebm/.", "../../../dependencies/libwebm/common", "../../../dependencies/libwebm/mkvmuxer", "../../../dependencies/libwebm/mkvparser", "../../../dependencies/opus/.", "../../../dependencies/opus/celt", "../../../dependencies/opus/celt/arm", "../../../dependencies/opus/celt/mips", "../../../dependencies/opus/celt/x86", "../../../dependencies/opus/include", "../../../dependencies/opus/silk", "../../../dependencies/opus/silk/arm", "../../../dependencies/opus/silk/fixed", "../../../dependencies/opus/silk/fixed/arm", "../../../dependencies/opus/silk/fixed/mips", "../../../dependencies/opus/silk/float", "../../../dependencies/opus/silk/mips", "../../../dependencies/opus/silk/x86", "../../../dependencies/opus/src", "../../../platform/gucefCORE/include/android", "include" } )

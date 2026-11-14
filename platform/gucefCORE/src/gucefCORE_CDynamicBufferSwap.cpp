@@ -77,6 +77,21 @@ CDynamicBufferSwap::CBufferEntry::CBufferEntry( const CBufferEntry& src )
 
 /*-------------------------------------------------------------------------*/
 
+CDynamicBufferSwap::CBufferEntry&
+CDynamicBufferSwap::CBufferEntry::operator=( const CBufferEntry& src )
+{GUCEF_TRACE;
+
+    if ( this != &src )
+    {
+        buffer = src.buffer;
+        hasUnreadData = src.hasUnreadData;
+        associatedDt = src.associatedDt;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDynamicBufferSwap::CDynamicBufferSwap( UInt32 nrOfBuffers )
     : MT::CILockable()
     , m_buffers()

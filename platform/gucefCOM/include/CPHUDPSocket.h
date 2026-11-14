@@ -217,7 +217,7 @@ class GUCEF_COM_PUBLIC_CPP CPHUDPSocket : public CORE::CObservingNotifier
      */
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
                     
     private:
 

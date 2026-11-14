@@ -72,7 +72,7 @@ CXWinGLWindowManagerImp::CreateWindowContext( const GUI::CString& title ,
 
     return CreateWindowContext( title         ,
                                 videoSettings ,
-                                NULL          );
+                                GUCEF_NULL          );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -119,7 +119,7 @@ CXWinGLWindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowCon
 {GUCEF_TRACE;
 
     CXWinGLWindowContext* glContext = static_cast<CXWinGLWindowContext*>( windowContext.GetPointerAlways() );
-    if ( NULL != glContext )
+    if ( GUCEF_NULL != glContext )
     {
         glContext->Shutdown();
     }
@@ -133,7 +133,7 @@ CXWinGLWindowManagerImp::ApplyVideoSettings( GUI::TWindowContextPtr& windowConte
 {GUCEF_TRACE;
 
     CXWinGLWindowContext* glContext = static_cast< CXWinGLWindowContext* >( windowContext.GetPointerAlways() );
-    if ( NULL == glContext )
+    if ( GUCEF_NULL == glContext )
         return false;
     return glContext->ApplyVideoSettings( settings );
 }

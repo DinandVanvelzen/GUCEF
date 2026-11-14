@@ -45,7 +45,7 @@ add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefIMAGE gucefMT gucefVI
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefIMAGE gucefMT gucefVIDEO )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_VIDEO_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefVIDEO_TestApp;MODULE_NAME=gucefVIDEO_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )
@@ -70,6 +70,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 
 
 

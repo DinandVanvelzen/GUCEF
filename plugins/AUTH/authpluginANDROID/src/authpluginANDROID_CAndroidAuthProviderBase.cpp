@@ -188,7 +188,7 @@ bool
 CAndroidAuthProviderBase::StartRequest( bool interactive, UInt32 timeoutInMs, const CORE::CString& nonce, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
 
     UInt32 requestId = 0;
     CORE::CFutureResultSource source;

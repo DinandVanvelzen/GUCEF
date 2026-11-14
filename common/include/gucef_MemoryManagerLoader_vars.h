@@ -47,8 +47,8 @@ static TFP_DRGUP_CleanLogFile  fp_DRGUP_CleanLogFile  = 0;
 
 /*-------------------------------------------------------------------------*/
 
-static void*       g_memoryManagerModulePtr = NULL;
-static void*       g_dynLoadMutex           = NULL;
+static void*       g_memoryManagerModulePtr = GUCEF_NULL;
+static void*       g_dynLoadMutex           = GUCEF_NULL;
 static const char* MemoryLeakFinderLib      = "MemoryLeakFinder_d.dll";
 
 /*-------------------------------------------------------------------------*/

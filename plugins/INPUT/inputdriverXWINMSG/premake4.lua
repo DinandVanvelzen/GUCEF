@@ -30,32 +30,36 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=inputdriverXWINMSG" } )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERXWINMSG_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverXWINMSG" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERXWINMSG_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverXWINMSG" } )
 
 

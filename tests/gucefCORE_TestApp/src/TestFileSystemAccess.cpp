@@ -538,13 +538,13 @@ PerformNativeFileSystemAccessTests( void )
         {
             CORE::TFileSystemAccessPtr access = ( GUCEF_NEW CORE::CNativeFileSystemAccess() )->CreateSharedPtr();
             const CORE::CString dir = MakeTestDir( "async" );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryCreateDirectoryAsync( CORE::CombinePath( dir, "d" ), false, future ) );
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == AwaitResult( future ) && CORE::DirExists( CORE::CombinePath( dir, "d" ) ) );
 
             // a future can be assigned: both refer to the same task
-            CORE::CFutureResult copy( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult copy( CORE::TASKSTATUS_UNDEFINED );
             copy = future;
             ASSERT_TRUE( copy.GetTaskId() == future.GetTaskId() && CORE::FILESYSTEMACCESS_SUCCESS == AwaitResult( copy ) );
 
@@ -625,7 +625,7 @@ PerformNativeFileSystemAccessTests( void )
 
             // the future of an operation that could not be queued
             CORE::TFileSystemAccessResult neverQueued = CORE::FILESYSTEMACCESS_SUCCESS;
-            ASSERT_TRUE( CORE::IFileSystemAccess::TryGetAsyncResult( CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED ), neverQueued ) );
+            ASSERT_TRUE( CORE::IFileSystemAccess::TryGetAsyncResult( CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED ), neverQueued ) );
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_QUEUEING_FAILED == neverQueued );
         }
         catch ( ... )
@@ -646,7 +646,7 @@ PerformNativeFileSystemAccessTests( void )
 
             const CORE::CString dir = MakeTestDir( "noworkers" );
             CORE::TFileSystemAccessPtr access = ( GUCEF_NEW CORE::CNativeFileSystemAccess() )->CreateSharedPtr();
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryCreateDirectoryAsync( CORE::CombinePath( dir, "d" ), false, future, poolName ) );
             ASSERT_TRUE( !future.IsReady() && 1 == pool->GetNrOfQueuedTasks() );
 

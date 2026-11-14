@@ -849,7 +849,7 @@ CCommands::Changes( const CSettings& settings )
 
     std::string summary;
     for ( std::map< std::string, UInt32 >::const_iterator a = perAction.begin(); a != perAction.end(); ++a )
-        summary += ( summary.empty() ? "" : ", " ) + a->first + ": " + std::to_string( (unsigned long long) a->second );
+        summary += ( summary.empty() ? "" : ", " ) + a->first + ": " + CORE::ToString( (CORE::UInt64) a->second ).STL_String();
     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "AncestryBackup: " + CORE::UInt32ToString( (UInt32) fresh.size() ) + " new changes in " + CORE::UInt32ToString( pages ) + " requests" +
                                          ( summary.empty() ? "" : " (" + CORE::CString( summary.c_str() ) + ")" ) + ", " + CORE::UInt32ToString( newPeople ) + " people to look at again, " +
                                          CORE::UInt32ToString( (UInt32) have.size() ) + " waiting in total. See " + peopleFile );
@@ -1002,13 +1002,13 @@ CCommands::Media( const CSettings& settings )
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "AncestryBackup: Unable to write " + inventoryFile );
                 return EXIT_CODE_FAILED;
             }
-            CORE::WriteStringAsTextFile( progressFile, CORE::CString( ( "page=" + std::to_string( (unsigned long long) page ) + "\n" ).c_str() ) );
+            CORE::WriteStringAsTextFile( progressFile, CORE::CString( ( "page=" + CORE::ToString( (CORE::UInt64) page ).STL_String() + "\n" ).c_str() ) );
 
             // The list is newest first. Once all of it has been read at some time only the pages with something new in them matter,
             // before that every page counts, also when a run was cut short and pages were seen before
             if ( listed.items.size() < rows || page * rows >= total )
             {
-                CORE::WriteStringAsTextFile( completeMarker, CORE::CString( ( "total=" + std::to_string( (unsigned long long) total ) + "\n" ).c_str() ) );
+                CORE::WriteStringAsTextFile( completeMarker, CORE::CString( ( "total=" + CORE::ToString( (CORE::UInt64) total ).STL_String() + "\n" ).c_str() ) );
                 break;
             }
             if ( wasComplete && added == 0 )
@@ -1108,7 +1108,7 @@ CCommands::Media( const CSettings& settings )
 
         // the metadata next to the file: everything the site said about it, and what we did
         CORE::WriteStringAsTextFile( path + ".json", CORE::CString( ( "{\"downloaded\":\"" + CChangeFeed::FormatTime( CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs() ) +
-                                                                  "\",\"bytes\":" + std::to_string( (unsigned long long) response.bytes ) + ",\"contentType\":\"" + type + "\",\"item\":" +
+                                                                  "\",\"bytes\":" + CORE::ToString( (CORE::UInt64) response.bytes ).STL_String() + ",\"contentType\":\"" + type + "\",\"item\":" +
                                                                   ( item.json.empty() ? std::string( "null" ) : item.json ) + "}" ).c_str() ) );
         ++fetched;
         bytes += response.bytes;
@@ -1361,7 +1361,7 @@ CCommands::Dna( const CSettings& settings )
         enriched += (UInt32) group.size();
 
         const bool last = listed.isLastPage || listed.matches.empty() || ( totalPages > 0 && page >= totalPages );
-        CORE::WriteStringAsTextFile( progressFile, CORE::CString( ( last ? std::string( "complete=1\n" ) : "page=" + std::to_string( (unsigned long long) page ) + "\n" ).c_str() ) );
+        CORE::WriteStringAsTextFile( progressFile, CORE::CString( ( last ? std::string( "complete=1\n" ) : "page=" + CORE::ToString( (CORE::UInt64) page ).STL_String() + "\n" ).c_str() ) );
         if ( last )
             listComplete = true;
         else

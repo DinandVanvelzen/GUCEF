@@ -25,6 +25,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdint.h>
+
 #ifndef GUCEF_CORE_ESTRUCTS_H
 #include "EStructs.h"
 #define GUCEF_CORE_ESTRUCTS_H

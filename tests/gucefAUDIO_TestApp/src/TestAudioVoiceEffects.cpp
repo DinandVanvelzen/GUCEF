@@ -899,16 +899,16 @@ PerformCapacityTests( void )
         AUDIO::TAudioVoicePtr direct( GUCEF_NEW AUDIO::CAudioVoice( clip->CreateSource() ) );
         ASSERT_TRUE( AUDIO::CAudioVoice::DefaultMaxEffects == direct->GetMaxEffects() && AUDIO::CAudioVoice::DefaultMaxSends == direct->GetMaxSends() );
         ASSERT_TRUE( direct->AddEffect( effects[ 2 ] ) && direct->AddEffect( effects[ 3 ] ) && direct->AddEffect( effects[ 4 ] ) );
-        ASSERT_TRUE( IsFailedWith( engine.Start( direct ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.Start( direct ), CORE::TASKSTATUS_SETUP_FAILED ) );
         AUDIO::TAudioVoicePtr secondSend( GUCEF_NEW AUDIO::CAudioVoice( clip->CreateSource() ) );
         ASSERT_TRUE( secondSend->SetSend( 1, aux, 1.0f ) );
-        ASSERT_TRUE( IsFailedWith( engine.Start( secondSend ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.Start( secondSend ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         // an effect has one owner: not a second voice, not a bus slot, while its voice plays
         AUDIO::TAudioVoicePtr sharing = engine.CreateVoice( clip );
         ASSERT_TRUE( sharing->AddEffect( effects[ 0 ] ) );
-        ASSERT_TRUE( IsFailedWith( engine.Start( sharing ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( aux, 0, effects[ 1 ] ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.Start( sharing ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( aux, 0, effects[ 1 ] ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         // and a bus slot effect cannot go on a voice
         AUDIO::TAudioEffectPtr busEffect = engine.CreateEffect( "testeffect" );
@@ -918,14 +918,14 @@ PerformCapacityTests( void )
         ASSERT_TRUE( RenderUntilReady( engine, engine.InsertEffect( aux, 0, busEffect ) ) );
         AUDIO::TAudioVoicePtr onBusEffect = engine.CreateVoice( clip );
         ASSERT_TRUE( onBusEffect->AddEffect( busEffect ) );
-        ASSERT_TRUE( IsFailedWith( engine.Start( onBusEffect ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.Start( onBusEffect ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         // a send to a bus of another engine
         AUDIO::CAudioEngine other;
         ASSERT_TRUE( other.Initialize( NullParams() ) );
         AUDIO::TAudioVoicePtr elsewhere = engine.CreateVoice( clip );
         ASSERT_TRUE( elsewhere->SetSend( 0, other.CreateBus( "x" ), 1.0f ) );
-        ASSERT_TRUE( IsFailedWith( engine.Start( elsewhere ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.Start( elsewhere ), CORE::TASKSTATUS_SETUP_FAILED ) );
         other.Shutdown();
 
         // the refused voices did not start and the playing one still plays

@@ -29,9 +29,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../../platform/gucefCORE/src \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEF_AUDIOCODECPLUGIN_AU_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefAUDIO_TestCodecPlugin -DMODULE_NAME=gucefAUDIO_TestCodecPlugin -DMODULE_SEMVER=0_1_0_0

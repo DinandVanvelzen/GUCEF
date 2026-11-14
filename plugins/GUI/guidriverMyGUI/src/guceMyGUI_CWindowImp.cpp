@@ -58,7 +58,7 @@ bool
 CWindowImp::SetTitleBarText( const CString& title )
 {GUCEF_TRACE;
 
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
         m_window->setCaption( title.STL_String() );
         return true;
@@ -72,7 +72,7 @@ bool
 CWindowImp::GetTitleBarText( CString& title ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
         title = m_window->getCaption().asUTF8();
         return true;
@@ -86,10 +86,10 @@ bool
 CWindowImp::SetTitleBarVisible( const bool isVisible )
 {GUCEF_TRACE;
 
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
         MyGUI::Widget* captionWidget = m_window->getCaptionWidget();
-        if ( NULL != captionWidget )
+        if ( GUCEF_NULL != captionWidget )
         {
             captionWidget->setVisible( isVisible );
             return true;
@@ -104,10 +104,10 @@ bool
 CWindowImp::GetTitleBarVisible( bool& isVisible )
 {GUCEF_TRACE;
 
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
         MyGUI::Widget* captionWidget = m_window->getCaptionWidget();
-        if ( NULL != captionWidget )
+        if ( GUCEF_NULL != captionWidget )
         {
             return captionWidget->getVisible();
         }
@@ -121,7 +121,7 @@ bool
 CWindowImp::ShowModal( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
         //m_window->setModalState( true );
         //m_window->moveToFront();

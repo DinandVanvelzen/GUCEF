@@ -209,7 +209,7 @@ class GUCEF_CORE_PUBLIC_CPP CNotifier : public CINotifier
      *  @return Alive state of the notifier, if false then the notifier died itself as a result of the notification.
      */
     bool NotifyObservers( const CEvent& eventid         ,
-                          CICloneable* eventData = NULL ) const;
+                          CICloneable* eventData = GUCEF_NULL ) const;
 
     /**
      *  The same as NotifyObservers( CEvent, CICloneable )
@@ -223,7 +223,7 @@ class GUCEF_CORE_PUBLIC_CPP CNotifier : public CINotifier
      */
     bool NotifyObservers( CNotifier& sender             ,
                           const CEvent& eventid         ,
-                          CICloneable* eventData = NULL ) const;
+                          CICloneable* eventData = GUCEF_NULL ) const;
 
     /**
      *  The same as NotifyObservers( CEvent, CICloneable )
@@ -238,7 +238,7 @@ class GUCEF_CORE_PUBLIC_CPP CNotifier : public CINotifier
      */
     bool NotifySpecificObserver( CObserver& specificObserver   ,
                                  const CEvent& eventid         ,
-                                 CICloneable* eventData = NULL ) const;
+                                 CICloneable* eventData = GUCEF_NULL ) const;
 
     /**
      *  The same as NotifyObservers( CNotifier, CEvent, CICloneable )
@@ -254,7 +254,7 @@ class GUCEF_CORE_PUBLIC_CPP CNotifier : public CINotifier
     bool NotifySpecificObserver( CNotifier& sender             ,
                                  CObserver& specificObserver   ,
                                  const CEvent& eventid         ,
-                                 CICloneable* eventData = NULL ) const;
+                                 CICloneable* eventData = GUCEF_NULL ) const;
     
     virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
 

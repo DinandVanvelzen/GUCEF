@@ -413,7 +413,7 @@ CGameListingList::TryGetFromFuture( const CORE::CFutureResult& future, CGameList
     if ( future.HasNoFuture() || !future.IsReady() )
         return false;
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
     const CGameListingList* data = CORE::CICloneable::CloneableAs< CGameListingList >( task->GetTaskData() );
     if ( GUCEF_NULL == data )

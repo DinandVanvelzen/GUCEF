@@ -232,6 +232,21 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
                        int typeOfValue = GUCEF_DATATYPE_STRING );
 
     bool SetAttribute( const CString& name, bool value );
+
+    /**
+     *  Overloads for a C string name. Before C++11 the constant false is also a null pointer constant, which made
+     *  SetAttribute( "name", false ) select the overload taking two C strings. These are the exact matches for a C
+     *  string name with a bool or a number, the same in every C++ version.
+     */
+    bool SetAttribute( const char* name, bool value );
+    bool SetAttribute( const char* name, UInt16 value );
+    bool SetAttribute( const char* name, Int16 value );
+    bool SetAttribute( const char* name, UInt32 value );
+    bool SetAttribute( const char* name, Int32 value );
+    bool SetAttribute( const char* name, Int64 value );
+    bool SetAttribute( const char* name, UInt64 value );
+    bool SetAttribute( const char* name, Float32 value );
+
     bool SetAttribute( const CString& name, UInt16 value );
     bool SetAttribute( const CString& name, Int16 value );
     bool SetAttribute( const CString& name, UInt32 value );

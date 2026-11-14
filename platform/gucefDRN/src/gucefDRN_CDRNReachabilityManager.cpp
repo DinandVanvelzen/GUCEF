@@ -249,7 +249,7 @@ CDRNReachabilitySettings::LoadConfig( const CORE::CDataNode& cfg )
 /*-------------------------------------------------------------------------*/
 
 CDRNReachabilityManager::CQuestion::CQuestion( void )
-    : future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    : future( CORE::TASKSTATUS_UNDEFINED )
     , isStun( false )
     , channelType()
     , path()

@@ -83,7 +83,7 @@ CAsyncLobbyService::Connect( const CPlayerIdentity& identity, CORE::CFutureResul
     if ( !m_backend->IsAvailable( reason ) )
     {
         m_connected = false;
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason.IsNULLOrEmpty() ? CORE::CString( "The lobbies are not available." ) : reason );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason.IsNULLOrEmpty() ? CORE::CString( "The lobbies are not available." ) : reason );
         return false;
     }
     m_connected = true;
@@ -124,7 +124,7 @@ CAsyncLobbyService::Browse( const CGameListingFilter& filter, CORE::CFutureResul
     future = source.GetFuture();
     if ( !m_connected )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
         return false;
     }
     CIAsyncLobbyBackend::TGameListingEntryVector rows;
@@ -175,19 +175,19 @@ CAsyncLobbyService::CreateLobby( const CLobbyCreateParams& params, CORE::CFuture
     future = source.GetFuture();
     if ( !m_connected )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
         return false;
     }
     CORE::CString lobbyId, error;
     if ( !m_backend->CreateLobby( params, lobbyId, error ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, error.IsNULLOrEmpty() ? CORE::CString( "The lobby could not be made." ) : error );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, error.IsNULLOrEmpty() ? CORE::CString( "The lobby could not be made." ) : error );
         return false;
     }
     CILobbyPtr lobby = OpenLobby( lobbyId );
     if ( lobby.IsNULL() )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby was made but is not in the list." );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby was made but is not in the list." );
         return false;
     }
     CLobbyResultData* result = GUCEF_NEW CLobbyResultData( lobby );
@@ -210,13 +210,13 @@ CAsyncLobbyService::JoinLobby( const CORE::CString& lobbyId    ,
     future = source.GetFuture();
     if ( !m_connected )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
         return false;
     }
     CAsyncLobbyView view;
     if ( !m_backend->GetLobby( lobbyId, view ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "That game is not in your list." );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "That game is not in your list." );
         return false;
     }
     if ( asSpectator )
@@ -224,14 +224,14 @@ CAsyncLobbyService::JoinLobby( const CORE::CString& lobbyId    ,
         CORE::CString error;
         if ( !m_backend->SetSpectating( lobbyId, true, error ) )
         {
-            source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, error.IsNULLOrEmpty() ? CORE::CString( "You cannot watch this game." ) : error );
+            source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, error.IsNULLOrEmpty() ? CORE::CString( "You cannot watch this game." ) : error );
             return false;
         }
     }
     CILobbyPtr lobby = OpenLobby( lobbyId );
     if ( lobby.IsNULL() )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "That game is not in your list." );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "That game is not in your list." );
         return false;
     }
     source.Complete( GUCEF_NEW CLobbyResultData( lobby ), true );

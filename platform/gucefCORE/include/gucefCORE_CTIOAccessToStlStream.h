@@ -87,7 +87,7 @@ class CTIOAccessToStlStream : public stl_stream_type
 {
     public:
  
-    using Base = stl_stream_type;
+    typedef stl_stream_type Base;
 
     CTIOAccessToStlStream( CIOAccess& access );
 

@@ -89,7 +89,7 @@ CMsgException::CMsgException( const CMsgException& src )
 
 /*-------------------------------------------------------------------------*/
 
-CMsgException::~CMsgException() 
+CMsgException::~CMsgException() GUCEF_NOTHROW
 {GUCEF_TRACE;
 
 }
@@ -121,7 +121,7 @@ CMsgException::GetErrorMsg( void ) const
 /*-------------------------------------------------------------------------*/
 
 const char*
-CMsgException::what( void ) const throw()
+CMsgException::what( void ) const GUCEF_NOTHROW
 {GUCEF_TRACE;
 
     static CString whatStr;       // TODO: thread safety?

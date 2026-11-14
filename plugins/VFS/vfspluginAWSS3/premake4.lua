@@ -30,18 +30,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "aws-cpp-sdk-core", "aws-cpp-sdk-s3", "gucefCORE", "gucefMT", "gucefVFS", "pluginglueAWSSDK" } )
+
+configuration( {} )
 links( { "aws-cpp-sdk-core", "aws-cpp-sdk-s3", "gucefCORE", "gucefMT", "gucefVFS", "pluginglueAWSSDK" } )
 
 
 configuration( {} )
 defines( { "GUCEF_VFSPLUGIN_AWSS3_BUILD_MODULE", "MODULE_CONSENSUS_NAME=vfspluginAWSS3", "MODULE_IS_PLUGIN=1", "MODULE_NAME=vfspluginAWSS3" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "PLATFORM_WINDOWS", "USE_IMPORT_EXPORT" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "PLATFORM_WINDOWS", "USE_IMPORT_EXPORT" } )
 
 

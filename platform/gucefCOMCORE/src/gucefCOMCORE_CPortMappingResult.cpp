@@ -132,7 +132,7 @@ CPortMappingResult::TryGetFromFuture( const CORE::CFutureResult& future, CPortMa
         return false;
 
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
     const CPortMappingResult* data = CORE::CICloneable::CloneableAs< CPortMappingResult >( task->GetTaskData() );

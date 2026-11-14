@@ -26,12 +26,12 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -40,16 +40,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS" } )
+
+configuration( {} )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "DBPLUGIN_VFSTABLES_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dbpluginVFSTABLES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dbpluginVFSTABLES" } )
+defines( { "DBPLUGIN_VFSTABLES_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dbpluginVFSTABLES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dbpluginVFSTABLES", "MODULE_SEMVER=1_0_0_0" } )
 
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=dbpluginVFSTABLES" } )
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=dbpluginVFSTABLES" } )
 
 

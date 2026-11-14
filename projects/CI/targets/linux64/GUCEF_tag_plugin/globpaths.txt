@@ -39,6 +39,8 @@ platform/gucefDRN/include/*
 platform/gucefGUI/include/*
 platform/gucefIMAGE/include/*
 platform/gucefINPUT/include/*
+platform/gucefMATH/include/*
+platform/gucefMATH/src/*
 platform/gucefMT/include/*
 platform/gucefMULTIPLAY/include/*
 platform/gucefVFS/include/*

@@ -30,40 +30,46 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "aws-c-auth", "aws-c-cal", "aws-c-common", "aws-c-compression", "aws-c-event-stream", "aws-c-http", "aws-c-io", "aws-c-mqtt", "aws-c-s3", "aws-c-sdkutils", "aws-checksums" } )
+
+configuration( {} )
 links( { "aws-c-auth", "aws-c-cal", "aws-c-common", "aws-c-compression", "aws-c-event-stream", "aws-c-http", "aws-c-io", "aws-c-mqtt", "aws-c-s3", "aws-c-sdkutils", "aws-checksums" } )
 
 
 configuration( {} )
 defines( { "AWS_CRT_CPP_EXPORTS", "CJSON_AS4CPP_HIDE_SYMBOLS", "CJSON_HIDE_SYMBOLS", "MODULE_CONSENSUS_NAME=aws_crt_cpp", "MODULE_NAME=aws_crt_cpp", "MODULE_SEMVER=0_18_16_0", "USE_IMPORT_EXPORT=1" } )
-  
 
-configuration( { ANDROID32 } )
+
+configuration( { "ANDROID32" } )
 defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
-  
 
-configuration( { ANDROID64 } )
+
+configuration( { "ANDROID64" } )
 defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "AWS_CRT_CPP_USE_IMPORT_EXPORT", "BYO_CRYPTO", "ENABLE_OPENSSL_ENCRYPTION", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "AWS_CRT_CPP_USE_IMPORT_EXPORT", "BYO_CRYPTO", "ENABLE_OPENSSL_ENCRYPTION", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
-  
 
-configuration( { OSX } )
+
+configuration( { "OSX" } )
 defines( { "ENABLE_COMMONCRYPTO_ENCRYPTION" } )
-  links( { "Secur32.lib", "Shlwapi.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "Secur32.lib", "Shlwapi.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib" } )
+
+
+configuration( { "WIN32" } )
 defines( { "AWS_CRT_CPP_EXPORTS", "AWS_CRT_CPP_USE_IMPORT_EXPORT", "BYPASS_DEFAULT_PROXY", "ENABLE_BCRYPT_ENCRYPTION", "ENABLE_WINDOWS_CLIENT", "ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT", "PLATFORM_WINDOWS", "USE_WINDOWS_DLL_SEMANTICS" } )
-  links( { "Secur32.lib", "Shlwapi.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "Secur32.lib", "Shlwapi.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib" } )
+
+
+configuration( { "WIN64" } )
 defines( { "AWS_CRT_CPP_EXPORTS", "AWS_CRT_CPP_USE_IMPORT_EXPORT", "BYPASS_DEFAULT_PROXY", "ENABLE_BCRYPT_ENCRYPTION", "ENABLE_WINDOWS_CLIENT", "ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT", "PLATFORM_WINDOWS", "USE_WINDOWS_DLL_SEMANTICS" } )
 
 

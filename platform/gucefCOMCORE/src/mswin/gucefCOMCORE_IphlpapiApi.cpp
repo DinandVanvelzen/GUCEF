@@ -71,8 +71,8 @@ namespace COMCORE {
 MT::CMutex win32ApiLinkerMutex;
 
 UInt32 lphlpDllRefCount = 0;
-void* lphlpDllHandle = NULL;
-TGetIfEntry2Ptr GetIfEntry2 = NULL;
+void* lphlpDllHandle = GUCEF_NULL;
+TGetIfEntry2Ptr GetIfEntry2 = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -85,12 +85,12 @@ UnlinkLPHLPAPI( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( win32ApiLinkerMutex );
-    if ( lphlpDllHandle != NULL )
+    if ( lphlpDllHandle != GUCEF_NULL )
     {
         if ( lphlpDllRefCount == 1 )
         {
             CORE::UnloadModuleDynamicly( lphlpDllHandle );
-            lphlpDllHandle = NULL;            
+            lphlpDllHandle = GUCEF_NULL;            
             --lphlpDllRefCount;
         }
     }
@@ -103,20 +103,20 @@ LinkLPHLPAPI( void )
 {GUCEF_TRACE;
     
     MT::CScopeMutex lock( win32ApiLinkerMutex );
-    if ( lphlpDllHandle == NULL )
+    if ( lphlpDllHandle == GUCEF_NULL )
     {
         lphlpDllHandle = CORE::LoadModuleDynamicly( "iphlpapi.dll" );
-        if ( lphlpDllHandle != NULL )
+        if ( lphlpDllHandle != GUCEF_NULL )
         {
             GetIfEntry2 = (TGetIfEntry2Ptr) CORE::GetFunctionAddress( lphlpDllHandle         ,
                                                                       "GetIfEntry2"          ,
                                                                       sizeof( PMIB_IF_ROW2 ) ).funcPtr;
                                                                           
-            bool foundFunctions = ( GetIfEntry2 != NULL );
+            bool foundFunctions = ( GetIfEntry2 != GUCEF_NULL );
             if ( !foundFunctions )
             {
                 CORE::UnloadModuleDynamicly( lphlpDllHandle );
-                lphlpDllHandle = NULL;
+                lphlpDllHandle = GUCEF_NULL;
                 lphlpDllRefCount = 0;
                 return false;            
             }
@@ -125,7 +125,7 @@ LinkLPHLPAPI( void )
         }
         else
         {
-            lphlpDllHandle = NULL;
+            lphlpDllHandle = GUCEF_NULL;
             lphlpDllRefCount = 0;            
             return false;            
         }

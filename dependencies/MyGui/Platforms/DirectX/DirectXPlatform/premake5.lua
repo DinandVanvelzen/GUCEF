@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  
-configuration( { WIN32 } )
-links( { "MyGUI.Engine" } )
-  links( { "MyGUI.Engine", "d3d9", "d3dx9" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "MyGUI.Engine" } )
+
+configuration( { "WIN32" } )
+links( { "MyGUI.Engine", "d3d9", "d3dx9" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=MyGUI_DirectXPlatform" } )
-  
-configuration( { WIN64 } )
-links( { "MyGUI.Engine" } )
-  links( { "MyGUI.Engine", "d3d9", "d3dx9" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "MyGUI.Engine" } )
+
+configuration( { "WIN64" } )
+links( { "MyGUI.Engine", "d3d9", "d3dx9" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=MyGUI_DirectXPlatform" } )
 
 

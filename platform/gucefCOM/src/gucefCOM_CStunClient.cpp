@@ -356,7 +356,7 @@ CStunClient::TryGetResultFromFuture( const CORE::CFutureResult& future, CStunRes
         return false;
 
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
     const CStunResult* data = CORE::CICloneable::CloneableAs< CStunResult >( task->GetTaskData() );
@@ -442,7 +442,7 @@ CStunClient::OnTimer( void )
         m_queries.erase( m_queries.begin() + i );
         CORE::CString reason = "The STUN server " + failed.server.AddressAndPortAsString() + " did not answer";
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "StunClient: " << reason );
-        failed.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        failed.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
         TStunErrorEventData eData( reason );
         if ( !NotifyObservers( StunErrorEvent, &eData ) )
             return false;
@@ -481,7 +481,7 @@ CStunClient::OnPacket( const COMCORE::CIPv4Address& source, const CORE::CDynamic
         if ( !isSuccess )
         {
             CORE::CString reason = "The STUN server " + query.server.AddressAndPortAsString() + " answered with error " + CORE::UInt16ToString( errorCode );
-            query.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+            query.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
             TStunErrorEventData eData( reason );
             return NotifyObservers( StunErrorEvent, &eData );
         }

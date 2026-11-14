@@ -32,11 +32,12 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefMATH/include \
+  $(MY_MODULE_PATH)/../gucefMATH/src \
   $(MY_MODULE_PATH)/../gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEF_GEOMETRY_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefGEOMETRY -DMODULE_NAME=gucefGEOMETRY -DMODULE_SEMVER=0_1_0_0
 
-LOCAL_CPPFLAGS += -ffp-contract=off
+LOCAL_CPPFLAGS +=-ffp-contract=off
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -47,9 +47,9 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNLinkMonitor.cpp \
   src/gucefDRN_CDRNLinkReliability.cpp \
   src/gucefDRN_CDRNNode.cpp \
+  src/gucefDRN_CDRNNodePulseDriver.cpp \
   src/gucefDRN_CDRNNodeSettings.cpp \
   src/gucefDRN_CDRNNodeTask.cpp \
-  src/gucefDRN_CDRNNodePulseDriver.cpp \
   src/gucefDRN_CDRNPacketCodec.cpp \
   src/gucefDRN_CDRNPacketProtection.cpp \
   src/gucefDRN_CDRNPeerLink.cpp \

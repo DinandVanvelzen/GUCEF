@@ -271,7 +271,7 @@ bool
 CFakeAuthProvider::Run( EFakeBehaviour behaviour, bool interactive, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     if ( FAKE_REFUSE == behaviour )
         return false;
 
@@ -342,7 +342,7 @@ CFakeAuthProvider::TrySilentLogin( CORE::CFutureResult& future )
         callLog->push_back( "silent:" + name );
     if ( 0 == ( capabilities & AUTH::AUTHCAP_SILENT ) )
     {
-        future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
         return false;
     }
     return Run( silentBehaviour, false, future );

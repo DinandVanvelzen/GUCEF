@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "WindowedApp" )
-  
-configuration( { WIN32 } )
-links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
-  links( { "gucefCORE", "gucefMT" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefMT" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_DRGUP_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI", "MODULE_NAME=MemoryLeakFinder_TestApp" } )
-  
-configuration( { WIN64 } )
-links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
-  links( { "gucefCORE", "gucefMT" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefMT" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_DRGUP_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI", "MODULE_NAME=MemoryLeakFinder_TestApp" } )
 
 

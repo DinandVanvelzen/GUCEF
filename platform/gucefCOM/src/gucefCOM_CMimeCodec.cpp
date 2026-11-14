@@ -319,7 +319,7 @@ IsMimeTokenChar( char c )
     // RFC 2045 token: any printable ASCII except space, controls and tspecials
     if ( c <= ' ' || c >= 0x7F )
         return false;
-    return NULL == strchr( "()<>@,;:\\\"/[]?=", c );
+    return GUCEF_NULL == strchr( "()<>@,;:\\\"/[]?=", c );
 }
 
 /*-------------------------------------------------------------------------*/

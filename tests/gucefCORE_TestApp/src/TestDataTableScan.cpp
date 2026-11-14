@@ -174,11 +174,11 @@ WaitForFuture( const CFutureResult& future, UInt32 timeoutMs )
     while ( !future.IsReady() )
     {
         if ( MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start ) > timeoutMs )
-            return TTaskStatus::TASKSTATUS_UNDEFINED;
+            return CORE::TASKSTATUS_UNDEFINED;
         MT::PrecisionDelay( 2 );
     }
     CTaskPtr task = future.GetResult( 0 );
-    return task.IsNULL() ? TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -284,7 +284,7 @@ PerformDataTableScanTests( void )
                 CString::StringVector asyncRows;
                 ASSERT_TRUE( DATATABLE_STATUS_END == DrainAsync( *async, asyncRows ) );
                 ASSERT_TRUE( syncRows == asyncRows );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == WaitForFuture( future, 5000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == WaitForFuture( future, 5000 ) );
 
                 CDataTableScanPtr unordered = files.MakeScan( pool, counters );
                 unordered->StartAsync( CDataTableQuery().SetBatchRowCount( 1024 ).SetOrderedDelivery( false ).SetMaxParallelism( 4 ), threadPool );
@@ -403,7 +403,7 @@ PerformDataTableScanTests( void )
                     ASSERT_TRUE( DATATABLE_STATUS_END == status );
                     ASSERT_TRUE( IsConsecutive( IdsOf( rows ), 0, 6 * 10 * 1500 ) );
                     ASSERT_TRUE( counters.maxConcurrentReads.Load() <= credits[ c ] );
-                    ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == WaitForFuture( future, 5000 ) );
+                    ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == WaitForFuture( future, 5000 ) );
                 }
             }
         }
@@ -537,7 +537,7 @@ PerformDataTableScanTests( void )
                 scan->Cancel();
                 ASSERT_TRUE( DATATABLE_STATUS_CANCELLED == scan->NextBatch( batch ) );
                 ASSERT_TRUE( MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start ) < 100 );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_CANCELLED == WaitForFuture( future, 1000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == WaitForFuture( future, 1000 ) );
             }
 
             // while decoding: running tasks stop at their next batch
@@ -551,7 +551,7 @@ PerformDataTableScanTests( void )
                 const UInt64 start = MT::PrecisionTickCount();
                 scan->Cancel();
                 ASSERT_TRUE( DATATABLE_STATUS_CANCELLED == scan->NextBatch( batch ) );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_CANCELLED == WaitForFuture( future, 1000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == WaitForFuture( future, 1000 ) );
                 scan.Unlink();
                 ASSERT_TRUE( MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start ) < 1000 );
                 ASSERT_TRUE( WaitForReadersGone( counters, 2000 ) );
@@ -568,7 +568,7 @@ PerformDataTableScanTests( void )
                 future.RequestCancellation();
                 CString::StringVector rows;
                 ASSERT_TRUE( DATATABLE_STATUS_CANCELLED == DrainAsync( *scan, rows ) );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_CANCELLED == WaitForFuture( future, 1000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == WaitForFuture( future, 1000 ) );
             }
 
             // after the end it changes nothing
@@ -580,7 +580,7 @@ PerformDataTableScanTests( void )
                 ASSERT_TRUE( DATATABLE_STATUS_END == DrainAsync( *scan, rows ) );
                 scan->Cancel();
                 ASSERT_TRUE( DATATABLE_STATUS_END == scan->NextBatch( batch ) );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == WaitForFuture( future, 1000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == WaitForFuture( future, 1000 ) );
             }
         }
         catch ( ... )
@@ -625,7 +625,7 @@ PerformDataTableScanTests( void )
                     {
                         CFutureResult future = scan->StartAsync( CDataTableQuery().SetMaxParallelism( 3 ), threadPool );
                         status = DrainAsync( *scan, rows );
-                        ASSERT_TRUE( TTaskStatus::TASKSTATUS_STARTUP_FAILED == WaitForFuture( future, 2000 ) );
+                        ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == WaitForFuture( future, 2000 ) );
                     }
                     if ( faults[ f ].status != status )
                         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "Fault " << faults[ f ].option << " async " << async << " gave " << DataTableStatusToString( status ) );
@@ -689,7 +689,7 @@ PerformDataTableScanTests( void )
                 CFutureResult future = scan->StartAsync( CDataTableQuery().SetMaxParallelism( parallelism ), threadPool );
                 CString::StringVector rows;
                 ASSERT_TRUE( DATATABLE_STATUS_END == DrainAsync( *scan, rows ) );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == WaitForFuture( future, 2000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == WaitForFuture( future, 2000 ) );
                 ASSERT_TRUE( IsConsecutive( IdsOf( rows ), 0, (UInt64) fileCount * rowsPerFile ) );
                 CDataTableScanStats stats;
                 scan->GetStats( stats );
@@ -714,7 +714,7 @@ PerformDataTableScanTests( void )
                 CFutureResult future = scan->StartAsync( CDataTableQuery().SetMaxParallelism( ScanTestThreads ), threadPool );
                 CString::StringVector rows;
                 ASSERT_TRUE( DATATABLE_STATUS_IO_ERROR == DrainAsync( *scan, rows ) );
-                ASSERT_TRUE( TTaskStatus::TASKSTATUS_STARTUP_FAILED == WaitForFuture( future, 2000 ) );
+                ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == WaitForFuture( future, 2000 ) );
                 ASSERT_TRUE( scan->GetLastErrorMessage().HasSubstr( "\"file6\"" ) >= 0 );
                 ASSERT_TRUE( rows.size() <= 6 * rowsPerFile && IsConsecutive( IdsOf( rows ), 0, rows.size() ) );
                 scan.Unlink();
@@ -735,7 +735,7 @@ PerformDataTableScanTests( void )
                     scan->Cancel();
                     CDataTableBatchPtr batch;
                     ASSERT_TRUE( DATATABLE_STATUS_CANCELLED == scan->NextBatch( batch ) );
-                    ASSERT_TRUE( TTaskStatus::TASKSTATUS_CANCELLED == WaitForFuture( future, 2000 ) );
+                    ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == WaitForFuture( future, 2000 ) );
                 }
                 scan.Unlink();
                 ASSERT_TRUE( WaitForReadersGone( counters, 2000 ) );

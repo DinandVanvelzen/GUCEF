@@ -66,7 +66,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 MT::CMutex CLoggingGlobal::g_dataLock;
-CLoggingGlobal* CLoggingGlobal::g_instance = NULL;
+CLoggingGlobal* CLoggingGlobal::g_instance = GUCEF_NULL;
 
 /** The logging globals this process made, under g_dataLock (test seam, see CLoggingGlobalTestAccess) */
 static UInt32 g_instanceCreationCount = 0;

@@ -334,7 +334,7 @@ PerformVfsFileSystemAccessTests( void )
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_NOT_SUPPORTED == access->TryResolveSpecialDir( CORE::SPECIALDIR_HOME_DIR, path ) );
 
             // async through the default of the interface: the listing is read on a pool thread
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryGetFileSystemIteratorAsync( "/fsa/rw", future ) );
             future.Await( 10000 );
             CORE::TFileSystemAccessResult result = CORE::FILESYSTEMACCESS_TIMEOUT;

@@ -112,7 +112,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     typedef GUCEF::vector< CTaskPtr >                                                TTaskPtrVector;
     typedef GUCEF::vector< TIntegerTypeUsedForTaskId >                               TTaskIdVector;
 
-    CTask( TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED );
+    CTask( TTaskStatus taskStatus = CORE::TASKSTATUS_UNDEFINED );
 
     #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
     CTask( CTask&& src ) GUCEF_NOEXCEPT;

@@ -130,11 +130,11 @@ CConfigurableHttpServerResource::Deserialize( const CString& resourcePath   ,
     {
         MT::CObjectScopeLock lock( m_lockForConfigurable );
         if ( m_configurable->LoadConfig( input ) )
-            return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+            return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
         else
-            return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+            return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
     }
-    return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+    return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 }
 
 /*-------------------------------------------------------------------------//

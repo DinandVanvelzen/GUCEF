@@ -1850,6 +1850,28 @@ PerformDRNRpcTransportTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** the raw round trip of the latency test: the host echoes application messages */
+class CEcho : public CORE::CObserver
+{
+    public:
+    DRN::CDRNSession* host;
+    bool answered;
+    CEcho( void ) : CORE::CObserver(), host( GUCEF_NULL ), answered( false ) {}
+    virtual ~CEcho() { UnsubscribeAllFromObserver(); }
+    void OnHost( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* eventData )
+    {
+        // sent at once, as the RPC transport sends an answer
+        const DRN::CDRNAppMessage& message = static_cast< DRN::CDRNAppMessageEventData* >( eventData )->GetData();
+        host->SendAppMessage( message.fromPeer, DRN::DRN_LANE_RELIABLE_ORDERED, message.payload );
+        DRN::CDRNPeerLinkPtr link = host->GetLinkToMember( message.fromPeer );
+        if ( !link.IsNULL() )
+            link->Flush();
+    }
+    void OnMember( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { answered = true; }
+};
+
+/*-------------------------------------------------------------------------*/
+
 /** T13 over nodes with threads of their own, handlers in the given execution mode */
 void
 PerformDRNRpcTransportPerformanceTests( void )
@@ -1870,25 +1892,6 @@ PerformDRNRpcTransportPerformanceTests( void )
         COMCORE::CRpcStatus status;
         REQUIRE_TRUE( w.f.client->ResolveMethod( g_getPath, ref, status ) );
 
-        // the raw round trip: the host echoes application messages
-        class CEcho : public CORE::CObserver
-        {
-            public:
-            DRN::CDRNSession* host;
-            bool answered;
-            CEcho( void ) : CORE::CObserver(), host( GUCEF_NULL ), answered( false ) {}
-            virtual ~CEcho() { UnsubscribeAllFromObserver(); }
-            void OnHost( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* eventData )
-            {
-                // sent at once, as the RPC transport sends an answer
-                const DRN::CDRNAppMessage& message = static_cast< DRN::CDRNAppMessageEventData* >( eventData )->GetData();
-                host->SendAppMessage( message.fromPeer, DRN::DRN_LANE_RELIABLE_ORDERED, message.payload );
-                DRN::CDRNPeerLinkPtr link = host->GetLinkToMember( message.fromPeer );
-                if ( !link.IsNULL() )
-                    link->Flush();
-            }
-            void OnMember( CORE::CNotifier*, const CORE::CEvent&, CORE::CICloneable* ) { answered = true; }
-        };
         CEcho echo;
         echo.host = &w.group[ 0 ];
         typedef CORE::CTEventHandlerFunctor< CEcho > TEchoCallback;

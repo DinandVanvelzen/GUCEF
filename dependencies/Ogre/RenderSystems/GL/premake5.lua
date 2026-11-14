@@ -30,15 +30,25 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "Ogre" } )
+
+configuration( {} )
 links( { "Ogre" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL", "MODULE_NAME=OgreRenderSystem_GL", "OGRE_GLPLUGIN_EXPORTS" } )
-  links( { "GL", "GLU" } )
-  links( { "GL", "GLU" } )
-  links( { "glu32.lib", "opengl32" } )
-  links( { "glu32.lib", "opengl32" } )
+
+configuration( { "LINUX32" } )
+links( { "GL", "GLU" } )
+
+configuration( { "LINUX64" } )
+links( { "GL", "GLU" } )
+
+configuration( { "WIN32" } )
+links( { "glu32.lib", "opengl32" } )
+
+configuration( { "WIN64" } )
+links( { "glu32.lib", "opengl32" } )
 
 
 configuration( {} )

@@ -31,10 +31,18 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "GUCEF_MT_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMT", "MODULE_NAME=gucefMT", "MODULE_SEMVER=0_1_0_0" } )
-  links( { "pthread" } )
-  links( { "pthread" } )
-  links( { "Winmm" } )
-  links( { "Winmm" } )
+
+configuration( { "LINUX32" } )
+links( { "pthread" } )
+
+configuration( { "LINUX64" } )
+links( { "pthread" } )
+
+configuration( { "WIN32" } )
+links( { "Winmm" } )
+
+configuration( { "WIN64" } )
+links( { "Winmm" } )
 
 
 configuration( {} )

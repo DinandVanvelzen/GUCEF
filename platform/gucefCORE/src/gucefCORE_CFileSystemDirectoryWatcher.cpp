@@ -111,16 +111,16 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
 
             notifyBuffer.SetBufferSize( 64 * 1024 );
             ::ZeroMemory( &overlappedIO, sizeof(overlappedIO) );
-            overlappedIO.hEvent = ::CreateEvent( NULL, FALSE, FALSE, NULL );
+            overlappedIO.hEvent = ::CreateEvent( GUCEF_NULL, FALSE, FALSE, GUCEF_NULL );
         }
 
         ~OverlappedIOCallbackObj()
         {GUCEF_TRACE;
 
-            if ( NULL != overlappedIO.hEvent )
+            if ( GUCEF_NULL != overlappedIO.hEvent )
             {
                 ::CloseHandle( overlappedIO.hEvent );
-                overlappedIO.hEvent = NULL;
+                overlappedIO.hEvent = GUCEF_NULL;
             }
         }
     };
@@ -156,7 +156,7 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
                                                 watchObj.notifyFilter,                             // filter conditions
                                                 &dwBytes,                                          // bytes returned if not using overlapped I/O. In this case its a dummy.
                                                 &watchObj.overlappedIO,                            // overlapped buffer
-                                                NULL );                                            // completion routine, we use a waitable event instead
+                                                GUCEF_NULL );                                            // completion routine, we use a waitable event instead
 
         if ( success != TRUE )
         {
@@ -183,10 +183,10 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
         HANDLE dirHandle = ::CreateFileW( dirToWatchW.c_str(),
                                           FILE_LIST_DIRECTORY,
                                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                          NULL,
+                                          GUCEF_NULL,
                                           OPEN_EXISTING,
                                           FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                                          NULL                      );
+                                          GUCEF_NULL                      );
         if ( INVALID_HANDLE_VALUE == dirHandle )
         {
             DWORD error = GetLastError();
@@ -670,7 +670,7 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
         FD_ZERO( &rfds );
         FD_SET( m_inotify_fd, &rfds );
 
-        int selectResult = select( m_inotify_fd + 1, &rfds, NULL, NULL, &m_select_timeout );
+        int selectResult = select( m_inotify_fd + 1, &rfds, GUCEF_NULL, GUCEF_NULL, &m_select_timeout );
         if ( selectResult == -1 )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "OSSpecificDirectoryWatcher:OnDirWatchPollingCycle: select() failed" );

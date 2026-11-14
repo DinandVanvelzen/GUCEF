@@ -52,7 +52,7 @@ namespace IMAGE {
 CPixel::CPixel( void )
     : m_pixelStorageFormat( PSF_UNKNOWN )              ,
       m_pixelComponentDataType( DATATYPE_UNKNOWN ) ,  
-      m_pixelData( NULL )                              ,
+      m_pixelData( GUCEF_NULL )                              ,
       m_ownsData( false )
 {GUCEF_TRACE;
 
@@ -66,7 +66,7 @@ CPixel::CPixel( const void* pixelData                         ,
                 bool referenceData /* = false */              )
     : m_pixelStorageFormat( pixelStorageFormat )         ,
       m_pixelComponentDataType( pixelComponentDataType ) ,  
-      m_pixelData( NULL )                                ,
+      m_pixelData( GUCEF_NULL )                                ,
       m_ownsData( false )
 {GUCEF_TRACE;
 
@@ -89,7 +89,7 @@ CPixel::CPixel( const void* pixelData                         ,
 CPixel::CPixel( const CPixel& src )
     : m_pixelStorageFormat( src.m_pixelStorageFormat )         ,
       m_pixelComponentDataType( src.m_pixelComponentDataType ) ,  
-      m_pixelData( NULL )                                      ,
+      m_pixelData( GUCEF_NULL )                                      ,
       m_ownsData( false )
 {GUCEF_TRACE;
 
@@ -167,7 +167,7 @@ CPixel::RelinquishPixelDataOwnership( void )
 {GUCEF_TRACE;
 
     void* pixelData = m_pixelData;
-    m_pixelData = NULL;
+    m_pixelData = GUCEF_NULL;
     return pixelData;
 }
 
@@ -199,7 +199,7 @@ CPixel::Clear( void )
     {
         delete []m_pixelData;
     }
-    m_pixelData = NULL;
+    m_pixelData = GUCEF_NULL;
     m_ownsData = false;
 }
 
@@ -209,7 +209,7 @@ bool
 CPixel::CopyTo( CORE::CIOAccess& resource )
 {GUCEF_TRACE;
 
-    if ( NULL != m_pixelData )
+    if ( GUCEF_NULL != m_pixelData )
     {
         return 1 == resource.Write( m_pixelData, GetSizeOfPixelInBytes(), 1 );
     }

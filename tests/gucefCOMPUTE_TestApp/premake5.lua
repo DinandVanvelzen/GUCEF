@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,11 +36,14 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "gucefCOMPUTE", "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCOMPUTE", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
 defines( { "GUCEF_COMPUTE_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCOMPUTE_TestApp", "MODULE_NAME=gucefCOMPUTE_TestApp" } )
+
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }

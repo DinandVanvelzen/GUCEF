@@ -72,11 +72,20 @@ if ( WIN64 )
 endif( WIN64 )
 
 if ( WIN32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+if ( WIN32 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefINPUT gucefMT )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefINPUT gucefMT )
 endif( WIN64 )
 
 

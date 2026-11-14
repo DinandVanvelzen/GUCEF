@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "CEGUI", "lua", "tolua", "toluapp" } )
+
+configuration( {} )
 links( { "CEGUI", "lua", "tolua", "toluapp" } )
 
 

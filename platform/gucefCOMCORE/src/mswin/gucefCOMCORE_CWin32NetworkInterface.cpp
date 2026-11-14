@@ -80,12 +80,12 @@ CWin32NetworkInterface::SetupAdapterInfo( void* pAdaptInfoVoid )
 {GUCEF_TRACE;
 
 	IP_ADAPTER_INFO* pAdaptInfo = (IP_ADAPTER_INFO*) pAdaptInfoVoid;
-	IP_ADDR_STRING* pNext			= NULL;
-	IP_PER_ADAPTER_INFO* pPerAdapt	= NULL;
+	IP_ADDR_STRING* pNext			= GUCEF_NULL;
+	IP_PER_ADAPTER_INFO* pPerAdapt	= GUCEF_NULL;
 	ULONG ulLen						= 0;
 	ULONG errorCode					= 0;
 	
-	if( NULL == pAdaptInfo )
+	if( GUCEF_NULL == pAdaptInfo )
 		return false;
 	
 	m_name = pAdaptInfo->AdapterName;		
@@ -137,7 +137,7 @@ CWin32NetworkInterface::SetupAdapterInfo( void* pAdaptInfoVoid )
 	// to get the list of dns addresses used by this adapter.
 	bool obtainedtPerAdapterInfo = false;
 	CORE::CDynamicBuffer perAdapterInfoBuffer;
-	errorCode = ::GetPerAdapterInfo( m_nicIndex, NULL, &ulLen );
+	errorCode = ::GetPerAdapterInfo( m_nicIndex, GUCEF_NULL, &ulLen );
 	if( errorCode == ERROR_BUFFER_OVERFLOW || errorCode == ERROR_INVALID_PARAMETER ) 
 	{
 		if ( perAdapterInfoBuffer.SetBufferSize( ulLen ) )
@@ -167,7 +167,7 @@ CWin32NetworkInterface::SetupAdapterInfo( void* pAdaptInfoVoid )
 	if ( obtainedtPerAdapterInfo )
 	{
 		pNext = &( pPerAdapt->DnsServerList );
-		while( pNext != NULL ) 
+		while( pNext != GUCEF_NULL ) 
 		{
 			CHostAddress address( pNext->IpAddress.String );
 			m_dnsAddresses.push_back( address );
@@ -184,13 +184,13 @@ bool
 CWin32NetworkInterface::EnumNetworkAdapters( TINetworkInterfacePtrVector& interfaces ) 
 {GUCEF_TRACE;
 
-	IP_ADAPTER_INFO* pAdptInfo	= NULL;
-	IP_ADAPTER_INFO* pNextAd	= NULL;	
+	IP_ADAPTER_INFO* pAdptInfo	= GUCEF_NULL;
+	IP_ADAPTER_INFO* pNextAd	= GUCEF_NULL;	
 	ULONG ulLen					= 0;
 	ULONG errorCode				= 0;
 	
 	CORE::CDynamicBuffer adapterInfoBuffer;
-	errorCode = ::GetAdaptersInfo( NULL, &ulLen );
+	errorCode = ::GetAdaptersInfo( GUCEF_NULL, &ulLen );
 	if( errorCode == ERROR_BUFFER_OVERFLOW ) 
 	{
 		if ( adapterInfoBuffer.SetBufferSize( ulLen ) )
@@ -222,7 +222,7 @@ CWin32NetworkInterface::EnumNetworkAdapters( TINetworkInterfacePtrVector& interf
 	// loop through for all available interfaces and setup an associated
 	// CNetworkAdapter class.
 	pNextAd = pAdptInfo;
-	while( pNextAd != NULL ) 
+	while( pNextAd != GUCEF_NULL ) 
 	{
 		CWin32NetworkInterfacePtr nic = CWin32NetworkInterfacePtr( GUCEF_NEW CWin32NetworkInterface() );
 		if ( nic->SetupAdapterInfo( pNextAd ) )

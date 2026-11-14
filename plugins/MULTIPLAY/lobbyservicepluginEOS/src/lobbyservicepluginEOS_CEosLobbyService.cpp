@@ -377,7 +377,7 @@ CEosLobbyService::FailConnect( CORE::CFutureResultSource& source, const CORE::CS
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "EosLobbyService: Cannot connect: " << reason );
-    source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+    source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
     return false;
 }
 
@@ -679,7 +679,7 @@ CEosLobbyService::Browse( const MULTIPLAY::CGameListingFilter& filter, CORE::CFu
     future = source.GetFuture();
     if ( !m_connected )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
         return false;
     }
 
@@ -755,7 +755,7 @@ CEosLobbyService::Browse( const MULTIPLAY::CGameListingFilter& filter, CORE::CFu
     UInt32 requestId = NextRequestId();
     if ( !m_lobbyShim.searchLobbies( m_lobbyShim.context, requestId, &options ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The search could not be started" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The search could not be started" );
         return false;
     }
     AddOp( OP_BROWSE, EOSLOBBYEVENT_SEARCH, CORE::CString::Empty, requestId );
@@ -775,7 +775,7 @@ CEosLobbyService::CreateLobby( const MULTIPLAY::CLobbyCreateParams& params, CORE
     future = source.GetFuture();
     if ( !m_connected )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
         return false;
     }
 
@@ -784,7 +784,7 @@ CEosLobbyService::CreateLobby( const MULTIPLAY::CLobbyCreateParams& params, CORE
     if ( !CEosLobby::Validate( *this, params, reason ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "EosLobbyService: The lobby cannot be made: " << reason );
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
         return false;
     }
 
@@ -804,7 +804,7 @@ CEosLobbyService::CreateLobby( const MULTIPLAY::CLobbyCreateParams& params, CORE
     UInt32 requestId = NextRequestId();
     if ( !m_lobbyShim.createLobby( m_lobbyShim.context, requestId, &options ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby could not be made" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby could not be made" );
         return false;
     }
     AddOp( OP_CREATE, EOSLOBBYEVENT_CREATE, CORE::CString::Empty, requestId );
@@ -830,24 +830,24 @@ CEosLobbyService::JoinLobby( const CORE::CString& lobbyId    ,
     future = source.GetFuture();
     if ( !m_connected )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby service is not connected" );
         return false;
     }
     if ( !CEosLobbyCodec::IsValidLobbyId( lobbyId ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "That is not the id of a lobby" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "That is not the id of a lobby" );
         return false;
     }
     if ( GUCEF_NULL != FindLobby( lobbyId ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The local user is in that lobby already" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The local user is in that lobby already" );
         return false;
     }
 
     UInt32 requestId = NextRequestId();
     if ( !m_lobbyShim.joinLobbyById( m_lobbyShim.context, requestId, lobbyId.C_String(), m_localUser.C_String(), m_settings.presenceEnabled ) )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The lobby could not be joined" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The lobby could not be joined" );
         return false;
     }
     AddOp( OP_JOIN, EOSLOBBYEVENT_JOIN, lobbyId, requestId );
@@ -995,7 +995,7 @@ CEosLobbyService::OnBrowseEnd( SOp& op, const SEosLobbyEvent& event )
 
     if ( EOSRESULT_SUCCESS != event.result )
     {
-        op.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, DescribeResult( event.result ) );
+        op.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, DescribeResult( event.result ) );
         return;
     }
 
@@ -1141,7 +1141,7 @@ CEosLobbyService::EndOp( UInt32 requestId, bool succeeded, const CORE::CString& 
 
     const CORE::CString action = OP_CREATE == op.kind ? "made" : "joined";
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "EosLobbyService: A lobby could not be " << action << ": " << reason );
-    op.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+    op.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
 
     // What was made or joined on the way goes again
     CEosLobby* lobby = static_cast< CEosLobby* >( op.lobby.GetPointerAlways() );
@@ -1175,7 +1175,7 @@ CEosLobbyService::AbandonOp( UInt32 requestId, bool cancelled, const CORE::CStri
     if ( cancelled )
         op.source.Cancel();
     else
-        op.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        op.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
     const CORE::CString endReason = cancelled ? CORE::CString( "cancelled" ) : reason;
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "EosLobbyService: A request ended before the SDK answered: " << endReason );
 

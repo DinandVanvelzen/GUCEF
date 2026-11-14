@@ -468,7 +468,7 @@ CFileDataTable::ScanAsync( const CDataTableQuery& query, CDataTableScanPtr& scan
     scan.Unlink();
     TFilePtr file;
     if ( DATATABLE_STATUS_OK != GetFile( file ) )
-        return CFutureResult( TTaskStatus::TASKSTATUS_STARTUP_FAILED );
+        return CFutureResult( CORE::TASKSTATUS_STARTUP_FAILED );
     MakeScan( file, scan );
     return scan->StartAsync( query, threadPool );
 }

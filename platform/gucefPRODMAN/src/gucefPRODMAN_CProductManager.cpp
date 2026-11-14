@@ -155,7 +155,7 @@ CProductManager::RetrieveProductInfo( const CString& combinedProductName ,
 {GUCEF_TRACE;
 
     const CProductInfo* foundProductInfo = m_productList.RetrieveProductInfo( combinedProductName );
-    if ( NULL != foundProductInfo )
+    if ( GUCEF_NULL != foundProductInfo )
     {
         productInfo = *foundProductInfo;
         return true;
@@ -206,22 +206,22 @@ CProductManager::LoadConfig( const GUCEF::CORE::CDataNode& node )
     GUCEF_SYSTEM_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "CProductManager: Loading the configuration" );
 
     GUCEF::CORE::CDataNode* n = node.Search( "GUCEF%PRODMAN%CProductManager", '%', false );
-    if ( NULL != n )
+    if ( GUCEF_NULL != n )
     {
-        GUCEF::CORE::CDataNode::TKeyValuePair* att = NULL;
+        GUCEF::CORE::CDataNode::TKeyValuePair* att = GUCEF_NULL;
         att = n->GetAttribute( "ProductListPath" );
-        if ( NULL != att )
+        if ( GUCEF_NULL != att )
         {
             m_productListPath = att->second;
         }
         att = n->GetAttribute( "ProductListCodec" );
-        if ( NULL != att )
+        if ( GUCEF_NULL != att )
         {
             m_productListCodec = att->second;
         }
 
         att = n->GetAttribute( "CommonProductRoot" );
-        if ( NULL != att )
+        if ( GUCEF_NULL != att )
         {
             m_productRoot = att->second;
         }

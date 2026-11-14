@@ -553,7 +553,7 @@ PerformSteamOpenId2Tests( void )
 
             CProviderRecorder recorder;
             recorder.SubscribeTo( steam );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( manager.Login( "steam", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( PumpUntilReady( future, 15000 ) );
             AUTH::CAuthResult result;
@@ -595,7 +595,7 @@ PerformSteamOpenId2Tests( void )
             browser.SetClaimedId( "https://steamcommunity.com/openid/id/76561198000000042" );
             provider.SetResponse( 200, "ns:http://specs.openid.net/auth/2.0\nis_valid:true\n", "text/plain" );
             manager.Unlink( result.accountRef );
-            CORE::CFutureResult refusedFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult refusedFuture( CORE::TASKSTATUS_UNDEFINED );
             const UInt32 requestsBefore = provider.GetRequestCount();
             ASSERT_TRUE( manager.Login( "steam", AUTH::CAuthOptions(), refusedFuture ) );
             ASSERT_TRUE( PumpUntilReady( refusedFuture, 15000 ) );

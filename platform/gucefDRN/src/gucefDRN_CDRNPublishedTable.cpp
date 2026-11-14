@@ -824,8 +824,8 @@ CDRNPublishedTable::ScanAsync( const CORE::CDataTableQuery& query, CORE::CDataTa
 
     // the copy is taken now, so the scan has the state of the moment of the call
     if ( CORE::DATATABLE_STATUS_OK != Scan( query, scan ) )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_FINISHED );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
+    return CORE::CFutureResult( CORE::TASKSTATUS_FINISHED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -844,7 +844,7 @@ CORE::CFutureResult
 CDRNPublishedTable::WriteAsync( const CORE::CDataTableBatchPtr& /* rows */, CORE::TDataTableWriteMode /* mode */, CORE::ThreadPoolPtr /* threadPool */ )
 {GUCEF_TRACE;
 
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -863,7 +863,7 @@ CORE::CFutureResult
 CDRNPublishedTable::DeleteRowsAsync( const CORE::CDataTableQuery& /* predicates */, CORE::ThreadPoolPtr /* threadPool */ )
 {GUCEF_TRACE;
 
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -882,7 +882,7 @@ CORE::CFutureResult
 CDRNPublishedTable::DeletePartitionsAsync( const CORE::CDataTableQuery& /* partitionFilter */, CORE::ThreadPoolPtr /* threadPool */ )
 {GUCEF_TRACE;
 
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -901,7 +901,7 @@ CORE::CFutureResult
 CDRNPublishedTable::ListPartitionsAsync( const CORE::CDataTableQuery& /* partitionFilter */, bool /* withFileStats */, CORE::ThreadPoolPtr /* threadPool */ )
 {GUCEF_TRACE;
 
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -920,7 +920,7 @@ CORE::CFutureResult
 CDRNPublishedTable::CompactAsync( const CORE::CDataTableQuery& /* partitionFilter */, bool /* force */, CORE::ThreadPoolPtr /* threadPool */ )
 {GUCEF_TRACE;
 
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -299,7 +299,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "ProcessMetrics" )
         return -2;
     }
 
-    auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+    CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
     app.SetForcedMinimalCycleDeltaInMilliSecs( 500 );
     app.SetDesiredMaximumCycleDeltaInMilliSecs( 10000 );
     returnValue = app.main( argc, argv, true );

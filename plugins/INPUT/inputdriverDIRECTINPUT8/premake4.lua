@@ -30,32 +30,36 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=inputdriverDIRECTINPUT8" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "dinput8", "dxguid" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "dinput8", "dxguid" } )
+
+
+configuration( { "WIN32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERDIRECTINPUT8_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverDIRECTINPUT8" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "dinput8", "dxguid" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "dinput8", "dxguid" } )
+
+
+configuration( { "WIN64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERDIRECTINPUT8_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverDIRECTINPUT8" } )
 
 

@@ -665,7 +665,7 @@ PerformMcpPolicyTests( void )
             rig.Send( McpTestRequest( "4", "tools/call", "\"name\":\"slow\",\"arguments\":{}" ) );
             rig.Pulse( 20 );
             rig.Send( McpTestNotification( "notifications/cancelled", "\"requestId\":4" ) );
-            for ( UInt32 i=0; i<2000 && NULL == audit.Last( "tools/call" ) ; ++i )
+            for ( UInt32 i=0; i<2000 && GUCEF_NULL == audit.Last( "tools/call" ) ; ++i )
                 rig.Pulse();
             bool sawCancelled = false;
             for ( UInt32 i=0; i<3000 && !sawCancelled; ++i )

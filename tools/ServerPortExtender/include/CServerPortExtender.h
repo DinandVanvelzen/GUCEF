@@ -97,87 +97,87 @@ class CServerPortExtender : public CORE::CObservingNotifier
 
     virtual void OnPulse( CORE::CNotifier* notifier           ,
                           const CORE::CEvent& eventid         ,
-                          CORE::CICloneable* eventdata = NULL );
+                          CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
     
     virtual void OnServerSocketNotify( CORE::CNotifier* notifier           ,
                                        const CORE::CEvent& eventid         ,
-                                       CORE::CICloneable* eventdata = NULL );
+                                       CORE::CICloneable* eventdata = GUCEF_NULL );
                                        
     void OnServerSocketClientConnected( CORE::CNotifier* notifier           ,
                                         const CORE::CEvent& eventid         ,
-                                        CORE::CICloneable* eventdata = NULL );
+                                        CORE::CICloneable* eventdata = GUCEF_NULL );
                                                     
     virtual void OnReversedServerSocketNotify( CORE::CNotifier* notifier           ,
                                                const CORE::CEvent& eventid         ,
-                                               CORE::CICloneable* eventdata = NULL );
+                                               CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnReversedServerControlSocketNotify( CORE::CNotifier* notifier           ,
                                                       const CORE::CEvent& eventid         ,
-                                                      CORE::CICloneable* eventdata = NULL );
+                                                      CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSControlClientConnected( CORE::CNotifier* notifier           ,
                                              const CORE::CEvent& eventid         ,
-                                             CORE::CICloneable* eventdata = NULL );
+                                             CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSControlClientDisconnected( CORE::CNotifier* notifier           ,
                                                 const CORE::CEvent& eventid         ,
-                                                CORE::CICloneable* eventdata = NULL );
+                                                CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSControlClientDataSent( CORE::CNotifier* notifier           ,
                                             const CORE::CEvent& eventid         ,
-                                            CORE::CICloneable* eventdata = NULL );
+                                            CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSControlClientDataRecieved( CORE::CNotifier* notifier           ,
                                                 const CORE::CEvent& eventid         ,
-                                                CORE::CICloneable* eventdata = NULL );
+                                                CORE::CICloneable* eventdata = GUCEF_NULL );
                                          
     virtual void OnRSControlClientSocketError( CORE::CNotifier* notifier           ,
                                                const CORE::CEvent& eventid         ,
-                                               CORE::CICloneable* eventdata = NULL );
+                                               CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSClientConnected( CORE::CNotifier* notifier           ,
                                       const CORE::CEvent& eventid         ,
-                                      CORE::CICloneable* eventdata = NULL );
+                                      CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSClientDisconnected( CORE::CNotifier* notifier           ,
                                          const CORE::CEvent& eventid         ,
-                                         CORE::CICloneable* eventdata = NULL );
+                                         CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSClientDataSent( CORE::CNotifier* notifier           ,
                                      const CORE::CEvent& eventid         ,
-                                     CORE::CICloneable* eventdata = NULL );
+                                     CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnRSClientDataRecieved( CORE::CNotifier* notifier           ,
                                          const CORE::CEvent& eventid         ,
-                                         CORE::CICloneable* eventdata = NULL );
+                                         CORE::CICloneable* eventdata = GUCEF_NULL );
                                          
     virtual void OnRSClientSocketError( CORE::CNotifier* notifier           ,
                                         const CORE::CEvent& eventid         ,
-                                        CORE::CICloneable* eventdata = NULL );
+                                        CORE::CICloneable* eventdata = GUCEF_NULL );
     
     virtual void OnClientConnected( CORE::CNotifier* notifier           ,
                                     const CORE::CEvent& eventid         ,
-                                    CORE::CICloneable* eventdata = NULL );
+                                    CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnClientDisconnected( CORE::CNotifier* notifier           ,
                                        const CORE::CEvent& eventid         ,
-                                       CORE::CICloneable* eventdata = NULL );
+                                       CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnClientDataSent( CORE::CNotifier* notifier           ,
                                    const CORE::CEvent& eventid         ,
-                                   CORE::CICloneable* eventdata = NULL );
+                                   CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnClientDataRecieved( CORE::CNotifier* notifier           ,
                                        const CORE::CEvent& eventid         ,
-                                       CORE::CICloneable* eventdata = NULL );
+                                       CORE::CICloneable* eventdata = GUCEF_NULL );
                                          
     virtual void OnClientSocketError( CORE::CNotifier* notifier           ,
                                       const CORE::CEvent& eventid         ,
-                                      CORE::CICloneable* eventdata = NULL );
+                                      CORE::CICloneable* eventdata = GUCEF_NULL );
                                       
     bool MapRemoteConnectionToLocalConnection( COMCORE::CTCPServerConnection* rsConnection );
 

@@ -128,7 +128,7 @@ class GUCEF_CORE_PUBLIC_CPP CX11EventDispatcher : public CObservingNotifier
 
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                           CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
     friend class CModule;

@@ -1,0 +1,13 @@
+common/include/*
+common/test/include/*
+dependencies/monocypher/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefDRN/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+tests/gucefLabLink_TestApp/*
+tools/gucefLabLink/include/*
+tools/gucefLabLink/src/*

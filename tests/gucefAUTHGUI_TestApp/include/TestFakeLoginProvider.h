@@ -110,7 +110,7 @@ class CFakeLoginProvider : public GUCEF::AUTH::CIAuthProvider
 
     virtual bool TrySilentLogin( GUCEF::CORE::CFutureResult& future ) GUCEF_VIRTUAL_OVERRIDE
     {
-        future = GUCEF::CORE::CFutureResult( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        future = GUCEF::CORE::CFutureResult( GUCEF::CORE::TASKSTATUS_UNDEFINED );
         return false;
     }
 
@@ -120,7 +120,7 @@ class CFakeLoginProvider : public GUCEF::AUTH::CIAuthProvider
         lastOptions = options;
         if ( MODE_REFUSE == mode )
         {
-            future = GUCEF::CORE::CFutureResult( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = GUCEF::CORE::CFutureResult( GUCEF::CORE::TASKSTATUS_UNDEFINED );
             return false;
         }
         m_source = GUCEF::CORE::CFutureResultSource();

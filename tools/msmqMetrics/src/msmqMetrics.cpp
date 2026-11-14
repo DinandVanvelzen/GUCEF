@@ -85,23 +85,23 @@ RetrieveWin32APIErrorMessage( DWORD dwErr )
     // Try to get the message from the system errors.
     dwChars = ::FormatMessageW( FORMAT_MESSAGE_FROM_SYSTEM |
                                 FORMAT_MESSAGE_IGNORE_INSERTS,
-                                NULL,
+                                GUCEF_NULL,
                                 dwErr,
                                 0,
                                 wszMsgBuff,
                                 512,
-                                NULL );
+                                GUCEF_NULL );
 
     if (0 == dwChars)
     {
         // The error code did not exist in the system errors.
         // Try Ntdsbmsg.dll for the error code.
 
-        HINSTANCE hInstNtdsbmsg = NULL;
+        HINSTANCE hInstNtdsbmsg = GUCEF_NULL;
 
         // Load the library.
         hInstNtdsbmsg = ::LoadLibraryA( "Ntdsbmsg.dll" );
-        if ( NULL == hInstNtdsbmsg )
+        if ( GUCEF_NULL == hInstNtdsbmsg )
         {
             // cannot load Ntdsbmsg.dll for refinement
             return std::wstring();
@@ -115,7 +115,7 @@ RetrieveWin32APIErrorMessage( DWORD dwErr )
                                  0,
                                  wszMsgBuff,
                                  512,
-                                 NULL );
+                                 GUCEF_NULL );
 
         // Free the library.
         ::FreeLibrary( hInstNtdsbmsg );
@@ -536,12 +536,12 @@ MsmqMetrics::GetMsmqQueueLabel( const std::wstring& queueFormatName  ,
         return false; 
     }  
   
-    if ( NULL != aQueuePropVar[ 0 ].pwszVal )
+    if ( GUCEF_NULL != aQueuePropVar[ 0 ].pwszVal )
     {
         std::wstring queueLabelWs = aQueuePropVar[ 0 ].pwszVal;
         queueLabel = CORE::ToString( queueLabelWs );
         ::MQFreeMemory( aQueuePropVar[ 0 ].pwszVal );
-        aQueuePropVar[ 0 ].pwszVal = NULL;
+        aQueuePropVar[ 0 ].pwszVal = GUCEF_NULL;
         return true;
     }
     else
@@ -598,12 +598,12 @@ MsmqMetrics::GetMsmqQueuePathName( const CORE::CString& hostname       ,
             return false; 
         }  
   
-        if ( NULL != aQueuePropVar[ 0 ].pwszVal )
+        if ( GUCEF_NULL != aQueuePropVar[ 0 ].pwszVal )
         {
             std::wstring queuePathNameWs = aQueuePropVar[ 0 ].pwszVal;
             queuePathName = CORE::ToString( queuePathNameWs );
             ::MQFreeMemory( aQueuePropVar[ 0 ].pwszVal );
-            aQueuePropVar[ 0 ].pwszVal = NULL;
+            aQueuePropVar[ 0 ].pwszVal = GUCEF_NULL;
             return true;
         }
         else
@@ -631,11 +631,11 @@ MsmqMetrics::GetMsmqQueuePathName( const CORE::CString& hostname       ,
         mgmtprops.cProp = cPropId;          // number of management properties  
         mgmtprops.aPropID = aMgmtPropId;    // management property IDs  
         mgmtprops.aPropVar = aMgmtPropVar;  // management property values  
-        mgmtprops.aStatus  = NULL;          // no storage for error codes   
+        mgmtprops.aStatus  = GUCEF_NULL;          // no storage for error codes   
 
         // Queue format names are not unique if you take outgoing queues into account
         // for an outgoing queue you also need the hostname as such we specify the hostname if we have it
-        LPCWSTR computerNamePtr = NULL;
+        LPCWSTR computerNamePtr = GUCEF_NULL;
         std::wstring computerName;
         if ( !hostname.IsNULLOrEmpty() )
         {
@@ -653,12 +653,12 @@ MsmqMetrics::GetMsmqQueuePathName( const CORE::CString& hostname       ,
             {
                 case VT_LPWSTR: 
                 {
-                    if ( NULL != aMgmtPropVar[ 0 ].pwszVal )
+                    if ( GUCEF_NULL != aMgmtPropVar[ 0 ].pwszVal )
                     {
                         std::wstring queuePathNameWs = aMgmtPropVar[ 0 ].pwszVal;
                         queuePathName = CORE::ToString( queuePathNameWs );
                         ::MQFreeMemory( aMgmtPropVar[ 0 ].pwszVal );
-                        aMgmtPropVar[ 0 ].pwszVal = NULL;
+                        aMgmtPropVar[ 0 ].pwszVal = GUCEF_NULL;
                         return true;
                     }
                     else
@@ -741,12 +741,12 @@ MsmqMetrics::GetMsmqQueuePathNameDNS( const std::wstring& queueFormatName  ,
         return false; 
     }  
   
-    if ( NULL != aQueuePropVar[ 0 ].pwszVal )
+    if ( GUCEF_NULL != aQueuePropVar[ 0 ].pwszVal )
     {
         std::wstring queuePathNameDNSWs = aQueuePropVar[ 0 ].pwszVal;
         queuePathNameDNS = CORE::ToString( queuePathNameDNSWs );
         ::MQFreeMemory( aQueuePropVar[ 0 ].pwszVal );
-        aQueuePropVar[ 0 ].pwszVal = NULL;
+        aQueuePropVar[ 0 ].pwszVal = GUCEF_NULL;
         return true;
     }
     else
@@ -1008,7 +1008,7 @@ MsmqMetrics::GetMsmqActiveQueues( const CORE::CString& hostname          ,
     mgmtprops.cProp = cPropId;   // number of management properties  
     mgmtprops.aPropID = aMgmtPropId;// management property IDs  
     mgmtprops.aPropVar = aMgmtPropVar;// management property values  
-    mgmtprops.aStatus  = NULL;// no storage for error codes   
+    mgmtprops.aStatus  = GUCEF_NULL;// no storage for error codes   
 
     // Now that we formulated the request
     // actually ask for the info
@@ -1171,11 +1171,11 @@ MsmqMetrics::GetQueueMetric( MsmqQueue& q                           ,
     mgmtprops.cProp = cPropId;   // number of management properties  
     mgmtprops.aPropID = aMgmtPropId;// management property IDs  
     mgmtprops.aPropVar = aMgmtPropVar;// management property values  
-    mgmtprops.aStatus  = NULL;// no storage for error codes   
+    mgmtprops.aStatus  = GUCEF_NULL;// no storage for error codes   
 
     // Queue format names are not unique if you take outgoing queues into account
     // for an outgoing queue you also need the hostname as such we specify the hostname if we have it
-    LPCWSTR computerNamePtr = NULL;
+    LPCWSTR computerNamePtr = GUCEF_NULL;
     std::wstring computerName;
     if ( !q.queueProperties.hostname.IsNULLOrEmpty() )
     {
@@ -1235,11 +1235,11 @@ MsmqMetrics::GetMsmqComputerMetric( const CORE::CString& metricDescription ,
     mgmtprops.cProp = cPropId;   // number of management properties  
     mgmtprops.aPropID = aMgmtPropId;// management property IDs  
     mgmtprops.aPropVar = aMgmtPropVar;// management property values  
-    mgmtprops.aStatus  = NULL;// no storage for error codes   
+    mgmtprops.aStatus  = GUCEF_NULL;// no storage for error codes   
 
     // Now that we formulated the request
     // actually ask for the info
-    HRESULT computerInfoFetchResult = ::MQMgmtGetInfo( NULL, L"MACHINE", &mgmtprops );
+    HRESULT computerInfoFetchResult = ::MQMgmtGetInfo( GUCEF_NULL, L"MACHINE", &mgmtprops );
     if ( MQ_OK == computerInfoFetchResult )
     {
         switch ( propType )
@@ -1441,7 +1441,7 @@ MsmqMetrics::GetPrivateQueues( const std::wstring& computerName ,
     mgmtprops.cProp = cPropId;                         // Number of management properties  
     mgmtprops.aPropID = aMgmtPropId;                   // IDs of the management properties  
     mgmtprops.aPropVar = aMgmtPropVar;                 // Values of management properties  
-    mgmtprops.aStatus  = NULL;                         // No storage for error codes  
+    mgmtprops.aStatus  = GUCEF_NULL;                         // No storage for error codes  
   
     // Call MQMgmtGetInfo to retrieve the information.  
     hr = ::MQMgmtGetInfo( computerName.c_str() ,     // Name of the computer  
@@ -1556,11 +1556,11 @@ MsmqMetrics::GetPublicQueues( CORE::CString::StringVector& queueIDs )
   
         // Call MQLocateBegin to start a Active Directory query.  
         // This won't work if you are not in an Active Directory domain
-        HANDLE hEnum = NULL;  
-        HRESULT hr = ::MQLocateBegin( NULL    ,   // Start search at the top  
-                                      NULL    ,   // Search criteria  (NULL = return everything, no filters)
+        HANDLE hEnum = GUCEF_NULL;  
+        HRESULT hr = ::MQLocateBegin( GUCEF_NULL    ,   // Start search at the top  
+                                      GUCEF_NULL    ,   // Search criteria  (NULL = return everything, no filters)
                                       &column ,   // Properties to return  
-                                      NULL    ,   // No sort order  
+                                      GUCEF_NULL    ,   // No sort order  
                                       &hEnum  );  // Enumeration handle  
   
         if ( FAILED( hr ) )  
@@ -1766,7 +1766,7 @@ MsmqMetrics::GetAccountInfoForSid( const std::wstring& accountSid ,
     if ( accountSid.empty() )
         return false;
     
-    ::PSID pSID = NULL;
+    ::PSID pSID = GUCEF_NULL;
     if ( ::ConvertStringSidToSidW( accountSid.c_str(), &pSID ) == TRUE )
     {
         bool result = GetAccountInfoForSid( pSID, domainName, accountName );
@@ -1803,7 +1803,7 @@ MsmqMetrics::GetAccountInfoForSid( ::PSID accountSid         ,
         
     ::SID_NAME_USE eSidType;
     DWORD dwBufferLengthNeeded = 1;
-    if ( ::LookupAccountSidW( NULL                                      ,                                         
+    if ( ::LookupAccountSidW( GUCEF_NULL                                      ,                                         
                               accountSid                                ,  
                               (LPWSTR) accountNameBuffer.GetBufferPtr() ,  
                               &cchAccName                               ,  
@@ -1843,7 +1843,7 @@ MsmqMetrics::GetAccountInfoForSid( ::PSID accountSid         ,
             return false;
         }
 
-        if ( ::LookupAccountSidW( NULL                                      ,                                         
+        if ( ::LookupAccountSidW( GUCEF_NULL                                      ,                                         
                                   accountSid                                ,  
                                   (LPWSTR) accountNameBuffer.GetBufferPtr() ,  
                                   &cchAccName                               ,  
@@ -1890,7 +1890,7 @@ MsmqMetrics::GetQueueOwner( const std::wstring& formatName ,
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "MsmqMetrics:GetQueueOwner: Obtained OWNER_SECURITY_INFORMATION" );
 
         // Retrieve the owner's SID from the security descriptor buffer.
-        PSID pSID = NULL;
+        PSID pSID = GUCEF_NULL;
         BOOL fOwnerDefaulted = FALSE;  
         if ( ::GetSecurityDescriptorOwner( (PSECURITY_DESCRIPTOR) securityDescriptor.GetBufferPtr() ,  
                                            &pSID                                                    ,  
@@ -1903,7 +1903,7 @@ MsmqMetrics::GetQueueOwner( const std::wstring& formatName ,
         } 
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "MsmqMetrics:GetQueueOwner: Obtained owner info reference into the security descriptor" );
    
-        if ( pSID == NULL )  
+        if ( pSID == GUCEF_NULL )  
         {  
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MsmqMetrics:GetQueueOwner: GetSecurityDescriptorOwner states that no owner information was found in the security descriptor" ); 
             return false;  
@@ -2027,7 +2027,7 @@ std::wstring
 MsmqMetrics::CovertPSIDToWString( ::PSID psid )
 {GUCEF_TRACE;
 
-    LPWSTR sidStr = NULL;
+    LPWSTR sidStr = GUCEF_NULL;
     if ( ::ConvertSidToStringSidW( psid, &sidStr ) == TRUE )
     {
         std::wstring result = sidStr; 
@@ -2047,7 +2047,7 @@ CORE::CString
 MsmqMetrics::CovertPSIDToString( ::PSID psid )
 {GUCEF_TRACE;
 
-    LPWSTR sidStr = NULL;
+    LPWSTR sidStr = GUCEF_NULL;
     if ( ::ConvertSidToStringSidW( psid, &sidStr ) == TRUE )
     {
         CORE::CString result = CORE::ToString( CORE::CUtf8String( sidStr ) );      
@@ -2102,7 +2102,7 @@ MsmqMetrics::GetMsmqPermissionList( const CORE::CDynamicBuffer& securityDescript
 {GUCEF_TRACE;        
                 
     // Retrieve a pointer to the DACL in the security descriptor.  
-    PACL pDacl = NULL; 
+    PACL pDacl = GUCEF_NULL; 
     BOOL fDaclPresent = FALSE;  
     BOOL fDaclDefaulted = TRUE;  
     if ( ::GetSecurityDescriptorDacl( (PSECURITY_DESCRIPTOR) securityDescriptor.GetConstBufferPtr() ,  
@@ -2122,7 +2122,7 @@ MsmqMetrics::GetMsmqPermissionList( const CORE::CDynamicBuffer& securityDescript
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MsmqMetrics:GetMsmqPermissionList: No DACL was found (all access is denied)" );  
         return true;  
     }
-    if ( pDacl == NULL ) 
+    if ( pDacl == GUCEF_NULL ) 
     {  
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MsmqMetrics:GetMsmqPermissionList: a NULL DACL (unrestricted access) was found" );  
         return true;  
@@ -2143,7 +2143,7 @@ MsmqMetrics::GetMsmqPermissionList( const CORE::CDynamicBuffer& securityDescript
     }
         
     // Loop through the ACEs and display the information.  
-    ::ACCESS_ALLOWED_ACE * pAce = NULL;  
+    ::ACCESS_ALLOWED_ACE * pAce = GUCEF_NULL;  
     for ( DWORD cAce = 0; cAce < aclsizeinfo.AceCount; cAce++ )  
     {    
         // Get ACE info  

@@ -123,7 +123,7 @@ IFileSystemAccess::QueueAsyncOperation( CFileSystemAccessTaskData& taskData, CFu
     {
         GUCEF_EXCEPTION_LOG( LOGLEVEL_IMPORTANT, "FileSystemAccess:QueueAsyncOperation: Failed to queue the operation: " << e.what() );
     }
-    future = CFutureResult( TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    future = CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
     return FILESYSTEMACCESS_QUEUEING_FAILED;
 }
 
@@ -273,10 +273,10 @@ IFileSystemAccess::TryGetAsyncResult( const CFutureResult& future, TFileSystemAc
     const CFileSystemAccessTaskData* data = GetEndedTaskData( future, task );
     if ( task.IsNULL() )
         return false;
-    if ( TTaskStatus::TASKSTATUS_CANCELLED == task->GetTaskStatus() )
+    if ( CORE::TASKSTATUS_CANCELLED == task->GetTaskStatus() )
         result = FILESYSTEMACCESS_CANCELLED;
     else
-    if ( TTaskStatus::TASKSTATUS_QUEUEING_FAILED == task->GetTaskStatus() )
+    if ( CORE::TASKSTATUS_QUEUEING_FAILED == task->GetTaskStatus() )
         result = FILESYSTEMACCESS_QUEUEING_FAILED;
     else
     if ( GUCEF_NULL == data )

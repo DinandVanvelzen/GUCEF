@@ -497,7 +497,7 @@ PerformSendTests( void )
         ASSERT_TRUE( RenderUntilReady( engine, removed ) );
         removed = engine.RemoveSend( source, sendIndex );
         ASSERT_TRUE( RenderUntilReady( engine, removed ) );
-        ASSERT_TRUE( IsFailedWith( engine.RemoveSend( source, sendIndex ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.RemoveSend( source, sendIndex ), CORE::TASKSTATUS_SETUP_FAILED ) );
         NullDevice( engine )->Render( 512 );
         NullDevice( engine )->ClearRenderedAudio();
         engine.Play( MakeImpulse( 1000, 1.0f ), source );
@@ -515,7 +515,7 @@ PerformSendTests( void )
     try
     {
         AUDIO::CAudioEngine engine;
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( GUCEF_NULL, GUCEF_NULL, 1.0f, false ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );   // not running
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( GUCEF_NULL, GUCEF_NULL, 1.0f, false ), CORE::TASKSTATUS_SETUP_FAILED ) );   // not running
         ASSERT_TRUE( engine.Initialize( NullParams() ) );
         AUDIO::CAudioBus* master = engine.GetMasterBus();
         AUDIO::CAudioBus* sfx = engine.CreateBus( "sfx" );
@@ -531,13 +531,13 @@ PerformSendTests( void )
         const Float32 before = Rendered( engine, 100 );
         ASSERT_TRUE( Near( 0.5, before, 1e-6 ) );
 
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( sfx, sfx, 1.0f, false ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( sfx, ui, 1.0f, false ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );          // ui feeds sfx
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( reverb, ui, 1.0f, false ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );       // ui sends to reverb
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( master, sfx, 1.0f, false ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( sfx, &foreign, 1.0f, false ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( IsFailedWith( engine.RemoveSend( &foreign, 0 ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( IsFailedWith( engine.RemoveSend( sfx, 9 ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( sfx, sfx, 1.0f, false ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( sfx, ui, 1.0f, false ), CORE::TASKSTATUS_SETUP_FAILED ) );          // ui feeds sfx
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( reverb, ui, 1.0f, false ), CORE::TASKSTATUS_SETUP_FAILED ) );       // ui sends to reverb
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( master, sfx, 1.0f, false ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( sfx, &foreign, 1.0f, false ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.RemoveSend( &foreign, 0 ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.RemoveSend( sfx, 9 ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         // nothing changed by the refusals
         NullDevice( engine )->ClearRenderedAudio();
@@ -547,7 +547,7 @@ PerformSendTests( void )
         // four send slots, then no more
         for ( UInt32 i=0; i<3; ++i )
             ASSERT_TRUE( RenderUntilReady( engine, engine.AddSend( ui, master, 0.0f, true ) ) );
-        ASSERT_TRUE( IsFailedWith( engine.AddSend( ui, master, 0.0f, true ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.AddSend( ui, master, 0.0f, true ), CORE::TASKSTATUS_SETUP_FAILED ) );
     }
     catch( ... )
     {
@@ -652,22 +652,22 @@ PerformEngineEffectTests( void )
         // refusals, all at once
         AUDIO::TAudioEffectPtr other = engine.CreateEffect( "testeffect" );
         AUDIO::CAudioBus foreign( "foreign", GUCEF_NULL );
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 3, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );           // occupied
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 8, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );           // no such slot
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( &foreign, 0, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( engine.GetMasterBus(), 0, effect ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );   // in a slot already
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, AUDIO::TAudioEffectPtr() ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 3, other ), CORE::TASKSTATUS_SETUP_FAILED ) );           // occupied
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 8, other ), CORE::TASKSTATUS_SETUP_FAILED ) );           // no such slot
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( &foreign, 0, other ), CORE::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( engine.GetMasterBus(), 0, effect ), CORE::TASKSTATUS_SETUP_FAILED ) );   // in a slot already
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, AUDIO::TAudioEffectPtr() ), CORE::TASKSTATUS_SETUP_FAILED ) );
         AUDIO::TAudioEffectPtr unprepared( GUCEF_NEW CTestAudioEffect() );
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, unprepared ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, unprepared ), CORE::TASKSTATUS_SETUP_FAILED ) );
         unprepared->Prepare( AUDIO::CAudioFormat( 44100, 2, AUDIO::SAMPLETYPE_FLOAT32 ), 4096 );
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, unprepared ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );      // another format
-        ASSERT_TRUE( IsFailedWith( engine.RemoveEffect( engine.GetMasterBus(), effect ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );   // not on that bus
-        ASSERT_TRUE( IsFailedWith( engine.RemoveEffect( bus, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, unprepared ), CORE::TASKSTATUS_SETUP_FAILED ) );      // another format
+        ASSERT_TRUE( IsFailedWith( engine.RemoveEffect( engine.GetMasterBus(), effect ), CORE::TASKSTATUS_SETUP_FAILED ) );   // not on that bus
+        ASSERT_TRUE( IsFailedWith( engine.RemoveEffect( bus, other ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
         // out again: ready when released, the slot can take a new effect at once
         CORE::CFutureResult removed = engine.RemoveEffect( bus, effect );
         ASSERT_FALSE( removed.HasNoFuture() );
-        ASSERT_TRUE( IsFailedWith( engine.RemoveEffect( bus, effect ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );             // on its way out already
+        ASSERT_TRUE( IsFailedWith( engine.RemoveEffect( bus, effect ), CORE::TASKSTATUS_SETUP_FAILED ) );             // on its way out already
         CORE::CFutureResult replaced = engine.InsertEffect( bus, 3, other );
         ASSERT_FALSE( replaced.HasNoFuture() );
         ASSERT_TRUE( RenderUntilReady( engine, removed ) && RenderUntilReady( engine, replaced ) );
@@ -676,7 +676,7 @@ PerformEngineEffectTests( void )
         ASSERT_TRUE( Near( 0.25, Rendered( engine, 100 ), 1e-6 ) );                        // the new one does not invert
 
         engine.Shutdown();
-        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, other ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+        ASSERT_TRUE( IsFailedWith( engine.InsertEffect( bus, 0, other ), CORE::TASKSTATUS_SETUP_FAILED ) );
     }
     catch( ... )
     {

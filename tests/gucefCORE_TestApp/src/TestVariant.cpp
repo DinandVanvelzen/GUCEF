@@ -1448,8 +1448,8 @@ PerformVariantTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 47: Operator cast to string" );
 
             CORE::CVariant var( "Test Cast" );
-            CORE::CUtf8String utf8 = (CORE::CUtf8String)var;
-            CORE::CAsciiString ascii = (CORE::CAsciiString)var;
+            CORE::CUtf8String utf8 = var;
+            CORE::CAsciiString ascii = var;
 
             ASSERT_TRUE( utf8 == "Test Cast" );
             ASSERT_TRUE( ascii == "Test Cast" );

@@ -30,20 +30,26 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
 defines( { "GUCEF_COMCORE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCOMCORE", "MODULE_NAME=gucefCOMCORE", "MODULE_SEMVER=0_1_0_0" } )
-  links( { "Advapi32.lib", "Iphlpapi.lib", "Ws2_32.lib" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "Advapi32.lib", "Iphlpapi.lib", "Ws2_32.lib" } )
+
+
+configuration( { "WIN32" } )
 defines( { "_WINSOCK_DEPRECATED_NO_WARNINGS" } )
-  links( { "Advapi32.lib", "Iphlpapi.lib", "Ws2_32.lib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "Advapi32.lib", "Iphlpapi.lib", "Ws2_32.lib" } )
+
+
+configuration( { "WIN64" } )
 defines( { "_WINSOCK_DEPRECATED_NO_WARNINGS" } )
 
 
@@ -155,6 +161,7 @@ files( {
   "include/gucefCOMCORE_CTRpcMethodHandler.h",
   "include/gucefCOMCORE_CTlsClientConnection.h",
   "include/gucefCOMCORE_CTlsProviderRegistry.h",
+  "include/gucefCOMCORE_CTlsServerSettings.h",
   "include/gucefCOMCORE_CTlsSettings.h",
   "include/gucefCOMCORE_ETypes.h",
   "include/gucefCOMCORE_ITlsProvider.h",
@@ -276,6 +283,7 @@ files( {
   "src/gucefCOMCORE_CSocketReadinessWaiter.cpp",
   "src/gucefCOMCORE_CTlsClientConnection.cpp",
   "src/gucefCOMCORE_CTlsProviderRegistry.cpp",
+  "src/gucefCOMCORE_CTlsServerSettings.cpp",
   "src/gucefCOMCORE_CTlsSettings.cpp",
   "src/gucefCOMCORE_ITlsProvider.cpp",
   "src/gucefCOMCORE_ITlsSession.cpp",

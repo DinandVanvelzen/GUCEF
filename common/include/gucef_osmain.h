@@ -112,7 +112,7 @@ gucef_osmain_has_console_arg( const char* cmdline )
     static const char option[] = "--console";
     const size_t optionLength = sizeof( option ) - 1;
     const char* p = cmdline;
-    while ( NULL != p && NULL != ( p = strstr( p, option ) ) )
+    while ( GUCEF_NULL != p && GUCEF_NULL != ( p = strstr( p, option ) ) )
     {
         const int startOk = ( p == cmdline ) || ' ' == p[ -1 ] || '\t' == p[ -1 ] || '*' == p[ -1 ] || '"' == p[ -1 ];
         const char after = p[ optionLength ];
@@ -164,12 +164,12 @@ gucef_osmain_has_console_arg( const char* cmdline )
     static const unsigned char GUCEF_APP_TYPE = GUCEF_AUTO_APP_TYPE_CONSOLE;                           \
                                                                                                        \
     typedef void ( __cdecl *gucef_installed_signal_handler_ptr)( int );                                \
-    static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = NULL;                   \
+    static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = GUCEF_NULL;                   \
                                                                                                        \
     void                                                                                               \
     gucef_signal_handler( int signal )                                                                 \
     {                                                                                                  \
-        if ( NULL != gucef_installed_signal_handler )                                                  \
+        if ( GUCEF_NULL != gucef_installed_signal_handler )                                                  \
         {                                                                                              \
             (*gucef_installed_signal_handler)( signal );                                               \
         }                                                                                              \
@@ -203,7 +203,7 @@ gucef_osmain_has_console_arg( const char* cmdline )
                                                                                                        \
         int argc = 0;                                                                                  \
         char** argv = &lpcmdline;                                                                      \
-        if ( lpcmdline != NULL )                                                                       \
+        if ( lpcmdline != GUCEF_NULL )                                                                       \
         {                                                                                              \
             if ( *lpcmdline != '\0' )                                                                  \
             {                                                                                          \
@@ -218,12 +218,12 @@ gucef_osmain_has_console_arg( const char* cmdline )
     static unsigned char GUCEF_APP_TYPE = GUCEF_AUTO_APP_TYPE_BACKGROUND_PROCESSS;                     \
                                                                                                        \
     typedef void ( __cdecl *gucef_installed_signal_handler_ptr)( int );                                \
-    static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = NULL;                   \
+    static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = GUCEF_NULL;                   \
                                                                                                        \
     void                                                                                               \
     gucef_signal_handler( int signal )                                                                 \
     {                                                                                                  \
-        if ( NULL != gucef_installed_signal_handler )                                                  \
+        if ( GUCEF_NULL != gucef_installed_signal_handler )                                                  \
         {                                                                                              \
             (*gucef_installed_signal_handler)( signal );                                               \
         }                                                                                              \
@@ -247,8 +247,8 @@ gucef_osmain_has_console_arg( const char* cmdline )
         return FALSE;                                                                                  \
     }                                                                                                  \
                                                                                                        \
-    ::SERVICE_STATUS_HANDLE g_win32ServiceStatusHandle = NULL;                                         \
-    ::HANDLE g_win32StopEvent = NULL;                                                                  \
+    ::SERVICE_STATUS_HANDLE g_win32ServiceStatusHandle = GUCEF_NULL;                                         \
+    ::HANDLE g_win32StopEvent = GUCEF_NULL;                                                                  \
     ::DWORD g_win32CurrentState = 0;                                                                   \
     bool g_win32SystemShutdown = false;                                                                \
                                                                                                        \
@@ -264,7 +264,7 @@ gucef_osmain_has_console_arg( const char* cmdline )
                                                                                                        \
         int argc = 0;                                                                                  \
         char** argv = &lpcmdline;                                                                      \
-        if ( lpcmdline != NULL )                                                                       \
+        if ( lpcmdline != GUCEF_NULL )                                                                       \
         {                                                                                              \
             if ( *lpcmdline != '\0' )                                                                  \
             {                                                                                          \
@@ -280,7 +280,7 @@ gucef_osmain_has_console_arg( const char* cmdline )
         char win32ServiceTableName[] = "";                                                             \
         ::SERVICE_TABLE_ENTRYA win32ServiceTable[] = {                                                 \
             { win32ServiceTableName, &Win32ServiceMain },                                              \
-            { NULL, NULL }                                                                             \
+            { GUCEF_NULL, GUCEF_NULL }                                                                             \
         };                                                                                             \
                                                                                                        \
         if ( ::StartServiceCtrlDispatcherA( win32ServiceTable ) )                                      \
@@ -353,10 +353,10 @@ gucef_osmain_has_console_arg( const char* cmdline )
         GUCEF_MEMORY_CHECK_APP_START;                                                                  \
                                                                                                        \
         g_win32ServiceStatusHandle =                                                                   \
-            ::RegisterServiceCtrlHandlerExA( serviceName, &Win32HandlerEx, NULL);                      \
+            ::RegisterServiceCtrlHandlerExA( serviceName, &Win32HandlerEx, GUCEF_NULL);                      \
                                                                                                        \
         Win32ReportStatus( SERVICE_RUNNING );                                                          \
-        g_win32StopEvent = ::CreateEvent( NULL, TRUE, FALSE, NULL );                                   \
+        g_win32StopEvent = ::CreateEvent( GUCEF_NULL, TRUE, FALSE, GUCEF_NULL );                                   \
         int appResult = Win32ServiceInitializer( (int) argc, argv );                                   \
         if ( 0 != g_win32StopEvent )                                                                   \
             ::CloseHandle( g_win32StopEvent );                                                         \
@@ -400,7 +400,7 @@ gucef_osmain_has_console_arg( const char* cmdline )
                                                                                                        \
     void linux_sig_term_handler( int signum, siginfo_t* info, void* ptr )                              \
     {                                                                                                  \
-        if ( NULL != gucef_installed_signal_handler )                                                  \
+        if ( GUCEF_NULL != gucef_installed_signal_handler )                                                  \
             gucef_installed_signal_handler( signum );                                                  \
     }                                                                                                  \
                                                                                                        \
@@ -421,13 +421,13 @@ gucef_osmain_has_console_arg( const char* cmdline )
     {                                                                                                  \
         struct sigaction current;                                                                      \
         memset( &current, 0, sizeof( current ) );                                                      \
-        if ( 0 != sigaction( signum, NULL, &current ) || SIG_IGN == current.sa_handler )               \
+        if ( 0 != sigaction( signum, GUCEF_NULL, &current ) || SIG_IGN == current.sa_handler )               \
             return;                                                                                    \
         struct sigaction early;                                                                        \
         memset( &early, 0, sizeof( early ) );                                                          \
         early.sa_handler = gucef_osmain_early_signal_handler;                                          \
         sigemptyset( &early.sa_mask );                                                                 \
-        sigaction( signum, &early, NULL );                                                             \
+        sigaction( signum, &early, GUCEF_NULL );                                                             \
     }                                                                                                  \
                                                                                                        \
     int                                                                                                \
@@ -468,8 +468,8 @@ gucef_osmain_has_console_arg( const char* cmdline )
         _sigact.sa_flags = SA_SIGINFO;                                                                 \
         _sigact.sa_sigaction = linux_sig_term_handler;                                                 \
                                                                                                        \
-        sigaction( SIGINT, &_sigact, NULL );                                                           \
-        sigaction( SIGTERM, &_sigact, NULL );                                                          \
+        sigaction( SIGINT, &_sigact, GUCEF_NULL );                                                           \
+        sigaction( SIGTERM, &_sigact, GUCEF_NULL );                                                          \
                                                                                                        \
         /* a signal that came before the handler: handed to it now, outside signal context */          \
         if ( 0 != gucef_osmain_pending_signal )                                                        \
@@ -486,7 +486,7 @@ gucef_osmain_has_console_arg( const char* cmdline )
                                                                                                        \
     static const unsigned char GUCEF_APP_TYPE = appType;                                               \
     typedef void ( *gucef_installed_signal_handler_ptr)( int );                                        \
-    static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = NULL;                   \
+    static gucef_installed_signal_handler_ptr gucef_installed_signal_handler = GUCEF_NULL;                   \
                                                                                                        \
     int                                                                                                \
     main( int argc, char* argv[] )                                                                     \

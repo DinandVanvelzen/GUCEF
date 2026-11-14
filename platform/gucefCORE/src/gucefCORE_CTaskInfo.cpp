@@ -67,7 +67,7 @@ CTaskInfo::CTaskInfo( void )
     : CIDataNodeSerializable()
     , m_taskId( 0 )
     , m_threadId( 0 )
-    , m_taskStatus( TTaskStatus::TASKSTATUS_UNDEFINED )
+    , m_taskStatus( CORE::TASKSTATUS_UNDEFINED )
     , m_hasTaskData( false )
     , m_customTaskDataIsSerializable( false )
     , m_taskData( GUCEF_DATATYPE_NIL )
@@ -107,7 +107,7 @@ CTaskInfo::Clear( void )
 
     m_taskId = 0;
     m_threadId = 0;
-    m_taskStatus = ETaskStatus::TASKSTATUS_UNDEFINED;
+    m_taskStatus = CORE::TASKSTATUS_UNDEFINED;
     m_hasTaskData = false;
     m_customTaskDataIsSerializable = false;
     m_taskData.Clear();

@@ -225,13 +225,13 @@ PerformAndroidPluginTests( void )
             CGoogleAuthProvider google;
             ASSERT_TRUE( ConfigureGoogle( google ) );
             ASSERT_FALSE( google.IsAvailable() );
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( google.TrySilentLogin( silent ) );
             ASSERT_FALSE( silent.HasAFuture() );
 
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
-            CORE::CFutureResult interactive( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult interactive( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( google.BeginLogin( AUTH::CAuthOptions(), interactive ) );
             ASSERT_TRUE( interactive.IsReady() );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
@@ -239,7 +239,7 @@ PerformAndroidPluginTests( void )
 
             CAmazonAuthProvider amazon;
             ASSERT_FALSE( amazon.IsAvailable() );
-            CORE::CFutureResult amazonFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult amazonFuture( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( amazon.TrySilentLogin( amazonFuture ) );
             ASSERT_TRUE( 0 == CAndroidAuthBridge::Instance()->GetRequestCount() );
         }
@@ -283,7 +283,7 @@ PerformAndroidPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( google.TrySilentLogin( future ) );
             ASSERT_TRUE( future.IsReady() );
             AUTH::CAuthResult result;
@@ -326,7 +326,7 @@ PerformAndroidPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( google.TrySilentLogin( future ) );
             // returned before the answer
             ASSERT_FALSE( future.IsReady() );
@@ -354,7 +354,7 @@ PerformAndroidPluginTests( void )
             CGoogleAuthProvider google;
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             ASSERT_TRUE( google.LoadConfig( MakeGoogleNode( false ) ) );
             ASSERT_TRUE( google.TrySilentLogin( future ) );
@@ -386,7 +386,7 @@ PerformAndroidPluginTests( void )
             ASSERT_TRUE( ConfigureGoogle( google ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             struct SCase { EAndroidAuthStatus status; AUTH::TAuthFailureReason reason; };
             const SCase cases[] =
@@ -423,7 +423,7 @@ PerformAndroidPluginTests( void )
             ASSERT_TRUE( ConfigureGoogle( google ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             UInt32 failures = 0;
 
             #define EXPECT_REFUSED( setup ) \
@@ -482,14 +482,14 @@ PerformAndroidPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
 
-            CORE::CFutureResult first( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult first( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( google.BeginLogin( AUTH::CAuthOptions(), first ) );
             ASSERT_TRUE( 1 == fake.googleCalls.size() && ANDROIDSIGNIN_INTERACTIVE == fake.googleCalls[ 0 ].mode );
             ASSERT_TRUE( first.HasAFuture() && !first.IsReady() );
 
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( google.TrySilentLogin( second ) );
-            CORE::CFutureResult third( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult third( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( google.BeginLogin( AUTH::CAuthOptions(), third ) );
             ASSERT_TRUE( third.IsReady() );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
@@ -512,7 +512,7 @@ PerformAndroidPluginTests( void )
 
             // a Java side that does not start
             fake.googleStarts = false;
-            CORE::CFutureResult refused( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult refused( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( google.BeginLogin( AUTH::CAuthOptions(), refused ) );
             ASSERT_TRUE( refused.IsReady() );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 3, 1000 ) );
@@ -538,7 +538,7 @@ PerformAndroidPluginTests( void )
                 ASSERT_TRUE( google.LoadConfig( node ) );
                 CProviderRecorder recorder;
                 recorder.SubscribeTo( &google );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( google.TrySilentLogin( future ) );
                 ASSERT_TRUE( PumpUntilReady( future, 3000 ) );
                 ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
@@ -547,7 +547,7 @@ PerformAndroidPluginTests( void )
                 ASSERT_TRUE( 0 == CAndroidAuthBridge::Instance()->GetRequestCount() );
             }
 
-            CORE::CFutureResult orphan( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult orphan( CORE::TASKSTATUS_UNDEFINED );
             UInt32 orphanId = 0;
             {
                 CGoogleAuthProvider google;
@@ -579,7 +579,7 @@ PerformAndroidPluginTests( void )
             {
                 CGoogleAuthProvider google;
                 ASSERT_TRUE( ConfigureGoogle( google ) );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( google.TrySilentLogin( future ) );
                 // the answer comes about when the provider goes
                 MT::ThreadDelay( round % 8 );
@@ -764,7 +764,7 @@ PerformAndroidPluginTests( void )
             CAmazonAuthProvider amazon;
             CProviderRecorder recorder;
             recorder.SubscribeTo( &amazon );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             ASSERT_TRUE( RunSilent( amazon, future ) );
             AUTH::CAuthResult result;
@@ -981,7 +981,7 @@ PerformAndroidPluginTests( void )
             ASSERT_TRUE( google.LoadConfig( node ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &google );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( RunSilent( google, future ) );
             AUTH::CAuthResult result;
             ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );

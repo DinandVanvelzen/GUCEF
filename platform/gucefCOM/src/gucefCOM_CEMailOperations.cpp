@@ -105,7 +105,7 @@ CEMailOperations::Queue( CEMailOperationTaskData& data, const CORE::CString& thr
     {
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "MailOperations: Failed to queue the operation: " << e.what() );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/

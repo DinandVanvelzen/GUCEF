@@ -1464,7 +1464,7 @@ CFileSystemDialogForm::QueueSearchDirectory( const CString& directory )
     CORE::IFileSystemAccess* access = GetCurrentAccess();
     if ( GUCEF_NULL == access )
         return false;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     if ( CORE::FILESYSTEMACCESS_SUCCESS != access->TryGetFileSystemIteratorAsync( directory, future, m_options.threadPoolName ) )
         return false;
     m_searchTasks.push_back( SSearchTask( directory, future ) );

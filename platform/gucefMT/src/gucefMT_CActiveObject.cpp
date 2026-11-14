@@ -59,7 +59,7 @@ namespace MT {
 
 CActiveObject::CActiveObject( void )
     : MT::CILockable()
-    , m_threadData( NULL )                    
+    , m_threadData( GUCEF_NULL )                    
     , m_delayInMilliSecs( 25 )             
     , m_isDeactivationRequested( false )   
     , _suspend( false )                    

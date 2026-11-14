@@ -301,7 +301,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "udp2kafka" )
     pulseGenerator->RequestPulseInterval( 25 );
     pulseGenerator->RequestPulsesPerImmediatePulseRequest( 25 );
     
-    auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+    CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
     return app.main( argc, argv, true );
 }
 GUCEF_OSMAIN_END

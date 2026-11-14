@@ -113,7 +113,7 @@ class GUCEF_PATCHER_EXPORT_CPP CPatchManager : public CORE::CTSGNotifier
     
     virtual void OnPumpedNotify( CORE::CNotifier* notifier           ,
                                  const CORE::CEvent& eventid         ,
-                                 CORE::CICloneable* eventdata = NULL );
+                                 CORE::CICloneable* eventdata = GUCEF_NULL );
     
     private:
     friend class CPatchTaskConsumer;

@@ -55,7 +55,7 @@ namespace GUIDRIVERRMLUIGL {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static CRmlUIGuiDriver* g_guiDriver = NULL;
+static CRmlUIGuiDriver* g_guiDriver = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -80,7 +80,7 @@ GUIDRIVERRMLUIGL_ENTRY( GUCEFPlugin_Unload )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFI
 
     GUI::CGuiGlobal::Instance()->GetGuiManager().UnregisterGUIDriverByName( guidriverRmlUI::CRmlUIDriver::DriverName );
     delete g_guiDriver;
-    g_guiDriver = NULL;
+    g_guiDriver = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/

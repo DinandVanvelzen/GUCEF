@@ -48,54 +48,62 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "WindowedApp" )
-  
-configuration( { LINUX32 } )
-links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
-  links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
+
+configuration( { "LINUX32" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=MyGUI_FontViewer", "MYGUI_USE_FREETYPE" } )
-  
-configuration( { LINUX64 } )
-links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
-  links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
+
+configuration( { "LINUX64" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "MODULE_NAME=MyGUI_FontViewer", "MYGUI_USE_FREETYPE" } )
-  
-configuration( { WIN32 } )
-links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
-  links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype", "glu32.lib" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
+
+configuration( { "WIN32" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype", "glu32.lib" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=MyGUI_FontViewer", "MYGUI_USE_FREETYPE" } )
-  
-configuration( { WIN64 } )
-links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
-  links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype", "glu32.lib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
+
+configuration( { "WIN64" } )
+links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype", "glu32.lib" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=MyGUI_FontViewer", "MYGUI_USE_FREETYPE" } )
 
 

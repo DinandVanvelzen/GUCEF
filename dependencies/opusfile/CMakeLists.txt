@@ -13,13 +13,13 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/opusfile.h
     src/internal.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -29,7 +29,26 @@ if (ANDROID)
     src/stream.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/opusfile.h
+    src/internal.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/info.c
+    src/internal.c
+    src/opusfile.c
+    src/stream.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -114,7 +133,9 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "opusfile" )
+elseif( ANDROID64 )
   set( MODULE_NAME "opusfile" )
 elseif( LINUX32 )
   set( MODULE_NAME "opusfile" )
@@ -125,7 +146,9 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "opusfile" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
@@ -137,7 +160,7 @@ elseif( WIN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 endif()
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} libogg opus )
   target_link_libraries( ${MODULE_NAME} PUBLIC libogg opus )
 target_link_libraries( ${MODULE_NAME} PRIVATE m )
@@ -145,7 +168,17 @@ target_link_libraries( ${MODULE_NAME} PRIVATE m )
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
 endif()
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} libogg opus )
+  target_link_libraries( ${MODULE_NAME} PUBLIC libogg opus )
+target_link_libraries( ${MODULE_NAME} PRIVATE m )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=opusfile;MODULE_SEMVER=0_12_0_0;OP_HAVE_LRINTF" )
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
+endif()
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} libogg opus )
@@ -185,9 +218,13 @@ if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
 endif()
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src ../opus/. ../opus/celt ../opus/celt/arm ../opus/celt/mips ../opus/celt/x86 ../opus/include ../opus/silk ../opus/silk/arm ../opus/silk/fixed ../opus/silk/fixed/arm ../opus/silk/fixed/mips ../opus/silk/float ../opus/silk/mips ../opus/silk/x86 ../opus/src include src )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src ../opus/. ../opus/celt ../opus/celt/arm ../opus/celt/mips ../opus/celt/x86 ../opus/include ../opus/silk ../opus/silk/arm ../opus/silk/fixed ../opus/silk/fixed/arm ../opus/silk/fixed/mips ../opus/silk/float ../opus/silk/mips ../opus/silk/x86 ../opus/src include src )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src ../opus/. ../opus/celt ../opus/celt/arm ../opus/celt/mips ../opus/celt/x86 ../opus/include ../opus/silk ../opus/silk/arm ../opus/silk/fixed ../opus/silk/fixed/arm ../opus/silk/fixed/mips ../opus/silk/float ../opus/silk/mips ../opus/silk/x86 ../opus/src include src )
@@ -203,6 +240,26 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src ../opus/. ../opus/celt ../opus/celt/arm ../opus/celt/mips ../opus/celt/x86 ../opus/include ../opus/silk ../opus/silk/arm ../opus/silk/fixed ../opus/silk/fixed/arm ../opus/silk/fixed/mips ../opus/silk/float ../opus/silk/mips ../opus/silk/x86 ../opus/src include src )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+endif( ANDROID64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include src )
 endif( WIN64 )
 
 
@@ -212,7 +269,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )

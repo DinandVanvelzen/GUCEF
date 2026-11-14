@@ -62,7 +62,7 @@ IsDigit( char c )
 inline bool
 IsLocalChar( char c )
 {
-    return IsAlnum( c ) || ( '\0' != c && NULL != strchr( "!#$%&'*+-/=?^_`{|}~", c ) );
+    return IsAlnum( c ) || ( '\0' != c && GUCEF_NULL != strchr( "!#$%&'*+-/=?^_`{|}~", c ) );
 }
 
 /** Whether the text is made of printable ASCII only: nothing below the space, nothing above the tilde */

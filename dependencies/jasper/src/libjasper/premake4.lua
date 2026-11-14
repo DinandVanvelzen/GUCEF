@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "libjpeg" } )
+
+configuration( {} )
 links( { "libjpeg" } )
 
 

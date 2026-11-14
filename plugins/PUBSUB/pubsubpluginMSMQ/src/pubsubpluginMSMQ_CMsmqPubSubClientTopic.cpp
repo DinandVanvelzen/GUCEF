@@ -87,23 +87,23 @@ RetrieveWin32APIErrorMessage( DWORD dwErr )
     // Try to get the message from the system errors.
     dwChars = ::FormatMessageW( FORMAT_MESSAGE_FROM_SYSTEM |
                                 FORMAT_MESSAGE_IGNORE_INSERTS,
-                                NULL,
+                                GUCEF_NULL,
                                 dwErr,
                                 0,
                                 wszMsgBuff,
                                 512,
-                                NULL );
+                                GUCEF_NULL );
 
     if (0 == dwChars)
     {
         // The error code did not exist in the system errors.
         // Try Ntdsbmsg.dll for the error code.
 
-        HINSTANCE hInstNtdsbmsg = NULL;
+        HINSTANCE hInstNtdsbmsg = GUCEF_NULL;
 
         // Load the library.
         hInstNtdsbmsg = ::LoadLibraryA( "Ntdsbmsg.dll" );
-        if ( NULL == hInstNtdsbmsg )
+        if ( GUCEF_NULL == hInstNtdsbmsg )
         {
             // cannot load Ntdsbmsg.dll for refinement
             return std::wstring();
@@ -117,7 +117,7 @@ RetrieveWin32APIErrorMessage( DWORD dwErr )
                                  0,
                                  wszMsgBuff,
                                  512,
-                                 NULL );
+                                 GUCEF_NULL );
 
         // Free the library.
         ::FreeLibrary( hInstNtdsbmsg );
@@ -394,7 +394,7 @@ CMsmqPubSubClientTopic::Publish( CORE::UInt64& publishActionId, const PUBSUB::CI
     if ( GUCEF_NULL != m_sendQueueHandle )
     {
         // Send message
-        HRESULT sendMsgResult = ::MQSendMessage( m_sendQueueHandle, &m_msgSendMsg.msgprops, NULL );
+        HRESULT sendMsgResult = ::MQSendMessage( m_sendQueueHandle, &m_msgSendMsg.msgprops, GUCEF_NULL );
 
         if ( !FAILED( sendMsgResult ) )
         {
@@ -981,10 +981,10 @@ CMsmqPubSubClientTopic::AcknowledgeReceiptImpl( const PUBSUB::CPubSubBookmark& b
             HRESULT receiveHResult = ::MQReceiveMessageByLookupId( m_receiveQueueHandle      ,        // Handle to the queue 
                                                                    lookupId                  ,        // The lookup identifier  
                                                                    MQ_LOOKUP_RECEIVE_CURRENT ,        // Access mode: There is no delete per se, we 'receive' the message to delete it
-                                                                   NULL                      ,        // Normally pointer to the MQMSGPROPS structure, we dont care since we care deleting thus NULL
-                                                                   NULL                      ,        // No OVERLAPPED structure  
-                                                                   NULL                      ,        // No callback function  
-                                                                   NULL                      );       // Not in a transaction  
+                                                                   GUCEF_NULL                      ,        // Normally pointer to the MQMSGPROPS structure, we dont care since we care deleting thus NULL
+                                                                   GUCEF_NULL                      ,        // No OVERLAPPED structure  
+                                                                   GUCEF_NULL                      ,        // No callback function  
+                                                                   GUCEF_NULL                      );       // Not in a transaction  
 
             CORE::UInt64 receiveResult = (CORE::UInt64) receiveHResult;
             switch ( receiveResult )
@@ -2457,9 +2457,9 @@ CMsmqPubSubClientTopic::OnSyncReadTimerCycle( CORE::CNotifier* notifier    ,
                                                  dwTimeout                        ,  // Time out interval
                                                  dwAction                         ,  // Peek?  or Dequeue.  Receive action
                                                  &m_msmqReceiveMsgs[ i ].msgprops ,  // Pointer to the MQMSGPROPS structure
-                                                 NULL                             ,  // No OVERLAPPED structure etc.
-                                                 NULL                             ,  // No OVERLAPPED structure etc.
-                                                 NULL                             ,  // NULL, we dont use a cursor
+                                                 GUCEF_NULL                             ,  // No OVERLAPPED structure etc.
+                                                 GUCEF_NULL                             ,  // No OVERLAPPED structure etc.
+                                                 GUCEF_NULL                             ,  // NULL, we dont use a cursor
                                                  pTransaction                     ); // MQ_SINGLE_MESSAGE | MQ_MTS_TRANSACTION | MQ_XA_TRANSACTION   
         }
         else
@@ -2468,8 +2468,8 @@ CMsmqPubSubClientTopic::OnSyncReadTimerCycle( CORE::CNotifier* notifier    ,
                                                          m_msmqLastLookupId   ,                 // The lookup identifier  
                                                          0 == m_msmqLastLookupId ? MQ_LOOKUP_PEEK_FIRST : ( isRetry ? MQ_LOOKUP_PEEK_CURRENT : MQ_LOOKUP_PEEK_NEXT ),   // Access mode  
                                                          &m_msmqReceiveMsgs[ i ].msgprops ,     // Pointer to the MQMSGPROPS structure
-                                                         NULL                 ,                 // No OVERLAPPED structure  
-                                                         NULL                 ,                 // No callback function  
+                                                         GUCEF_NULL                 ,                 // No OVERLAPPED structure  
+                                                         GUCEF_NULL                 ,                 // No callback function  
                                                          pTransaction         );                // Not in a transaction  
         }
         
@@ -2482,9 +2482,9 @@ CMsmqPubSubClientTopic::OnSyncReadTimerCycle( CORE::CNotifier* notifier    ,
                                                      dwTimeout                        ,  // Time out interval
                                                      dwAction                         ,  // Peek?  or Dequeue.  Receive action
                                                      &m_msmqReceiveMsgs[ i ].msgprops ,  // Pointer to the MQMSGPROPS structure
-                                                     NULL                             ,  // No OVERLAPPED structure etc.
-                                                     NULL                             ,  // No OVERLAPPED structure etc.
-                                                     NULL                             ,  // NULL, we dont use a cursor
+                                                     GUCEF_NULL                             ,  // No OVERLAPPED structure etc.
+                                                     GUCEF_NULL                             ,  // No OVERLAPPED structure etc.
+                                                     GUCEF_NULL                             ,  // NULL, we dont use a cursor
                                                      pTransaction                     ); // MQ_SINGLE_MESSAGE | MQ_MTS_TRANSACTION | MQ_XA_TRANSACTION  
 
         #endif
@@ -2878,12 +2878,12 @@ CMsmqPubSubClientTopic::GetQueueMetric( MsmqQueue& q                           ,
     mgmtprops.cProp = cPropId;   // number of management properties  
     mgmtprops.aPropID = aMgmtPropId;// management property IDs  
     mgmtprops.aPropVar = aMgmtPropVar;// management property values  
-    mgmtprops.aStatus  = NULL;// no storage for error codes   
+    mgmtprops.aStatus  = GUCEF_NULL;// no storage for error codes   
 
     // Now that we formulated the request
     // actually ask for the info
     std::wstring queueInfoFormatName = L"QUEUE=" + queueFormatName;
-    HRESULT queueInfoFetchResult = ::MQMgmtGetInfo( NULL, queueInfoFormatName.c_str(), &mgmtprops );
+    HRESULT queueInfoFetchResult = ::MQMgmtGetInfo( GUCEF_NULL, queueInfoFormatName.c_str(), &mgmtprops );
     if ( MQ_OK == queueInfoFetchResult )
     {
         switch ( propType )

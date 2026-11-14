@@ -521,7 +521,7 @@ PerformEosLobbyLaunchTests( void )
                 REQUIRE_TRUE( fixture[ i ].Login() );
                 // no P2P table: the lobby interface alone
                 fixture[ i ].service.SetShim( fixture[ i ].peer.LobbyShim(), GUCEF_NULL );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 REQUIRE_TRUE( fixture[ i ].service.Connect( fixture[ i ].identity, future ) && PumpUntilReady( future, 3000 ) );
             }
             SPair pair;

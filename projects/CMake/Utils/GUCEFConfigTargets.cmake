@@ -45,7 +45,21 @@ function(GUCEF_create_vcproj_userfile TARGETNAME)
 endfunction(GUCEF_create_vcproj_userfile)
 
 # install targets according to current build type
+# Development files (headers, CMake package configuration) are only installed when asked for. By default an
+# install holds what is needed to run the products. The generated module roots turn this on to build per module packages.
+option(GUCEF_INSTALL_DEVELOPMENT_FILES "Install headers and CMake package configuration files" OFF)
+
 function(GUCEF_install_target TARGETNAME SUFFIX)
+  if (GUCEF_INSTALL_DEVELOPMENT_FILES)
+    # A single rule which also adds the target to the export set of its package, see GUCEF_install_module_package()
+    install(TARGETS ${TARGETNAME} EXPORT ${TARGETNAME}Targets
+      RUNTIME DESTINATION "bin${SUFFIX}"
+      LIBRARY DESTINATION "lib${SUFFIX}"
+      ARCHIVE DESTINATION "lib${SUFFIX}"
+      FRAMEWORK DESTINATION "bin"
+    )
+    return()
+  endif ()
   install(TARGETS ${TARGETNAME}
     RUNTIME DESTINATION "bin${GUCEF_RELEASE_PATH}${SUFFIX}" CONFIGURATIONS Release None ""
     LIBRARY DESTINATION "lib${GUCEF_LIB_RELEASE_PATH}${SUFFIX}" CONFIGURATIONS Release None ""
@@ -408,3 +422,110 @@ function(GUCEF_config_app APPNAME)
     endif ()
 
 endfunction(GUCEF_config_app)
+
+# Declares the include dirs a module offers to its dependents as usage requirements of its target, so they reach
+# dependents in a build of the source tree and from an installed build alike. INCLUDE_DIRS are relative to BASE_DIR,
+# which defaults to the current source dir, "." being BASE_DIR itself. With GUCEF_INSTALL_DEVELOPMENT_FILES the
+# headers in these dirs are installed to include/<target>/<dir>, which is where the installed target points to.
+function(GUCEF_module_usage TARGETNAME)
+  cmake_parse_arguments(USAGE "" "BASE_DIR" "INCLUDE_DIRS" ${ARGN})
+  if (NOT USAGE_BASE_DIR)
+    set(USAGE_BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  endif ()
+  foreach (INCLUDE_DIR ${USAGE_INCLUDE_DIRS})
+    if (INCLUDE_DIR STREQUAL ".")
+      set(SOURCE_INCLUDE_DIR "${USAGE_BASE_DIR}")
+      set(INSTALL_INCLUDE_DIR "include/${TARGETNAME}")
+    else ()
+      set(SOURCE_INCLUDE_DIR "${USAGE_BASE_DIR}/${INCLUDE_DIR}")
+      set(INSTALL_INCLUDE_DIR "include/${TARGETNAME}/${INCLUDE_DIR}")
+    endif ()
+    target_include_directories(${TARGETNAME} INTERFACE
+      $<BUILD_INTERFACE:${SOURCE_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+    )
+    if (GUCEF_INSTALL_DEVELOPMENT_FILES)
+      install(DIRECTORY "${SOURCE_INCLUDE_DIR}/" DESTINATION "${INSTALL_INCLUDE_DIR}"
+        FILES_MATCHING
+          PATTERN "*.h" PATTERN "*.hh" PATTERN "*.hpp" PATTERN "*.hxx"
+          PATTERN "*.inl" PATTERN "*.ipp" PATTERN "*.tcc" PATTERN "*.txx"
+      )
+    endif ()
+  endforeach ()
+endfunction(GUCEF_module_usage)
+
+# Connects a module to dependencies of which it only uses headers. HEADER_MODULES (modules of type
+# HeaderIncludeLocation) become PUBLIC usage requirements. INCLUDE_ONLY_MODULES, library modules it does not link,
+# lend it their include dirs PRIVATE. Only dependencies which are targets in this build are connected: in a build of
+# the source tree a module already gets these include dirs through its include_directories, in a build of a single
+# module the targets come from the packages of its dependencies.
+function(GUCEF_module_uses TARGETNAME)
+  cmake_parse_arguments(USES "" "" "HEADER_MODULES;INCLUDE_ONLY_MODULES" ${ARGN})
+  foreach (MODULE ${USES_HEADER_MODULES})
+    if (TARGET ${MODULE})
+      target_link_libraries(${TARGETNAME} PUBLIC ${MODULE})
+    endif ()
+  endforeach ()
+  foreach (MODULE ${USES_INCLUDE_ONLY_MODULES})
+    if (TARGET ${MODULE})
+      target_include_directories(${TARGETNAME} PRIVATE $<TARGET_PROPERTY:${MODULE},INTERFACE_INCLUDE_DIRECTORIES>)
+    endif ()
+  endforeach ()
+endfunction(GUCEF_module_uses)
+
+# Installs the CMake package of a module: the export set of its target and a <target>Config.cmake which first finds
+# the packages of the DEPENDENCIES. Used by the generated module roots together with GUCEF_INSTALL_DEVELOPMENT_FILES.
+function(GUCEF_install_module_package TARGETNAME)
+  cmake_parse_arguments(PACKAGE "" "" "DEPENDENCIES" ${ARGN})
+  set(CONFIG_CONTENT "include(CMakeFindDependencyMacro)\n")
+  foreach (DEPENDENCY ${PACKAGE_DEPENDENCIES})
+    string(APPEND CONFIG_CONTENT "find_dependency(${DEPENDENCY} CONFIG)\n")
+  endforeach ()
+  string(APPEND CONFIG_CONTENT "include(\"\${CMAKE_CURRENT_LIST_DIR}/${TARGETNAME}Targets.cmake\")\n")
+  set(CONFIG_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TARGETNAME}Config.cmake")
+  file(WRITE "${CONFIG_FILE}" "${CONFIG_CONTENT}")
+  install(EXPORT ${TARGETNAME}Targets FILE ${TARGETNAME}Targets.cmake DESTINATION "lib/cmake/${TARGETNAME}")
+  install(FILES "${CONFIG_FILE}" DESTINATION "lib/cmake/${TARGETNAME}")
+endfunction(GUCEF_install_module_package)
+
+# Sets RESULT_VAR to TRUE when CMAKE_CXX_STANDARD asks for a C++ standard below MIN_CPP_STANDARD, else to FALSE.
+# Standards are given by their short name: 98, 03, 11, 14, 17, 20, 23 ... Without CMAKE_CXX_STANDARD the compiler
+# default is used and the result is FALSE.
+function(GUCEF_cpp_standard_is_below MIN_CPP_STANDARD RESULT_VAR)
+  set(${RESULT_VAR} FALSE PARENT_SCOPE)
+  if (NOT CMAKE_CXX_STANDARD OR NOT MIN_CPP_STANDARD)
+    return()
+  endif ()
+  foreach (STANDARD_VAR CMAKE_CXX_STANDARD MIN_CPP_STANDARD)
+    set(STANDARD_YEAR "${${STANDARD_VAR}}")
+    if (STANDARD_YEAR GREATER_EQUAL 90)
+      math(EXPR STANDARD_YEAR "1900 + ${STANDARD_YEAR}")
+    else ()
+      math(EXPR STANDARD_YEAR "2000 + ${STANDARD_YEAR}")
+    endif ()
+    set(${STANDARD_VAR}_YEAR ${STANDARD_YEAR})
+  endforeach ()
+  if (CMAKE_CXX_STANDARD_YEAR LESS MIN_CPP_STANDARD_YEAR)
+    set(${RESULT_VAR} TRUE PARENT_SCOPE)
+  endif ()
+endfunction(GUCEF_cpp_standard_is_below)
+
+# Fails the configuration when CMAKE_CXX_STANDARD asks for a C++ standard below MIN_CPP_STANDARD, the minimum C++ standard
+# the module and the modules it depends on need.
+# Used by the generated module roots: a build for a given C++ standard should not silently build at a higher one.
+function(GUCEF_check_min_cpp_standard TARGETNAME MIN_CPP_STANDARD)
+  GUCEF_cpp_standard_is_below("${MIN_CPP_STANDARD}" STANDARD_TOO_LOW)
+  if (STANDARD_TOO_LOW)
+    message(FATAL_ERROR "${TARGETNAME} needs at least C++${MIN_CPP_STANDARD} but CMAKE_CXX_STANDARD is ${CMAKE_CXX_STANDARD}")
+  endif ()
+endfunction(GUCEF_check_min_cpp_standard)
+
+# Stands in for a module which is not built because CMAKE_CXX_STANDARD is below MIN_CPP_STANDARD, the minimum C++
+# standard the module and the modules it depends on need. The GUCEF modules of one build share an ABI which depends on
+# the C++ standard, so the module is not built with a raised standard. The empty target keeps dependencies on the
+# module as a runtime plugin resolvable; modules linking it have the same or a higher minimum and are skipped as well.
+function(GUCEF_add_skipped_module TARGETNAME MIN_CPP_STANDARD)
+  message(STATUS "Skipping ${TARGETNAME}: it needs at least C++${MIN_CPP_STANDARD} and CMAKE_CXX_STANDARD is ${CMAKE_CXX_STANDARD}")
+  add_custom_target(${TARGETNAME})
+  set_property(GLOBAL APPEND PROPERTY GUCEF_SKIPPED_MODULES ${TARGETNAME})
+endfunction(GUCEF_add_skipped_module)

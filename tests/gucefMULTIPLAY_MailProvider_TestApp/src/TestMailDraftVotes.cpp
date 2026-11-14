@@ -218,7 +218,7 @@ StartFromDraft( CEMailTable& table, UInt32 creator, const CORE::CString& matchId
         return false;
     MULTIPLAY::CMatchPackage package = TESTFW::MakeTestPackage( 1, GUCEF_NULL, "game|setup|start" );
     MULTIPLAY::CMatchPreview preview = TESTFW::MakeTestPreview( record.info, table.P( creator ).identity, package, GUCEF_NULL, MULTIPLAY::MATCHSTATUS_ACTIVE, table.clock.nowMs );
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     if ( !table.P( creator ).provider->CreateMatch( record, package, preview, future ) )
         return false;
     return table.Await( future, result );

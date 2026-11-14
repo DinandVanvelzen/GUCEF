@@ -59,7 +59,8 @@ using namespace GUCEF;
 //-------------------------------------------------------------------------*/
 
 // common hardcoded constants for testing
-static const CORE::CString::StringVector cppPredefinedTokens = { "!", "!=", "=", "&&", "&", ">", ">=", "<", "<=" };
+static const char* cppPredefinedTokensItems[] = { "!", "!=", "=", "&&", "&", ">", ">=", "<", "<=" };
+static const CORE::CString::StringVector cppPredefinedTokens( cppPredefinedTokensItems, cppPredefinedTokensItems + ( sizeof( cppPredefinedTokensItems ) / sizeof( cppPredefinedTokensItems[ 0 ] ) ) );
 static const CORE::CString cppGroupOpenToken = "(";
 static const CORE::CString cppGroupCloseToken = ")";
 static const CORE::CString::StringVector noDefinedVars;
@@ -82,7 +83,7 @@ TestCase_NoOpParsing( void )
             const CORE::CString::StringVector testString0Vars = noDefinedVars;
 
             // hardcoded expected results
-            const CORE::CString::StringVector testString0Seq0Tokens = { };
+            const CORE::CString::StringVector testString0Seq0Tokens;
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -118,7 +119,8 @@ TestCase_NoGroupsBasicParsingWithWhitespace( void )
             const CORE::CString::StringVector testString1Vars = noDefinedVars;
 
             // hardcoded expected results
-            const CORE::CString::StringVector testString1Seq0Tokens = { "var1", ">", "var2", "&&", "var2", "!=", "3" };
+            static const char* testString1Seq0TokensItems[] = { "var1", ">", "var2", "&&", "var2", "!=", "3" };
+            const CORE::CString::StringVector testString1Seq0Tokens( testString1Seq0TokensItems, testString1Seq0TokensItems + ( sizeof( testString1Seq0TokensItems ) / sizeof( testString1Seq0TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -166,10 +168,12 @@ TestCase_NoGroupsBasicParsingNoWhitespaceWithDefinedVars( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: No groups basic parsing, no whitespace, with defined vars" );
             // hardcoded test input strings
             const CORE::CString testString2 = "var1>var2&&var2!=3";
-            const CORE::CString::StringVector testString2Vars = { "var1", "var2" };
+            static const char* testString2VarsItems[] = { "var1", "var2" };
+            const CORE::CString::StringVector testString2Vars( testString2VarsItems, testString2VarsItems + ( sizeof( testString2VarsItems ) / sizeof( testString2VarsItems[ 0 ] ) ) );
 
             // hardcoded expected results
-            const CORE::CString::StringVector testString2Seq0Tokens = { "var1", ">", "var2", "&&", "var2", "!=", "3" };
+            static const char* testString2Seq0TokensItems[] = { "var1", ">", "var2", "&&", "var2", "!=", "3" };
+            const CORE::CString::StringVector testString2Seq0Tokens( testString2Seq0TokensItems, testString2Seq0TokensItems + ( sizeof( testString2Seq0TokensItems ) / sizeof( testString2Seq0TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -217,10 +221,12 @@ TestCase_NoGroupsBasicParsingNoWhitespaceWithDefinedVars2( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: No groups basic parsing, no whitespace, with defined vars (adjacent vars)" );
             // hardcoded test input strings
             const CORE::CString testString3 = "var1var2&&var2!=3";
-            const CORE::CString::StringVector testString3Vars = { "var1", "var2" };
+            static const char* testString3VarsItems[] = { "var1", "var2" };
+            const CORE::CString::StringVector testString3Vars( testString3VarsItems, testString3VarsItems + ( sizeof( testString3VarsItems ) / sizeof( testString3VarsItems[ 0 ] ) ) );
 
             // hardcoded expected results
-            const CORE::CString::StringVector testString3Seq0Tokens = { "var1", "var2", "&&", "var2", "!=", "3" };
+            static const char* testString3Seq0TokensItems[] = { "var1", "var2", "&&", "var2", "!=", "3" };
+            const CORE::CString::StringVector testString3Seq0Tokens( testString3Seq0TokensItems, testString3Seq0TokensItems + ( sizeof( testString3Seq0TokensItems ) / sizeof( testString3Seq0TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -269,7 +275,8 @@ TestCase_NoGroupsBasicParsingNoWhitespaceNoDefinedVars( void )
             const CORE::CString::StringVector testString4Vars = noDefinedVars;
 
             // hardcoded expected results
-            const CORE::CString::StringVector testString4Seq0Tokens = { "var1var2", "&&", "var2", "!=", "3" };
+            static const char* testString4Seq0TokensItems[] = { "var1var2", "&&", "var2", "!=", "3" };
+            const CORE::CString::StringVector testString4Seq0Tokens( testString4Seq0TokensItems, testString4Seq0TokensItems + ( sizeof( testString4Seq0TokensItems ) / sizeof( testString4Seq0TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -316,7 +323,8 @@ TestCase_SingleGroupParsingWithWhitespaceNoDefinedVars( void )
             const CORE::CString::StringVector testStringVars = noDefinedVars;
 
             // hardcoded expected results
-            const CORE::CString::StringVector testStringSeq0Tokens = { "var1", ">", "var2" };
+            static const char* testStringSeq0TokensItems[] = { "var1", ">", "var2" };
+            const CORE::CString::StringVector testStringSeq0Tokens( testStringSeq0TokensItems, testStringSeq0TokensItems + ( sizeof( testStringSeq0TokensItems ) / sizeof( testStringSeq0TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -359,9 +367,12 @@ TestCase_SameLevelGroupsParsingWithWhitespaceNoDefinedVars( void )
             const CORE::CString::StringVector testStringVars = noDefinedVars;
 
             // hardcoded expected results
-            const CORE::CString::StringVector testStringSeq0Tokens = { "&&" };
-            const CORE::CString::StringVector testStringSeq1Tokens = { "var1", ">", "var2" };
-            const CORE::CString::StringVector testStringSeq2Tokens = { "var2", "!=", "3" };
+            static const char* testStringSeq0TokensItems[] = { "&&" };
+            const CORE::CString::StringVector testStringSeq0Tokens( testStringSeq0TokensItems, testStringSeq0TokensItems + ( sizeof( testStringSeq0TokensItems ) / sizeof( testStringSeq0TokensItems[ 0 ] ) ) );
+            static const char* testStringSeq1TokensItems[] = { "var1", ">", "var2" };
+            const CORE::CString::StringVector testStringSeq1Tokens( testStringSeq1TokensItems, testStringSeq1TokensItems + ( sizeof( testStringSeq1TokensItems ) / sizeof( testStringSeq1TokensItems[ 0 ] ) ) );
+            static const char* testStringSeq2TokensItems[] = { "var2", "!=", "3" };
+            const CORE::CString::StringVector testStringSeq2Tokens( testStringSeq2TokensItems, testStringSeq2TokensItems + ( sizeof( testStringSeq2TokensItems ) / sizeof( testStringSeq2TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        
@@ -428,8 +439,10 @@ TestCase_NestedGroupsParsingWithWhitespaceNoDefinedVars( void )
             const CORE::CString::StringVector testStringVars = noDefinedVars;
 
             // hardcoded expected results
-            const CORE::CString::StringVector testStringSeq0Tokens = { "var1", ">", "var2", "&&" };
-            const CORE::CString::StringVector testStringSeq1Tokens = { "var2", "!=", "3" };
+            static const char* testStringSeq0TokensItems[] = { "var1", ">", "var2", "&&" };
+            const CORE::CString::StringVector testStringSeq0Tokens( testStringSeq0TokensItems, testStringSeq0TokensItems + ( sizeof( testStringSeq0TokensItems ) / sizeof( testStringSeq0TokensItems[ 0 ] ) ) );
+            static const char* testStringSeq1TokensItems[] = { "var2", "!=", "3" };
+            const CORE::CString::StringVector testStringSeq1Tokens( testStringSeq1TokensItems, testStringSeq1TokensItems + ( sizeof( testStringSeq1TokensItems ) / sizeof( testStringSeq1TokensItems[ 0 ] ) ) );
 
             // run the test
             CORE::CString::StringVector errors;        

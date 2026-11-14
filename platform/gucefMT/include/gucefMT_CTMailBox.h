@@ -600,12 +600,12 @@ CTMailBox< T >::WaitForZeroMailInMailbox( Int32 waitTimeoutInMs )
             UInt64 newTickCount = PrecisionTickCount();
             
             if ( waitTimeoutInMs > 0 && PrecisionTimerTicksToMs( newTickCount - tickCount ) >= waitTimeoutInMs )
-                return TLockStatus::LOCKSTATUS_WAIT_TIMEOUT;
+                return LOCKSTATUS_WAIT_TIMEOUT;
         }
     }
     while ( hasMail );
 
-    return TLockStatus::LOCKSTATUS_OPERATION_SUCCESS;
+    return LOCKSTATUS_OPERATION_SUCCESS;
 }
 
 /*-------------------------------------------------------------------------*/

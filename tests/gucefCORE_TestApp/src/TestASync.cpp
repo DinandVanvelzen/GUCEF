@@ -1047,8 +1047,9 @@ void TestConcurrentOperations()
             
             // Wait for all to complete
             int completedCount = 0;
-            for (auto& future : futures)
+            for ( size_t f=0; f<futures.size(); ++f )
             {
+                CORE::CFutureResult& future = futures[ f ];
                 ASSERT_TRUE(future.HasAFuture());
                 CORE::CTaskPtr task = future.GetResult(10000);
                 ASSERT_TRUE(!task.IsNULL());

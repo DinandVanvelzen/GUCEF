@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "DVPACKSYS", "gucefCORE", "gucefMT", "gucefVFS" } )
+
+configuration( {} )
 links( { "DVPACKSYS", "gucefCORE", "gucefMT", "gucefVFS" } )
 
 

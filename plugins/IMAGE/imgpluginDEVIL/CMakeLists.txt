@@ -108,6 +108,25 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of imgpluginDEVIL and the modules it depends on
+if ( LINUX32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX32 )
+if ( LINUX64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( LINUX64 )
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 14 )
+endif( WIN64 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( imgpluginDEVIL "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 
 if( EMSCRIPTEN32 )
   set( MODULE_NAME "imgpluginDEVIL" )
@@ -183,6 +202,20 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( ../../../common/include ../../../dependencies/DevIL/DevIL/include ../../../dependencies/DevIL/DevIL/include/IL ../../../dependencies/DevIL/DevIL/src-IL ../../../dependencies/DevIL/DevIL/src-IL/include ../../../dependencies/DevIL/DevIL/src-ILU ../../../dependencies/DevIL/DevIL/src-ILU/include ../../../dependencies/DevIL/DevIL/src-ILU/include/ilu_error ../../../dependencies/DevIL/DevIL/src-ILUT ../../../dependencies/DevIL/DevIL/src-ILUT/include ../../../dependencies/Little-CMS/include ../../../dependencies/Little-CMS/src ../../../dependencies/jasper/src/libjasper/bmp ../../../dependencies/jasper/src/libjasper/include ../../../dependencies/jasper/src/libjasper/include/jasper ../../../dependencies/jasper/src/libjasper/jp2 ../../../dependencies/jasper/src/libjasper/jpc ../../../dependencies/jasper/src/libjasper/jpg ../../../dependencies/jasper/src/libjasper/mif ../../../dependencies/jasper/src/libjasper/pgx ../../../dependencies/jasper/src/libjasper/pnm ../../../dependencies/jasper/src/libjasper/ras ../../../dependencies/libjpeg ../../../dependencies/libmng ../../../dependencies/libpng ../../../dependencies/libsquish ../../../dependencies/openexr/IlmBase ../../../dependencies/openexr/IlmBase/Half ../../../dependencies/openexr/IlmBase/Iex ../../../dependencies/openexr/IlmBase/IexMath ../../../dependencies/openexr/IlmBase/IlmThread ../../../dependencies/openexr/IlmBase/Imath ../../../dependencies/openexr/IlmBase/config.windows ../../../dependencies/openexr/OpenEXR ../../../dependencies/openexr/OpenEXR/IlmImf ../../../dependencies/openexr/OpenEXR/IlmImfUtil ../../../dependencies/openexr/OpenEXR/config.windows ../../../dependencies/tiff/libtiff ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( LINUX32 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefIMAGE gucefMT )
 endif( WIN64 )
 
 

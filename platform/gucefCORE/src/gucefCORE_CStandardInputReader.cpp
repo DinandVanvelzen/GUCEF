@@ -510,7 +510,7 @@ CStandardInputReader::ReadLoop( void )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    HANDLE threadHandle = NULL;
+    HANDLE threadHandle = GUCEF_NULL;
     ::DuplicateHandle( ::GetCurrentProcess(), ::GetCurrentThread(), ::GetCurrentProcess(), &threadHandle, 0, FALSE, DUPLICATE_SAME_ACCESS );
     {
         MT::CScopeMutex lock( m_lock );
@@ -520,7 +520,7 @@ CStandardInputReader::ReadLoop( void )
     while ( !m_stopRequested )
     {
         DWORD bytesRead = 0;
-        BOOL success = ::ReadFile( (HANDLE) m_stream, &buffer[ 0 ], (DWORD) buffer.size(), &bytesRead, NULL );
+        BOOL success = ::ReadFile( (HANDLE) m_stream, &buffer[ 0 ], (DWORD) buffer.size(), &bytesRead, GUCEF_NULL );
         if ( !success )
         {
             DWORD errorCode = ::GetLastError();
@@ -548,7 +548,7 @@ CStandardInputReader::ReadLoop( void )
         MT::CScopeMutex lock( m_lock );
         m_threadHandle = GUCEF_NULL;
     }
-    if ( NULL != threadHandle )
+    if ( GUCEF_NULL != threadHandle )
         ::CloseHandle( threadHandle );
 
     #else

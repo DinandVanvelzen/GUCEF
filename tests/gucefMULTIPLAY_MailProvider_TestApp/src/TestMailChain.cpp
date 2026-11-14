@@ -293,7 +293,7 @@ PerformMailChainTests( void )
         MULTIPLAY::CMatchPackage c1;
         MULTIPLAY::CMatchPreview c1Preview;
         ASSERT_TRUE( table.MakeTurn( 2, id, 0, "c1", MULTIPLAY::MATCHSTATUS_ACTIVE, c1, c1Preview ) );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( table.P( 2 ).provider->Submit( id, 2, c1Preview, c1, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
     }
     catch ( ... )
@@ -443,7 +443,7 @@ PerformMailChainTests( void )
         MULTIPLAY::CMatchInfo idOnly;
         idOnly.matchId = id;
         MULTIPLAY::CMatchPreview bigPreview = TESTFW::MakeTestPreview( idOnly, table.P( 1 ).identity, bigPackage, &table.P( 2 ).identity, MULTIPLAY::MATCHSTATUS_ACTIVE, 5 );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 1 ).provider->Submit( id, 1, bigPreview, bigPackage, future ) && table.Await( future, result ) );
         ASSERT_TRUE( MULTIPLAY::MATCHOPERATION_REJECTED == result.status && result.reason.HasSubstr( "large" ) >= 0 );

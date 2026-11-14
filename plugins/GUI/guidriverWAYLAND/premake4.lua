@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
-  links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUIDRIVERWAYLAND_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverWAYLAND", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
-  links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT", "pluginglueWAYLAND" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUIDRIVERWAYLAND_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverWAYLAND", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -121,7 +125,7 @@ configuration( { "LINUX64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../../platform/gucefCORE/include/linux", "../../SHARED/pluginglueWAYLAND/include", "include" } )

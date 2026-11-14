@@ -170,11 +170,11 @@ AwaitFuture( const CFutureResult& future, UInt32 timeoutMs, CTaskPtr& task )
     while ( !future.IsReady() )
     {
         if ( MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start ) > timeoutMs )
-            return TTaskStatus::TASKSTATUS_UNDEFINED;
+            return CORE::TASKSTATUS_UNDEFINED;
         MT::PrecisionDelay( 2 );
     }
     task = future.GetResult( 0 );
-    return task.IsNULL() ? TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -539,35 +539,35 @@ PerformMemoryDataTableTests( void )
             CTaskPtr task;
 
             CFutureResult written = table.WriteAsync( MakeSequenceRows( table.GetSchema(), pool, 0, 300 ), DATATABLE_WRITE_INSERT, threadPool );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( written, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( written, 10000, task ) );
             const CDataTableWriteResult* writeResult = static_cast< const CDataTableWriteResult* >( task->GetTaskData() );
             ASSERT_TRUE( GUCEF_NULL != writeResult && 300 == writeResult->GetTotalRowsWritten() );
 
             CFutureResult conflict = table.WriteAsync( MakeSequenceRows( table.GetSchema(), pool, 10, 5 ), DATATABLE_WRITE_INSERT, threadPool );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_STARTUP_FAILED == AwaitFuture( conflict, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == AwaitFuture( conflict, 10000, task ) );
             ASSERT_TRUE( task->GetTaskStatusExtraInfo().HasSubstr( "CONFLICT" ) >= 0 );
 
             CFutureResult deleted = table.DeleteRowsAsync( CDataTableQuery().Where( CDataTablePredicate( "id", DATATABLE_PREDICATE_LESS, CVariant( (Int64) 100 ) ) ), threadPool );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( deleted, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( deleted, 10000, task ) );
             const CDataTableWriteResult* deleteResult = static_cast< const CDataTableWriteResult* >( task->GetTaskData() );
             ASSERT_TRUE( GUCEF_NULL != deleteResult && 100 == deleteResult->partitions[ 0 ].rowsDeleted );
 
             CFutureResult listed = table.ListPartitionsAsync( CDataTableQuery(), true, ThreadPoolPtr() );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( listed, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( listed, 10000, task ) );
             const CDataTablePartitionInfoList* list = static_cast< const CDataTablePartitionInfoList* >( task->GetTaskData() );
             ASSERT_TRUE( GUCEF_NULL != list && 1 == list->partitions.size() && 200 == list->partitions[ 0 ].rowCount );
 
             CFutureResult compacted = table.CompactAsync( CDataTableQuery(), true, threadPool );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( compacted, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( compacted, 10000, task ) );
             CFutureResult partitionsDeleted = table.DeletePartitionsAsync( CDataTableQuery(), threadPool );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( partitionsDeleted, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( partitionsDeleted, 10000, task ) );
             ASSERT_TRUE( 0 == table.GetRowCount() );
 
             CDataTableScanPtr scan;
             CFutureResult scanned = table.ScanAsync( CDataTableQuery(), scan, threadPool );
             CDataTableBatchPtr batch;
             ASSERT_TRUE( DATATABLE_STATUS_END == scan->WaitForNextBatch( batch, 10000 ) );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( scanned, 10000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( scanned, 10000, task ) );
         }
         catch ( ... )
         {

@@ -139,7 +139,7 @@ CVfsGlobal::Deinstance( void )
 
     MT::CScopeMutex scopeLock( g_datalock );
     GUCEF_DELETE g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -184,7 +184,7 @@ CVfsGlobal::Initialize( void )
 /*-------------------------------------------------------------------------*/
 
 CVfsGlobal::CVfsGlobal( void )
-    : m_vfs( NULL )
+    : m_vfs( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -209,7 +209,7 @@ CVfsGlobal::~CVfsGlobal()
      */
 
     GUCEF_DELETE m_vfs;
-    m_vfs = NULL;
+    m_vfs = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

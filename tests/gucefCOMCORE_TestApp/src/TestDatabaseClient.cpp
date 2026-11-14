@@ -236,7 +236,7 @@ CORE::TTaskStatus
 StatusOf( const CORE::CFutureResult& future )
 {
     CORE::CTaskPtr task = future.GetResult();
-    return task.IsNULL() ? CORE::TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -625,7 +625,7 @@ PerformDatabaseClientTests( void )
 
         CORE::CFutureResult opened = client->OpenAsync( FakeSettings() );
         ASSERT_TRUE( Finished( opened ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == StatusOf( opened ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == StatusOf( opened ) );
         ASSERT_TRUE( client->IsOpen() );
         ASSERT_TRUE( 0 != fake->GetThreadOfLastCall( 0 ) && thisThread != fake->GetThreadOfLastCall( 0 ) );
 
@@ -657,7 +657,7 @@ PerformDatabaseClientTests( void )
 
         CORE::CFutureResult dropped = client->DropTableAsync( "async_table", true );
         ASSERT_TRUE( Finished( dropped ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == StatusOf( dropped ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == StatusOf( dropped ) );
         ASSERT_TRUE( thisThread != fake->GetThreadOfLastCall( 4 ) );
 
         // the sync call sees what the async calls did
@@ -680,7 +680,7 @@ PerformDatabaseClientTests( void )
         CORE::CFutureResult missing = client->OpenTableAsync( "nothing" );
         ASSERT_TRUE( Finished( missing ) );
         ASSERT_TRUE( CORE::TaskStatusIsAnError( StatusOf( missing ) ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID == StatusOf( missing ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_TASKDATA_INVALID == StatusOf( missing ) );
         ASSERT_TRUE( ExtraInfoOf( missing ).StartsWith( "NOT_FOUND: " ) );
         ASSERT_TRUE( ExtraInfoOf( missing ).HasSubstr( "nothing" ) >= 0 );
         CORE::CIDataTablePtr table;
@@ -694,7 +694,7 @@ PerformDatabaseClientTests( void )
         ASSERT_TRUE( Finished( first ) );
         CORE::CFutureResult second = client->CreateTableAsync( Definition( "dup" ) );
         ASSERT_TRUE( Finished( second ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID == StatusOf( second ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_TASKDATA_INVALID == StatusOf( second ) );
         ASSERT_TRUE( ExtraInfoOf( second ).StartsWith( "ALREADY_EXISTS: " ) );
 
         CORE::CFutureResult dropMissing = client->DropTableAsync( "nothing", false );
@@ -703,7 +703,7 @@ PerformDatabaseClientTests( void )
 
         CORE::CFutureResult badOpen = factory.Create( "fake" )->OpenAsync( FakeSettings( "unavailable" ) );
         ASSERT_TRUE( Finished( badOpen ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN == StatusOf( badOpen ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_EXCEPTION_DURING_RUN == StatusOf( badOpen ) );
         ASSERT_TRUE( ExtraInfoOf( badOpen ).StartsWith( "FAILED: " ) );
         ASSERT_TRUE( ExtraInfoOf( badOpen ).HasSubstr( "unavailable" ) >= 0 );
 
@@ -818,7 +818,7 @@ PerformDatabaseClientTests( void )
         }
         UInt32 finished = 0;
         for ( UInt32 i = 0; i < futures.size(); ++i )
-            if ( Finished( futures[ i ] ) && CORE::TTaskStatus::TASKSTATUS_FINISHED == StatusOf( futures[ i ] ) )
+            if ( Finished( futures[ i ] ) && CORE::TASKSTATUS_FINISHED == StatusOf( futures[ i ] ) )
                 ++finished;
         ASSERT_TRUE( futures.size() == finished );
         ASSERT_TRUE( callsBefore >= 1 );

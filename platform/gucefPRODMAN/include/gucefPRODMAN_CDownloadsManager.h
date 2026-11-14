@@ -128,11 +128,11 @@ class GUCEF_PRODMAN_PUBLIC_CPP CDownloadsManager : public CORE::CObservingNotifi
     
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnADListRetrievalEvent( CORE::CNotifier* notifier           ,
                                          const CORE::CEvent& eventid         ,
-                                         CORE::CICloneable* eventdata = NULL );
+                                         CORE::CICloneable* eventdata = GUCEF_NULL );
     
     private:
     

@@ -113,7 +113,7 @@ class CTLinkedCloneableObj : public CICloneable
 
 template< typename T >
 CTLinkedCloneableObj< T >::CTLinkedCloneableObj( void )
-        : m_data( NULL )    ,
+        : m_data( GUCEF_NULL )    ,
           m_linked( false )
 {GUCEF_TRACE;
 
@@ -127,7 +127,7 @@ CTLinkedCloneableObj< T >::CTLinkedCloneableObj( const T* data )
           m_linked( true )
 {GUCEF_TRACE;
 
-    if ( NULL == data )
+    if ( GUCEF_NULL == data )
     {
         GUCEF_EMSGTHROW( ENULLPointer, "CTLinkedCloneableObj( const T* data ): This operation is impossible without a valid object" );
     }

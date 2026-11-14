@@ -85,11 +85,19 @@ if ( ANDROID64 )
 endif( ANDROID64 )
 
 if ( ANDROID32 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include include )
+endif( ANDROID64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 endif( ANDROID64 )
 
 

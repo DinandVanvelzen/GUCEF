@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
-  
-configuration( { EMSCRIPTEN32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "GUCEF_AUDIODRIVER_WEBAUDIO_BUILD_MODULE", "MODULE_API_PREFIX=audiodriverWEBAUDIO", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverWEBAUDIO", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { EMSCRIPTEN64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "GUCEF_AUDIODRIVER_WEBAUDIO_BUILD_MODULE", "MODULE_API_PREFIX=audiodriverWEBAUDIO", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverWEBAUDIO", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -95,7 +99,7 @@ configuration( { "EMSCRIPTEN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include" } )
 
 configuration( { "EMSCRIPTEN32" } )
 includedirs( { "include" } )

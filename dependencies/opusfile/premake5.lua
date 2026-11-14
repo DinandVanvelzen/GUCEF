@@ -12,7 +12,10 @@
 -- Configuration for module: opusfile
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "opusfile" )
+
+configuration( { "ANDROID64" } )
   project( "opusfile" )
 
 configuration( { "LINUX32" } )
@@ -33,7 +36,10 @@ configuration( {} )
 configuration( {} )
   targetdir( os.getenv( "PM5TARGETDIR" ) )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C" )
+
+configuration( { "ANDROID64" } )
 language( "C" )
 
 configuration( { "LINUX32" } )
@@ -48,74 +54,116 @@ language( "C" )
 configuration( { "WIN64" } )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "StaticLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  
-configuration( { ANDROID } )
-links( { "libogg", "opus" } )
-  links( { "libogg", "m", "opus" } )
-  
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+links( { "libogg", "opus" } )
+
+configuration( { "ANDROID32" } )
+links( { "libogg", "m", "opus" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=opusfile", "MODULE_SEMVER=0_12_0_0", "OP_HAVE_LRINTF" } )
-  
-configuration( { LINUX32 } )
-links( { "libogg", "opus" } )
-  links( { "libogg", "m", "opus" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "ANDROID64" } )
+links( { "libogg", "opus" } )
+
+configuration( { "ANDROID64" } )
+links( { "libogg", "m", "opus" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "MODULE_NAME=opusfile", "MODULE_SEMVER=0_12_0_0", "OP_HAVE_LRINTF" } )
-  
-configuration( { LINUX64 } )
-links( { "libogg", "opus" } )
-  links( { "libogg", "m", "opus" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX32" } )
+links( { "libogg", "opus" } )
+
+configuration( { "LINUX32" } )
+links( { "libogg", "m", "opus" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=opusfile", "MODULE_SEMVER=0_12_0_0", "OP_HAVE_LRINTF" } )
-  
-configuration( { WIN32 } )
-links( { "libogg", "opus" } )
-  links( { "libogg", "opus" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "LINUX64" } )
+links( { "libogg", "opus" } )
+
+configuration( { "LINUX64" } )
+links( { "libogg", "m", "opus" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=opusfile", "MODULE_SEMVER=0_12_0_0", "OP_HAVE_LRINTF" } )
+
+configuration( { "WIN32" } )
+links( { "libogg", "opus" } )
+
+configuration( { "WIN32" } )
+links( { "libogg", "opus" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=opusfile", "MODULE_SEMVER=0_12_0_0" } )
-  
-configuration( { WIN64 } )
-links( { "libogg", "opus" } )
-  links( { "libogg", "opus" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "libogg", "opus" } )
+
+configuration( { "WIN64" } )
+links( { "libogg", "opus" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=opusfile", "MODULE_SEMVER=0_12_0_0" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/opusfile.h",
+      "src/internal.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/info.c",
+      "src/internal.c",
+      "src/opusfile.c",
+      "src/stream.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/opusfile.h",
@@ -199,7 +247,10 @@ configuration( { "WIN64" } )
     } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../libogg/include", "../libogg/include/ogg", "../libogg/src", "../opus/.", "../opus/celt", "../opus/celt/arm", "../opus/celt/mips", "../opus/celt/x86", "../opus/include", "../opus/silk", "../opus/silk/arm", "../opus/silk/fixed", "../opus/silk/fixed/arm", "../opus/silk/fixed/mips", "../opus/silk/float", "../opus/silk/mips", "../opus/silk/x86", "../opus/src", "include", "src" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../libogg/include", "../libogg/include/ogg", "../libogg/src", "../opus/.", "../opus/celt", "../opus/celt/arm", "../opus/celt/mips", "../opus/celt/x86", "../opus/include", "../opus/silk", "../opus/silk/arm", "../opus/silk/fixed", "../opus/silk/fixed/arm", "../opus/silk/fixed/mips", "../opus/silk/float", "../opus/silk/mips", "../opus/silk/x86", "../opus/src", "include", "src" } )
 
 configuration( { "LINUX32" } )

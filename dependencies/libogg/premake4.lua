@@ -12,7 +12,10 @@
 -- Configuration for module: libogg
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "libogg" )
+
+configuration( { "ANDROID64" } )
   project( "libogg" )
 
 configuration( { "LINUX32" } )
@@ -33,7 +36,10 @@ configuration( {} )
 configuration( {} )
   targetdir( os.getenv( "PM4TARGETDIR" ) )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C" )
+
+configuration( { "ANDROID64" } )
 language( "C" )
 
 configuration( { "LINUX32" } )
@@ -48,54 +54,80 @@ language( "C" )
 configuration( { "WIN64" } )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "StaticLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  
 
-configuration( { ANDROID } )
-defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
-  
-
-configuration( { LINUX64 } )
-defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
-  
-
-configuration( { WIN32 } )
-defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
-  
-
-configuration( { WIN64 } )
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
+
+
+configuration( { "WIN32" } )
+defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
+
+
+configuration( { "WIN64" } )
+defines( { "MODULE_NAME=libogg", "MODULE_SEMVER=1_3_6_0" } )
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/ogg/config_types.h",
+      "include/ogg/ogg.h",
+      "include/ogg/os_types.h",
+      "src/crctable.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/bitwise.c",
+      "src/framing.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/ogg/config_types.h",
@@ -179,7 +211,10 @@ configuration( { "WIN64" } )
     } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "include", "include/ogg", "src" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "include", "include/ogg", "src" } )
 
 configuration( { "LINUX32" } )

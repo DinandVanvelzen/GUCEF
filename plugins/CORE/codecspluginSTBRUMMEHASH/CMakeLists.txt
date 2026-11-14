@@ -50,7 +50,7 @@ if ( EMSCRIPTEN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=codecspluginSTBRUMMEHASH" )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../../common/include ../../../dependencies/stbrumme-hash-library ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+include_directories( ../../../common/include ../../../dependencies/stbrumme-hash-library ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
@@ -75,6 +75,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES gucefCORE gucefMT )
 
 
 

@@ -87,7 +87,7 @@ const VFS::CString CDVPArchive::DVPArchiveTypeName = "dvp";
 CDVPArchive::CDVPArchive( void )
     : CArchive()        ,
       m_header()        ,
-      m_entries( NULL ) ,
+      m_entries( GUCEF_NULL ) ,
       m_archiveName()   ,
       m_archivePath()
 {GUCEF_TRACE;
@@ -349,7 +349,7 @@ VFS::Int32
 CDVPArchive::FindDirEntry( const VFS::CString& path ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_entries || path.IsNULLOrEmpty() )
+    if ( GUCEF_NULL != m_entries || path.IsNULLOrEmpty() )
     {
         TStringVector pathElements = path.ParseElements( '/', false );
         VFS::UInt32 entryCount = m_header.num_dirs + m_header.num_files;
@@ -469,7 +469,7 @@ CDVPArchive::LoadArchive( const VFS::CArchiveSettings& settings )
     UnloadArchive();
 
     FILE* fptr = DVP_Open_File( settings.GetActualArchivePath().C_String(), "rb" );
-    if ( NULL == fptr ) return false;
+    if ( GUCEF_NULL == fptr ) return false;
 
     _DVP_Read_Header( fptr, &m_header );
 
@@ -513,10 +513,10 @@ CDVPArchive::UnloadArchive( void )
     memset( &m_header, 0, sizeof( TDVP_File_Header ) );
     
     delete m_entries;
-    m_entries = NULL;
+    m_entries = GUCEF_NULL;
     
-    m_archivePath = NULL;
-    m_archiveName = NULL;
+    m_archivePath = GUCEF_NULL;
+    m_archiveName = GUCEF_NULL;
     
     return true;
 }

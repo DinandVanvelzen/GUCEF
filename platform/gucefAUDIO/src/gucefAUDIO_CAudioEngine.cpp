@@ -555,7 +555,7 @@ CAudioEngine::Initialize( const CAudioEngineParams& params )
     {
         m_updateTask = CORE::CTSharedPtr< CAudioEngineUpdateTask, MT::CMutex >( GUCEF_NEW CAudioEngineUpdateTask( this, m_params.GetUpdateIntervalInMs() ) );
         CORE::ThreadPoolPtr pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_params.GetThreadPoolName() );
-        CORE::CFutureResult started = pool.IsNULL() ? CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) : pool->StartTaskWithConsumer( m_updateTask );
+        CORE::CFutureResult started = pool.IsNULL() ? CORE::CFutureResult( CORE::TASKSTATUS_SETUP_FAILED ) : pool->StartTaskWithConsumer( m_updateTask );
         if ( started.HasNoFuture() || started.IsReady() )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: could not start the engine thread, continuing in cooperative mode" );
@@ -939,23 +939,23 @@ CAudioEngine::Start( const TAudioVoicePtr& voice )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || voice.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( AUDIOVOICESTATE_IDLE != voice->GetState() || m_voices.find( RawVoice( voice ) ) != m_voices.end() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS );     // already started: a voice plays once
+        return MakeFailedFuture( CORE::TASKSTATUS_TASK_WITH_TYPE_EXISTS );     // already started: a voice plays once
     if ( m_voices.size() >= m_maxOutstanding )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return MakeFailedFuture( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     CAudioVoice* raw = RawVoice( voice );
     if ( GUCEF_NULL == raw->GetBus() )
         raw->SetBus( m_mixer->GetMasterBus() );
     if ( !CheckVoiceRouting( raw ) || !m_mixer->PrepareVoice( raw ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     SCommand command;
     command.type = SCommand::COMMAND_START_VOICE;
     command.voice = raw;
     if ( !m_commands->Push( command ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     // from here on the audio thread may use the voice's effects: they are the voice's until it is reported ended
     for ( UInt32 e=0; e<raw->GetEffectCount(); ++e )
@@ -977,7 +977,7 @@ CAudioEngine::Play( const TAudioClipPtr& clip, CAudioBus* bus, TAudioVoicePtr* v
     if ( GUCEF_NULL != voiceOut )
         *voiceOut = voice;
     if ( voice.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     return Start( voice );
 }
 
@@ -989,7 +989,7 @@ CAudioEngine::Stop( const TAudioVoicePtr& voice )
 
     MT::CScopeMutex lock( m_lock );
     if ( voice.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TVoiceMap::iterator i = m_voices.find( RawVoice( voice ) );
     if ( i == m_voices.end() )
@@ -1010,10 +1010,10 @@ CAudioEngine::Pause( const TAudioVoicePtr& voice )
 
     MT::CScopeMutex lock( m_lock );
     if ( voice.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     TVoiceMap::iterator i = m_voices.find( RawVoice( voice ) );
     if ( i == m_voices.end() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     SVoiceEntry& entry = (*i).second;
     if ( !entry.pauseSource.IsNULL() )
@@ -1032,10 +1032,10 @@ CAudioEngine::Resume( const TAudioVoicePtr& voice )
 
     MT::CScopeMutex lock( m_lock );
     if ( voice.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     TVoiceMap::iterator i = m_voices.find( RawVoice( voice ) );
     if ( i == m_voices.end() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     SVoiceEntry& entry = (*i).second;
     if ( !entry.pauseSource.IsNULL() )
@@ -1054,11 +1054,11 @@ CAudioEngine::GetEndedResult( const TAudioVoicePtr& voice )
 
     MT::CScopeMutex lock( m_lock );
     if ( voice.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TVoiceMap::iterator i = m_voices.find( RawVoice( voice ) );
     if ( i == m_voices.end() )
-        return AUDIOVOICESTATE_ENDED == voice->GetState() ? MakeReadyFuture() : MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return AUDIOVOICESTATE_ENDED == voice->GetState() ? MakeReadyFuture() : MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     SVoiceEntry& entry = (*i).second;
     if ( entry.endedSource.IsNULL() )
@@ -1146,7 +1146,7 @@ CAudioEngine::PushRequest( SCommand& command )
 
     command.token = NextToken();
     if ( !m_commands->Push( command ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     TSourcePtr source( GUCEF_NEW CORE::CFutureResultSource() );
     m_pending[ command.token ] = source;
@@ -1192,25 +1192,25 @@ CAudioEngine::InsertEffect( CAudioBus* bus, UInt32 slot, const TAudioEffectPtr& 
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || effect.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TBusEntryMap::iterator b = m_busEntries.find( bus );
     if ( b == m_busEntries.end() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     SBusEntry& busEntry = (*b).second;
     if ( slot >= busEntry.effects.size() || GUCEF_NULL != busEntry.effects[ slot ] )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     CAudioEffect* raw = RawEffect( effect );
     if ( IsEffectInUse( raw ) || !raw->IsPreparedFor( m_mixer->GetMixFormat(), m_maxBlock ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( !raw->ResolveReferences( *this ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: an effect of type \"" << raw->GetEffectTypeName() << "\" could not resolve what it refers to, it is not inserted" );
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     }
     if ( !HasRoomForRequest() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return MakeFailedFuture( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     SCommand command;
     command.type = SCommand::COMMAND_INSERT_EFFECT;
@@ -1238,13 +1238,13 @@ CAudioEngine::RemoveEffect( CAudioBus* bus, const TAudioEffectPtr& effect )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || effect.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TEffectMap::iterator e = m_effects.find( RawEffect( effect ) );
     if ( e == m_effects.end() || (*e).second.bus != bus || (*e).second.removing )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( !HasRoomForRequest() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return MakeFailedFuture( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     SEffectEntry& entry = (*e).second;
     SCommand command;
@@ -1271,27 +1271,27 @@ CAudioEngine::AddSend( CAudioBus* from, CAudioBus* to, Float32 level, bool preFa
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TBusEntryMap::iterator b = m_busEntries.find( from );
     if ( b == m_busEntries.end() || m_busEntries.find( to ) == m_busEntries.end() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     SBusEntry& busEntry = (*b).second;
 
     UInt32 index = 0;
     while ( index < busEntry.sends.size() && GUCEF_NULL != busEntry.sends[ index ] )
         ++index;
     if ( index >= busEntry.sends.size() || !m_routing->CanAddSend( from, to ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( !HasRoomForRequest() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return MakeFailedFuture( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     m_routing->AddSend( from, to );
     SOrderTable* order = ComputeBusOrder();
     if ( GUCEF_NULL == order )
     {
         m_routing->RemoveSend( from, to );
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     }
 
     // the level is there before the audio thread sees the send
@@ -1327,16 +1327,16 @@ CAudioEngine::RemoveSend( CAudioBus* from, UInt32 sendIndex )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TBusEntryMap::iterator b = m_busEntries.find( from );
     if ( b == m_busEntries.end() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     SBusEntry& busEntry = (*b).second;
     if ( sendIndex >= busEntry.sends.size() || GUCEF_NULL == busEntry.sends[ sendIndex ] )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( !HasRoomForRequest() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return MakeFailedFuture( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     CAudioBus* to = busEntry.sends[ sendIndex ];
     m_routing->RemoveSend( from, to );
@@ -1344,7 +1344,7 @@ CAudioEngine::RemoveSend( CAudioBus* from, UInt32 sendIndex )
     if ( GUCEF_NULL == order )
     {
         m_routing->AddSend( from, to );
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     }
 
     SCommand command;
@@ -1583,7 +1583,7 @@ bool
 CAudioEngine::PlanBusLayout( const CAudioBusLayout& layout, SLayoutPlan& plan, CORE::TTaskStatus& refusal )
 {GUCEF_TRACE;
 
-    refusal = CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED;
+    refusal = CORE::TASKSTATUS_SETUP_FAILED;
 
     const CAudioBusLayout::TBusVector& wantedBuses = layout.GetBuses();
     const size_t count = wantedBuses.size();
@@ -1927,7 +1927,7 @@ CAudioEngine::PlanBusLayout( const CAudioBusLayout& layout, SLayoutPlan& plan, C
     if ( m_pending.size() + plan.commandCount > m_maxOutstanding || plan.commandCount > m_commands->GetCapacity() - m_commands->GetSize() )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: bus layout needs " << plan.commandCount << " commands and the engine has no room for that many right now, try again later" );
-        refusal = CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+        refusal = CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
         return false;
     }
     return true;
@@ -2040,10 +2040,10 @@ CAudioEngine::ApplyBusLayout( const CAudioBusLayout& layout )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     SLayoutPlan plan;
-    CORE::TTaskStatus refusal = CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED;
+    CORE::TTaskStatus refusal = CORE::TASKSTATUS_SETUP_FAILED;
     if ( !PlanBusLayout( layout, plan, refusal ) )
         return MakeFailedFuture( refusal );
 
@@ -2051,7 +2051,7 @@ CAudioEngine::ApplyBusLayout( const CAudioBusLayout& layout )
     if ( !ExecuteBusLayout( layout, plan, parts ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a step of a bus layout that was checked beforehand failed, the layout is applied in part" );
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_STARTUP_FAILED );
     }
     if ( parts.empty() )
         return MakeReadyFuture();
@@ -2092,7 +2092,7 @@ CAudioEngine::CompleteLayoutApplies( void )
         }
 
         if ( anyFailed )
-            apply.source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the audio thread could not carry out a command of the bus layout" );
+            apply.source->Fail( CORE::TASKSTATUS_STARTUP_FAILED, "the audio thread could not carry out a command of the bus layout" );
         else
             apply.source->Complete();
         m_layoutApplies.erase( m_layoutApplies.begin() + i );
@@ -2291,7 +2291,7 @@ CAudioEngine::ReopenDeviceAsync( const CAudioEngineParams& params )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || m_reopenPending )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     CAudioEngineParams wanted( params );
     wanted.GetDeviceParams().SetDirection( AUDIODIRECTION_PLAYBACK );
@@ -2345,13 +2345,13 @@ CAudioEngine::FinishReopenWhenOpened( void )
     if ( !request->TakeDevice( device, usedDriverName ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the new audio device could not be opened, the current device stays in use" );
-        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the new audio device could not be opened" );
+        source->Fail( CORE::TASKSTATUS_STARTUP_FAILED, "the new audio device could not be opened" );
         return;
     }
     if ( SwapDevice( device, usedDriverName, request->GetParams() ) )
         source->Complete();
     else
-        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the new audio device could not be used" );
+        source->Fail( CORE::TASKSTATUS_STARTUP_FAILED, "the new audio device could not be used" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2601,11 +2601,11 @@ CAudioEngine::PushCaptureRequest( CAudioCapturePath::SCommand& command )
 
     // every command makes one event that must not be lost: no more on their way than the queues hold
     if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     command.token = NextToken();
     if ( !m_capturePath.PushCommand( command ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     TSourcePtr source( GUCEF_NEW CORE::CFutureResultSource() );
     m_capturePending[ command.token ] = source;
@@ -2620,22 +2620,22 @@ CAudioEngine::InsertCaptureEffect( TAudioCaptureStage stage, UInt32 slot, const 
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || !m_captureAvailable || effect.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     const UInt32 maxEffects = m_capturePath.GetMaxEffectsPerStage();
     if ( ( AUDIOCAPTURESTAGE_PRE_ECHO != stage && AUDIOCAPTURESTAGE_POST_ECHO != stage ) || slot >= maxEffects )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     const size_t index = (size_t) stage * maxEffects + slot;
     if ( GUCEF_NULL != m_captureSlots[ index ] )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     CAudioEffect* raw = RawEffect( effect );
     if ( IsEffectInUse( raw ) || !raw->IsPreparedFor( m_capturePath.GetProcessingFormat(), m_capturePath.GetMaxBlockFrames() ) )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( !raw->ResolveReferences( *this ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a capture effect of type \"" << raw->GetEffectTypeName() << "\" could not resolve what it refers to, it is not inserted" );
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     }
 
     CAudioCapturePath::SCommand command;
@@ -2664,11 +2664,11 @@ CAudioEngine::RemoveCaptureEffect( const TAudioEffectPtr& effect )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || !m_captureAvailable || effect.IsNULL() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     TCaptureEffectMap::iterator e = m_captureEffects.find( RawEffect( effect ) );
     if ( e == m_captureEffects.end() || (*e).second.removing )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     SCaptureEffectEntry& entry = (*e).second;
     CAudioCapturePath::SCommand command;
@@ -2721,25 +2721,25 @@ CAudioEngine::AddCaptureConsumer( IAudioCaptureConsumer* consumer )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || !m_captureAvailable || GUCEF_NULL == consumer )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     // a consumer that is registered, or whose removal has not reached the capture thread yet, may still be called there:
     // it is not prepared again
     for ( size_t i=0; i<m_captureConsumers.size(); ++i )
         if ( m_captureConsumers[ i ] == consumer )
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     for ( size_t i=0; i<m_captureConsumersLeaving.size(); ++i )
         if ( m_captureConsumersLeaving[ i ] == consumer )
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( m_captureConsumers.size() >= m_capturePath.GetMaxConsumers() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     if ( !consumer->PrepareForCapture( m_capturePath.GetProcessingFormat(), m_capturePath.GetMaxBlockFrames() ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: a capture consumer could not prepare for " << m_capturePath.GetProcessingFormat().ToString() << ", it is not added" );
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     }
 
     CAudioCapturePath::SCommand command;
@@ -2760,14 +2760,14 @@ CAudioEngine::RemoveCaptureConsumer( IAudioCaptureConsumer* consumer )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || !m_captureAvailable || GUCEF_NULL == consumer )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     size_t index = m_captureConsumers.size();
     for ( size_t i=0; i<m_captureConsumers.size(); ++i )
         if ( m_captureConsumers[ i ] == consumer )
             index = i;
     if ( index == m_captureConsumers.size() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     CAudioCapturePath::SCommand command;
     command.type = CAudioCapturePath::SCommand::COMMAND_REMOVE_CONSUMER;
@@ -2790,28 +2790,28 @@ CAudioEngine::SetCaptureHalfDuplexController( CHalfDuplexController* controller 
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || !m_captureAvailable )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( controller == m_captureHalfDuplex )
         return MakeReadyFuture();
 
     // a controller the capture thread may still be using is not prepared again
     for ( size_t i=0; GUCEF_NULL != controller && i<m_captureHalfDuplexLeaving.size(); ++i )
         if ( m_captureHalfDuplexLeaving[ i ] == controller )
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     if ( GUCEF_NULL != controller )
     {
         if ( !controller->ResolveReferences( *this ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the half-duplex controller could not resolve its far-end bus, it is not set" );
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
         }
         if ( !controller->Prepare( m_capturePath.GetProcessingFormat().GetSampleRate() ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the half-duplex controller could not prepare for " << m_capturePath.GetProcessingFormat().ToString() << ", it is not set" );
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
         }
     }
 
@@ -2847,18 +2847,18 @@ CAudioEngine::SetEchoCanceller( CAcousticEchoCanceller* canceller )
 
     MT::CScopeMutex lock( m_lock );
     if ( !m_initialized || !m_captureAvailable )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
     if ( canceller == m_echoCanceller )
         return MakeReadyFuture();
 
     // a canceller that either thread may still be using is not prepared again
     for ( size_t i=0; GUCEF_NULL != canceller && i<m_echoCancellersLeaving.size(); ++i )
         if ( m_echoCancellersLeaving[ i ] == canceller )
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
 
     // one command for each thread: there must be room for both before either is given
     if ( m_capturePending.size() >= m_capturePath.GetQueueCapacity() || !HasRoomForRequest() )
-        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        return MakeFailedFuture( CORE::TASKSTATUS_QUEUEING_FAILED );
 
     if ( GUCEF_NULL != canceller )
     {
@@ -2867,7 +2867,7 @@ CAudioEngine::SetEchoCanceller( CAcousticEchoCanceller* canceller )
         if ( !canceller->Prepare( processing.GetSampleRate(), m_capturePath.GetMaxBlockFrames(), mix.GetSampleRate(), mix.GetChannelCount(), m_maxBlock ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AudioEngine: the echo canceller could not prepare for " << processing.ToString() << " with a reference in " << mix.ToString() << ", it is not set" );
-            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return MakeFailedFuture( CORE::TASKSTATUS_SETUP_FAILED );
         }
     }
 
@@ -2999,7 +2999,7 @@ CAudioEngine::CompletePendingIn( TPendingMap& pending, UInt32 token, bool succes
     if ( success )
         source->Complete();
     else
-        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the capture thread could not carry out the command" );
+        source->Fail( CORE::TASKSTATUS_STARTUP_FAILED, "the capture thread could not carry out the command" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3222,7 +3222,7 @@ CAudioEngine::CompletePending( UInt32 token, bool success )
     if ( success )
         source->Complete();
     else
-        source->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "the audio thread could not carry out the command" );
+        source->Fail( CORE::TASKSTATUS_STARTUP_FAILED, "the audio thread could not carry out the command" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3350,7 +3350,7 @@ CAudioEngine::HandleEvent( const SEvent& event )
         {
             ReleaseVoiceEffects( event.voice );
             if ( !entry.startSource.IsNULL() )
-                entry.startSource->Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "no free voice in the mixer" );
+                entry.startSource->Fail( CORE::TASKSTATUS_STARTUP_FAILED, "no free voice in the mixer" );
             if ( !entry.stopSource.IsNULL() )   entry.stopSource->Complete();
             if ( !entry.pauseSource.IsNULL() )  entry.pauseSource->Cancel();
             if ( !entry.endedSource.IsNULL() )  entry.endedSource->Cancel();

@@ -121,7 +121,7 @@ class CTestEMailWorld : public CTestSmtpDeliverySink
         for ( size_t i=0; i<m_boxes.size(); ++i )
             if ( m_boxes[ i ]->address.Lowercase() == wanted )
                 return m_boxes[ i ];
-        return NULL;
+        return GUCEF_NULL;
     }
 
     bool Start( void )
@@ -250,7 +250,7 @@ class CTestEMailWorld : public CTestSmtpDeliverySink
         for ( size_t i=0; i<recipients.size(); ++i )
         {
             CTestEMailBox* box = Find( recipients[ i ] );
-            if ( NULL == box )
+            if ( GUCEF_NULL == box )
                 continue;
             if ( !ignoreHold )
             {

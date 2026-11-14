@@ -207,7 +207,7 @@ CImageCodecPlugin::Encode( const CImage& inputImage       ,
     TImage* cStyleImage = inputImage.CreateCStyleAccess();
 
     bool success = ( 0 != ( (TIMGCODECPLUGFPTR_EncodeImage) m_icFuncPointers[ ICPLUGINFUNCPTR_ENCODEIMAGE ] )( m_pluginData                 ,
-                                                                                                               NULL                         ,
+                                                                                                               GUCEF_NULL                         ,
                                                                                                                typeName.C_String()          ,
                                                                                                                cStyleImage                  ,
                                                                                                                encodedOutput.CStyleAccess() ) );
@@ -228,17 +228,17 @@ CImageCodecPlugin::Decode( CORE::CIOAccess& encodedInput ,
     if ( GUCEF_NULL == m_icFuncPointers[ ICPLUGINFUNCPTR_DECODEIMAGE ] )
         return false;
 
-     TImage* cStyleImage = NULL;
-     void* cStyleImageData = NULL;
+     TImage* cStyleImage = GUCEF_NULL;
+     void* cStyleImageData = GUCEF_NULL;
 
      if ( 0 != ( (TIMGCODECPLUGFPTR_DecodeImage) m_icFuncPointers[ ICPLUGINFUNCPTR_DECODEIMAGE ] )( m_pluginData                 ,
-                                                                                                    NULL                         ,
+                                                                                                    GUCEF_NULL                         ,
                                                                                                     typeName.C_String()          ,
                                                                                                     encodedInput.CStyleAccess()  ,
                                                                                                     &cStyleImage                 ,
                                                                                                     &cStyleImageData             ) )
     {
-        if ( NULL != cStyleImage )
+        if ( GUCEF_NULL != cStyleImage )
         {
             outputImage.Assign( *cStyleImage );
             ( (TIMGCODECPLUGFPTR_FreeImageStorage) m_icFuncPointers[ ICPLUGINFUNCPTR_FREEIMAGESTORAGE ] )( cStyleImage, cStyleImageData );

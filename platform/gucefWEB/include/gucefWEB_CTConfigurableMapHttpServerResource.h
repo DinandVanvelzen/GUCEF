@@ -226,13 +226,13 @@ CTConfigurableMapHttpServerResource< CollectionKeyType, ConfigurableDerivedClass
 
     if ( m_keyPropertyName.IsNULLOrEmpty() )
     {
-        return ECreateState::CREATESTATE_FAILED;
+        return CIHTTPServerResource::CREATESTATE_FAILED;
     }
 
     CORE::CString entryKey = input.GetAttributeValueOrChildValueByName( m_keyPropertyName );
     if ( entryKey.IsNULLOrEmpty() )
     {
-        return ECreateState::CREATESTATE_UNSUPPORTEDREPRESENTATION;
+        return CIHTTPServerResource::CREATESTATE_UNSUPPORTEDREPRESENTATION;
     }
 
     MT::CObjectScopeLock lock( m_collectionLock );
@@ -240,17 +240,17 @@ CTConfigurableMapHttpServerResource< CollectionKeyType, ConfigurableDerivedClass
     typename TConfigurableCollectionMap::iterator i = m_collection->find( entryKey );
     if ( i != m_collection->end() )
     {
-        return ECreateState::CREATESTATE_CONFLICTING;
+        return CIHTTPServerResource::CREATESTATE_CONFLICTING;
     }
 
     ConfigurableDerivedClass& newEntry = (*m_collection)[ entryKey ];
     if ( !newEntry.LoadConfig( input ) )
     {
         m_collection->erase( entryKey );
-        return ECreateState::CREATESTATE_DESERIALIZATIONFAILED;
+        return CIHTTPServerResource::CREATESTATE_DESERIALIZATIONFAILED;
     }
 
-    return ECreateState::CREATESTATE_CREATED;
+    return CIHTTPServerResource::CREATESTATE_CREATED;
 }
 
 /*-------------------------------------------------------------------------//

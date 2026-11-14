@@ -176,7 +176,7 @@ CZIPArchive::CZIPArchive( void )
     : CArchive()        ,
       m_archiveName()   ,
       m_archivePath()   ,
-      m_zipRoot( NULL ) ,
+      m_zipRoot( GUCEF_NULL ) ,
       m_fileList()      ,
       m_dirs()          ,
       m_lowercaseDirs()
@@ -351,7 +351,7 @@ CZIPArchive::GetFileMetaData( const VFS::CString& filePath      ,
     
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CZIPArchive: request for file size for file: " +  filePath );
     
-    if ( NULL != m_zipRoot )
+    if ( GUCEF_NULL != m_zipRoot )
     {
         // Get uncompressed size too
         ZZIP_STAT zstat;
@@ -404,7 +404,7 @@ VFS::UInt64
 CZIPArchive::GetFileSize( const VFS::CString& filePath ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_zipRoot )
+    if ( GUCEF_NULL != m_zipRoot )
     {
         // Get uncompressed size too
         ZZIP_STAT zstat;
@@ -433,7 +433,7 @@ CZIPArchive::LoadFile( const VFS::CString& file      ,
 {GUCEF_TRACE;
 
     // Check for failed archive
-    if ( NULL == m_zipRoot ) 
+    if ( GUCEF_NULL == m_zipRoot ) 
         return CORE::IOAccessPtr();
 
     // Get non const access, no worries, it wont be changed
@@ -445,7 +445,7 @@ CZIPArchive::LoadFile( const VFS::CString& file      ,
 
     // Format not used here (always binary)
     ZZIP_FILE* zipFile = zzip_file_open( zipRoot, file.C_String(), ZZIP_ONLYZIP | ZZIP_CASELESS );
-    if ( NULL == zipFile )
+    if ( GUCEF_NULL == zipFile )
     {
         int zerr = zzip_error( zipRoot );
         VFS::CString zzDesc = getZzipErrorDescription( (zzip_error_t)zerr );
@@ -534,13 +534,13 @@ CZIPArchive::LoadArchive( const VFS::CArchiveSettings& settings )
     if ( settings.GetWriteableRequested() ) 
         return false;
 
-    if ( NULL == m_zipRoot )
+    if ( GUCEF_NULL == m_zipRoot )
     {
         zzip_error_t zzipError;
         m_zipRoot = zzip_dir_open( settings.GetActualArchivePath().C_String(), &zzipError );
         CheckZzipError( zzipError, "opening archive" );
 
-        if ( NULL == m_zipRoot )
+        if ( GUCEF_NULL == m_zipRoot )
         {
             return false;
         }
@@ -607,11 +607,11 @@ bool
 CZIPArchive::UnloadArchive( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_zipRoot )
+    if ( GUCEF_NULL != m_zipRoot )
     {
         MT::CScopeMutex lock( m_zipLock );
         zzip_dir_close( m_zipRoot );
-        m_zipRoot = NULL;
+        m_zipRoot = GUCEF_NULL;
 
         m_fileList.clear();
         m_dirs.clear();

@@ -128,6 +128,37 @@ namespace GUCEF {
   #endif
 #endif
 
+/*
+ *  The underlying type of an enum, a C++11 addition: enum ETaskStatus GUCEF_ENUM_BASE( UInt8 ) { ... }
+ *  Before C++11 the compiler chooses the underlying type, which is large enough for all of the enum's values
+ */
+#if defined(__cplusplus)
+  #undef GUCEF_ENUM_BASE_IS_SUPPORTED
+  #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1700 )
+    #define GUCEF_ENUM_BASE_IS_SUPPORTED 1
+  #endif
+  #ifdef GUCEF_ENUM_BASE_IS_SUPPORTED
+    #define GUCEF_ENUM_BASE( underlyingType ) : underlyingType
+  #else
+    #define GUCEF_ENUM_BASE( underlyingType )
+  #endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+/*
+ *  Exception specification of a function which does not throw, for every C++ version: noexcept where supported and
+ *  throw() before that. Needed where C++98 requires the specification, such as on an override of a function declared
+ *  with throw() like the destructor and what() of std::exception. C++20 no longer accepts throw().
+ */
+#if defined(__cplusplus)
+  #ifdef GUCEF_NOEXCEPT_IS_SUPPORTED
+    #define GUCEF_NOTHROW noexcept( true )
+  #else
+    #define GUCEF_NOTHROW throw()
+  #endif
+#endif
+
 /*-------------------------------------------------------------------------*/
 
 #if defined(__cplusplus)

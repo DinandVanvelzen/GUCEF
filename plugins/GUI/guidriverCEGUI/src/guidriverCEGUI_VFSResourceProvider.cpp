@@ -142,7 +142,7 @@ VfsResourceProvider::loadRawDataContainer( const CEGUI::String& filename      ,
         {
             CORE::CDynamicBuffer memBuffer( *fileAccess );
              
-            void* buffer = NULL;
+            void* buffer = GUCEF_NULL;
             UInt32 dataSize = 0; 
             memBuffer.RelinquishDataOwnership( buffer, dataSize );
 
@@ -173,13 +173,13 @@ VfsResourceProvider::unloadRawDataContainer( CEGUI::RawDataContainer& data )
     TContainerMap::iterator i = m_containerMap.find( (void*) data.getDataPtr() );
     if ( i != m_containerMap.end() )
     {
-        (*i).second->ceContainer.setData( (CEGUI::uint8*) nullptr );
+        (*i).second->ceContainer.setData( (CEGUI::uint8*) GUCEF_NULL );
         (*i).second->ceContainer.setSize( 0 );
         m_containerMap.erase( i );
     }
     
     delete[] data.getDataPtr();
-    data.setData( (CEGUI::uint8*) nullptr );
+    data.setData( (CEGUI::uint8*) GUCEF_NULL );
     data.setSize( 0 );
 }
 

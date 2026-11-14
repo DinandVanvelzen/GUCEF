@@ -30,35 +30,49 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "MyGUI.Engine", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
+
+configuration( {} )
 links( { "MyGUI.Engine", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
 
 
 configuration( {} )
 defines( { "GUIDRIVERMYGUIOPENGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverMyGUIOpenGL" } )
-  
-configuration( { ANDROID32 } )
+
+configuration( { "ANDROID32" } )
 links( { "MyGUI.OpenGLESPlatform" } )
-  links( { "GLESv1_CM", "MyGUI.OpenGLESPlatform" } )
-  
-configuration( { ANDROID64 } )
+
+configuration( { "ANDROID32" } )
+links( { "GLESv1_CM", "MyGUI.OpenGLESPlatform" } )
+
+configuration( { "ANDROID64" } )
 links( { "MyGUI.OpenGLESPlatform" } )
-  links( { "GLESv1_CM", "MyGUI.OpenGLESPlatform" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "ANDROID64" } )
+links( { "GLESv1_CM", "MyGUI.OpenGLESPlatform" } )
+
+configuration( { "LINUX32" } )
 links( { "MyGUI.OpenGLPlatform" } )
-  links( { "GL", "MyGUI.OpenGLPlatform" } )
-  
-configuration( { LINUX64 } )
+
+configuration( { "LINUX32" } )
+links( { "GL", "MyGUI.OpenGLPlatform" } )
+
+configuration( { "LINUX64" } )
 links( { "MyGUI.OpenGLPlatform" } )
-  links( { "GL", "MyGUI.OpenGLPlatform" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX64" } )
+links( { "GL", "MyGUI.OpenGLPlatform" } )
+
+configuration( { "WIN32" } )
 links( { "MyGUI.OpenGLPlatform" } )
-  links( { "MyGUI.OpenGLPlatform", "OpenGL32" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "WIN32" } )
+links( { "MyGUI.OpenGLPlatform", "OpenGL32" } )
+
+configuration( { "WIN64" } )
 links( { "MyGUI.OpenGLPlatform" } )
-  links( { "MyGUI.OpenGLPlatform", "OpenGL32" } )
+
+configuration( { "WIN64" } )
+links( { "MyGUI.OpenGLPlatform", "OpenGL32" } )
 
 
 configuration( {} )
@@ -87,7 +101,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverMyGUI/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverMyGUI/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../platform/gucefCORE/include/android", "OpenGLESPlatform/include" } )

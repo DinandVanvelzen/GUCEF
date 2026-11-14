@@ -314,7 +314,7 @@ class CLoadGenerator
 {
     public:
 
-    explicit CLoadGenerator( UInt32 threadCount ) : m_count( threadCount ), m_threads( threadCount, (MT::SThreadData*) GUCEF_NULL ), m_loads( threadCount )
+    explicit CLoadGenerator( UInt32 threadCount ) : m_count( threadCount ), m_threads( threadCount, (MT::SThreadData*) GUCEF_NULL ), m_loads( new SLoadThread[ threadCount ] )
     {
         for ( UInt32 i=0; i<m_count; ++i )
         {
@@ -337,13 +337,17 @@ class CLoadGenerator
                 MT::ThreadWait( m_threads[ i ], 60000 );
                 MT::ThreadDataCleanup( m_threads[ i ] );
             }
+        delete[] m_loads;
     }
 
     private:
 
+    CLoadGenerator( const CLoadGenerator& src );
+    CLoadGenerator& operator=( const CLoadGenerator& src );
+
     UInt32 m_count;
     GUCEF::vector< MT::SThreadData* > m_threads;
-    GUCEF::vector< SLoadThread > m_loads;
+    SLoadThread* m_loads;    /**< array of m_count entries; the atomics in an entry cannot be copied, which a C++98 vector needs */
 };
 
 /*-------------------------------------------------------------------------*/

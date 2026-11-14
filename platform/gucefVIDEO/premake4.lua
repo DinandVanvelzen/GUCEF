@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefAUDIO", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefAUDIO", "gucefCORE", "gucefIMAGE", "gucefMT" } )
 
 
@@ -85,7 +87,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefAUDIO/include", "../gucefAUDIO/include/c_api", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefIMAGE/include", "../gucefMT/include", "include", "include/c_api" } )
+includedirs( { "../../common/include", "../gucefAUDIO/include", "../gucefAUDIO/include/c_api", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefIMAGE/include", "../gucefMATH/include", "../gucefMATH/src", "../gucefMT/include", "include", "include/c_api" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../gucefCORE/include/android" } )

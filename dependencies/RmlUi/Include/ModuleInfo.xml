@@ -1,4 +1,6 @@
 <ModuleInfoEntry>
     <Module Name="RmlUI_Includes" Type="HeaderIncludeLocation" Platform="All">
+        <!-- RmlUi requires C++14 -->
+        <Compiler MinCppStandard="14" />
     </Module>
 </ModuleInfoEntry>

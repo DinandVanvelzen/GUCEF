@@ -56,7 +56,7 @@ CObserverSwitch::CObserverSwitch( void )
     : CObservingNotifier()  ,
       m_observerGroups()    ,
       m_activeGroupName()   ,
-      m_activeGroup( NULL )
+      m_activeGroup( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -67,7 +67,7 @@ CObserverSwitch::CObserverSwitch( const CObserverSwitch& src )
     : CObservingNotifier( src ) ,
       m_observerGroups()        ,
       m_activeGroupName()       ,
-      m_activeGroup( NULL )
+      m_activeGroup( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -95,7 +95,7 @@ CObserverSwitch::AddObserverToGroup( const CString& groupName ,
                                      CObserver& observer      )
 {GUCEF_TRACE;
 
-    assert( NULL != &observer );
+    assert( GUCEF_NULL != &observer );
     
     Lock();
     
@@ -105,7 +105,7 @@ CObserverSwitch::AddObserverToGroup( const CString& groupName ,
     
     // Make sure our shortcut pointer gets set if this is the first item in the
     // already active group
-    if ( NULL == m_activeGroup )
+    if ( GUCEF_NULL == m_activeGroup )
     {
         if ( groupName == m_activeGroupName )
         {
@@ -124,7 +124,7 @@ CObserverSwitch::RemoveObserverFromGroup( const CString& groupName ,
                                           CObserver& observer      )
 {GUCEF_TRACE;
 
-    assert( NULL != &observer );
+    assert( GUCEF_NULL != &observer );
     
     Lock();
     
@@ -159,7 +159,7 @@ CObserverSwitch::SetActiveGroup( const CString& groupName )
     }
     else
     {
-        m_activeGroup = NULL;
+        m_activeGroup = GUCEF_NULL;
     }
     Unlock();
 }
@@ -185,7 +185,7 @@ CObserverSwitch::OnNotify( CNotifier* notifier                 ,
 
     GUCEF_DEBUG_LOG( LOGLEVEL_EVERYTHING, "CObserverSwitch(" + PointerToString( this ) + "): Dispatching event \"" + eventid.GetName() + "\" to group: " + m_activeGroupName );
 
-    if ( NULL != m_activeGroup )
+    if ( GUCEF_NULL != m_activeGroup )
     {
         TObserverSet::iterator i = m_activeGroup->begin();
         while ( i != m_activeGroup->end() )

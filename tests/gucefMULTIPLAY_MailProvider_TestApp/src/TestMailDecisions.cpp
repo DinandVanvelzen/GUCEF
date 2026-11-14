@@ -71,7 +71,7 @@ Propose( CEMailTable& table, UInt32 proposer, UInt32 target, const CORE::CString
     proposal.deadline = table.clock.nowMs + 7LL * 24 * 3600 * 1000;
     if ( !proposal.Sign( table.P( proposer ).identity ) )
         return false;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     MULTIPLAY::CMatchOperationResult result;
     return table.P( proposer ).provider->Propose( matchId, proposal, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status;
 }
@@ -85,7 +85,7 @@ CastVote( CEMailTable& table, UInt32 voter, const CORE::CString& matchId, const 
     MULTIPLAY::CMatchVote vote;
     if ( !vote.Sign( table.P( voter ).identity, proposal, yes, table.clock.nowMs ) )
         return false;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     MULTIPLAY::CMatchOperationResult result;
     return table.P( voter ).provider->Vote( matchId, vote, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status;
 }
@@ -156,7 +156,7 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( table.MakeTurn( 1, id, 0, "hand-carol-over", MULTIPLAY::MATCHSTATUS_ACTIVE, package, preview ) );
         for ( UInt32 i=0; i<3; ++i )
             table.P( i ).verifier.evidenceBySha[ package.sha256 ].push_back( evidence );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 1 ).provider->Submit( id, 1, preview, package, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         if ( !table.WaitAllTrusted( id, 2 ) )
@@ -218,7 +218,7 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( table.MakeTurn( 1, id, 2, "hand-dave-over", MULTIPLAY::MATCHSTATUS_ACTIVE, package, preview ) );
         for ( UInt32 i=0; i<4; ++i )
             table.P( i ).verifier.evidenceBySha[ package.sha256 ].push_back( evidence );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         // the provider of the player who plays it refuses it too; a client that was changed sends it anyway
         ASSERT_TRUE( table.P( 1 ).provider->Submit( id, 1, preview, package, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
@@ -280,7 +280,7 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( table.MakeTurn( 0, id, 1, "hand-carol-over", MULTIPLAY::MATCHSTATUS_ACTIVE, package, preview ) );
         for ( UInt32 i=0; i<3; ++i )
             table.P( i ).verifier.evidenceBySha[ package.sha256 ].push_back( evidence );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->Submit( id, 1, preview, package, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         ASSERT_TRUE( table.WaitAllTrusted( id, 2 ) );
@@ -311,7 +311,7 @@ PerformMailDecisionTests( void )
         // no evidence at all
         MULTIPLAY::CMatchPackage package;
         MULTIPLAY::CMatchPreview preview;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.MakeTurn( 0, id, 1, "steal-the-turn", MULTIPLAY::MATCHSTATUS_ACTIVE, package, preview ) );
         ASSERT_TRUE( table.P( 0 ).provider->Submit( id, 1, preview, package, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
@@ -327,7 +327,7 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( table.P( 0 ).provider->GetDecisionEvidence( id, proposal.proposalId, failed ) );
         for ( UInt32 i=0; i<4; ++i )
             table.P( i ).verifier.evidenceBySha[ package.sha256 ].push_back( failed );
-        future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( table.P( 0 ).provider->Submit( id, 1, preview, package, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
 
         // a decision that passed, about Carol who is not up: it does not give Alice the turn of Dave
@@ -344,7 +344,7 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( table.MakeTurn( 0, id, 1, "steal-the-turn-again", MULTIPLAY::MATCHSTATUS_ACTIVE, other, otherPreview ) );
         for ( UInt32 i=0; i<4; ++i )
             table.P( i ).verifier.evidenceBySha[ other.sha256 ].push_back( passed );
-        future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( table.P( 0 ).provider->Submit( id, 1, otherPreview, other, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
 
         // a turn signed by Alice for Dave, injected as a client that was changed would send it: refused by the others as well
@@ -376,7 +376,7 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( WaitVotes( table, 1, id, proposal.proposalId, 0 ) );
 
         // not a signature of the player: refused when it is made
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         MULTIPLAY::CMatchVote asBob;
         ASSERT_TRUE( asBob.Sign( table.P( 1 ).identity, proposal, true, table.clock.nowMs ) );
@@ -497,7 +497,7 @@ ProposeBeforeStart( CEMailTable& table, UInt32 proposer, const CORE::CString& id
     proposal.deadline = table.clock.nowMs + 7LL * 24 * 3600 * 1000;
     if ( !proposal.Sign( table.P( proposer ).identity ) )
         return false;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     MULTIPLAY::CMatchOperationResult result;
     const bool done = table.P( proposer ).provider->Propose( id, proposal, future ) && table.Await( future, result );
     return done && ( expectAccepted == ( MULTIPLAY::MATCHOPERATION_OK == result.status ) );
@@ -520,7 +520,7 @@ PlayFirstTurnWith( CEMailTable& table, UInt32 player, const CORE::CString& id, i
         for ( size_t e=0; e<evidence.size(); ++e )
             table.P( i ).verifier.evidenceBySha[ package.sha256 ].push_back( evidence[ e ] );
     }
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     return table.P( player ).provider->Submit( id, package.revision - 1, preview, package, future ) && table.Await( future, result );
 }
 
@@ -778,7 +778,7 @@ PerformMailLobbyTests( void )
         ASSERT_FALSE( id.IsNULLOrEmpty() );
 
         // Bob is no creator and no boss: he cannot cancel, and a cancel he signs is refused by everybody
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 1 ).provider->Cancel( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
         MULTIPLAY::CMatchProposal forged;
@@ -837,7 +837,7 @@ PerformMailLobbyTests( void )
         ASSERT_FALSE( id.IsNULLOrEmpty() );
 
         // the operation that cancels alone is not for a match decided by vote: it says so, and nothing changes
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->Cancel( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
         ASSERT_TRUE( result.reason.HasSubstr( "vote", false ) >= 0 );
@@ -994,7 +994,7 @@ PerformMailLobbyTests( void )
         ASSERT_TRUE( 1 == bobPending.size() && MAIL::CEMailInboundIntro::STATUS_PENDING == bobPending[ 0 ].status );
 
         // Alice cancels the game: both invitations are cancelled and name her; the draft is gone
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->Cancel( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         MAIL::CEMailIntroDraft draft;
@@ -1126,7 +1126,7 @@ PerformMailLobbyTests( void )
         ASSERT_TRUE( WaitVotes( table, 2, id, proposal.proposalId, 0 ) );
         ASSERT_TRUE( CastVote( table, 2, id, proposal, true ) );
         ASSERT_TRUE( WaitVotes( table, 0, id, proposal.proposalId, 1 ) );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 2 ).provider->ChooseSpectator( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         ASSERT_TRUE( WaitStatus( table, 0, id, 2, MULTIPLAY::MATCHPARTICIPANT_SPECTATOR ) );
@@ -1173,7 +1173,7 @@ PerformMailLobbyTests( void )
         ASSERT_TRUE( WaitVotes( table, 2, id, proposal.proposalId, 0 ) );
         ASSERT_TRUE( CastVote( table, 2, id, proposal, true ) );
         ASSERT_TRUE( WaitVotes( table, 0, id, proposal.proposalId, 1 ) );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->ChooseSpectator( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
         ASSERT_TRUE( table.P( 2 ).provider->ChooseSpectator( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );

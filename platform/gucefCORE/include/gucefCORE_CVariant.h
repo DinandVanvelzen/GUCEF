@@ -457,7 +457,7 @@ CVariant::AsBsob( void ) const
     #if ( defined ( _MSC_VER ) && __cplusplus >= 199711L ) || ( __cplusplus >= 201103L )
     static_assert( sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOB_SIZE, "Type size is invalid. Is not smaller or equal" );
     #else
-    { char const CompileTimeTypeSizeSmallerEqualsCheck[ sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOD_SIZE ? 1 : -1 ]; }
+    { typedef char CompileTimeTypeSizeSmallerEqualsCheck[ sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOB_SIZE ? 1 : -1 ]; }
     #endif 
     
     return *( reinterpret_cast< const TemplateBsobType* >( m_variantData.union_data.bsob_data ) );
@@ -476,7 +476,7 @@ CVariant::AsBsobPtr( void )
     #if ( defined ( _MSC_VER ) && __cplusplus >= 199711L ) || ( __cplusplus >= 201103L )
     static_assert( sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOB_SIZE, "Type size is invalid. Is not smaller or equal" );
     #else
-    { char const CompileTimeTypeSizeSmallerEqualsCheck[ sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOD_SIZE ? 1 : -1 ]; }
+    { typedef char CompileTimeTypeSizeSmallerEqualsCheck[ sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOB_SIZE ? 1 : -1 ]; }
     #endif 
 
     return ( reinterpret_cast< TemplateBsobType* >( m_variantData.union_data.bsob_data ) );
@@ -495,7 +495,7 @@ CVariant::AsBsobPtr( void ) const
     #if ( defined ( _MSC_VER ) && __cplusplus >= 199711L ) || ( __cplusplus >= 201103L )
     static_assert( sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOB_SIZE, "Type size is invalid. Is not smaller or equal" );
     #else
-    { char const CompileTimeTypeSizeSmallerEqualsCheck[ sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOD_SIZE ? 1 : -1 ]; }
+    { typedef char CompileTimeTypeSizeSmallerEqualsCheck[ sizeof( TemplateBsobType ) <= GUCEF_VARIANT_BSOB_SIZE ? 1 : -1 ]; }
     #endif 
 
     return ( reinterpret_cast< const TemplateBsobType* >( m_variantData.union_data.bsob_data ) );

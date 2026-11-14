@@ -81,7 +81,7 @@ class CComScope
 {
     public:
 
-    CComScope( void ) : m_result( ::CoInitializeEx( NULL, COINIT_MULTITHREADED ) ) {}
+    CComScope( void ) : m_result( ::CoInitializeEx( GUCEF_NULL, COINIT_MULTITHREADED ) ) {}
     ~CComScope() { if ( SUCCEEDED( m_result ) ) ::CoUninitialize(); }
     bool IsUsable( void ) const { return SUCCEEDED( m_result ) || RPC_E_CHANGED_MODE == m_result; }
 
@@ -96,10 +96,10 @@ template < class T >
 void
 SafeRelease( T*& object )
 {
-    if ( NULL != object )
+    if ( GUCEF_NULL != object )
     {
         object->Release();
-        object = NULL;
+        object = GUCEF_NULL;
     }
 }
 
@@ -119,7 +119,7 @@ HResultText( HRESULT result )
 CORE::CString
 TakeComString( LPWSTR text )
 {
-    if ( NULL == text )
+    if ( GUCEF_NULL == text )
         return CORE::CString::Empty;
     CORE::CString result = CORE::ToString( (const wchar_t*) text );
     ::CoTaskMemFree( text );
@@ -131,7 +131,7 @@ TakeComString( LPWSTR text )
 CORE::CString
 GetEndpointId( IMMDevice* endpoint )
 {
-    LPWSTR id = NULL;
+    LPWSTR id = GUCEF_NULL;
     if ( FAILED( endpoint->GetId( &id ) ) )
         return CORE::CString::Empty;
     return TakeComString( id );
@@ -143,7 +143,7 @@ CORE::CString
 GetEndpointName( IMMDevice* endpoint )
 {
     CORE::CString name;
-    IPropertyStore* properties = NULL;
+    IPropertyStore* properties = GUCEF_NULL;
     if ( SUCCEEDED( endpoint->OpenPropertyStore( STGM_READ, &properties ) ) )
     {
         PROPVARIANT value;
@@ -161,12 +161,12 @@ GetEndpointName( IMMDevice* endpoint )
 IMMDeviceEnumerator*
 CreateEnumerator( void )
 {
-    IMMDeviceEnumerator* enumerator = NULL;
-    HRESULT result = ::CoCreateInstance( __uuidof( MMDeviceEnumerator ), NULL, CLSCTX_ALL, __uuidof( IMMDeviceEnumerator ), (void**) &enumerator );
+    IMMDeviceEnumerator* enumerator = GUCEF_NULL;
+    HRESULT result = ::CoCreateInstance( __uuidof( MMDeviceEnumerator ), GUCEF_NULL, CLSCTX_ALL, __uuidof( IMMDeviceEnumerator ), (void**) &enumerator );
     if ( FAILED( result ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WasapiAudioDriver: No device enumerator: " << HResultText( result ) );
-        return NULL;
+        return GUCEF_NULL;
     }
     return enumerator;
 }
@@ -264,10 +264,10 @@ CWasapiAudioDevice::~CWasapiAudioDevice()
     Stop();
     SafeRelease( m_renderClient );
     SafeRelease( m_client );
-    if ( NULL != m_bufferEvent )
+    if ( GUCEF_NULL != m_bufferEvent )
     {
         ::CloseHandle( (HANDLE) m_bufferEvent );
-        m_bufferEvent = NULL;
+        m_bufferEvent = GUCEF_NULL;
     }
 }
 
@@ -302,7 +302,7 @@ bool
 CWasapiAudioDevice::OnDeviceThreadStart( void )
 {GUCEF_TRACE;
 
-    const HRESULT result = ::CoInitializeEx( NULL, COINIT_MULTITHREADED );
+    const HRESULT result = ::CoInitializeEx( GUCEF_NULL, COINIT_MULTITHREADED );
     m_comInitializedOnDeviceThread = SUCCEEDED( result );
     return SUCCEEDED( result ) || RPC_E_CHANGED_MODE == result;
 }
@@ -345,7 +345,7 @@ CWasapiAudioDevice::PushFrames( const void* frames, CORE::UInt32 frameCount )
         timeouts = 0;
 
         const CORE::UInt32 count = room < remaining ? room : remaining;
-        BYTE* destination = NULL;
+        BYTE* destination = GUCEF_NULL;
         result = m_renderClient->GetBuffer( count, &destination );
         if ( FAILED( result ) )
         {
@@ -420,7 +420,7 @@ CWasapiAudioDriver::IsAvailable( void ) const
     if ( !com.IsUsable() )
         return false;
     IMMDeviceEnumerator* enumerator = CreateEnumerator();
-    const bool available = NULL != enumerator;
+    const bool available = GUCEF_NULL != enumerator;
     SafeRelease( enumerator );
     return available;
 }
@@ -465,25 +465,25 @@ CWasapiAudioDriver::EnumerateDevices( AUDIO::TAudioDirection direction, AUDIO::T
     if ( !com.IsUsable() )
         return false;
     IMMDeviceEnumerator* enumerator = CreateEnumerator();
-    if ( NULL == enumerator )
+    if ( GUCEF_NULL == enumerator )
         return false;
 
     CORE::CString defaultId;
-    IMMDevice* defaultEndpoint = NULL;
+    IMMDevice* defaultEndpoint = GUCEF_NULL;
     if ( SUCCEEDED( enumerator->GetDefaultAudioEndpoint( eRender, eConsole, &defaultEndpoint ) ) )
     {
         defaultId = GetEndpointId( defaultEndpoint );
         SafeRelease( defaultEndpoint );
     }
 
-    IMMDeviceCollection* endpoints = NULL;
+    IMMDeviceCollection* endpoints = GUCEF_NULL;
     if ( SUCCEEDED( enumerator->EnumAudioEndpoints( eRender, DEVICE_STATE_ACTIVE, &endpoints ) ) )
     {
         UINT count = 0;
         endpoints->GetCount( &count );
         for ( UINT i=0; i<count; ++i )
         {
-            IMMDevice* endpoint = NULL;
+            IMMDevice* endpoint = GUCEF_NULL;
             if ( FAILED( endpoints->Item( i, &endpoint ) ) )
                 continue;
 
@@ -519,11 +519,11 @@ CWasapiAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
     if ( !com.IsUsable() )
         return false;
     IMMDeviceEnumerator* enumerator = CreateEnumerator();
-    if ( NULL == enumerator )
+    if ( GUCEF_NULL == enumerator )
         return false;
 
     const bool useDefault = params.GetDeviceId().IsNULLOrEmpty() || "default" == params.GetDeviceId();
-    IMMDevice* endpoint = NULL;
+    IMMDevice* endpoint = GUCEF_NULL;
     HRESULT result = S_OK;
     if ( useDefault )
     {
@@ -535,7 +535,7 @@ CWasapiAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
         result = enumerator->GetDevice( reinterpret_cast< LPCWSTR >( wideId.C_String() ), &endpoint );
     }
     SafeRelease( enumerator );
-    if ( FAILED( result ) || NULL == endpoint )
+    if ( FAILED( result ) || GUCEF_NULL == endpoint )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WasapiAudioDriver: No endpoint \"" << ( useDefault ? CORE::CString( "default" ) : params.GetDeviceId() ) << "\": " << HResultText( result ) );
         return false;
@@ -544,19 +544,19 @@ CWasapiAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
     const CORE::CString endpointId = GetEndpointId( endpoint );
     const CORE::CString endpointName = GetEndpointName( endpoint );
 
-    IAudioClient* client = NULL;
-    result = endpoint->Activate( __uuidof( IAudioClient ), CLSCTX_ALL, NULL, (void**) &client );
+    IAudioClient* client = GUCEF_NULL;
+    result = endpoint->Activate( __uuidof( IAudioClient ), CLSCTX_ALL, GUCEF_NULL, (void**) &client );
     SafeRelease( endpoint );
-    if ( FAILED( result ) || NULL == client )
+    if ( FAILED( result ) || GUCEF_NULL == client )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WasapiAudioDriver: Could not activate \"" << endpointName << "\": " << HResultText( result ) );
         return false;
     }
 
     // What the endpoint mixes in fills in what was not asked for
-    WAVEFORMATEX* mixWave = NULL;
+    WAVEFORMATEX* mixWave = GUCEF_NULL;
     AUDIO::CAudioFormat mixFormat;
-    if ( SUCCEEDED( client->GetMixFormat( &mixWave ) ) && NULL != mixWave )
+    if ( SUCCEEDED( client->GetMixFormat( &mixWave ) ) && GUCEF_NULL != mixWave )
     {
         mixFormat = FromWaveFormat( *mixWave );
         ::CoTaskMemFree( mixWave );
@@ -571,13 +571,13 @@ CWasapiAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
 
     WAVEFORMATEXTENSIBLE wave;
     AUDIO::CAudioFormat format = ToWaveFormat( wanted, wave );
-    result = client->Initialize( AUDCLNT_SHAREMODE_SHARED, flags, bufferDuration, 0, &wave.Format, NULL );
+    result = client->Initialize( AUDCLNT_SHAREMODE_SHARED, flags, bufferDuration, 0, &wave.Format, GUCEF_NULL );
     if ( FAILED( result ) && mixFormat.IsValid() && !( mixFormat == format ) )
     {
         // Windows before 7 SP1 has no conversion: then the mix format is the only one that works
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "WasapiAudioDriver: \"" << endpointName << "\" refused " << format.ToString() << " (" << HResultText( result ) << "), using its mix format" );
         format = ToWaveFormat( mixFormat, wave );
-        result = client->Initialize( AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, bufferDuration, 0, &wave.Format, NULL );
+        result = client->Initialize( AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, bufferDuration, 0, &wave.Format, GUCEF_NULL );
     }
     if ( FAILED( result ) )
     {
@@ -596,13 +596,13 @@ CWasapiAudioDriver::OpenDevice( const AUDIO::CAudioDeviceParams& params ,
     if ( bufferSize >= 128 && periodSize > bufferSize / 2 )
         periodSize = bufferSize / 2;
 
-    HANDLE bufferEvent = ::CreateEventW( NULL, FALSE, FALSE, NULL );
-    IAudioRenderClient* renderClient = NULL;
-    if ( NULL == bufferEvent || FAILED( client->SetEventHandle( bufferEvent ) ) ||
-         FAILED( client->GetService( __uuidof( IAudioRenderClient ), (void**) &renderClient ) ) || NULL == renderClient )
+    HANDLE bufferEvent = ::CreateEventW( GUCEF_NULL, FALSE, FALSE, GUCEF_NULL );
+    IAudioRenderClient* renderClient = GUCEF_NULL;
+    if ( GUCEF_NULL == bufferEvent || FAILED( client->SetEventHandle( bufferEvent ) ) ||
+         FAILED( client->GetService( __uuidof( IAudioRenderClient ), (void**) &renderClient ) ) || GUCEF_NULL == renderClient )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WasapiAudioDriver: Could not set up buffering for \"" << endpointName << "\"" );
-        if ( NULL != bufferEvent )
+        if ( GUCEF_NULL != bufferEvent )
             ::CloseHandle( bufferEvent );
         SafeRelease( client );
         return false;

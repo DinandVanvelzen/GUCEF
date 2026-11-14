@@ -4,7 +4,7 @@
 NAMESPACE="devops-tools"
 
 # Set the file to extract
-FILE_PATH="/var/jenkins_home/data/secrets/initialAdminPassword"
+FILE_PATH="/var/jenkins_home/secrets/initialAdminPassword"
 
 . ./wait_for_jenkins_pod.sh
 

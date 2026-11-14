@@ -56,7 +56,7 @@ namespace WEB {
 //-------------------------------------------------------------------------*/
 
 CStdParams::CStdParams( void )
-    : viewType( TViewType::VIEW_TYPE_UNDEFINED )
+    : viewType( VIEW_TYPE_UNDEFINED )
     , levelOfDetail( CORE::CDataNodeSerializableSettings::DataNodeSerializableLod_Undefined )
     , viewTypeWasProvided( false )
     , levelOfDetailWasProvided( false )
@@ -67,7 +67,7 @@ CStdParams::CStdParams( void )
 /*-------------------------------------------------------------------------*/
 
 CStdParams::CStdParams( const CORE::CDataNodeSerializableSettings& settings )
-    : viewType( TViewType::VIEW_TYPE_UNDEFINED )
+    : viewType( VIEW_TYPE_UNDEFINED )
     , levelOfDetail( CORE::CDataNodeSerializableSettings::DataNodeSerializableLod_Undefined )
     , viewTypeWasProvided( false )
     , levelOfDetailWasProvided( false )

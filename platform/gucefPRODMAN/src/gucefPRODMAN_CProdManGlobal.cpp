@@ -70,7 +70,7 @@ namespace PRODMAN {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CProdManGlobal* CProdManGlobal::g_instance = NULL;
+CProdManGlobal* CProdManGlobal::g_instance = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,7 +82,7 @@ CProdManGlobal*
 CProdManGlobal::Instance()
 {GUCEF_TRACE;
 
-    if ( NULL == g_instance )
+    if ( GUCEF_NULL == g_instance )
     {
         g_instance = new CProdManGlobal();
         g_instance->Initialize();
@@ -97,7 +97,7 @@ CProdManGlobal::Deinstance( void )
 {GUCEF_TRACE;
 
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -127,7 +127,7 @@ CProdManGlobal::Initialize( void )
 /*-------------------------------------------------------------------------*/
 
 CProdManGlobal::CProdManGlobal( void )
-    : m_productManager( NULL )
+    : m_productManager( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -141,9 +141,9 @@ CProdManGlobal::~CProdManGlobal()
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefPRODMAN" );
 
     delete m_productManager;
-    m_productManager = NULL;
+    m_productManager = GUCEF_NULL;
     delete m_productInfoListProviderRegistry;
-    m_productInfoListProviderRegistry = NULL;
+    m_productInfoListProviderRegistry = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

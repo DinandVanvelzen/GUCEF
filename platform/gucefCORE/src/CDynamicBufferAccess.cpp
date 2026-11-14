@@ -81,7 +81,7 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer* buffer              
     , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
         
-    assert( m_buffer != NULL );                    
+    assert( m_buffer != GUCEF_NULL );                    
 }
 
 /*-------------------------------------------------------------------------*/
@@ -98,7 +98,7 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer& buffer )
     , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
 
-    assert( m_buffer != NULL );
+    assert( m_buffer != GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -118,7 +118,7 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer* buffer              
     , m_growthStrategyParam( growthStrategyParam )
 {GUCEF_TRACE;
 
-    assert( m_buffer != NULL );
+    assert( m_buffer != GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -153,7 +153,7 @@ CDynamicBufferAccess::CDynamicBufferAccess( const CDynamicBuffer& buffer )
     , m_growthStrategyParam( 0 )
 {GUCEF_TRACE;
 
-    assert( m_buffer != NULL );
+    assert( m_buffer != GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -166,7 +166,7 @@ CDynamicBufferAccess::~CDynamicBufferAccess()
     if ( m_deleteBufferUponDestruction )
     {
         GUCEF_DELETE m_buffer;
-        m_buffer = NULL;
+        m_buffer = GUCEF_NULL;
     }
 }
 
@@ -183,7 +183,7 @@ CDynamicBufferAccess::LoadContentFromFile( const CString& filePath   ,
     if ( m_deleteBufferUponDestruction )
     {
         GUCEF_DELETE m_buffer;
-        m_buffer = NULL;
+        m_buffer = GUCEF_NULL;
     }
     
     m_buffer = GUCEF_NEW CDynamicBuffer();
@@ -195,7 +195,7 @@ CDynamicBufferAccess::LoadContentFromFile( const CString& filePath   ,
     }
 
     GUCEF_DELETE m_buffer;
-    m_buffer = NULL;
+    m_buffer = GUCEF_NULL;
     return false;
 }
 
@@ -525,7 +525,7 @@ bool
 CDynamicBufferAccess::IsValid( void )
 {GUCEF_TRACE;
 
-    return m_buffer != NULL;
+    return m_buffer != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
