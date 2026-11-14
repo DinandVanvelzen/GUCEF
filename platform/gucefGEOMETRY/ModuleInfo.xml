@@ -1,0 +1,34 @@
+<ModuleInfoEntry>
+    <Module Name="gucefGEOMETRY" Type="SharedLibrary" Platform="All" Tags="platform">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF module providing geometry: shapes, spaces and spatial queries</DescriptionHeadline>
+            <DescriptionDetails>Shapes, relative transform spaces, intersection and distance queries, frusta, bounding volumes and meshes over gucefMATH</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefMATH" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_GEOMETRY_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-ffp-contract=off" />
+            <CompilerFlags CompilerName="MSVC" Flags="/fp:precise" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

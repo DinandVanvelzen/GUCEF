@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <Module Name="gucefCOMPUTE" Type="SharedLibrary" Platform="All" Tags="platform">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF module providing compute: devices, buffers and kernels over pluggable backends</DescriptionHeadline>
+            <DescriptionDetails>Backend neutral compute: devices, buffers, kernels and command lists, a built in CPU backend and backend plugins</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_COMPUTE_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>
