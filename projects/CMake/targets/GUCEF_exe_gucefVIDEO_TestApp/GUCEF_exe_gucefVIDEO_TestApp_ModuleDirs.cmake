@@ -11,6 +11,7 @@
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefAUDIO ${CMAKE_BINARY_DIR}/gucefAUDIO )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefIMAGE ${CMAKE_BINARY_DIR}/gucefIMAGE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMATH ${CMAKE_BINARY_DIR}/gucefMATH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefVIDEO ${CMAKE_BINARY_DIR}/gucefVIDEO )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VIDEO/videocodecpluginSMK ${CMAKE_BINARY_DIR}/videocodecpluginSMK )

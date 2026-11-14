@@ -57,6 +57,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefDRN ${CM
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGUI ${CMAKE_BINARY_DIR}/gucefGUI )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefIMAGE ${CMAKE_BINARY_DIR}/gucefIMAGE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefINPUT ${CMAKE_BINARY_DIR}/gucefINPUT )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMATH ${CMAKE_BINARY_DIR}/gucefMATH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMULTIPLAY ${CMAKE_BINARY_DIR}/gucefMULTIPLAY )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPUBSUB ${CMAKE_BINARY_DIR}/gucefPUBSUB )
