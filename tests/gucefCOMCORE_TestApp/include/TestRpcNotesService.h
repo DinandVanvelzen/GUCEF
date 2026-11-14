@@ -25,6 +25,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
 #define GUCEF_MT_CMUTEX_H
@@ -102,13 +104,16 @@ class CRpcNotesTestService : public GUCEF::COMCORE::CRpcServiceImpl ,
     GUCEF::UInt32 reindexAccepted;
     GUCEF::UInt32 attachmentBytes;
     GUCEF::UInt32 savedAttachmentBytes;
+    GUCEF::UInt8 lastSessionId[ GUCEF_RPC_SESSIONID_SIZE ];   /**< of the session of the last call, CRpcServerCall::GetSessionId() */
+    bool lastHadSessionId;
 
     CRpcNotesTestService( void )
         : GUCEF::COMCORE::CRpcServiceImpl()
         , GUCEF::CORE::CObserver()
         , watchCount( 3 ), holdWatch( false ), calls( 0 ), saves( 0 ), lastHandlerThread( 0 ), lastMetadata(), cancelledCalls( 0 )
-        , importedChunks( 0 ), importedBytes( 0 ), reindexAccepted( 0 ), attachmentBytes( 0 ), savedAttachmentBytes( 0 ), m_lock(), m_held(), m_reindex(), m_watching(), m_nextJob( 1 )
+        , importedChunks( 0 ), importedBytes( 0 ), reindexAccepted( 0 ), attachmentBytes( 0 ), savedAttachmentBytes( 0 ), lastHadSessionId( false ), m_lock(), m_held(), m_reindex(), m_watching(), m_nextJob( 1 )
     {
+        memset( lastSessionId, 0, sizeof( lastSessionId ) );
         BindMethod( "Get", GUCEF_NEW THandler( this, &CRpcNotesTestService::OnGet ) );
         BindMethod( "Save", GUCEF_NEW THandler( this, &CRpcNotesTestService::OnSave ) );
         BindMethod( "Watch", GUCEF_NEW THandler( this, &CRpcNotesTestService::OnWatch ) );
@@ -363,6 +368,7 @@ class CRpcNotesTestService : public GUCEF::COMCORE::CRpcServiceImpl ,
         ++calls;
         lastHandlerThread = GUCEF::MT::GetCurrentThreadID();
         lastMetadata = call.GetMetadata();
+        lastHadSessionId = call.GetSessionId( lastSessionId );
     }
 
     void Hold( GUCEF::COMCORE::CRpcServerCall& call )

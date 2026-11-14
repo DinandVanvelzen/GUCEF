@@ -52,6 +52,9 @@ namespace DRN {
 
 /**
  *  Accepts "tcp" channels. Endpoint parameter "maxConnections" (default 256) limits the number of connections.
+ *  The host of the endpoint is not a bind address: the listener accepts on every interface unless the endpoint
+ *  parameter "bindAddress" names a dotted IPv4 address to accept on alone ("127.0.0.1" for loopback clients only).
+ *  Port 0 lets the system choose a free port; GetListenEndpoint() then carries the port that was bound.
  *  The listener must outlive the channels it accepted to keep them connected.
  */
 class GUCEF_DRN_EXPORT_CPP CDRNTcpChannelListener : public CIDRNChannelListener

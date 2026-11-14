@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -94,6 +96,7 @@ CRpcServerCall::CRpcServerCall( const CORE::PulseGeneratorPtr& eventPulseGenerat
     , m_link()
     , m_sessionGeneration( 0 )
     , m_callRef( 0 )
+    , m_hasSessionId( false )
     , m_contract()
     , m_method( GUCEF_NULL )
     , m_impl( GUCEF_NULL )
@@ -129,6 +132,8 @@ CRpcServerCall::CRpcServerCall( const CORE::PulseGeneratorPtr& eventPulseGenerat
     , m_handlerRan( false )
     , m_heldEvents()
 {GUCEF_TRACE;
+
+    memset( m_sessionId, 0, sizeof( m_sessionId ) );
 
     // no subscription here: calls are made under the endpoint lock, and subscribing takes the lock this call's mail is
     // delivered under, by a thread whose handlers take the endpoint lock (EnsureInternalSubscription())
@@ -474,6 +479,19 @@ CRpcServerCall::GetCallRef( void ) const
 {GUCEF_TRACE;
 
     return m_callRef;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRpcServerCall::GetSessionId( UInt8* sessionId ) const
+{GUCEF_TRACE;
+
+    // set before the call is handed to anyone and never changed afterwards
+    if ( !m_hasSessionId || GUCEF_NULL == sessionId )
+        return false;
+    memcpy( sessionId, m_sessionId, GUCEF_RPC_SESSIONID_SIZE );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

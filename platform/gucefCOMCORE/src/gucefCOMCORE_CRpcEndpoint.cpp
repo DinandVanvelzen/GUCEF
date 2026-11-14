@@ -4053,6 +4053,11 @@ CRpcEndpoint::ProcessRequest( const SRequestInfo& info, const UInt8* payload, UI
     call->m_link = m_link;
     call->m_sessionGeneration = m_sessionGeneration;
     call->m_callRef = callRef;
+    if ( m_hasIdentity )
+    {
+        memcpy( call->m_sessionId, m_sessionId, GUCEF_RPC_SESSIONID_SIZE );
+        call->m_hasSessionId = true;
+    }
     call->m_contract = binding.contract;
     call->m_method = method;
     call->m_impl = impl;

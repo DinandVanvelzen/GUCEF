@@ -365,6 +365,35 @@ TestUnaryCalls( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** A handler learns the session its call arrived in: the identity both endpoints report for the session */
+static void
+TestServerCallKnowsItsSession( void )
+{
+    CRpcEndpointFixture f;
+    COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( f.Connect( notes, notes ) );
+
+    COMCORE::CRpcCallResult result = f.CallAndPump( g_getPath, GetRequest( f, 5 ) );
+    ASSERT_OK( result.status );
+    UInt8 serverSession[ GUCEF_RPC_SESSIONID_SIZE ];
+    UInt8 clientSession[ GUCEF_RPC_SESSIONID_SIZE ];
+    REQUIRE_TRUE( f.server->GetSessionId( serverSession ) && f.client->GetSessionId( clientSession ) );
+    ASSERT_TRUE( f.service.lastHadSessionId );
+    ASSERT_TRUE( 0 == memcmp( serverSession, f.service.lastSessionId, GUCEF_RPC_SESSIONID_SIZE ) );
+    ASSERT_TRUE( 0 == memcmp( clientSession, f.service.lastSessionId, GUCEF_RPC_SESSIONID_SIZE ) );
+
+    // a second session has another identity, and its calls say so
+    CRpcEndpointFixture g;
+    REQUIRE_TRUE( g.Connect( notes, notes ) );
+    result = g.CallAndPump( g_getPath, GetRequest( g, 6 ) );
+    ASSERT_OK( result.status );
+    ASSERT_TRUE( g.service.lastHadSessionId );
+    ASSERT_TRUE( 0 != memcmp( g.service.lastSessionId, serverSession, GUCEF_RPC_SESSIONID_SIZE ) );
+
+}
+
+/*-------------------------------------------------------------------------*/
+
 static void
 TestSensitiveNotLogged( void )
 {
@@ -1168,6 +1197,7 @@ PerformRpcEndpointTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "rpc_endpoint" );
 
     RUN_RPC_CASE( "unary calls, errors, metadata interning, blocking form, telemetry", TestUnaryCalls() );
+    RUN_RPC_CASE( "a server call knows the session it arrived in", TestServerCallKnowsItsSession() );
     RUN_RPC_CASE( "sensitive fields are not logged", TestSensitiveNotLogged() );
     RUN_RPC_CASE( "peer-to-peer: both sides call each other over one session", TestPeerToPeer() );
     RUN_RPC_CASE( "server, client and bidi streams, credits, resume index, cancel", TestStreams() );

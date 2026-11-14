@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <exception>
+#include <string.h>
 
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
@@ -201,6 +202,90 @@ PerformDRNHandshakeTests( void )
         REQUIRE_TRUE( attempt.Run( settingsA, settingsB, "tcp" ) );
         ASSERT_TRUE( 1 == attempt.connectorRecorder.connected );
         REQUIRE_TRUE( PumpUntil( attempt.recorderB.operationalCount, 1 ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Handshake: a shared-secret proof is bound to its link: a proof of one link is refused on another with the same secret" )
+    try
+    {
+        // two links with the same secret: the proof covers the transcript of HELLO and CHALLENGE, which differs per link,
+        // so a proof relayed from one link to another (an active attacker between a terminal and its service) does not verify
+        DRN::CDRNNodeSettings settingsA = HandshakeNodeSettings( "shared-secret" );
+        settingsA.auth.SetSetting( "secret", "lan password" );
+        DRN::CDRNNodeSettings settingsB = settingsA;
+        settingsB.nodeId = DRN::CDRNNodeSettings::GenerateNodeId();
+        CHandshakeAttempt first;
+        REQUIRE_TRUE( first.Run( settingsA, settingsB, "tcp" ) );
+        REQUIRE_TRUE( PumpUntil( first.recorderB.operationalCount, 1 ) );
+        CHandshakeAttempt second;
+        REQUIRE_TRUE( second.Run( settingsA, settingsB, "tcp" ) );
+        REQUIRE_TRUE( PumpUntil( second.recorderB.operationalCount, 1 ) );
+        REQUIRE_TRUE( !first.recorderB.links.empty() && !second.recorderB.links.empty() );
+        const UInt8* firstTranscript = first.recorderB.links[ 0 ]->GetTranscriptHash();
+        const UInt8* secondTranscript = second.recorderB.links[ 0 ]->GetTranscriptHash();
+        REQUIRE_TRUE( GUCEF_NULL != firstTranscript && GUCEF_NULL != secondTranscript );
+        ASSERT_TRUE( 0 != memcmp( firstTranscript, secondTranscript, DRN::DRN_HANDSHAKE_HASH_SIZE ) );
+
+        // everything else of the context equal: only the transcript tells the links apart
+        DRN::CDRNAuthContext onFirst;
+        onFirst.serviceName = settingsB.serviceName;
+        onFirst.initiatorNodeId = settingsA.nodeId;
+        onFirst.acceptorNodeId = settingsB.nodeId;
+        memset( onFirst.nonce, 7, sizeof( onFirst.nonce ) );
+        memcpy( onFirst.transcriptHash, firstTranscript, DRN::DRN_HANDSHAKE_HASH_SIZE );
+        DRN::CDRNAuthContext onSecond = onFirst;
+        memcpy( onSecond.transcriptHash, secondTranscript, DRN::DRN_HANDSHAKE_HASH_SIZE );
+
+        DRN::CDRNSharedSecretAuthenticator authenticator;
+        authenticator.SetSecret( "lan password" );
+        CORE::CDynamicBuffer proof;
+        REQUIRE_TRUE( authenticator.CreateProof( onFirst, proof ) );
+        DRN::CDRNAuthResult result;
+        ASSERT_TRUE( authenticator.VerifyProof( onFirst, static_cast< const UInt8* >( proof.GetConstBufferPtr() ), proof.GetDataSize(), result ) );
+        DRN::CDRNAuthResult relayed;
+        ASSERT_FALSE( authenticator.VerifyProof( onSecond, static_cast< const UInt8* >( proof.GetConstBufferPtr() ), proof.GetDataSize(), relayed ) );
+        ASSERT_TRUE( "wrong secret" == relayed.refusalText );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Handshake: a tcp listener on port 0 reports the port the system chose and honours bindAddress" )
+    try
+    {
+        DRN::CDRNNodeSettings settingsA = HandshakeNodeSettings( "anonymous" );
+        DRN::CDRNNodeSettings settingsB = HandshakeNodeSettings( "anonymous" );
+        DRN::CDRNNode nodeA;
+        DRN::CDRNNode nodeB;
+        REQUIRE_TRUE( nodeA.SetSettings( settingsA ) && nodeB.SetSettings( settingsB ) );
+        CLinkRecorder recorderB;
+        recorderB.WatchNode( nodeB );
+
+        // a bind address that is not a dotted IPv4 address is refused, nothing listens
+        ASSERT_FALSE( nodeB.Listen( DRN::CDRNEndpoint( "tcp://127.0.0.1:0?bindAddress=localhost" ) ) );
+
+        REQUIRE_TRUE( nodeB.Listen( DRN::CDRNEndpoint( "tcp://127.0.0.1:0?bindAddress=127.0.0.1" ) ) );
+        DRN::CDRNEndpointList listening = nodeB.GetListenEndpoints();
+        REQUIRE_TRUE( 1 == listening.GetCount() );
+        UInt16 port = listening.Get( 0 ).GetPort();
+        ASSERT_TRUE( 0 != port );
+        ASSERT_TRUE( "127.0.0.1" == listening.Get( 0 ).GetHost() );
+
+        CConnectorRecorder connectorRecorder;
+        DRN::CDRNConnectorPtr connector = nodeA.Connect( DRN::CDRNEndpointList( DRN::CDRNEndpoint( "tcp://127.0.0.1:" + CORE::ToString( port ) ) ) );
+        connectorRecorder.SubscribeTo( connector.GetPointerAlways() );
+        ASSERT_TRUE( PumpUntil( connectorRecorder.connected, 1, 10000 ) );
+        ASSERT_TRUE( PumpUntil( recorderB.operationalCount, 1 ) );
+        recorderB.links.clear();
+        connector.Unlink();
+        nodeA.Stop();
+        nodeB.Stop();
     }
     catch ( ... )
     {

@@ -110,12 +110,8 @@ CDRNTcpChannelListener::Listen( const CDRNEndpoint& local )
 
     StopListening();
 
+    // port 0: the system chooses, the endpoint the listener reports carries the bound port
     UInt16 port = local.GetPort();
-    if ( 0 == port )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNTcpChannelListener: The listen endpoint needs a port: " << local.ToString() );
-        return false;
-    }
 
     if ( m_pulseGenerator.IsNULL() )
         m_pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
@@ -127,11 +123,24 @@ CDRNTcpChannelListener::Listen( const CDRNEndpoint& local )
         SubscribeTo( m_serverSocket );
     }
 
+    // an explicit bind address only: the host of a listen endpoint is also what peers are told, not an interface
+    CORE::CString bindAddress = local.GetParams().GetValueAlways( "bindAddress" ).AsString( CORE::CString::Empty, true );
+    if ( !m_serverSocket->SetBindAddress( bindAddress ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNTcpChannelListener: The bind address \"" << bindAddress << "\" is not a dotted IPv4 address: " << local.ToString() );
+        return false;
+    }
+
     m_listenEndpoint = local;
     if ( !m_serverSocket->ListenOnPort( port ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DRNTcpChannelListener: Failed to listen on " << local.ToString() );
         return false;
+    }
+    if ( 0 == port )
+    {
+        UInt16 boundPort = m_serverSocket->GetBoundPort();
+        m_listenEndpoint.SetAddress( local.GetHost() + ":" + CORE::ToString( boundPort ) + local.GetPath() );
     }
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DRNTcpChannelListener: Listening on " << local.ToString() );
     return true;

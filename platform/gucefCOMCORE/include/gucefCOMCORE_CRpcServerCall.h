@@ -85,6 +85,11 @@
 #define GUCEF_COMCORE_RPCEVENTDATA_H
 #endif /* GUCEF_COMCORE_RPCEVENTDATA_H ? */
 
+#ifndef GUCEF_COMCORE_RPCPROTOCOL_H
+#include "gucefCOMCORE_RpcProtocol.h"
+#define GUCEF_COMCORE_RPCPROTOCOL_H
+#endif /* GUCEF_COMCORE_RPCPROTOCOL_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -143,6 +148,13 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcServerCall : public CORE::CTSGNotifier ,
     bool HasResumeFromIndex( void ) const;
     UInt64 GetResumeFromIndex( void ) const;
     UInt64 GetCallRef( void ) const;
+
+    /**
+     *  The identity of the RPC session the call arrived in (GUCEF_RPC_SESSIONID_SIZE bytes), as CRpcEndpoint::GetSessionId()
+     *  gave it when the call was made: what lets a provider keep state per session (the session a call belongs to).
+     *  False for a call made without a session identity
+     */
+    bool GetSessionId( UInt8* sessionId ) const;
     bool IsDone( void ) const;
     bool IsAccepted( void ) const;
     const CRpcRequestId& GetRequestId( void ) const;
@@ -224,6 +236,8 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcServerCall : public CORE::CTSGNotifier ,
     CRpcEndpointLinkPtr m_link;
     UInt32 m_sessionGeneration;
     UInt64 m_callRef;
+    UInt8 m_sessionId[ GUCEF_RPC_SESSIONID_SIZE ];
+    bool m_hasSessionId;
     CRpcContractPtr m_contract;
     const CRpcMethodDescriptor* m_method;
     CIRpcServiceImpl* m_impl;
