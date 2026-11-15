@@ -238,6 +238,23 @@ GenerateCIBuildPowerShellScript( const CORE::CString& targetsOutputDir )
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Settings that differ between CI servers which all consume GitHub Actions
+ *  style workflow files (GitHub Actions, Forgejo Actions).
+ */
+struct SWorkflowFlavor
+{
+    CORE::CString workflowsDir;          // relative to the project root dir, with trailing '/'
+    CORE::CString ciToolName;            // value of the CI_TOOL env var handed to ci_build
+    CORE::CString checkoutAction;        // action reference used to check out the sources
+    CORE::CString uploadArtifactAction;  // action reference used to upload build artifacts
+    CORE::CString linuxRunsOn;           // runs-on label for linux jobs, empty: default hosted runner
+    CORE::CString windowsRunsOn;         // runs-on label for windows jobs, empty: default hosted runner
+    bool useWorkflowEventDispatch;       // false: trigger with repository_dispatch (not supported by Forgejo)
+};
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 GenerateValidGithubActionsWorkflowId( const CORE::CString& targetName     ,
                                       const CORE::CString& targetPlatform )
@@ -280,7 +297,10 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
                                              const CORE::CString& productName                 ,
                                              const CORE::CString& pathToTargetsOutputDir      ,
                                              const CORE::CString& pathToCMakeTargetsOutputDir ,
-                                             bool useWorkflowEventDispatch                    )
+                                             bool useWorkflowEventDispatch                    ,
+                                             const CORE::CString& ciToolName                  ,
+                                             const CORE::CString& checkoutAction              ,
+                                             const CORE::CString& uploadArtifactAction        )
 {GUCEF_TRACE;
 
     CORE::CString section;
@@ -306,32 +326,32 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
                   "      TARGET_PLATFORM: $targetPlatform$\n"
                   "      TARGET_PROJECT: $targetProject$\n"
                   "      PRODUCT_NAME: $productName$\n"
-                  "      CI_TOOL: GITHUB-ACTIONS\n"
+                  "      CI_TOOL: $ciToolName$\n"
                   "      BUILD_TOOL: CMAKE\n"
                   "    steps:\n"
-                  "      - uses: actions/checkout@master\n"
+                  "      - uses: $checkoutAction$\n"
                   "      - name: Build $productName$ for platform $targetPlatform$\n"                  
                   "        run: ./$pathToTargetsOutputDir$/ci_build.sh\n"
                   "      - name: Archive Debian build artifacts\n"
-                  "        uses: actions/upload-artifact@v2\n"
+                  "        uses: $uploadArtifactAction$\n"
                   "        with:\n"
                   "          name: Debian packages\n"
                   "          path: |\n"
                   "            ./common/bin/$targetName$-$targetPlatform$/packages/*$productName$*.deb\n"
                   "      - name: Archive RPM build artifacts\n"
-                  "        uses: actions/upload-artifact@v2\n"
+                  "        uses: $uploadArtifactAction$\n"
                   "        with:\n"
                   "          name: RPM packages\n"
                   "          path: |\n"
                   "            ./common/bin/$targetName$-$targetPlatform$/packages/*$productName$*.rpm\n"
                   "      - name: Archive Tarball - bz2 compressed build artifacts\n"
-                  "        uses: actions/upload-artifact@v2\n"
+                  "        uses: $uploadArtifactAction$\n"
                   "        with:\n"
                   "          name: tar.bz2 packages\n"
                   "          path: |\n"
                   "            ./common/bin/$targetName$-$targetPlatform$/packages/*$productName$*.tar.bz2\n"
                   "      - name: Archive Tarball - Xz compressed build artifacts\n"
-                  "        uses: actions/upload-artifact@v2\n"
+                  "        uses: $uploadArtifactAction$\n"
                   "        with:\n"
                   "          name: tar.xz packages\n"
                   "          path: |\n"
@@ -356,14 +376,14 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
                   "      TARGET_PLATFORM: $targetPlatform$\n"
                   "      TARGET_PROJECT: $targetProject$\n"
                   "      PRODUCT_NAME: $productName$\n"
-                  "      CI_TOOL: GITHUB-ACTIONS\n"
+                  "      CI_TOOL: $ciToolName$\n"
                   "      BUILD_TOOL: CMAKE\n"
                   "    steps:\n"
-                  "      - uses: actions/checkout@master\n"
+                  "      - uses: $checkoutAction$\n"
                   "      - name: Build $productName$ for platform $targetPlatform$\n"
                   "        run: .\\$pathToTargetsOutputDir$\\ci_build.ps1\n"
                   "      - name: Archive ZIP build artifacts\n"
-                  "        uses: actions/upload-artifact@v2\n"
+                  "        uses: $uploadArtifactAction$\n"
                   "        with:\n"
                   "          name: ZIP packages\n"
                   "          path: |\n"
@@ -381,6 +401,9 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
         }
 
         section = section.ReplaceSubstr( "$workflowRunCondition$", workflowRunCondition );
+        section = section.ReplaceSubstr( "$ciToolName$", ciToolName );
+        section = section.ReplaceSubstr( "$checkoutAction$", checkoutAction );
+        section = section.ReplaceSubstr( "$uploadArtifactAction$", uploadArtifactAction );
         section = section.ReplaceSubstr( "$workflowRunsOnPlatform$", workflowRunsOnPlatform );        
         section = section.ReplaceSubstr( "$workflowId$", workflowPermittedId );
         section = section.ReplaceSubstr( "$targetName$", targetName ); 
@@ -402,8 +425,7 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
                                          const CORE::CString::StringSet& platformFilter   ,
                                          const CORE::CString& targetsOutputDir            ,
                                          const CORE::CString& cmakeTargetsOutputDir       ,
-                                         bool useWorkflowEventDispatch                    ,
-                                         bool useSelfHostedRunner                         ,
+                                         const SWorkflowFlavor& flavor                    ,
                                          bool prefixWorkflowFilenameWithProjectGenAutoGen )
 {GUCEF_TRACE;
 
@@ -414,7 +436,7 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
     TStringVector::const_iterator m = projectInfo.rootDirs.begin();
     while ( m != projectInfo.rootDirs.end() )
     {
-        CORE::CString githubActionsWorkflowTargetYmlPath = CORE::CombinePath( (*m), ".github/workflows/" );
+        CORE::CString githubActionsWorkflowTargetYmlPath = CORE::CombinePath( (*m), flavor.workflowsDir );
         githubActionsWorkflowTargetYmlPath = githubActionsWorkflowTargetYmlPath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR );
 
         if ( !CORE::CreateDirs( githubActionsWorkflowTargetYmlPath ) )
@@ -434,7 +456,7 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
         const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetsPerPlatform = (*i).second;
 
         CORE::CString githubActionsWorkflowTargetContent;
-        if ( useWorkflowEventDispatch )
+        if ( flavor.useWorkflowEventDispatch )
         {
             githubActionsWorkflowTargetContent =
                 "name: target_" + targetName + "\n"             
@@ -484,8 +506,9 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
                     productName = mainModuleName;
                 }
             
-                CORE::CString runsOnPlatform = useSelfHostedRunner ? "self-hosted" : CORE::CString::Empty;
-                CORE::CString section = GenerateGithubActionsWorkflowProjectSection( targetInfo->projectName, platformName, runsOnPlatform, *productName, pathToTargetsOutputDir, pathToCMakeTargetsOutputDir, useWorkflowEventDispatch ); 
+                bool isWindowsPlatform = ( "win32" == platformName || "win64" == platformName );
+                const CORE::CString& runsOnPlatform = isWindowsPlatform ? flavor.windowsRunsOn : flavor.linuxRunsOn;
+                CORE::CString section = GenerateGithubActionsWorkflowProjectSection( targetInfo->projectName, platformName, runsOnPlatform, *productName, pathToTargetsOutputDir, pathToCMakeTargetsOutputDir, flavor.useWorkflowEventDispatch, flavor.ciToolName, flavor.checkoutAction, flavor.uploadArtifactAction ); 
                 if ( !section.IsNULLOrEmpty() )
                 {
                     githubActionsWorkflowTargetContent += section;
@@ -503,7 +526,7 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
         TStringVector::const_iterator m = projectInfo.rootDirs.begin();
         while ( m != projectInfo.rootDirs.end() )
         {
-            CORE::CString githubActionsWorkflowTargetYmlPath = CORE::CombinePath( (*m), ".github/workflows/" );
+            CORE::CString githubActionsWorkflowTargetYmlPath = CORE::CombinePath( (*m), flavor.workflowsDir );
             githubActionsWorkflowTargetYmlPath = githubActionsWorkflowTargetYmlPath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR );
             
             CORE::CString workflowYml;
@@ -834,6 +857,8 @@ CCIHelperGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
     bool githubActionsWorkflowsUseSelfHostedRunners = CORE::StringToBool( params.GetValueAlways( "cihelpergen:GithubActionsWorkflowsUseSelfHostedRunners" ), true );
     bool githubActionsWorkflowUsesWorkflowEventDispatch = CORE::StringToBool( params.GetValueAlways( "cihelpergen:GithubActionsWorkflowUsesWorkflowEventDispatch" ), true );
     
+    bool generateForgejoActionsWorkflowTargetsYml = CORE::StringToBool( params.GetValueAlways( "cihelpergen:GenerateForgejoActionsWorkflowTargetsYml" ), false );
+
     CORE::CString cmakeTargetsOutputDir = params.GetValueAlways( "cmakegen:TargetsDir" );
     if ( cmakeTargetsOutputDir.IsNULLOrEmpty() )
         cmakeTargetsOutputDir = outputDir;    
@@ -847,14 +872,49 @@ CCIHelperGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
         GenerateGlobPatternPathListPerTarget( projectInfo, targets, platformFilter, targetsOutputDir );
         
     if ( generateGithubActionsWorkflowTargetsYml )
+    {
+        SWorkflowFlavor githubFlavor;
+        githubFlavor.workflowsDir = ".github/workflows/";
+        githubFlavor.ciToolName = "GITHUB-ACTIONS";
+        githubFlavor.checkoutAction = "actions/checkout@master";
+        githubFlavor.uploadArtifactAction = "actions/upload-artifact@v2";
+        githubFlavor.linuxRunsOn = githubActionsWorkflowsUseSelfHostedRunners ? "self-hosted" : CORE::CString::Empty;
+        githubFlavor.windowsRunsOn = githubFlavor.linuxRunsOn;
+        githubFlavor.useWorkflowEventDispatch = githubActionsWorkflowUsesWorkflowEventDispatch;
+
         GenerateGithubActionsWorkflowTargetsYml( projectInfo, 
                                                  targets, 
                                                  platformFilter, 
                                                  targetsOutputDir, 
                                                  cmakeTargetsOutputDir, 
-                                                 githubActionsWorkflowUsesWorkflowEventDispatch, 
-                                                 githubActionsWorkflowsUseSelfHostedRunners,
+                                                 githubFlavor,
                                                  prefixWorkflowFilenameWithProjectGenAutoGen );
+    }
+
+    // Forgejo Actions reads GitHub Actions style workflows from .forgejo/workflows.
+    // It has no repository_dispatch trigger and does not support actions/upload-artifact v4,
+    // runner labels are the ones the Forgejo runner was registered with.
+    if ( generateForgejoActionsWorkflowTargetsYml )
+    {
+        SWorkflowFlavor forgejoFlavor;
+        forgejoFlavor.workflowsDir = params.GetValueAlways( "cihelpergen:ForgejoActionsWorkflowsDir" ).AsString( ".forgejo/workflows", true );
+        if ( !forgejoFlavor.workflowsDir.IsNULLOrEmpty() && '/' != forgejoFlavor.workflowsDir[ forgejoFlavor.workflowsDir.Length()-1 ] )
+            forgejoFlavor.workflowsDir += '/';
+        forgejoFlavor.ciToolName = "FORGEJO-ACTIONS";
+        forgejoFlavor.checkoutAction = params.GetValueAlways( "cihelpergen:ForgejoActionsCheckoutAction" ).AsString( "actions/checkout@v4", true );
+        forgejoFlavor.uploadArtifactAction = params.GetValueAlways( "cihelpergen:ForgejoActionsUploadArtifactAction" ).AsString( "actions/upload-artifact@v3", true );
+        forgejoFlavor.linuxRunsOn = params.GetValueAlways( "cihelpergen:ForgejoActionsLinuxRunnerLabel" ).AsString( "gucef-linux", true );
+        forgejoFlavor.windowsRunsOn = params.GetValueAlways( "cihelpergen:ForgejoActionsWindowsRunnerLabel" ).AsString( "windows-msvc", true );
+        forgejoFlavor.useWorkflowEventDispatch = true;
+
+        GenerateGithubActionsWorkflowTargetsYml( projectInfo, 
+                                                 targets, 
+                                                 platformFilter, 
+                                                 targetsOutputDir, 
+                                                 cmakeTargetsOutputDir, 
+                                                 forgejoFlavor,
+                                                 prefixWorkflowFilenameWithProjectGenAutoGen );
+    }
     
     GenerateCIBuildBashScript( targetsOutputDir );
     // @TODO: GenerateCIBuildPowerShellScript( targetsOutputDir );

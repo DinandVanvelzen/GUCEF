@@ -1,0 +1,4 @@
+secrets.env
+config.env
+repos.yaml
+sealed-secret.yaml

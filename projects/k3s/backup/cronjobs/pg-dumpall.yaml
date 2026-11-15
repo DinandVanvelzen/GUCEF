@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-dumpall
+  namespace: postgresql
+spec:
+  schedule: "@PG_CRON@"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: "@NODE@"
+          containers:
+            - name: dump
+              image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0
+              env:
+                - name: PGHOST
+                  value: my-postgres.postgresql.svc.cluster.local
+                - name: PGUSER
+                  value: postgres
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef: {name: postgresql-credentials, key: POSTGRES_PASSWORD}
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  set -e
+                  F=/backup/pg-dumpall-$(date +%Y%m%d-%H%M%S).sql.gz
+                  pg_dumpall | gzip > "$F.tmp"
+                  mv "$F.tmp" "$F"
+                  ls -1t /backup/pg-dumpall-*.sql.gz | tail -n +$((@PG_RETAIN@ + 1)) | xargs -r rm -f
+                  ls -l "$F"
+              volumeMounts:
+                - {name: backup, mountPath: /backup}
+          volumes:
+            - name: backup
+              hostPath: {path: "@MOUNT@/postgresql", type: Directory}
