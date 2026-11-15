@@ -44,13 +44,37 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
+#ifndef GUCEF_COMPUTE_H
+#include "gucefCOMPUTE.h"
+#define GUCEF_COMPUTE_H
+#endif /* GUCEF_COMPUTE_H ? */
+
+#include "TestComputeSupport.h"
 #include "TestComputeModule.h"
+#include "TestComputeTypes.h"
+#include "TestCpuBackend.h"
+#include "TestCpuParallelFor.h"
+#include "TestKernelRegistry.h"
+#include "TestBackendAvailability.h"
+#include "TestDeviceLoss.h"
+#include "TestQueueContract.h"
+#include "TestMathBridge.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  GUCEF_TEST_COMPUTE_SUITES names the suites to run, separated by commas (for example MathBridge), empty for all: the
+ *  repeated runs of the sanitizer builds run one suite at a time
+ */
+static bool
+IsSuiteWanted( const ::std::string& filter, const char* name )
+{
+    return filter.empty() || ::std::string::npos != ( ::std::string( "," ) + filter + "," ).find( ::std::string( "," ) + name + "," );
+}
 
 /*
  *      Application entry point
@@ -76,7 +100,41 @@ GUCEF_OSMAIN_BEGIN
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefCOMPUTE_TestApp_Results.xml" );
 
-        PerformComputeModuleTests();
+        const ::std::string suites = GUCEF_TESTFW_GETENV( "GUCEF_TEST_COMPUTE_SUITES" );
+        if ( IsSuiteWanted( suites, "Module" ) )
+        {
+            PerformComputeModuleTests();
+            PerformComputeTypesTests();
+        }
+
+        // the kernels of the built-in test set and the gate kernel, for every suite that dispatches
+        if ( !GUCEF::COMPUTE::TEST::RegisterComputeTestKernels() )
+        {
+            GUCEF_TESTFW_TESTCASE( "ComputeTestApp: the test kernels register" )
+            GUCEF_TESTFW_ERRORHERE;
+            GUCEF_TESTFW_TESTCASE_END
+        }
+        if ( IsSuiteWanted( suites, "Cpu" ) )
+        {
+            PerformCpuBackendTests();
+            PerformCpuParallelForTests();
+        }
+        if ( IsSuiteWanted( suites, "Registry" ) )
+            PerformKernelRegistryTests();
+        if ( IsSuiteWanted( suites, "Availability" ) )
+            PerformBackendAvailabilityTests();
+        if ( IsSuiteWanted( suites, "DeviceLoss" ) )
+            PerformDeviceLossTests();
+        if ( IsSuiteWanted( suites, "Queue" ) )
+            PerformQueueContractTests();
+        if ( IsSuiteWanted( suites, "MathBridge" ) )
+        {
+            PerformMathBridgeTests();
+            PerformMathBridgeBenchmarks();
+        }
+        if ( IsSuiteWanted( suites, "Unload" ) )
+            PerformComputeModuleUnloadTests();
+        GUCEF::COMPUTE::TEST::UnregisterComputeTestKernels();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

@@ -37,6 +37,11 @@
 #define GUCEF_COMPUTE_H
 #endif /* GUCEF_COMPUTE_H ? */
 
+#ifndef GUCEF_COMPUTE_TESTAPP_TESTCOMPUTESUPPORT_H
+#include "TestComputeSupport.h"
+#define GUCEF_COMPUTE_TESTAPP_TESTCOMPUTESUPPORT_H
+#endif /* GUCEF_COMPUTE_TESTAPP_TESTCOMPUTESUPPORT_H ? */
+
 #include "TestComputeModule.h"
 
 /*-------------------------------------------------------------------------//
@@ -72,6 +77,70 @@ PerformComputeModuleTests( void )
     }
     catch( ... )
     {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformComputeModuleUnloadTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_SUITE_SCOPE( "ComputeModuleUnload" );
+
+    GUCEF_TESTFW_TESTCASE( "ComputeModuleUnload: unloading with a device held and work pending marks it lost, nothing is created again until the module loads" )
+    try
+    {
+        using namespace GUCEF::COMPUTE;
+        using namespace GUCEF::COMPUTE::TEST;
+
+        TComputeDevicePtr device = CreateCpuTestDevice();
+        TComputeQueuePtr queue = device->GetDefaultQueue();
+        TComputeBufferPtr flag = MakeBuffer( device, 16 );
+        CComputeCommandList gate;
+        ASSERT_TRUE( RecordGate( gate, device, flag ) );
+        CloseGate();
+        CORE::CFutureResult running = queue->ExecuteAsync( gate );
+        ASSERT_TRUE( WaitUntilGateEntered( 10000 ) );
+        CORE::CFutureResult pending = queue->ExecuteAsync( gate );
+
+        ASSERT_TRUE( ComputeModuleSimulateUnload() );
+        ASSERT_TRUE( GUCEF_NULL == CComputeGlobal::InstanceIfCreated() );
+        ASSERT_TRUE( GUCEF_NULL == CComputeGlobal::Instance() );      // not created again
+        ASSERT_TRUE( device->IsLost() );
+        ASSERT_TRUE( device->GetLostReason() == "the gucefCOMPUTE module was unloaded" );
+
+        // the work in flight ends on the job system the queue holds, after the global is gone
+        OpenGate();
+        ASSERT_TRUE( AwaitFuture( running, 10000 ) && COMPUTERESULT_DEVICE_LOST == ComputeResultFromFuture( running ) );
+        ASSERT_TRUE( AwaitFuture( pending, 10000 ) && COMPUTERESULT_DEVICE_LOST == ComputeResultFromFuture( pending ) );
+        ASSERT_TRUE( COMPUTERESULT_DEVICE_LOST == queue->Execute( gate ) );
+        TComputeKernelPtr kernel;
+        ASSERT_FALSE( device->CreateKernel( GateKernelId, kernel ) );
+        gate.Clear();
+        flag.Unlink();
+        queue.Unlink();
+        device.Unlink();
+        ASSERT_TRUE( GUCEF_NULL == CComputeGlobal::InstanceIfCreated() );
+
+        ASSERT_TRUE( ComputeModuleSimulateLoad() );
+        CComputeGlobal* global = CComputeGlobal::Instance();
+        ASSERT_TRUE( GUCEF_NULL != global );
+        if ( GUCEF_NULL != global )
+        {
+            ASSERT_TRUE( 0 == global->GetDeviceCount() );
+            TComputeDevicePtr fresh = CreateCpuTestDevice();
+            ASSERT_TRUE( !fresh.IsNULL() );
+            CComputeCommandList empty;
+            CORE::CFutureResult works = fresh->GetDefaultQueue()->ExecuteAsync( empty );
+            ASSERT_TRUE( AwaitFuture( works, 10000 ) && COMPUTERESULT_SUCCESS == ComputeResultFromFuture( works ) );
+        }
+    }
+    catch( ... )
+    {
+        GUCEF::COMPUTE::TEST::OpenGate();
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END

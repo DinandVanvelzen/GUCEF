@@ -21,7 +21,18 @@ LOCAL_MODULE := gucefCOMPUTE_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestBackendAvailability.cpp \
   src/TestComputeModule.cpp \
+  src/TestComputeSupport.cpp \
+  src/TestComputeTypes.cpp \
+  src/TestCpuBackend.cpp \
+  src/TestCpuParallelFor.cpp \
+  src/TestDeviceLoss.cpp \
+  src/TestKernelRegistry.cpp \
+  src/TestMathBridge.cpp \
+  src/TestMathBridgeBench.cpp \
+  src/TestMathBridgeHarness.cpp \
+  src/TestQueueContract.cpp \
   src/gucefCOMPUTE_TestApp.cpp
 
 LOCAL_C_INCLUDES := \
@@ -31,7 +42,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCOMPUTE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../../platform/gucefMT/include
+  $(MY_MODULE_PATH)/../../platform/gucefCORE/src \
+  $(MY_MODULE_PATH)/../../platform/gucefMATH/include \
+  $(MY_MODULE_PATH)/../../platform/gucefMATH/src \
+  $(MY_MODULE_PATH)/../../platform/gucefMT/include \
+  $(MY_MODULE_PATH)/../../platform/gucefVFS/include
 
 LOCAL_CFLAGS := -DGUCEF_COMPUTE_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefCOMPUTE_TestApp -DMODULE_NAME=gucefCOMPUTE_TestApp
 
@@ -39,7 +54,9 @@ LOCAL_CFLAGS := -DGUCEF_COMPUTE_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guc
 LOCAL_SHARED_LIBRARIES := \
   gucefCOMPUTE \
   gucefCORE \
-  gucefMT
+  gucefMATH \
+  gucefMT \
+  gucefVFS
 
 include $(BUILD_EXECUTABLE)
 

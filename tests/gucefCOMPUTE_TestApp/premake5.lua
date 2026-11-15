@@ -35,8 +35,8 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefCOMPUTE", "gucefCORE", "gucefMT" } )
-links( { "gucefCOMPUTE", "gucefCORE", "gucefMT" } )
+links( { "gucefCOMPUTE", "gucefCORE", "gucefMATH", "gucefMT", "gucefVFS" } )
+links( { "gucefCOMPUTE", "gucefCORE", "gucefMATH", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
@@ -45,7 +45,17 @@ defines( { "GUCEF_COMPUTE_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCOM
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestComputeModule.h"
+  "include/TestBackendAvailability.h",
+  "include/TestComputeModule.h",
+  "include/TestComputeSupport.h",
+  "include/TestComputeTypes.h",
+  "include/TestCpuBackend.h",
+  "include/TestCpuParallelFor.h",
+  "include/TestDeviceLoss.h",
+  "include/TestKernelRegistry.h",
+  "include/TestMathBridge.h",
+  "include/TestMathBridgeHarness.h",
+  "include/TestQueueContract.h"
  } )
 
 
@@ -53,13 +63,24 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestBackendAvailability.cpp",
   "src/TestComputeModule.cpp",
+  "src/TestComputeSupport.cpp",
+  "src/TestComputeTypes.cpp",
+  "src/TestCpuBackend.cpp",
+  "src/TestCpuParallelFor.cpp",
+  "src/TestDeviceLoss.cpp",
+  "src/TestKernelRegistry.cpp",
+  "src/TestMathBridge.cpp",
+  "src/TestMathBridgeBench.cpp",
+  "src/TestMathBridgeHarness.cpp",
+  "src/TestQueueContract.cpp",
   "src/gucefCOMPUTE_TestApp.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOMPUTE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOMPUTE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefCORE/src", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

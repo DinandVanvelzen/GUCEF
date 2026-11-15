@@ -59,6 +59,7 @@ bool
 CModule::Load( void )
 {
     g_moduleLoaded = true;
+    CComputeGlobal::AllowCreation();
     return true;
 }
 
@@ -78,6 +79,22 @@ bool
 ComputeModuleLoadProbe( void )
 {
     return g_moduleLoaded;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ComputeModuleSimulateUnload( void )
+{
+    return CModule::Unload();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ComputeModuleSimulateLoad( void )
+{
+    return CModule::Load();
 }
 
 /*-------------------------------------------------------------------------*/

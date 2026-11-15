@@ -23,22 +23,61 @@ LOCAL_MODULE_FILENAME := libgucefCOMPUTE
 
 LOCAL_SRC_FILES := \
   src/gucefCOMPUTE.cpp \
+  src/gucefCOMPUTE_AlignedMemory.cpp \
+  src/gucefCOMPUTE_CComputeArguments.cpp \
+  src/gucefCOMPUTE_CComputeBackend.cpp \
+  src/gucefCOMPUTE_CComputeBackendRegistry.cpp \
+  src/gucefCOMPUTE_CComputeBuffer.cpp \
+  src/gucefCOMPUTE_CComputeBufferDesc.cpp \
+  src/gucefCOMPUTE_CComputeBufferMapScope.cpp \
+  src/gucefCOMPUTE_CComputeCommandList.cpp \
+  src/gucefCOMPUTE_CComputeCompletionTaskConsumer.cpp \
+  src/gucefCOMPUTE_CComputeDevice.cpp \
+  src/gucefCOMPUTE_CComputeDeviceCapabilities.cpp \
+  src/gucefCOMPUTE_CComputeDeviceInfo.cpp \
+  src/gucefCOMPUTE_CComputeDeviceParams.cpp \
+  src/gucefCOMPUTE_CComputeDeviceRequirements.cpp \
+  src/gucefCOMPUTE_CComputeDispatchSize.cpp \
+  src/gucefCOMPUTE_CComputeFence.cpp \
   src/gucefCOMPUTE_CComputeGlobal.cpp \
-  src/gucefCOMPUTE_CModule.cpp
+  src/gucefCOMPUTE_CComputeHostBatch.cpp \
+  src/gucefCOMPUTE_CComputeKernel.cpp \
+  src/gucefCOMPUTE_CComputeKernelArtefact.cpp \
+  src/gucefCOMPUTE_CComputeKernelDecl.cpp \
+  src/gucefCOMPUTE_CComputeKernelRegistry.cpp \
+  src/gucefCOMPUTE_CComputeKernelSignature.cpp \
+  src/gucefCOMPUTE_CComputePendingWork.cpp \
+  src/gucefCOMPUTE_CComputeQueue.cpp \
+  src/gucefCOMPUTE_CComputeSettings.cpp \
+  src/gucefCOMPUTE_CComputeTolerance.cpp \
+  src/gucefCOMPUTE_CCpuComputeBackend.cpp \
+  src/gucefCOMPUTE_CCpuComputeBuffer.cpp \
+  src/gucefCOMPUTE_CCpuComputeDevice.cpp \
+  src/gucefCOMPUTE_CCpuComputeFence.cpp \
+  src/gucefCOMPUTE_CCpuComputeKernel.cpp \
+  src/gucefCOMPUTE_CCpuComputeQueue.cpp \
+  src/gucefCOMPUTE_CCpuDispatchContext.cpp \
+  src/gucefCOMPUTE_CCpuParallelFor.cpp \
+  src/gucefCOMPUTE_CCpuTestKernels.cpp \
+  src/gucefCOMPUTE_CCpuWorkerTaskConsumer.cpp \
+  src/gucefCOMPUTE_CModule.cpp \
+  src/gucefCOMPUTE_TypeFunctions.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../gucefMT/include
+  $(MY_MODULE_PATH)/../gucefMT/include \
+  $(MY_MODULE_PATH)/../gucefVFS/include
 
 LOCAL_CFLAGS := -DGUCEF_COMPUTE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefCOMPUTE -DMODULE_NAME=gucefCOMPUTE -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
   gucefCORE \
-  gucefMT
+  gucefMT \
+  gucefVFS
 
 include $(BUILD_SHARED_LIBRARY)
 

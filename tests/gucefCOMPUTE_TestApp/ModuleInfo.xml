@@ -5,15 +5,22 @@
             <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
             <Dependency Name="gucefCOMPUTE" />
+            <Dependency Name="gucefVFS" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
             <Dependency Name="gucefCOMPUTE" />
+            <Dependency Name="gucefVFS" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_COMPUTE_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="computebridgeMATH" />
+        </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

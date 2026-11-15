@@ -32,6 +32,21 @@
 
 #ifdef __cplusplus
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
+#ifndef GUCEF_CORE_CSTRING_H
+#include "gucefCORE_CString.h"
+#define GUCEF_CORE_CSTRING_H
+#endif /* GUCEF_CORE_CSTRING_H ? */
+
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -57,6 +72,7 @@ typedef CORE::UInt64 UInt64;
 typedef CORE::Int64 Int64;
 typedef CORE::Float32 Float32;
 typedef CORE::Float64 Float64;
+typedef CORE::CString CString;
 
 /*-------------------------------------------------------------------------*/
 
@@ -76,14 +92,15 @@ enum EComputeResult
 };
 typedef enum EComputeResult TComputeResult;
 
-/** The kind of device that a backend offers */
+/** The kind of device that a backend offers. The values are stable, new kinds are only ever appended */
 enum EComputeDeviceType
 {
-    DEVICETYPE_UNKNOWN = 0 ,
-    DEVICETYPE_CPU         ,
+    DEVICETYPE_UNKNOWN = 0    ,
+    DEVICETYPE_CPU            ,
     DEVICETYPE_INTEGRATED_GPU ,
     DEVICETYPE_DISCRETE_GPU   ,
-    DEVICETYPE_ACCELERATOR
+    DEVICETYPE_ACCELERATOR    ,
+    DEVICETYPE_VIRTUAL_GPU          /**< a GPU of a virtual machine or a software implementation of a GPU API */
 };
 typedef enum EComputeDeviceType TComputeDeviceType;
 
@@ -128,22 +145,23 @@ typedef enum EComputeMapAccess TComputeMapAccess;
 /** The form in which a kernel is supplied to a backend */
 enum EComputeArtefactFormat
 {
-    ARTEFACTFORMAT_UNKNOWN = 0 ,
-    ARTEFACTFORMAT_CPU         ,
-    ARTEFACTFORMAT_SPIRV       ,
-    ARTEFACTFORMAT_OPENCL_C    ,
-    ARTEFACTFORMAT_PTX         ,
-    ARTEFACTFORMAT_WGSL        ,
-    ARTEFACTFORMAT_METAL_SL
+    ARTEFACTFORMAT_UNKNOWN = 0    ,
+    ARTEFACTFORMAT_CPU            ,     /**< a CCpuComputeKernel factory, code in the module or plugin that registers it */
+    ARTEFACTFORMAT_SPIRV          ,     /**< SPIR-V module, shader flavour (Vulkan) */
+    ARTEFACTFORMAT_PTX_FATBIN     ,     /**< PTX and cubins packed as a fatbin (CUDA) */
+    ARTEFACTFORMAT_MSL_SOURCE     ,     /**< Metal shading language source */
+    ARTEFACTFORMAT_METALLIB       ,     /**< precompiled Metal library */
+    ARTEFACTFORMAT_WGSL_SOURCE    ,     /**< WebGPU shading language source */
+    ARTEFACTFORMAT_OPENCL_C_SOURCE      /**< OpenCL C source */
 };
 typedef enum EComputeArtefactFormat TComputeArtefactFormat;
 
 /** How reproducible the results of a kernel are */
 enum EComputeDeterminism
 {
-    DETERMINISM_EXACT_INTEGER = 0 ,
-    DETERMINISM_FLOAT_STRICT      ,
-    DETERMINISM_FLOAT_RELAXED
+    DETERMINISM_EXACT_INTEGER = 0 ,     /**< integer operations of defined semantics only, results equal on every backend */
+    DETERMINISM_FLOAT_STRICT      ,     /**< compiled without fast math, bounded by a ULP tolerance */
+    DETERMINISM_FLOAT_RELAXED           /**< fast math allowed, bounded by absolute and relative tolerances */
 };
 typedef enum EComputeDeterminism TComputeDeterminism;
 
@@ -172,6 +190,84 @@ enum EComputeExecutionPolicy
     EXECUTIONPOLICY_CALLING_THREAD_ONLY     /**< every chunk runs on the calling thread */
 };
 typedef enum EComputeExecutionPolicy TComputeExecutionPolicy;
+
+/** Optional device features, a bit mask of the COMPUTEFEATURE_ values. Never assumed, always asked for */
+enum EComputeFeature
+{
+    COMPUTEFEATURE_FLOAT16                      = 0x0001 ,
+    COMPUTEFEATURE_FLOAT64                      = 0x0002 ,
+    COMPUTEFEATURE_INT64                        = 0x0004 ,
+    COMPUTEFEATURE_INT64_ATOMICS                = 0x0008 ,
+    COMPUTEFEATURE_FLOAT_ATOMICS                = 0x0010 ,
+    COMPUTEFEATURE_SUBGROUPS                    = 0x0020 ,
+    COMPUTEFEATURE_RAY_QUERY                    = 0x0040 ,
+    COMPUTEFEATURE_UNIFIED_MEMORY               = 0x0080 ,
+    COMPUTEFEATURE_MAPPABLE_DEVICE_LOCAL_MEMORY = 0x0100 ,
+    COMPUTEFEATURE_TIMESTAMP_QUERIES            = 0x0200 ,
+    COMPUTEFEATURE_FAST_FLOAT64                 = 0x0400 ,     /**< f64 at a rate of at least 1/4 of f32 */
+    COMPUTEFEATURE_STRICT_FLOAT                 = 0x0800       /**< fast math can be disabled, denormals are preserved */
+};
+typedef UInt32 TComputeFeatures;
+
+/**
+ *  The tiers of a batch dispatch chain into which bridge plugins register providers. The values equal the tiers of
+ *  the gucefMATH batch dispatch table, so a bridge maps them one to one; gucefCOMPUTE itself never depends on gucefMATH.
+ */
+enum EComputeProviderTier
+{
+    PROVIDERTIER_SCALAR      = 0 ,
+    PROVIDERTIER_SIMD        = 1 ,
+    PROVIDERTIER_MULTICORE   = 2 ,
+    PROVIDERTIER_ACCELERATOR = 3 ,
+
+    PROVIDERTIER_COUNT       = 4 ,
+    PROVIDERTIER_NONE        = 0xFF     /**< no tier: nothing forced */
+};
+typedef enum EComputeProviderTier TComputeProviderTier;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** The most storage buffers one kernel can bind on every backend (WebGPU default limit) */
+#define GUCEF_COMPUTE_MAX_BINDINGS                  8
+
+/** The largest constants block of a kernel on every backend (Vulkan minimum for push constants) */
+#define GUCEF_COMPUTE_MAX_CONSTANTS_SIZE            128
+
+/** The first 8 bytes of every constants block hold the base item and the item count, both UInt32 */
+#define GUCEF_COMPUTE_CONSTANTS_HEADER_SIZE         8
+
+/** A wait that never times out */
+#define GUCEF_COMPUTE_INFINITE_TIMEOUT              0xFFFFFFFF
+
+/** The alignment of the memory of buffers of the CPU backend, enough for every SIMD instruction set in use */
+#define GUCEF_COMPUTE_CPU_BUFFER_ALIGNMENT          64
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      SMART POINTERS                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+class CComputeBackend;
+class CComputeDevice;
+class CComputeBuffer;
+class CComputeKernel;
+class CComputeQueue;
+class CComputeKernelDecl;
+class CComputeKernelArtefact;
+class CCpuComputeKernel;
+
+typedef CORE::CTSharedPtr< CComputeBackend, MT::CMutex >          TComputeBackendPtr;
+typedef CORE::CTSharedPtr< CComputeDevice, MT::CMutex >           TComputeDevicePtr;
+typedef CORE::CTSharedPtr< CComputeBuffer, MT::CMutex >           TComputeBufferPtr;
+typedef CORE::CTSharedPtr< CComputeKernel, MT::CMutex >           TComputeKernelPtr;
+typedef CORE::CTSharedPtr< CComputeQueue, MT::CMutex >            TComputeQueuePtr;
+typedef CORE::CTSharedPtr< CComputeKernelDecl, MT::CMutex >       TComputeKernelDeclPtr;
+typedef CORE::CTSharedPtr< CComputeKernelArtefact, MT::CMutex >   TComputeKernelArtefactPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

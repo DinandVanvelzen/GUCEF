@@ -31,6 +31,13 @@
 void
 PerformComputeModuleTests( void );
 
+/**
+ *  Unloads the module while the application still holds a device with pending work, then loads it again.
+ *  Runs last: the global and its registries are new afterwards
+ */
+void
+PerformComputeModuleUnloadTests( void );
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_COMPUTE_TESTAPP_TESTCOMPUTEMODULE_H ? */

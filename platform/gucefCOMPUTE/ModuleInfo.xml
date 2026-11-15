@@ -16,10 +16,12 @@
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" Scope="public" />
             <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefVFS" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_COMPUTE_BUILD_MODULE" />

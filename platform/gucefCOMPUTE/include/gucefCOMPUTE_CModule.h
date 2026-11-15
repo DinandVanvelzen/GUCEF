@@ -85,6 +85,14 @@ ComputeModuleLoadProbe( void );
 GUCEF_COMPUTE_PUBLIC_CPP bool
 ComputeModulePublicSpecProbe( void );
 
+/** Test hook: runs what unloading the module runs (CModule::Unload()), so tests can unload with devices still held */
+GUCEF_COMPUTE_PUBLIC_CPP bool
+ComputeModuleSimulateUnload( void );
+
+/** Test hook: runs what loading the module runs (CModule::Load()), after which the global can be created again */
+GUCEF_COMPUTE_PUBLIC_CPP bool
+ComputeModuleSimulateLoad( void );
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

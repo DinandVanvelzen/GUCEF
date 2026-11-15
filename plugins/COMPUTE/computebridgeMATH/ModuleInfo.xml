@@ -1,0 +1,32 @@
+<ModuleInfoEntry>
+    <Module Name="computebridgeMATH" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefCOMPUTE bridge plugin that adds multi-core and accelerator providers to the gucefMATH batch kernels</DescriptionHeadline>
+            <DescriptionDetails>Registers the compute kernel declarations and CPU kernels of the MATH batch kernels with gucefCOMPUTE and the MULTICORE (CPU backend, fork-join) and ACCELERATOR (best device) providers with the gucefMATH batch dispatch table. gucefMATH does not depend on gucefCOMPUTE: this plugin depends on both.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefCOMPUTE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefCOMPUTE" />
+        </Linker>
+        <Preprocessor>
+            <Define String="COMPUTEBRIDGEMATH_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

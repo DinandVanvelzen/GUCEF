@@ -12,11 +12,32 @@
 # Configuration for module: gucefCOMPUTE_TestApp
 
 set( HEADER_FILES 
+  include/TestBackendAvailability.h
   include/TestComputeModule.h
+  include/TestComputeSupport.h
+  include/TestComputeTypes.h
+  include/TestCpuBackend.h
+  include/TestCpuParallelFor.h
+  include/TestDeviceLoss.h
+  include/TestKernelRegistry.h
+  include/TestMathBridge.h
+  include/TestMathBridgeHarness.h
+  include/TestQueueContract.h
 )
 
 set( SOURCE_FILES 
+  src/TestBackendAvailability.cpp
   src/TestComputeModule.cpp
+  src/TestComputeSupport.cpp
+  src/TestComputeTypes.cpp
+  src/TestCpuBackend.cpp
+  src/TestCpuParallelFor.cpp
+  src/TestDeviceLoss.cpp
+  src/TestKernelRegistry.cpp
+  src/TestMathBridge.cpp
+  src/TestMathBridgeBench.cpp
+  src/TestMathBridgeHarness.cpp
+  src/TestQueueContract.cpp
   src/gucefCOMPUTE_TestApp.cpp
 )
 
@@ -35,11 +56,11 @@ if ( WIN32 )
 else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} gucefCOMPUTE gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMPUTE gucefCORE gucefMT )
+add_dependencies( ${MODULE_NAME} gucefCOMPUTE gucefCORE gucefMATH gucefMT gucefVFS )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMPUTE gucefCORE gucefMATH gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COMPUTE_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOMPUTE_TestApp;MODULE_NAME=gucefCOMPUTE_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOMPUTE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOMPUTE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/src ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )
