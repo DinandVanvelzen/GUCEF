@@ -27,6 +27,16 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -78,6 +88,8 @@ COgreGlobal::COgreGlobal( void )
     : m_logAdapter( GUCEF_NULL )
     , m_rootSetup( GUCEF_NULL )
     , m_pluginManager( GUCEF_NULL )
+    , m_futureBridge()
+    , m_workQueueTaskConsumerFactory()
 {GUCEF_TRACE;
 
 }
@@ -89,12 +101,16 @@ COgreGlobal::~COgreGlobal()
 
     // opposite of the order of making: the Ogre plugins go before the Root they are installed in,
     // and the Root before the log it writes to
+    m_futureBridge.Unlink();
     delete m_pluginManager;
     m_pluginManager = GUCEF_NULL;
     delete m_rootSetup;
     m_rootSetup = GUCEF_NULL;
     delete m_logAdapter;
     m_logAdapter = GUCEF_NULL;
+
+    // the Root shut its work queue down: no task of this type is left
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( COgreWorkQueueTaskConsumer::TaskType );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -103,10 +119,12 @@ void
 COgreGlobal::Initialize( void )
 {GUCEF_TRACE;
 
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( COgreWorkQueueTaskConsumer::TaskType, &m_workQueueTaskConsumerFactory );
     m_logAdapter = GUCEF_NEW COgreLogAdapter();
     m_rootSetup = GUCEF_NEW COgreRootSetup();
     m_rootSetup->CreateRoot();
     m_pluginManager = GUCEF_NEW COgrePluginManager();
+    m_futureBridge = COgreFutureBridge::CreateSharedObj();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -160,6 +178,15 @@ COgreGlobal::GetPluginManager( void )
 {GUCEF_TRACE;
 
     return *m_pluginManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+COgreFutureBridge&
+COgreGlobal::GetFutureBridge( void )
+{GUCEF_TRACE;
+
+    return *m_futureBridge;
 }
 
 /*-------------------------------------------------------------------------//

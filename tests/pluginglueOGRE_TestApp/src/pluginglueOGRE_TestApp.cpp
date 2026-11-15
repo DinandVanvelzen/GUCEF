@@ -57,6 +57,9 @@
 #include "TestVfsArchive.h"
 #include "TestIOAccessArchive.h"
 #include "TestImageCodec.h"
+#include "TestWorkQueue.h"
+#include "TestFutureBridge.h"
+#include "TestWorkQueueBenchmark.h"
 
 using namespace GUCEF;
 
@@ -103,6 +106,9 @@ GUCEF_OSMAIN_BEGIN
         PerformVfsArchiveTests();
         PerformIOAccessArchiveTests();
         PerformImageCodecTests();
+        PerformWorkQueueTests();
+        PerformFutureBridgeTests();
+        PerformWorkQueueBenchmarkTests();
         PerformPluginUnloadingTests();
 
         RemoveTestWorkDir();

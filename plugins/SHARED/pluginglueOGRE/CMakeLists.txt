@@ -13,22 +13,34 @@
 
 set( HEADER_FILES 
   include/pluginglueOGRE.h
+  include/pluginglueOGRE_COgreFutureBridge.h
   include/pluginglueOGRE_COgreGlobal.h
   include/pluginglueOGRE_COgreLogAdapter.h
   include/pluginglueOGRE_COgrePluginAdapter.h
   include/pluginglueOGRE_COgrePluginManager.h
+  include/pluginglueOGRE_COgreResourceRequest.h
   include/pluginglueOGRE_COgreRootSetup.h
+  include/pluginglueOGRE_COgreTaskWorkQueue.h
+  include/pluginglueOGRE_COgreWorkQueueCore.h
+  include/pluginglueOGRE_COgreWorkQueueTaskConsumer.h
+  include/pluginglueOGRE_COgreWorkQueueTaskData.h
   include/pluginglueOGRE_config.h
   include/pluginglueOGRE_macros.h
   include/pluginglueOGRE_pluginAPI.h
 )
 
 set( SOURCE_FILES 
+  src/pluginglueOGRE_COgreFutureBridge.cpp
   src/pluginglueOGRE_COgreGlobal.cpp
   src/pluginglueOGRE_COgreLogAdapter.cpp
   src/pluginglueOGRE_COgrePluginAdapter.cpp
   src/pluginglueOGRE_COgrePluginManager.cpp
+  src/pluginglueOGRE_COgreResourceRequest.cpp
   src/pluginglueOGRE_COgreRootSetup.cpp
+  src/pluginglueOGRE_COgreTaskWorkQueue.cpp
+  src/pluginglueOGRE_COgreWorkQueueCore.cpp
+  src/pluginglueOGRE_COgreWorkQueueTaskConsumer.cpp
+  src/pluginglueOGRE_COgreWorkQueueTaskData.cpp
   src/pluginglueOGRE_pluginAPI.cpp
 )
 

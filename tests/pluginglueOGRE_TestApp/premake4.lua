@@ -110,6 +110,7 @@ defines( { "GUCEF_PLUGINGLUE_OGRE_TESTAPP_BUILD_MODULE", "MODULE_NAME=pluginglue
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFutureBridge.h",
       "include/TestIOAccessArchive.h",
       "include/TestImageCodec.h",
       "include/TestLogAdapter.h",
@@ -117,11 +118,14 @@ configuration( { "LINUX32" } )
       "include/TestRootWithoutFiles.h",
       "include/TestStreamAdapters.h",
       "include/TestSupport.h",
-      "include/TestVfsArchive.h"
+      "include/TestVfsArchive.h",
+      "include/TestWorkQueue.h",
+      "include/TestWorkQueueBenchmark.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestFutureBridge.cpp",
       "src/TestIOAccessArchive.cpp",
       "src/TestImageCodec.cpp",
       "src/TestLogAdapter.cpp",
@@ -130,6 +134,8 @@ configuration( { "LINUX32" } )
       "src/TestStreamAdapters.cpp",
       "src/TestSupport.cpp",
       "src/TestVfsArchive.cpp",
+      "src/TestWorkQueue.cpp",
+      "src/TestWorkQueueBenchmark.cpp",
       "src/pluginglueOGRE_TestApp.cpp"
     } )
 
@@ -138,6 +144,7 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFutureBridge.h",
       "include/TestIOAccessArchive.h",
       "include/TestImageCodec.h",
       "include/TestLogAdapter.h",
@@ -145,11 +152,14 @@ configuration( { "LINUX64" } )
       "include/TestRootWithoutFiles.h",
       "include/TestStreamAdapters.h",
       "include/TestSupport.h",
-      "include/TestVfsArchive.h"
+      "include/TestVfsArchive.h",
+      "include/TestWorkQueue.h",
+      "include/TestWorkQueueBenchmark.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestFutureBridge.cpp",
       "src/TestIOAccessArchive.cpp",
       "src/TestImageCodec.cpp",
       "src/TestLogAdapter.cpp",
@@ -158,6 +168,8 @@ configuration( { "LINUX64" } )
       "src/TestStreamAdapters.cpp",
       "src/TestSupport.cpp",
       "src/TestVfsArchive.cpp",
+      "src/TestWorkQueue.cpp",
+      "src/TestWorkQueueBenchmark.cpp",
       "src/pluginglueOGRE_TestApp.cpp"
     } )
 
@@ -166,6 +178,7 @@ configuration( { "LINUX64" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFutureBridge.h",
       "include/TestIOAccessArchive.h",
       "include/TestImageCodec.h",
       "include/TestLogAdapter.h",
@@ -173,11 +186,14 @@ configuration( { "WIN32" } )
       "include/TestRootWithoutFiles.h",
       "include/TestStreamAdapters.h",
       "include/TestSupport.h",
-      "include/TestVfsArchive.h"
+      "include/TestVfsArchive.h",
+      "include/TestWorkQueue.h",
+      "include/TestWorkQueueBenchmark.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestFutureBridge.cpp",
       "src/TestIOAccessArchive.cpp",
       "src/TestImageCodec.cpp",
       "src/TestLogAdapter.cpp",
@@ -186,6 +202,8 @@ configuration( { "WIN32" } )
       "src/TestStreamAdapters.cpp",
       "src/TestSupport.cpp",
       "src/TestVfsArchive.cpp",
+      "src/TestWorkQueue.cpp",
+      "src/TestWorkQueueBenchmark.cpp",
       "src/pluginglueOGRE_TestApp.cpp"
     } )
 
@@ -194,6 +212,7 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFutureBridge.h",
       "include/TestIOAccessArchive.h",
       "include/TestImageCodec.h",
       "include/TestLogAdapter.h",
@@ -201,11 +220,14 @@ configuration( { "WIN64" } )
       "include/TestRootWithoutFiles.h",
       "include/TestStreamAdapters.h",
       "include/TestSupport.h",
-      "include/TestVfsArchive.h"
+      "include/TestVfsArchive.h",
+      "include/TestWorkQueue.h",
+      "include/TestWorkQueueBenchmark.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestFutureBridge.cpp",
       "src/TestIOAccessArchive.cpp",
       "src/TestImageCodec.cpp",
       "src/TestLogAdapter.cpp",
@@ -214,6 +236,8 @@ configuration( { "WIN64" } )
       "src/TestStreamAdapters.cpp",
       "src/TestSupport.cpp",
       "src/TestVfsArchive.cpp",
+      "src/TestWorkQueue.cpp",
+      "src/TestWorkQueueBenchmark.cpp",
       "src/pluginglueOGRE_TestApp.cpp"
     } )
 

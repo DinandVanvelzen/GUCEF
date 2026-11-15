@@ -15,6 +15,7 @@
 
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
+    include/TestFutureBridge.h
     include/TestIOAccessArchive.h
     include/TestImageCodec.h
     include/TestLogAdapter.h
@@ -23,12 +24,15 @@ if (LINUX32)
     include/TestStreamAdapters.h
     include/TestSupport.h
     include/TestVfsArchive.h
+    include/TestWorkQueue.h
+    include/TestWorkQueueBenchmark.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestFutureBridge.cpp
     src/TestIOAccessArchive.cpp
     src/TestImageCodec.cpp
     src/TestLogAdapter.cpp
@@ -37,6 +41,8 @@ if (LINUX32)
     src/TestStreamAdapters.cpp
     src/TestSupport.cpp
     src/TestVfsArchive.cpp
+    src/TestWorkQueue.cpp
+    src/TestWorkQueueBenchmark.cpp
     src/pluginglueOGRE_TestApp.cpp
   )
 
@@ -45,6 +51,7 @@ if (LINUX32)
 
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
+    include/TestFutureBridge.h
     include/TestIOAccessArchive.h
     include/TestImageCodec.h
     include/TestLogAdapter.h
@@ -53,12 +60,15 @@ elseif (LINUX64)
     include/TestStreamAdapters.h
     include/TestSupport.h
     include/TestVfsArchive.h
+    include/TestWorkQueue.h
+    include/TestWorkQueueBenchmark.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestFutureBridge.cpp
     src/TestIOAccessArchive.cpp
     src/TestImageCodec.cpp
     src/TestLogAdapter.cpp
@@ -67,6 +77,8 @@ elseif (LINUX64)
     src/TestStreamAdapters.cpp
     src/TestSupport.cpp
     src/TestVfsArchive.cpp
+    src/TestWorkQueue.cpp
+    src/TestWorkQueueBenchmark.cpp
     src/pluginglueOGRE_TestApp.cpp
   )
 
@@ -75,6 +87,7 @@ elseif (LINUX64)
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
+    include/TestFutureBridge.h
     include/TestIOAccessArchive.h
     include/TestImageCodec.h
     include/TestLogAdapter.h
@@ -83,12 +96,15 @@ elseif (WIN32)
     include/TestStreamAdapters.h
     include/TestSupport.h
     include/TestVfsArchive.h
+    include/TestWorkQueue.h
+    include/TestWorkQueueBenchmark.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestFutureBridge.cpp
     src/TestIOAccessArchive.cpp
     src/TestImageCodec.cpp
     src/TestLogAdapter.cpp
@@ -97,6 +113,8 @@ elseif (WIN32)
     src/TestStreamAdapters.cpp
     src/TestSupport.cpp
     src/TestVfsArchive.cpp
+    src/TestWorkQueue.cpp
+    src/TestWorkQueueBenchmark.cpp
     src/pluginglueOGRE_TestApp.cpp
   )
 
@@ -105,6 +123,7 @@ elseif (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
+    include/TestFutureBridge.h
     include/TestIOAccessArchive.h
     include/TestImageCodec.h
     include/TestLogAdapter.h
@@ -113,12 +132,15 @@ elseif (WIN64)
     include/TestStreamAdapters.h
     include/TestSupport.h
     include/TestVfsArchive.h
+    include/TestWorkQueue.h
+    include/TestWorkQueueBenchmark.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestFutureBridge.cpp
     src/TestIOAccessArchive.cpp
     src/TestImageCodec.cpp
     src/TestLogAdapter.cpp
@@ -127,6 +149,8 @@ elseif (WIN64)
     src/TestStreamAdapters.cpp
     src/TestSupport.cpp
     src/TestVfsArchive.cpp
+    src/TestWorkQueue.cpp
+    src/TestWorkQueueBenchmark.cpp
     src/pluginglueOGRE_TestApp.cpp
   )
 

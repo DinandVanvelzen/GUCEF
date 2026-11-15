@@ -22,11 +22,17 @@ LOCAL_MODULE_FILENAME := libpluginglueOGRE
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/pluginglueOGRE_COgreFutureBridge.cpp \
   src/pluginglueOGRE_COgreGlobal.cpp \
   src/pluginglueOGRE_COgreLogAdapter.cpp \
   src/pluginglueOGRE_COgrePluginAdapter.cpp \
   src/pluginglueOGRE_COgrePluginManager.cpp \
+  src/pluginglueOGRE_COgreResourceRequest.cpp \
   src/pluginglueOGRE_COgreRootSetup.cpp \
+  src/pluginglueOGRE_COgreTaskWorkQueue.cpp \
+  src/pluginglueOGRE_COgreWorkQueueCore.cpp \
+  src/pluginglueOGRE_COgreWorkQueueTaskConsumer.cpp \
+  src/pluginglueOGRE_COgreWorkQueueTaskData.cpp \
   src/pluginglueOGRE_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \

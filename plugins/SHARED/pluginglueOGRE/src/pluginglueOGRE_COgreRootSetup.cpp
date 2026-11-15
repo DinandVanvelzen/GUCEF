@@ -24,6 +24,7 @@
 
 #include "OgreRoot.h"
 #include "OgreRenderSystem.h"
+#include "OgreDefaultWorkQueue.h"
 #include "OgreResourceGroupManager.h"
 #include "OgreException.h"
 
@@ -36,6 +37,11 @@
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_PLUGINGLUE_OGRE_COGRETASKWORKQUEUE_H
+#include "pluginglueOGRE_COgreTaskWorkQueue.h"
+#define GUCEF_PLUGINGLUE_OGRE_COGRETASKWORKQUEUE_H
+#endif /* GUCEF_PLUGINGLUE_OGRE_COGRETASKWORKQUEUE_H ? */
 
 #include "pluginglueOGRE_COgreRootSetup.h"
 
@@ -56,6 +62,8 @@ namespace OGRE {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString COgreRootSetup::DefaultArchiveType = "GucefVFS";
+const CORE::CString COgreRootSetup::WorkQueueTypeGucef = "Gucef";
+const CORE::CString COgreRootSetup::WorkQueueTypeOgre = "Ogre";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -69,6 +77,12 @@ COgreRootSetup::COgreRootSetup( void )
     , m_ownsRoot( false )
     , m_renderSystems()
     , m_resourceGroups()
+    , m_workQueueType( WorkQueueTypeGucef )
+    , m_workerPoolName( COgreWorkQueueCore::DefaultThreadPoolName )
+    , m_workerThreadCount( COgreWorkQueueCore::DefaultWorkerThreadCount )
+    , m_mainThreadBudgetInMs( COgreWorkQueueCore::DefaultMainThreadBudgetInMs )
+    , m_workersCanAccessRenderSystem( 1 == OGRE_THREAD_SUPPORT )
+    , m_taskWorkQueue( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -114,6 +128,9 @@ COgreRootSetup::CreateRoot( void )
         // no plugin, configuration and log file: nothing is read from or written to the file system by Ogre
         m_root = new Ogre::Root( "", "", "" );
         m_ownsRoot = true;
+
+        // before anything can give the Root background work
+        InstallWorkQueue();
         return true;
     }
     catch ( const Ogre::Exception& e )
@@ -147,6 +164,7 @@ COgreRootSetup::DestroyRoot( void )
     }
     m_root = GUCEF_NULL;
     m_ownsRoot = false;
+    m_taskWorkQueue = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -180,6 +198,9 @@ COgreRootSetup::InitialiseRoot( void )
     }
     if ( m_root->isInitialised() )
         return true;
+
+    // the queue of the configuration, before the Root starts it
+    InstallWorkQueue();
 
     try
     {
@@ -296,6 +317,156 @@ COgreRootSetup::AddResourceGroup( const SResourceGroup& group )
 /*-------------------------------------------------------------------------*/
 
 bool
+COgreRootSetup::InstallWorkQueue( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_root || !m_ownsRoot )
+        return false;
+
+    const bool hasTaskWorkQueue = GUCEF_NULL != m_taskWorkQueue && m_root->getWorkQueue() == m_taskWorkQueue;
+    try
+    {
+        if ( WorkQueueTypeOgre == m_workQueueType )
+        {
+            if ( !hasTaskWorkQueue && GUCEF_NULL != m_root->getWorkQueue() )
+                return true;
+
+            // Ogre's own queue, as the Root makes it, with the threads of the configuration
+            Ogre::DefaultWorkQueue* ogreQueue = OGRE_NEW Ogre::DefaultWorkQueue( "Root" );
+            ogreQueue->setWorkerThreadCount( 0 == m_workerThreadCount ? 1 : (size_t) m_workerThreadCount );
+            ogreQueue->setWorkersCanAccessRenderSystem( m_workersCanAccessRenderSystem );
+            ogreQueue->setResponseProcessingTimeLimit( (unsigned long) m_mainThreadBudgetInMs );
+            m_taskWorkQueue = GUCEF_NULL;
+            m_root->setWorkQueue( ogreQueue );
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "COgreRootSetup: The Root uses Ogre's own work queue" );
+            return true;
+        }
+
+        COgreTaskWorkQueue* queue = hasTaskWorkQueue ? m_taskWorkQueue : OGRE_NEW COgreTaskWorkQueue();
+        queue->SetThreadPoolName( m_workerPoolName );
+        queue->setWorkerThreadCount( (size_t) m_workerThreadCount );
+        queue->setResponseProcessingTimeLimit( (unsigned long) m_mainThreadBudgetInMs );
+        queue->SetWorkersCanAccessRenderSystem( m_workersCanAccessRenderSystem );
+        if ( !hasTaskWorkQueue )
+        {
+            // the Root owns the queue from now on; one that is initialised already starts it at once
+            m_taskWorkQueue = queue;
+            m_root->setWorkQueue( queue );
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "COgreRootSetup: The Root uses the work queue on GUCEF thread pool " << m_workerPoolName );
+        }
+        return true;
+    }
+    catch ( const Ogre::Exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "COgreRootSetup: Failed to install the work queue: " << e.getFullDescription() );
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+COgreTaskWorkQueue*
+COgreRootSetup::GetTaskWorkQueue( void ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_root && GUCEF_NULL != m_taskWorkQueue && m_root->getWorkQueue() == m_taskWorkQueue )
+        return m_taskWorkQueue;
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreRootSetup::SetWorkQueueType( const CORE::CString& workQueueType )
+{GUCEF_TRACE;
+
+    m_workQueueType = WorkQueueTypeOgre == workQueueType ? WorkQueueTypeOgre : WorkQueueTypeGucef;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+COgreRootSetup::GetWorkQueueType( void ) const
+{GUCEF_TRACE;
+
+    return m_workQueueType;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreRootSetup::SetWorkerPoolName( const CORE::CString& poolName )
+{GUCEF_TRACE;
+
+    m_workerPoolName = poolName.IsNULLOrEmpty() ? COgreWorkQueueCore::DefaultThreadPoolName : poolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+COgreRootSetup::GetWorkerPoolName( void ) const
+{GUCEF_TRACE;
+
+    return m_workerPoolName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreRootSetup::SetWorkerThreadCount( UInt32 threadCount )
+{GUCEF_TRACE;
+
+    m_workerThreadCount = threadCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+COgreRootSetup::GetWorkerThreadCount( void ) const
+{GUCEF_TRACE;
+
+    return m_workerThreadCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreRootSetup::SetMainThreadBudgetInMs( UInt32 budgetInMs )
+{GUCEF_TRACE;
+
+    m_mainThreadBudgetInMs = budgetInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+COgreRootSetup::GetMainThreadBudgetInMs( void ) const
+{GUCEF_TRACE;
+
+    return m_mainThreadBudgetInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreRootSetup::SetWorkersCanAccessRenderSystem( bool canAccess )
+{GUCEF_TRACE;
+
+    m_workersCanAccessRenderSystem = canAccess;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreRootSetup::GetWorkersCanAccessRenderSystem( void ) const
+{GUCEF_TRACE;
+
+    return m_workersCanAccessRenderSystem;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 COgreRootSetup::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
@@ -342,8 +513,24 @@ COgreRootSetup::LoadConfig( const CORE::CDataNode& config )
         }
     }
 
+    m_workQueueType = section->GetAttributeValueOrChildValueByName( "workQueue" ).AsString( WorkQueueTypeGucef, true );
+    if ( WorkQueueTypeGucef != m_workQueueType && WorkQueueTypeOgre != m_workQueueType )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "COgreRootSetup: Unknown work queue type " << m_workQueueType << ", " << WorkQueueTypeGucef << " is used" );
+        m_workQueueType = WorkQueueTypeGucef;
+    }
+    m_workerPoolName = section->GetAttributeValueOrChildValueByName( "workerPool" ).AsString( COgreWorkQueueCore::DefaultThreadPoolName, true );
+    if ( m_workerPoolName.IsNULLOrEmpty() )
+        m_workerPoolName = COgreWorkQueueCore::DefaultThreadPoolName;
+    m_workerThreadCount = section->GetAttributeValueOrChildValueByName( "workerThreads" ).AsUInt32( COgreWorkQueueCore::DefaultWorkerThreadCount, true );
+    m_mainThreadBudgetInMs = section->GetAttributeValueOrChildValueByName( "mainThreadBudgetMs" ).AsUInt32( COgreWorkQueueCore::DefaultMainThreadBudgetInMs, true );
+    m_workersCanAccessRenderSystem = section->GetAttributeValueOrChildValueByName( "workersCanAccessRenderSystem" ).AsBool( 1 == OGRE_THREAD_SUPPORT, true );
+    if ( m_ownsRoot && GUCEF_NULL != m_root )
+        InstallWorkQueue();
+
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "COgreRootSetup: Configuration loaded with " << m_renderSystems.size()
-        << " render systems and " << m_resourceGroups.size() << " resource groups" );
+        << " render systems and " << m_resourceGroups.size() << " resource groups, work queue " << m_workQueueType
+        << " on thread pool " << m_workerPoolName << " with " << m_workerThreadCount << " worker threads" );
     return true;
 }
 
@@ -361,6 +548,12 @@ COgreRootSetup::SaveConfig( CORE::CDataNode& config ) const
     section->DelChild( "renderSystems" );
     section->DelChild( "ResourceGroups" );
     totalSuccess = section->SetValuesOfChildByName( "renderSystems", m_renderSystems ) && totalSuccess;
+
+    totalSuccess = section->SetAttribute( "workQueue", m_workQueueType ) && totalSuccess;
+    totalSuccess = section->SetAttribute( "workerPool", m_workerPoolName ) && totalSuccess;
+    totalSuccess = section->SetAttribute( "workerThreads", m_workerThreadCount ) && totalSuccess;
+    totalSuccess = section->SetAttribute( "mainThreadBudgetMs", m_mainThreadBudgetInMs ) && totalSuccess;
+    totalSuccess = section->SetAttribute( "workersCanAccessRenderSystem", m_workersCanAccessRenderSystem ) && totalSuccess;
 
     CORE::CDataNode* groups = section->AddChild( "ResourceGroups", GUCEF_DATATYPE_ARRAY );
     if ( GUCEF_NULL == groups )
