@@ -1,0 +1,11 @@
+# Repositories to keep in sync with GitHub (or any git URL). Copy to repos.conf (gitignored) and edit.
+# One repository per line:  <forgejo owner> <repository name> <mode> <source url> [interval]
+#
+# Modes:
+#   pull    read-only mirror of the source, refreshed every <interval> (default 10m, minimum 10m).
+#           Pushes to the source show up on Forgejo and start the CI workflows.
+#   import  one-time copy of the source (issues, releases included); Forgejo is the primary afterwards.
+#
+# The owner is a Forgejo user or organization name. Private sources use GITHUB_TOKEN from secrets.env.
+#
+#forgejo-admin GUCEF pull https://github.com/DinandVanvelzen/GUCEF.git 10m

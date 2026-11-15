@@ -306,6 +306,20 @@ Parameters given on the command line override the `[Bootstrap\Main\AppArgs]` val
 - `cihelpergen:ForgejoActionsWorkflowsDir` - Output dir relative to the project root (default `.forgejo/workflows`)
 - `cihelpergen:ForgejoActionsLinuxRunnerLabel` / `cihelpergen:ForgejoActionsWindowsRunnerLabel` - `runs-on` labels, must match the labels the Forgejo runner is registered with (defaults `gucef-linux` / `windows-msvc`)
 - `cihelpergen:ForgejoActionsCheckoutAction` / `cihelpergen:ForgejoActionsUploadArtifactAction` - Action references (defaults `actions/checkout@v4` / `actions/upload-artifact@v3`; Forgejo does not support upload-artifact v4)
+
+Nightly build matrix (Forgejo Actions / GitHub Actions style runners). Generates `<Matrix:Dir>/matrix.json` (toolchains and cells: toolchain x C++ standard x build type), `<Matrix:Dir>/products.json` (buildable targets with their effective minimum C++ standard and path lists) and `<ForgejoActionsWorkflowsDir>/gucef-ci.yml`. The workflow runs on pushes to the configured branches (the planner diffs against the commit before the push) and on a schedule (the planner looks at the recent commit window), builds only the impacted products, and fans the cells out as a `strategy.matrix`. The hand written helpers it calls are `projects/CI/scripts/ci_plan.py` (change detection, cell selection) and `projects/CI/scripts/ci_cell.sh` (builds one cell).
+- `cihelpergen:Matrix:Enabled` - Generate the matrix and nightly workflow (default `false`)
+- `cihelpergen:Matrix:Dir` - Output dir relative to the project root (default `projects/CI/matrix`)
+- `cihelpergen:Matrix:CppStandards` - Comma separated C++ standards (default `98,11,14,17,20,23`). Cells below a target's effective `MinCppStandard` are not built
+- `cihelpergen:Matrix:BuildTypes` - Comma separated CMake build types (default `Release`)
+- `cihelpergen:Matrix:NightlyCron` - Cron schedule of the nightly workflow (default `0 1 * * *`)
+- `cihelpergen:Matrix:PushBranches` - Comma separated branches whose pushes trigger a build of the impacted products (default `master,main`; empty: no push trigger)
+- `cihelpergen:Matrix:ChangeWindowHours` - Commits newer than this many hours count as changes (default `25`)
+- `cihelpergen:Matrix:PlanRunner` - `runs-on` label of the planning job (default `gucef-linux`)
+- `cihelpergen:Matrix:PlatformFilter` - Platforms listed in products.json (default: the `cihelpergen:platformFilter` value)
+- `cihelpergen:Matrix:ProductPrefixes` / `cihelpergen:Matrix:ExcludedProducts` - Which targets are products (defaults `GUCEF_tag_` / `GUCEF_tag_obsolete`)
+- `cihelpergen:Matrix:Toolchains` - Comma separated toolchain ids (default `gcc-linux-x64,clang-linux-x64`). Each id has `cihelpergen:Matrix:Toolchain:<id>:` keys `Platform`, `Compiler`, `Arch`, `Runner` (the `runs-on` label), `CMakeArgs` (extra configure arguments, shell expanded), `MinCppStandard`, `MaxCppStandard` and `Enabled` (default `true`; disabled toolchains produce no cells, use this until the runner for the label exists)
+- `cihelpergen:Matrix:Toolchain:<id>:Runner` labels must match labels a registered runner has, otherwise the cell job waits for a runner indefinitely
 - `cihelpergen:GenerateGlobPatternPathListPerTarget` - Generate glob patterns
 
 #### Premake Generators

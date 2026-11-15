@@ -16,6 +16,7 @@ set( HEADER_FILES
   include/gucefProjectGen_CAndroidMakefileGenerator.h
   include/gucefProjectGen_CArduinoCLIGenerator.h
   include/gucefProjectGen_CCIHelperGenerator.h
+  include/gucefProjectGen_CCIMatrixGenerator.h
   include/gucefProjectGen_CCMakeProjectGenerator.h
   include/gucefProjectGen_CDirCrawlingProjectInfoGatherer.h
   include/gucefProjectGen_CDirPreprocessorManager.h
@@ -45,6 +46,7 @@ set( SOURCE_FILES
   src/gucefProjectGen_CAndroidMakefileGenerator.cpp
   src/gucefProjectGen_CArduinoCLIGenerator.cpp
   src/gucefProjectGen_CCIHelperGenerator.cpp
+  src/gucefProjectGen_CCIMatrixGenerator.cpp
   src/gucefProjectGen_CCMakeProjectGenerator.cpp
   src/gucefProjectGen_CDirCrawlingProjectInfoGatherer.cpp
   src/gucefProjectGen_CDirPreprocessorManager.cpp

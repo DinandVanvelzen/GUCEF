@@ -1,0 +1,27 @@
+{
+  "cppStandards": ["98", "11", "14", "17", "20", "23"],
+  "buildTypes": ["Release"],
+  "toolchains": [
+    { "id": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "enabled": true },
+    { "id": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "enabled": true },
+    { "id": "gcc-linux-arm64", "platform": "linux64", "compiler": "gcc", "arch": "arm64", "runner": "gucef-linux-arm64", "enabled": false },
+    { "id": "android-arm64", "platform": "android64", "compiler": "clang", "arch": "arm64", "runner": "gucef-android", "enabled": false },
+    { "id": "emscripten", "platform": "emscripten64", "compiler": "emcc", "arch": "wasm", "runner": "gucef-emscripten", "enabled": false },
+    { "id": "msvc-win64", "platform": "win64", "compiler": "msvc", "arch": "x64", "runner": "gucef-windows", "enabled": false },
+    { "id": "appleclang-macos", "platform": "osx", "compiler": "appleclang", "arch": "arm64", "runner": "gucef-macos", "enabled": false }
+  ],
+  "cells": [
+    { "id": "gcc-linux-x64-cxx98-Release", "toolchain": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "cppStandard": "98", "cppStandardYear": 1998, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "gcc-linux-x64-cxx11-Release", "toolchain": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "cppStandard": "11", "cppStandardYear": 2011, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "gcc-linux-x64-cxx14-Release", "toolchain": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "cppStandard": "14", "cppStandardYear": 2014, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "gcc-linux-x64-cxx17-Release", "toolchain": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "cppStandard": "17", "cppStandardYear": 2017, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "gcc-linux-x64-cxx20-Release", "toolchain": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "cppStandard": "20", "cppStandardYear": 2020, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "gcc-linux-x64-cxx23-Release", "toolchain": "gcc-linux-x64", "platform": "linux64", "compiler": "gcc", "arch": "x64", "runner": "gucef-linux", "cppStandard": "23", "cppStandardYear": 2023, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "clang-linux-x64-cxx98-Release", "toolchain": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "cppStandard": "98", "cppStandardYear": 1998, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "clang-linux-x64-cxx11-Release", "toolchain": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "cppStandard": "11", "cppStandardYear": 2011, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "clang-linux-x64-cxx14-Release", "toolchain": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "cppStandard": "14", "cppStandardYear": 2014, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "clang-linux-x64-cxx17-Release", "toolchain": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "cppStandard": "17", "cppStandardYear": 2017, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "clang-linux-x64-cxx20-Release", "toolchain": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "cppStandard": "20", "cppStandardYear": 2020, "buildType": "Release", "cmakeArgs": "" },
+    { "id": "clang-linux-x64-cxx23-Release", "toolchain": "clang-linux-x64", "platform": "linux64", "compiler": "clang", "arch": "x64", "runner": "gucef-linux", "cppStandard": "23", "cppStandardYear": 2023, "buildType": "Release", "cmakeArgs": "" }
+  ]
+}

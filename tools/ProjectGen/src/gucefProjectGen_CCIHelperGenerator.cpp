@@ -38,6 +38,7 @@
 #endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
 
 #include "gucefProjectGen_CCIHelperGenerator.h"
+#include "gucefProjectGen_CCIMatrixGenerator.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -916,6 +917,21 @@ CCIHelperGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                                  prefixWorkflowFilenameWithProjectGenAutoGen );
     }
     
+    // Nightly build matrix: toolchains x C++ standards x build types, driven by the cihelpergen:Matrix:* parameters
+    if ( CORE::StringToBool( params.GetValueAlways( "cihelpergen:Matrix:Enabled" ), false ) )
+    {
+        // The matrix covers more platforms than the per target workflows, their change detection needs path lists too
+        CORE::CString::StringSet matrixPlatforms = params.GetValueAlways( "cihelpergen:Matrix:PlatformFilter" ).AsString( CORE::CString::Empty, true ).ParseUniqueElements( ',', false );
+        if ( !matrixPlatforms.empty() )
+            GenerateGlobPatternPathListPerTarget( projectInfo, targets, matrixPlatforms, targetsOutputDir );
+        GenerateCIMatrix( projectInfo                                                                    ,
+                          targets                                                                        ,
+                          platformFilter                                                                 ,
+                          GetShortestRelativePathFromAbsPathToProjectRoot( projectInfo, targetsOutputDir )      ,
+                          GetShortestRelativePathFromAbsPathToProjectRoot( projectInfo, cmakeTargetsOutputDir ) ,
+                          params                                                                         );
+    }
+
     GenerateCIBuildBashScript( targetsOutputDir );
     // @TODO: GenerateCIBuildPowerShellScript( targetsOutputDir );
 
