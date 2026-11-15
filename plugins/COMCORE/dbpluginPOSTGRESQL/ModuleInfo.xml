@@ -1,0 +1,31 @@
+<ModuleInfoEntry>
+    <Module Name="dbpluginPOSTGRESQL" Type="SharedLibrary" Platform="linux;mswin" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>gucefCOMCORE database backend for PostgreSQL</DescriptionHeadline>
+            <DescriptionDetails>The postgresql database backend: data tables as tables of a PostgreSQL database through libpq, with the index hints of the definitions as indexes, predicates and projections sent to the server as parameterised statements, upserts, transactions and the async calls on a thread pool. General purpose, not tied to one application.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="libpq" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="libpq" />
+        </Linker>
+        <Preprocessor>
+            <Define String="DBPLUGIN_POSTGRESQL_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

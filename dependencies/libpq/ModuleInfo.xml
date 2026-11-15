@@ -1,0 +1,75 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>PostgreSQL</License>
+        <SemVer>18.7.0.0</SemVer>
+        <DescriptionHeadline>libpq, the C client library of PostgreSQL 18.7</DescriptionHeadline>
+        <DescriptionDetails>The client library of PostgreSQL 18.7 (src/interfaces/libpq) with the files of src/common and src/port it uses, from the release tarball, unmodified. The headers the configure step of upstream generates (src/include/pg_config.h, src/include/pg_config_os.h and src/port/pg_config_paths.h) are hand written equivalents in which the preprocessor selects what the platform decides (DV added). A static library linked into the modules that use it (dbpluginPOSTGRESQL). TLS through the OpenSSL of the system on Linux; built without TLS on Windows. No GSSAPI, LDAP, NLS or libcurl (no built in OAuth device flow).</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="libpq" Type="StaticLibrary" Platform="linux;mswin">
+        <Includes Source="Self">
+            <Include Path="src/include" />
+            <Include Path="src/port" />
+            <Include Path="src/interfaces/libpq" />
+        </Includes>
+        <!-- included by path relative to src/include ("common/md5.h", "port/linux.h") or next to the including file: not search paths -->
+        <Includes Source="ExcludedFromSearchPaths">
+            <Include Path="src/common" />
+            <Include Path="src/include/common" />
+            <Include Path="src/include/libpq" />
+            <Include Path="src/include/mb" />
+            <Include Path="src/include/port" />
+            <Include Path="src/include/utils" />
+        </Includes>
+        <Preprocessor>
+            <Define String="FRONTEND" />
+            <Define String="SO_MAJOR_VERSION=5" />
+            <Define String="JSONAPI_USE_PQEXPBUFFER" />
+        </Preprocessor>
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-fno-strict-aliasing -fwrapv -fexcess-precision=standard" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux">
+        <!-- replacement headers of system headers for Windows: never search paths on Linux -->
+        <Includes Source="ExcludedFromSearchPaths">
+            <Include Path="src/include/port/win32" />
+            <Include Path="src/include/port/win32/arpa" />
+            <Include Path="src/include/port/win32/netinet" />
+            <Include Path="src/include/port/win32/sys" />
+            <Include Path="src/include/port/win32_msvc" />
+            <Include Path="src/include/port/win32_msvc/sys" />
+        </Includes>
+        <Preprocessor>
+            <Define String="_GNU_SOURCE" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="ssl" />
+            <Dependency Name="crypto" />
+            <Dependency Name="pthread" />
+        </Linker>
+    </Module>
+    <Module Platform="mswin">
+        <Includes Source="Self">
+            <Include Path="src/include/port/win32" />
+            <Include Path="src/include/port/win32_msvc" />
+        </Includes>
+        <!-- reached as <sys/socket.h>, <arpa/inet.h>, ... below the two directories above: not search paths themselves -->
+        <Includes Source="ExcludedFromSearchPaths">
+            <Include Path="src/include/port/win32/arpa" />
+            <Include Path="src/include/port/win32/netinet" />
+            <Include Path="src/include/port/win32/sys" />
+            <Include Path="src/include/port/win32_msvc/sys" />
+        </Includes>
+        <Preprocessor>
+            <Define String="_CRT_SECURE_NO_DEPRECATE" />
+            <Define String="_CRT_NONSTDC_NO_DEPRECATE" />
+            <Define String="_WINSOCK_DEPRECATED_NO_WARNINGS" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="ws2_32" />
+            <Dependency Name="secur32" />
+            <Dependency Name="advapi32" />
+            <Dependency Name="shell32" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

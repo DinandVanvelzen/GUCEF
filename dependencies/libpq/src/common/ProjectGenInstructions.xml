@@ -1,0 +1,23 @@
+<PROJECTGENERATOR>
+    <!-- DV added: the hashes and HMAC of OpenSSL on Linux, the built in ones where there is no OpenSSL -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="cryptohash_openssl.c" TYPE="FILE" />
+        <ITEM NAME="hmac_openssl.c" TYPE="FILE" />
+        <ITEM NAME="cryptohash.c" TYPE="FILE" />
+        <ITEM NAME="hmac.c" TYPE="FILE" />
+        <ITEM NAME="md5.c" TYPE="FILE" />
+        <ITEM NAME="sha1.c" TYPE="FILE" />
+        <ITEM NAME="sha2.c" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="cryptohash_openssl.c" TYPE="FILE" />
+        <ITEM NAME="hmac_openssl.c" TYPE="FILE" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="mswin">
+        <ITEM NAME="cryptohash.c" TYPE="FILE" />
+        <ITEM NAME="hmac.c" TYPE="FILE" />
+        <ITEM NAME="md5.c" TYPE="FILE" />
+        <ITEM NAME="sha1.c" TYPE="FILE" />
+        <ITEM NAME="sha2.c" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

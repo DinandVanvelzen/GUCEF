@@ -1,0 +1,17 @@
+<PROJECTGENERATOR>
+    <!-- DV added: TLS through OpenSSL on Linux only, the Windows support files on Windows only -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="fe-secure-common.c" TYPE="FILE" />
+        <ITEM NAME="fe-secure-openssl.c" TYPE="FILE" />
+        <ITEM NAME="pthread-win32.c" TYPE="FILE" />
+        <ITEM NAME="win32.c" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="fe-secure-common.c" TYPE="FILE" />
+        <ITEM NAME="fe-secure-openssl.c" TYPE="FILE" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="mswin">
+        <ITEM NAME="pthread-win32.c" TYPE="FILE" />
+        <ITEM NAME="win32.c" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

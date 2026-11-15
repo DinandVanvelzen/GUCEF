@@ -75,6 +75,11 @@
 #define GUCEF_COMCORE_CDATABASETABLERESULT_H
 #endif /* GUCEF_COMCORE_CDATABASETABLERESULT_H ? */
 
+#ifndef GUCEF_COMCORE_CDATABASETRANSACTION_H
+#include "gucefCOMCORE_CDatabaseTransaction.h"
+#define GUCEF_COMCORE_CDATABASETRANSACTION_H
+#endif /* GUCEF_COMCORE_CDATABASETRANSACTION_H ? */
+
 #ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
 #include "gucefCOMCORE_CComCoreGlobal.h"
 #define GUCEF_COMCORE_CCOMCOREGLOBAL_H
@@ -1732,6 +1737,75 @@ PerformVfsTablesDatabaseTests( void )
             table.Unlink();
             client.Unlink();
             UnmountDirectory( "csv" );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Database: index hints of a definition are kept with the table and read back by every client; the backend has no transactions" )
+        try
+        {
+            MountFreshDirectory( "indexes", "vfstests/indexes", true );
+            COMCORE::CIDatabaseClientPtr client = OpenRequired( MakeSettings( "vfstests/indexes", false ) );
+            ASSERT_FALSE( client.IsNULL() );
+            ASSERT_TRUE( 0 == ( client->GetCapabilities() & GUCEF_DATABASE_CAPABILITY_TRANSACTIONS ) );
+            ASSERT_TRUE( 0 == ( client->GetCapabilities() & GUCEF_DATABASE_CAPABILITY_INDEXES ) );
+
+            CDataTableDefinition definition = MakeEventsDefinition( "events" );
+            CString::StringVector byNote;
+            byNote.push_back( "note" );
+            CString::StringVector byIdValue;
+            byIdValue.push_back( "id" );
+            byIdValue.push_back( "value" );
+            definition.indexes.push_back( CDataTableIndexDef( "by_note", byNote ) );
+            definition.indexes.push_back( CDataTableIndexDef( "by_id_value", byIdValue, true ) );
+            CIDataTablePtr table = CreateTable( client, definition );
+            ASSERT_FALSE( table.IsNULL() );
+            ASSERT_TRUE( table->GetDefinition() == definition );
+
+            CDataTableDefinition described;
+            ASSERT_TRUE( DATATABLE_STATUS_OK == client->GetTableDefinition( "events", described ) );
+            ASSERT_TRUE( described == definition && 2 == described.indexes.size() );
+            ASSERT_TRUE( described.indexes[ 1 ].name == "by_id_value" && described.indexes[ 1 ].unique && described.indexes[ 1 ].columns == byIdValue );
+
+            // the hints change nothing in what the table holds or returns
+            static const char* const regions[] = { "EU", "US" };
+            ASSERT_TRUE( DATATABLE_STATUS_OK == WriteRows( *table, MakeEvents( regions, 2, 2020, 2020, 5, 1.0 ), DATATABLE_WRITE_INSERT ) );
+            ASSERT_TRUE( 10 == CountRows( *table ) );
+
+            // a definition with a hint on a column the schema lacks is refused
+            CDataTableDefinition bad = MakeEventsDefinition( "bad" );
+            CString::StringVector missing;
+            missing.push_back( "missing" );
+            bad.indexes.push_back( CDataTableIndexDef( "by_missing", missing ) );
+            CIDataTablePtr refused;
+            ASSERT_TRUE( DATATABLE_STATUS_INVALID_ARGUMENT == client->CreateTable( bad, refused ) );
+
+            // another client reads the definition from the stored file, hints included
+            COMCORE::CIDatabaseClientPtr reader = OpenRequired( MakeSettings( "vfstests/indexes", true ) );
+            CIDataTablePtr readTable;
+            ASSERT_TRUE( DATATABLE_STATUS_OK == reader->OpenTable( "events", readTable ) );
+            ASSERT_TRUE( readTable->GetDefinition() == definition );
+            ASSERT_TRUE( 10 == CountRows( *readTable ) );
+            readTable.Unlink();
+            reader.Unlink();
+
+            // no transactions: a scope does not begin and the writes are applied as they are made
+            {
+                COMCORE::CDatabaseTransaction transaction( client );
+                ASSERT_FALSE( transaction.IsActive() );
+                ASSERT_TRUE( DATATABLE_STATUS_UNSUPPORTED == transaction.GetBeginStatus() );
+                ASSERT_TRUE( DATATABLE_STATUS_OK == WriteRows( *table, MakeEvents( regions, 2, 2021, 2021, 5, 2.0 ), DATATABLE_WRITE_INSERT ) );
+            }
+            ASSERT_TRUE( 20 == CountRows( *table ) );
+            ASSERT_FALSE( client->IsInTransaction() );
+
+            table.Unlink();
+            ASSERT_TRUE( DATATABLE_STATUS_OK == client->DropTable( "events", true ) );
+            client.Unlink();
+            UnmountDirectory( "indexes" );
         }
         catch ( ... )
         {

@@ -1,0 +1,49 @@
+<PROJECTGENERATOR>
+    <!-- DV added: the Windows support files of src/port on Windows only -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="dirent.c" TYPE="FILE" />
+        <ITEM NAME="dirmod.c" TYPE="FILE" />
+        <ITEM NAME="kill.c" TYPE="FILE" />
+        <ITEM NAME="open.c" TYPE="FILE" />
+        <ITEM NAME="system.c" TYPE="FILE" />
+        <ITEM NAME="win32common.c" TYPE="FILE" />
+        <ITEM NAME="win32dlopen.c" TYPE="FILE" />
+        <ITEM NAME="win32env.c" TYPE="FILE" />
+        <ITEM NAME="win32error.c" TYPE="FILE" />
+        <ITEM NAME="win32fdatasync.c" TYPE="FILE" />
+        <ITEM NAME="win32fseek.c" TYPE="FILE" />
+        <ITEM NAME="win32gai_strerror.c" TYPE="FILE" />
+        <ITEM NAME="win32getrusage.c" TYPE="FILE" />
+        <ITEM NAME="win32gettimeofday.c" TYPE="FILE" />
+        <ITEM NAME="win32link.c" TYPE="FILE" />
+        <ITEM NAME="win32ntdll.c" TYPE="FILE" />
+        <ITEM NAME="win32pread.c" TYPE="FILE" />
+        <ITEM NAME="win32pwrite.c" TYPE="FILE" />
+        <ITEM NAME="win32security.c" TYPE="FILE" />
+        <ITEM NAME="win32setlocale.c" TYPE="FILE" />
+        <ITEM NAME="win32stat.c" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="mswin">
+        <ITEM NAME="dirent.c" TYPE="FILE" />
+        <ITEM NAME="dirmod.c" TYPE="FILE" />
+        <ITEM NAME="kill.c" TYPE="FILE" />
+        <ITEM NAME="open.c" TYPE="FILE" />
+        <ITEM NAME="system.c" TYPE="FILE" />
+        <ITEM NAME="win32common.c" TYPE="FILE" />
+        <ITEM NAME="win32dlopen.c" TYPE="FILE" />
+        <ITEM NAME="win32env.c" TYPE="FILE" />
+        <ITEM NAME="win32error.c" TYPE="FILE" />
+        <ITEM NAME="win32fdatasync.c" TYPE="FILE" />
+        <ITEM NAME="win32fseek.c" TYPE="FILE" />
+        <ITEM NAME="win32gai_strerror.c" TYPE="FILE" />
+        <ITEM NAME="win32getrusage.c" TYPE="FILE" />
+        <ITEM NAME="win32gettimeofday.c" TYPE="FILE" />
+        <ITEM NAME="win32link.c" TYPE="FILE" />
+        <ITEM NAME="win32ntdll.c" TYPE="FILE" />
+        <ITEM NAME="win32pread.c" TYPE="FILE" />
+        <ITEM NAME="win32pwrite.c" TYPE="FILE" />
+        <ITEM NAME="win32security.c" TYPE="FILE" />
+        <ITEM NAME="win32setlocale.c" TYPE="FILE" />
+        <ITEM NAME="win32stat.c" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>
