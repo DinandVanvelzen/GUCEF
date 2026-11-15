@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		06/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_RESOURCE_MANUAL_FONT_H__
-#define __MYGUI_RESOURCE_MANUAL_FONT_H__
+#ifndef MYGUI_RESOURCE_MANUAL_FONT_H_
+#define MYGUI_RESOURCE_MANUAL_FONT_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_ITexture.h"
@@ -29,52 +14,61 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT ResourceManualFont :
-		public IFont
+	class MYGUI_EXPORT ResourceManualFont : public IFont
 	{
-		MYGUI_RTTI_DERIVED( ResourceManualFont )
+		MYGUI_RTTI_DERIVED(ResourceManualFont)
 
 	public:
-		ResourceManualFont();
-		virtual ~ResourceManualFont();
+		void deserialization(xml::ElementPtr _node, Version _version) override;
 
-		virtual void deserialization(xml::ElementPtr _node, Version _version);
+		// Returns the glyph info for the specified code point, or the glyph info for a substitute glyph if the code point does not
+		// exist in this font. Returns nullptr if the code point does not exist and there is no substitute glyph available.
+		const GlyphInfo* getGlyphInfo(Char _id) const override;
 
-		virtual GlyphInfo* getGlyphInfo(Char _id);
+		ITexture* getTextureFont() const override;
 
-		virtual ITexture* getTextureFont();
+		// Default height from font settings
+		int getDefaultHeight() const override;
 
-		// дефолтная высота, указанная в настройках шрифта
-		virtual int getDefaultHeight();
+		float getKerning(Char _left, Char _right) const override;
+
+		// Manual loading methods, not needed when loading from XML
+		// Set the source texture by name
+		void setSource(std::string_view value);
+		// Set the shader by name
+		void setShader(std::string_view value);
+		// Set the source texture directly
+		// Note: the user is responsible for deallocation of the texture.
+		void setTexture(MyGUI::ITexture* texture);
+		// Set the default height of the font
+		void setDefaultHeight(int value);
+		// Add a glyph for character 'id'
+		void addGlyphInfo(Char id, const GlyphInfo& info);
+		// Add a kerning pair
+		void addKerningInfo(Char _left, Char _right, float _value);
 
 	private:
-		void addGlyph(Char _index, const IntCoord& _coord);
+		// Loads the texture specified by mSource.
+		void loadTexture();
 
-		void initialise();
+		// A map of code points to glyph info objects.
+		using CharMap = std::unordered_map<Char, GlyphInfo>;
 
-		void addGlyph(GlyphInfo* _info, Char _index, int _left, int _top, int _right, int _bottom, int _finalw, int _finalh, float _aspect, int _addHeight = 0);
+		// The following variables are set directly from values specified by the user.
+		std::string mSource; // Source (filename) of the font.
+		std::string mShader; // Optional shader, applied to the font.
 
-		typedef std::vector<PairCodeCoord> VectorPairCodeCoord;
-		void addRange(VectorPairCodeCoord& _info, size_t _first, size_t _last, int _width, int _height, float _aspect);
-		void checkTexture();
+		// The following variables are calculated automatically.
+		int mDefaultHeight{0}; // The nominal height of the font in pixels.
+		GlyphInfo* mSubstituteGlyphInfo{
+			nullptr}; // The glyph info to use as a substitute for code points that don't exist in the font.
+		MyGUI::ITexture* mTexture{nullptr}; // The texture that contains all of the rendered glyphs in the font.
 
-	private:
-		std::string mSource;
-		int mDefaultHeight;
+		CharMap mCharMap; // A map of code points to glyph info objects.
 
-		// отдельная информация о символах
-		GlyphInfo mSpaceGlyphInfo;
-
-		// символы созданные руками
-		VectorPairCodeCoord mVectorPairCodeCoord;
-
-		// вся информация о символах
-		typedef std::vector<RangeInfo> VectorRangeInfo;
-		VectorRangeInfo mVectorRangeInfo;
-
-		MyGUI::ITexture* mTexture;
+		KerningMap mKerningMap;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_RESOURCE_MANUAL_FONT_H__
+#endif // MYGUI_RESOURCE_MANUAL_FONT_H_

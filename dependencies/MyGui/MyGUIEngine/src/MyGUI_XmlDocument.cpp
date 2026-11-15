@@ -1,979 +1,370 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_XmlDocument.h"
 #include "MyGUI_DataManager.h"
 
-namespace MyGUI
+#include <pugixml.hpp>
+#include <fstream>
+#include <filesystem>
+#include "MyGUI_FileSystemUtility.h"
+
+namespace MyGUI::xml
 {
-	namespace xml
+
+	constexpr unsigned int ParseFlags = pugi::parse_default | pugi::parse_declaration | pugi::parse_comments;
+	constexpr unsigned int FormatFlags = pugi::format_write_bom | pugi::format_default;
+
+	Document::Document() :
+		mDoc(std::make_shared<pugi::xml_document>()),
+		mResult(std::make_shared<pugi::xml_parse_result>())
 	{
+		clearLastError();
+	}
 
-		namespace utility
+	bool Document::open(const std::string& _filename)
+	{
+		return open(MyGUI::utility::toPath(_filename));
+	}
+
+	bool Document::open(const std::filesystem::path& _filename)
+	{
+		clear();
+
+		*mResult = mDoc->load_file(_filename.c_str(), ParseFlags);
+
+		if (!*mResult)
+			mLastErrorFile = _filename;
+
+		return *mResult;
+	}
+
+	bool Document::open(std::istream& _stream)
+	{
+		clear();
+
+		*mResult = mDoc->load(_stream, ParseFlags);
+
+		if (!*mResult)
+			mLastErrorFromStream = true;
+
+		return *mResult;
+	}
+
+	bool Document::open(IDataStream* _stream)
+	{
+		clear();
+
+		const auto data = _stream->readAll();
+
+		*mResult = mDoc->load_buffer(data.data(), data.size(), ParseFlags);
+		if (!*mResult)
+			mLastErrorFromStream = true;
+
+		return *mResult;
+	}
+
+	bool Document::save(const std::string& _filename)
+	{
+		return save(MyGUI::utility::toPath(_filename));
+	}
+
+	bool Document::save(const std::filesystem::path& _filename)
+	{
+		clearLastError();
+		bool result = mDoc->save_file(_filename.c_str(), "\t", FormatFlags);
+
+		if (!result)
 		{
-			std::string convert_from_xml(const std::string& _string, bool& _ok)
-			{
-				std::string ret;
-				_ok = true;
-
-				size_t pos = _string.find("&");
-				if (pos == std::string::npos) return _string;
-
-				ret.reserve(_string.size());
-				size_t old = 0;
-				while (pos != std::string::npos)
-				{
-					ret += _string.substr(old, pos - old);
-
-					size_t end = _string.find(";", pos + 1);
-					if (end == std::string::npos)
-					{
-						_ok = false;
-						return ret;
-					}
-					else
-					{
-						std::string tag = _string.substr(pos, end - pos + 1);
-						if (tag == "&amp;") ret += '&';
-						else if (tag == "&lt;") ret += '<';
-						else if (tag == "&gt;") ret += '>';
-						else if (tag == "&apos;") ret += '\'';
-						else if (tag == "&quot;") ret += '\"';
-						else
-						{
-							_ok = false;
-							return ret;
-						}
-					}
-
-					old = end + 1;
-					pos = _string.find("&", old);
-				}
-				ret += _string.substr(old, std::string::npos);
-
-				return ret;
-			}
-
-			std::string convert_to_xml(const std::string& _string)
-			{
-				std::string ret;
-
-				size_t pos = _string.find_first_of("&<>'\"");
-				if (pos == std::string::npos) return _string;
-
-				ret.reserve(_string.size() * 2);
-				size_t old = 0;
-				while (pos != std::string::npos)
-				{
-					ret += _string.substr(old, pos - old);
-
-					if (_string[pos] == '&') ret += "&amp;";
-					else if (_string[pos] == '<') ret += "&lt;";
-					else if (_string[pos] == '>') ret += "&gt;";
-					else if (_string[pos] == '\'') ret += "&apos;";
-					else if (_string[pos] == '\"') ret += "&quot;";
-
-					old = pos + 1;
-					pos = _string.find_first_of("&<>'\"", old);
-				}
-				ret += _string.substr(old, std::string::npos);
-
-				return ret;
-			}
-
-		}
-
-		//----------------------------------------------------------------------//
-		// class ElementEnumerator
-		//----------------------------------------------------------------------//
-		ElementEnumerator::ElementEnumerator(VectorElement::iterator _begin, VectorElement::iterator _end) :
-			m_first(true),
-			m_current(_begin),
-			m_end(_end)
-		{
-		}
-
-		bool ElementEnumerator::next()
-		{
-			if (m_current == m_end)
-				return false;
-			else if (m_first)
-			{
-				m_first = false;
-				return true;
-			}
-			++ m_current;
-			if (m_current == m_end)
-				return false;
-			return true;
-		}
-
-		bool ElementEnumerator::next(const std::string& _name)
-		{
-			while (next())
-			{
-				if ((*m_current)->getName() == _name)
-					return true;
-			}
-			return false;
-		}
-
-		ElementPtr ElementEnumerator::operator->() const
-		{
-			assert(m_current != m_end);
-			return (*m_current);
-		}
-
-		ElementPtr ElementEnumerator::current()
-		{
-			assert(m_current != m_end);
-			return (*m_current);
-		}
-
-		//----------------------------------------------------------------------//
-		// class Element
-		//----------------------------------------------------------------------//
-		Element::Element(const std::string& _name, ElementPtr _parent, ElementType _type, const std::string& _content) :
-			mName(_name),
-			mContent(_content),
-			mParent(_parent),
-			mType(_type)
-		{
-		}
-
-		Element::~Element()
-		{
-			for (VectorElement::iterator iter = mChilds.begin(); iter != mChilds.end(); ++iter)
-			{
-				delete *iter;
-			}
-			mChilds.clear();
-		}
-
-		void Element::save(std::ostream& _stream, size_t _level)
-		{
-			// сначала табуляции намутим
-			for (size_t tab = 0; tab < _level; ++tab)
-				_stream  << "    ";
-
-			// теперь заголовок тега
-			if (mType == ElementType::Declaration)
-				_stream << "<?";
-			else if (mType == ElementType::Comment)
-				_stream << "<!--";
-			else
-				_stream << "<";
-
-			_stream << mName;
-
-			for (VectorAttributes::iterator iter = mAttributes.begin(); iter != mAttributes.end(); ++iter)
-			{
-				_stream << " " << iter->first << "=\"" << utility::convert_to_xml(iter->second) << "\"";
-			}
-
-			bool empty = mChilds.empty();
-			// если детей нет то закрываем
-			if (empty && mContent.empty())
-			{
-				if (mType == ElementType::Declaration)
-					_stream << "?>\n";
-				else if (mType == ElementType::Comment)
-					_stream << "-->\n";
-				else
-					_stream << "/>\n";
-			}
-			else
-			{
-				_stream << ">";
-				if (!empty)
-					_stream << "\n";
-				// если есть тело то сначало оно
-				if (!mContent.empty())
-				{
-					if (!empty)
-					{
-						for (size_t tab = 0; tab <= _level; ++tab) _stream  << "    ";
-					}
-					_stream << utility::convert_to_xml(mContent);
-
-					if (!empty)
-						_stream << "\n";
-				}
-				// если есть детишки путь сохранятся
-				for (size_t child = 0; child < mChilds.size(); child++)
-				{
-					mChilds[child]->save(_stream, _level + 1);
-				}
-
-				if (!empty)
-				{
-					for (size_t tab = 0; tab < _level; ++tab)
-						_stream  << "    ";
-				}
-				_stream << "</" << mName << ">\n";
-			}
-		}
-
-		ElementPtr Element::createChild(const std::string& _name, const std::string& _content, ElementType _type)
-		{
-			ElementPtr node = new Element(_name, this, _type, _content);
-			mChilds.push_back(node);
-			return node;
-		}
-
-		void Element::removeChild(ElementPtr _child)
-		{
-			VectorElement::iterator item = std::find(mChilds.begin(), mChilds.end(), _child);
-			if (item != mChilds.end())
-			{
-				delete (*item);
-				mChilds.erase(item);
-			}
-		}
-
-		void Element::clear()
-		{
-			for (VectorElement::iterator iter = mChilds.begin(); iter != mChilds.end(); ++iter) delete *iter;
-			mChilds.clear();
-			mContent.clear();
-			mAttributes.clear();
-		}
-
-		bool Element::findAttribute(const std::string& _name, std::string& _value)
-		{
-			for (VectorAttributes::iterator iter = mAttributes.begin(); iter != mAttributes.end(); ++iter)
-			{
-				if ( (*iter).first == _name)
-				{
-					_value = (*iter).second;
-					return true;
-				}
-			}
-			return false;
-		}
-
-		std::string Element::findAttribute(const std::string& _name)
-		{
-			for (VectorAttributes::iterator iter = mAttributes.begin(); iter != mAttributes.end(); ++iter)
-			{
-				if ((*iter).first == _name)
-					return (*iter).second;
-			}
-			return "";
-		}
-
-		void Element::addAttribute(const std::string& _key, const std::string& _value)
-		{
-			mAttributes.push_back(PairAttribute(_key, _value));
-		}
-
-		void Element::removeAttribute(const std::string& _key)
-		{
-			for (size_t index = 0; index < mAttributes.size(); ++index)
-			{
-				if (mAttributes[index].first == _key)
-				{
-					mAttributes.erase(mAttributes.begin() + index);
-					return;
-				}
-			}
-		}
-
-		ElementPtr Element::createCopy()
-		{
-			Element* elem = new Element(mName, nullptr, mType, mContent);
-			elem->mAttributes = mAttributes;
-
-			for (VectorElement::iterator iter = mChilds.begin(); iter != mChilds.end(); ++iter)
-			{
-				Element* child = (*iter)->createCopy();
-				child->mParent = elem;
-				elem->mChilds.push_back(child);
-			}
-
-			return elem;
-		}
-
-		void Element::setAttribute(const std::string& _key, const std::string& _value)
-		{
-			for (size_t index = 0; index < mAttributes.size(); ++index)
-			{
-				if (mAttributes[index].first == _key)
-				{
-					mAttributes[index].second = _value;
-					return;
-				}
-			}
-			mAttributes.push_back(PairAttribute(_key, _value));
-		}
-
-		void Element::addContent(const std::string& _content)
-		{
-			if (mContent.empty())
-			{
-				mContent = _content;
-			}
-			else
-			{
-				mContent += " ";
-				mContent += _content;
-			}
-		}
-
-		void Element::setContent(const std::string& _content)
-		{
-			mContent = _content;
-		}
-
-		const std::string& Element::getName() const
-		{
-			return mName;
-		}
-
-		const std::string& Element::getContent() const
-		{
-			return mContent;
-		}
-
-		const VectorAttributes& Element::getAttributes() const
-		{
-			return mAttributes;
-		}
-
-		ElementPtr Element::getParent() const
-		{
-			return mParent;
-		}
-
-		ElementEnumerator Element::getElementEnumerator()
-		{
-			return ElementEnumerator(mChilds.begin(), mChilds.end());
-		}
-
-		ElementType Element::getType() const
-		{
-			return mType;
-		}
-
-#if MYGUI_COMPILER == MYGUI_COMPILER_MSVC && !defined(STLPORT)
-		inline void open_stream(std::ofstream& _stream, const std::wstring& _wide)
-		{
-			_stream.open(_wide.c_str());
-		}
-		inline void open_stream(std::ifstream& _stream, const std::wstring& _wide)
-		{
-			_stream.open(_wide.c_str());
-		}
-#else
-		inline void open_stream(std::ofstream& _stream, const std::wstring& _wide)
-		{
-			_stream.open(UString(_wide).asUTF8_c_str());
-		}
-		inline void open_stream(std::ifstream& _stream, const std::wstring& _wide)
-		{
-			_stream.open(UString(_wide).asUTF8_c_str());
-		}
-#endif
-
-		//----------------------------------------------------------------------//
-		// class Document
-		//----------------------------------------------------------------------//
-		Document::Document():
-			mRoot(0),
-			mDeclaration(0),
-			mLastErrorFile(""),
-			mLine(0),
-			mCol(0)
-		{
-		}
-
-		Document::~Document()
-		{
-			clear();
-		}
-
-		// открывает обычным файлом, имя файла в utf8
-		bool Document::open(const std::string& _filename)
-		{
-			std::ifstream stream;
-			stream.open(_filename.c_str());
-
-			if (!stream.is_open())
-			{
-				mLastError = ErrorType::OpenFileFail;
-				setLastFileError(_filename);
-				return false;
-			}
-
-			bool result = open(stream);
-
-			stream.close();
-			return result;
-		}
-
-		// открывает обычным файлом, имя файла в utf16 или utf32
-		bool Document::open(const std::wstring& _filename)
-		{
-			std::ifstream stream;
-			open_stream(stream, _filename);
-
-			if (!stream.is_open())
-			{
-				mLastError = ErrorType::OpenFileFail;
-				setLastFileError(_filename);
-				return false;
-			}
-
-			bool result = open(stream);
-
-			stream.close();
-			return result;
-		}
-
-		bool Document::open(std::istream& _stream)
-		{
-			DataStream* data = new DataStream(&_stream);
-
-			bool result = open(data);
-			delete data;
-
-			return result;
-		}
-
-		// сохраняет файл, имя файла в кодировке utf8
-		bool Document::save(const std::string& _filename)
-		{
-			std::ofstream stream;
-			stream.open(_filename.c_str());
-
-			if (!stream.is_open())
-			{
-				mLastError = ErrorType::CreateFileFail;
-				setLastFileError(_filename);
-				return false;
-			}
-
-			bool result = save(stream);
-
-			if (!result)
-			{
-				setLastFileError(_filename);
-			}
-
-			stream.close();
-			return result;
-		}
-
-		// сохраняет файл, имя файла в кодировке utf16 или utf32
-		bool Document::save(const std::wstring& _filename)
-		{
-			std::ofstream stream;
-			open_stream(stream, _filename);
-
-			if (!stream.is_open())
-			{
-				mLastError = ErrorType::CreateFileFail;
-				setLastFileError(_filename);
-				return false;
-			}
-
-			bool result = save(stream);
-
-			if (!result)
-			{
-				setLastFileError(_filename);
-			}
-
-			stream.close();
-			return result;
-		}
-
-		// открывает обычным потоком
-		bool Document::open(IDataStream* _stream)
-		{
-			clear();
-
-			// это текущая строка для разбора
-			std::string line;
-			// это строка из файла
-			std::string read;
-			// текущий узел для разбора
-			ElementPtr currentNode = 0;
-
-			while (!_stream->eof())
-			{
-				// берем новую строку
-				_stream->readline(read, '\n');
-				if (read.empty())
-					continue;
-				if (read[read.size()-1] == '\r')
-					read.erase(read.size() - 1, 1);
-				if (read.empty())
-					continue;
-
-				mLine ++;
-				mCol = 0; // потом проверить на многострочных тэгах
-				if (read.empty())
-					continue;
-				// текущая строка для разбора и то что еще прочитали
-				line += read;
-
-				if (!parseLine(line, currentNode))
-				{
-					return false;
-				}
-
-			} // while (!stream.eof())
-
-			if (currentNode)
-			{
-				mLastError = ErrorType::NotClosedElements;
-				return false;
-			}
-
-			return true;
-		}
-
-		bool Document::save(std::ostream& _stream)
-		{
-			if (!mDeclaration)
-			{
-				mLastError = ErrorType::NoXMLDeclaration;
-				return false;
-			}
-
-			// заголовок utf8
-			_stream << (char)0xEFu;
-			_stream << (char)0xBBu;
-			_stream << (char)0xBFu;
-
-			mDeclaration->save(_stream, 0);
-			if (mRoot)
-				mRoot->save(_stream, 0);
-
-			return true;
-		}
-
-		void Document::clear()
-		{
-			clearDeclaration();
-			clearRoot();
-			mLine = 0;
-			mCol = 0;
-		}
-
-		bool Document::parseTag(ElementPtr& _currentNode, std::string _content)
-		{
-			// убераем лишнее
-			MyGUI::utility::trim(_content);
-
-			if (_content.empty())
-			{
-				// создаем пустой тег
-				if (_currentNode)
-				{
-					_currentNode = _currentNode->createChild("");
-				}
-				else
-				{
-					_currentNode = new Element("", 0);
-					// если это первый то запоминаем
-					if (!mRoot)
-						mRoot = _currentNode;
-				}
-				return true;
-			}
-
-			char simbol = _content[0];
-			bool tagDeclaration = false;
-
-			// проверяем на коментарии
-			if (simbol == '!')
-			{
-				if (_currentNode != 0)
-				{
-					//_currentNode->createChild("", _content, ElementType::Comment);
-				}
-				return true;
-			}
-			// проверяем на информационный тег
-			else if (simbol == '?')
-			{
-				tagDeclaration = true;
-				_content.erase(0, 1); // удаляем первый символ
-			}
-
-			size_t start = 0;
-			size_t end = 0;
-			// проверяем на закрытие тега
-			if (simbol == '/')
-			{
-				if (_currentNode == 0)
-				{
-					// чета мы закрывам а ниче даже и не открыто
-					if (!mRoot)
-					{
-						mLastError = ErrorType::CloseNotOpenedElement;
-						return false;
-					}
-				}
-				// обрезаем имя тэга
-				start = _content.find_first_not_of(" \t", 1);
-				if (start == _content.npos)
-				{
-					// тег пустой
-					_content.clear();
-				}
-				else
-				{
-					end = _content.find_last_not_of(" \t");
-					_content = _content.substr(start, end - start + 1);
-				}
-				// проверяем соответствие открывающего и закрывающего тегов
-				if (_currentNode->getName() != _content)
-				{
-					mLastError = ErrorType::InconsistentOpenCloseElements;
-					return false;
-				}
-				// а теперь снижаем текущий узел вниз
-				_currentNode = _currentNode->getParent();
-			}
-			else
-			{
-				// выделяем имя до первого пробела или закрывающего тега
-				std::string cut = _content;
-				start = _content.find_first_of(" \t/?", 1); // << превед
-				if (start != _content.npos)
-				{
-					cut = _content.substr(0, start);
-					_content = _content.substr(start);
-				}
-				else
-				{
-					_content.clear();
-				}
-
-				if (_currentNode)
-				{
-					_currentNode = _currentNode->createChild(cut);
-				}
-				else
-				{
-					if (tagDeclaration)
-					{
-						// информационный тег
-						if (mDeclaration)
-						{
-							mLastError = ErrorType::MoreThanOneXMLDeclaration;
-							return false;
-						}
-						_currentNode = new Element(cut, 0, ElementType::Declaration);
-						mDeclaration = _currentNode;
-					}
-					else
-					{
-						// рутовый тег
-						if (mRoot)
-						{
-							mLastError = ErrorType::MoreThanOneRootElement;
-							return false;
-						}
-						_currentNode = new Element(cut, 0, ElementType::Normal);
-						mRoot = _currentNode;
-					}
-				}
-
-				// проверим на пустоту
-				start = _content.find_last_not_of(" \t");
-				if (start == _content.npos)
-					return true;
-
-				// сразу отделим закрывающийся тэг
-				bool close = false;
-				if ((_content[start] == '/') || (_content[start] == '?'))
-				{
-					close = true;
-					// не будем резать строку, просто поставим пробел
-					_content[start] = ' ';
-					// проверим на пустоту
-					start = _content.find_last_not_of(" \t");
-					if (start == _content.npos)
-					{
-						// возвращаем все назад и уходим
-						_currentNode = _currentNode->getParent();
-						return true;
-					}
-				}
-
-				// а вот здесь уже в цикле разбиваем на атрибуты
-				while (true)
-				{
-					// ищем равно
-					start = _content.find('=');
-					if (start == _content.npos)
-					{
-						mLastError = ErrorType::IncorrectAttribute;
-						return false;
-					}
-					// ищем вторые ковычки
-					end = _content.find_first_of("\"\'", start + 1);
-					if (end == _content.npos)
-					{
-						mLastError = ErrorType::IncorrectAttribute;
-						return false;
-					}
-					end = _content.find_first_of("\"\'", end + 1);
-					if (end == _content.npos)
-					{
-						mLastError = ErrorType::IncorrectAttribute;
-						return false;
-					}
-
-					std::string key = _content.substr(0, start);
-					std::string value = _content.substr(start + 1, end - start);
-
-					// проверка на валидность
-					if (! checkPair(key, value))
-					{
-						mLastError = ErrorType::IncorrectAttribute;
-						return false;
-					}
-
-					// добавляем пару в узел
-					_currentNode->addAttribute(key, value);
-
-					// следующий кусок
-					_content = _content.substr(end + 1);
-
-					// в строке не осталось символов
-					start = _content.find_first_not_of(" \t");
-					if (start == _content.npos)
-						break;
-
-					mCol += start;
-				}
-
-				// был закрывающий тег для текущего тега
-				if (close)
-				{
-					// не проверяем имена, потому что это наш тэг
-					_currentNode = _currentNode->getParent();
-				}
-
-			}
-			return true;
-		}
-
-		bool Document::checkPair(std::string& _key, std::string& _value)
-		{
-			// в ключе не должно быть ковычек и пробелов
-			MyGUI::utility::trim(_key);
-			if (_key.empty())
-				return false;
-			size_t start = _key.find_first_of(" \t\"\'&");
-			if (start != _key.npos)
-				return false;
-
-			// в значении, ковычки по бокам
-			MyGUI::utility::trim(_value);
-			if (_value.size() < 2)
-				return false;
-			if (((_value[0] != '"') || (_value[_value.length()-1] != '"')) &&
-				((_value[0] != '\'') || (_value[_value.length()-1] != '\'')))
-				return false;
-			bool ok = true;
-			_value = utility::convert_from_xml(_value.substr(1, _value.length() - 2), ok);
-			return ok;
-		}
-
-		// ищет символ без учета ковычек
-		size_t Document::find(const std::string& _text, char _char, size_t _start)
-		{
-			// ковычки
-			bool kov = false;
-
-			// буфер для поиска
-			char buff[16] = "\"_\0";
-			buff[1] = _char;
-
-			size_t pos = _start;
-
-			while (true)
-			{
-				pos = _text.find_first_of(buff, pos);
-
-				// если уже конец, то досвидания
-				if (pos == _text.npos)
-				{
-					break;
-				}
-				// нашли ковычку
-				else if (_text[pos] == '"')
-				{
-					kov = !kov;
-					pos ++;
-				}
-				// если мы в ковычках, то идем дальше
-				else if (kov)
-				{
-					pos ++;
-				}
-				// мы не в ковычках
-				else
-				{
-					break;
-				}
-			}
-
-			return pos;
-		}
-
-		void Document::clearDeclaration()
-		{
-			if (mDeclaration)
-			{
-				delete mDeclaration;
-				mDeclaration = 0;
-			}
-		}
-
-		void Document::clearRoot()
-		{
-			if (mRoot)
-			{
-				delete mRoot;
-				mRoot = 0;
-			}
-		}
-
-		ElementPtr Document::createDeclaration(const std::string& _version, const std::string& _encoding)
-		{
-			clearDeclaration();
-			mDeclaration = new Element("xml", 0, ElementType::Declaration);
-			mDeclaration->addAttribute("version", _version);
-			mDeclaration->addAttribute("encoding", _encoding);
-			return mDeclaration;
-		}
-
-		ElementPtr Document::createRoot(const std::string& _name)
-		{
-			clearRoot();
-			mRoot = new Element(_name, 0, ElementType::Normal);
-			return mRoot;
-		}
-
-		bool Document::parseLine(std::string& _line, ElementPtr& _element)
-		{
-			// крутимся пока в строке есть теги
-			while (true)
-			{
-				// сначала ищем по угловым скобкам
-				size_t start = find(_line, '<');
-				if (start == _line.npos)
-					break;
-				size_t end = _line.npos;
-
-				// пытаемся вырезать многострочный коментарий
-				if ((start + 3 < _line.size()) && (_line[start + 1] == '!') && (_line[start + 2] == '-') && (_line[start + 3] == '-'))
-				{
-					end = _line.find("-->", start + 4);
-					if (end == _line.npos)
-						break;
-					end += 2;
-				}
-				else
-				{
-					end = find(_line, '>', start + 1);
-					if (end == _line.npos)
-						break;
-				}
-				// проверяем на наличее тела
-				size_t body = _line.find_first_not_of(" \t<");
-				if (body < start)
-				{
-					std::string body_str = _line.substr(0, start);
-					// текущий символ
-					mCol = 0;
-
-					if (_element != 0)
-					{
-						bool ok = true;
-						_element->setContent(utility::convert_from_xml(body_str, ok));
-						if (!ok)
-						{
-							mLastError = ErrorType::IncorrectContent;
-							return false;
-						}
-					}
-				}
-				// вырезаем наш тэг и парсим
-				if (!parseTag(_element, _line.substr(start + 1, end - start - 1)))
-				{
-					return false;
-				}
-				// и обрезаем текущую строку разбора
-				_line = _line.substr(end + 1);
-			}
-			return true;
-		}
-
-		std::string Document::getLastError()
-		{
-			const std::string& error = mLastError.print();
-			if (error.empty())
-				return error;
-			return MyGUI::utility::toString("'", error, "' ,  file='", mLastErrorFile, "' ,  line=", mLine, " ,  col=", mCol);
-		}
-
-		bool Document::open(const UString& _filename)
-		{
-			return open(_filename.asWStr());
-		}
-
-		bool Document::save(const UString& _filename)
-		{
-			return save(_filename.asWStr());
-		}
-
-		void Document::clearLastError()
-		{
-			mLastError = ErrorType::MAX;
-		}
-
-		ElementPtr Document::getRoot() const
-		{
-			return mRoot;
-		}
-
-		void Document::setLastFileError(const std::string& _filename)
-		{
+			mLastError = "Failed to save XML file";
+			mLastErrorFromStream = false;
 			mLastErrorFile = _filename;
 		}
+		return result;
+	}
 
-		void Document::setLastFileError(const std::wstring& _filename)
+	bool Document::save(std::ostream& _stream)
+	{
+		clearLastError();
+		mDoc->save(_stream, "\t", FormatFlags);
+		if (!_stream)
 		{
-			mLastErrorFile = UString(_filename).asUTF8();
+			mLastError = "Failed to save XML stream";
+			mLastErrorFromStream = true;
+		}
+		return static_cast<bool>(_stream);
+	}
+
+	void Document::clear()
+	{
+		mDoc->reset();
+		clearLastError();
+	}
+
+	bool Document::open(const UString& _filename)
+	{
+		return open(_filename.asUTF8());
+	}
+
+	bool Document::save(const UString& _filename)
+	{
+		return save(_filename.asUTF8());
+	}
+
+	void Document::clearLastError()
+	{
+		*mResult = {};
+		mResult->status = pugi::status_ok;
+		mLastError.clear();
+		mLastErrorFile.clear();
+		mLastErrorFromStream = false;
+	}
+
+	ElementPtr Document::getRoot() const
+	{
+		return mDoc->document_element();
+	}
+
+	ElementPtr Document::createDeclaration(std::string_view _version, std::string_view _encoding)
+	{
+		// remove existing declaration
+		for (auto child = mDoc->first_child(); child;)
+		{
+			auto next = child.next_sibling();
+			if (child.type() == pugi::node_declaration)
+				mDoc->remove_child(child);
+			child = next;
 		}
 
-	} // namespace xml
+		auto decl = mDoc->prepend_child(pugi::node_declaration);
+		decl.set_name("xml");
+		decl.append_attribute("version") = _version;
+		decl.append_attribute("encoding") = _encoding;
+		return decl;
+	}
+
+	ElementPtr Document::createRoot(std::string_view _name)
+	{
+		// remove existing root elements
+		for (auto child = mDoc->first_child(); child;)
+		{
+			auto next = child.next_sibling();
+			if (child.type() == pugi::node_element)
+				mDoc->remove_child(child);
+			child = next;
+		}
+
+		return mDoc->append_child(_name);
+	}
+
+	std::string Document::getLastError() const
+	{
+		const std::string fileName = mLastErrorFromStream ? "<stream>" : MyGUI::utility::toUtf8(mLastErrorFile);
+		if (!*mResult)
+		{
+			size_t line = 0, col = 0;
+			std::string lineText;
+			if (mResult->offset >= 0 && !mLastErrorFile.empty())
+			{
+				std::ifstream file(mLastErrorFile, std::ios::binary);
+				if (file)
+				{
+					line = 1;
+					std::string data((std::istreambuf_iterator<char>(file)), {});
+					for (ptrdiff_t i = 0; i < mResult->offset && i < (ptrdiff_t)data.size(); ++i)
+					{
+						if (data[i] == '\n')
+							++line;
+					}
+					ptrdiff_t start = mResult->offset;
+					while (start > 0 && data[start - 1] != '\n')
+						--start;
+					col = mResult->offset - start + 1;
+					ptrdiff_t end = data.size();
+					for (ptrdiff_t i = start; i < (ptrdiff_t)data.size(); ++i)
+					{
+						if (data[i] == '\n')
+						{
+							end = i;
+							break;
+						}
+					}
+					lineText = data.substr(start, end - start);
+				}
+			}
+			return utility::
+				toString("'", mResult->description(), "', ", fileName, "(", line, ",", col, "): ", lineText);
+		}
+		if (!mLastError.empty())
+		{
+			return utility::toString("'", mLastError, "', file='", fileName, "'");
+		}
+		return {};
+	}
+
+	ElementEnumerator::ElementEnumerator(std::shared_ptr<pugi::xml_node> parent)
+	{
+		for (auto child : parent->children())
+			mElements.emplace_back(child);
+	}
+
+	bool ElementEnumerator::next()
+	{
+		return ++mIndex < mElements.size();
+	}
+
+	bool ElementEnumerator::next(std::string_view _name)
+	{
+		while (next())
+		{
+			if (mElements[mIndex].getName() == _name)
+				return true;
+		}
+		return false;
+	}
+
+	ElementPtr ElementEnumerator::operator->() const
+	{
+		return mElements[mIndex];
+	}
+
+	ElementPtr ElementEnumerator::current()
+	{
+		return mElements[mIndex];
+	}
+
+	ElementPtr::ElementPtr(const pugi::xml_node& _node) :
+		mNode(_node ? std::make_shared<pugi::xml_node>(_node) : nullptr)
+	{
+	}
+
+	ElementPtr* ElementPtr::operator->()
+	{
+		return this;
+	}
+
+	const ElementPtr* ElementPtr::operator->() const
+	{
+		return this;
+	}
+
+	ElementPtr ElementPtr::createChild(std::string_view _name, std::string_view _content)
+	{
+		auto child = mNode->append_child(_name);
+		if (!_content.empty())
+			child.text().set(_content);
+		return ElementPtr(child);
+	}
+
+	void ElementPtr::removeChild(ElementPtr _child)
+	{
+		mNode->remove_child(*_child.mNode);
+	}
+
+	void ElementPtr::addAttribute(std::string_view _key, std::string_view _value)
+	{
+		mNode->append_attribute(_key) = _value;
+	}
+
+	void ElementPtr::removeAttribute(std::string_view _key)
+	{
+		mNode->remove_attribute(_key);
+	}
+
+	void ElementPtr::setAttribute(std::string_view _key, std::string_view _value)
+	{
+		auto attr = mNode->attribute(_key);
+		if (attr)
+			attr.set_value(_value);
+		else
+			mNode->append_attribute(_key) = _value;
+	}
+
+	void ElementPtr::setContent(std::string_view _content)
+	{
+		mNode->remove_children();
+		mNode->text().set(_content);
+	}
+
+	void ElementPtr::clear()
+	{
+		mNode->remove_children();
+		mNode->remove_attributes();
+	}
+
+	bool ElementPtr::findAttribute(std::string_view _name, std::string& _value)
+	{
+		auto attr = mNode->attribute(_name);
+		if (attr)
+		{
+			_value = attr.as_string();
+			return true;
+		}
+		return false;
+	}
+
+	std::string_view ElementPtr::findAttribute(std::string_view _name)
+	{
+		auto attr = mNode->attribute(_name);
+		if (attr)
+			return attr.as_string();
+		return {};
+	}
+
+	std::string ElementPtr::getName() const
+	{
+		return mNode->name();
+	}
+
+	std::string ElementPtr::getContent() const
+	{
+		return mNode->text().as_string();
+	}
+
+	VectorAttributes ElementPtr::getAttributes() const
+	{
+		VectorAttributes attrs;
+		for (auto attr : mNode->attributes())
+			attrs.emplace_back(attr.name(), attr.as_string());
+		return attrs;
+	}
+
+	ElementPtr ElementPtr::getParent() const
+	{
+		return ElementPtr(mNode->parent());
+	}
+
+	ElementEnumerator ElementPtr::getElementEnumerator()
+	{
+		return ElementEnumerator(mNode);
+	}
+
+	ElementPtr::operator pugi::xml_node() const
+	{
+		return *mNode;
+	}
+
+	const pugi::xml_node& ElementPtr::node() const
+	{
+		return *mNode;
+	}
+
+	Element::Element(std::shared_ptr<pugi::xml_node> _node, std::shared_ptr<pugi::xml_document> _doc) :
+		ElementPtr(*_node),
+		mDocument(std::move(_doc))
+	{
+	}
+
+	std::unique_ptr<Element> ElementPtr::createCopy()
+	{
+		auto doc = std::make_shared<pugi::xml_document>();
+		auto copy = doc->append_copy(*mNode);
+		auto nodeCopy = std::make_shared<pugi::xml_node>(copy);
+		return std::make_unique<Element>(nodeCopy, doc);
+	}
 
 } // namespace MyGUI

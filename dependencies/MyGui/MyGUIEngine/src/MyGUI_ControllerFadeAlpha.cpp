@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		01/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ControllerFadeAlpha.h"
 #include "MyGUI_Gui.h"
@@ -29,21 +14,11 @@
 namespace MyGUI
 {
 
-	ControllerFadeAlpha::ControllerFadeAlpha() :
-		mAlpha(1),
-		mCoef(1),
-		mEnabled(true)
-	{
-	}
-
-	ControllerFadeAlpha::~ControllerFadeAlpha()
-	{
-	}
-
 	void ControllerFadeAlpha::prepareItem(Widget* _widget)
 	{
-		// подготовка виджета, блокируем если только нужно
-		if (!mEnabled) _widget->setEnabledSilent(mEnabled);
+		// prepare widget, block if needed
+		if (!mEnabled)
+			_widget->setEnabledSilent(mEnabled);
 
 		if ((ALPHA_MIN != mAlpha) && (!_widget->getVisible()))
 		{
@@ -51,31 +26,28 @@ namespace MyGUI
 			_widget->setVisible(true);
 		}
 
-		// отписываем его от ввода
-		if (!mEnabled) InputManager::getInstance().unlinkWidget(_widget);
+		if (!mEnabled)
+			InputManager::getInstance().unlinkWidget(_widget);
 
-		// вызываем пользовательский делегат для подготовки
-		eventPreAction(_widget);
+		eventPreAction(_widget, this);
 	}
 
 	bool ControllerFadeAlpha::addTime(Widget* _widget, float _time)
 	{
 		float alpha = _widget->getAlpha();
 
-		// проверяем нужно ли к чему еще стремиться
+		// check if we need to approach target
 		if (mAlpha > alpha)
 		{
 			alpha += _time * mCoef;
 			if (mAlpha > alpha)
 			{
 				_widget->setAlpha(alpha);
-				eventUpdateAction(_widget);
+				eventUpdateAction(_widget, this);
 				return true;
 			}
-			else
-			{
-				_widget->setAlpha(mAlpha);
-			}
+
+			_widget->setAlpha(mAlpha);
 		}
 		else if (mAlpha < alpha)
 		{
@@ -83,22 +55,19 @@ namespace MyGUI
 			if (mAlpha < alpha)
 			{
 				_widget->setAlpha(alpha);
-				eventUpdateAction(_widget);
+				eventUpdateAction(_widget, this);
 				return true;
 			}
-			else
-			{
-				_widget->setAlpha(mAlpha);
-			}
+
+			_widget->setAlpha(mAlpha);
 		}
 
-		// вызываем пользовательский делегат пост обработки
-		eventPostAction(_widget);
+		eventPostAction(_widget, this);
 
 		return false;
 	}
 
-	void ControllerFadeAlpha::setProperty(const std::string& _key, const std::string& _value)
+	void ControllerFadeAlpha::setProperty(std::string_view _key, std::string_view _value)
 	{
 		if (_key == "Alpha")
 			setAlpha(utility::parseValue<float>(_value));

@@ -1,58 +1,260 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ResourceTrueTypeFont.h"
 #include "MyGUI_DataManager.h"
+#include "MyGUI_DataStreamHolder.h"
 #include "MyGUI_RenderManager.h"
+#include "MyGUI_Bitwise.h"
+#include "MyGUI_Gui.h"
 
 #ifdef MYGUI_USE_FREETYPE
+
 	#include <ft2build.h>
 	#include FT_FREETYPE_H
 	#include FT_GLYPH_H
+	#include FT_TRUETYPE_TABLES_H
+	#include FT_BITMAP_H
+	#include FT_WINFONTS_H
+
+	#ifdef MYGUI_MSDF_FONTS
+		#include "msdfgen.h"
+		#include "msdfgen-ext.h"
+	#endif
+
 #endif // MYGUI_USE_FREETYPE
+
+#include <pugixml.hpp>
 
 namespace MyGUI
 {
 
-	const unsigned char FONT_MASK_SELECT = 0x88;
-	const unsigned char FONT_MASK_SELECT_DEACTIVE = 0x60;
-	const unsigned char FONT_MASK_SPACE = 0x00;
-	const unsigned char FONT_MASK_CHAR = 0xFF;
-	const size_t MIN_FONT_TEXTURE_WIDTH = 256;
+#ifndef MYGUI_USE_FREETYPE
+	ResourceTrueTypeFont::~ResourceTrueTypeFont() = default;
 
-	ResourceTrueTypeFont::ResourceTrueTypeFont() :
-		mTtfSize(0),
-		mTtfResolution(0),
-		mAntialiasColour(false),
-		mDistance(0),
-		mSpaceWidth(0),
-		mTabWidth(0),
-		mCursorWidth(2),
-		mSelectionWidth(2),
-		mOffsetHeight(0),
-		mHeightPix(0),
-		mTexture(nullptr)
+	void ResourceTrueTypeFont::deserialization(xml::ElementPtr _node, Version _version)
+	{
+		Base::deserialization(_node, _version);
+		MYGUI_LOG(
+			Error,
+			"ResourceTrueTypeFont: TrueType font '"
+				<< getResourceName() << "' disabled. Define MYGUI_USE_FREETYPE if you need TrueType fonts.");
+	}
+
+	const GlyphInfo* ResourceTrueTypeFont::getGlyphInfo(Char _id) const
+	{
+		return nullptr;
+	}
+
+	ITexture* ResourceTrueTypeFont::getTextureFont() const
+	{
+		return nullptr;
+	}
+
+	int ResourceTrueTypeFont::getDefaultHeight() const
+	{
+		return 0;
+	}
+
+	void ResourceTrueTypeFont::textureInvalidate(ITexture* _texture)
 	{
 	}
+
+	std::vector<std::pair<Char, Char>> ResourceTrueTypeFont::getCodePointRanges() const
+	{
+		return std::vector<std::pair<Char, Char>>();
+	}
+
+	Char ResourceTrueTypeFont::getSubstituteCodePoint() const
+	{
+		return Char();
+	}
+
+	void ResourceTrueTypeFont::initialise()
+	{
+	}
+
+	void ResourceTrueTypeFont::setSource(std::string_view _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setShader(std::string_view _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setSize(float _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setResolution(unsigned int _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setHinting(std::string_view _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setAntialias(bool _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setTabWidth(float _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setOffsetHeight(int _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setSubstituteCode(int _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setDistance(int _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setMsdfMode(bool _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setMsdfRange(int _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::addCodePointRange(Char _first, Char _second)
+	{
+	}
+
+	void ResourceTrueTypeFont::removeCodePointRange(Char _first, Char _second)
+	{
+	}
+
+	void ResourceTrueTypeFont::setKerningEnabled(bool _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setDpiScale(float _value)
+	{
+	}
+
+	void ResourceTrueTypeFont::setAutoDpi(bool _value)
+	{
+	}
+
+	float ResourceTrueTypeFont::getKerning(Char _left, Char _right) const
+	{
+		return 0.0f;
+	}
+
+#else // MYGUI_USE_FREETYPE
+	namespace
+	{
+
+		template<typename T>
+		void setMax(T& _var, const T& _newValue)
+		{
+			if (_var < _newValue)
+				_var = _newValue;
+		}
+
+		const std::map<const Char, const uint8> charMask{
+			{FontCodeType::Selected, 0x88},
+			{FontCodeType::SelectedBack, 0x60},
+			{FontCodeType::Cursor, 0xFF},
+			{FontCodeType::Tab, 0x00}};
+		const uint8 charMaskBlack = 0x00;
+		const uint8 charMaskWhite = 0xFF;
+
+		std::pair<int, int> integerGlyphSize(const GlyphInfo& _info, float _scale)
+		{
+			return {(int)std::ceil(_info.width * _scale), (int)std::ceil(_info.height * _scale)};
+		}
+
+		template<bool LAMode>
+		struct PixelBase
+		{
+			static PixelFormat::Enum getFormat()
+			{
+				if constexpr (LAMode)
+					return PixelFormat::L8A8;
+				else
+					return PixelFormat::R8G8B8A8;
+			}
+
+			static size_t getNumBytes()
+			{
+				if constexpr (LAMode)
+					return 2;
+				else
+					return 4;
+			}
+
+		protected:
+			// Sets a pixel in _dest as 4 or 2 bytes: L8L8L8A8 if LAMode is false, or L8A8 if LAMode is true.
+			// Automatically advances _dest just past the pixel written.
+			static void set(uint8*& _dest, uint8 _luminance, uint8 _alpha)
+			{
+				if constexpr (LAMode)
+				{
+					*_dest++ = _luminance;
+					*_dest++ = _alpha;
+				}
+				else
+				{
+					*_dest++ = _luminance;
+					*_dest++ = _luminance;
+					*_dest++ = _luminance;
+					*_dest++ = _alpha;
+				}
+			}
+		};
+
+		template<bool LAMode, bool FromSource = false, bool Antialias = false>
+		struct Pixel : PixelBase<LAMode>
+		{
+			// Sets a pixel in _dest as 4 or 2 bytes: L8L8L8A8 if LAMode is false, or L8A8 if LAMode is true.
+			// Sets luminance from _source if both FromSource and Antialias are true; otherwise, uses the specified value.
+			// Sets alpha from _source if FromSource is true; otherwise, uses the specified value.
+			// Automatically advances _source just past the pixel read if FromSource is true.
+			// Automatically advances _dest just past the pixel written.
+			static void set(uint8*& _dest, uint8 _luminance, uint8 _alpha, uint8*& _source)
+			{
+				if constexpr (FromSource)
+				{
+					(void)_alpha;
+					if constexpr (Antialias)
+					{
+						(void)_luminance;
+						// Sets the destination pixel using both the luminance and alpha from the specified source.
+						PixelBase<LAMode>::set(_dest, *_source, *_source);
+					}
+					else
+					{
+						// Sets the destination pixel using the specified _luminance and alpha from the specified source.
+						PixelBase<LAMode>::set(_dest, _luminance, *_source);
+					}
+					++_source;
+				}
+				else
+				{
+					(void)_source;
+					// Sets the destination pixel using the specified luminance and alpha. Source is ignored.
+					PixelBase<LAMode>::set(_dest, _luminance, _alpha);
+				}
+			}
+		};
+
+	}
+
+	const int ResourceTrueTypeFont::mDefaultGlyphSpacing = 1;
+	const float ResourceTrueTypeFont::mDefaultTabWidth = 8.0f;
+	const float ResourceTrueTypeFont::mSelectedWidth = 1.0f;
+	const float ResourceTrueTypeFont::mCursorWidth = 2.0f;
 
 	ResourceTrueTypeFont::~ResourceTrueTypeFont()
 	{
@@ -63,473 +265,1260 @@ namespace MyGUI
 		}
 	}
 
-	GlyphInfo* ResourceTrueTypeFont::getGlyphInfo(Char _id)
-	{
-		for (VectorRangeInfo::iterator iter = mVectorRangeInfo.begin(); iter != mVectorRangeInfo.end(); ++iter)
-		{
-			GlyphInfo* info = iter->getInfo(_id);
-			if (info == nullptr) continue;
-			return info;
-		}
-		// при ошибках возвращаем пробел
-		return &mSpaceGlyphInfo;
-	}
-
-	void ResourceTrueTypeFont::addGlyph(GlyphInfo* _info, Char _index, int _left, int _top, int _right, int _bottom, int _finalw, int _finalh, float _aspect, int _addHeight)
-	{
-		_info->codePoint = _index;
-		_info->uvRect.left = (float)_left / (float)_finalw;  // u1
-		_info->uvRect.top = (float)(_top + _addHeight) / (float)_finalh;  // v1
-		_info->uvRect.right = (float)( _right ) / (float)_finalw; // u2
-		_info->uvRect.bottom = ( _bottom + _addHeight ) / (float)_finalh; // v2
-		_info->width = _right - _left;
-	}
-
-	uint8* ResourceTrueTypeFont::writeData(uint8* _pDest, unsigned char _luminance, unsigned char _alpha, bool _rgba)
-	{
-		if (_rgba)
-		{
-			*_pDest++ = _luminance; // luminance
-			*_pDest++ = _luminance; // luminance
-			*_pDest++ = _luminance; // luminance
-			*_pDest++ = _alpha; // alpha
-		}
-		else
-		{
-			*_pDest++ = _luminance; // luminance
-			*_pDest++ = _alpha; // alpha
-		}
-		return _pDest;
-	}
-
-	void ResourceTrueTypeFont::initialise()
-	{
-
-#ifndef MYGUI_USE_FREETYPE
-
-		MYGUI_LOG(Error, "ResourceTrueTypeFont '" << getResourceName() << "' - Ttf font disabled. Define MYGUI_USE_FREETYE if you need ttf fonts.");
-
-#else // MYGUI_USE_FREETYPE
-
-		mTexture = RenderManager::getInstance().createTexture(MyGUI::utility::toString((size_t)this, "_TrueTypeFont"));
-
-		// ManualResourceLoader implementation - load the texture
-		FT_Library ftLibrary;
-		// Init freetype
-		if ( FT_Init_FreeType( &ftLibrary ) ) MYGUI_EXCEPT("Could not init FreeType library!");
-
-		// Load font
-		FT_Face face;
-
-		//FIXME научить работать без шрифтов
-		IDataStream* datastream = DataManager::getInstance().getData(mSource);
-		MYGUI_ASSERT(datastream, "Could not open font face!");
-
-		size_t datasize = datastream->size();
-		uint8* data = new uint8[datasize];
-		datastream->read(data, datasize);
-		delete datastream;
-
-		if ( FT_New_Memory_Face( ftLibrary, data, (FT_Long)datasize, 0, &face ) )
-			MYGUI_EXCEPT("Could not open font face!");
-
-		// Convert our point size to freetype 26.6 fixed point format
-		FT_F26Dot6 ftSize = (FT_F26Dot6)(mTtfSize * (1 << 6));
-		if ( FT_Set_Char_Size( face, ftSize, 0, mTtfResolution, mTtfResolution ) )
-			MYGUI_EXCEPT("Could not set char size!");
-
-		int max_height = 0, max_bear = 0;
-
-		int spec_len = mCursorWidth + mSelectionWidth + mSelectionWidth + mSpaceWidth + mTabWidth + (mDistance * 5);
-		int len = mDistance + spec_len;
-		int height = 0; // здесь используется как колличество строк
-
-		size_t finalWidth = MIN_FONT_TEXTURE_WIDTH;
-		// trying to guess necessary width for texture
-		while (mTtfSize * mTtfResolution > finalWidth * 6) finalWidth *= 2;
-
-		for (VectorRangeInfo::iterator iter = mVectorRangeInfo.begin(); iter != mVectorRangeInfo.end(); ++iter)
-		{
-			for (Char index = iter->first; index <= iter->last; ++index)
-			{
-
-				// символ рисовать ненужно
-				if (checkHidePointCode(index)) continue;
-
-				if (FT_Load_Char( face, index, FT_LOAD_RENDER )) continue;
-				if (nullptr == face->glyph->bitmap.buffer) continue;
-				FT_Int advance = (face->glyph->advance.x >> 6 ) + ( face->glyph->metrics.horiBearingX >> 6 );
-
-				if ( ( 2 * ( face->glyph->bitmap.rows << 6 ) - face->glyph->metrics.horiBearingY ) > max_height )
-					max_height = ( 2 * ( face->glyph->bitmap.rows << 6 ) - face->glyph->metrics.horiBearingY );
-
-				if ( face->glyph->metrics.horiBearingY > max_bear )
-					max_bear = face->glyph->metrics.horiBearingY;
-
-				len += (advance + mDistance);
-				if ( int(finalWidth - 1) < (len + advance + mDistance) )
-				{
-					height ++;
-					len = mDistance;
-				}
-
-			}
-		}
-
-		max_height >>= 6;
-		max_bear >>= 6;
-
-		size_t finalHeight = (height + 1) * (max_height + mDistance) + mDistance;
-
-		//make it more squared
-		while (finalHeight > finalWidth)
-		{
-			finalHeight /= 2;
-			finalWidth *= 2;
-		}
-
-		// вычисляем ближайшую кратную 2
-		size_t needHeight = 1;
-		while (needHeight < finalHeight) needHeight <<= 1;
-		finalHeight = needHeight;
-
-		float textureAspect = (float)finalWidth / (float)finalHeight;
-
-		// if L8A8 (2 bytes per pixel) not supported use 4 bytes per pixel R8G8B8A8
-		// where R == G == B == L
-		bool rgbaMode = ! MyGUI::RenderManager::getInstance().isFormatSupported(PixelFormat::L8A8, TextureUsage::Static | TextureUsage::Write);
-
-		const size_t pixel_bytes = rgbaMode ? 4 : 2;
-		size_t data_width = finalWidth * pixel_bytes;
-		size_t data_size = finalWidth * finalHeight * pixel_bytes;
-
-		MYGUI_LOG(Info, "ResourceTrueTypeFont '" << getResourceName() << "' using texture size " << finalWidth << " x " << finalHeight);
-		MYGUI_LOG(Info, "ResourceTrueTypeFont '" << getResourceName() << "' using real height " << max_height << " pixels");
-		mHeightPix = max_height;
-
-		uint8* imageData = new uint8[data_size];
-
-		uint8* dest = imageData;
-		// Reset content (White, transparent)
-		for (size_t i = 0; i < data_size; i += pixel_bytes)
-		{
-			dest = writeData(dest, 0xFF, 0x00, rgbaMode);
-		}
-
-		// текущее положение в текстуре
-		len = mDistance;
-		height = mDistance; // здесь используется как текущее положение высоты
-		FT_Int advance = 0;
-
-		//------------------------------------------------------------------
-		// создаем символ пробела
-		//------------------------------------------------------------------
-		advance = mSpaceWidth;
-
-		// перевод на новую строку
-		if ( int(finalWidth - 1) < (len + advance + mDistance) )
-		{
-			height += max_height + mDistance;
-			len = mDistance;
-		}
-
-		for (int j = 0; j < max_height; j++ )
-		{
-			int row = j + (int)height;
-			uint8* pDest = &imageData[(row * data_width) + len * pixel_bytes];
-			for (int k = 0; k < advance; k++ )
-			{
-				pDest = writeData(pDest, FONT_MASK_CHAR, FONT_MASK_SPACE, rgbaMode);
-			}
-		}
-
-		addGlyph(&mSpaceGlyphInfo, FontCodeType::Space, len, height, len + advance, height + max_height, finalWidth, finalHeight, textureAspect, mOffsetHeight);
-		len += (advance + mDistance);
-
-		//------------------------------------------------------------------
-		// создаем табуляцию
-		//------------------------------------------------------------------
-		advance = mTabWidth;
-
-		// перевод на новую строку
-		if ( int(finalWidth - 1) < (len + advance + mDistance) )
-		{
-			height += max_height + mDistance;
-			len = mDistance;
-		}
-
-		for (int j = 0; j < max_height; j++ )
-		{
-			int row = j + (int)height;
-			uint8* pDest = &imageData[(row * data_width) + len * pixel_bytes];
-			for (int k = 0; k < advance; k++ )
-			{
-				pDest = writeData(pDest, FONT_MASK_CHAR, FONT_MASK_SPACE, rgbaMode);
-			}
-		}
-
-		addGlyph(&mTabGlyphInfo, FontCodeType::Tab, len, height, len + advance, height + max_height, finalWidth, finalHeight, textureAspect, mOffsetHeight);
-		len += (advance + mDistance);
-
-		//------------------------------------------------------------------
-		// создаем выделение
-		//------------------------------------------------------------------
-		advance = mSelectionWidth;
-		for (int j = 0; j < max_height; j++ )
-		{
-			int row = j + (int)height;
-			uint8* pDest = &imageData[(row * data_width) + len * pixel_bytes];
-			for (int k = 0; k < advance; k++ )
-			{
-				pDest = writeData(pDest, FONT_MASK_CHAR, FONT_MASK_SELECT, rgbaMode);
-			}
-		}
-
-		// перевод на новую строку
-		if ( int(finalWidth - 1) < (len + advance + mDistance) )
-		{
-			height += max_height + mDistance;
-			len = mDistance;
-		}
-
-		addGlyph(&mSelectGlyphInfo, FontCodeType::Selected, len, height, len + advance, height + max_height, finalWidth, finalHeight, textureAspect, mOffsetHeight);
-		len += (advance + mDistance);
-
-		//------------------------------------------------------------------
-		// создаем неактивное выделение
-		//------------------------------------------------------------------
-		advance = mSelectionWidth;
-
-		// перевод на новую строку
-		if ( int(finalWidth - 1) < (len + advance + mDistance) )
-		{
-			height += max_height + mDistance;
-			len = mDistance;
-		}
-
-		for (int j = 0; j < max_height; j++ )
-		{
-			int row = j + (int)height;
-			uint8* pDest = &imageData[(row * data_width) + len * pixel_bytes];
-			for (int k = 0; k < advance; k++ )
-			{
-				pDest = writeData(pDest, FONT_MASK_CHAR, FONT_MASK_SELECT_DEACTIVE, rgbaMode);
-			}
-		}
-
-		addGlyph(&mSelectDeactiveGlyphInfo, FontCodeType::SelectedBack, len, height, len + advance, height + max_height, finalWidth, finalHeight, textureAspect, mOffsetHeight);
-		len += (advance + mDistance);
-
-		//------------------------------------------------------------------
-		// создаем курсор
-		//------------------------------------------------------------------
-		advance = mCursorWidth;
-
-		// перевод на новую строку
-		if ( int(finalWidth - 1) < (len + advance + mDistance) )
-		{
-			height += max_height + mDistance;
-			len = mDistance;
-		}
-
-		for (int j = 0; j < max_height; j++ )
-		{
-			int row = j + (int)height;
-			uint8* pDest = &imageData[(row * data_width) + len * pixel_bytes];
-			for (int k = 0; k < advance; k++ )
-			{
-				pDest = writeData(pDest, (k & 1) ? 0 : 0xFF, FONT_MASK_CHAR, rgbaMode);
-			}
-		}
-
-		addGlyph(&mCursorGlyphInfo, FontCodeType::Cursor, len, height, len + advance, height + max_height, finalWidth, finalHeight, textureAspect, mOffsetHeight);
-		len += (advance + mDistance);
-
-		//------------------------------------------------------------------
-		// создаем все остальные символы
-		//------------------------------------------------------------------
-		FT_Error ftResult;
-		for (VectorRangeInfo::iterator iter = mVectorRangeInfo.begin(); iter != mVectorRangeInfo.end(); ++iter)
-		{
-			size_t pos = 0;
-			for (Char index = iter->first; index <= iter->last; ++index, ++pos)
-			{
-				// сомвол рисовать не нада
-				if (checkHidePointCode(index)) continue;
-
-				GlyphInfo& info = iter->range.at(pos);
-
-				ftResult = FT_Load_Char( face, index, FT_LOAD_RENDER );
-				if (ftResult)
-				{
-					// problem loading this glyph, continue
-					MYGUI_LOG(Warning, "cannot load character " << index << " in font " << getResourceName());
-					continue;
-				}
-
-				FT_Int glyph_advance = (face->glyph->advance.x >> 6 );
-				unsigned char* buffer = face->glyph->bitmap.buffer;
-
-				if (nullptr == buffer)
-				{
-					// Yuck, FT didn't detect this but generated a nullptr pointer!
-					MYGUI_LOG(Warning, "Freetype returned nullptr for character " << index << " in font " << getResourceName());
-					continue;
-				}
-
-				int y_bearnig = max_bear - ( face->glyph->metrics.horiBearingY >> 6 );
-
-				// перевод на новую строку
-				if ( int(finalWidth - 1) < (len + face->glyph->bitmap.width + mDistance) )
-				{
-					height += max_height + mDistance;
-					len = mDistance;
-				}
-
-				for (int j = 0; j < face->glyph->bitmap.rows; j++ )
-				{
-					int row = j + (int)height + y_bearnig;
-					uint8* pDest = &imageData[(row * data_width) + (len + ( face->glyph->metrics.horiBearingX >> 6 )) * pixel_bytes];
-					for (int k = 0; k < face->glyph->bitmap.width; k++ )
-					{
-						if (mAntialiasColour) pDest = writeData(pDest, *buffer, *buffer, rgbaMode);
-						else pDest = writeData(pDest, FONT_MASK_CHAR, *buffer, rgbaMode);
-						buffer++;
-					}
-				}
-
-				addGlyph(&info, index, len, height, len + glyph_advance, height + max_height, finalWidth, finalHeight, textureAspect, mOffsetHeight);
-				len += (glyph_advance + mDistance);
-
-			}
-		}
-
-		// Добавляем спец символы в основной список
-		// пробел можно не добавлять, его вернет по ошибке
-		RangeInfo info(FontCodeType::Selected, FontCodeType::Tab);
-		info.setInfo(FontCodeType::Selected, &mSelectGlyphInfo);
-		info.setInfo(FontCodeType::SelectedBack, &mSelectDeactiveGlyphInfo);
-		info.setInfo(FontCodeType::Cursor, &mCursorGlyphInfo);
-		info.setInfo(FontCodeType::Tab, &mTabGlyphInfo);
-
-		mVectorRangeInfo.push_back(info);
-
-
-		mTexture->createManual(finalWidth, finalHeight, TextureUsage::Static | TextureUsage::Write, rgbaMode ? PixelFormat::R8G8B8A8 : PixelFormat::L8A8);
-
-		void* buffer_ptr = mTexture->lock(TextureUsage::Write);
-		if (buffer_ptr != nullptr)
-		{
-			memcpy(buffer_ptr, imageData, data_size);
-		}
-		else
-		{
-			MYGUI_LOG(Error, "ResourceTrueTypeFont, error lock texture, pointer is nullptr");
-		}
-		mTexture->unlock();
-
-		delete [] imageData;
-		delete [] data;
-
-		FT_Done_FreeType(ftLibrary);
-
-#endif // MYGUI_USE_FREETYPE
-
-	}
-
-	void ResourceTrueTypeFont::addCodePointRange(Char _first, Char _second)
-	{
-		mVectorRangeInfo.push_back(RangeInfo(_first, _second));
-	}
-
-	void ResourceTrueTypeFont::addHideCodePointRange(Char _first, Char _second)
-	{
-		mVectorHideCodePoint.push_back(PairCodePoint(_first, _second));
-	}
-
-	// проверяет, входит ли символ в зоны ненужных символов
-	bool ResourceTrueTypeFont::checkHidePointCode(Char _id)
-	{
-		for (VectorPairCodePoint::iterator iter = mVectorHideCodePoint.begin(); iter != mVectorHideCodePoint.end(); ++iter)
-		{
-			if (iter->isExist(_id)) return true;
-		}
-		return false;
-	}
-
-	void ResourceTrueTypeFont::clearCodePointRanges()
-	{
-		mVectorRangeInfo.clear();
-		mVectorHideCodePoint.clear();
-	}
-
 	void ResourceTrueTypeFont::deserialization(xml::ElementPtr _node, Version _version)
 	{
 		Base::deserialization(_node, _version);
 
-		xml::ElementEnumerator node = _node->getElementEnumerator();
-		while (node.next())
+		for (auto node : _node.node())
 		{
-			if (node->getName() == "Property")
+			if (node.name() == std::string_view("Property"))
 			{
-				const std::string& key = node->findAttribute("key");
-				const std::string& value = node->findAttribute("value");
-				if (key == "Source") mSource = value;
-				else if (key == "Size") mTtfSize = utility::parseFloat(value);
-				else if (key == "Resolution") mTtfResolution = utility::parseUInt(value);
-				else if (key == "Antialias") mAntialiasColour = utility::parseBool(value);
-				else if (key == "SpaceWidth") mSpaceWidth = utility::parseInt(value);
-				else if (key == "TabWidth") mTabWidth = utility::parseInt(value);
-				//else if (key == "CursorWidth") mCursorWidth = utility::parseInt(value);
-				else if (key == "Distance") mDistance = utility::parseInt(value);
-				else if (key == "OffsetHeight") mOffsetHeight = utility::parseInt(value);
-			}
-			else if (node->getName() == "Codes")
-			{
-				xml::ElementEnumerator range = node->getElementEnumerator();
-				while (range.next("Code"))
+				std::string_view key = node.attribute("key").value();
+				std::string_view value = node.attribute("value").value();
+				if (key == "Source")
+					setSource(value);
+				else if (key == "Shader")
+					setShader(value);
+				else if (key == "Size")
+					setSize(utility::parseFloat(value));
+				else if (key == "Resolution")
+					setResolution(utility::parseUInt(value));
+				else if (key == "Antialias")
+					setAntialias(utility::parseBool(value));
+				else if (key == "TabWidth")
+					setTabWidth(utility::parseFloat(value));
+				else if (key == "OffsetHeight")
+					setOffsetHeight(utility::parseInt(value));
+				else if (key == "SubstituteCode")
+					setSubstituteCode(utility::parseInt(value));
+				else if (key == "Distance")
+					setDistance(utility::parseInt(value));
+				else if (key == "Hinting")
+					setHinting(value);
+				else if (key == "SpaceWidth")
 				{
-					std::string range_value;
-					std::vector<std::string> parse_range;
-					// диапазон включений
-					if (range->findAttribute("range", range_value))
+					mSpaceWidth = utility::parseFloat(value);
+					MYGUI_LOG(
+						Warning,
+						_node.node().attribute("type").value()
+							<< ": Property '" << key << "' in font '" << _node.node().attribute("name").value()
+							<< "' is deprecated; remove it to use automatic calculation.");
+				}
+				else if (key == "CursorWidth")
+				{
+					MYGUI_LOG(
+						Warning,
+						_node.node().attribute("type").value()
+							<< ": Property '" << key << "' in font '" << _node.node().attribute("name").value()
+							<< "' is deprecated; value ignored.");
+				}
+				else if (key == "MsdfMode")
+					setMsdfMode(utility::parseBool(value));
+				else if (key == "MsdfRange")
+					setMsdfRange(utility::parseInt(value));
+				else if (key == "Kerning")
+					setKerningEnabled(utility::parseBool(value));
+				else if (key == "DpiScale")
+					setDpiScale(utility::parseFloat(value));
+				else if (key == "AutoDpi")
+					setAutoDpi(utility::parseBool(value));
+			}
+			else if (node.name() == std::string_view("Codes"))
+			{
+				// Range of inclusions.
+				for (auto range : node.children("Code"))
+				{
+					std::string_view range_value{range.attribute("range").value()};
+					if (!range_value.empty())
 					{
-						parse_range = utility::split(range_value);
+						std::vector<std::string> parse_range = utility::split(range_value);
 						if (!parse_range.empty())
 						{
-							int first = utility::parseInt(parse_range[0]);
-							int last = parse_range.size() > 1 ? utility::parseInt(parse_range[1]) : first;
+							Char first = utility::parseUInt(parse_range[0]);
+							Char last = parse_range.size() > 1 ? utility::parseUInt(parse_range[1]) : first;
 							addCodePointRange(first, last);
 						}
 					}
-					// диапазон исключений
-					else if (range->findAttribute("hide", range_value))
+				}
+
+				// If no code points have been included, include the Unicode Basic Multilingual Plane by default before processing
+				//	any exclusions.
+				if (mCharMap.empty())
+					addCodePointRange(0, 0xFFFF);
+
+				// Range of exclusions.
+				for (auto range : node.children("Code"))
+				{
+					std::string_view range_value{range.attribute("hide").value()};
+					if (!range_value.empty())
 					{
-						parse_range = utility::split(range_value);
+						std::vector<std::string> parse_range = utility::split(range_value);
 						if (!parse_range.empty())
 						{
-							int first = utility::parseInt(parse_range[0]);
-							int last = parse_range.size() > 1 ? utility::parseInt(parse_range[1]) : first;
-							addHideCodePointRange(first, last);
+							Char first = utility::parseUInt(parse_range[0]);
+							Char last = parse_range.size() > 1 ? utility::parseUInt(parse_range[1]) : first;
+							removeCodePointRange(first, last);
 						}
 					}
 				}
 			}
 		}
 
-		// инициализируем
 		initialise();
 	}
 
-	ITexture* ResourceTrueTypeFont::getTextureFont()
+	const GlyphInfo* ResourceTrueTypeFont::getGlyphInfo(Char _id) const
+	{
+		auto glyphIter = mGlyphMap.find(_id);
+
+		if (glyphIter != mGlyphMap.end())
+		{
+			return &glyphIter->second;
+		}
+
+		return mSubstituteGlyphInfo;
+	}
+
+	ITexture* ResourceTrueTypeFont::getTextureFont() const
 	{
 		return mTexture;
 	}
 
-	// получившаяся высота при генерации в пикселях
-	int ResourceTrueTypeFont::getDefaultHeight()
+	int ResourceTrueTypeFont::getDefaultHeight() const
 	{
-		return mHeightPix;
+		return mDefaultHeight;
 	}
+
+	void ResourceTrueTypeFont::textureInvalidate(ITexture* _texture)
+	{
+		mGlyphMap.clear();
+		initialise();
+	}
+
+	std::vector<std::pair<Char, Char>> ResourceTrueTypeFont::getCodePointRanges() const
+	{
+		std::vector<std::pair<Char, Char>> result;
+
+		if (!mCharMap.empty())
+		{
+			auto iter = mCharMap.begin();
+			auto endIter = mCharMap.end();
+
+			// Start the first range with the first code point in the map.
+			Char rangeBegin = iter->first;
+			Char rangeEnd = rangeBegin;
+
+			// Loop over the rest of the map and find the contiguous ranges.
+			for (++iter; iter != endIter; ++iter)
+			{
+				if (iter->first == rangeEnd + 1)
+				{
+					// Extend the current range.
+					++rangeEnd;
+				}
+				else
+				{
+					// Found the start of a new range. First, save the current range.
+					result.emplace_back(rangeBegin, rangeEnd);
+
+					// Then start the new range.
+					rangeBegin = rangeEnd = iter->first;
+				}
+			}
+
+			// Save the final range.
+			result.emplace_back(rangeBegin, rangeEnd);
+		}
+
+		return result;
+	}
+
+	Char ResourceTrueTypeFont::getSubstituteCodePoint() const
+	{
+		return mSubstituteCodePoint;
+	}
+
+	void ResourceTrueTypeFont::addCodePoint(Char _codePoint)
+	{
+		mCharMap.try_emplace(_codePoint, 0);
+	}
+
+	void ResourceTrueTypeFont::addCodePointRange(Char _first, Char _second)
+	{
+		CharMap::iterator positionHint = mCharMap.lower_bound(_first);
+
+		if (positionHint != mCharMap.begin())
+			--positionHint;
+
+		for (Char i = _first; i <= _second; ++i)
+			positionHint = mCharMap.insert(positionHint, CharMap::value_type(i, 0));
+	}
+
+	void ResourceTrueTypeFont::removeCodePointRange(Char _first, Char _second)
+	{
+		mCharMap.erase(mCharMap.lower_bound(_first), mCharMap.upper_bound(_second));
+	}
+
+	void ResourceTrueTypeFont::initialise()
+	{
+		if (mAutoDpi)
+			mDpiScale = Gui::getInstance().getDpiScale();
+
+		if (mMsdfMode)
+			mDpiScale = 1.0f;
+
+		if (mGlyphSpacing == -1)
+			mGlyphSpacing = mDefaultGlyphSpacing;
+
+		// If L8A8 (2 bytes per pixel) is supported, use it; otherwise, use R8G8B8A8 (4 bytes per pixel) as L8L8L8A8.
+		bool laMode = MyGUI::RenderManager::getInstance().isFormatSupported(
+			Pixel<true>::getFormat(),
+			TextureUsage::Static | TextureUsage::Write);
+		if (mMsdfMode)
+			laMode = false;
+
+		// Select and call an appropriate initialisation method. By making this decision up front, we avoid having to branch on
+		// these variables many thousands of times inside tight nested loops later. From this point on, the various function
+		// templates ensure that all the necessary branching is done purely at compile time for all combinations.
+		if (laMode)
+		{
+			if (mAntialias)
+				ResourceTrueTypeFont::initialiseFreeType<true, true>();
+			else
+				ResourceTrueTypeFont::initialiseFreeType<true, false>();
+		}
+		else
+		{
+			if (mAntialias)
+				ResourceTrueTypeFont::initialiseFreeType<false, true>();
+			else
+				ResourceTrueTypeFont::initialiseFreeType<false, false>();
+		}
+	}
+
+	template<bool LAMode, bool Antialias>
+	void ResourceTrueTypeFont::initialiseFreeType()
+	{
+		//-------------------------------------------------------------------//
+		// Initialise FreeType and load the font.
+		//-------------------------------------------------------------------//
+
+		FT_Library ftLibrary;
+
+		if (FT_Init_FreeType(&ftLibrary) != 0)
+			MYGUI_EXCEPT("ResourceTrueTypeFont: Could not init the FreeType library!");
+
+		std::vector<std::byte> fontBuffer;
+
+		FT_Face ftFace = loadFace(ftLibrary, fontBuffer);
+
+		if (ftFace == nullptr)
+		{
+			MYGUI_LOG(Error, "ResourceTrueTypeFont: Could not load the font '" << getResourceName() << "'!");
+			FT_Done_FreeType(ftLibrary);
+			return;
+		}
+
+	#ifdef MYGUI_MSDF_FONTS
+		msdfgen::FontHandle* msdfFont = nullptr;
+
+		if (mMsdfMode)
+		{
+			msdfFont = msdfgen::adoptFreetypeFont(ftFace);
+			mMsdfScale = (double)ftFace->size->metrics.x_ppem;
+		}
+	#endif
+
+		//-------------------------------------------------------------------//
+		// Calculate the font metrics.
+		//-------------------------------------------------------------------//
+
+		// The font's overall ascent and descent are defined in three different places in a TrueType font, and with different
+		// values in each place. The most reliable source for these metrics is usually the "usWinAscent" and "usWinDescent" pair of
+		// values in the OS/2 header; however, some fonts contain inaccurate data there. To be safe, we use the highest of the set
+		// of values contained in the face metrics and the two sets of values contained in the OS/2 header.
+		int fontAscent = ftFace->size->metrics.ascender >> 6;
+		int fontDescent = -ftFace->size->metrics.descender >> 6;
+
+		TT_OS2* os2 = (TT_OS2*)FT_Get_Sfnt_Table(ftFace, ft_sfnt_os2);
+
+		if (os2 != nullptr)
+		{
+			setMax(fontAscent, os2->usWinAscent * ftFace->size->metrics.y_ppem / ftFace->units_per_EM);
+			setMax(fontDescent, os2->usWinDescent * ftFace->size->metrics.y_ppem / ftFace->units_per_EM);
+
+			setMax(fontAscent, os2->sTypoAscender * ftFace->size->metrics.y_ppem / ftFace->units_per_EM);
+			setMax(fontDescent, -os2->sTypoDescender * ftFace->size->metrics.y_ppem / ftFace->units_per_EM);
+		}
+
+		// The nominal font height is calculated as the sum of its ascent and descent as specified by the font designer. Previously
+		// it was defined by MyGUI in terms of the maximum ascent and descent of the glyphs currently in use, but this caused the
+		// font's line spacing to change whenever glyphs were added to or removed from the font definition. Doing it this way
+		// instead prevents a lot of layout problems, and it is also more typographically correct and more aesthetically pleasing.
+		mDefaultHeight = fontAscent + fontDescent;
+
+		if (mDpiScale != 1.0f)
+			mDefaultHeight = static_cast<int>(std::ceil(mDefaultHeight / mDpiScale));
+
+		// Set the load flags based on the specified type of hinting.
+		FT_Int32 ftLoadFlags = FT_LOAD_DEFAULT;
+
+		switch (mHinting)
+		{
+		case HintingUseNative: ftLoadFlags = FT_LOAD_DEFAULT; break;
+		case HintingForceAuto: ftLoadFlags = FT_LOAD_FORCE_AUTOHINT; break;
+		case HintingDisableAuto: ftLoadFlags = FT_LOAD_NO_AUTOHINT; break;
+		case HintingMonochrome: ftLoadFlags = FT_LOAD_TARGET_MONO; break;
+		case HintingDisableAll:
+			// When hinting is completely disabled, glyphs must always be rendered -- even during layout calculations -- due to
+			// discrepancies between the glyph metrics and the actual rendered bitmap metrics.
+			ftLoadFlags = FT_LOAD_NO_HINTING | FT_LOAD_RENDER;
+			break;
+		}
+
+		//-------------------------------------------------------------------//
+		// Create the glyphs and calculate their metrics.
+		//-------------------------------------------------------------------//
+
+		GlyphHeightMap glyphHeightMap;
+		int texWidth = 0;
+
+		// Before creating the glyphs, add the "Space" code point to force that glyph to be created. For historical reasons, MyGUI
+		// users are accustomed to omitting this code point in their font definitions.
+		addCodePoint(FontCodeType::Space);
+
+		// Create the standard glyphs.
+		for (auto iter = mCharMap.begin(); iter != mCharMap.end();)
+		{
+			const Char& codePoint = iter->first;
+			FT_UInt glyphIndex = FT_Get_Char_Index(ftFace, codePoint);
+			// Leave unsupported characters to our substitute glyph. This also removes
+			// synthetic code points left by a previous atlas before recreating them below.
+			if (glyphIndex == 0)
+			{
+				iter = mCharMap.erase(iter);
+				continue;
+			}
+
+			if (!mMsdfMode)
+				texWidth += createFaceGlyph(glyphIndex, codePoint, fontAscent, ftFace, ftLoadFlags, glyphHeightMap);
+	#ifdef MYGUI_MSDF_FONTS
+			else
+				texWidth += createMsdfFaceGlyph(glyphIndex, codePoint, fontAscent, msdfFont, glyphHeightMap);
+	#endif
+
+			// If glyph creation failed, do not advertise the code point as supported.
+			if (iter->second != 0)
+				++iter;
+			else
+				mCharMap.erase(iter++);
+		}
+
+		// Do some special handling for the "Space" and "Tab" glyphs.
+		auto spaceGlyphIter = mGlyphMap.find(FontCodeType::Space);
+
+		if (spaceGlyphIter != mGlyphMap.end())
+		{
+			// Adjust the width of the "Space" glyph if it has been customized.
+			if (mSpaceWidth != 0.0f)
+			{
+				texWidth += (int)std::ceil(mSpaceWidth) - (int)std::ceil(spaceGlyphIter->second.width);
+				spaceGlyphIter->second.width = mSpaceWidth;
+				spaceGlyphIter->second.advance = mSpaceWidth;
+			}
+
+			// If the width of the "Tab" glyph hasn't been customized, make it eight spaces wide.
+			if (mTabWidth == 0.0f)
+				mTabWidth = mDefaultTabWidth * spaceGlyphIter->second.advance;
+		}
+
+		// Create the special glyphs. They must be created after the standard glyphs so that they take precedence in case of a
+		// collision. To make sure that the indices of the special glyphs don't collide with any glyph indices in the font, we must
+		// use glyph indices higher than the highest glyph index in the font.
+		FT_UInt nextGlyphIndex = (FT_UInt)ftFace->num_glyphs;
+
+		float height = (float)mDefaultHeight;
+
+		texWidth += createGlyph(
+			nextGlyphIndex++,
+			GlyphInfo(static_cast<Char>(FontCodeType::Tab), 0.0f, 0.0f, mTabWidth, 0.0f, 0.0f),
+			glyphHeightMap);
+		texWidth += createGlyph(
+			nextGlyphIndex++,
+			GlyphInfo(static_cast<Char>(FontCodeType::Selected), mSelectedWidth, height, 0.0f, 0.0f, 0.0f),
+			glyphHeightMap);
+		texWidth += createGlyph(
+			nextGlyphIndex++,
+			GlyphInfo(static_cast<Char>(FontCodeType::SelectedBack), mSelectedWidth, height, 0.0f, 0.0f, 0.0f),
+			glyphHeightMap);
+		texWidth += createGlyph(
+			nextGlyphIndex++,
+			GlyphInfo(static_cast<Char>(FontCodeType::Cursor), mCursorWidth, height, 0.0f, 0.0f, 0.0f),
+			glyphHeightMap);
+
+		// If a substitute code point has been specified, check to make sure that it exists in the character map. If it doesn't,
+		// revert to the default "Not Defined" code point. This is not a real code point but rather an invalid Unicode value that
+		// is guaranteed to cause the "Not Defined" special glyph to be created.
+		if (mSubstituteCodePoint != FontCodeType::NotDefined && mCharMap.find(mSubstituteCodePoint) == mCharMap.end())
+			mSubstituteCodePoint = static_cast<Char>(FontCodeType::NotDefined);
+
+		// Create the "Not Defined" code point (and its corresponding glyph) if it's in use as the substitute code point.
+		if (mSubstituteCodePoint == FontCodeType::NotDefined)
+		{
+			if (!mMsdfMode)
+				texWidth += createFaceGlyph(
+					0,
+					static_cast<Char>(FontCodeType::NotDefined),
+					fontAscent,
+					ftFace,
+					ftLoadFlags,
+					glyphHeightMap);
+	#ifdef MYGUI_MSDF_FONTS
+			else
+				texWidth += createMsdfFaceGlyph(
+					0,
+					static_cast<Char>(FontCodeType::NotDefined),
+					fontAscent,
+					msdfFont,
+					glyphHeightMap);
+	#endif
+		}
+
+		// Cache a pointer to the substitute glyph info for fast lookup.
+		mSubstituteGlyphInfo = &mGlyphMap.find(mSubstituteCodePoint)->second;
+
+		// Load kerning pairs from the font.
+		loadKerning(ftFace);
+
+		// Calculate the average height of all of the glyphs that are in use. This value will be used for estimating how large the
+		// texture needs to be.
+		double averageGlyphHeight = 0.0;
+
+		for (const auto& heightItem : glyphHeightMap)
+			averageGlyphHeight += heightItem.first * heightItem.second.size();
+
+		averageGlyphHeight /= mGlyphMap.size();
+
+		//-------------------------------------------------------------------//
+		// Calculate the final texture size.
+		//-------------------------------------------------------------------//
+
+		// Round the current texture width and height up to the nearest powers of two.
+		texWidth = Bitwise::firstPO2From(texWidth);
+		int texHeight = Bitwise::firstPO2From((int)ceil(averageGlyphHeight) + mGlyphSpacing);
+
+		// At this point, the texture is only one glyph high and is probably very wide. For efficiency reasons, we need to make the
+		// texture as square as possible. If the texture cannot be made perfectly square, make it taller than it is wide, because
+		// the height may decrease in the final layout due to height packing.
+		while (texWidth > texHeight)
+		{
+			texWidth /= 2;
+			texHeight *= 2;
+		}
+
+		// Calculate the final layout of all of the glyphs in the texture, packing them tightly by first arranging them by height.
+		// We assume that the texture width is fixed but that the texture height can be adjusted up or down depending on how much
+		// space is actually needed.
+		// In most cases, the final texture will end up square or almost square. In some rare cases, however, we can end up with a
+		// texture that's more than twice as high as it is wide; when this happens, we double the width and try again.
+		do
+		{
+			if (texHeight > texWidth * 2)
+				texWidth *= 2;
+
+			int texX = mGlyphSpacing;
+			int texY = mGlyphSpacing;
+
+			for (const auto& heightItem : glyphHeightMap)
+			{
+				for (const auto& [key, info] : heightItem.second)
+				{
+					auto [glyphWidth, glyphHeight] = integerGlyphSize(*info, mDpiScale);
+
+					autoWrapGlyphPos(glyphWidth, texWidth, glyphHeight, texX, texY);
+
+					if (glyphWidth > 0)
+						texX += mGlyphSpacing + glyphWidth;
+				}
+			}
+
+			texHeight = Bitwise::firstPO2From(texY + glyphHeightMap.rbegin()->first);
+		} while (texHeight > texWidth * 2);
+
+		//-------------------------------------------------------------------//
+		// Create the texture and render the glyphs onto it.
+		//-------------------------------------------------------------------//
+
+		if (mTexture)
+		{
+			RenderManager::getInstance().destroyTexture(mTexture);
+			mTexture = nullptr;
+		}
+
+		mTexture = RenderManager::getInstance().createTexture(MyGUI::utility::toString((size_t)this, "_TrueTypeFont"));
+
+		mTexture
+			->createManual(texWidth, texHeight, TextureUsage::Static | TextureUsage::Write, Pixel<LAMode>::getFormat());
+		mTexture->setInvalidateListener(this);
+
+		if (!mShader.empty())
+			mTexture->setShader(mShader);
+
+		uint8* texBuffer = static_cast<uint8*>(mTexture->lock(TextureUsage::Write));
+
+		if (texBuffer != nullptr)
+		{
+			// Make the texture background transparent white (or black for msdf mode).
+			for (uint8 *dest = texBuffer, *endDest = dest + texWidth * texHeight * Pixel<LAMode>::getNumBytes();
+				 dest != endDest;)
+				Pixel<LAMode, false, false>::set(dest, mMsdfMode ? charMaskBlack : charMaskWhite, charMaskBlack, dest);
+
+			if (!mMsdfMode)
+				renderGlyphs<LAMode, Antialias>(
+					glyphHeightMap,
+					ftLibrary,
+					ftFace,
+					ftLoadFlags,
+					texBuffer,
+					texWidth,
+					texHeight);
+	#ifdef MYGUI_MSDF_FONTS
+			else
+				renderMsdfGlyphs(glyphHeightMap, msdfFont, texBuffer, texWidth, texHeight);
+	#endif
+
+			mTexture->unlock();
+
+			MYGUI_LOG(
+				Info,
+				"ResourceTrueTypeFont: Font '"
+					<< getResourceName() << "' using texture size " << texWidth << " x " << texHeight << ".");
+			MYGUI_LOG(
+				Info,
+				"ResourceTrueTypeFont: Font '"
+					<< getResourceName() << "' using real height " << mDefaultHeight << " pixels.");
+		}
+		else
+		{
+			MYGUI_LOG(Error, "ResourceTrueTypeFont: Error locking texture; pointer is nullptr.");
+		}
+
+	#ifdef MYGUI_MSDF_FONTS
+		if (mMsdfMode)
+		{
+			msdfgen::destroyFont(msdfFont);
+		}
+	#endif
+
+		FT_Done_Face(ftFace);
+		FT_Done_FreeType(ftLibrary);
+	}
+
+	FT_Face ResourceTrueTypeFont::loadFace(const FT_Library& _ftLibrary, std::vector<std::byte>& _fontBuffer)
+	{
+		FT_Face result = nullptr;
+
+		// Load the font file.
+		{
+			auto datastream = DataManager::getInstance().getDataHolder(mSource);
+			if (!datastream)
+				return result;
+			_fontBuffer = datastream->readAll();
+		}
+		const auto* fontData = reinterpret_cast<const FT_Byte*>(_fontBuffer.data());
+		const auto fontBufferSize = static_cast<FT_Long>(_fontBuffer.size());
+
+		// Determine how many faces the font contains.
+		if (FT_New_Memory_Face(_ftLibrary, fontData, fontBufferSize, -1, &result) != 0)
+			MYGUI_EXCEPT("ResourceTrueTypeFont: Could not load the font '" << getResourceName() << "'!");
+
+		FT_Long numFaces = result->num_faces;
+		FT_Long faceIndex = 0;
+
+		FT_Done_Face(result);
+
+		// Load the first face.
+		if (FT_New_Memory_Face(_ftLibrary, fontData, fontBufferSize, faceIndex, &result) != 0)
+			MYGUI_EXCEPT("ResourceTrueTypeFont: Could not load the font '" << getResourceName() << "'!");
+
+		if (result->face_flags & FT_FACE_FLAG_SCALABLE)
+		{
+			// The font is scalable, so set the font size by first converting the requested size to FreeType's 26.6 fixed-point
+			// format.
+			FT_F26Dot6 ftSize = (FT_F26Dot6)(mSize * mDpiScale * (1 << 6));
+
+			if (FT_Set_Char_Size(result, ftSize, 0, mResolution, mResolution) != 0)
+				MYGUI_EXCEPT("ResourceTrueTypeFont: Could not set the font size for '" << getResourceName() << "'!");
+
+			// If no code points have been specified, use the Unicode Basic Multilingual Plane by default.
+			if (mCharMap.empty())
+				addCodePointRange(0, 0xFFFF);
+		}
+		else
+		{
+			// The font isn't scalable, so try to load it as a Windows FNT/FON file.
+			FT_WinFNT_HeaderRec fnt;
+
+			// Enumerate all of the faces in the font and select the smallest one that's at least as large as the requested size
+			// (after adjusting for resolution). If none of the faces are large enough, use the largest one.
+			std::map<float, FT_Long> faceSizes;
+
+			do
+			{
+				if (FT_Get_WinFNT_Header(result, &fnt) != 0)
+					MYGUI_EXCEPT("ResourceTrueTypeFont: Could not load the font '" << getResourceName() << "'!");
+
+				faceSizes.insert(
+					std::make_pair((float)fnt.nominal_point_size * fnt.vertical_resolution / mResolution, faceIndex));
+
+				FT_Done_Face(result);
+
+				if (++faceIndex < numFaces)
+					if (FT_New_Memory_Face(_ftLibrary, fontData, fontBufferSize, faceIndex, &result) != 0)
+						MYGUI_EXCEPT("ResourceTrueTypeFont: Could not load the font '" << getResourceName() << "'!");
+			} while (faceIndex < numFaces);
+
+			auto iter = faceSizes.lower_bound(mSize);
+
+			faceIndex = (iter != faceSizes.end()) ? iter->second : faceSizes.rbegin()->second;
+
+			if (FT_New_Memory_Face(_ftLibrary, fontData, fontBufferSize, faceIndex, &result) != 0)
+				MYGUI_EXCEPT("ResourceTrueTypeFont: Could not load the font '" << getResourceName() << "'!");
+
+			// Select the first bitmap strike available in the selected face. This needs to be done explicitly even though Windows
+			// FNT/FON files contain only one bitmap strike per face.
+			if (FT_Select_Size(result, 0) != 0)
+				MYGUI_EXCEPT("ResourceTrueTypeFont: Could not set the font size for '" << getResourceName() << "'!");
+
+			// Windows FNT/FON files do not support Unicode, so restrict the code-point range to either ISO-8859-1 or ASCII,
+			// depending on the font's encoding.
+			if (mCharMap.empty())
+			{
+				// No code points have been specified, so add the printable ASCII range by default.
+				addCodePointRange(0x20, 0x7E);
+
+				// Additionally, if the font's character set is CP-1252, add the range of non-ASCII 8-bit code points that are
+				// common between CP-1252 and ISO-8859-1; i.e., everything but 0x80 through 0x9F.
+				if (fnt.charset == FT_WinFNT_ID_CP1252)
+					addCodePointRange(0xA0, 0xFF);
+			}
+			else
+			{
+				// Some code points have been specified, so remove anything in the non-printable ASCII range as well as anything
+				// over 8 bits.
+				removeCodePointRange(0, 0x1F);
+				removeCodePointRange(0x100, std::numeric_limits<Char>::max());
+
+				// Additionally, remove non-ASCII 8-bit code points (plus ASCII DEL, 0x7F). If the font's character set is CP-1252,
+				// remove only the code points that differ between CP-1252 and ISO-8859-1; otherwise, remove all of them.
+				if (fnt.charset == FT_WinFNT_ID_CP1252)
+					removeCodePointRange(0x7F, 0x9F);
+				else
+					removeCodePointRange(0x7F, 0xFF);
+			}
+		}
+
+		return result;
+	}
+
+	float ResourceTrueTypeFont::getKerning(Char _left, Char _right) const
+	{
+		auto iter = mKerningMap.find(std::make_pair(_left, _right));
+		if (iter != mKerningMap.end())
+			return iter->second;
+		return 0.0f;
+	}
+
+	void ResourceTrueTypeFont::loadKerning(const FT_Face& _ftFace)
+	{
+		mKerningMap.clear();
+
+		if (!mKerningEnabled)
+			return;
+
+		if (!FT_HAS_KERNING(_ftFace))
+			return;
+
+		for (const auto& [leftChar, leftIndex] : mCharMap)
+		{
+			for (const auto& [rightChar, rightIndex] : mCharMap)
+			{
+				FT_Vector kerning;
+				if (FT_Get_Kerning(_ftFace, leftIndex, rightIndex, FT_KERNING_DEFAULT, &kerning) == 0)
+				{
+					if (kerning.x != 0)
+					{
+						mKerningMap[std::make_pair(leftChar, rightChar)] = kerning.x / 64.0f / mDpiScale;
+					}
+				}
+			}
+		}
+	}
+
+	void ResourceTrueTypeFont::autoWrapGlyphPos(int _glyphWidth, int _texWidth, int _lineHeight, int& _texX, int& _texY)
+		const
+	{
+		if (_glyphWidth > 0 && _texX + mGlyphSpacing + _glyphWidth > _texWidth)
+		{
+			_texX = mGlyphSpacing;
+			_texY += mGlyphSpacing + _lineHeight;
+		}
+	}
+
+	GlyphInfo ResourceTrueTypeFont::createFaceGlyphInfo(Char _codePoint, int _fontAscent, FT_GlyphSlot _glyph) const
+	{
+		float scale = 1.0f / mDpiScale;
+		return {
+			_codePoint,
+			std::max((float)_glyph->bitmap.width, _glyph->metrics.width / 64.0f) * scale,
+			std::max((float)_glyph->bitmap.rows, _glyph->metrics.height / 64.0f) * scale,
+			_glyph->advance.x / 64.0f * scale,
+			_glyph->metrics.horiBearingX / 64.0f * scale,
+			(_fontAscent - (_glyph->metrics.horiBearingY / 64.0f)) * scale - mOffsetHeight};
+	}
+
+	int ResourceTrueTypeFont::createGlyph(
+		FT_UInt _glyphIndex,
+		const GlyphInfo& _glyphInfo,
+		GlyphHeightMap& _glyphHeightMap,
+		float _scale)
+	{
+		auto [width, height] = integerGlyphSize(_glyphInfo, _scale < 0 ? mDpiScale : _scale);
+
+		mCharMap[_glyphInfo.codePoint] = _glyphIndex;
+		GlyphInfo& info = mGlyphMap.insert(GlyphMap::value_type(_glyphInfo.codePoint, _glyphInfo)).first->second;
+		_glyphHeightMap[height].insert(std::make_pair(_glyphIndex, &info));
+
+		return (width > 0) ? mGlyphSpacing + width : 0;
+	}
+
+	int ResourceTrueTypeFont::createFaceGlyph(
+		FT_UInt _glyphIndex,
+		Char _codePoint,
+		int _fontAscent,
+		const FT_Face& _ftFace,
+		FT_Int32 _ftLoadFlags,
+		GlyphHeightMap& _glyphHeightMap)
+	{
+		if (mGlyphMap.find(_codePoint) == mGlyphMap.end())
+		{
+			if (FT_Load_Glyph(_ftFace, _glyphIndex, _ftLoadFlags) == 0)
+				return createGlyph(
+					_glyphIndex,
+					createFaceGlyphInfo(_codePoint, _fontAscent, _ftFace->glyph),
+					_glyphHeightMap);
+			MYGUI_LOG(
+				Warning,
+				"ResourceTrueTypeFont: Cannot load glyph "
+					<< _glyphIndex << " for character " << _codePoint << " in font '" << getResourceName() << "'.");
+		}
+		else
+		{
+			mCharMap[_codePoint] = _glyphIndex;
+		}
+
+		return 0;
+	}
+
+	template<bool LAMode, bool Antialias>
+	void ResourceTrueTypeFont::renderGlyphs(
+		const GlyphHeightMap& _glyphHeightMap,
+		const FT_Library& _ftLibrary,
+		const FT_Face& _ftFace,
+		FT_Int32 _ftLoadFlags,
+		uint8* _texBuffer,
+		int _texWidth,
+		int _texHeight)
+	{
+		FT_Bitmap ftBitmap;
+		FT_Bitmap_New(&ftBitmap);
+
+		int texX = mGlyphSpacing;
+		int texY = mGlyphSpacing;
+
+		for (const auto& sameHeightGlyphs : _glyphHeightMap)
+		{
+			int glyphHeight = sameHeightGlyphs.first;
+			for (const auto& glyph : sameHeightGlyphs.second)
+			{
+				GlyphInfo& info = *glyph.second;
+				auto [intWidth, intHeight] = integerGlyphSize(info, mDpiScale);
+
+				switch (info.codePoint)
+				{
+				case FontCodeType::Selected:
+				case FontCodeType::SelectedBack:
+				{
+					renderGlyph<LAMode, false, false>(
+						info,
+						charMaskWhite,
+						charMaskBlack,
+						charMask.find(info.codePoint)->second,
+						glyphHeight,
+						_texBuffer,
+						_texWidth,
+						_texHeight,
+						texX,
+						texY,
+						intWidth,
+						intHeight);
+
+					// Manually adjust the glyph's width to zero. This prevents artifacts from appearing at the seams when
+					// rendering multi-character selections.
+					auto glyphIter = mGlyphMap.find(info.codePoint);
+					if (glyphIter != mGlyphMap.end())
+					{
+						glyphIter->second.width = 0.0f;
+						glyphIter->second.uvRect.right = glyphIter->second.uvRect.left;
+					}
+				}
+				break;
+
+				case FontCodeType::Cursor:
+				case FontCodeType::Tab:
+					renderGlyph<LAMode, false, false>(
+						info,
+						charMaskWhite,
+						charMaskBlack,
+						charMask.find(info.codePoint)->second,
+						glyphHeight,
+						_texBuffer,
+						_texWidth,
+						_texHeight,
+						texX,
+						texY,
+						intWidth,
+						intHeight);
+					break;
+
+				default:
+					if (FT_Load_Glyph(_ftFace, glyph.first, _ftLoadFlags) != 0)
+					{
+						MYGUI_LOG(
+							Warning,
+							"ResourceTrueTypeFont: Cannot load glyph "
+								<< glyph.first << " for character " << info.codePoint << " in font '"
+								<< getResourceName() << "'.");
+						break;
+					}
+					if (FT_Render_Glyph(_ftFace->glyph, FT_RENDER_MODE_NORMAL) != 0)
+					{
+						MYGUI_LOG(
+							Warning,
+							"ResourceTrueTypeFont: Cannot render glyph "
+								<< glyph.first << " for character " << info.codePoint << " in font '"
+								<< getResourceName() << "'.");
+						break;
+					}
+					{
+						if (_ftFace->glyph->bitmap.buffer != nullptr)
+						{
+							uint8* glyphBuffer = nullptr;
+
+							switch (_ftFace->glyph->bitmap.pixel_mode)
+							{
+							case FT_PIXEL_MODE_GRAY: glyphBuffer = _ftFace->glyph->bitmap.buffer; break;
+
+							case FT_PIXEL_MODE_MONO:
+								// Convert the monochrome bitmap to 8-bit before rendering it.
+								if (FT_Bitmap_Convert(_ftLibrary, &_ftFace->glyph->bitmap, &ftBitmap, 1) == 0)
+								{
+									// Go through the bitmap and convert all of the nonzero values to 0xFF (white).
+									for (uint8 *p = ftBitmap.buffer, *endP = p + ftBitmap.width * ftBitmap.rows;
+										 p != endP;
+										 ++p)
+										*p = *p ? 0xFF : 0;
+
+									glyphBuffer = ftBitmap.buffer;
+								}
+								break;
+							}
+
+							if (glyphBuffer != nullptr)
+								renderGlyph<LAMode, true, Antialias>(
+									info,
+									charMaskWhite,
+									charMaskWhite,
+									charMaskWhite,
+									glyphHeight,
+									_texBuffer,
+									_texWidth,
+									_texHeight,
+									texX,
+									texY,
+									_ftFace->glyph->bitmap.width,
+									_ftFace->glyph->bitmap.rows,
+									glyphBuffer);
+						}
+					}
+					break;
+				}
+			}
+		}
+
+		FT_Bitmap_Done(_ftLibrary, &ftBitmap);
+	}
+
+	template<bool LAMode, bool UseBuffer, bool Antialias>
+	void ResourceTrueTypeFont::renderGlyph(
+		GlyphInfo& _info,
+		uint8 _luminance0,
+		uint8 _luminance1,
+		uint8 _alpha,
+		int _lineHeight,
+		uint8* _texBuffer,
+		int _texWidth,
+		int _texHeight,
+		int& _texX,
+		int& _texY,
+		int _bitmapWidth,
+		int _bitmapHeight,
+		uint8* _glyphBuffer)
+	{
+		autoWrapGlyphPos(_bitmapWidth, _texWidth, _lineHeight, _texX, _texY);
+
+		uint8* dest = _texBuffer + (_texY * _texWidth + _texX) * Pixel<LAMode>::getNumBytes();
+
+		// Calculate how much to advance the destination pointer after each row to get to the start of the next row.
+		ptrdiff_t destNextRow = (_texWidth - _bitmapWidth) * Pixel<LAMode>::getNumBytes();
+
+		if (!mMsdfMode || !UseBuffer)
+		{
+			for (int j = _bitmapHeight; j > 0; --j)
+			{
+				int i;
+				for (i = _bitmapWidth; i > 1; i -= 2)
+				{
+					Pixel<LAMode, UseBuffer, Antialias>::set(dest, _luminance0, _alpha, _glyphBuffer);
+					Pixel<LAMode, UseBuffer, Antialias>::set(dest, _luminance1, _alpha, _glyphBuffer);
+				}
+
+				if (i > 0)
+					Pixel<LAMode, UseBuffer, Antialias>::set(dest, _luminance0, _alpha, _glyphBuffer);
+
+				dest += destNextRow;
+			}
+		}
+		else
+		{
+			for (int y = 0; y < _bitmapHeight; ++y)
+			{
+				for (int x = 0; x < _bitmapWidth; ++x)
+				{
+					for (int i = 0; i < 3; ++i)
+					{
+						*dest++ = *_glyphBuffer++;
+					}
+					*dest++ = 255;
+				}
+
+				dest += destNextRow;
+			}
+		}
+
+		// Calculate and store the glyph's UV coordinates within the texture.
+		_info.uvRect.left = (float)_texX / _texWidth; // u1
+		_info.uvRect.top = (float)_texY / _texHeight; // v1
+		_info.uvRect.right = (float)(_texX + _info.width * mDpiScale) / _texWidth; // u2
+		_info.uvRect.bottom = (float)(_texY + _info.height * mDpiScale) / _texHeight; // v2
+
+		if (_bitmapWidth > 0)
+			_texX += mGlyphSpacing + _bitmapWidth;
+	}
+
+	#ifdef MYGUI_MSDF_FONTS
+	GlyphInfo ResourceTrueTypeFont::createMsdfFaceGlyphInfo(
+		Char _codePoint,
+		const msdfgen::Shape& _shape,
+		double _advance,
+		int _fontAscent)
+	{
+		msdfgen::Shape::Bounds bounds = _shape.getBounds();
+		double range = mMsdfRange / 2.0;
+		if (_shape.contours.empty())
+		{
+			bounds = {0, 0, 0, 0};
+			range = 0;
+		}
+
+		return GlyphInfo(
+			_codePoint,
+			(bounds.r - bounds.l) * mMsdfScale + 2 * range,
+			(bounds.t - bounds.b) * mMsdfScale + 2 * range,
+			_advance * mMsdfScale,
+			bounds.l * mMsdfScale - range,
+			_fontAscent - bounds.t * mMsdfScale - mOffsetHeight - range);
+	}
+
+	int ResourceTrueTypeFont::createMsdfFaceGlyph(
+		FT_UInt _glyphIndex,
+		Char _codePoint,
+		int _fontAscent,
+		msdfgen::FontHandle* _fontHandle,
+		GlyphHeightMap& _glyphHeightMap)
+	{
+		if (mGlyphMap.find(_codePoint) == mGlyphMap.end())
+		{
+			msdfgen::Shape shape;
+			double advance;
+			if (msdfgen::loadGlyph(shape, _fontHandle, _codePoint, msdfgen::FONT_SCALING_EM_NORMALIZED, &advance))
+				return createGlyph(
+					_glyphIndex,
+					createMsdfFaceGlyphInfo(_codePoint, shape, advance, _fontAscent),
+					_glyphHeightMap,
+					1.0f);
+			MYGUI_LOG(
+				Warning,
+				"ResourceTrueTypeFont: Cannot load msdf glyph for character "
+					<< _codePoint << " in font '" << getResourceName() << "'.");
+		}
+		else
+		{
+			mCharMap[_codePoint] = _glyphIndex;
+		}
+
+		return 0;
+	}
+
+	void ResourceTrueTypeFont::renderMsdfGlyphs(
+		const GlyphHeightMap& _glyphHeightMap,
+		msdfgen::FontHandle* _fontHandle,
+		uint8* _texBuffer,
+		int _texWidth,
+		int _texHeight)
+	{
+		int texX = mGlyphSpacing, texY = mGlyphSpacing;
+
+		for (const auto& sameHeightGlyphs : _glyphHeightMap)
+		{
+			int glyphHeight = sameHeightGlyphs.first;
+			for (const auto& glyph : sameHeightGlyphs.second)
+			{
+				GlyphInfo& info = *glyph.second;
+
+				switch (info.codePoint)
+				{
+				case FontCodeType::Selected:
+				case FontCodeType::SelectedBack:
+				{
+					renderGlyph<false, false, false>(
+						info,
+						charMaskWhite,
+						charMaskBlack,
+						charMask.find(info.codePoint)->second,
+						glyphHeight,
+						_texBuffer,
+						_texWidth,
+						_texHeight,
+						texX,
+						texY,
+						(int)std::ceil(info.width),
+						(int)std::ceil(info.height));
+
+					// Manually adjust the glyph's width to zero. This prevents artifacts from appearing at the seams when
+					// rendering multi-character selections.
+					auto glyphIter = mGlyphMap.find(info.codePoint);
+					if (glyphIter != mGlyphMap.end())
+					{
+						glyphIter->second.width = 0.0f;
+						glyphIter->second.uvRect.right = glyphIter->second.uvRect.left;
+						// avoid using data from borders to fix 2 pixels gap between selected lines
+						glyphIter->second.height = glyphIter->second.height / 2;
+						float uvHeight = glyphIter->second.uvRect.bottom - glyphIter->second.uvRect.top;
+						glyphIter->second.uvRect.top += uvHeight / 4;
+						glyphIter->second.uvRect.bottom -= uvHeight / 4;
+					}
+				}
+				break;
+
+				case FontCodeType::Cursor:
+				case FontCodeType::Tab:
+					renderGlyph<false, false, false>(
+						info,
+						charMaskWhite,
+						charMaskBlack,
+						charMask.find(info.codePoint)->second,
+						glyphHeight,
+						_texBuffer,
+						_texWidth,
+						_texHeight,
+						texX,
+						texY,
+						(int)std::ceil(info.width),
+						(int)std::ceil(info.height));
+					break;
+
+				default:
+					msdfgen::Shape shape;
+					if (msdfgen::loadGlyph(shape, _fontHandle, info.codePoint, msdfgen::FONT_SCALING_EM_NORMALIZED))
+					{
+						msdfgen::Shape::Bounds bounds = shape.getBounds();
+						double range = mMsdfRange / 2.0;
+						if (shape.contours.empty())
+						{
+							bounds = {0, 0, 0, 0};
+							range = 0;
+						}
+
+						shape.normalize();
+						msdfgen::edgeColoringSimple(shape, 3.0);
+
+						msdfgen::Bitmap<float, 3> msdf(
+							(int)std::ceil((bounds.r - bounds.l) * mMsdfScale + 2 * range),
+							(int)std::ceil((bounds.t - bounds.b) * mMsdfScale + 2 * range));
+						msdfgen::generateMSDF(
+							msdf,
+							shape,
+							mMsdfRange / mMsdfScale,
+							msdfgen::Vector2(mMsdfScale, mMsdfScale),
+							msdfgen::Vector2(-bounds.l + range / mMsdfScale, -bounds.b + range / mMsdfScale));
+						//							double error = msdfgen::estimateSDFError(
+						//								msdfgen::BitmapConstRef<float, 3>{(float*)msdf, msdf.width(), msdf.height()},
+						//								shape,
+						//								1,
+						//								msdfgen::Vector2(-bounds.l + range, -bounds.b + range),
+						//								33);
+						//							if (100000 * error > 1)
+						//								MYGUI_LOG(Warning, "Error for '" << char(info.codePoint) << "' is :" << (int) 100000 * error);
+
+						uint8* glyphBuffer = new uint8[msdf.width() * msdf.height() * 3];
+						uint8* glyphBufferPointer = glyphBuffer;
+						for (int y = 0; y < msdf.height(); ++y)
+						{
+							for (int x = 0; x < msdf.width(); ++x)
+							{
+								for (int i = 0; i < 3; ++i)
+								{
+									// upside-down and RGB->BGR
+									*glyphBufferPointer++ =
+										msdfgen::pixelFloatToByte(msdf(x, msdf.height() - y - 1)[2 - i]);
+								}
+							}
+						}
+
+						renderGlyph<false, true, false>(
+							info,
+							charMaskWhite,
+							charMaskWhite,
+							charMaskWhite,
+							glyphHeight,
+							_texBuffer,
+							_texWidth,
+							_texHeight,
+							texX,
+							texY,
+							msdf.width(),
+							msdf.height(),
+							glyphBuffer);
+						delete[] glyphBuffer;
+					}
+					else
+					{
+						MYGUI_LOG(
+							Warning,
+							"ResourceTrueTypeFont: Cannot render glyph for character "
+								<< info.codePoint << " in font '" << getResourceName() << "'.");
+					}
+					break;
+				}
+			}
+		}
+	}
+	#endif
+
+	void ResourceTrueTypeFont::setSource(std::string_view _value)
+	{
+		mSource = _value;
+	}
+
+	void ResourceTrueTypeFont::setShader(std::string_view _value)
+	{
+		mShader = _value;
+	}
+
+	void ResourceTrueTypeFont::setSize(float _value)
+	{
+		mSize = _value;
+	}
+
+	void ResourceTrueTypeFont::setResolution(unsigned int _value)
+	{
+		mResolution = _value;
+	}
+
+	void ResourceTrueTypeFont::setHinting(std::string_view _value)
+	{
+		if (_value == "use_native")
+			mHinting = HintingUseNative;
+		else if (_value == "force_auto")
+			mHinting = HintingForceAuto;
+		else if (_value == "disable_auto")
+			mHinting = HintingDisableAuto;
+		else if (_value == "disable_all")
+			mHinting = HintingDisableAll;
+		else if (_value == "monochrome")
+			mHinting = HintingMonochrome;
+		else
+			mHinting = HintingUseNative;
+	}
+
+	void ResourceTrueTypeFont::setAntialias(bool _value)
+	{
+		mAntialias = _value;
+	}
+
+	void ResourceTrueTypeFont::setTabWidth(float _value)
+	{
+		mTabWidth = _value;
+	}
+
+	void ResourceTrueTypeFont::setOffsetHeight(int _value)
+	{
+		mOffsetHeight = _value;
+	}
+
+	void ResourceTrueTypeFont::setSubstituteCode(int _value)
+	{
+		mSubstituteCodePoint = _value;
+	}
+
+	void ResourceTrueTypeFont::setDistance(int _value)
+	{
+		mGlyphSpacing = _value;
+	}
+
+	void ResourceTrueTypeFont::setMsdfMode(bool _value)
+	{
+	#ifndef MYGUI_MSDF_FONTS
+		if (_value)
+			MYGUI_LOG(
+				Error,
+				"MsdfMode flag ignored Define MYGUI_MSDF_FONTS if you need msdf fonts, msdf mode ignored.");
+	#else
+		mMsdfMode = _value;
+	#endif
+	}
+
+	void ResourceTrueTypeFont::setMsdfRange(int _value)
+	{
+		mMsdfRange = _value;
+	}
+
+	void ResourceTrueTypeFont::setKerningEnabled(bool _value)
+	{
+		mKerningEnabled = _value;
+	}
+
+	void ResourceTrueTypeFont::setDpiScale(float _value)
+	{
+		mDpiScale = _value;
+	}
+
+	void ResourceTrueTypeFont::setAutoDpi(bool _value)
+	{
+		mAutoDpi = _value;
+	}
+
+#endif // MYGUI_USE_FREETYPE
 
 } // namespace MyGUI

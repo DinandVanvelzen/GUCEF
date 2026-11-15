@@ -1,0 +1,833 @@
+## MyGUI v3.5.4
+
+### Tools and demos
+- Fix SDL key mappings for apostrophe and numpad Enter
+- Use mouse-button event coordinates for presses and releases, avoiding theoretical stale positions from the last mouse
+  move
+
+### Infrastructure
+- Fix compilation with MSVC 2022 and add CI coverage for this toolset (#331)
+- Fix builds with newer Emscripten when high-level warnings are enabled
+- Build and run platform tests in every CI build-matrix job, including static builds
+- Cache vcpkg dependency binaries between Windows CI runs
+
+## MyGUI v3.5.3
+
+### Compatibility
+- Const overloads of `Any::castType<T>`, `UserData::getUserData<T>`, `ListBox::getItemDataAt<T>` now return `const T*`
+  instead of `T*`. Update read-only callers to accept `const T*`; use a non-const object when mutable access is
+  required. Non-const overloads continue to return `T*`
+- Change `ILayerNode::addToRenderItem` to take two arguments; update custom layer-node overrides accordingly. The
+  deprecated three-argument caller overload remains available unless `MYGUI_DONT_USE_OBSOLETE` is enabled, but ignores
+  the manual-render flag
+- Remove no longer used `ISubWidget::doManualRender` and `RenderItem::setManualRender` / `getManualRender`; custom
+  subwidgets now use regular render batches
+
+### Core
+- Improve widget movement, resizing, hit testing and text rendering performance; reduce repeated text-layout allocations
+- Reduce compile time and binary size by sharing delegate and utility code and moving widget constructors and
+  destructors out of headers
+- Replace the Boost-derived `MyGUI::Any` implementation with an MIT-licensed implementation and add const-correct
+  access (#329)
+- Fix `Any` assignment from values and move assignment from nested stored values
+
+### Tools
+- Replace `FilterNone` skins with regular `ImageBox` widgets and `NearestFilter` shaders for nearest-neighbour
+  texture previews. Preview texture copies preserve the original texture's shader, including MSDF font rendering. Legacy
+  OpenGL and Direct3D9 backends, including Ogre Direct3D9, now use normal texture filtering for previews
+- LayoutEditor: reuse shared editor framework controls and recent-file/project management, removing duplicate
+  implementations
+
+### Platforms
+- OpenGLES: no longer require Emscripten's `FULL_ES3` emulation in web builds
+- OpenGL3: fix custom shader replacement and render-target orientation with different uniform locations
+- OpenGL3/OpenGLES: release shader resources on compilation and linking failures and preserve the host shader binding
+  during shader creation
+- OgreNext: reduce CPU conversions and intermediate storage during texture transfers
+- Simplify rendering backends and remove obsolete FilterNone-specific state and APIs
+- DirectX11: create samplers once during initialization, fixing leaked sampler references when registering shaders
+- Remove unused depth buffers from OpenGL, OpenGL3, OpenGLES and OgreNext GUI render targets, reducing GPU memory usage
+
+### Infrastructure
+- Reuse precompiled headers across demos, tools and unit tests
+- Only discover Doxygen when `MYGUI_BUILD_DOCS` is enabled (#328)
+
+## MyGUI v3.5.2
+### Release highlights
+- **Unit tests and stability:** extensive new core and platform tests, CI coverage and sanitizer checks,
+  with improved handling of many edge cases in widget behavior and rendering
+- Add widget rotation with matching hit testing and clipping
+- Add Vulkan and OpenSceneGraph rendering backends, plus browser demos built with Emscripten
+
+### Compatibility
+- Remove `UString::asWStr_c_str` and `asUTF32_c_str`; use `asWStr` and `asUTF32` instead. `asWStr` now returns an
+  independent `std::wstring` by value, so retain the returned string when using its `c_str` pointer. `asUTF8_c_str`
+  remains available
+- Remove legacy .txt language resource and user-tag support; migrate these files to XML
+- Deprecate `RotatingSkin`; use `Widget::setRotation` and `Widget::setRotationCenter` instead
+- Deprecate `texture_utility::getTextureSize`; use `RenderManager::getTextureSize` instead
+
+### Core
+- Add base widget rotation support with updated hit testing, clipping and coordinate conversion; add
+  `Widget::setRotation` and `getRotation`
+- Add `Widget::eventChangeAbsoluteCoord` for absolute position or size changes, including ancestor movement, alignment
+  and reparenting
+- Add `InputManager::setDoubleClickTime` and `getDoubleClickTime`
+- Add `setItemHeight`, `getItemHeight` and `ItemHeight` property to `ListBox`, `ComboBox` and `MultiListBox` for
+  runtime row resizing
+- Add owning `DataManager::getDataHolder`; make `DataStreamHolder` non-copyable and non-movable
+- Add `IDataStream::readAll` and `readAllText` helpers to read all remaining bytes from a stream
+- Reimplement `UString` using `std::u32string` and UTF8-CPP; indices count Unicode code points. This also improves
+  internal text handling speed by avoiding extra 8/16/32 conversions
+- Optimize delegate invocation and subscription handling, and fix callback lifetime issues during nested dispatch,
+  mutation, exceptions and event destruction
+- Skip unchanged values in several widget setters to avoid redundant layout and render updates
+- Fix out-of-bounds reads in `TextIterator` when text ends with an unescaped '#'
+- Fix `EditBox::getTextSelectionLength` returning an underflowed value for reverse selections and inactive selection
+- Fix `EditBox` left-side maximum-length truncation dropping a trailing literal '#'
+- Ignore empty and out-of-range `EditBox` colour intervals and clamp oversized lengths
+- Fix `TextIterator::cutMaxLengthFromBeginning` reading past incomplete colour tags
+- Make `EditBox` password mode single-line, disabling multiline mode with a warning when both are requested
+- Fix FreeType and MSDF fonts bypassing the configured substitute for unsupported characters and regenerating
+  incorrect glyphs after texture invalidation
+- Fix newly added `MultiListBox` columns not inheriting the current scroll position
+- Fix `MultiListBox` row indices not being cleared when removing the last column, allowing the list to be reused
+- Fix an empty `ListBox` accepting nonzero scrolling
+- Fix resizing `ListBox` exposing a reused row without refreshing its selected appearance
+- Fix removing an offscreen selected `ListBox` item selecting a visible neighbour without repainting it
+- Fix inserting a `ListBox` item before the visible rows leaving too few row widgets for subsequent pixel scrolling
+- Fix `ScrollView` scrollbar visibility, ranges and thumb sizes using stale viewport dimensions after scrollbars
+  appear or disappear
+- Fix `ScrollView`, `EditBox` and `ItemBox` keeping scrollbars visible after `setVisibleVScroll(false)` or
+  `setVisibleHScroll(false)` when content still overflows
+- Fix `TabControl` header scrolling not accounting for navigation button space in layout-based skins, leaving the
+  target tab hidden
+- Fix hovering over an inactive `MenuBar` stealing keyboard focus from other widgets (#282)
+- Fix `ComboBox` drop-downs and `MenuControl` submenus not following ancestor movement
+- Fix `ComboBox` shutdown crash when destroying a focused drop-down
+- Fix keyboard focus gained events reporting the new widget instead of the previous focused widget
+- Preserve keyboard focus in modal dialogs when clicking outside them
+- Exclude right and bottom edges from widget hit testing to match rendered bounds and prevent adjacent widgets from
+  sharing clickable boundary pixels
+- Fix reparenting not updating inherited visibility and enabled state
+- Fix child popups with disabled ancestors intercepting mouse input
+- Fix `MenuControl` losing item names when switching to separator skins
+- Fix `LayerItem` not restoring layer nodes for overlapped descendants when reparenting a widget as a child
+- Fix `RotatingSkin` ignoring subskin position offsets and render-target scale changes; respect render-target origin
+  offsets in `RotatingSkin` and `PolygonalSkin`
+- Fix `PolygonalSkin` retaining stale geometry after clearing points or supplying a single point or duplicate-only
+  points
+- Fix `PolygonalSkin` vertex buffer overruns when clipping sharp joins and invalid geometry at line reversals
+- Simplify rotation, clipping and shared coordinate conversion; make `RotatingSkin` draw only populated triangles
+- Fix bounds checks in `ImageBox::deleteItemFrame`
+- Fix `ImageBox` selection indices when inserting or deleting items and refresh the displayed image when deleting the
+  selected item
+- Move `texture_utility::getTextureSize` into `RenderManager` so its size cache is tied to the renderer lifetime,
+  fixing textures not being recreated after renderer reinitialization
+- Fix `Canvas` texture destruction leaving stale references and queued updates; respect disabled texture management
+  during deferred resizing and preserve content update requests when reallocating
+- Fix automatic `ProgressBar` animation restarting incorrectly
+- Fix XML partial stream reads, failed-save reporting and stale error diagnostics; return null for missing XML roots
+- Fix `DataStream` read counts at EOF and preserve position and state in size queries
+- Fix `Version` comparisons to order major, minor and patch components correctly
+- Preserve public API and RTTI visibility in non-Windows static builds, fixing runtime type-check failures on macOS
+
+### Platforms
+- New `VulkanPlatform` (`MYGUI_RENDERSYSTEM=10`): shader support, RTT textures, `FilterNone` and DPI scale
+- New `OsgPlatform` for OpenSceneGraph (`MYGUI_RENDERSYSTEM=11`): shader support, custom `osg::Drawable` rendering
+  with pooled VBOs
+- All platforms now use standard Porter-Duff alpha blending (`dst_a = src_a + dst_a * (1 - src_a)`)
+- Make `DataManager::getDataListNames` and `getDataPath` no longer required in `DataManager` implementations; they are
+  still used internally by most platforms and by demos/tools
+- Ogre/OgreNext: fix texture parameters not being set
+- Ogre: fix GLSL shader loading with Ogre versions older than 14.3
+- Ogre: preserve partial read/write texture updates and normalize loaded image formats and channel order for readback
+  and saving
+- Ogre: fix reuse and ownership of existing textures, texture recreation and combined render-target/read/write usage;
+  stop advertising unknown pixel formats
+- OgreNext: implement texture read locks for picking
+- OgreNext: fix nested RTT
+- OgreNext: fix Metal rendering and preserve vertex and indirect buffers across multiple updates within a frame
+- OgreNext: fix texture lifecycle, read/write locks and pixel-format conversion
+- OpenGL3: fix odd-width texture uploads and readback buffer overruns; preserve host pixel-transfer state and bindings
+- OpenGL3: fix PBO support detection in core contexts and uploads to file-loaded textures; preserve existing pixels in
+  read/write locks, including render-target textures, and fix interleaved locks and read-lock lifetime reporting
+- OpenGL3: improve sustained texture upload performance using orphaned and mapped pixel buffer objects
+- OpenGL3: isolate GUI drawing from inherited raster settings and restore host rendering state, including when rendering
+  throws; retain support for explicitly setting GUI wireframe inside render callbacks
+- OpenGL3: fix nested render targets and preserve host framebuffer bindings, viewport and clear colour
+- OpenGL: fix odd-width RGB and luminance texture transfers and readback buffer overruns; preserve host pixel-transfer
+  state and bindings, and validate texture dimensions and allocation sizes
+- OpenGL: recognize core and ARB/EXT PBO support and fix uploads to file-loaded textures; preserve existing pixels in
+  read/write locks, fix interleaved locks and read-lock reporting, and release outstanding locks when destroying textures
+- OpenGL: isolate fixed-function GUI drawing from inherited shaders, texture units, texture matrices and raster settings;
+  restore host state even when rendering throws, while retaining explicit GUI wireframe support
+- OpenGL: fix nested render targets, preserve host framebuffer and renderbuffer bindings, and check framebuffer completeness
+- OpenGL: stop advertising unsupported pixel formats and luminance render targets
+- DirectX9: use dynamic discard vertex buffers, release them on device loss and recreate them after device restoration
+- DirectX9: fix texture read/write locks, row-pitch handling and render-target readback
+- DirectX9: preserve render targets, viewport and host scene ownership during nested RTT
+- DirectX11: check vertex-buffer map failures and retry allocation when no buffer exists
+- DirectX11: implement texture read and read/write locks, including GPU-rendered pixels, with correct row-pitch handling
+- DirectX11: fix combined render-target/read/write usage, texture usage reporting and render-target cleanup on recreation
+- OpenGLES: fix texture read/write locks, interleaved updates, transfer sizing and array cleanup; preserve host
+  pixel-store state and use core ES 3 PBO uploads with framebuffer readback
+- OpenGLES: normalize texture channel order for uploaded and rendered images, and support ES 3 luminance textures
+- OpenGLES: isolate GUI rendering from inherited raster/sampler state and restore host bindings, including on exceptions
+- OpenGLES: fix render-target dimensions, nested target restoration and custom-shader orientation; resolve replaced shaders
+  per texture and request an ES 3 context before creating the SDL window
+- Vulkan: retain vertex storage until recorded commands retire, reuse completed allocations and check map failures;
+  submit RTT work asynchronously and wait before command reuse or destruction
+
+### Demos
+- Add [browser demos](https://mygui.info/demos/) built with Emscripten using the Ogre backend (pure OpenGLES also
+  tested), combined into a single WebAssembly application with a demo selector and high-DPI support
+- Add widget rotation demo
+- Handle `SDL_QUIT` in apps
+- Fix DPI scaling in demos and tools on macOS Retina displays
+- Fix Ogre application shutdown destroying the render window twice
+- Fix OgreNext application window resizing on Linux
+- Make all custom `RTTLayer` implementations respect DPI scale
+- Fix unreachable code in `Demo_GraphView` and deprecated skin usage in its resources
+- Move interactive tests to `AdvancedDemos` as `Demo_<Feature>`, controlled by `MYGUI_BUILD_ADVANCED_DEMOS` (ON by
+  default)
+
+### Tools
+- Share CLI argument parsing for tools in `SdlBaseManager`
+- LayoutEditor: always save the latest layout format, upgrade recognized deprecated properties and preserve unknown
+  properties
+- Fix missing editor fonts when FreeType is disabled
+
+### Infrastructure
+- Expand engine and platform test coverage with shared test utilities; keep `UnitTests` fully automated and enable
+  `MYGUI_BUILD_UNITTESTS` by default
+- Run CTest in native and Emscripten CI builds, including platform tests for Linux/Ogre, Linux/OgreNext, Linux/OpenGL3,
+  Linux/Vulkan, macOS/OpenGL3, Windows/DirectX11 and browser/OpenGLES
+- Add AddressSanitizer and UndefinedBehaviorSanitizer CI checks, plus Clang source-based coverage reports and a badge
+- Add `--screenshot` capture for demos/tools and `compare_screenshots.py` reference comparisons with cross-renderer
+  tolerance; make screenshot timing deterministic and fix Ogre captures of hidden windows
+- Propagate the C++17 requirement to consumers of the MyGUI CMake target
+- Generate `resources.xml` beside executables for multi-configuration builds
+- Fix Linux builds with X11 and older OpenGL headers; propagate required GL extension prototypes through the OpenGL,
+  OpenGL3 and OpenGLES CMake targets
+- Use OgreNext CMake package config instead of PkgConfig
+- Fix Emscripten build
+- Remove bundled `doxygen.exe` binary from Wrappers (#317)
+
+## MyGUI v3.5.1
+
+### Core
+- ResourceTrueTypeFont: implement AutoDpi property for automatic DPI scaling
+- ResourceTrueTypeFont: fix inaccurate texture size computation with MSDF fonts
+- ResourceTrueTypeFont: fix MSDF font dynamic kerning
+- ResourceTrueTypeFont: fix edge cases when rendered glyph size doesn't match glyph info size
+
+### Platforms
+- OpenGL: use glad for OpenGL and OpenGL3 platforms on Windows
+- OpenGL: Do not call glViewport in Platform code, as this is user responsibility
+- Fix GL3 tools/demos on macOS
+- Fix OpenGL, OpenGL ES, and OpenGL3 RTT textures clearing to opaque black instead of transparent
+
+### Tools
+- FontConverter: new headless CLI tool that converts a ResourceTrueTypeFont XML into a ResourceManualFont XML + PNG atlas
+- FontEditor: allow displaying MSDF fonts
+- FontEditor: disallow generating invalid fonts
+- FontEditor: disable font properties in property panel when they are not applicable to current MsdfMode
+- Fix tool boolean property display issue
+- Save UTF-8 without BOM in tools
+- Implement FilterNone for all platforms
+- LayoutEditor: remove duplicate classes (TextureControl, TextureToolControl, SelectorControl, AreaSelectorControl,
+  PositionSelectorControl), now using EditorFramework versions
+- LayoutEditor: convert remaining controls from BaseLayout to Control base class pattern
+- LayoutEditor: respect DPI scale in WorkspaceControl
+
+### Demos
+- Implement high DPI scaling for demos and tools (can be used to scale entire GUI, see readme for details)
+- Fix skins for high DPI (fix color bleed)
+- Allow running apps from any working directory
+
+### Infrastructure
+- Add MYGUI_BUILD_RENDERSYSTEMS to build multiple render system platform libraries at once (e.g. `-DMYGUI_BUILD_RENDERSYSTEMS="7;3"`)
+- Add vcpkg.json
+- Extend CI coverage to Windows static/shared build with all features and tools
+- Add Ogre builds
+- Fix build with fetched msdfgen on Windows
+- Fix wrapper build with CMake
+- Generate a public MyGUI_Config.h with the build options as defines, so non-CMake users get the correct settings (MYGUI_STATIC, MYGUI_USE_FREETYPE, MYGUI_MSDF_FONTS, MYGUI_DONT_USE_OBSOLETE)
+
+## MyGUI v3.5.0
+
+### CMake
+- **Complete CMake modernization**:
+  - Provide modern CMake targets: `target_link_libraries(... MyGUI::MyGUI MyGUI::SomePlatform)`
+  - Expose user-facing compile definitions through `MyGUI::MyGUI`
+  - Replace global CMake commands with target_include_directories, target_compile_definitions, and
+    target_compile_options, along with other CMake code improvements
+- Deprecate MYGUI_STATIC in favor of BUILD_SHARED_LIBS
+- Use FetchContent to get internal/optional dependencies like pugixml and msdfgen
+- Allow using system msdfgen
+- Change the default value of MYGUI_RENDERSYSTEM to 7 (OpenGL 3.x)
+
+### Core
+
+- Fonts improvements
+  - Implement **dynamic kerning** support
+  - Add "monochrome" hinting mode, good for small fonts
+  - Make text selection have one quad per line; colored glyphs selection is now same as non-colored glyphs
+  - Fix MSDF font selected area having 2 pixels gap between lines
+- Replace the custom XML parser with pugixml
+- Modernize and refactor source code: simplify duplicated code paths, enable and fix new warnings, some old APIs were
+  marked as deprecated
+- Store ImageIndexInfo properly and fix UB caused by a reference to a temporary variable
+- Fix link error with hidden visibility across shared library boundary on macOS ARM64
+- Add std::vector and std::map getters for children and other collections, and deprecate the Enumerator class and related code
+- Add LayerManager::destroyLayer
+
+### Platforms
+- Make DataManager::getDataListNames and getSystemFileList return by value
+- OpenGL: Use core framebuffer functions instead of EXT variants
+- OpenGL: Fix build on macOS
+- Ogre: Fix tools and demos when statically linked
+- Ogre: Allow using the same shader across GL, GL3+, and GLES render systems
+- DirectX: Implement DirectX11Texture and DirectXTexture::saveToFile
+- DirectX: Fix selected text background with DirectX11 and MSDF shader (no zero division with 0.5/fwidth)
+- DirectX: Remove D3DX9 and D3DX11 usage in favor of the Windows SDK versions of DirectX9 and DirectX11
+- OgreNext: Implement platform for pre-4.0 versions
+- Ogre: Fix Emscripten-related issues
+
+### Infrastructure
+- Replace Travis CI with GitHub Actions
+- Add Lint CI step (clang-format)
+- Add clang-format pre-commit hook
+- Add CI builds for major operating systems and most render systems
+- Add header self-containment check (check_includes.py) to CI
+- Add CI step to test installation
+
+### Plugins
+- Remove plugin support, as it was unused.
+- Remove legacy plugins (Berkelium, Hikari).
+
+### Tools
+
+- FontEditor: better text for the "try" area (kerning test)
+- FontEditor: fix crash when exporting fonts that are also used in the editor
+
+### Demos
+- Allow saving screenshots on all platforms, using F12 key
+- Improve Demo_MsdfFont: runtime-generated MSDF fonts and font cycling
+- Compile UnitTest_GraphView on all platforms
+
+## MyGUI v3.4.4
+
+### Widgets
+- Fixed TabItem child widgets not being clickable in some cases (regression introduced in v3.4.3)
+- Fixed MenuControl popup positioning issue when it is unable to fit into screen height
+- Guard against division by zero in ScrollBar::TrackMove
+
+### Resources
+- ResourceTrueTypeFont: preserve explicit 0.0 advance in ResourceManualFont::deserialization
+- Updated msdfgen to v1.13: faster font generation and better quality
+- Fixed incorrect alpha channel or selected text with the MSDF fonts
+
+### Platforms
+- OpenGL platforms: removed glew dependency
+
+### Other
+- Fixed build with MYGUI_USE_FREETYPE=OFF
+- Fixed build with static Ogre
+- CMake fixes
+- Removed apple framework logic
+
+## MyGUI v3.4.3
+
+### Core
+- Allow passing lambdas into MyGUI::newDelegate without explicitly wrapping them into std::function
+
+### Widgets
+- Add missing eventClipboardChanged when trying to cut/copy with no text selected
+- Fixed rare crash when changing widget style after it was clicked in the same frame
+- Fixed TabItem left disabled when rapidly switching between tabs
+- Improve performance of the TabControl tabs switching
+- Fixed ignoring "FontHeight" property when "FontName" is also set
+- Move MyGUI::DEFAULT to deprecated, add TabControl::DEFAULT_WIDTH instead
+
+### Platforms
+- Fix build with Ogre 14
+
+### Tools
+- Minor fixes for macOS
+- Use macOS Command key in tools
+
+### Other
+- Switch to C++17
+- Use string_view, unique_ptr and some other stuff
+- Various code improvements, including range base for migration and some other minor stuff
+- Add some missing MYGUI_DONT_USE_OBSOLETE checks for deprecated stuff
+- Remove MYGUI_DEBUG_MODE from headers to avoid issues with mixed debug/release builds
+
+## MyGUI v3.4.2
+### Core
+- Add missing MYGUI_EXPORT for ControllerRepeatClick (was not linking in non-static builds)
+- Use commands for key combinations on EditBox, provide macOS proper bindings
+- Add support for string_view in UString
+
+### Widgets
+- ComboBox and ListBox: make "AddItem" use LanguageManager::replaceTags same way it is done for caption properties
+- EditBox: Allow text input while holding Ctrl (Allow key combinations involving CTRL that produce printable characters)
+
+### Platforms
+- OpenGL: Fix build with libX11-free wayland setup
+- Ogre: Correct vertex color order for ogre 13
+
+### Demos and Tools
+- Use SDL_WINDOWEVENT_FOCUS_GAINED/SDL_WINDOWEVENT_FOCUS_LOST events for better detection when window should have low FPS
+- Fix macOS resources paths, do not use MACOSX_BUNDLE
+- Fix various deprecated or incorrect resources usage
+
+### Other
+- Add missing MYGUI_EXPORT to fix C4275 warnings
+- Various minor build fixes and improvements
+- Enable more warnings in MYGUI_HIGH_LEVEL_WARNINGS mode
+- Use GNUInstallDirs to install includes
+
+## MyGUI v3.4.1
+### Core
+- Implement new MSDF font, that lets use render huge fonts without having big textures, also allows using only one texture for all sizes (see Demo_MsdfFont)
+- Add new eventWidgetDestroyed
+- Add support for custom shaders for each render item, used for subskin (so far used only for MSDF fonts)
+- Add support for Unicode code points outside of the Basic Multilingual Plane (code points above 2^16, represented by two UTF-16 code units)
+- Allow std::function in the MyGUI::newDelegate
+- Allow const functions and const classes in the MyGUI::newDelegate
+- Make most getters const
+- Fix UB in RotatingSkin::_rebuildGeometry when all vertices are cropped
+- Fix eventMouseButtonClick being triggered even when mouse is pressed not over widget
+- Fix InputManager::injectMouseMove returning true when mouse is pressed, but there is no focused widget
+- Fix bug with Popup widget being picked by mouse, when it is invisible because of invisible parent
+- Fix Widget::setDepth call making Overlapped child widgets not visible
+
+### Widgets
+- ListBox: fix getWidgetByIndex when not all widgets are visible
+- EditBox: fix getFontHeight always returning 0
+- EditBox: fix rare bug with text selection when holding mouse and changing text
+- EditBox: fix scroll position when selecting text below
+- Button: make Button without "normal_checked" skin display "pushed" skin (fixes button visual state when setStateSelected(true) is called)
+- Window: add borders snapping, when resizing it (previously only move was snapping borders)
+
+### Platforms
+- Ogre:
+  * make it possible to use OGRE_RESOURCEMANAGER_STRICT=1 mode (always specify resource group)
+  * other minor performance improvements
+  * use Ogre::Renderable to render Gui, this fixes several issues with recent Ogre version
+  * fix RTT render with RenderSystem_DirectX11
+- All: make all interfaces const-correct. Warning: custom render platforms outside of MyGUI repo must be updated to match new virtual functions API
+
+### Demos and Tools
+- Add new SdlBaseManager, that is used for all platforms base code instead of multiple BaseManager-s with duplicate code
+- Remove no longer needed and no longer used OIS, Win32 and Win32+OIS input systems only SDL2 can is used in demos now
+
+### Tools
+- LayoutEditor: fix multi language support
+
+### Demos
+- New Demo_MsdfFont
+- Make all demos with 3d render work with the latest Ogre
+
+### Other
+- Use GNUInstallDirs to determine where libraries should be installed
+- Use precompiled headers from CMake 3.16, enable precompiled headers on all target platforms
+- Remove many outdated or not used CMake options and scripts
+
+## MyGUI v3.4.0
+### Core
+- Added LanguageManager::getLanguages
+- Fix lost key focus event not being triggered sometimes
+- Fix inconsistency: _riseMouseButtonMove was using Layer coordinates (most of the time). _riseMouseButtonReleased/Pressed were using absolute coordinates.
+- Other InputManager events fixes.
+- Minor MacOS build fixes.
+- Cleaner and much faster logic for adding and removing render items (it was the performance bottleneck when working with many items on screen).
+
+### Widgets
+- ScrollBar: Fixed wrong tracking area bug.
+- Button: make Button with key focus (can be set only manually through code) have highlighted state.
+- ItemBox: add possibility to not update ItemBox content when working with items (huge speed boost, when adding/removing many in single frame)
+- EditText: add support for alpha in text and text shadow colours (multiplied with widget's alpha).
+- ItemBox: add options to hide ItemBox scroll bars (same as for ScrollView and EditBox).
+- MultiListBox: slightly advanced and more flexible custom compare function.
+- EditBox: add Ctrl+Left/Right hotkey support (moves cursor to next word).
+- MultiListBox: add eventNotifyItem.
+
+### Platforms
+- OpenGL3Platform: Added new rendering platform.
+- OpenGLESPlatform: Added new rendering platform.
+- Emscripten support (works for Ogre and all OpenGL platforms).
+- OgrePlatform: Many minor build-related fixes and imrovements, including newer Ogre support and better CMake scripts.
+- DirectX 11 and OpenGL3: Fixed application window resizing in editors and demos.
+- All platforms: Fix possible stack overflow in ***DataManager::getDataPath.
+- All platforms: better VertexBuffer reallocation strategy for all platforms (in ::lock call, not in ::setVertexCount).
+- All platforms: Various minor fixes and code cleanup.
+
+### Resources
+- ResourceManualFont: Added setTexture.
+- ResourceTrueTypeFont: Optimize TrueTupeFont render speed (half getGlyphInfo search time).
+- ResourceTrueTypeFont: Remove no longer needed freetype bytecode bug fix.
+
+### Tools
+- LayoutEditor: Fixed "[DEFAULT]" value not being handles properly (was colored white in ComboBox, was saved in layout).
+- LayoutEditor: Other minor fixes and improvements.
+
+### Demos
+- Added SDL2 support.
+
+### Other
+- Switched to C++11: various related code improvements and cleanups.
+
+## MyGUI v3.2.2
+### Core
+- Fixed eventChangeMouseFocus and eventChangeKeyFocus not being triggered in certain cases.
+
+### Widgets
+- ComboBox: Fixed mouse events incorrectly going to the widget below the ComboBox when clicking on an item.
+- ScrollBar: Added button repeat support, ScrollBar buttons will trigger repeatedly so long as the mouse is held down.
+
+### Platforms
+- OpenGLPlatform: Added option to use system GLEW library.
+- OgrePlatform: Improved performance of OgreDataManager::isDataExist.
+- OgrePlatform: Fixed build failure regarding boost libraries used by Ogre not being found.
+
+### Resources
+- ResourceManualFont: Added API to create a ResourceManualFont in code rather than from XML.
+
+### Tools
+- Fixed broken file dialog directory listing on Linux and make sure files are sorted.
+
+## MyGUI v3.2.1
+### Core
+- Added events to clipboard manager: eventClipboardRequested, eventClipboardChanged.
+- Added API access to child LayerNodes.
+- Added pointer to ControllerItem in all controller events.
+- Key focus will be reset when the key focus widget is hidden.
+- Fixed incorrectly detecting double click when clicking on different widgets.
+- Fixed a memory leak when creating or changing widgets in several cases.
+- Fixed a lot of warnings from cppcheck.
+- Other minor fixes.
+- Remove possibility to compile without std::typeinfo (no longer needed for android, MYGUI_RTTI_DISABLE_TYPE_INFO option removed).
+- Remove -msse from compiler flags.
+
+### Widgets
+- Added Depth property for child widgets, that can be used for rendering order.
+- Added eventChangeCoord event.
+- Fixed Enabled property not being inherited from parent widgets.
+- ListBox: Added eventNotifyItem for key or mouse press on item widgets.
+- ListBox: Added getWidgetByIndex public API to allow item widget access from outside.
+- EditBox: Fixed several keyboard shortcuts (such as copy & paste) not working when key and text events are injected separately by the user.
+- ImageBox: Added getImageSize method.
+- ScrollBar: Added WheelPage property for mouse wheel scroll step.
+
+### SubWidgets
+- PolygonalSkin: Added stroke support for drawing dashed lines (can be seen in UnitTest_Spline).
+- RotatingSkin: Added properties to skin XML.
+
+### Resources
+- ResourceTrueTypeFont: Added Distance parameter for margin between glyphs in generated font texture.
+- ResourceImageSet, ResourceTrueTypeFont: Added public API to allow creating in code rather than from XML.
+- ResourceManualFont: Added support to set glyph size separately rather than deriving it from image coordinates.
+
+### Skins
+- Added Dark skin (used by default in Tools).
+- Added Black skin.
+- Minor updates to other skins.
+
+### Tools
+- Significant improvements to LayoutEditor, FontEditor, ImageEditor and SkinEditor.
+
+### Demos
+- Minor updates to several demos.
+
+### UnitTests
+- Added DataInfoTest.
+
+### Platforms
+- Added Dummy platform.
+- Various fixes for DirectX11 platform.
+- Slightly refactored OpenGL platform.
+- Added DataMemoryStream class.
+
+### Other
+- Updated C# wrapper.
+- Switched from LGPL to MIT license.
+- Documentation improvements.
+
+## MyGUI v3.2.0
+### Core
+- MyGUI can be compiled without std::typeinfo.
+- Fixed an alignment bug on non-screen layers (for example on the RTT layer).
+- Fixed bug with widgets on same layer changing their draw order.
+
+### Widgets
+- DDContainer: Added a resetDrag method that stops a drag operation programmatically.
+- TextBox: Added optional text shadow.
+- EditBox: Fixed incorrect text display when the text area was lower than the font height.
+- EditBox: Reset Redo changes when text was changed.
+- Canvas: Fixed incorrect destruction.
+- ProgressBar: Fixed a problem that caused the progress value to be displayed incorrectly after the widget was resized.
+
+### SubWidgets
+- RotatingSkin: Fixed incorrect display due to swapped UV coordinates.
+
+### Resources
+- ResourceTrueTypeFont:
+   * Decreased texture memory usage (typically by 50% or more).
+   * Improved startup and runtime performance.
+   * Added support for Windows FON/FNT bitmap fonts and for embedded SBIT bitmaps in TrueType fonts.
+   * Added support for enhanced glyph metrics, typographically correct line spacing, and overlapping glyphs; e.g., "fj".
+   * Implemented the ability to specify the code point used as a substitute for missing code points (now defaults to the "Not Defined" glyph instead of "Space").
+   * Implemented subpixel positioning.
+   * Added useful default values for several properties.
+   * Deprecated several properties that are no longer useful.
+   * Fixed problems that made it impossible to use whitespace characters other than "Space" and "Tab".
+   * Fixed several crashes and memory leaks.
+   * Replaced an assertion with a log message when a font cannot be loaded.
+- ResourceManualFont:
+   * Added support for enhanced glyph metrics and overlapping glyphs; e.g., "fj".
+   * Implemented the ability to specify the code point used as a substitute for missing code points.
+
+### Wraps
+- BaseLayout works properly when it's completely empty.
+
+### Plugins
+- Updated the BerkeliumWidget plugin.
+
+### Tools
+- Various fixes in LayoutEditor.
+- FontViewer:
+   * Added support for all of the new features in ResourceTrueTypeFont and ResourceManualFont.
+   * Added support for additional font types: *.ttc, *.otf, *.pfa, *.fon, and *.fnt.
+   * Redesigned the user interface.
+   * Implemented automatic generation of the output filenames when saving.
+   * Fixed several crashes and memory leaks.
+
+### Platforms
+- Keep solid mode when Ogre is in wireframe.
+- Fixed a few bugs in the OpenGL platform (buffers not cleaned up).
+- New DirectX11 platform prototype.
+
+## MyGUI v3.2.0 RC1
+### Core
+- Skin properties were simplified for more convenient creation in the editor.
+- All widgets events is now multidelegates.
+- Support of right mouse button drag.
+- If MyGUI is built from svn revision log file also contain svn revision (in addition to version).
+- Fixed bug with texture creation for fonts.
+- Other minor additions and bug-fixes.
+
+### Managers
+- LanguageManager now replace tags recursively.
+- Fixed bug in LanguageManager when missing language was selected.
+
+### Resources
+- Add Layout resource, layouts loaded and parsed only once at first use.
+- All resource files now have "MyGUI_" prefix to avoid naming conflicts.
+
+### Widgets
+- VScroll and HScroll replaced with single ScrollBar class.
+- Edit renamed into EditBox.
+- List renamed into ListBox.
+- MenuCtrl renamed into MenuControl.
+- MultiList renamed into MultiListBox.
+- Progress renamed into ProgressBar.
+- StaticImage renamed into ImageBox.
+- StaticText renamed into TextBox.
+- Tab renamed into TabControl.
+- New Window property Moveable.
+- Message moved from Core to Common.
+- MultiListBox now support different modes of columns resizing.
+- Button properties StateCheck and ButtonPressed replaced with single property StateSelected.
+- ListBox and ComboBox now support ToolTip.
+- Menu items can be checked now, tick icon appears.
+- Property AlignVert renamed into VerticalAlignment.
+- Hidden widget lose input and focus.
+- Active elements visualisation in list now properly respond to changes in the list.
+- All text related properties was moved from Widget to TextBox.
+
+### SubWidgets
+- All widgets now have Colour property that colours whole widget.
+- RawRect subwidget was removed.
+- Implemented PolygonalSkin sub widget for lines and splines drawing.
+
+### Tools
+- SkinEditor added.
+- All skins created in SkinEditor.
+- LayoutEditor now support projects creation.
+- Possibility to create MultiListBox columns in LayoutEditor.
+- Possibility to create PopupMenu\MenuBar in LayoutEditor.
+- Colour selection window added in LayoutEditor.
+- Show skin preview in LayoutEditor.
+- Scaling support in LayoutEditor.
+- Possibility to change widget's type in LayoutEditor.
+- Possibility to add custom properties in LayoutEditor.
+- Removed check for unique name in LayoutEditor (not required any more).
+- FontViewer now same generated font in two formats: as ttf + xml that use freetype in runtime for texture generation and as manual font (texture and glyphs description)
+
+### Platforms
+- BasisManager for OpenGL and DirectX now properly display Win32 window content without bugs with offset.
+- Fixed memory leak in OpenGL's and DirectX's DataManager.
+- Possibility to save texture in OpenGL.
+- Fix typo in names vertext -> vertex.
+
+### Plugins
+- Awesomium plugin removed (not LGPL anymore).
+
+### UnitTests
+- New UnitTest for PolygonalSkin.
+- New UnitTest for RotatingSkin.
+
+### CMake
+- New MYGUI_CHECK_MEMORY_LEAKS option for memory leaks detection in debug mode (MSVC only).
+- New MYGUI_USE_PROJECT_FOLDERS option for project folders inside generated solution (MSVC only).
+- UnitTest and Demos options were renames.
+- Win32 input used by default in demos/tools under windows instead of OIS (OIS input still used in other platforms).
+
+## MyGUI v3.0.1
+### License
+- in LGPL added exclusion for static linking for possibility to use MyGUI in apps for iPhone
+- all Media except some files created not by MyGUI dev tean is licensed under MIT now
+
+### Core
+- Refactoring to reduce the possbility of bugs (based on info from static analyzers).
+
+### Renders
+- Support of textures created inside Ogre (wrapping of existing texture)
+
+### Widget
+- added getCaptionWidget to Window: retun pointer to Window caption for text control (fonts and it's size)
+- RenderBoxScene fixed
+- fixed bug with Disabled widgets that was rendered as not disabled
+
+### Managers
+- added log message if skin used for widget wasn't found.
+
+### Utility
+- fixed loading on non-existing textures for widgets picking
+
+### Wraps
+- New option to generate wrappers with CMake
+
+### Plugins
+- optional AwesomiumPlugin and HikariPlugin option added to CMake config
+
+### Resources
+- fixed bug with incorrect font rendering on some old videocards : TrueType font now rendered into R8G8B8A8 on videocards that doesn't support L8A8 (OgreRender)
+
+## MyGUI v3.0.0
+### Core
+- rendering separated from core
+
+### Widgets
+- removed widget RenderBox - moved into Common as wrapper
+- new widget ListCtrl - base widget for lists with OwnDraw, horizontal scroll and lines with different height support
+- new widget ListBox - list implementation with horizontal scroll (based on ListCtrl)
+
+### Managers
+- new FactoryManager - manager creates instances of objects that implements IObject (resources, widgets, controllers, etc.)
+- new DataManager - possibility to create your own type or data source
+
+### Controllers
+- controllers support deserialization, possibility to create through XML
+
+### Resources
+- new resource type ImageSetPointer for creating cursors based on ImageSet with animation support
+- new resource type ManualPointer for creating cursors based on texture
+- new resource type TrueTypeFont for creating true type fonts
+- new resource type ManualFont for creating fonts based on texture
+- new resource type Skin for skin description
+
+### SubWidgets
+- new SubWidget RotateSkin with rotating geometry support
+
+### Tools
+- improved LayoutEditor, controllers support
+
+### Demos
+- Demo_Pointers - demonstration of cursor contexts and W32 cursors
+- Demo_RenderBox - demonstration of RenderBox usage (camera view inside widget, model view inside widget)
+
+### Plugins
+- Plugin_AwesomiumWidget - sample plugin implementation for Awesomium (html inside widget)
+- Plugin_HikariWidget - sample plugin implementation for Hikari (Flash inside widget)
+
+### UnitTests
+- UnitTest_Layers - sample of using GUI inside 3D scene
+- UnitTest_RTTLayers - sample of rendering Layer into texture
+- UnitTest_TextureAnimation - sample of RTT node, for caching or for animating whole window
+- UnitTest_TreeControl - sample implementation of tree control (author : Pavel Turin)
+
+## MyGUI v2.2.3
+### SubWidgets
+- subwidget EditText was reimplemented
+   * word wrap support in edit mode
+   * cursor and text selecting with ManualFont
+
+### Widget
+- fixed problem with inherited Disabled and Visible conditions
+
+## MyGUI v2.2.2
+### Core
+- widget hierarchy changed - style added:
+   * Child - child widget, cropped by parent widget borders, no overlapping (used by default for child widgets)
+   * Popup - popup widget, have parent widget, but not cropped on its borders
+   * Overlapped - child widget, cropped by parent widget borders, can overlap (used by default for root widgets)
+- support of detaching and attaching of widgets, possibility to change skin or style in runtime
+- added fast RTTI
+
+### Widgets
+- new widget DDContainer - base class for all widgets that have drag'n'drop
+- new widget MenuCtrl - base class for all menus (such as MenuBar or PopupMenu)
+- new widget MenuBar
+- new widget ScrllView
+- Widgets tool-tip support
+- StaticImage animation support
+
+### Managers
+- new ResourceManager - allows to load user resources (for example ResourceImageSet)
+- new LanguageManager - allows to replace tags in layouts with strings loaded from language files, manual creating and replacing tags
+- PointerManager - support animated pointers
+- FontManager - support of loading custom fonts from texture
+
+### Controllers
+- ControllerPosition improved, Jump move mode added
+
+### Resources
+- new resource type ResourceImageSet - used for group of images, with animation, loads through XML
+
+### SubWidgets
+- new subwidget RawRect for direct access to quad vertices
+- new subwidget TileRect for tiling
+
+### Others
+- all widgets-containers have Any (like boost::any) for storing user info about item (for example ComboBox items, Menu items)
+- configuration files versions in XML
+- two new themes for skin
+
+### Wrappers
+- BaseLayout - base class for layout wrapper
+- BaseItemBox - base class for ItemBox wrapper
+- added PanelView - made using wrappers
+
+
+### Tools
+- LayoutEditor - external resources support, several interface improvements
+- added ImageSetViewer for ResourceImageSet viewing
+
+### Demos
+- Demo_Colour - colour selection control, RawRect subwidget and colouring in text
+- Demo_Console - simple console implementation for changing some widget properties
+- Demo_Controllers - ControllerFadeAlpha and ControllerPosition examples
+- Demo_Font - true-type font generation with possibility to save into MyGUI font configuration file
+- Demo_Gui - demonstration of using different widgets and styles (something like Ogre Demo_Gui)
+- Demo_ItemBox - ItemBox, BaseItemBox wrapper, ToolTip, external user resource loaded through XML
+- Demo_PanelView - PanelView control implementation
+- Demo_Picking - widget with mouse picking creation
+- Demo_PluginStrangeButton - plugin an user widget
+- Demo_ScrollView - ScrollView examples
+- Demo_Themes - new MyGUI themes for skin
+- Demo_StaticImage - simple ImageSet viewer implementation

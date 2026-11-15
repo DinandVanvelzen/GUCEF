@@ -1,40 +1,18 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		01/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_TabItem.h"
 
 namespace MyGUI
 {
 
-	TabItem::TabItem()
-	{
-	}
-
 	void TabItem::initialiseOverride()
 	{
 		Base::initialiseOverride();
-
-		// FIXME проверить смену скина ибо должно один раз вызываться
-		//mOwner = getParent()->castType<TabControl>();
 	}
 
 	void TabItem::shutdownOverride()
@@ -55,7 +33,7 @@ namespace MyGUI
 			Base::setCaption(_value);
 	}
 
-	const UString& TabItem::getCaption()
+	const UString& TabItem::getCaption() const
 	{
 		TabControl* owner = getParent() != nullptr ? getParent()->castType<TabControl>(false) : nullptr;
 		if (owner != nullptr)
@@ -70,15 +48,18 @@ namespace MyGUI
 			owner->setButtonWidth(this, _width);
 	}
 
-	void TabItem::setPropertyOverride(const std::string& _key, const std::string& _value)
+	void TabItem::setPropertyOverride(std::string_view _key, std::string_view _value)
 	{
+		/// @wproperty{TabItem, ButtonWidth, int} Button width.
 		if (_key == "ButtonWidth")
 			setButtonWidth(utility::parseValue<int>(_value));
+
 		else
 		{
 			Base::setPropertyOverride(_key, _value);
 			return;
 		}
+
 		eventChangeProperty(this, _key, _value);
 	}
 

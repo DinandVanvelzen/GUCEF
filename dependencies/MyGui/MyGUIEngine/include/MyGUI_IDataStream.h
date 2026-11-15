@@ -1,29 +1,15 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		08/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_DATA_STREAM_H__
-#define __MYGUI_I_DATA_STREAM_H__
+#ifndef MYGUI_I_DATA_STREAM_H_
+#define MYGUI_I_DATA_STREAM_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
+#include <cstddef>
 
 namespace MyGUI
 {
@@ -31,36 +17,24 @@ namespace MyGUI
 	class MYGUI_EXPORT IDataStream
 	{
 	public:
-		virtual ~IDataStream() { }
+		virtual ~IDataStream() = default;
 
 		virtual bool eof() = 0;
+		/** Total byte size, or zero if unavailable. Preserves the read position and stream state. */
 		virtual size_t size() = 0;
 		virtual void readline(std::string& _source, Char _delim = '\n') = 0;
+		/** Read up to _count bytes from the current position and return the actual number read. */
 		virtual size_t read(void* _buf, size_t _count) = 0;
-	};
 
-	class DataStreamHolder
-	{
-	public:
-		DataStreamHolder(IDataStream* _data) :
-			mData(_data)
-		{
-		}
+		/** Read all remaining bytes, including embedded NULs, until read() returns zero.
+			Read exceptions propagate to the caller.
+		*/
+		std::vector<std::byte> readAll();
 
-		~DataStreamHolder()
-		{
-			delete mData;
-		}
-
-		IDataStream* getData()
-		{
-			return mData;
-		}
-
-	private:
-		IDataStream* mData;
+		/** Same as readAll, but use std::string as container */
+		std::string readAllText();
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_DATA_STREAM_H__
+#endif // MYGUI_I_DATA_STREAM_H_

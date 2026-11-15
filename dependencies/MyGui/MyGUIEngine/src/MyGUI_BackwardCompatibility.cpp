@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		08/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_BackwardCompatibility.h"
 #include "MyGUI_Button.h"
@@ -39,59 +24,73 @@
 #include "MyGUI_LayoutManager.h"
 #include "MyGUI_FontManager.h"
 #include "MyGUI_ResourceManager.h"
+#include "MyGUI_ResourceImageSet.h"
 #include "MyGUI_Gui.h"
+#include "MyGUI_ILayer.h"
 #include "MyGUI_PointerManager.h"
 #include "MyGUI_InputManager.h"
 #include "MyGUI_RenderManager.h"
 #include "MyGUI_LanguageManager.h"
-#include "MyGUI_LayoutManager.h"
-#include "MyGUI_PluginManager.h"
 #include "MyGUI_SkinManager.h"
 #include "MyGUI_WidgetManager.h"
 #include "MyGUI_FactoryManager.h"
 #include "MyGUI_DeprecatedWidgets.h"
+
+#include <pugixml.hpp>
 
 namespace MyGUI
 {
 
 #ifndef MYGUI_DONT_USE_OBSOLETE
 
+	MYGUI_SUPPRESS_MSVC(4996)
+	MYGUI_SUPPRESS_GCC("-Wdeprecated-declarations")
+
 	void MemberObsolete<Button>::setButtonPressed(bool _value)
 	{
 		static_cast<Button*>(this)->setStateSelected(_value);
 	}
-	bool MemberObsolete<Button>::getButtonPressed()
+	bool MemberObsolete<Button>::getButtonPressed() const
 	{
-		return static_cast<Button*>(this)->getStateSelected();
+		return static_cast<const Button*>(this)->getStateSelected();
 	}
 	void MemberObsolete<Button>::setStateCheck(bool _value)
 	{
 		static_cast<Button*>(this)->setStateSelected(_value);
 	}
-	bool MemberObsolete<Button>::getStateCheck()
+	bool MemberObsolete<Button>::getStateCheck() const
 	{
-		return static_cast<Button*>(this)->getStateSelected();
+		return static_cast<const Button*>(this)->getStateSelected();
 	}
-	ImageBox* MemberObsolete<Button>::getStaticImage()
+	ImageBox* MemberObsolete<Button>::getStaticImage() const
 	{
-		return static_cast<Button*>(this)->_getImageBox();
+		return static_cast<const Button*>(this)->_getImageBox();
 	}
 	void MemberObsolete<Button>::setImageIndex(size_t _index)
 	{
 		if (static_cast<Button*>(this)->_getImageBox())
 			static_cast<Button*>(this)->_getImageBox()->setImageIndex(_index);
 	}
-	size_t MemberObsolete<Button>::getImageIndex()
+	size_t MemberObsolete<Button>::getImageIndex() const
 	{
-		if (static_cast<Button*>(this)->_getImageBox())
-			return static_cast<Button*>(this)->_getImageBox()->getImageIndex();
+		if (static_cast<const Button*>(this)->_getImageBox())
+			return static_cast<const Button*>(this)->_getImageBox()->getImageIndex();
 		return ITEM_NONE;
 	}
 
-
-	size_t MemberObsolete<ComboBox>::getItemIndexSelected()
+	void MemberObsolete<ImageBox>::addItemFrameDublicate(size_t _index, size_t _indexSourceFrame)
 	{
-		return static_cast<ComboBox*>(this)->getIndexSelected();
+		static_cast<ImageBox*>(this)->addItemFrameDuplicate(_index, _indexSourceFrame);
+	}
+	void MemberObsolete<ImageBox>::insertItemFrameDublicate(size_t _index, size_t _indexFrame, size_t _indexSourceFrame)
+	{
+		static_cast<ImageBox*>(this)->insertItemFrameDuplicate(_index, _indexFrame, _indexSourceFrame);
+	}
+
+
+	size_t MemberObsolete<ComboBox>::getItemIndexSelected() const
+	{
+		return static_cast<const ComboBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<ComboBox>::setItemSelectedAt(size_t _index)
 	{
@@ -110,9 +109,9 @@ namespace MyGUI
 	{
 		static_cast<ComboBox*>(this)->setItemNameAt(_index, _item);
 	}
-	const UString& MemberObsolete<ComboBox>::getItem(size_t _index)
+	const UString& MemberObsolete<ComboBox>::getItem(size_t _index) const
 	{
-		return static_cast<ComboBox*>(this)->getItemNameAt(_index);
+		return static_cast<const ComboBox*>(this)->getItemNameAt(_index);
 	}
 	void MemberObsolete<ComboBox>::deleteItem(size_t _index)
 	{
@@ -122,9 +121,9 @@ namespace MyGUI
 	{
 		static_cast<ComboBox*>(this)->removeAllItems();
 	}
-	size_t MemberObsolete<ComboBox>::getItemSelect()
+	size_t MemberObsolete<ComboBox>::getItemSelect() const
 	{
-		return static_cast<ComboBox*>(this)->getIndexSelected();
+		return static_cast<const ComboBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<ComboBox>::resetItemSelect()
 	{
@@ -139,9 +138,9 @@ namespace MyGUI
 	{
 		static_cast<ComboBox*>(this)->setMaxListLength(_value);
 	}
-	int MemberObsolete<ComboBox>::getMaxListHeight()
+	int MemberObsolete<ComboBox>::getMaxListHeight() const
 	{
-		return static_cast<ComboBox*>(this)->getMaxListLength();
+		return static_cast<const ComboBox*>(this)->getMaxListLength();
 	}
 
 
@@ -166,14 +165,14 @@ namespace MyGUI
 	{
 		static_cast<EditBox*>(this)->setTextIntervalColour(_start, _count, _colour);
 	}
-	void MemberObsolete<EditBox>::getTextSelect(size_t& _start, size_t& _end)
+	void MemberObsolete<EditBox>::getTextSelect(size_t& _start, size_t& _end) const
 	{
-		_start = static_cast<EditBox*>(this)->getTextSelectionStart();
-		_end = static_cast<EditBox*>(this)->getTextSelectionEnd();
+		_start = static_cast<const EditBox*>(this)->getTextSelectionStart();
+		_end = static_cast<const EditBox*>(this)->getTextSelectionEnd();
 	}
-	UString MemberObsolete<EditBox>::getText(size_t _start, size_t _count)
+	UString MemberObsolete<EditBox>::getText(size_t _start, size_t _count) const
 	{
-		return static_cast<EditBox*>(this)->getTextInterval(_start, _count);
+		return static_cast<const EditBox*>(this)->getTextInterval(_start, _count);
 	}
 	void MemberObsolete<EditBox>::setTextSelect(size_t _start, size_t _end)
 	{
@@ -183,9 +182,9 @@ namespace MyGUI
 	{
 		static_cast<EditBox*>(this)->deleteTextSelection();
 	}
-	UString MemberObsolete<EditBox>::getSelectedText()
+	UString MemberObsolete<EditBox>::getSelectedText() const
 	{
-		return static_cast<EditBox*>(this)->getTextSelection();
+		return static_cast<const EditBox*>(this)->getTextSelection();
 	}
 	bool MemberObsolete<EditBox>::isTextSelect()
 	{
@@ -197,9 +196,9 @@ namespace MyGUI
 	}
 
 
-	size_t MemberObsolete<ItemBox>::getItemIndexSelected()
+	size_t MemberObsolete<ItemBox>::getItemIndexSelected() const
 	{
-		return static_cast<ItemBox*>(this)->getIndexSelected();
+		return static_cast<const ItemBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<ItemBox>::setItemSelectedAt(size_t _index)
 	{
@@ -226,9 +225,9 @@ namespace MyGUI
 	{
 		static_cast<ItemBox*>(this)->removeAllItems();
 	}
-	size_t MemberObsolete<ItemBox>::getItemSelect()
+	size_t MemberObsolete<ItemBox>::getItemSelect() const
 	{
-		return static_cast<ItemBox*>(this)->getIndexSelected();
+		return static_cast<const ItemBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<ItemBox>::resetItemSelect()
 	{
@@ -239,9 +238,9 @@ namespace MyGUI
 		static_cast<ItemBox*>(this)->setIndexSelected(_index);
 	}
 
-	Widget* MemberObsolete<ItemBox>::getWidgetDrop()
+	Widget* MemberObsolete<ItemBox>::getWidgetDrop() const
 	{
-		return static_cast<ItemBox*>(this)->getWidgetDrag();
+		return static_cast<const ItemBox*>(this)->getWidgetDrag();
 	}
 	void MemberObsolete<ItemBox>::resetDrop()
 	{
@@ -252,15 +251,15 @@ namespace MyGUI
 	{
 		static_cast<ItemBox*>(this)->setVerticalAlignment(_value);
 	}
-	bool MemberObsolete<ItemBox>::getItemBoxAlignVert()
+	bool MemberObsolete<ItemBox>::getItemBoxAlignVert() const
 	{
-		return static_cast<ItemBox*>(this)->getVerticalAlignment();
+		return static_cast<const ItemBox*>(this)->getVerticalAlignment();
 	}
 
 
-	size_t MemberObsolete<ListBox>::getItemIndexSelected()
+	size_t MemberObsolete<ListBox>::getItemIndexSelected() const
 	{
-		return static_cast<ListBox*>(this)->getIndexSelected();
+		return static_cast<const ListBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<ListBox>::setItemSelectedAt(size_t _index)
 	{
@@ -279,9 +278,9 @@ namespace MyGUI
 	{
 		static_cast<ListBox*>(this)->setItemNameAt(_index, _item);
 	}
-	const UString& MemberObsolete<ListBox>::getItem(size_t _index)
+	const UString& MemberObsolete<ListBox>::getItem(size_t _index) const
 	{
-		return static_cast<ListBox*>(this)->getItemNameAt(_index);
+		return static_cast<const ListBox*>(this)->getItemNameAt(_index);
 	}
 	void MemberObsolete<ListBox>::deleteItem(size_t _index)
 	{
@@ -295,9 +294,9 @@ namespace MyGUI
 	{
 		return static_cast<ListBox*>(this)->findItemIndexWith(_item);
 	}
-	size_t MemberObsolete<ListBox>::getItemSelect()
+	size_t MemberObsolete<ListBox>::getItemSelect() const
 	{
-		return static_cast<ListBox*>(this)->getIndexSelected();
+		return static_cast<const ListBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<ListBox>::resetItemSelect()
 	{
@@ -367,9 +366,9 @@ namespace MyGUI
 	{
 		static_cast<MenuControl*>(this)->setVerticalAlignment(_value);
 	}
-	bool MemberObsolete<MenuControl>::getAlignVert()
+	bool MemberObsolete<MenuControl>::getAlignVert() const
 	{
-		return static_cast<MenuControl*>(this)->getVerticalAlignment();
+		return static_cast<const MenuControl*>(this)->getVerticalAlignment();
 	}
 
 	void MemberObsolete<MenuItem>::showItemChild()
@@ -382,9 +381,9 @@ namespace MyGUI
 	}
 
 
-	size_t MemberObsolete<MultiListBox>::getItemIndexSelected()
+	size_t MemberObsolete<MultiListBox>::getItemIndexSelected() const
 	{
-		return static_cast<MultiListBox*>(this)->getIndexSelected();
+		return static_cast<const MultiListBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<MultiListBox>::setItemSelectedAt(size_t _index)
 	{
@@ -399,9 +398,9 @@ namespace MyGUI
 	{
 		return static_cast<MultiListBox*>(this)->findSubItemWith(_column, _name);
 	}
-	const UString& MemberObsolete<MultiListBox>::getSubItem(size_t _column, size_t _index)
+	const UString& MemberObsolete<MultiListBox>::getSubItem(size_t _column, size_t _index) const
 	{
-		return static_cast<MultiListBox*>(this)->getSubItemNameAt(_column, _index);
+		return static_cast<const MultiListBox*>(this)->getSubItemNameAt(_column, _index);
 	}
 	void MemberObsolete<MultiListBox>::setSubItem(size_t _column, size_t _index, const UString& _name)
 	{
@@ -415,13 +414,13 @@ namespace MyGUI
 	{
 		static_cast<MultiListBox*>(this)->removeAllColumns();
 	}
-	int MemberObsolete<MultiListBox>::getColumnWidth(size_t _column)
+	int MemberObsolete<MultiListBox>::getColumnWidth(size_t _column) const
 	{
-		return static_cast<MultiListBox*>(this)->getColumnWidthAt(_column);
+		return static_cast<const MultiListBox*>(this)->getColumnWidthAt(_column);
 	}
-	const UString& MemberObsolete<MultiListBox>::getColumnName(size_t _column)
+	const UString& MemberObsolete<MultiListBox>::getColumnName(size_t _column) const
 	{
-		return static_cast<MultiListBox*>(this)->getColumnNameAt(_column);
+		return static_cast<const MultiListBox*>(this)->getColumnNameAt(_column);
 	}
 	void MemberObsolete<MultiListBox>::setColumnWidth(size_t _column, int _width)
 	{
@@ -439,9 +438,9 @@ namespace MyGUI
 	{
 		static_cast<MultiListBox*>(this)->insertColumnAt(_column, _name, _width);
 	}
-	size_t MemberObsolete<MultiListBox>::getItemSelect()
+	size_t MemberObsolete<MultiListBox>::getItemSelect() const
 	{
-		return static_cast<MultiListBox*>(this)->getIndexSelected();
+		return static_cast<const MultiListBox*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<MultiListBox>::resetItemSelect()
 	{
@@ -459,9 +458,9 @@ namespace MyGUI
 	{
 		static_cast<MultiListBox*>(this)->setItemNameAt(_index, _name);
 	}
-	const UString& MemberObsolete<MultiListBox>::getItem(size_t _index)
+	const UString& MemberObsolete<MultiListBox>::getItem(size_t _index) const
 	{
-		return static_cast<MultiListBox*>(this)->getItemNameAt(_index);
+		return static_cast<const MultiListBox*>(this)->getItemNameAt(_index);
 	}
 	void MemberObsolete<MultiListBox>::deleteItem(size_t _index)
 	{
@@ -485,13 +484,13 @@ namespace MyGUI
 			static_cast<ProgressBar*>(this)->setFlowDirection(FlowDirection::LeftToRight);
 	}
 
-	Align MemberObsolete<ProgressBar>::getProgressStartPoint()
+	Align MemberObsolete<ProgressBar>::getProgressStartPoint() const
 	{
-		if (static_cast<ProgressBar*>(this)->getFlowDirection() == FlowDirection::RightToLeft)
+		if (static_cast<const ProgressBar*>(this)->getFlowDirection() == FlowDirection::RightToLeft)
 			return Align::Right;
-		else if (static_cast<ProgressBar*>(this)->getFlowDirection() == FlowDirection::TopToBottom)
+		if (static_cast<const ProgressBar*>(this)->getFlowDirection() == FlowDirection::TopToBottom)
 			return Align::Top;
-		else if (static_cast<ProgressBar*>(this)->getFlowDirection() == FlowDirection::BottomToTop)
+		if (static_cast<const ProgressBar*>(this)->getFlowDirection() == FlowDirection::BottomToTop)
 			return Align::Bottom;
 
 		return Align::Left;
@@ -516,13 +515,13 @@ namespace MyGUI
 	}
 
 
-	int MemberObsolete<TabControl>::getSheetButtonWidthIndex(size_t _index)
+	int MemberObsolete<TabControl>::getSheetButtonWidthIndex(size_t _index) const
 	{
-		return static_cast<TabControl*>(this)->getButtonWidthAt(_index);
+		return static_cast<const TabControl*>(this)->getButtonWidthAt(_index);
 	}
-	int MemberObsolete<TabControl>::getSheetButtonWidth(TabItem* _sheet)
+	int MemberObsolete<TabControl>::getSheetButtonWidth(TabItem* _sheet) const
 	{
-		return static_cast<TabControl*>(this)->getButtonWidth(_sheet);
+		return static_cast<const TabControl*>(this)->getButtonWidth(_sheet);
 	}
 	void MemberObsolete<TabControl>::setSheetButtonWidthIndex(size_t _index, int _width)
 	{
@@ -540,21 +539,21 @@ namespace MyGUI
 	{
 		static_cast<TabControl*>(this)->beginToItemSelected();
 	}
-	size_t MemberObsolete<TabControl>::getSheetCount()
+	size_t MemberObsolete<TabControl>::getSheetCount() const
 	{
-		return static_cast<TabControl*>(this)->getItemCount();
+		return static_cast<const TabControl*>(this)->getItemCount();
 	}
-	const UString& MemberObsolete<TabControl>::getSheetName(TabItem* _sheet)
+	const UString& MemberObsolete<TabControl>::getSheetName(TabItem* _sheet) const
 	{
-		return static_cast<TabControl*>(this)->getItemName(_sheet);
+		return static_cast<const TabControl*>(this)->getItemName(_sheet);
 	}
-	const UString& MemberObsolete<TabControl>::getSheetNameIndex(size_t _index)
+	const UString& MemberObsolete<TabControl>::getSheetNameIndex(size_t _index) const
 	{
-		return static_cast<TabControl*>(this)->getItemNameAt(_index);
+		return static_cast<const TabControl*>(this)->getItemNameAt(_index);
 	}
-	TabItem* MemberObsolete<TabControl>::getSheet(size_t _index)
+	TabItem* MemberObsolete<TabControl>::getSheet(size_t _index) const
 	{
-		return static_cast<TabControl*>(this)->getItemAt(_index);
+		return static_cast<const TabControl*>(this)->getItemAt(_index);
 	}
 	void MemberObsolete<TabControl>::setSheetNameIndex(size_t _index, const UString& _name, int _width)
 	{
@@ -588,14 +587,14 @@ namespace MyGUI
 	{
 		static_cast<TabControl*>(this)->setItemSelected(_sheet);
 	}
-	size_t MemberObsolete<TabControl>::getSelectSheetIndex()
+	size_t MemberObsolete<TabControl>::getSelectSheetIndex() const
 	{
-		return static_cast<TabControl*>(this)->getIndexSelected();
+		return static_cast<const TabControl*>(this)->getIndexSelected();
 	}
 
-	size_t MemberObsolete<TabControl>::getItemIndexSelected()
+	size_t MemberObsolete<TabControl>::getItemIndexSelected() const
 	{
-		return static_cast<TabControl*>(this)->getIndexSelected();
+		return static_cast<const TabControl*>(this)->getIndexSelected();
 	}
 	void MemberObsolete<TabControl>::setItemSelectedAt(size_t _index)
 	{
@@ -628,6 +627,11 @@ namespace MyGUI
 		return static_cast<Widget*>(this)->getVisible();
 	}
 
+	EnumeratorWidgetPtr MemberObsolete<Widget>::getEnumerator() const
+	{
+		return EnumeratorWidgetPtr(static_cast<const Widget*>(this)->getChildWidgets());
+	}
+
 
 	void MemberObsolete<Window>::showSmooth(bool _reset)
 	{
@@ -647,9 +651,13 @@ namespace MyGUI
 		static_cast<Window*>(this)->setMinSize(_min_w, _min_h);
 		static_cast<Window*>(this)->setMaxSize(_max_w, _max_h);
 	}
-	IntRect MemberObsolete<Window>::getMinMax()
+	IntRect MemberObsolete<Window>::getMinMax() const
 	{
-		return IntRect(static_cast<Window*>(this)->getMinSize().width, static_cast<Window*>(this)->getMinSize().height, static_cast<Window*>(this)->getMaxSize().width, static_cast<Window*>(this)->getMaxSize().height);
+		return {
+			static_cast<const Window*>(this)->getMinSize().width,
+			static_cast<const Window*>(this)->getMinSize().height,
+			static_cast<const Window*>(this)->getMaxSize().width,
+			static_cast<const Window*>(this)->getMaxSize().height};
 	}
 
 	bool MemberObsolete<FontManager>::load(const std::string& _file)
@@ -657,20 +665,179 @@ namespace MyGUI
 		return ResourceManager::getInstance().load(_file);
 	}
 
+	void MemberObsolete<FontManager>::loadOldFontFormat(
+		xml::ElementPtr _node2,
+		std::string_view _file,
+		Version _version,
+		std::string_view _tag)
+	{
+		for (auto _node : _node2.node())
+		{
+			if (_node.name() != _tag)
+				continue;
+
+			std::string_view name{_node.attribute("name").value()};
+			if (name.empty())
+				return;
+
+			std::string_view type;
+			if (_node.attribute("resolution").empty())
+				type = "ResourceManualFont";
+			else
+				type = "ResourceTrueTypeFont";
+
+			xml::Document doc;
+			pugi::xml_node root = doc.createRoot("MyGUI");
+			pugi::xml_node node = root.append_child("Resource");
+			node.append_attribute("type") = type.data();
+			node.append_attribute("name") = name.data();
+
+			auto attr = _node.attribute("source");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "Source";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("size");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "Size";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("resolution");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "Resolution";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("antialias_colour");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "Antialias";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("space_width");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "SpaceWidth";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("tab_width");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "TabWidth";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("cursor_width");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "CursorWidth";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("distance");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "Distance";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("offset_height");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "OffsetHeight";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			attr = _node.attribute("default_height");
+			if (attr)
+			{
+				pugi::xml_node prop = node.append_child("Property");
+				prop.append_attribute("key") = "DefaultHeight";
+				prop.append_attribute("value") = attr.value();
+			}
+
+			pugi::xml_node codes = node.append_child("Codes");
+
+			for (auto codeold : _node.children("Code"))
+			{
+				pugi::xml_node codenew = codes.append_child("Code");
+
+				attr = codeold.attribute("range");
+				if (attr)
+					codenew.append_attribute("range") = attr.value();
+
+				attr = codeold.attribute("hide");
+				if (attr)
+					codenew.append_attribute("hide") = attr.value();
+
+				attr = codeold.attribute("index");
+				if (attr)
+					codenew.append_attribute("index") = attr.value();
+
+				attr = codeold.attribute("coord");
+				if (attr)
+					codenew.append_attribute("coord") = attr.value();
+			}
+
+			ResourceManager::getInstance().loadFromXmlNode(root, _file, _version);
+		}
+	}
+
+	void MemberObsolete<Gui>::initialise(const std::string& _core, std::string_view _logFileName)
+	{
+		static_cast<Gui*>(this)->initialise(_core);
+	}
+
+	void MemberObsolete<Gui>::destroyWidgets(EnumeratorWidgetPtr& _widgets)
+	{
+		VectorWidgetPtr widgets;
+		while (_widgets.next())
+			widgets.push_back(_widgets.current());
+		static_cast<Gui*>(this)->destroyWidgets(widgets);
+	}
+
+	Widget* MemberObsolete<Gui>::findWidgetT(std::string_view _name, std::string_view _prefix, bool _throw) const
+	{
+		std::string name{_prefix};
+		name += _name;
+		return static_cast<const Gui*>(this)->findWidgetT(name, _throw);
+	}
+
+	Widget* MemberObsolete<Gui>::findWidgetHelper(std::string_view _name, bool _throw) const
+	{
+		return static_cast<const Gui*>(this)->findWidgetT(_name, _throw);
+	}
+
 	void MemberObsolete<Gui>::destroyWidgetsVector(VectorWidgetPtr& _widgets)
 	{
 		static_cast<Gui*>(this)->destroyWidgets(_widgets);
 	}
 
-	bool MemberObsolete<Gui>::injectMouseMove( int _absx, int _absy, int _absz)
+	bool MemberObsolete<Gui>::injectMouseMove(int _absx, int _absy, int _absz)
 	{
 		return InputManager::getInstance().injectMouseMove(_absx, _absy, _absz);
 	}
-	bool MemberObsolete<Gui>::injectMousePress( int _absx, int _absy, MouseButton _id )
+	bool MemberObsolete<Gui>::injectMousePress(int _absx, int _absy, MouseButton _id)
 	{
 		return InputManager::getInstance().injectMousePress(_absx, _absy, _id);
 	}
-	bool MemberObsolete<Gui>::injectMouseRelease( int _absx, int _absy, MouseButton _id )
+	bool MemberObsolete<Gui>::injectMouseRelease(int _absx, int _absy, MouseButton _id)
 	{
 		return InputManager::getInstance().injectMouseRelease(_absx, _absy, _id);
 	}
@@ -701,15 +868,15 @@ namespace MyGUI
 		return ResourceManager::getInstance().load(_file);
 	}
 
-	const IntSize& MemberObsolete<Gui>::getViewSize()
+	const IntSize& MemberObsolete<Gui>::getViewSize() const
 	{
 		return RenderManager::getInstance().getViewSize();
 	}
-	int MemberObsolete<Gui>::getViewWidth()
+	int MemberObsolete<Gui>::getViewWidth() const
 	{
 		return RenderManager::getInstance().getViewSize().width;
 	}
-	int MemberObsolete<Gui>::getViewHeight()
+	int MemberObsolete<Gui>::getViewHeight() const
 	{
 		return RenderManager::getInstance().getViewSize().height;
 	}
@@ -723,6 +890,26 @@ namespace MyGUI
 		return PointerManager::getInstance().isVisible();
 	}
 
+	void MemberObsolete<Gui>::_injectFrameEntered(float _time)
+	{
+		Gui::getInstance().frameEvent(_time);
+	}
+
+	void MemberObsolete<Gui>::_resizeWindow(const IntSize& _size)
+	{
+		LayerManager::getInstance().resizeView(_size);
+	}
+
+	const IntPoint& MemberObsolete<InputManager>::getLastLeftPressed() const
+	{
+		return InputManager::getInstance().getLastPressedPosition(MouseButton::Left);
+	}
+
+	const IntPoint& MemberObsolete<InputManager>::getLastRightPressed() const
+	{
+		return InputManager::getInstance().getLastPressedPosition(MouseButton::Right);
+	}
+
 	bool MemberObsolete<LanguageManager>::load(const std::string& _file)
 	{
 		return ResourceManager::getInstance().load(_file);
@@ -733,17 +920,17 @@ namespace MyGUI
 		return ResourceManager::getInstance().load(_file);
 	}
 
-	VectorWidgetPtr MemberObsolete<LayoutManager>::load(const std::string& _file)
+	MemberObsolete<LayerManager>::EnumeratorLayer MemberObsolete<LayerManager>::getEnumerator() const
+	{
+		return EnumeratorLayer(static_cast<const LayerManager*>(this)->getLayers());
+	}
+
+	VectorWidgetPtr MemberObsolete<LayoutManager>::load(std::string_view _file)
 	{
 		return static_cast<LayoutManager*>(this)->loadLayout(_file);
 	}
 
-	bool MemberObsolete<PluginManager>::load(const std::string& _file)
-	{
-		return ResourceManager::getInstance().load(_file);
-	}
-
-	void MemberObsolete<PointerManager>::setDeafultPointer(const std::string& _value)
+	void MemberObsolete<PointerManager>::setDeafultPointer(std::string_view _value)
 	{
 		static_cast<PointerManager*>(this)->setDefaultPointer(_value);
 	}
@@ -763,103 +950,264 @@ namespace MyGUI
 	{
 		return ResourceManager::getInstance().load(_file);
 	}
+	void MemberObsolete<PointerManager>::loadOldPointerFormat(
+		xml::ElementPtr _node,
+		std::string_view _file,
+		Version _version,
+		std::string_view _tag)
+	{
+		std::string_view pointer;
+		std::string_view layer;
 
-	size_t MemberObsolete<ResourceManager>::getResourceCount()
-	{
-		return static_cast<ResourceManager*>(this)->getCount();
-	}
-	IResourcePtr MemberObsolete<ResourceManager>::getResource(const std::string& _name, bool _throw)
-	{
-		return static_cast<ResourceManager*>(this)->getByName(_name, _throw);
+		for (auto node : _node.node())
+		{
+			if (node.name() != _tag)
+				continue;
+
+			layer = node.attribute("layer").value();
+			pointer = node.attribute("default").value();
+
+			std::string_view shared_text{node.attribute("texture").value()};
+
+			// iterate children, main loop
+			for (auto info : node.children("Info"))
+			{
+				std::string_view name{info.attribute("name").value()};
+				if (name.empty())
+					continue;
+
+				std::string_view texture{info.attribute("texture").value()};
+
+				std::string_view type =
+					(shared_text.empty() && texture.empty()) ? "ResourceImageSetPointer" : "ResourceManualPointer";
+
+				xml::Document doc;
+				pugi::xml_node root = doc.createRoot("MyGUI");
+				pugi::xml_node newnode = root.append_child("Resource");
+				newnode.append_attribute("type") = type.data();
+				newnode.append_attribute("name") = name.data();
+
+				auto attr = info.attribute("point");
+				if (attr)
+				{
+					pugi::xml_node prop = newnode.append_child("Property");
+					prop.append_attribute("key") = "Point";
+					prop.append_attribute("value") = attr.value();
+				}
+
+				attr = info.attribute("size");
+				if (attr)
+				{
+					pugi::xml_node prop = newnode.append_child("Property");
+					prop.append_attribute("key") = "Size";
+					prop.append_attribute("value") = attr.value();
+				}
+
+				attr = info.attribute("resource");
+				if (attr)
+				{
+					pugi::xml_node prop = newnode.append_child("Property");
+					prop.append_attribute("key") = "Resource";
+					prop.append_attribute("value") = attr.value();
+				}
+
+				attr = info.attribute("offset");
+				if (attr)
+				{
+					pugi::xml_node prop = newnode.append_child("Property");
+					prop.append_attribute("key") = "Coord";
+					prop.append_attribute("value") = attr.value();
+				}
+
+				if (!shared_text.empty() || !texture.empty())
+				{
+					pugi::xml_node prop = newnode.append_child("Property");
+					prop.append_attribute("key") = "Texture";
+					prop.append_attribute("value") = (shared_text.empty() ? texture : shared_text).data();
+				}
+
+				ResourceManager::getInstance().loadFromXmlNode(root, _file, _version);
+			}
+		}
+
+		if (!layer.empty())
+			static_cast<PointerManager*>(this)->setLayerName(layer);
+
+		if (!pointer.empty())
+			static_cast<PointerManager*>(this)->setDefaultPointer(pointer);
 	}
 
-	ResourceSkin* MemberObsolete<SkinManager>::getSkin(const std::string& _name)
+	MemberObsolete<ResourceManager>::EnumeratorPtr MemberObsolete<ResourceManager>::getEnumerator() const
 	{
-		return static_cast<SkinManager*>(this)->getByName(_name);
+		return EnumeratorPtr(static_cast<const ResourceManager*>(this)->getResources());
+	}
+
+	EnumeratorILayerNode MemberObsolete<ILayer>::getEnumerator() const
+	{
+		return EnumeratorILayerNode(static_cast<const ILayer*>(this)->getChildItems());
+	}
+
+	size_t MemberObsolete<ResourceManager>::getResourceCount() const
+	{
+		return static_cast<const ResourceManager*>(this)->getCount();
+	}
+	IResourcePtr MemberObsolete<ResourceManager>::getResource(std::string_view _name, bool _throw) const
+	{
+		return static_cast<const ResourceManager*>(this)->getByName(_name, _throw);
+	}
+
+	ResourceSkin* MemberObsolete<SkinManager>::getSkin(std::string_view _name) const
+	{
+		return static_cast<const SkinManager*>(this)->getByName(_name);
 	}
 	bool MemberObsolete<SkinManager>::load(const std::string& _file)
 	{
 		return ResourceManager::getInstance().load(_file);
 	}
+	void MemberObsolete<SkinManager>::loadOldSkinFormat(
+		xml::ElementPtr _node,
+		std::string_view /*_file*/,
+		Version _version,
+		std::string_view _tag)
+	{
+		const std::string& resourceCategory = ResourceManager::getInstance().getCategoryName();
 
+		// iterate children, main loop with skins
+		for (auto skin : _node.node().children(_tag.data()))
+		{
+			std::string_view type = skin.attribute("type").value();
+			if (type.empty())
+				type = "ResourceSkin";
+
+			IObject* object = FactoryManager::getInstance().createObject(resourceCategory, type);
+			if (object != nullptr)
+			{
+				ResourceSkin* data = object->castType<ResourceSkin>();
+				data->deserialization(skin, _version);
+
+				ResourceManager::getInstance().addResource(data);
+			}
+		}
+	}
+
+
+	void MemberObsolete<WidgetManager>::destroyWidgets(EnumeratorWidgetPtr _widgets)
+	{
+		Gui::getInstance().destroyWidgets(_widgets);
+	}
 
 	void MemberObsolete<WidgetManager>::destroyWidgetsVector(VectorWidgetPtr& _widgets)
 	{
 		static_cast<WidgetManager*>(this)->destroyWidgets(_widgets);
 	}
-	Widget* MemberObsolete<WidgetManager>::findWidgetT(const std::string& _name, bool _throw)
+	Widget* MemberObsolete<WidgetManager>::findWidgetT(std::string_view _name, bool _throw)
 	{
 		return Gui::getInstance().findWidgetT(_name, _throw);
 	}
-	Widget* MemberObsolete<WidgetManager>::findWidgetT(const std::string& _name, const std::string& _prefix, bool _throw)
+	Widget* MemberObsolete<WidgetManager>::findWidgetT(std::string_view _name, std::string_view _prefix, bool _throw)
 	{
-		return Gui::getInstance().findWidgetT(_name, _prefix, _throw);
+		std::string name{_prefix};
+		name += _name;
+		return Gui::getInstance().findWidgetT(name, _throw);
 	}
-	void MemberObsolete<WidgetManager>::parse(Widget* _widget, const std::string& _key, const std::string& _value)
+	void MemberObsolete<WidgetManager>::parse(Widget* _widget, std::string_view _key, std::string_view _value)
 	{
 		_widget->setProperty(_key, _value);
 	}
 
+	RenderItem* MemberObsolete<ILayerNode>::addToRenderItem(
+		ITexture* _texture,
+		bool _firstQueue,
+		bool /*_manualRender*/)
+	{
+		return static_cast<ILayerNode*>(this)->addToRenderItem(_texture, _firstQueue);
+	}
 
-#endif // MYGUI_DONT_USE_OBSOLETE
+	Enumerator<std::vector<ILayerNode*>> MemberObsolete<ILayerNode>::getEnumerator() const
+	{
+		return EnumeratorILayerNode(static_cast<const ILayerNode*>(this)->getChildItems());
+	}
 
-#ifndef MYGUI_DONT_USE_OBSOLETE
+	EnumeratorGroupImage MemberObsolete<ResourceImageSet>::getEnumerator() const
+	{
+		return EnumeratorGroupImage(static_cast<const ResourceImageSet*>(this)->getGroups());
+	}
 
-	std::string convertAlignToDirection(const std::string& _value)
+	xml::ElementPtr MemberObsolete<xml::Document>::createInfo(std::string_view _version, std::string_view _encoding)
+	{
+		return static_cast<xml::Document*>(this)->createDeclaration(_version, _encoding);
+	}
+
+	static std::string_view convertAlignToDirection(std::string_view _value)
 	{
 		Align align = utility::parseValue<Align>(_value);
 		if (align == Align::Right)
 			return FlowDirection(FlowDirection::RightToLeft).print();
-		else if (align == Align::Top)
+		if (align == Align::Top)
 			return FlowDirection(FlowDirection::TopToBottom).print();
-		else if (align == Align::Bottom)
+		if (align == Align::Bottom)
 			return FlowDirection(FlowDirection::BottomToTop).print();
 		return FlowDirection(FlowDirection::LeftToRight).print();
 	}
 
-	std::string convertRectToCoord(const std::string& _value)
+	static std::string convertRectToCoord(std::string_view _value)
 	{
 		IntRect rect = IntRect::parse(_value);
 		IntCoord coord(rect.left, rect.top, rect.width(), rect.height());
 		return coord.print();
 	}
 
-	BackwardCompatibility::MapString BackwardCompatibility::mPropertyRename;
-	BackwardCompatibility::SetString BackwardCompatibility::mPropertyIgnore;
-	BackwardCompatibility::MapString BackwardCompatibility::mSkinRename;
+	using SetString = std::set<std::string, std::less<>>;
+	static MapString mPropertyRename;
+	static SetString mPropertyIgnore;
+	static MapString mSkinRename;
+
+	MYGUI_UNSUPPRESS_GCC()
+	MYGUI_UNSUPPRESS_MSVC()
 
 #endif // MYGUI_DONT_USE_OBSOLETE
 
-	bool BackwardCompatibility::isIgnoreProperty(const std::string& _key)
+	bool BackwardCompatibility::isIgnoreProperty(std::string_view _key)
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
-		if (mPropertyIgnore.find(_key) != mPropertyIgnore.end())
-			return true;
-#endif // MYGUI_DONT_USE_OBSOLETE
+		return mPropertyIgnore.find(_key) != mPropertyIgnore.end();
+#else
 		return false;
+#endif // MYGUI_DONT_USE_OBSOLETE
 	}
 
-	bool BackwardCompatibility::checkProperty(Widget* _owner, std::string& _key, std::string& _value)
+	VectorStringPairs BackwardCompatibility::upgradeProperty(std::string_view _key, std::string_view _value)
+	{
+#ifndef MYGUI_DONT_USE_OBSOLETE
+		if (_key == "Progress_StartPoint" || _key == "StartPoint")
+			return {{"FlowDirection", std::string{convertAlignToDirection(_value)}}};
+		if (_key == "ImageRect")
+			return {{"ImageCoord", convertRectToCoord(_value)}};
+		if (_key == "Window_MinMax")
+		{
+			IntRect rect = IntRect::parse(_value);
+			return {
+				{"MinSize", IntSize(rect.left, rect.top).print()},
+				{"MaxSize", IntSize(rect.right, rect.bottom).print()}};
+		}
+		std::string_view renamed = getPropertyRename(_key, false);
+		if (renamed != _key)
+			return {{std::string{renamed}, std::string{_value}}};
+#endif // MYGUI_DONT_USE_OBSOLETE
+		return {{std::string{_key}, std::string{_value}}};
+	}
+
+	bool BackwardCompatibility::processDeprecatedProperty(Widget* _owner, std::string& _key, std::string& _value)
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
 		if (mPropertyIgnore.find(_key) != mPropertyIgnore.end())
 			return false;
 
-		MapString::iterator item = mPropertyRename.find(_key);
-		if (item != mPropertyRename.end())
+		if (_key == "ComboBox_AddItem")
 		{
-			MYGUI_LOG(Warning, (*item).first << " is deprecated, use " << (*item).second << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
-			_key = (*item).second;
-		}
-		else if (_key == "Progress_StartPoint")
-		{
-			MYGUI_LOG(Warning, "Progress_StartPoint is deprecated, use Progress_FlowDirection" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
-			_key = "Progress_FlowDirection";
-			_value = convertAlignToDirection(_value);
-		}
-		else if (_key == "ComboBox_AddItem")
-		{
-			MYGUI_LOG(Warning, "ComboBox_AddItem is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+			MYGUI_LOG(
+				Warning,
+				"ComboBox_AddItem is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
 			ComboBox* widget = _owner->castType<ComboBox>(false);
 			if (widget != nullptr)
 				widget->addItem(_value);
@@ -867,7 +1215,9 @@ namespace MyGUI
 		}
 		else if (_key == "List_AddItem")
 		{
-			MYGUI_LOG(Warning, "List_AddItem is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+			MYGUI_LOG(
+				Warning,
+				"List_AddItem is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
 			ListBox* widget = _owner->castType<ListBox>(false);
 			if (widget != nullptr)
 				widget->addItem(_value);
@@ -875,7 +1225,9 @@ namespace MyGUI
 		}
 		else if (_key == "Tab_AddSheet")
 		{
-			MYGUI_LOG(Warning, "Tab_AddSheet is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+			MYGUI_LOG(
+				Warning,
+				"Tab_AddSheet is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
 			TabControl* widget = _owner->castType<TabControl>(false);
 			if (widget != nullptr)
 				widget->addItem(_value);
@@ -883,224 +1235,271 @@ namespace MyGUI
 		}
 		else if (_key == "Tab_AddItem")
 		{
-			MYGUI_LOG(Warning, "Tab_AddItem is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+			MYGUI_LOG(
+				Warning,
+				"Tab_AddItem is deprecated" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
 			TabControl* widget = _owner->castType<TabControl>(false);
 			if (widget != nullptr)
 				widget->addItem(_value);
 			return false;
 		}
-		else if (_key == "Window_MinMax")
-		{
-			MYGUI_LOG(Warning, "Window_MinMax is deprecated, use Window_MinSize or Window_MaxSize" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
-			Window* widget = _owner->castType<Window>(false);
-			if (widget != nullptr)
-			{
-				IntRect rect = IntRect::parse(_value);
-				widget->setMinSize(rect.left, rect.top);
-				widget->setMaxSize(rect.right, rect.bottom);
-			}
+		else if (_key == "Window_MinMax" && !_owner->isType<Window>())
 			return false;
-		}
-		else if (_key == "ImageRect")
+
+		auto properties = upgradeProperty(_key, _value);
+		if (properties.size() != 1 || properties.front().first != _key || properties.front().second != _value)
 		{
-			MYGUI_LOG(Warning, "ImageRect is deprecated, use ImageCoord" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
-			_key = "ImageCoord";
-			_value = convertRectToCoord(_value);
-		}
-		else if (_key == "StartPoint")
-		{
-			MYGUI_LOG(Warning, "StartPoint is deprecated, use FlowDirection" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
-			_key = "FlowDirection";
-			_value = convertAlignToDirection(_value);
+			std::string replacements;
+			for (const auto& property : properties)
+			{
+				if (!replacements.empty())
+					replacements += ", ";
+				replacements += property.first;
+			}
+			MYGUI_LOG(
+				Warning,
+				_key << " is deprecated, use " << replacements << " ["
+					 << LayoutManager::getInstance().getCurrentLayout() << "]");
+			if (properties.size() == 1)
+			{
+				_key = std::move(properties.front().first);
+				_value = std::move(properties.front().second);
+			}
+			else
+			{
+				for (const auto& property : properties)
+					_owner->setProperty(property.first, property.second);
+				return false;
+			}
 		}
 
 #endif // MYGUI_DONT_USE_OBSOLETE
+		std::string_view renamed = getPropertyRename(_key);
+		if (renamed != _key)
+		{
+			MYGUI_LOG(
+				Warning,
+				"Widget property '" << _key << "' have type prefix - use '" << renamed << "' instead ["
+									<< LayoutManager::getInstance().getCurrentLayout() << "]");
+			_key = std::string{renamed};
+		}
+
 		return true;
 	}
 
 	void BackwardCompatibility::initialise()
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
-		mPropertyRename["Widget_Caption"] = "Caption";
-		mPropertyRename["Button_Pressed"] = "StateSelected";
-		mPropertyRename["ButtonPressed"] = "StateSelected";
-		mPropertyRename["StateCheck"] = "StateSelected";
-		mPropertyRename["Edit_ShowVScroll"] = "VisibleVScroll";
-		mPropertyRename["Edit_ShowHScroll"] = "VisibleHScroll";
-		mPropertyRename["ScrollView_VScroll"] = "VisibleVScroll";
-		mPropertyRename["ScrollView_HScroll"] = "VisibleHScroll";
-		mPropertyRename["Progress_Position"] = "RangePosition";
-		mPropertyRename["Scroll_Position"] = "RangePosition";
-		mPropertyRename["Tab_SelectSheet"] = "SelectItem";
-		mPropertyRename["Image_Texture"] = "ImageTexture";
-		mPropertyRename["Image_Coord"] = "ImageRegion";
-		mPropertyRename["Image_Tile"] = "ImageTile";
-		mPropertyRename["Image_Index"] = "ImageIndex";
-		mPropertyRename["Image_Resource"] = "ImageResource";
-		mPropertyRename["Image_Group"] = "ImageGroup";
-		mPropertyRename["Image_Name"] = "ImageName";
-		mPropertyRename["MenuItem_Id"] = "MenuItemId";
-		mPropertyRename["MenuItem_Type"] = "MenuItemType";
-		mPropertyRename["Combo_MaxLength"] = "MaxListLength";
-		mPropertyRename["AlignText"] = "TextAlign";
-		mPropertyRename["ToStick"] = "Snap";
-		mPropertyRename["ListSmoothShow"] = "SmoothShow";
-		mPropertyRename["HeightList"] = "MaxListLength";
-		mPropertyRename["AlignVert"] = "VerticalAlignment";
+		static constexpr std::pair<std::string_view, std::string_view> propertyRenames[] = {
+			{"Widget_Caption", "Caption"},
+			{"Button_Pressed", "StateSelected"},
+			{"ButtonPressed", "StateSelected"},
+			{"StateCheck", "StateSelected"},
+			{"Edit_ShowVScroll", "VisibleVScroll"},
+			{"Edit_ShowHScroll", "VisibleHScroll"},
+			{"ScrollView_VScroll", "VisibleVScroll"},
+			{"ScrollView_HScroll", "VisibleHScroll"},
+			{"Progress_Position", "RangePosition"},
+			{"Scroll_Position", "RangePosition"},
+			{"Tab_SelectSheet", "SelectItem"},
+			{"Image_Texture", "ImageTexture"},
+			{"Image_Coord", "ImageCoord"},
+			{"Image_Tile", "ImageTile"},
+			{"Image_Index", "ImageIndex"},
+			{"Image_Resource", "ImageResource"},
+			{"Image_Group", "ImageGroup"},
+			{"Image_Name", "ImageName"},
+			{"MenuItem_Id", "MenuItemId"},
+			{"MenuItem_Type", "MenuItemType"},
+			{"Combo_MaxLength", "MaxListLength"},
+			{"AlignText", "TextAlign"},
+			{"ToStick", "Snap"},
+			{"ListSmoothShow", "SmoothShow"},
+			{"HeightList", "MaxListLength"},
+			{"AlignVert", "VerticalAlignment"},
+		};
+		for (const auto& [from, to] : propertyRenames)
+			mPropertyRename[std::string{from}] = to;
 
-		mPropertyIgnore.insert("DragLayer");
-		mPropertyIgnore.insert("SkinLine");
-		mPropertyIgnore.insert("HeightLine");
-		mPropertyIgnore.insert("SkinLine");
-		mPropertyIgnore.insert("HeightLine");
-		mPropertyIgnore.insert("SeparatorHeight");
-		mPropertyIgnore.insert("SeparatorSkin");
-		mPropertyIgnore.insert("SubmenuImageSize");
-		mPropertyIgnore.insert("SubMenuSkin");
-		mPropertyIgnore.insert("SubMenuLayer");
-		mPropertyIgnore.insert("DistanceButton");
-		mPropertyIgnore.insert("ButtonSkin");
-		mPropertyIgnore.insert("ButtonType");
-		mPropertyIgnore.insert("ButtonSize");
-		mPropertyIgnore.insert("ButtonOffset");
-		mPropertyIgnore.insert("DefaultLayer");
-		mPropertyIgnore.insert("FadeSkin");
-		mPropertyIgnore.insert("FadeLayer");
-		mPropertyIgnore.insert("SkinButton");
-		mPropertyIgnore.insert("HeightButton");
-		mPropertyIgnore.insert("SkinList");
-		mPropertyIgnore.insert("SkinButtonEmpty");
-		mPropertyIgnore.insert("WidthSeparator");
-		mPropertyIgnore.insert("SkinSeparator");
-		mPropertyIgnore.insert("TrackSkin");
-		mPropertyIgnore.insert("TrackWidth");
-		mPropertyIgnore.insert("TrackMin");
-		mPropertyIgnore.insert("TrackStep");
-		mPropertyIgnore.insert("TrackFill");
-		mPropertyIgnore.insert("OffsetBar");
-		mPropertyIgnore.insert("ButtonSkin");
-		mPropertyIgnore.insert("EmptyBarSkin");
-		mPropertyIgnore.insert("TrackRangeMargins");
-		mPropertyIgnore.insert("MinTrackSize");
-		mPropertyIgnore.insert("MainMove");
-		mPropertyIgnore.insert("LevelOffset");
+		static constexpr std::string_view ignoredProperties[] = {
+			"DragLayer",		"SkinLine",		 "HeightLine",	 "SeparatorHeight", "SeparatorSkin",
+			"SubmenuImageSize", "SubMenuSkin",	 "SubMenuLayer", "DistanceButton",	"ButtonSkin",
+			"ButtonType",		"ButtonSize",	 "ButtonOffset", "DefaultLayer",	"FadeSkin",
+			"FadeLayer",		"SkinButton",	 "HeightButton", "SkinList",		"SkinButtonEmpty",
+			"WidthSeparator",	"SkinSeparator", "TrackSkin",	 "TrackWidth",		"TrackMin",
+			"TrackStep",		"TrackFill",	 "OffsetBar",	 "EmptyBarSkin",	"TrackRangeMargins",
+			"MinTrackSize",		"MainMove",		 "LevelOffset",	 "State",
+		};
+		for (const auto property : ignoredProperties)
+			mPropertyIgnore.insert(std::string{property});
 
-		mSkinRename["StaticImage"] = "ImageBox";
-		mSkinRename["StaticText"] = "TextBox";
-		mSkinRename["HScroll"] = "ScrollBarH";
-		mSkinRename["VScroll"] = "ScrollBarV";
-		mSkinRename["ItemBoxH"] = "ItemBox";
-		mSkinRename["ItemBoxV"] = "ItemBox";
-		mSkinRename["VSlider"] = "SliderV";
-		mSkinRename["HSlider"] = "SliderH";
-		mSkinRename["Progress"] = "ProgressBar";
-		mSkinRename["ProgressFill"] = "ProgressBarFill";
-		mSkinRename["List"] = "ListBox";
-		mSkinRename["MultiList"] = "MultiListBox";
-		mSkinRename["Edit"] = "EditBox";
-		mSkinRename["EditStretch"] = "EditBoxStretch";
-		mSkinRename["EditEmpty"] = "EditBoxEmpty";
-		mSkinRename["RadioBox"] = "RadioButton";
-		mSkinRename["Tab"] = "TabControl";
-		mSkinRename["WordWrap"] = "WordWrapEmpty";
-		mSkinRename["WordWrapSimple"] = "WordWrapEmpty";
-		mSkinRename["ButtonSmall"] = "Button";
-		mSkinRename["ButtonImageText"] = "ButtonImage";
-
-		mSkinRename["TileClient"] = "ClientTileSkin";
-		mSkinRename["DefaultClient"] = "ClientDefaultSkin";
-		mSkinRename["Panel"] = "PanelSkin";
-		mSkinRename["PanelSmall"] = "PanelSkin";
-		mSkinRename["Separator1"] = "SepUpVSkin";
-		mSkinRename["Separator2"] = "SepDownVSkin";
-		mSkinRename["Separator3"] = "SepUpHSkin";
-		mSkinRename["Separator4"] = "SepDownHSkin";
-		mSkinRename["MarkerWhite"] = "WhiteSkin";
-		mSkinRename["ButtonLeft"] = "ButtonLeftSkin";
-		mSkinRename["ButtonRight"] = "ButtonRightSkin";
-		mSkinRename["ButtonUp"] = "ButtonUpSkin";
-		mSkinRename["ButtonDown"] = "ButtonDownSkin";
-		mSkinRename["ButtonV"] = "ButtonAcceptSkin";
-		mSkinRename["ButtonX"] = "ButtonCloseSkin";
-		mSkinRename["ButtonMinusPlus"] = "ButtonExpandSkin";
+		static constexpr std::pair<std::string_view, std::string_view> skinRenames[] = {
+			{"StaticImage", "ImageBox"},
+			{"StaticText", "TextBox"},
+			{"HScroll", "ScrollBarH"},
+			{"VScroll", "ScrollBarV"},
+			{"ItemBoxH", "ItemBox"},
+			{"ItemBoxV", "ItemBox"},
+			{"VSlider", "SliderV"},
+			{"HSlider", "SliderH"},
+			{"Progress", "ProgressBar"},
+			{"ProgressFill", "ProgressBarFill"},
+			{"List", "ListBox"},
+			{"MultiList", "MultiListBox"},
+			{"Edit", "EditBox"},
+			{"EditStretch", "EditBoxStretch"},
+			{"EditEmpty", "EditBoxEmpty"},
+			{"RadioBox", "RadioButton"},
+			{"Tab", "TabControl"},
+			{"WordWrap", "WordWrapEmpty"},
+			{"WordWrapSimple", "WordWrapEmpty"},
+			{"ButtonSmall", "Button"},
+			{"ButtonImageText", "ButtonImage"},
+			{"TileClient", "ClientTileSkin"},
+			{"DefaultClient", "ClientDefaultSkin"},
+			{"Panel", "PanelSkin"},
+			{"PanelSmall", "PanelSkin"},
+			{"Separator1", "SepUpVSkin"},
+			{"Separator2", "SepDownVSkin"},
+			{"Separator3", "SepUpHSkin"},
+			{"Separator4", "SepDownHSkin"},
+			{"MarkerWhite", "WhiteSkin"},
+			{"ButtonLeft", "ButtonLeftSkin"},
+			{"ButtonRight", "ButtonRightSkin"},
+			{"ButtonUp", "ButtonUpSkin"},
+			{"ButtonDown", "ButtonDownSkin"},
+			{"ButtonV", "ButtonAcceptSkin"},
+			{"ButtonX", "ButtonCloseSkin"},
+			{"ButtonMinusPlus", "ButtonExpandSkin"},
+		};
+		for (const auto& [from, to] : skinRenames)
+			mSkinRename[std::string{from}] = to;
 #endif // MYGUI_DONT_USE_OBSOLETE
 	}
 
-	std::string BackwardCompatibility::getPropertyRename(const std::string& _propertyName)
+	std::string_view BackwardCompatibility::getPropertyRename(std::string_view _propertyName, bool _trimTypePrefix)
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
 		MapString::const_iterator item = mPropertyRename.find(_propertyName);
 		if (item != mPropertyRename.end())
 			return (*item).second;
 #endif // MYGUI_DONT_USE_OBSOLETE
+		if (_trimTypePrefix)
+		{
+			size_t index = _propertyName.find('_');
+			if (index != std::string_view::npos)
+				return _propertyName.substr(index + 1);
+		}
 		return _propertyName;
 	}
 
-	std::string BackwardCompatibility::getFactoryRename(const std::string& _categoryName, const std::string& _factoryName)
+	std::string_view BackwardCompatibility::getFactoryRename(
+		std::string_view _categoryName,
+		std::string_view _factoryName)
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
 		if (_categoryName == "Widget")
 		{
 			if (_factoryName == "HScroll")
 			{
-				MYGUI_LOG(Warning, "HScroll factory is deprecated, use " << ScrollBar::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"HScroll factory is deprecated, use " << ScrollBar::getClassTypeName() << " ["
+														  << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "VScroll")
 			{
-				MYGUI_LOG(Warning, "VScroll factory is deprecated, use " << ScrollBar::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"VScroll factory is deprecated, use " << ScrollBar::getClassTypeName() << " ["
+														  << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "RenderBox")
 			{
-				MYGUI_LOG(Warning, "RenderBox factory is deprecated, use " << Canvas::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"RenderBox factory is deprecated, use " << Canvas::getClassTypeName() << " ["
+															<< LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "Sheet")
 			{
-				MYGUI_LOG(Warning, "Sheet factory is deprecated, use " << TabItem::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"Sheet factory is deprecated, use " << TabItem::getClassTypeName() << " ["
+														<< LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "StaticImage")
 			{
-				MYGUI_LOG(Warning, "StaticImage factory is deprecated, use " << ImageBox::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"StaticImage factory is deprecated, use "
+						<< ImageBox::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout()
+						<< "]");
 			}
 			else if (_factoryName == "StaticText")
 			{
-				MYGUI_LOG(Warning, "StaticText factory is deprecated, use " << TextBox::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"StaticText factory is deprecated, use " << TextBox::getClassTypeName() << " ["
+															 << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "Progress")
 			{
-				MYGUI_LOG(Warning, "Progress factory is deprecated, use " << ProgressBar::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"Progress factory is deprecated, use " << ProgressBar::getClassTypeName() << " ["
+														   << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "List")
 			{
-				MYGUI_LOG(Warning, "List factory is deprecated, use " << ListBox::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"List factory is deprecated, use " << ListBox::getClassTypeName() << " ["
+													   << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "Edit")
 			{
-				MYGUI_LOG(Warning, "Edit factory is deprecated, use " << EditBox::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"Edit factory is deprecated, use " << EditBox::getClassTypeName() << " ["
+													   << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "Tab")
 			{
-				MYGUI_LOG(Warning, "Tab factory is deprecated, use " << TabControl::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"Tab factory is deprecated, use " << TabControl::getClassTypeName() << " ["
+													  << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "MultiList")
 			{
-				MYGUI_LOG(Warning, "MultiList factory is deprecated, use " << MultiListBox::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"MultiList factory is deprecated, use " << MultiListBox::getClassTypeName() << " ["
+															<< LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 			else if (_factoryName == "MenuCtrl")
 			{
-				MYGUI_LOG(Warning, "MenuCtrl factory is deprecated, use " << MenuControl::getClassTypeName() << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+				MYGUI_LOG(
+					Warning,
+					"MenuCtrl factory is deprecated, use " << MenuControl::getClassTypeName() << " ["
+														   << LayoutManager::getInstance().getCurrentLayout() << "]");
 			}
 		}
 #endif // MYGUI_DONT_USE_OBSOLETE
 		return _factoryName;
 	}
 
-	std::string BackwardCompatibility::getSkinRename(const std::string& _skinName)
+	std::string_view BackwardCompatibility::getSkinRename(std::string_view _skinName)
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
 		MapString::iterator item = mSkinRename.find(_skinName);
 		if (item != mSkinRename.end())
 		{
-			MYGUI_LOG(Warning, (*item).first << " skin is deprecated, use " << (*item).second << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+			MYGUI_LOG(
+				Warning,
+				(*item).first << " skin is deprecated, use " << (*item).second << " ["
+							  << LayoutManager::getInstance().getCurrentLayout() << "]");
 			return (*item).second;
 		}
 #endif // MYGUI_DONT_USE_OBSOLETE
@@ -1118,18 +1517,19 @@ namespace MyGUI
 	{
 #ifndef MYGUI_DONT_USE_OBSOLETE
 		FactoryManager& factory = FactoryManager::getInstance();
-		factory.registerFactory<HScroll>("Widget");
-		factory.registerFactory<VScroll>("Widget");
-		factory.registerFactory<Canvas>("Widget", "RenderBox");
-		factory.registerFactory<TabItem>("Widget", "Sheet");
-		factory.registerFactory<ImageBox>("Widget", "StaticImage");
-		factory.registerFactory<TextBox>("Widget", "StaticText");
-		factory.registerFactory<ProgressBar>("Widget", "Progress");
-		factory.registerFactory<ListBox>("Widget", "List");
-		factory.registerFactory<EditBox>("Widget", "Edit");
-		factory.registerFactory<TabControl>("Widget", "Tab");
-		factory.registerFactory<MultiListBox>("Widget", "MultiList");
-		factory.registerFactory<MenuControl>("Widget", "MenuCtrl");
+		const std::string& widgetCategory = MyGUI::WidgetManager::getInstance().getCategoryName();
+		factory.registerFactory<HScroll>(widgetCategory);
+		factory.registerFactory<VScroll>(widgetCategory);
+		factory.registerFactory<Canvas>(widgetCategory, "RenderBox");
+		factory.registerFactory<TabItem>(widgetCategory, "Sheet");
+		factory.registerFactory<ImageBox>(widgetCategory, "StaticImage");
+		factory.registerFactory<TextBox>(widgetCategory, "StaticText");
+		factory.registerFactory<ProgressBar>(widgetCategory, "Progress");
+		factory.registerFactory<ListBox>(widgetCategory, "List");
+		factory.registerFactory<EditBox>(widgetCategory, "Edit");
+		factory.registerFactory<TabControl>(widgetCategory, "Tab");
+		factory.registerFactory<MultiListBox>(widgetCategory, "MultiList");
+		factory.registerFactory<MenuControl>(widgetCategory, "MenuCtrl");
 #endif // MYGUI_DONT_USE_OBSOLETE
 	}
 

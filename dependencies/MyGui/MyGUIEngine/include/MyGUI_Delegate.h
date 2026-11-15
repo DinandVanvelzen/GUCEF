@@ -1,49 +1,35 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_DELEGATE_H__
-#define __MYGUI_DELEGATE_H__
+#ifndef MYGUI_DELEGATE_H_
+#define MYGUI_DELEGATE_H_
 
 #include "MyGUI_Diagnostic.h"
-#include <typeinfo>
+#include "MyGUI_Any.h"
+#include <algorithm>
 #include <list>
+#include <memory>
+#include <functional>
+#include <utility>
+#include <vector>
 
-// source
-// http://rsdn.ru/article/cpp/delegates.xml
-
-// генерация делегатов для различного колличества параметров
 namespace MyGUI
 {
-
 	namespace delegates
 	{
-		// базовый класс для тех классов, что хотят себя отвязывать от мульти делегатов
+
+		// base class for unsubscribing from multi delegates
 		class MYGUI_EXPORT IDelegateUnlink
 		{
 		public:
-			virtual ~IDelegateUnlink() { }
+			virtual ~IDelegateUnlink() = default;
 
-			IDelegateUnlink()
+			IDelegateUnlink() :
+				m_baseDelegateUnlink(this)
 			{
-				m_baseDelegateUnlink = this;
 			}
 			bool compare(IDelegateUnlink* _unlink) const
 			{
@@ -54,108 +40,613 @@ namespace MyGUI
 			IDelegateUnlink* m_baseDelegateUnlink;
 		};
 
-		inline IDelegateUnlink* GetDelegateUnlink(void* _base)
+		template<typename... Args>
+		class Delegate;
+		template<typename... Args>
+		class MultiDelegate;
+
+		namespace detail
 		{
-			return 0;
+
+			struct DelegateFactory;
+
+			// Ownership and identity are independent of the callback signature.
+			class MYGUI_EXPORT DelegateFunctionBase
+			{
+			public:
+				DelegateFunctionBase(const DelegateFunctionBase&) = delete;
+				DelegateFunctionBase& operator=(const DelegateFunctionBase&) = delete;
+				virtual ~DelegateFunctionBase() = default;
+
+				bool compare(const DelegateFunctionBase* _delegate) const
+				{
+					return _delegate && _delegate->mObject == mObject &&
+						_delegate->mFunctionPointer.compare(mFunctionPointer);
+				}
+				bool compare(IDelegateUnlink* _unlink) const
+				{
+					return mUnlink == _unlink;
+				}
+
+			protected:
+				DelegateFunctionBase(Any&& _identity, const void* _object, const IDelegateUnlink* _unlink) :
+					mUnlink(_unlink),
+					mObject(_object),
+					mFunctionPointer(std::move(_identity))
+				{
+				}
+
+			private:
+				friend class DelegateBase;
+				friend class MultiDelegateBase;
+
+				void release() noexcept
+				{
+					if (--mReferences == 0)
+						delete this;
+				}
+
+				size_t mReferences{1};
+				DelegateFunctionBase* mNextRetired{nullptr};
+				const void* mOwner{nullptr};
+				const IDelegateUnlink* mUnlink{nullptr};
+				const void* mObject{nullptr};
+				Any mFunctionPointer;
+			};
+
+			// Operations on an event and its receivers must be performed on one thread.
+			class DelegateBase
+			{
+			protected:
+				DelegateBase() = default;
+				DelegateBase(DelegateBase&& _other) noexcept :
+					mDelegate(std::exchange(_other.mDelegate, nullptr))
+				{
+				}
+
+				DelegateBase& operator=(DelegateBase&& _other) noexcept
+				{
+					if (this != &_other)
+						*this = std::exchange(_other.mDelegate, nullptr);
+					return *this;
+				}
+
+				~DelegateBase()
+				{
+					mDestroying = true;
+					clear();
+				}
+
+				bool empty() const
+				{
+					return mDelegate == nullptr;
+				}
+
+				void clear()
+				{
+					if (auto* old = std::exchange(mDelegate, nullptr))
+						old->release();
+				}
+
+				DelegateBase& operator=(DelegateFunctionBase* _delegate)
+				{
+					if (mDestroying)
+					{
+						if (_delegate)
+							_delegate->release();
+						return *this;
+					}
+					if (mDelegate != _delegate)
+					{
+						if (auto* old = std::exchange(mDelegate, _delegate))
+							old->release();
+					}
+					return *this;
+				}
+
+				class Invocation
+				{
+				public:
+					explicit Invocation(DelegateFunctionBase* _delegate) :
+						mDelegate(_delegate)
+					{
+						++mDelegate->mReferences;
+					}
+					Invocation(const Invocation&) = delete;
+					Invocation& operator=(const Invocation&) = delete;
+					~Invocation()
+					{
+						mDelegate->release();
+					}
+
+				private:
+					DelegateFunctionBase* mDelegate;
+				};
+
+				DelegateFunctionBase* mDelegate{nullptr};
+
+			private:
+				bool mDestroying{false};
+			};
+
+			class MultiDelegateBase
+			{
+			protected:
+				MultiDelegateBase() = default;
+				MultiDelegateBase(MultiDelegateBase&& _other) noexcept :
+					mState(std::exchange(_other.mState, nullptr))
+				{
+				}
+
+				~MultiDelegateBase()
+				{
+					mDestroying = true;
+					if (auto* state = std::exchange(mState, nullptr))
+					{
+						Operation guard(state);
+						state->closed = true;
+						state->clear();
+						--state->references; // Release the event's ownership; the guard retains state.
+					}
+				}
+
+				bool empty() const
+				{
+					return !mState || mState->active == 0;
+				}
+
+				void clear()
+				{
+					if (auto* state = mState)
+					{
+						Operation guard(state);
+						state->clear();
+					}
+				}
+
+				void clear(IDelegateUnlink* _unlink)
+				{
+					if (auto* state = mState; state && _unlink)
+					{
+						Operation guard(state);
+						for (size_t i = 0; i < state->callbacks.size(); ++i)
+						{
+							auto* callback = state->callbacks[i];
+							if (callback && callback->compare(_unlink))
+								state->remove(i);
+						}
+					}
+				}
+
+				void operator+=(DelegateFunctionBase* _delegate)
+				{
+					if (!_delegate)
+						return;
+					if (mDestroying)
+					{
+						delete _delegate;
+						return;
+					}
+					if (!mState)
+						mState = new State;
+					auto* state = mState;
+					Operation guard(state);
+					state->add(_delegate);
+				}
+
+				void operator-=(DelegateFunctionBase* _delegate)
+				{
+					if (!_delegate)
+						return;
+					if (auto* state = mState)
+					{
+						Operation guard(state);
+						// The original pointer can also be supplied; never delete an owned or retired callback here.
+						std::unique_ptr<DelegateFunctionBase> token(_delegate->mOwner ? nullptr : _delegate);
+						const auto index = state->find(_delegate);
+						if (index != state->callbacks.size())
+							state->remove(index);
+					}
+					else if (!_delegate->mOwner)
+						delete _delegate;
+				}
+
+				MultiDelegateBase& operator=(DelegateFunctionBase* _delegate)
+				{
+					if (mDestroying)
+					{
+						delete _delegate;
+						return *this;
+					}
+					if (!mState)
+					{
+						*this += _delegate;
+						return *this;
+					}
+					auto* state = mState;
+					Operation guard(state);
+					state->clear();
+					state->collectIfIdle();
+					// Releasing old captures can destroy this event. From here on, use only retained state.
+					state->add(_delegate);
+					return *this;
+				}
+
+				struct State
+				{
+					std::vector<DelegateFunctionBase*> callbacks;
+					// Avoid subtracting vector pointers after every callback in the dispatch loop.
+					size_t extent{0};
+					size_t active{0};
+					size_t references{1}; // Event ownership plus active operations, including nested invocations.
+					DelegateFunctionBase* retired{nullptr};
+					DelegateFunctionBase* retiredTail{nullptr};
+					bool closed{false};
+
+					size_t find(DelegateFunctionBase* _delegate) const
+					{
+						for (size_t i = 0; i < callbacks.size(); ++i)
+						{
+							auto* callback = callbacks[i];
+							// Custom Any identities can execute user comparison code and reenter the event.
+							if (callback && callback->compare(_delegate) && callbacks[i] == callback)
+								return i;
+						}
+						return callbacks.size();
+					}
+
+					void add(DelegateFunctionBase* _delegate)
+					{
+						if (!_delegate)
+							return;
+						if (closed)
+						{
+							delete _delegate;
+							return;
+						}
+						const auto index = find(_delegate);
+						if (_delegate->mOwner || index != callbacks.size())
+							MYGUI_EXCEPT("Trying to add same delegate twice.");
+						if (closed)
+						{
+							delete _delegate;
+							return;
+						}
+						callbacks.push_back(_delegate); // Ownership transfers only after successful insertion.
+						extent = callbacks.size();
+						_delegate->mOwner = this;
+						++active;
+					}
+
+					void remove(size_t _index)
+					{
+						auto* callback = std::exchange(callbacks[_index], nullptr);
+						--active;
+						if (retiredTail)
+							retiredTail->mNextRetired = callback;
+						else
+							retired = callback;
+						retiredTail = callback;
+					}
+
+					void clear()
+					{
+						for (size_t i = 0; i < callbacks.size(); ++i)
+						{
+							if (callbacks[i])
+								remove(i);
+						}
+					}
+
+					void collectIfIdle()
+					{
+						while (retired && references == (closed ? 1u : 2u))
+						{
+							callbacks.erase(std::remove(callbacks.begin(), callbacks.end(), nullptr), callbacks.end());
+							extent = callbacks.size();
+							auto* removed = std::exchange(retired, nullptr);
+							retiredTail = nullptr;
+							// Detach the whole batch before running capture destructors. Drain any reentrant removals too.
+							while (removed)
+							{
+								auto* next = std::exchange(removed->mNextRetired, nullptr);
+								// Keep ownership marked while capture destructors can remove this original pointer again.
+								removed->release();
+								removed = next;
+							}
+						}
+					}
+				};
+
+				class Operation
+				{
+				public:
+					explicit Operation(State* _state) :
+						mState(_state)
+					{
+						++mState->references;
+					}
+					Operation(const Operation&) = delete;
+					Operation& operator=(const Operation&) = delete;
+					~Operation()
+					{
+						if (mState->retired)
+							mState->collectIfIdle();
+						if (--mState->references == 0)
+							delete mState;
+					}
+
+				private:
+					State* mState;
+				};
+
+				State* mState{nullptr};
+
+			private:
+				bool mDestroying{false};
+			};
+
 		}
-		inline IDelegateUnlink* GetDelegateUnlink(IDelegateUnlink* _base)
+
+		// Callables have stable addresses. Ownership and dispatch retention are single-threaded.
+		template<typename... Args>
+		class DelegateFunction : public detail::DelegateFunctionBase
 		{
-			return _base;
+		public:
+			using Function = std::function<void(Args...)>;
+
+			DelegateFunction(const DelegateFunction&) = delete;
+			DelegateFunction& operator=(const DelegateFunction&) = delete;
+			~DelegateFunction() override = default;
+
+			void invoke(Args... args)
+			{
+				mInvoke(this, std::forward<Args>(args)...);
+			}
+
+			bool compare(DelegateFunction* _delegate) const
+			{
+				return DelegateFunctionBase::compare(_delegate);
+			}
+
+			bool compare(IDelegateUnlink* _unlink) const
+			{
+				return DelegateFunctionBase::compare(_unlink);
+			}
+
+		private:
+			friend class Delegate<Args...>;
+			friend class MultiDelegate<Args...>;
+			friend struct detail::DelegateFactory;
+
+			DelegateFunction(
+				void (*_invoke)(DelegateFunction*, Args&&...),
+				Any _identity,
+				const void* _object,
+				const IDelegateUnlink* _unlink) :
+				DelegateFunctionBase(std::move(_identity), _object, _unlink),
+				mInvoke(_invoke)
+			{
+			}
+
+			void (*mInvoke)(DelegateFunction*, Args&&...);
+		};
+
+		namespace detail
+		{
+
+			struct DelegateFactory
+			{
+				template<typename Result, typename Callable>
+				struct Storage;
+
+				template<typename Callable, typename... Args>
+				struct Storage<DelegateFunction<Args...>, Callable> final : DelegateFunction<Args...>
+				{
+					using Result = DelegateFunction<Args...>;
+					Storage(Callable _function, Any _identity, const void* _object, const IDelegateUnlink* _unlink) :
+						Result(&invoke, std::move(_identity), _object, _unlink),
+						function(std::move(_function))
+					{
+					}
+
+					static void invoke(Result* _self, Args&&... args)
+					{
+						std::invoke(static_cast<Storage*>(_self)->function, std::forward<Args>(args)...);
+					}
+
+					Callable function;
+				};
+
+				template<typename Result, typename Callable>
+				static Result* create(
+					Callable _function,
+					Any _identity,
+					const void* _object = nullptr,
+					const IDelegateUnlink* _unlink = nullptr)
+				{
+					return new Storage<Result, Callable>(std::move(_function), std::move(_identity), _object, _unlink);
+				}
+
+				template<typename Result, typename Callable>
+				static Result* create(Callable _function, Any _identity, const IDelegateUnlink* _object)
+				{
+					return create<Result>(std::move(_function), std::move(_identity), _object, _object);
+				}
+			};
+
 		}
+
+	} // namespace delegates
+
+	// Creates delegate from a function or a static class method
+	template<typename... Args>
+	inline delegates::DelegateFunction<Args...>* newDelegate(void (*_func)(Args... args))
+	{
+		if (!_func)
+			return delegates::detail::DelegateFactory::create<delegates::DelegateFunction<Args...>>(
+				std::function<void(Args...)>{},
+				_func);
+		return delegates::detail::DelegateFactory::create<delegates::DelegateFunction<Args...>>(_func, _func);
 	}
 
-	// без параметров
-	#define MYGUI_SUFFIX       0
-	#define MYGUI_TEMPLATE
-	#define MYGUI_TEMPLATE_PARAMS
-	#define MYGUI_TEMPLATE_ARGS
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T>
-	#define MYGUI_T_TEMPLATE_ARGS <T>
-	#define MYGUI_PARAMS
-	#define MYGUI_ARGS
-	#define MYGUI_TYPENAME
+	// Creates delegate from a non-static class method
+	template<typename T, typename... Args, typename Owner>
+	inline delegates::DelegateFunction<Args...>* newDelegate(T* _object, void (Owner::*_method)(Args... args))
+	{
+		return delegates::detail::DelegateFactory::create<delegates::DelegateFunction<Args...>>(
+			[_object, _method](Args&&... args) { std::invoke(_method, _object, std::forward<Args>(args)...); },
+			_method,
+			_object);
+	}
+	template<typename T, typename... Args, typename Owner>
+	inline delegates::DelegateFunction<Args...>* newDelegate(
+		const T* _object,
+		void (Owner::*_method)(Args... args) const)
+	{
+		return delegates::detail::DelegateFactory::create<delegates::DelegateFunction<Args...>>(
+			[_object, _method](Args&&... args) { std::invoke(_method, _object, std::forward<Args>(args)...); },
+			_method,
+			_object);
+	}
 
-	#include "MyGUI_DelegateImplement.h"
+	// Creates delegate from std::function
+	// Require some user-defined delegateId, that should be used if operator-= is called to remove delegate.
+	// delegateId need to be unique within single delegate.
+	template<typename... Args>
+	inline delegates::DelegateFunction<Args...>* newDelegate(
+		const std::function<void(Args...)>& _function,
+		int64_t delegateId)
+	{
+		return delegates::detail::DelegateFactory::create<delegates::DelegateFunction<Args...>>(_function, delegateId);
+	}
 
-	// один параметр
-	#define MYGUI_SUFFIX       1
-	#define MYGUI_TEMPLATE	template
-	#define MYGUI_TEMPLATE_PARAMS  <typename TP1>
-	#define MYGUI_TEMPLATE_ARGS    <TP1>
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T, typename TP1>
-	#define MYGUI_T_TEMPLATE_ARGS    <T, TP1>
-	#define MYGUI_PARAMS       TP1 p1
-	#define MYGUI_ARGS         p1
-	#define MYGUI_TYPENAME     typename
+	template<typename>
+	struct GetDelegateFunctionFromLambda;
+	template<typename R, typename C, typename... Args>
+	struct GetDelegateFunctionFromLambda<R (C::*)(Args...) const>
+	{
+		using type = MyGUI::delegates::DelegateFunction<Args...>;
+	};
 
-	#include "MyGUI_DelegateImplement.h"
+	// Creates delegate from lambda
+	// Require some user-defined delegateId, that should be used if operator-= is called to remove delegate.
+	// delegateId need to be unique within single delegate.
+	template<typename TLambda>
+	inline auto newDelegate(const TLambda& _function, int64_t delegateId)
+	{
+		using DelegateType = typename GetDelegateFunctionFromLambda<decltype(&TLambda::operator())>::type;
+		return delegates::detail::DelegateFactory::create<DelegateType>(_function, delegateId);
+	}
 
-	// два параметра
-	#define MYGUI_SUFFIX       2
-	#define MYGUI_TEMPLATE	template
-	#define MYGUI_TEMPLATE_PARAMS  <typename TP1, typename TP2>
-	#define MYGUI_TEMPLATE_ARGS    <TP1, TP2>
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T, typename TP1, typename TP2>
-	#define MYGUI_T_TEMPLATE_ARGS    <T, TP1, TP2>
-	#define MYGUI_PARAMS       TP1 p1, TP2 p2
-	#define MYGUI_ARGS         p1, p2
-	#define MYGUI_TYPENAME     typename
+	namespace delegates
+	{
 
-	#include "MyGUI_DelegateImplement.h"
+		// Keep callback signatures in these wrappers; the bases expose no untyped mutation API.
+		template<typename... Args>
+		class Delegate : public detail::DelegateBase
+		{
+		public:
+			using IDelegate = DelegateFunction<Args...>;
+			using detail::DelegateBase::empty;
+			using detail::DelegateBase::clear;
 
-	// три параметра
-	#define MYGUI_SUFFIX       3
-	#define MYGUI_TEMPLATE	template
-	#define MYGUI_TEMPLATE_PARAMS  <typename TP1, typename TP2, typename TP3>
-	#define MYGUI_TEMPLATE_ARGS    <TP1, TP2, TP3>
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T, typename TP1, typename TP2, typename TP3>
-	#define MYGUI_T_TEMPLATE_ARGS    <T, TP1, TP2, TP3>
-	#define MYGUI_PARAMS       TP1 p1, TP2 p2, TP3 p3
-	#define MYGUI_ARGS         p1, p2, p3
-	#define MYGUI_TYPENAME     typename
+			Delegate() = default;
+			Delegate(Delegate&&) noexcept = default;
+			Delegate& operator=(Delegate&&) noexcept = default;
 
-	#include "MyGUI_DelegateImplement.h"
+			Delegate& operator=(IDelegate* _delegate)
+			{
+				detail::DelegateBase::operator=(_delegate);
+				return *this;
+			}
 
-	// четыре параметра
-	#define MYGUI_SUFFIX       4
-	#define MYGUI_TEMPLATE	template
-	#define MYGUI_TEMPLATE_PARAMS  <typename TP1, typename TP2, typename TP3, typename TP4>
-	#define MYGUI_TEMPLATE_ARGS    <TP1, TP2, TP3, TP4>
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T, typename TP1, typename TP2, typename TP3, typename TP4>
-	#define MYGUI_T_TEMPLATE_ARGS    <T, TP1, TP2, TP3, TP4>
-	#define MYGUI_PARAMS       TP1 p1, TP2 p2, TP3 p3, TP4 p4
-	#define MYGUI_ARGS         p1, p2, p3, p4
-	#define MYGUI_TYPENAME     typename
+			void operator()(Args... args) const
+			{
+				if (auto* delegate = mDelegate)
+				{
+					Invocation guard(delegate);
+					static_cast<IDelegate*>(delegate)->invoke(std::forward<Args>(args)...);
+				}
+			}
+		};
 
-	#include "MyGUI_DelegateImplement.h"
+		template<typename... Args>
+		class MultiDelegate : public detail::MultiDelegateBase
+		{
+		public:
+			using IDelegate = DelegateFunction<Args...>;
+			using ListDelegate = std::list<std::unique_ptr<IDelegate>>;
+			using detail::MultiDelegateBase::empty;
+			using detail::MultiDelegateBase::clear;
 
-	// пять параметров
-	#define MYGUI_SUFFIX       5
-	#define MYGUI_TEMPLATE	template
-	#define MYGUI_TEMPLATE_PARAMS  <typename TP1, typename TP2, typename TP3, typename TP4, typename TP5>
-	#define MYGUI_TEMPLATE_ARGS    <TP1, TP2, TP3, TP4, TP5>
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T, typename TP1, typename TP2, typename TP3, typename TP4, typename TP5>
-	#define MYGUI_T_TEMPLATE_ARGS    <T, TP1, TP2, TP3, TP4, TP5>
-	#define MYGUI_PARAMS       TP1 p1, TP2 p2, TP3 p3, TP4 p4, TP5 p5
-	#define MYGUI_ARGS         p1, p2, p3, p4, p5
-	#define MYGUI_TYPENAME     typename
+			MultiDelegate() = default;
+			MultiDelegate(MultiDelegate&&) noexcept = default;
 
-	#include "MyGUI_DelegateImplement.h"
+			void operator+=(IDelegate* _delegate)
+			{
+				detail::MultiDelegateBase::operator+=(_delegate);
+			}
 
-	// пять параметров
-	#define MYGUI_SUFFIX       6
-	#define MYGUI_TEMPLATE	template
-	#define MYGUI_TEMPLATE_PARAMS  <typename TP1, typename TP2, typename TP3, typename TP4, typename TP5, typename TP6>
-	#define MYGUI_TEMPLATE_ARGS    <TP1, TP2, TP3, TP4, TP5, TP6>
-	#define MYGUI_T_TEMPLATE_PARAMS  <typename T, typename TP1, typename TP2, typename TP3, typename TP4, typename TP5, typename TP6>
-	#define MYGUI_T_TEMPLATE_ARGS    <T, TP1, TP2, TP3, TP4, TP5, TP6>
-	#define MYGUI_PARAMS       TP1 p1, TP2 p2, TP3 p3, TP4 p4, TP5 p5, TP6 p6
-	#define MYGUI_ARGS         p1, p2, p3, p4, p5, p6
-	#define MYGUI_TYPENAME     typename
+			void operator-=(IDelegate* _delegate)
+			{
+				detail::MultiDelegateBase::operator-=(_delegate);
+			}
 
-	#include "MyGUI_DelegateImplement.h"
+			MYGUI_OBSOLETE("use : operator += ")
+			MultiDelegate& operator=(IDelegate* _delegate)
+			{
+				detail::MultiDelegateBase::operator=(_delegate);
+				return *this;
+			}
 
+			void operator()(Args... args) const
+			{
+				auto* state = mState;
+				if (!state || state->active == 0)
+					return;
+				Operation guard(state);
+				// Callbacks may reallocate the vector or destroy the event. Reload by index using retained state.
+				size_t i = 0;
+				do
+				{
+					if (auto* callback = state->callbacks[i])
+						static_cast<IDelegate*>(callback)->invoke(args...);
+				} while (++i < state->extent);
+			}
+		};
 
+#ifndef MYGUI_DONT_USE_OBSOLETE
+		using CDelegate0 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate<>") = Delegate<>;
+		template<typename... Args>
+		using CDelegate1 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate") = Delegate<Args...>;
+		template<typename... Args>
+		using CDelegate2 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate") = Delegate<Args...>;
+		template<typename... Args>
+		using CDelegate3 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate") = Delegate<Args...>;
+		template<typename... Args>
+		using CDelegate4 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate") = Delegate<Args...>;
+		template<typename... Args>
+		using CDelegate5 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate") = Delegate<Args...>;
+		template<typename... Args>
+		using CDelegate6 MYGUI_OBSOLETE("use : MyGUI::delegates::Delegate") = Delegate<Args...>;
+
+		using CMultiDelegate0 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate<>") = MultiDelegate<>;
+		template<typename... Args>
+		using CMultiDelegate1 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate") = MultiDelegate<Args...>;
+		template<typename... Args>
+		using CMultiDelegate2 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate") = MultiDelegate<Args...>;
+		template<typename... Args>
+		using CMultiDelegate3 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate") = MultiDelegate<Args...>;
+		template<typename... Args>
+		using CMultiDelegate4 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate") = MultiDelegate<Args...>;
+		template<typename... Args>
+		using CMultiDelegate5 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate") = MultiDelegate<Args...>;
+		template<typename... Args>
+		using CMultiDelegate6 MYGUI_OBSOLETE("use : MyGUI::delegates::MultiDelegate") = MultiDelegate<Args...>;
+#endif
+
+	}
 } // namespace MyGUI
 
-#endif // __MYGUI_DELEGATE_H__
+#endif // MYGUI_DELEGATE_H_

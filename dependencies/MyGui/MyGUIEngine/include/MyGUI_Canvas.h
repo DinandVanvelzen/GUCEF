@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Alexander Ptakhin
-	@date		01/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_CANVAS_H__
-#define __MYGUI_CANVAS_H__
+#ifndef MYGUI_CANVAS_H_
+#define MYGUI_CANVAS_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Widget.h"
@@ -29,25 +14,23 @@
 namespace MyGUI
 {
 
-	/**
+	/** \brief @wpage{Canvas}
 		Widget wrapper over Texture - shows the texture.
 		Implemented: resizing of texture (see TextureResizeMode); recovery after loosing device;
 	*/
-	class MYGUI_EXPORT Canvas :
-		public Widget,
-		public ITextureInvalidateListener
+	class MYGUI_EXPORT Canvas : public Widget, public ITextureInvalidateListener
 	{
-		MYGUI_RTTI_DERIVED( Canvas )
+		MYGUI_RTTI_DERIVED(Canvas)
 
 	public:
 		Canvas();
 
 		struct Event
 		{
-			Event( bool _textureChanged, bool _widgetResized, bool _requested ) :
-				textureChanged( _textureChanged ),
-				widgetResized( _widgetResized ),
-				requested( _requested )
+			Event(bool _textureChanged, bool _widgetResized, bool _requested) :
+				textureChanged(_textureChanged),
+				widgetResized(_widgetResized),
+				requested(_requested)
 			{
 			}
 
@@ -58,31 +41,62 @@ namespace MyGUI
 			bool requested;
 		};
 
-		typedef delegates::CMultiDelegate1<Canvas*> EventHandle_CanvasPtr;
-		typedef delegates::CDelegate2<Canvas*, Event> EventHandle_CanvasPtrEvent;
+		using EventHandle_CanvasPtr = delegates::MultiDelegate<Canvas*>;
+		using EventHandle_CanvasPtrEvent = delegates::Delegate<Canvas*, Event>;
 
-		//FIXME
 		/**
 			Available resize and view modes of texture
 			@remarks PT - Power of Two (size)
 		*/
 		enum TextureResizeMode
 		{
-			//
-			TRM_PT_CONST_SIZE, /// Texture doesn't resizes and fills all widget space
-			TRM_PT_VIEW_REQUESTED, /// You can view all pixels of texture, texture cropped by sizes of widget
-			TRM_PT_VIEW_ALL /// Texture resizes and fills all widget space
+			/**	Mode when the texture has constant size and stretching on all widget.
+				@remarks
+				The size specified at creation of the texture increases to nearest power of two and doesn't change any more. Texture is always stretched on all widget.
+			*/
+			TRM_PT_CONST_SIZE,
+
+			/**
+				Mode when texture pixels look as is.
+				@remarks
+				The texture size is always more or equal than the widget size and is equal to a power of two.
+				@note
+				The size specified at creation of the texture is ignored.
+				The texture is automatically recreated if the size of the widget becomes bigger.
+			*/
+			TRM_PT_VIEW_REQUESTED,
+
+			/**	Mode when the texture stretched on all widget and automatically changes the size for nice look.
+				@remarks
+				The mode same as TRM_PT_VIEW_REQUESTED, but the texture is scaled till the size of the widget.
+				@note
+				The size specified at creation of the texture is ignored.
+				The texture is automatically recreated if the size of the widget becomes bigger.
+			*/
+			TRM_PT_VIEW_ALL
 		};
 
 	public:
 		/// Creates texture
-		void createTexture(TextureResizeMode _resizeMode, TextureUsage _usage = getDefaultTextureUsage(), PixelFormat _format = getDefaultTextureFormat());
+		void createTexture(
+			TextureResizeMode _resizeMode,
+			TextureUsage _usage = getDefaultTextureUsage(),
+			PixelFormat _format = getDefaultTextureFormat());
 
 		/// Creates texture
-		void createTexture(int _width, int _height, TextureResizeMode _resizeMode, TextureUsage _usage = getDefaultTextureUsage(), PixelFormat _format = getDefaultTextureFormat());
+		void createTexture(
+			int _width,
+			int _height,
+			TextureResizeMode _resizeMode,
+			TextureUsage _usage = getDefaultTextureUsage(),
+			PixelFormat _format = getDefaultTextureFormat());
 
 		/// Creates texture
-		void createTexture(const IntSize& _size, TextureResizeMode _resizeMode, TextureUsage _usage = getDefaultTextureUsage(), PixelFormat _format = getDefaultTextureFormat());
+		void createTexture(
+			const IntSize& _size,
+			TextureResizeMode _resizeMode,
+			TextureUsage _usage = getDefaultTextureUsage(),
+			PixelFormat _format = getDefaultTextureFormat());
 
 		/// Destroys texture
 		void destroyTexture();
@@ -123,15 +137,14 @@ namespace MyGUI
 		/// Returns name of the current texture.
 		const std::string& getTextureName() const;
 
-		//! @copydoc Widget::setSize(const IntSize& _value)
-		virtual void setSize(const IntSize& _value);
-		//! @copydoc Widget::setCoord(const IntCoord& _value)
-		virtual void setCoord(const IntCoord& _value);
+		//! @copydoc Widget::setSize(const IntSize& _size)
+		void setSize(const IntSize& _size) override;
+		//! @copydoc Widget::setCoord(const IntCoord& _coord)
+		void setCoord(const IntCoord& _coord) override;
 
-		/** @copydoc Widget::setSize(int _width, int _height) */
-		void setSize(int _width, int _height);
-		/** @copydoc Widget::setCoord(int _left, int _top, int _width, int _height) */
-		void setCoord(int _left, int _top, int _width, int _height);
+		using Widget::setPosition;
+		using Widget::setSize;
+		using Widget::setCoord;
 
 		/// Returns resize mode
 		TextureResizeMode getResizeMode() const;
@@ -160,7 +173,7 @@ namespace MyGUI
 		/// Returns default GUI texture format
 		static PixelFormat getDefaultTextureFormat();
 
-	/*events:*/
+		/*events:*/
 		/** Event : Notify user texture instance will be changed \sa requestUpdateCanvas.\n
 			signature : void method(MyGUI::Canvas* _canvas)\n
 			@param _canvas, which will be updated
@@ -175,6 +188,9 @@ namespace MyGUI
 		EventHandle_CanvasPtrEvent requestUpdateCanvas;
 
 	protected:
+		void shutdownOverride() override;
+		void initialiseOverride() override;
+
 		/// Destroys texture
 		void _destroyTexture(bool _sendEvent);
 
@@ -199,13 +215,13 @@ namespace MyGUI
 		/// For updating once per frame.
 		void frameEntered(float _time);
 
-		virtual void textureInvalidate(ITexture* _texture);
+		void textureInvalidate(ITexture* _texture) override;
 
 		void _setUVSet(const FloatRect& _rect);
 
 	protected:
 		/// Current texture
-		ITexture* mTexture;
+		ITexture* mTexture{nullptr};
 
 		/// Requested bu user sizes
 		IntSize mReqTexSize;
@@ -214,20 +230,20 @@ namespace MyGUI
 		std::string mGenTexName;
 
 		/// Texture resize mode \sa TextureResizeMode
-		TextureResizeMode mTexResizeMode;
+		TextureResizeMode mTexResizeMode{TRM_PT_CONST_SIZE};
 
 		/// Saved pointer from last calling lock. \sa lock
-		uint8* mTexData;
+		uint8* mTexData{nullptr};
 
 		/// true if we own the texture (can delete it or replace by another instance), otherwise false
-		bool mTexManaged;
+		bool mTexManaged{true};
 
 		/// For updating once per frame. True state means updating before next frame starts.
-		bool mFrameAdvise;
+		bool mFrameAdvise{false};
 
-		bool mInvalidateData;
+		bool mInvalidateData{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_CANVAS_H__
+#endif // MYGUI_CANVAS_H_

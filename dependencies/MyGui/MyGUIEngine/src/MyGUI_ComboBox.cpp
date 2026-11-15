@@ -1,77 +1,59 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		12/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ComboBox.h"
 #include "MyGUI_ControllerManager.h"
 #include "MyGUI_InputManager.h"
 #include "MyGUI_WidgetManager.h"
-#include "MyGUI_Gui.h"
 #include "MyGUI_ListBox.h"
 #include "MyGUI_Button.h"
 #include "MyGUI_ResourceSkin.h"
 #include "MyGUI_LayerManager.h"
+#include "MyGUI_LanguageManager.h"
 
 namespace MyGUI
 {
 
-	const float COMBO_ALPHA_MAX  = ALPHA_MAX;
-	const float COMBO_ALPHA_MIN  = ALPHA_MIN;
+	const float COMBO_ALPHA_MAX = ALPHA_MAX;
+	const float COMBO_ALPHA_MIN = ALPHA_MIN;
 	const float COMBO_ALPHA_COEF = 4.0f;
-
-	ComboBox::ComboBox() :
-		mButton(nullptr),
-		mList(nullptr),
-		mListShow(false),
-		mMaxListLength(-1),
-		mItemIndex(ITEM_NONE),
-		mModeDrop(false),
-		mDropMouse(false),
-		mShowSmooth(false),
-		mFlowDirection(FlowDirection::TopToBottom)
-	{
-	}
 
 	void ComboBox::initialiseOverride()
 	{
 		Base::initialiseOverride();
 
+		///@wskin_child{ComboBox, Button, Button} Drop-down list button.
 		assignWidget(mButton, "Button");
 		if (mButton != nullptr)
 		{
 			mButton->eventMouseButtonPressed += newDelegate(this, &ComboBox::notifyButtonPressed);
 		}
 
+		///@wskin_child{ComboBox, ListBox, List} Drop-down list.
 		assignWidget(mList, "List");
 
 		if (mList == nullptr)
 		{
-			std::string list_skin = getUserString("ListSkin");
-			std::string list_layer = getUserString("ListLayer");
+			std::string_view list_skin = getUserString("ListSkin");
+			std::string_view list_layer = getUserString("ListLayer");
 
-			mList = static_cast<ListBox*>(_createSkinWidget(WidgetStyle::Popup, ListBox::getClassTypeName(), list_skin, IntCoord(), Align::Default, list_layer));
+			mList = static_cast<ListBox*>(_createSkinWidget(
+				WidgetStyle::Popup,
+				ListBox::getClassTypeName(),
+				list_skin,
+				IntCoord(),
+				Align::Default,
+				list_layer));
 		}
 
 		if (mList != nullptr)
 		{
+			mList->setActivateOnClick(true);
+
 			mList->setVisible(false);
 			mList->eventKeyLostFocus += newDelegate(this, &ComboBox::notifyListLostFocus);
 			mList->eventListSelectAccept += newDelegate(this, &ComboBox::notifyListSelectAccept);
@@ -82,25 +64,27 @@ namespace MyGUI
 			mList->eventToolTip += newDelegate(this, &ComboBox::notifyToolTip);
 		}
 
-		// подписываем дочерние классы на скролл
-		if (mClient != nullptr)
+		// subscribe child classes to scroll
+		if (mScrollViewClient != nullptr)
 		{
-			mClient->eventMouseWheel += newDelegate(this, &ComboBox::notifyMouseWheel);
-			mClient->eventMouseButtonPressed += newDelegate(this, &ComboBox::notifyMousePressed);
+			mScrollViewClient->eventMouseWheel += newDelegate(this, &ComboBox::notifyMouseWheel);
+			mScrollViewClient->eventMouseButtonPressed += newDelegate(this, &ComboBox::notifyMousePressed);
 
-			mClient->setNeedToolTip(true);
-			mClient->eventToolTip += newDelegate(this, &ComboBox::notifyToolTip);
+			mScrollViewClient->setNeedToolTip(true);
+			mScrollViewClient->eventToolTip += newDelegate(this, &ComboBox::notifyToolTip);
 		}
 
-		// подписываемся на изменения текста
+		// subscribe to text changes
 		eventEditTextChange += newDelegate(this, &ComboBox::notifyEditTextChange);
 	}
 
 	void ComboBox::shutdownOverride()
 	{
+		mListShow = false;
+		eventChangeAbsoluteCoord -= newDelegate(this, &ComboBox::notifyChangeCoord);
+
 		mList = nullptr;
 		mButton = nullptr;
-		mClient = nullptr;
 
 		Base::shutdownOverride();
 	}
@@ -125,12 +109,12 @@ namespace MyGUI
 			mDropMouse = false;
 			Widget* focus = InputManager::getInstance().getMouseFocusWidget();
 
-			// кнопка сама уберет список
+			// button itself will hide the list
 			if (focus == mButton)
 				return;
 
-			// в режиме дропа все окна учавствуют
-			if (mModeDrop && focus == mClient)
+			// in drop mode all windows participate
+			if (mModeDrop && focus == mScrollViewClient)
 				return;
 		}
 
@@ -140,7 +124,7 @@ namespace MyGUI
 	void ComboBox::notifyListSelectAccept(ListBox* _widget, size_t _position)
 	{
 		mItemIndex = _position;
-		Base::setCaption(mItemIndex != ITEM_NONE ? mList->getItemNameAt(mItemIndex) : "");
+		Base::setCaption(mItemIndex != ITEM_NONE ? mList->getItemNameAt(mItemIndex) : UString());
 
 		mDropMouse = false;
 		InputManager::getInstance().setKeyFocusWidget(this);
@@ -149,8 +133,7 @@ namespace MyGUI
 		{
 			_resetContainer(false);
 
-			eventComboAccept.m_eventObsolete(this);
-			eventComboAccept.m_event(this, mItemIndex);
+			eventComboAccept(this, mItemIndex);
 		}
 	}
 
@@ -167,29 +150,26 @@ namespace MyGUI
 	{
 		Base::onKeyButtonPressed(_key, _char);
 
-		// при нажатии вниз, показываем лист
 		if (_key == KeyCode::ArrowDown)
 		{
-			// выкидываем список только если мыша свободна
+			// show list only if mouse is free
 			if (!InputManager::getInstance().isCaptureMouse())
 			{
 				showList();
 			}
 		}
-		// нажат ввод в окне редиктирования
 		else if ((_key == KeyCode::Return) || (_key == KeyCode::NumpadEnter))
 		{
 			_resetContainer(false);
 
-			eventComboAccept.m_eventObsolete(this);
-			eventComboAccept.m_event(this, mItemIndex);
+			eventComboAccept(this, mItemIndex);
 		}
 	}
 
 	void ComboBox::notifyListMouseItemActivate(ListBox* _widget, size_t _position)
 	{
 		mItemIndex = _position;
-		Base::setCaption(mItemIndex != ITEM_NONE ? mList->getItemNameAt(mItemIndex) : "");
+		Base::setCaption(mItemIndex != ITEM_NONE ? mList->getItemNameAt(mItemIndex) : UString());
 
 		InputManager::getInstance().setKeyFocusWidget(this);
 
@@ -197,8 +177,7 @@ namespace MyGUI
 		{
 			_resetContainer(false);
 
-			eventComboAccept.m_eventObsolete(this);
-			eventComboAccept.m_event(this, mItemIndex);
+			eventComboAccept(this, mItemIndex);
 		}
 	}
 
@@ -218,7 +197,7 @@ namespace MyGUI
 				if (mItemIndex == ITEM_NONE)
 					mItemIndex = 0;
 				else
-					mItemIndex --;
+					mItemIndex--;
 				Base::setCaption(mList->getItemNameAt(mItemIndex));
 				mList->setIndexSelected(mItemIndex);
 				mList->beginToItemAt(mItemIndex);
@@ -235,7 +214,7 @@ namespace MyGUI
 				if (mItemIndex == ITEM_NONE)
 					mItemIndex = 0;
 				else
-					mItemIndex ++;
+					mItemIndex++;
 				Base::setCaption(mList->getItemNameAt(mItemIndex));
 				mList->setIndexSelected(mItemIndex);
 				mList->beginToItemAt(mItemIndex);
@@ -249,19 +228,18 @@ namespace MyGUI
 
 	void ComboBox::notifyMousePressed(Widget* _sender, int _left, int _top, MouseButton _id)
 	{
-		// обязательно отдаем отцу, а то мы у него в наглую отняли
+		// must pass to parent, otherwise we stole focus from it
 		Base::notifyMousePressed(_sender, _left, _top, _id);
 
 		mDropMouse = true;
 
-		// показываем список
 		if (mModeDrop)
 			notifyButtonPressed(nullptr, _left, _top, _id);
 	}
 
 	void ComboBox::notifyEditTextChange(EditBox* _sender)
 	{
-		// сбрасываем выделенный элемент
+		// reset selected item
 		if (ITEM_NONE != mItemIndex)
 		{
 			mItemIndex = ITEM_NONE;
@@ -276,14 +254,17 @@ namespace MyGUI
 
 	void ComboBox::showList()
 	{
-		// пустой список не показываем
+		// don't show empty list
 		if (mList->getItemCount() == 0)
 			return;
 
+		if (mListShow)
+			return;
 		mListShow = true;
 
 		IntCoord coord = calculateListPosition();
 		mList->setCoord(coord);
+		eventChangeAbsoluteCoord += newDelegate(this, &ComboBox::notifyChangeCoord);
 
 		if (mShowSmooth)
 		{
@@ -298,7 +279,7 @@ namespace MyGUI
 		InputManager::getInstance().setKeyFocusWidget(mList);
 	}
 
-	void ComboBox::actionWidgetHide(Widget* _widget)
+	void ComboBox::actionWidgetHide(Widget* _widget, ControllerItem* _controller)
 	{
 		_widget->setVisible(false);
 		_widget->setEnabled(true);
@@ -306,7 +287,10 @@ namespace MyGUI
 
 	void ComboBox::hideList()
 	{
+		if (!mListShow)
+			return;
 		mListShow = false;
+		eventChangeAbsoluteCoord -= newDelegate(this, &ComboBox::notifyChangeCoord);
 
 		if (mShowSmooth)
 		{
@@ -320,6 +304,14 @@ namespace MyGUI
 		}
 	}
 
+	void ComboBox::notifyChangeCoord(Widget* _sender)
+	{
+		// Popup coordinates are absolute, so follow movement of the combo box and its parents.
+		IntCoord coord = calculateListPosition();
+		if (mList->getCoord() != coord)
+			mList->setCoord(coord);
+	}
+
 	void ComboBox::setIndexSelected(size_t _index)
 	{
 		MYGUI_ASSERT_RANGE_AND_NONE(_index, mList->getItemCount(), "ComboBox::setIndexSelected");
@@ -327,7 +319,7 @@ namespace MyGUI
 		mList->setIndexSelected(_index);
 		if (_index == ITEM_NONE)
 		{
-			Base::setCaption("");
+			Base::setCaption(UString());
 			return;
 		}
 		Base::setCaption(mList->getItemNameAt(_index));
@@ -337,35 +329,35 @@ namespace MyGUI
 	void ComboBox::setItemNameAt(size_t _index, const UString& _name)
 	{
 		mList->setItemNameAt(_index, _name);
-		mItemIndex = ITEM_NONE;//FIXME
-		mList->setIndexSelected(mItemIndex);//FIXME
+		mItemIndex = ITEM_NONE; //FIXME
+		mList->setIndexSelected(mItemIndex); //FIXME
 	}
 
 	void ComboBox::setItemDataAt(size_t _index, Any _data)
 	{
 		mList->setItemDataAt(_index, _data);
-		mItemIndex = ITEM_NONE;//FIXME
-		mList->setIndexSelected(mItemIndex);//FIXME
+		mItemIndex = ITEM_NONE; //FIXME
+		mList->setIndexSelected(mItemIndex); //FIXME
 	}
 
 	void ComboBox::insertItemAt(size_t _index, const UString& _item, Any _data)
 	{
 		mList->insertItemAt(_index, _item, _data);
-		mItemIndex = ITEM_NONE;//FIXME
-		mList->setIndexSelected(mItemIndex);//FIXME
+		mItemIndex = ITEM_NONE; //FIXME
+		mList->setIndexSelected(mItemIndex); //FIXME
 	}
 
 	void ComboBox::removeItemAt(size_t _index)
 	{
 		mList->removeItemAt(_index);
-		mItemIndex = ITEM_NONE;//FIXME
-		mList->clearIndexSelected();//FIXME
+		mItemIndex = ITEM_NONE; //FIXME
+		mList->clearIndexSelected(); //FIXME
 	}
 
 	void ComboBox::removeAllItems()
 	{
-		mItemIndex = ITEM_NONE;//FIXME
-		mList->removeAllItems();//FIXME заново созданные строки криво стоят
+		mItemIndex = ITEM_NONE;
+		mList->removeAllItems();
 	}
 
 	void ComboBox::setComboModeDrop(bool _drop)
@@ -407,9 +399,8 @@ namespace MyGUI
 		if (mMaxListLength > 0 && length > mMaxListLength)
 			length = mMaxListLength;
 
-		// берем глобальные координаты выджета
 		IntCoord coord = getAbsoluteCoord();
-		// размер леера
+		// layer size
 		IntSize sizeView = mList->getParentSize();
 
 		if (mFlowDirection == FlowDirection::TopToBottom)
@@ -448,23 +439,38 @@ namespace MyGUI
 		return coord;
 	}
 
-	void ComboBox::setPropertyOverride(const std::string& _key, const std::string& _value)
+	void ComboBox::setPropertyOverride(std::string_view _key, std::string_view _value)
 	{
+		/// @wproperty{ComboBox, ModeDrop, bool} Drop-down mode; in this mode the field value cannot be changed.
 		if (_key == "ModeDrop")
 			setComboModeDrop(utility::parseValue<bool>(_value));
+
+		/// @wproperty{ComboBox, FlowDirection, FlowDirection} Drop direction of the list.
 		else if (_key == "FlowDirection")
 			setFlowDirection(utility::parseValue<FlowDirection>(_value));
+
+		/// @wproperty{ComboBox, MaxListLength, int} Maximum height or width (depending on direction) of the list in pixels.
 		else if (_key == "MaxListLength")
 			setMaxListLength(utility::parseValue<int>(_value));
+
+		/// @wproperty{ComboBox, ItemHeight, int} Drop-down item height in pixels (minimum 1).
+		else if (_key == "ItemHeight")
+			setItemHeight(utility::parseValue<int>(_value));
+
+		/// @wproperty{ComboBox, SmoothShow, bool} Smooth list reveal animation.
 		else if (_key == "SmoothShow")
 			setSmoothShow(utility::parseValue<bool>(_value));
+
+		// @wproperty{ComboBox, AddItem, string} Adds list item
 		else if (_key == "AddItem")
-			addItem(_value);
+			addItem(LanguageManager::getInstance().replaceTags(UString(_value)));
+
 		else
 		{
 			Base::setPropertyOverride(_key, _value);
 			return;
 		}
+
 		eventChangeProperty(this, _key, _value);
 	}
 
@@ -478,7 +484,7 @@ namespace MyGUI
 		return insertItemAt(ITEM_NONE, _name, _data);
 	}
 
-	size_t ComboBox::getIndexSelected()
+	size_t ComboBox::getIndexSelected() const
 	{
 		return mItemIndex;
 	}
@@ -493,7 +499,7 @@ namespace MyGUI
 		setItemDataAt(_index, Any::Null);
 	}
 
-	const UString& ComboBox::getItemNameAt(size_t _index)
+	const UString& ComboBox::getItemNameAt(size_t _index) const
 	{
 		return mList->getItemNameAt(_index);
 	}
@@ -536,6 +542,22 @@ namespace MyGUI
 		return mShowSmooth;
 	}
 
+	void ComboBox::setItemHeight(int _height)
+	{
+		_height = std::max(1, _height);
+		if (mList->getItemHeight() == _height)
+			return;
+
+		mList->setItemHeight(_height);
+		if (mListShow)
+			notifyChangeCoord(this);
+	}
+
+	int ComboBox::getItemHeight() const
+	{
+		return mList->getItemHeight();
+	}
+
 	void ComboBox::setMaxListLength(int _value)
 	{
 		mMaxListLength = _value;
@@ -557,7 +579,7 @@ namespace MyGUI
 			eventToolTip(this, _info);
 	}
 
-	size_t ComboBox::_getItemCount()
+	size_t ComboBox::_getItemCount() const
 	{
 		return getItemCount();
 	}
@@ -577,7 +599,7 @@ namespace MyGUI
 		setItemNameAt(_index, _name);
 	}
 
-	const UString& ComboBox::_getItemNameAt(size_t _index)
+	const UString& ComboBox::_getItemNameAt(size_t _index) const
 	{
 		return getItemNameAt(_index);
 	}

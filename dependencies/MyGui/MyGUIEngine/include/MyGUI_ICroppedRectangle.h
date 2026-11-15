@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Georgiy Evmenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_CROPPED_RECTANGLE_H__
-#define __MYGUI_I_CROPPED_RECTANGLE_H__
+#ifndef MYGUI_I_CROPPED_RECTANGLE_H_
+#define MYGUI_I_CROPPED_RECTANGLE_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
@@ -31,15 +16,14 @@ namespace MyGUI
 	class MYGUI_EXPORT ICroppedRectangle
 	{
 	public:
-		ICroppedRectangle() :
-			mIsMargin(false),
-			mCroppedParent(nullptr)
-		{ }
-
-		virtual ~ICroppedRectangle() { }
+		virtual ~ICroppedRectangle() = default;
 
 		/** Get parent ICroppedRectangle */
 		ICroppedRectangle* getCroppedParent()
+		{
+			return mCroppedParent;
+		}
+		const ICroppedRectangle* getCroppedParent() const
 		{
 			return mCroppedParent;
 		}
@@ -86,12 +70,16 @@ namespace MyGUI
 		/** Get rectangle in screen coordinates */
 		IntRect getAbsoluteRect() const
 		{
-			return IntRect(mAbsolutePosition.left, mAbsolutePosition.top, mAbsolutePosition.left + mCoord.width, mAbsolutePosition.top + mCoord.height);
+			return {
+				mAbsolutePosition.left,
+				mAbsolutePosition.top,
+				mAbsolutePosition.left + mCoord.width,
+				mAbsolutePosition.top + mCoord.height};
 		}
 		/** Get coordinate in screen coordinates */
 		IntCoord getAbsoluteCoord() const
 		{
-			return IntCoord(mAbsolutePosition.left, mAbsolutePosition.top, mCoord.width, mCoord.height);
+			return {mAbsolutePosition.left, mAbsolutePosition.top, mCoord.width, mCoord.height};
 		}
 
 		/** Get X in screen coordinates */
@@ -137,11 +125,15 @@ namespace MyGUI
 		}
 
 
-	/*internal:*/
+		/*internal:*/
 		/** True if rectangle is cropped by parent rectangle */
 		bool _isMargin() const
 		{
 			return mIsMargin;
+		}
+		virtual bool _hasRotation() const
+		{
+			return false;
 		}
 
 		// Get cropped by parent rectangle coordinates
@@ -199,8 +191,14 @@ namespace MyGUI
 	protected:
 		bool _checkMargin()
 		{
+			// Rotated geometry is clipped after its vertices have been transformed
+			if (_hasRotation() || mCroppedParent->_hasRotation())
+			{
+				mMargin.clear();
+				return false;
+			}
 			bool margin = false;
-			//вылезли ли налево
+			// Check if clipped on the left
 			if (getLeft() < mCroppedParent->mMargin.left)
 			{
 				mMargin.left = mCroppedParent->mMargin.left - getLeft();
@@ -211,7 +209,7 @@ namespace MyGUI
 				mMargin.left = 0;
 			}
 
-			//вылезли ли направо
+			// Check if clipped on the right
 			if (getRight() > mCroppedParent->getWidth() - mCroppedParent->mMargin.right)
 			{
 				mMargin.right = getRight() - (mCroppedParent->getWidth() - mCroppedParent->mMargin.right);
@@ -222,7 +220,7 @@ namespace MyGUI
 				mMargin.right = 0;
 			}
 
-			//вылезли ли вверх
+			// Check if clipped on the top
 			if (getTop() < mCroppedParent->mMargin.top)
 			{
 				mMargin.top = mCroppedParent->mMargin.top - getTop();
@@ -233,7 +231,7 @@ namespace MyGUI
 				mMargin.top = 0;
 			}
 
-			//вылезли ли вниз
+			// Check if clipped on the bottom
 			if (getBottom() > mCroppedParent->getHeight() - mCroppedParent->mMargin.bottom)
 			{
 				mMargin.bottom = getBottom() - (mCroppedParent->getHeight() - mCroppedParent->mMargin.bottom);
@@ -247,23 +245,33 @@ namespace MyGUI
 			return margin;
 		}
 
-		bool _checkOutside() const // проверка на полный выход за границу
+		// Check if completely outside parent bounds
+		bool _checkOutside() const
 		{
-			return ( (getRight() < mCroppedParent->mMargin.left ) || // совсем уехали налево
-					(getLeft() > mCroppedParent->getWidth() - mCroppedParent->mMargin.right ) || // совсем уехали направо
-					(getBottom() < mCroppedParent->mMargin.top  ) || // совсем уехали вверх
-					(getTop() > mCroppedParent->getHeight() - mCroppedParent->mMargin.bottom ) );  // совсем уехали вниз
+			if (_hasRotation() || mCroppedParent->_hasRotation())
+				return false;
+			return _checkOutsideUnrotated();
+		}
+
+		// A successful _checkMargin() already establishes that neither rectangle is rotated.
+		bool _checkOutsideUnrotated() const
+		{
+			return (
+				(getRight() < mCroppedParent->mMargin.left) ||
+				(getLeft() > mCroppedParent->getWidth() - mCroppedParent->mMargin.right) ||
+				(getBottom() < mCroppedParent->mMargin.top) ||
+				(getTop() > mCroppedParent->getHeight() - mCroppedParent->mMargin.bottom));
 		}
 
 	protected:
-		IntRect mMargin; // перекрытие
-		IntCoord mCoord; // координаты
-		IntPoint mAbsolutePosition; // обсолютные координаты
+		IntRect mMargin;
+		IntCoord mCoord;
+		IntPoint mAbsolutePosition;
 
-		bool mIsMargin;
-		ICroppedRectangle* mCroppedParent;
+		bool mIsMargin{false};
+		ICroppedRectangle* mCroppedParent{nullptr};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_CROPPED_RECTANGLE_H__
+#endif // MYGUI_I_CROPPED_RECTANGLE_H_

@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_WINDOW_H__
-#define __MYGUI_WINDOW_H__
+#ifndef MYGUI_WINDOW_H_
+#define MYGUI_WINDOW_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_TextBox.h"
@@ -31,68 +16,70 @@ namespace MyGUI
 {
 
 	// OBSOLETE
-	typedef delegates::CMultiDelegate2<Widget*, const std::string&> EventHandle_WidgetString;
+	using EventHandle_WidgetString = EventPairConvertStringView<
+		delegates::MultiDelegate<Widget*, const std::string&>,
+		delegates::MultiDelegate<Widget*, std::string_view>>;
 
-	typedef delegates::CMultiDelegate2<Window*, const std::string&> EventHandle_WindowPtrCStringRef;
-	typedef delegates::CMultiDelegate1<Window*> EventHandle_WindowPtr;
+	using EventHandle_WindowPtrCStringRef = EventPairConvertStringView<
+		delegates::MultiDelegate<Window*, const std::string&>,
+		delegates::MultiDelegate<Window*, std::string_view>>;
+	using EventHandle_WindowPtr = delegates::MultiDelegate<Window*>;
 
+	/** \brief @wpage{Window}
+		Window widget description should be here.
+	*/
 	class MYGUI_EXPORT Window :
-		public TextBox, // FIXME пока для кэпшена вместо виджета текст
+		public TextBox, // FIXME: For now using text for caption instead of widget (Bug #190)
 		public MemberObsolete<Window>
 	{
-		MYGUI_RTTI_DERIVED( Window )
+		MYGUI_RTTI_DERIVED(Window)
 
 	public:
-		Window();
-
 		/** @copydoc Widget::setVisible */
-		virtual void setVisible(bool _value);
+		void setVisible(bool _visible) override;
 
 		/** Hide or show window smooth */
-		void setVisibleSmooth(bool _value);
+		void setVisibleSmooth(bool _visible);
 		/** Hide window smooth and then destroy it */
 		void destroySmooth();
 
 		/** Enable or disable auto alpha mode */
-		void setAutoAlpha(bool _value);
+		void setAutoAlpha(bool _auto);
 		/** Get auto alpha mode flag */
 		bool getAutoAlpha() const;
 
 		/** Set window caption */
-		virtual void setCaption(const UString& _value);
+		void setCaption(const UString& _caption) override;
 		/** Get window caption */
-		virtual const UString& getCaption();
+		const UString& getCaption() const override;
 
 		/** Get window caption widget */
-		TextBox* getCaptionWidget();
+		TextBox* getCaptionWidget() const;
 
 		/** Set minimal possible window size */
 		void setMinSize(const IntSize& _value);
 		/** Set minimal possible window size */
 		void setMinSize(int _width, int _height);
 		/** Get minimal possible window size */
-		IntSize getMinSize();
+		IntSize getMinSize() const;
 
 		/** Set maximal possible window size */
 		void setMaxSize(const IntSize& _value);
 		/** Set maximal possible window size */
 		void setMaxSize(int _width, int _height);
 		/** Get maximal possible window size */
-		IntSize getMaxSize();
+		IntSize getMaxSize() const;
 
-		//! @copydoc Widget::setPosition(const IntPoint& _value)
-		virtual void setPosition(const IntPoint& _value);
-		//! @copydoc Widget::setSize(const IntSize& _value)
-		virtual void setSize(const IntSize& _value);
-		//! @copydoc Widget::setCoord(const IntCoord& _value)
-		virtual void setCoord(const IntCoord& _value);
+		//! @copydoc Widget::setPosition(const IntPoint& _point)
+		void setPosition(const IntPoint& _point) override;
+		//! @copydoc Widget::setSize(const IntSize& _size)
+		void setSize(const IntSize& _size) override;
+		//! @copydoc Widget::setCoord(const IntCoord& _coord)
+		void setCoord(const IntCoord& _coord) override;
 
-		/** @copydoc Widget::setPosition(int _left, int _top) */
-		void setPosition(int _left, int _top);
-		/** @copydoc Widget::setSize(int _width, int _height) */
-		void setSize(int _width, int _height);
-		/** @copydoc Widget::setCoord(int _left, int _top, int _width, int _height) */
-		void setCoord(int _left, int _top, int _width, int _height);
+		using Widget::setPosition;
+		using Widget::setSize;
+		using Widget::setCoord;
 
 		/** Enable or disable snap to borders mode */
 		void setSnap(bool _value);
@@ -100,83 +87,89 @@ namespace MyGUI
 		bool getSnap() const;
 
 		/** Get current action applied to move/resize window. */
-		const IntCoord& getActionScale();
+		const IntCoord& getActionScale() const;
 
 		/** Enable or disable possibility to move window. */
 		void setMovable(bool _value);
 		/** Get possibility to move window. */
 		bool getMovable() const;
 
-	/*events:*/
+		/*events:*/
 		/** Event : Window button pressed.\n
-			signature : void method(MyGUI::Window* _sender, const std::string& _name)
+			signature : void method(MyGUI::Window* _sender, std::string_view _name)
 			@param _sender widget that called this event
 			@param _name of pressed button
 		*/
-		EventPair<EventHandle_WidgetString, EventHandle_WindowPtrCStringRef>
-			eventWindowButtonPressed;
+		EventPair<EventHandle_WidgetString, EventHandle_WindowPtrCStringRef> eventWindowButtonPressed;
 
 		/** Event : Window coordinate changed (window was resized or moved).\n
 			signature : void method(MyGUI::Window* _sender)
 			@param _sender widget that called this event
 		*/
-		EventPair<EventHandle_WidgetVoid, EventHandle_WindowPtr>
-			eventWindowChangeCoord;
+		EventPair<EventHandle_WidgetVoid, EventHandle_WindowPtr> eventWindowChangeCoord;
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		void onMouseChangeRootFocus(bool _focus);
-		void onKeyChangeRootFocus(bool _focus);
-		void onMouseDrag(int _left, int _top, MouseButton _id);
-		void onMouseButtonPressed(int _left, int _top, MouseButton _id);
-		void onMouseButtonReleased(int _left, int _top, MouseButton _id);
+		void onMouseChangeRootFocus(bool _focus) override;
+		void onKeyChangeRootFocus(bool _focus) override;
+		void onMouseDrag(int _left, int _top, MouseButton _id) override;
+		void onMouseButtonPressed(int _left, int _top, MouseButton _id) override;
+		void onMouseButtonReleased(int _left, int _top, MouseButton _id) override;
 
 		void notifyMousePressed(MyGUI::Widget* _sender, int _left, int _top, MouseButton _id);
 		void notifyMouseReleased(MyGUI::Widget* _sender, int _left, int _top, MouseButton _id);
 		void notifyPressedButtonEvent(MyGUI::Widget* _sender);
 		void notifyMouseDrag(MyGUI::Widget* _sender, int _left, int _top, MouseButton _id);
+		void notifyMouseWheel(MyGUI::Widget* _sender, int _rel);
 
-		// просто обновляет альфу взависимости от флагов
+		// Update alpha based on focus and auto-alpha flags
 		void updateAlpha();
 
-		void animateStop(Widget* _widget);
+		void animateStop(Widget* _widget, ControllerItem* _controller);
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
-		float getAlphaVisible();
-		void getSnappedCoord(IntCoord& _coord);
-		IntCoord _getActionScale(Widget* _widget);
+		float getAlphaVisible() const;
+		enum class Snap
+		{
+			Position,
+			Size
+		};
+		void getSnappedCoord(IntCoord& _coord, Snap snapMode) const;
+		IntCoord _getActionScale(Widget* _widget) const;
+		FloatPoint getResizeAnchor() const;
+		void restoreResizeAnchor();
 
 		ControllerFadeAlpha* createControllerFadeAlpha(float _alpha, float _coef, bool _enable);
 
 	private:
-		TextBox* mWidgetCaption;
+		TextBox* mWidgetCaption{nullptr};
 
-		// размеры окна перед началом его изменений
+		// Window dimensions before starting move/resize operation
 		IntCoord mPreActionCoord;
+		FloatPoint mPreActionAnchor;
 
-		// наши главные фокусы
-		bool mMouseRootFocus;
-		bool mKeyRootFocus;
+		// Root focus states
+		bool mMouseRootFocus{false};
+		bool mKeyRootFocus{false};
 
-		// автоматическое или ручное управление альфой
-		bool mIsAutoAlpha;
+		// Automatic or manual alpha control
+		bool mIsAutoAlpha{false};
 
-		// минимальные и максимальные размеры окна
+		// Minimum and maximum window dimensions
 		IntRect mMinmax;
 
-		bool mSnap; // прилеплять ли к краям
+		bool mSnap{false}; // Whether to snap to screen edges
 
 		IntCoord mCurrentActionScale;
-		bool mAnimateSmooth;
+		bool mAnimateSmooth{false};
 
-		Widget* mClient;
-		bool mMovable;
+		bool mMovable{true};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_WINDOW_H__
+#endif // MYGUI_WINDOW_H_

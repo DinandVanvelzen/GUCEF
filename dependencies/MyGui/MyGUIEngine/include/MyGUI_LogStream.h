@@ -1,29 +1,14 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		01/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_LOG_STREAM_H__
-#define __MYGUI_LOG_STREAM_H__
+#ifndef MYGUI_LOG_STREAM_H_
+#define MYGUI_LOG_STREAM_H_
 
 #include "MyGUI_Prerequest.h"
-#include <string.h>
+#include <cstring>
 #include <sstream>
 
 namespace MyGUI
@@ -32,16 +17,18 @@ namespace MyGUI
 	class MYGUI_EXPORT LogStream
 	{
 	public:
-		struct End { };
+		struct End
+		{
+		};
 
 	public:
-		std::string operator << (const End& _endl)
+		std::string operator<<(const End& /*_endl*/)
 		{
 			return mStream.str();
 		}
 
-		template <typename T>
-		LogStream& operator << (T _value)
+		template<typename T>
+		LogStream& operator<<(const T& _value)
 		{
 			mStream << _value;
 			return *this;
@@ -53,4 +40,4 @@ namespace MyGUI
 
 } // namespace MyGUI
 
-#endif // __MYGUI_LOG_STREAM_H__
+#endif // MYGUI_LOG_STREAM_H_

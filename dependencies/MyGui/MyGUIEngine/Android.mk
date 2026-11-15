@@ -23,6 +23,7 @@ LOCAL_MODULE_FILENAME := libMyGUI.Engine
 
 LOCAL_SRC_FILES := \
   src/MyGUI_ActionController.cpp \
+  src/MyGUI_Align.cpp \
   src/MyGUI_Any.cpp \
   src/MyGUI_BackwardCompatibility.cpp \
   src/MyGUI_BiIndexBase.cpp \
@@ -32,18 +33,19 @@ LOCAL_SRC_FILES := \
   src/MyGUI_ClipboardManager.cpp \
   src/MyGUI_Colour.cpp \
   src/MyGUI_ComboBox.cpp \
+  src/MyGUI_CommonStateInfo.cpp \
   src/MyGUI_ConsoleLogListener.cpp \
   src/MyGUI_Constants.cpp \
   src/MyGUI_ControllerEdgeHide.cpp \
   src/MyGUI_ControllerFadeAlpha.cpp \
   src/MyGUI_ControllerManager.cpp \
   src/MyGUI_ControllerPosition.cpp \
+  src/MyGUI_ControllerRepeatClick.cpp \
+  src/MyGUI_CoordConverter.cpp \
   src/MyGUI_DDContainer.cpp \
   src/MyGUI_DataFileStream.cpp \
   src/MyGUI_DataManager.cpp \
   src/MyGUI_DataStream.cpp \
-  src/MyGUI_DynLib.cpp \
-  src/MyGUI_DynLibManager.cpp \
   src/MyGUI_EditBox.cpp \
   src/MyGUI_EditText.cpp \
   src/MyGUI_Exception.cpp \
@@ -52,6 +54,10 @@ LOCAL_SRC_FILES := \
   src/MyGUI_FontManager.cpp \
   src/MyGUI_GeometryUtility.cpp \
   src/MyGUI_Gui.cpp \
+  src/MyGUI_IDataStream.cpp \
+  src/MyGUI_IObject.cpp \
+  src/MyGUI_IResource.cpp \
+  src/MyGUI_ISerializable.cpp \
   src/MyGUI_ImageBox.cpp \
   src/MyGUI_InputManager.cpp \
   src/MyGUI_ItemBox.cpp \
@@ -72,7 +78,6 @@ LOCAL_SRC_FILES := \
   src/MyGUI_MultiListBox.cpp \
   src/MyGUI_MultiListItem.cpp \
   src/MyGUI_OverlappedLayer.cpp \
-  src/MyGUI_PluginManager.cpp \
   src/MyGUI_PointerManager.cpp \
   src/MyGUI_PolygonalSkin.cpp \
   src/MyGUI_PopupMenu.cpp \
@@ -97,6 +102,7 @@ LOCAL_SRC_FILES := \
   src/MyGUI_SimpleText.cpp \
   src/MyGUI_SkinItem.cpp \
   src/MyGUI_SkinManager.cpp \
+  src/MyGUI_StringUtility.cpp \
   src/MyGUI_SubSkin.cpp \
   src/MyGUI_SubWidgetBinding.cpp \
   src/MyGUI_SubWidgetManager.cpp \
@@ -111,10 +117,12 @@ LOCAL_SRC_FILES := \
   src/MyGUI_ToolTipManager.cpp \
   src/MyGUI_UString.cpp \
   src/MyGUI_Widget.cpp \
+  src/MyGUI_WidgetContainer.cpp \
   src/MyGUI_WidgetInput.cpp \
   src/MyGUI_WidgetManager.cpp \
   src/MyGUI_WidgetUserData.cpp \
   src/MyGUI_Window.cpp \
+  src/MyGUI_WindowsClipboardHandler.cpp \
   src/MyGUI_XmlDocument.cpp
 
 LOCAL_C_INCLUDES := \
@@ -125,13 +133,21 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../freetype/include/freetype/internal \
   $(MY_MODULE_PATH)/../../freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../freetype/src \
-  $(MY_MODULE_PATH)/../../freetype/src/winfonts
+  $(MY_MODULE_PATH)/../../freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../pugixml/src \
+  $(MY_MODULE_PATH)/../../utfcpp \
+  $(MY_MODULE_PATH)/../../utfcpp/source \
+  $(MY_MODULE_PATH)/../../utfcpp/source/utf8
 
-LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=MyGUI_Engine -DMODULE_NAME=MyGUI_Engine -DMYGUI_BUILD -DMYGUI_BUILD_DLL -DMYGUI_USE_FREETYPE
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=MyGUI_Engine -DMODULE_NAME=MyGUI_Engine -DMODULE_SEMVER=3_5_4_0 -DMYGUI_BUILD -DMYGUI_BUILD_DLL
 
 
 LOCAL_SHARED_LIBRARIES := \
   freetype
+
+
+LOCAL_STATIC_LIBRARIES := \
+  pugixml
 
 include $(BUILD_SHARED_LIBRARY)
 

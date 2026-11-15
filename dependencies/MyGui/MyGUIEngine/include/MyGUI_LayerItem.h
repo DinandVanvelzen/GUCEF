@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_LAYER_ITEM_H__
-#define __MYGUI_LAYER_ITEM_H__
+#ifndef MYGUI_LAYER_ITEM_H_
+#define MYGUI_LAYER_ITEM_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_LayerManager.h"
@@ -32,18 +17,15 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT LayerItem :
-		public ILayerItem
+	class MYGUI_EXPORT LayerItem : public ILayerItem
 	{
 	public:
-		LayerItem();
-		virtual ~LayerItem();
-
 		ILayer* getLayer() const;
+		ILayerNode* getLayerNode() const;
 
-		virtual void attachItemToNode(ILayer* _layer, ILayerNode* _node);
-		virtual void detachFromLayer();
-		virtual void upLayerItem();
+		void attachItemToNode(ILayer* _layer, ILayerNode* _node) override;
+		void detachFromLayer() override;
+		void upLayerItem() override;
 
 		void setRenderItemTexture(ITexture* _texture);
 
@@ -60,28 +42,28 @@ namespace MyGUI
 		void restoreLayerItem();
 
 	protected:
-		void attachToLayerItemNode(ILayerNode* _node, bool _deep);
+		void attachToLayerItemNode(ILayerNode* _item, bool _deep);
 		void detachFromLayerItemNode(bool _deep);
 
 	private:
-		// актуально для рутового виджета
-		ILayer* mLayer;
-		// конкретный айтем находящийся в слое
-		ILayerNode* mLayerNode;
-		ILayerNode* mSaveLayerNode;
+		// Relevant only for root widget
+		ILayer* mLayer{nullptr};
+		// Specific item located in layer
+		ILayerNode* mLayerNode{nullptr};
+		ILayerNode* mSaveLayerNode{nullptr};
 
-		typedef std::vector<LayerItem*> VectorLayerItem;
-		// список наших детей айтемов
+		using VectorLayerItem = std::vector<LayerItem*>;
+		// List of child items
 		VectorLayerItem mLayerItems;
-		// список наших узлов
+		// List of nodes
 		VectorLayerItem mLayerNodes;
 
-		// вектор всех детей сабскинов
+		// Vector of child subskins
 		VectorSubWidget mDrawItems;
 
-		ITexture* mTexture;
+		ITexture* mTexture{nullptr};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_LAYER_ITEM_H__
+#endif // MYGUI_LAYER_ITEM_H_

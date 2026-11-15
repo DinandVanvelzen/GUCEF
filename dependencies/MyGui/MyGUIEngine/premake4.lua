@@ -23,20 +23,30 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+kind( "StaticLib" )
 
 
 configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "freetype" } )
+links( { "freetype", "pugixml" } )
 
 configuration( {} )
-links( { "freetype" } )
+links( { "freetype", "pugixml" } )
 
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=MyGUI_Engine", "MODULE_NAME=MyGUI_Engine", "MYGUI_BUILD", "MYGUI_BUILD_DLL", "MYGUI_USE_FREETYPE" } )
+defines( { "MODULE_CONSENSUS_NAME=MyGUI_Engine", "MODULE_NAME=MyGUI_Engine", "MODULE_SEMVER=3_5_4_0", "MYGUI_BUILD", "MYGUI_BUILD_DLL" } )
 
 
 configuration( {} )
@@ -45,7 +55,6 @@ files( {
   "include/MyGUI.h",
   "include/MyGUI_ActionController.h",
   "include/MyGUI_Align.h",
-  "include/MyGUI_Allocator.h",
   "include/MyGUI_Any.h",
   "include/MyGUI_BackwardCompatibility.h",
   "include/MyGUI_BiIndexBase.h",
@@ -58,6 +67,7 @@ files( {
   "include/MyGUI_ComboBox.h",
   "include/MyGUI_Common.h",
   "include/MyGUI_CommonStateInfo.h",
+  "include/MyGUI_Config.h",
   "include/MyGUI_ConsoleLogListener.h",
   "include/MyGUI_Constants.h",
   "include/MyGUI_ControllerEdgeHide.h",
@@ -65,20 +75,18 @@ files( {
   "include/MyGUI_ControllerItem.h",
   "include/MyGUI_ControllerManager.h",
   "include/MyGUI_ControllerPosition.h",
+  "include/MyGUI_ControllerRepeatClick.h",
   "include/MyGUI_CoordConverter.h",
-  "include/MyGUI_CustomAllocator.h",
   "include/MyGUI_DDContainer.h",
   "include/MyGUI_DDItemInfo.h",
   "include/MyGUI_DataFileStream.h",
   "include/MyGUI_DataManager.h",
   "include/MyGUI_DataStream.h",
+  "include/MyGUI_DataStreamHolder.h",
   "include/MyGUI_Delegate.h",
-  "include/MyGUI_DelegateImplement.h",
   "include/MyGUI_DeprecatedTypes.h",
   "include/MyGUI_DeprecatedWidgets.h",
   "include/MyGUI_Diagnostic.h",
-  "include/MyGUI_DynLib.h",
-  "include/MyGUI_DynLibManager.h",
   "include/MyGUI_EditBox.h",
   "include/MyGUI_EditText.h",
   "include/MyGUI_Enumerator.h",
@@ -86,6 +94,7 @@ files( {
   "include/MyGUI_Exception.h",
   "include/MyGUI_FactoryManager.h",
   "include/MyGUI_FileLogListener.h",
+  "include/MyGUI_FileSystemUtility.h",
   "include/MyGUI_FlowDirection.h",
   "include/MyGUI_FontData.h",
   "include/MyGUI_FontManager.h",
@@ -144,8 +153,6 @@ files( {
   "include/MyGUI_MultiListItem.h",
   "include/MyGUI_OverlappedLayer.h",
   "include/MyGUI_Platform.h",
-  "include/MyGUI_Plugin.h",
-  "include/MyGUI_PluginManager.h",
   "include/MyGUI_PointerManager.h",
   "include/MyGUI_PolygonalSkin.h",
   "include/MyGUI_PopupMenu.h",
@@ -202,6 +209,7 @@ files( {
   "include/MyGUI_Version.h",
   "include/MyGUI_VertexData.h",
   "include/MyGUI_Widget.h",
+  "include/MyGUI_WidgetContainer.h",
   "include/MyGUI_WidgetDefines.h",
   "include/MyGUI_WidgetInput.h",
   "include/MyGUI_WidgetManager.h",
@@ -210,6 +218,7 @@ files( {
   "include/MyGUI_WidgetTranslate.h",
   "include/MyGUI_WidgetUserData.h",
   "include/MyGUI_Window.h",
+  "include/MyGUI_WindowsClipboardHandler.h",
   "include/MyGUI_XmlDocument.h"
  } )
 
@@ -219,6 +228,7 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/MyGUI_ActionController.cpp",
+  "src/MyGUI_Align.cpp",
   "src/MyGUI_Any.cpp",
   "src/MyGUI_BackwardCompatibility.cpp",
   "src/MyGUI_BiIndexBase.cpp",
@@ -228,18 +238,19 @@ files( {
   "src/MyGUI_ClipboardManager.cpp",
   "src/MyGUI_Colour.cpp",
   "src/MyGUI_ComboBox.cpp",
+  "src/MyGUI_CommonStateInfo.cpp",
   "src/MyGUI_ConsoleLogListener.cpp",
   "src/MyGUI_Constants.cpp",
   "src/MyGUI_ControllerEdgeHide.cpp",
   "src/MyGUI_ControllerFadeAlpha.cpp",
   "src/MyGUI_ControllerManager.cpp",
   "src/MyGUI_ControllerPosition.cpp",
+  "src/MyGUI_ControllerRepeatClick.cpp",
+  "src/MyGUI_CoordConverter.cpp",
   "src/MyGUI_DDContainer.cpp",
   "src/MyGUI_DataFileStream.cpp",
   "src/MyGUI_DataManager.cpp",
   "src/MyGUI_DataStream.cpp",
-  "src/MyGUI_DynLib.cpp",
-  "src/MyGUI_DynLibManager.cpp",
   "src/MyGUI_EditBox.cpp",
   "src/MyGUI_EditText.cpp",
   "src/MyGUI_Exception.cpp",
@@ -248,6 +259,10 @@ files( {
   "src/MyGUI_FontManager.cpp",
   "src/MyGUI_GeometryUtility.cpp",
   "src/MyGUI_Gui.cpp",
+  "src/MyGUI_IDataStream.cpp",
+  "src/MyGUI_IObject.cpp",
+  "src/MyGUI_IResource.cpp",
+  "src/MyGUI_ISerializable.cpp",
   "src/MyGUI_ImageBox.cpp",
   "src/MyGUI_InputManager.cpp",
   "src/MyGUI_ItemBox.cpp",
@@ -268,7 +283,6 @@ files( {
   "src/MyGUI_MultiListBox.cpp",
   "src/MyGUI_MultiListItem.cpp",
   "src/MyGUI_OverlappedLayer.cpp",
-  "src/MyGUI_PluginManager.cpp",
   "src/MyGUI_PointerManager.cpp",
   "src/MyGUI_PolygonalSkin.cpp",
   "src/MyGUI_PopupMenu.cpp",
@@ -293,6 +307,7 @@ files( {
   "src/MyGUI_SimpleText.cpp",
   "src/MyGUI_SkinItem.cpp",
   "src/MyGUI_SkinManager.cpp",
+  "src/MyGUI_StringUtility.cpp",
   "src/MyGUI_SubSkin.cpp",
   "src/MyGUI_SubWidgetBinding.cpp",
   "src/MyGUI_SubWidgetManager.cpp",
@@ -307,13 +322,15 @@ files( {
   "src/MyGUI_ToolTipManager.cpp",
   "src/MyGUI_UString.cpp",
   "src/MyGUI_Widget.cpp",
+  "src/MyGUI_WidgetContainer.cpp",
   "src/MyGUI_WidgetInput.cpp",
   "src/MyGUI_WidgetManager.cpp",
   "src/MyGUI_WidgetUserData.cpp",
   "src/MyGUI_Window.cpp",
+  "src/MyGUI_WindowsClipboardHandler.cpp",
   "src/MyGUI_XmlDocument.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../freetype/include", "../../freetype/include/freetype", "../../freetype/include/freetype/config", "../../freetype/include/freetype/internal", "../../freetype/include/freetype/internal/services", "../../freetype/src", "../../freetype/src/winfonts", "include" } )
+includedirs( { "../../freetype/include", "../../freetype/include/freetype", "../../freetype/include/freetype/config", "../../freetype/include/freetype/internal", "../../freetype/include/freetype/internal/services", "../../freetype/src", "../../freetype/src/winfonts", "../../pugixml/src", "../../utfcpp", "../../utfcpp/source", "../../utfcpp/source/utf8", "include" } )

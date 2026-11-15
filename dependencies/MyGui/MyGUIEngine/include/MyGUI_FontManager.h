@@ -1,29 +1,13 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_FONT_MANAGER_H__
-#define __MYGUI_FONT_MANAGER_H__
+#ifndef MYGUI_FONT_MANAGER_H_
+#define MYGUI_FONT_MANAGER_H_
 
 #include "MyGUI_Prerequest.h"
-#include "MyGUI_Enumerator.h"
 #include "MyGUI_IFont.h"
 #include "MyGUI_Singleton.h"
 #include "MyGUI_XmlDocument.h"
@@ -33,10 +17,10 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT FontManager :
-		public Singleton<FontManager>,
-		public MemberObsolete<FontManager>
+	class MYGUI_EXPORT FontManager : public MemberObsolete<FontManager>
 	{
+		MYGUI_SINGLETON_DECLARATION(FontManager);
+
 	public:
 		FontManager();
 
@@ -50,20 +34,23 @@ namespace MyGUI
 		/** Get default font name.
 			Default skin also used when creating widget with skin that doesn't exist.
 		*/
-		void setDefaultFont(const std::string& _value);
+		void setDefaultFont(std::string_view _value);
 
 		/** Get font resource */
-		IFont* getByName(const std::string& _name) const;
+		IFont* getByName(std::string_view _name) const;
 
 	private:
-		void _load(xml::ElementPtr _node, const std::string& _file, Version _version);
+		void _load(xml::ElementPtr _node, std::string_view _file, Version _version);
 
 	private:
 		std::string mDefaultName;
 
-		bool mIsInitialise;
+		bool mIsInitialise{false};
+		std::string mXmlFontTagName;
+		std::string mXmlPropertyTagName;
+		std::string mXmlDefaultFontValue;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_FONT_MANAGER_H__
+#endif // MYGUI_FONT_MANAGER_H_

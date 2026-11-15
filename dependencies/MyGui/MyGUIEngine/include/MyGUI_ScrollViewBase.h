@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		10/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_SCROLL_VIEW_BASE_H__
-#define __MYGUI_SCROLL_VIEW_BASE_H__
+#ifndef MYGUI_SCROLL_VIEW_BASE_H_
+#define MYGUI_SCROLL_VIEW_BASE_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
@@ -31,45 +16,41 @@ namespace MyGUI
 	class MYGUI_EXPORT ScrollViewBase
 	{
 	protected:
-		ScrollViewBase();
-		virtual ~ScrollViewBase();
+		virtual ~ScrollViewBase() = default;
 
 		void updateScrollSize();
 		void updateScrollPosition();
 
-		// размер данных
-		virtual IntSize getContentSize();
+		virtual IntSize getContentSize() const;
 
-		// смещение данных
-		virtual IntPoint getContentPosition();
+		virtual IntPoint getContentPosition() const;
 		virtual void setContentPosition(const IntPoint& _value);
 
-		// размер окна, через которые видно данные
-		virtual IntSize getViewSize();
+		virtual IntSize getViewSize() const;
 
-		// размер на который прокручиваются данные при щелчке по скролу
-		virtual size_t getHScrollPage();
-		virtual size_t getVScrollPage();
+		// Scroll change value, applied when clicking on a scroll
+		virtual size_t getHScrollPage() const;
+		virtual size_t getVScrollPage() const;
 
-		virtual Align getContentAlign();
+		virtual Align getContentAlign() const;
 
 		virtual void eraseContent();
 
 	protected:
-		ScrollBar* mVScroll;
-		ScrollBar* mHScroll;
-		Widget* mClient;
+		ScrollBar* mVScroll{nullptr};
+		ScrollBar* mHScroll{nullptr};
+		Widget* mScrollViewClient{nullptr};
 
-		bool mVisibleHScroll;
-		bool mVisibleVScroll;
+		bool mVisibleHScroll{true};
+		bool mVisibleVScroll{true};
 
-		size_t mVRange;
-		size_t mHRange;
+		size_t mVRange{0};
+		size_t mHRange{0};
 
-		// изменяется ли содержимое при ресайзе
-		bool mChangeContentByResize;
+		// Whether content changes on resize
+		bool mChangeContentByResize{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_SCROLL_VIEW_BASE_H__
+#endif // MYGUI_SCROLL_VIEW_BASE_H_

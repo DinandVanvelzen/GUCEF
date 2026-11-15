@@ -1,62 +1,71 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		05/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_DATA_MANAGER_H__
-#define __MYGUI_DATA_MANAGER_H__
+#ifndef MYGUI_DATA_MANAGER_H_
+#define MYGUI_DATA_MANAGER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Singleton.h"
 #include "MyGUI_IDataStream.h"
+#include "MyGUI_Types.h"
 
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT DataManager :
-		public Singleton<DataManager>
+	class DataStreamHolder;
+
+	class MYGUI_EXPORT DataManager
 	{
+		MYGUI_SINGLETON_DECLARATION(DataManager);
+
 	public:
+		DataManager();
+		virtual ~DataManager() = default;
 
 		/** Get data stream from specified resource name.
 			@param _name Resource name (usually file name).
 		*/
-		virtual IDataStream* getData(const std::string& _name) = 0;
+		virtual IDataStream* getData(const std::string& _name) const = 0;
+
+		/** Open a resource and own its stream until the returned holder is destroyed.
+			Returns an empty holder if getData() returns nullptr.
+		*/
+		[[nodiscard]] DataStreamHolder getDataHolder(const std::string& _name) const;
+
+		/** Free data stream.
+			@param _data Data stream.
+		*/
+		virtual void freeData(IDataStream* _data) = 0;
 
 		/** Is data with specified name exist.
 			@param _name Resource name.
 		*/
-		virtual bool isDataExist(const std::string& _name) = 0;
+		virtual bool isDataExist(const std::string& _name) const = 0;
 
 		/** Get all data names with names that matches pattern.
+			Overriding this method is optional, but may be useful in platform implementations.
 			@param _pattern Pattern to match (for example "*.layout").
 		*/
-		virtual const VectorString& getDataListNames(const std::string& _pattern) = 0;
+		virtual VectorString getDataListNames(const std::string& _pattern) const
+		{
+			return {};
+		}
 
 		/** Get full path to data.
+			Overriding this method is optional, but may be useful in platform implementations.
 			@param _name Resource name.
 			@return Return full path to specified data.
 			For example getDataPath("My.layout") might return "C:\path\to\project\data\My.layout"
 		*/
-		virtual const std::string& getDataPath(const std::string& _name) = 0;
+		virtual std::string getDataPath(const std::string& _name) const
+		{
+			return {};
+		}
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_DATA_MANAGER_H__
+#endif // MYGUI_DATA_MANAGER_H_

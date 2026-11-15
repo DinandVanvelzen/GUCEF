@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		George Evmenov
-	@date		06/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ResourceLayout.h"
 #include "MyGUI_CoordConverter.h"
@@ -28,14 +13,12 @@
 #include "MyGUI_Widget.h"
 #include "MyGUI_Gui.h"
 
+#include <pugixml.hpp>
+
 namespace MyGUI
 {
 
-	ResourceLayout::ResourceLayout()
-	{
-	}
-
-	ResourceLayout::ResourceLayout(xml::ElementPtr _node, const std::string& _fileName)
+	ResourceLayout::ResourceLayout(xml::ElementPtr _node, std::string_view _fileName)
 	{
 		// FIXME hardcoded version
 		deserialization(_node, Version(1, 0, 0));
@@ -48,63 +31,71 @@ namespace MyGUI
 
 		mLayoutData.clear();
 
-		xml::ElementEnumerator widget = _node->getElementEnumerator();
-		while (widget.next("Widget"))
+		for (auto widget : _node.node().children("Widget"))
 			mLayoutData.push_back(parseWidget(widget));
 	}
 
-	WidgetInfo ResourceLayout::parseWidget(xml::ElementEnumerator& _widget)
+	WidgetInfo ResourceLayout::parseWidget(xml::ElementPtr _widget)
 	{
 		WidgetInfo widgetInfo;
 
-		std::string tmp;
+		widgetInfo.type = _widget.node().attribute("type").value();
+		widgetInfo.skin = _widget.node().attribute("skin").value();
+		widgetInfo.layer = _widget.node().attribute("layer").value();
 
-		_widget->findAttribute("type", widgetInfo.type);
-		_widget->findAttribute("skin", widgetInfo.skin);
-		_widget->findAttribute("layer", widgetInfo.layer);
+		std::string_view tmp{_widget.node().attribute("align").value()};
+		if (!tmp.empty())
+			widgetInfo.align = Align::parse(tmp);
 
-		if (_widget->findAttribute("align", tmp)) widgetInfo.align = Align::parse(tmp);
+		widgetInfo.name = _widget.node().attribute("name").value();
 
-		_widget->findAttribute("name", widgetInfo.name);
+		tmp = _widget.node().attribute("style").value();
+		if (!tmp.empty())
+			widgetInfo.style = WidgetStyle::parse(tmp);
 
-		if (_widget->findAttribute("style", tmp)) widgetInfo.style = WidgetStyle::parse(tmp);
-
-		IntCoord coord;
-		if (_widget->findAttribute("position", tmp))
+		tmp = _widget.node().attribute("position").value();
+		if (!tmp.empty())
 		{
 			widgetInfo.intCoord = IntCoord::parse(tmp);
 			widgetInfo.positionType = WidgetInfo::Pixels;
 		}
-		else if (_widget->findAttribute("position_real", tmp))
+		else
 		{
-			widgetInfo.floatCoord = FloatCoord::parse(tmp);
-			widgetInfo.positionType = WidgetInfo::Relative;
+			tmp = _widget.node().attribute("position_real").value();
+			if (!tmp.empty())
+			{
+				widgetInfo.floatCoord = FloatCoord::parse(tmp);
+				widgetInfo.positionType = WidgetInfo::Relative;
+			}
 		}
 
-		// берем детей и крутимся
-		xml::ElementEnumerator node = _widget->getElementEnumerator();
-		while (node.next())
+		for (auto node : _widget.node())
 		{
-			if (node->getName() == "Widget")
+			if (node.name() == std::string_view("Widget"))
 			{
 				widgetInfo.childWidgetsInfo.push_back(parseWidget(node));
 			}
-			else if (node->getName() == "Property")
+			else if (node.name() == std::string_view("Property"))
 			{
-				widgetInfo.properties.push_back(PairString(node->findAttribute("key"), node->findAttribute("value")));
+				widgetInfo.properties.emplace_back(node.attribute("key").value(), node.attribute("value").value());
 			}
-			else if (node->getName() == "UserString")
+			else if (node.name() == std::string_view("UserString"))
 			{
-				widgetInfo.userStrings[node->findAttribute("key")] = node->findAttribute("value");
+				std::string_view key = node.attribute("key").value();
+				std::string_view value = node.attribute("value").value();
+				mapSet(widgetInfo.userStrings, key, value);
 			}
-			else if (node->getName() == "Controller")
+			else if (node.name() == std::string_view("Controller"))
 			{
 				ControllerInfo controllerInfo;
-				controllerInfo.type = node->findAttribute("type");
+				controllerInfo.type = node.attribute("type").value();
 
-				xml::ElementEnumerator prop = node->getElementEnumerator();
-				while (prop.next("Property"))
-					controllerInfo.properties[prop->findAttribute("key")] = prop->findAttribute("value");
+				for (auto prop : node.children("Property"))
+				{
+					std::string_view key = prop.attribute("key").value();
+					std::string_view value = prop.attribute("value").value();
+					mapSet(controllerInfo.properties, key, value);
+				}
 
 				widgetInfo.controllers.push_back(controllerInfo);
 			}
@@ -113,80 +104,122 @@ namespace MyGUI
 		return widgetInfo;
 	}
 
-	VectorWidgetPtr ResourceLayout::createLayout(const std::string& _prefix, Widget* _parent)
+	VectorWidgetPtr ResourceLayout::createLayout(std::string_view _prefix, Widget* _parent)
 	{
 		VectorWidgetPtr widgets;
 
-		for (VectorWidgetInfo::iterator iter = mLayoutData.begin(); iter != mLayoutData.end(); ++iter)
+		for (auto& iter : mLayoutData)
 		{
-			Widget* widget = createWidget(*iter, _prefix, _parent);
+			Widget* widget = createWidget(iter, _prefix, _parent);
 			widgets.push_back(widget);
 		}
 
 		return widgets;
 	}
 
-	Widget* ResourceLayout::createWidget(const WidgetInfo& _widgetInfo, const std::string& _prefix, Widget* _parent, bool _template)
+	Widget* ResourceLayout::createWidget(
+		const WidgetInfo& _widgetInfo,
+		std::string_view _prefix,
+		Widget* _parent,
+		bool _template)
 	{
-		std::string widgetName = _widgetInfo.name;
+		std::string widgetName;
 		WidgetStyle style = _widgetInfo.style;
-		std::string widgetLayer = _widgetInfo.layer;
+		std::string_view widgetLayer = _widgetInfo.layer;
 
-		if (!widgetName.empty()) widgetName = _prefix + widgetName;
+		if (!_widgetInfo.name.empty())
+		{
+			widgetName = _prefix;
+			widgetName += _widgetInfo.name;
+		}
 
-		if (_parent != nullptr && style != WidgetStyle::Popup) widgetLayer.clear();
+		if (_parent != nullptr && style != WidgetStyle::Popup)
+			widgetLayer = {};
+		if (_parent == nullptr && widgetLayer.empty())
+		{
+			MYGUI_LOG(
+				Warning,
+				"Root widget's layer is not specified, widget won't be visible. Specify layer or parent or attach it "
+				"to another widget after load."
+					<< " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+		}
 
 		IntCoord coord;
-		if (_widgetInfo.positionType == WidgetInfo::Pixels) coord = _widgetInfo.intCoord;
+		if (_widgetInfo.positionType == WidgetInfo::Pixels)
+			coord = _widgetInfo.intCoord;
 		else if (_widgetInfo.positionType == WidgetInfo::Relative)
 		{
 			if (_parent == nullptr || style == WidgetStyle::Popup)
-				coord = CoordConverter::convertFromRelative(_widgetInfo.floatCoord, RenderManager::getInstance().getViewSize());
+				coord = CoordConverter::convertFromRelative(
+					_widgetInfo.floatCoord,
+					RenderManager::getInstance().getViewSize());
 			else
 				coord = CoordConverter::convertFromRelative(_widgetInfo.floatCoord, _parent->getClientCoord().size());
 		}
 
 		Widget* wid;
 		if (nullptr == _parent)
-			wid = Gui::getInstance().createWidgetT(_widgetInfo.type, _widgetInfo.skin, coord, _widgetInfo.align, widgetLayer, widgetName);
+			wid = Gui::getInstance().createWidgetT(
+				_widgetInfo.type,
+				_widgetInfo.skin,
+				coord,
+				_widgetInfo.align,
+				widgetLayer,
+				widgetName);
 		else if (_template)
-			wid = _parent->_createSkinWidget(style, _widgetInfo.type, _widgetInfo.skin, coord, _widgetInfo.align, widgetLayer, widgetName);
+			wid = _parent->_createSkinWidget(
+				style,
+				_widgetInfo.type,
+				_widgetInfo.skin,
+				coord,
+				_widgetInfo.align,
+				widgetLayer,
+				widgetName);
 		else
-			wid = _parent->createWidgetT(style, _widgetInfo.type, _widgetInfo.skin, coord, _widgetInfo.align, widgetLayer, widgetName);
+			wid = _parent->createWidgetT(
+				style,
+				_widgetInfo.type,
+				_widgetInfo.skin,
+				coord,
+				_widgetInfo.align,
+				widgetLayer,
+				widgetName);
 
-		for (VectorStringPairs::const_iterator iter = _widgetInfo.properties.begin(); iter != _widgetInfo.properties.end(); ++iter)
+		for (const auto& property : _widgetInfo.properties)
 		{
-			wid->setProperty(iter->first, iter->second);
+			wid->setProperty(property.first, property.second);
 		}
 
-		for (MapString::const_iterator iter = _widgetInfo.userStrings.begin(); iter != _widgetInfo.userStrings.end(); ++iter)
+		for (const auto& userString : _widgetInfo.userStrings)
 		{
-			wid->setUserString(iter->first, iter->second);
+			wid->setUserString(userString.first, userString.second);
 			if (!_template)
-				LayoutManager::getInstance().eventAddUserString(wid, iter->first, iter->second);
+				LayoutManager::getInstance().eventAddUserString(wid, userString.first, userString.second);
 		}
 
-		for (VectorWidgetInfo::const_iterator iter = _widgetInfo.childWidgetsInfo.begin(); iter != _widgetInfo.childWidgetsInfo.end(); ++iter)
+		for (const auto& iter : _widgetInfo.childWidgetsInfo)
 		{
-			createWidget(*iter, _prefix, wid);
+			createWidget(iter, _prefix, wid);
 		}
 
-		for (std::vector<ControllerInfo>::const_iterator iter = _widgetInfo.controllers.begin(); iter != _widgetInfo.controllers.end(); ++iter)
+		for (const auto& iter : _widgetInfo.controllers)
 		{
-			MyGUI::ControllerItem* item = MyGUI::ControllerManager::getInstance().createItem(iter->type);
+			MyGUI::ControllerItem* item = MyGUI::ControllerManager::getInstance().createItem(iter.type);
 			if (item)
 			{
-				for (MapString::const_iterator iterProp = iter->properties.begin(); iterProp != iter->properties.end(); ++iterProp)
+				for (const auto& property : iter.properties)
 				{
-					item->setProperty(iterProp->first, iterProp->second);
+					item->setProperty(property.first, property.second);
 				}
 				MyGUI::ControllerManager::getInstance().addItem(wid, item);
 			}
 			else
 			{
-				MYGUI_LOG(Warning, "Controller '" << iter->type << "' not found");
+				MYGUI_LOG(Warning, "Controller '" << iter.type << "' not found");
 			}
 		}
+
+		LayoutManager::getInstance().eventCreateWidget(wid, _widgetInfo);
 
 		return wid;
 	}

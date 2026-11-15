@@ -1,24 +1,8 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
-
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_LayerItem.h"
@@ -26,39 +10,48 @@
 #include "MyGUI_LayerNode.h"
 #include "MyGUI_RenderManager.h"
 
+#include <pugixml.hpp>
+
 namespace MyGUI
 {
 
-	SharedLayer::SharedLayer() :
-		mIsPick(false),
-		mChildItem(nullptr),
-		mOutOfDate(false)
+	SharedLayer::SharedLayer()
 	{
+		mViewSize = RenderManager::getInstance().getViewSize();
 	}
 
 	SharedLayer::~SharedLayer()
 	{
-		MYGUI_ASSERT(mChildItem == nullptr, "Layer '" << getName() << "' must be empty before destroy");
+		if (mChildItem != nullptr)
+			MYGUI_LOG(Critical, "Layer '" << getName() << "' must be empty before destroy");
 	}
 
 	void SharedLayer::deserialization(xml::ElementPtr _node, Version _version)
 	{
-		mName = _node->findAttribute("name");
+		mName = _node.node().attribute("name").value();
 		if (_version >= Version(1, 2))
 		{
-			MyGUI::xml::ElementEnumerator propert = _node->getElementEnumerator();
-			while (propert.next("Property"))
+			for (auto propert : _node.node().children("Property"))
 			{
-				const std::string& key = propert->findAttribute("key");
-				const std::string& value = propert->findAttribute("value");
+				std::string_view key = propert.attribute("key").value();
+				std::string_view value = propert.attribute("value").value();
 				if (key == "Pick")
-					mIsPick = utility::parseValue<bool>(value);
+					setPick(utility::parseValue<bool>(value));
 			}
+		}
+		else if (_version >= Version(1, 0))
+		{
+			setPick(utility::parseBool(_node.node().attribute("pick").value()));
 		}
 		else
 		{
-			mIsPick = utility::parseBool(_version < Version(1, 0) ? _node->findAttribute("peek") : _node->findAttribute("pick"));
+			setPick(utility::parseBool(_node.node().attribute("peek").value()));
 		}
+	}
+
+	void SharedLayer::setPick(bool _pick)
+	{
+		mIsPick = _pick;
 	}
 
 	ILayerNode* SharedLayer::createChildItemNode()
@@ -70,12 +63,15 @@ namespace MyGUI
 
 		mOutOfDate = true;
 
+		mChildItems.clear();
+		mChildItems.push_back(mChildItem);
+
 		return mChildItem;
 	}
 
 	void SharedLayer::destroyChildItemNode(ILayerNode* _item)
 	{
-		// айтем рутовый, мы удаляем
+		// item is root, we delete
 		if (mChildItem == _item)
 		{
 			mChildItem->removeUsing();
@@ -87,6 +83,8 @@ namespace MyGUI
 
 			mOutOfDate = true;
 
+			mChildItems.clear();
+
 			return;
 		}
 		//MYGUI_EXCEPT("item node not found");
@@ -94,7 +92,7 @@ namespace MyGUI
 
 	void SharedLayer::upChildItemNode(ILayerNode* _item)
 	{
-		// если есть отец, то пусть сам рулит
+		// if has a parent, let it manage itself
 		ILayerNode* parent = _item->getParent();
 		if (parent != nullptr)
 			parent->upChildItemNode(_item);
@@ -118,7 +116,7 @@ namespace MyGUI
 
 	IntPoint SharedLayer::getPosition(int _left, int _top) const
 	{
-		return IntPoint(_left, _top);
+		return {_left, _top};
 	}
 
 	void SharedLayer::renderToTarget(IRenderTarget* _target, bool _update)
@@ -129,27 +127,35 @@ namespace MyGUI
 		mOutOfDate = false;
 	}
 
-	EnumeratorILayerNode SharedLayer::getEnumerator() const
+	void SharedLayer::resizeView(const IntSize& _viewSize)
 	{
-		static VectorILayerNode nodes;
-		if (mChildItem == nullptr)
-		{
-			nodes.clear();
-		}
-		else
-		{
-			if (nodes.empty())
-				nodes.push_back(mChildItem);
-			else
-				nodes[0] = mChildItem;
-		}
+		if (mChildItem != nullptr)
+			mChildItem->resizeView(_viewSize);
 
-		return EnumeratorILayerNode(nodes);
+		mViewSize = _viewSize;
+	}
+
+	const VectorILayerNode& SharedLayer::getChildItems() const
+	{
+		return mChildItems;
+	}
+
+	size_t SharedLayer::getLayerNodeCount() const
+	{
+		return mChildItem == nullptr ? 0 : 1;
+	}
+
+	ILayerNode* SharedLayer::getLayerNodeAt(size_t _index) const
+	{
+		size_t count = getLayerNodeCount();
+		MYGUI_ASSERT_RANGE(_index, count, "SharedLayer::getLayerNodeAt");
+
+		return mChildItem;
 	}
 
 	const IntSize& SharedLayer::getSize() const
 	{
-		return RenderManager::getInstance().getViewSize();
+		return mViewSize;
 	}
 
 	bool SharedLayer::isOutOfDate() const

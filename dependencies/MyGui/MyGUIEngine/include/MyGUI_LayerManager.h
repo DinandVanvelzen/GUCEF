@@ -1,30 +1,14 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_LAYER_MANAGER_H__
-#define __MYGUI_LAYER_MANAGER_H__
+#ifndef MYGUI_LAYER_MANAGER_H_
+#define MYGUI_LAYER_MANAGER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Singleton.h"
-#include "MyGUI_Enumerator.h"
 #include "MyGUI_XmlDocument.h"
 #include "MyGUI_IUnlinkWidget.h"
 #include "MyGUI_ResourceManager.h"
@@ -34,14 +18,12 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT LayerManager :
-		public Singleton<LayerManager>,
-		public IUnlinkWidget,
-		public MemberObsolete<LayerManager>
+	class MYGUI_EXPORT LayerManager : public IUnlinkWidget, public MemberObsolete<LayerManager>
 	{
+		MYGUI_SINGLETON_DECLARATION(LayerManager);
+
 	public:
-		typedef std::vector<ILayer*> VectorLayer;
-		typedef Enumerator<VectorLayer> EnumeratorLayer;
+		using VectorLayer = std::vector<ILayer*>;
 
 	public:
 		LayerManager();
@@ -53,7 +35,7 @@ namespace MyGUI
 			@param _name Layer name
 			@param _item Widget pointer
 		*/
-		void attachToLayerNode(const std::string& _name, Widget* _item);
+		void attachToLayerNode(std::string_view _name, Widget* _item);
 		/** Detach widget from layer
 			@param _item Widget pointer
 		*/
@@ -65,22 +47,42 @@ namespace MyGUI
 		void upLayerItem(Widget* _item);
 
 		/** Check is layer exist */
-		bool isExist(const std::string& _name) const;
-		/** Get layer nodes Enumerator */
-		EnumeratorLayer getEnumerator() const;
+		bool isExist(std::string_view _name) const;
+		/** Get layer nodes */
+		const VectorLayer& getLayers() const;
+
+		/** Create new layer;
+			@param _name Layer name
+			@param _type Could be OverlappedLayer, SharedLayer or any custom registered layer type.
+			@param _index New layer will be placed before old layer with given index.
+		*/
+		ILayer* createLayerAt(std::string_view _name, std::string_view _type, size_t _index);
+
+		/** Destroy layer by name */
+		void destroyLayer(std::string_view _name);
 
 		/** Get layer by name */
-		ILayer* getByName(const std::string& _name, bool _throw = true) const;
+		ILayer* getByName(std::string_view _name, bool _throw = true) const;
+
+		size_t getLayerCount() const;
+
+		ILayer* getLayer(size_t _index) const;
 
 		/** Get top visible and enabled widget at specified position */
-		Widget* getWidgetFromPoint(int _left, int _top);
+		Widget* getWidgetFromPoint(int _left, int _top) const;
 
 		/** Render all layers to specified target */
 		void renderToTarget(IRenderTarget* _target, bool _update);
 
+		void resizeView(const IntSize& _viewSize);
+
+		const std::string& getCategoryName() const;
+
 	private:
-		void _load(xml::ElementPtr _node, const std::string& _file, Version _version);
-		void _unlinkWidget(Widget* _widget);
+		void _load(xml::ElementPtr _node, std::string_view _file, Version _version);
+		void _unlinkWidget(Widget* _widget) override;
+
+		ILayer* _createLayerObject(std::string_view _type);
 
 		void clear();
 
@@ -90,9 +92,10 @@ namespace MyGUI
 	private:
 		VectorLayer mLayerNodes;
 
-		bool mIsInitialise;
+		bool mIsInitialise{false};
+		std::string mCategoryName;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_LAYER_MANAGER_H__
+#endif // MYGUI_LAYER_MANAGER_H_

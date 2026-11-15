@@ -1,0 +1,5 @@
+<ModuleInfoEntry>
+    <Module Name="MyGUI.Common.FileSystemInfo" Type="HeaderIncludeLocation" ConsiderSubDirs="False" Platform="All">
+        <Compiler MinCppStandard="17" />
+    </Module>
+</ModuleInfoEntry>

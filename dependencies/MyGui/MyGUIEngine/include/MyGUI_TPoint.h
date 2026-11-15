@@ -1,176 +1,124 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_TPONT_H__
-#define __MYGUI_TPONT_H__
+#ifndef MYGUI_TPONT_H_
+#define MYGUI_TPONT_H_
 
 #include "MyGUI_Prerequest.h"
+#include "MyGUI_StringUtility.h"
 
-namespace MyGUI
+namespace MyGUI::types
 {
-	namespace types
+
+	template<typename T>
+	struct TPoint
 	{
+		T left{};
+		T top{};
 
-		template<typename T>
-		struct TPoint
+		TPoint() = default;
+
+		TPoint(T const& _left, T const& _top) :
+			left(_left),
+			top(_top)
 		{
-			T left;
-			T top;
+		}
 
-			TPoint() :
-				left(0),
-				top(0)
-			{
-			}
+		TPoint& operator-=(TPoint const& _obj)
+		{
+			left -= _obj.left;
+			top -= _obj.top;
+			return *this;
+		}
 
-			TPoint(T const& _left, T const& _top) :
-				left(_left),
-				top(_top)
-			{
-			}
+		TPoint& operator+=(TPoint const& _obj)
+		{
+			left += _obj.left;
+			top += _obj.top;
+			return *this;
+		}
 
-			TPoint(TPoint const& _obj) :
-				left(_obj.left),
-				top(_obj.top)
-			{
-			}
+		TPoint operator-(TPoint const& _obj) const
+		{
+			return TPoint(left - _obj.left, top - _obj.top);
+		}
 
-			TPoint& operator -= (TPoint const& _obj)
-			{
-				left -= _obj.left;
-				top -= _obj.top;
-				return *this;
-			}
+		TPoint operator+(TPoint const& _obj) const
+		{
+			return TPoint(left + _obj.left, top + _obj.top);
+		}
 
-			TPoint& operator += (TPoint const& _obj)
-			{
-				left += _obj.left;
-				top += _obj.top;
-				return *this;
-			}
+		template<typename U>
+		TPoint& operator=(TPoint<U> const& _obj)
+		{
+			left = _obj.left;
+			top = _obj.top;
+			return *this;
+		}
 
-			TPoint operator - (TPoint const& _obj) const
-			{
-				return TPoint(left - _obj.left, top - _obj.top);
-			}
+		bool operator==(TPoint const& _obj) const
+		{
+			return ((left == _obj.left) && (top == _obj.top));
+		}
 
-			TPoint operator + (TPoint const& _obj) const
-			{
-				return TPoint(left + _obj.left, top + _obj.top);
-			}
+		bool operator!=(TPoint const& _obj) const
+		{
+			return !((left == _obj.left) && (top == _obj.top));
+		}
 
-			TPoint& operator = (TPoint const& _obj)
-			{
-				left = _obj.left;
-				top = _obj.top;
-				return *this;
-			}
+		void clear()
+		{
+			left = top = 0;
+		}
 
-			template<typename U>
-			TPoint& operator = (TPoint<U> const& _obj)
-			{
-				left = _obj.left;
-				top = _obj.top;
-				return *this;
-			}
+		void set(T const& _left, T const& _top)
+		{
+			left = _left;
+			top = _top;
+		}
 
-			bool operator == (TPoint const& _obj) const
-			{
-				return ((left == _obj.left) && (top == _obj.top));
-			}
+		void swap(TPoint& _value)
+		{
+			TPoint tmp = _value;
+			_value = *this;
+			*this = tmp;
+		}
 
-			bool operator != (TPoint const& _obj) const
-			{
-				return ! ((left == _obj.left) && (top == _obj.top));
-			}
+		bool empty() const
+		{
+			return ((left == 0) && (top == 0));
+		}
 
-			void clear()
-			{
-				left = top = 0;
-			}
+		std::string print() const
+		{
+			std::ostringstream stream;
+			stream << *this;
+			return stream.str();
+		}
 
-			void set(T const& _left, T const& _top)
-			{
-				left = _left;
-				top = _top;
-			}
+		static TPoint<T> parse(std::string_view _value)
+		{
+			return utility::parseValue<TPoint<T>>(_value);
+		}
 
-			void swap(TPoint& _value)
-			{
-				TPoint tmp = _value;
-				_value = *this;
-				*this = tmp;
-			}
+		friend std::ostream& operator<<(std::ostream& _stream, const TPoint<T>& _value)
+		{
+			_stream << _value.left << " " << _value.top;
+			return _stream;
+		}
 
-			bool empty() const
-			{
-				return ((left == 0) && (top == 0));
-			}
-
-			std::string print() const
-			{
-				std::ostringstream stream;
-				stream << *this;
-				return stream.str();
-			}
-
-			static TPoint<T> parse(const std::string& _value)
-			{
-				TPoint<T> result;
-				std::istringstream stream(_value);
-				stream >> result.left >> result.top;
-				if (stream.fail())
-				{
-					return TPoint<T>();
-				}
-				else
-				{
-					int item = stream.get();
-					while (item != -1)
-					{
-						if (item != ' ' && item != '\t')
-							return TPoint<T>();
-						item = stream.get();
-					}
-				}
-				return result;
-			}
-
-			friend std::ostream& operator << (std::ostream& _stream, const TPoint<T>&  _value)
-			{
-				_stream << _value.left << " " << _value.top;
-				return _stream;
-			}
-
-			friend std::istream& operator >> (std::istream& _stream, TPoint<T>&  _value)
-			{
-				_stream >> _value.left >> _value.top;
-				if (_stream.fail())
-					_value.clear();
-				return _stream;
-			}
-		};
-
-	} // namespace types
+		friend std::istream& operator>>(std::istream& _stream, TPoint<T>& _value)
+		{
+			_stream >> _value.left >> _value.top;
+			if (_stream.fail())
+				_value.clear();
+			return _stream;
+		}
+	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_TPONT_H__
+#endif // MYGUI_TPONT_H_

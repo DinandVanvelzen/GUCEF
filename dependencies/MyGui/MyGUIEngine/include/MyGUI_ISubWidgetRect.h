@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_SUB_WIDGET_RECT_H__
-#define __MYGUI_I_SUB_WIDGET_RECT_H__
+#ifndef MYGUI_I_SUB_WIDGET_RECT_H_
+#define MYGUI_I_SUB_WIDGET_RECT_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_ISubWidget.h"
@@ -29,18 +14,19 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT ISubWidgetRect :
-		public ISubWidget
+	class MYGUI_EXPORT ISubWidgetRect : public ISubWidget
 	{
-		MYGUI_RTTI_DERIVED( ISubWidgetRect )
+		MYGUI_RTTI_DERIVED(ISubWidgetRect)
 
 	public:
-		virtual ~ISubWidgetRect() { }
-
-		virtual void _setUVSet(const FloatRect& _rect) { }
-		virtual void _setColour(const Colour& _value) { }
+		virtual void _setUVSet(const FloatRect& /*_rect*/)
+		{
+		}
+		virtual void _setColour(const Colour& /*_value*/)
+		{
+		}
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_SUB_WIDGET_RECT_H__
+#endif // MYGUI_I_SUB_WIDGET_RECT_H_

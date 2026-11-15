@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_LIST_BOX_H__
-#define __MYGUI_LIST_BOX_H__
+#ifndef MYGUI_LIST_BOX_H_
+#define MYGUI_LIST_BOX_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Button.h"
@@ -28,25 +13,28 @@
 #include "MyGUI_EventPair.h"
 #include "MyGUI_IItem.h"
 #include "MyGUI_IItemContainer.h"
+#include "MyGUI_IBItemInfo.h"
 
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate2<ListBox*, size_t> EventHandle_ListPtrSizeT;
+	using EventHandle_ListPtrSizeT = delegates::MultiDelegate<ListBox*, size_t>;
+	using EventHandle_ListBoxPtrCIBNotifyCellDataRef = delegates::MultiDelegate<ListBox*, const IBNotifyItemData&>;
 
-	class MYGUI_EXPORT ListBox :
-		public Widget,
-		public IItemContainer,
-		public MemberObsolete<ListBox>
+	/** \brief @wpage{ListBox}
+		ListBox widget description should be here.
+	*/
+	class MYGUI_EXPORT ListBox : public Widget, public IItemContainer, public MemberObsolete<ListBox>
 	{
-		MYGUI_RTTI_DERIVED( ListBox )
+		MYGUI_RTTI_DERIVED(ListBox)
 
 	public:
-		ListBox();
-
 		//------------------------------------------------------------------------------//
-		// манипуляции айтемами
 
+		/** @name Item Methods.
+			Methods used to manipulate items.
+		*/
+		//@{
 		//! Get number of items
 		size_t getItemCount() const;
 
@@ -68,11 +56,14 @@ namespace MyGUI
 
 		//! Search item, returns the position of the first occurrence in array or ITEM_NONE if item not found
 		size_t findItemIndexWith(const UString& _name);
-
+		//@}
 
 		//------------------------------------------------------------------------------//
-		// манипуляции выделениями
 
+		/** @name Item Selection Methods
+			Methods used to manipulate item selection.
+		*/
+		//@{
 		/** Get index of selected item (ITEM_NONE if none selected) */
 		size_t getIndexSelected() const;
 
@@ -81,11 +72,14 @@ namespace MyGUI
 
 		/** Clear item selection */
 		void clearIndexSelected();
-
+		//@}
 
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
+		/** @name Item Data Methods
+			Methods used to manipulate item user data.
+		*/
+		//@{
 		//! Replace an item data at a specified position
 		void setItemDataAt(size_t _index, Any _data);
 
@@ -93,27 +87,36 @@ namespace MyGUI
 		void clearItemDataAt(size_t _index);
 
 		//! Get item data from specified position
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getItemDataAt(size_t _index, bool _throw = true)
 		{
 			MYGUI_ASSERT_RANGE(_index, mItemsInfo.size(), "ListBox::getItemDataAt");
-			return mItemsInfo[_index].second.castType<ValueType>(_throw);
+			return mItemsInfo.at(_index).second.castType<ValueType>(_throw);
 		}
 
+		template<typename ValueType>
+		const ValueType* getItemDataAt(size_t _index, bool _throw = true) const
+		{
+			MYGUI_ASSERT_RANGE(_index, mItemsInfo.size(), "ListBox::getItemDataAt");
+			return mItemsInfo.at(_index).second.castType<ValueType>(_throw);
+		}
+		//@}
 
 		//------------------------------------------------------------------------------//
-		// манипуляции отображением
 
 		//! Replace an item name at a specified position
 		void setItemNameAt(size_t _index, const UString& _name);
 
 		//! Get item name from specified position
-		const UString& getItemNameAt(size_t _index);
+		const UString& getItemNameAt(size_t _index) const;
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции выдимостью
 
+		/** @name Item Visibility Methods
+			Methods used to determine and manipulate item visibility.
+		*/
+		//@{
 		//! Move all elements so specified becomes visible
 		void beginToItemAt(size_t _index);
 
@@ -128,7 +131,6 @@ namespace MyGUI
 
 		//------------------------------------------------------------------------------//
 
-		// видим ли мы элемент, полностью или нет
 		/** Return true if item visible
 			@param
 				_index of item
@@ -146,151 +148,184 @@ namespace MyGUI
 		void setScrollVisible(bool _visible);
 		//! Set scroll position
 		void setScrollPosition(size_t _position);
+		//@}
 
 		//------------------------------------------------------------------------------------//
 
-		//! @copydoc Widget::setPosition(const IntPoint& _value)
-		virtual void setPosition(const IntPoint& _value);
-		//! @copydoc Widget::setSize(const IntSize& _value)
-		virtual void setSize(const IntSize& _value);
-		//! @copydoc Widget::setCoord(const IntCoord& _value)
-		virtual void setCoord(const IntCoord& _value);
+		/** @name Widget Methods
+			Methods used to manipulate the widget's settings.
+		*/
+		//@{
+		//! @copydoc Widget::setPosition(const IntPoint& _point)
+		void setPosition(const IntPoint& _point) override;
+		//! @copydoc Widget::setSize(const IntSize& _size)
+		void setSize(const IntSize& _size) override;
+		//! @copydoc Widget::setCoord(const IntCoord& _coord)
+		void setCoord(const IntCoord& _coord) override;
 
-		/** @copydoc Widget::setPosition(int _left, int _top) */
-		void setPosition(int _left, int _top);
-		/** @copydoc Widget::setSize(int _width, int _height) */
-		void setSize(int _width, int _height);
-		/** @copydoc Widget::setCoord(int _left, int _top, int _width, int _height) */
-		void setCoord(int _left, int _top, int _width, int _height);
+		using Widget::setPosition;
+		using Widget::setSize;
+		using Widget::setCoord;
+		//@}
 
-		// возвращает максимальную высоту вмещающую все строки и родительский бордюр
+		/** Set the height of all items in pixels and update the layout immediately.
+			Values below 1 are clamped to 1. The pixel scroll position is preserved where possible.
+		*/
+		void setItemHeight(int _height);
+		//! Return the height of each item in pixels.
+		int getItemHeight() const;
+
 		//! Return optimal height to fit all items in ListBox
-		int getOptimalHeight();
+		int getOptimalHeight() const;
 
-	/*events:*/
+		/** Enable "Activate on click" mode that requires a full mouse click (press and release)
+			to activate an item. By default, items are activated on mouse press.
+		*/
+		void setActivateOnClick(bool activateOnClick);
+
+		/** Get item Widget pointer by item index if it is visible
+			@note returned widget can be deleted, so this pointer
+			is valid only at time when you got it and can be invalid
+			next frame
+		*/
+		Widget* getWidgetByIndex(size_t _index);
+
+		/*events:*/
 		/** Event : Enter pressed or double click.\n
 			signature : void method(MyGUI::ListBox* _sender, size_t _index)\n
 			@param _sender widget that called this event
 			@param _index of selected item
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT>
-			eventListSelectAccept;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT> eventListSelectAccept;
 
 		/** Event : Selected item position changed.\n
 			signature : void method(MyGUI::ListBox* _sender, size_t _index)\n
 			@param _sender widget that called this event
 			@param _index of new item
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT>
-			eventListChangePosition;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT> eventListChangePosition;
 
 		/** Event : Item was selected by mouse.\n
 			signature : void method(MyGUI::ListBox* _sender, size_t _index)\n
 			@param _sender widget that called this event
-			@param _index of selected item
+			@param _index index of selected item
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT>
-			eventListMouseItemActivate;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT> eventListMouseItemActivate;
 
 		/** Event : Mouse is over item.\n
 			signature : void method(MyGUI::ListBox* _sender, size_t _index)\n
 			@param _sender widget that called this event
 			@param _index of focused item
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT>
-			eventListMouseItemFocus;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT> eventListMouseItemFocus;
 
 		/** Event : Position of scroll changed.\n
 			signature : void method(MyGUI::ListBox* _sender, size_t _position)\n
 			@param _sender widget that called this event
 			@param _position of scroll
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT>
-			eventListChangeScroll;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_ListPtrSizeT> eventListChangeScroll;
 
-	/*internal:*/
-		// дебажная проверка на правильность выравнивания списка
+		/** Event : Notify about event in item widget.\n
+			signature : void method(MyGUI::ListBox* _sender, const MyGUI::IBNotifyItemData& _info)
+			@param _sender widget that called this event
+			@param _info info about item notify
+		*/
+		EventHandle_ListBoxPtrCIBNotifyCellDataRef eventNotifyItem;
+
+		/*internal:*/
+		/** \internal @name Internal
+			Internal use methods.
+		*/
+		//@{
+		// Debug check for proper list alignment
 		void _checkAlign();
 
-		// вспомогательные методы для составных списков
-		void _setItemFocus(size_t _position, bool _focus);
+		// Helper methods for compound/composite lists
+		size_t _getScrollPosition() const;
+		void _setItemFocus(size_t _index, bool _focus);
 		void _sendEventChangeScroll(size_t _position);
 
 		// IItemContainer impl
-		virtual size_t _getItemCount();
-		virtual void _addItem(const MyGUI::UString& _name);
-		virtual void _removeItemAt(size_t _index);
-		virtual void _setItemNameAt(size_t _index, const UString& _name);
-		virtual const UString& _getItemNameAt(size_t _index);
+		size_t _getItemCount() const override;
+		void _addItem(const MyGUI::UString& _name) override;
+		void _removeItemAt(size_t _index) override;
+		void _setItemNameAt(size_t _index, const UString& _name) override;
+		const UString& _getItemNameAt(size_t _index) const override;
 
-		virtual void _resetContainer(bool _update);
+		void _resetContainer(bool _update) override;
+		//@}
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		void onMouseWheel(int _rel);
-		void onKeyButtonPressed(KeyCode _key, Char _char);
+		void onMouseWheel(int _rel) override;
+		void onKeyButtonPressed(KeyCode _key, Char _char) override;
+		void onKeyButtonReleased(KeyCode _key) override;
 
-		void notifyScrollChangePosition(ScrollBar* _sender, size_t _rel);
+		void notifyScrollChangePosition(ScrollBar* _sender, size_t _position);
 		void notifyMousePressed(Widget* _sender, int _left, int _top, MouseButton _id);
+		void notifyMouseClick(Widget* _sender);
 		void notifyMouseDoubleClick(Widget* _sender);
 		void notifyMouseWheel(Widget* _sender, int _rel);
 		void notifyMouseSetFocus(Widget* _sender, Widget* _old);
 		void notifyMouseLostFocus(Widget* _sender, Widget* _new);
+		void notifyKeyButtonPressed(Widget* _sender, KeyCode _key, Char _char);
+		void notifyKeyButtonReleased(Widget* _sender, KeyCode _key);
+		void notifyMouseButtonReleased(Widget* _sender, int _left, int _top, MouseButton _id);
 
 		void updateScroll();
 		void updateLine(bool _reset = false);
+
+		void _activateItem(Widget* _sender);
+
 		void _setScrollView(size_t _position);
 
-		// перерисовывает от индекса до низа
+		// Redraw items from specified index to bottom
 		void _redrawItemRange(size_t _start = 0);
 
-		// перерисовывает индекс
 		void _redrawItem(size_t _index);
 
-		// ищет и выделяет елемент
+		// Find and select element
 		void _selectIndex(size_t _index, bool _select);
 
-		// метод для запроса номера айтема и контейнера
-		virtual size_t _getItemIndex(Widget* _item);
+		// Method for requesting item index from container
+		size_t _getItemIndex(Widget* _item) const override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
-		void _checkMapping(const std::string& _owner);
-
-		Widget* _getClientWidget();
+		size_t getIndexByWidget(Widget* _widget) const;
 
 	private:
 		std::string mSkinLine;
-		ScrollBar* mWidgetScroll;
+		ScrollBar* mWidgetScroll{nullptr};
 
-		// наши дети в строках
-		typedef std::vector<Button*> VectorButton;
+		// Button widgets representing list rows
+		using VectorButton = std::vector<Button*>;
 		VectorButton mWidgetLines;
 
-		int mHeightLine; // высота одной строки
-		int mTopIndex; // индекс самого верхнего элемента
-		int mOffsetTop; // текущее смещение
-		int mRangeIndex; // размерность скрола
-		size_t mLastRedrawLine; // последняя перерисованная линия
+		bool mActivateOnClick{false}; // Require a full mouse click rather than only mouse press to activate an item
 
-		size_t mIndexSelect; // текущий выделенный элемент или ITEM_NONE
-		size_t mLineActive; // текущий виджет над которым мыша
+		int mHeightLine{1};
+		int mTopIndex{0};
+		int mOffsetTop{0};
+		int mRangeIndex{-1};
+		size_t mLastRedrawLine{0};
 
-		typedef std::pair<UString, Any> PairItem;
-		typedef std::vector<PairItem> VectorItemInfo;
+		size_t mIndexSelect{ITEM_NONE};
+		size_t mLineActive{ITEM_NONE};
+
+		using PairItem = std::pair<UString, Any>;
+		using VectorItemInfo = std::vector<PairItem>;
 		VectorItemInfo mItemsInfo;
 
-		// имеем ли мы фокус ввода
-		bool mNeedVisibleScroll;
+		bool mNeedVisibleScroll{true};
 
 		IntSize mOldSize;
-
-		Widget* mClient;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_LIST_BOX_H__
+#endif // MYGUI_LIST_BOX_H_

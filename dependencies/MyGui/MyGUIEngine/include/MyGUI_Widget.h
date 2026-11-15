@@ -1,29 +1,15 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_WIDGET_H__
-#define __MYGUI_WIDGET_H__
+#ifndef MYGUI_WIDGET_H_
+#define MYGUI_WIDGET_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Any.h"
+#include "MyGUI_EventPair.h"
 #include "MyGUI_ICroppedRectangle.h"
 #include "MyGUI_WidgetUserData.h"
 #include "MyGUI_WidgetInput.h"
@@ -31,13 +17,22 @@
 #include "MyGUI_ResourceLayout.h"
 #include "MyGUI_IObject.h"
 #include "MyGUI_SkinItem.h"
+#include "MyGUI_WidgetContainer.h"
 #include "MyGUI_BackwardCompatibility.h"
 
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate3<Widget*, const std::string&, const std::string&> EventHandle_WidgetStringString;
+	struct Vertex;
+	struct RenderTargetInfo;
 
+	using EventHandle_WidgetStringString = EventPairConvertStringView<
+		delegates::MultiDelegate<Widget*, const std::string&, const std::string&>,
+		delegates::MultiDelegate<Widget*, std::string_view, std::string_view>>;
+
+	/** \brief @wpage{Widget}
+		Widget widget description should be here.
+	*/
 	class MYGUI_EXPORT Widget :
 		public IObject,
 		public ICroppedRectangle,
@@ -45,12 +40,13 @@ namespace MyGUI
 		public WidgetInput,
 		public delegates::IDelegateUnlink,
 		public SkinItem,
+		public WidgetContainer,
 		public MemberObsolete<Widget>
 	{
-		// для вызова закрытых деструкторов
+		// To call private destructors
 		friend class WidgetManager;
 
-		MYGUI_RTTI_DERIVED( Widget )
+		MYGUI_RTTI_DERIVED(Widget)
 
 	public:
 		Widget();
@@ -62,44 +58,86 @@ namespace MyGUI
 			@param _align widget align (possible values can be found in enum Align)
 			@param _name if needed (you can use it for finding widget by name later)
 		*/
-		Widget* createWidgetT(const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _name = "");
+		Widget* createWidgetT(
+			std::string_view _type,
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _name = {});
 
-		/** See Widget::createWidgetT(const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _name = "") */
-		Widget* createWidgetT(const std::string& _type, const std::string& _skin, int _left, int _top, int _width, int _height, Align _align, const std::string& _name = "");
+		/** See Widget::createWidgetT(std::string_view _type, std::string_view _skin, const IntCoord& _coord, Align _align, std::string_view _name = {}) */
+		Widget* createWidgetT(
+			std::string_view _type,
+			std::string_view _skin,
+			int _left,
+			int _top,
+			int _width,
+			int _height,
+			Align _align,
+			std::string_view _name = {});
 
-		/** Create widget using coordinates relative to parent. see Widget::createWidgetT(const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _name = "") */
-		Widget* createWidgetRealT(const std::string& _type, const std::string& _skin, const FloatCoord& _coord, Align _align, const std::string& _name = "");
+		/** Create widget using coordinates relative to parent. see Widget::createWidgetT(std::string_view _type, std::string_view _skin, const IntCoord& _coord, Align _align, std::string_view _name = {}) */
+		Widget* createWidgetRealT(
+			std::string_view _type,
+			std::string_view _skin,
+			const FloatCoord& _coord,
+			Align _align,
+			std::string_view _name = {});
 
-		/** Create widget using coordinates relative to parent. see Widget::createWidgetT(const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _name = "") */
-		Widget* createWidgetRealT(const std::string& _type, const std::string& _skin, float _left, float _top, float _width, float _height, Align _align, const std::string& _name = "");
+		/** Create widget using coordinates relative to parent. see Widget::createWidgetT(std::string_view _type, std::string_view _skin, const IntCoord& _coord, Align _align, std::string_view _name = {}) */
+		Widget* createWidgetRealT(
+			std::string_view _type,
+			std::string_view _skin,
+			float _left,
+			float _top,
+			float _width,
+			float _height,
+			Align _align,
+			std::string_view _name = {});
 
 		// templates for creating widgets by type
 		/** Same as Widget::createWidgetT but return T pointer instead of Widget* */
-		template <typename T>
-		T* createWidget(const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _name = "")
+		template<typename T>
+		T* createWidget(std::string_view _skin, const IntCoord& _coord, Align _align, std::string_view _name = {})
 		{
 			return static_cast<T*>(createWidgetT(T::getClassTypeName(), _skin, _coord, _align, _name));
 		}
 
 		/** Same as Widget::createWidgetT but return T pointer instead of Widget* */
-		template <typename T>
-		T* createWidget(const std::string& _skin, int _left, int _top, int _width, int _height, Align _align, const std::string& _name = "")
+		template<typename T>
+		T* createWidget(
+			std::string_view _skin,
+			int _left,
+			int _top,
+			int _width,
+			int _height,
+			Align _align,
+			std::string_view _name = {})
 		{
-			return static_cast<T*>(createWidgetT(T::getClassTypeName(), _skin, IntCoord(_left, _top, _width, _height), _align, _name));
+			return static_cast<T*>(
+				createWidgetT(T::getClassTypeName(), _skin, IntCoord(_left, _top, _width, _height), _align, _name));
 		}
 
 		/** Same as Widget::createWidgetRealT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidgetReal(const std::string& _skin, const FloatCoord& _coord, Align _align, const std::string& _name = "")
+		template<typename T>
+		T* createWidgetReal(std::string_view _skin, const FloatCoord& _coord, Align _align, std::string_view _name = {})
 		{
 			return static_cast<T*>(createWidgetRealT(T::getClassTypeName(), _skin, _coord, _align, _name));
 		}
 
 		/** Same as Widget::createWidgetRealT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidgetReal(const std::string& _skin, float _left, float _top, float _width, float _height, Align _align, const std::string& _name = "")
+		template<typename T>
+		T* createWidgetReal(
+			std::string_view _skin,
+			float _left,
+			float _top,
+			float _width,
+			float _height,
+			Align _align,
+			std::string_view _name = {})
 		{
-			return static_cast<T*>(createWidgetRealT(T::getClassTypeName(), _skin, _left, _top, _width, _height, _align, _name));
+			return static_cast<T*>(
+				createWidgetRealT(T::getClassTypeName(), _skin, _left, _top, _width, _height, _align, _name));
 		}
 
 		/** Create child widget
@@ -111,21 +149,34 @@ namespace MyGUI
 			@param _layer layer where widget will be created (all layers usually defined in core_layer.xml file).
 			@param _name optional widget name (you can use it for finding widget by name later)
 		*/
-		Widget* createWidgetT(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer = "", const std::string& _name = "");
+		Widget* createWidgetT(
+			WidgetStyle _style,
+			std::string_view _type,
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _layer = {},
+			std::string_view _name = {});
 
 		/** Same as Widget::createWidgetT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidget(WidgetStyle _style, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer = "", const std::string& _name = "")
+		template<typename T>
+		T* createWidget(
+			WidgetStyle _style,
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _layer = {},
+			std::string_view _name = {})
 		{
 			return static_cast<T*>(createWidgetT(_style, T::getClassTypeName(), _skin, _coord, _align, _layer, _name));
 		}
 
 		/** Set widget position (position of left top corner) */
-		virtual void setPosition(const IntPoint& _value);
+		void setPosition(const IntPoint& _point) override;
 		/** Set widget size */
-		virtual void setSize(const IntSize& _value);
+		void setSize(const IntSize& _size) override;
 		/** Set widget position and size */
-		virtual void setCoord(const IntCoord& _value);
+		void setCoord(const IntCoord& _coord) override;
 
 		/** See Widget::setPosition(const IntPoint& _pos) */
 		void setPosition(int _left, int _top);
@@ -135,11 +186,11 @@ namespace MyGUI
 		void setCoord(int _left, int _top, int _width, int _height);
 
 		/** Set widget position (position of left top corner)*/
-		void setRealPosition(const FloatPoint& _value);
+		void setRealPosition(const FloatPoint& _point);
 		/** Set widget size */
-		void setRealSize(const FloatSize& _value);
+		void setRealSize(const FloatSize& _size);
 		/** Set widget position and size*/
-		void setRealCoord(const FloatCoord& _value);
+		void setRealCoord(const FloatCoord& _coord);
 
 		/** See Widget::setRealPosition(const FloatPoint& _point) */
 		void setRealPosition(float _left, float _top);
@@ -156,6 +207,14 @@ namespace MyGUI
 		/** Return true if visible */
 		bool getVisible() const;
 
+		/** Set child widget rendering depth for ordering child widgets.
+			Widget with higher depth is rendered below widget with lower depth.
+			Available only for child widgets. For root widgets use layer property instead.
+		*/
+		void setDepth(int _value);
+		/** Get child widget rendering depth */
+		int getDepth() const;
+
 		/** Return widget's visibility based on it's and parents visibility. */
 		bool getInheritedVisible() const;
 
@@ -164,8 +223,25 @@ namespace MyGUI
 		/** Get align */
 		Align getAlign() const;
 
+		/** Rotate this widget and its descendants, in radians. */
+		void setRotation(float _radians);
+		float getRotation() const;
+		/** Set the rotation pivot in widget-local pixel coordinates. */
+		void setRotationCenter(const FloatPoint& _center);
+		FloatPoint getRotationCenter() const;
+		/** Convert between widget-local pixels and displayed layer coordinates. */
+		FloatPoint localToLayer(const FloatPoint& _point) const;
+		/** Convert an array of widget-local points to displayed layer coordinates in place. */
+		void localToLayer(FloatPoint* _points, size_t _count) const;
+		FloatPoint layerToLocal(const FloatPoint& _point) const;
+		/** Transform absolute layout points to/from displayed layer coordinates. */
+		FloatPoint rotatePoint(const FloatPoint& _point) const;
+		FloatPoint unrotatePoint(const FloatPoint& _point) const;
+		/** Convert a displayed displacement to this widget's layout axes, including parent rotations. */
+		IntPoint unrotateVector(const IntPoint& _vector) const;
+
 		/** Set widget opacity */
-		void setAlpha(float _value);
+		void setAlpha(float _alpha);
 		/** Get widget opacity */
 		float getAlpha() const;
 
@@ -179,37 +255,40 @@ namespace MyGUI
 			changes.\n
 			Enabled (true) by default.
 		*/
-		void setInheritsAlpha(bool _value);
+		void setInheritsAlpha(bool _inherits);
 		/** Get inherits alpha mode flag */
 		bool getInheritsAlpha() const;
 
-		/** Set widget's state */
-		bool setState(const std::string& _value);
-
 		void setColour(const Colour& _value);
 
-		// являемся ли мы рутовым виджетом
 		/** Is this widget is root widget (root == without parents) */
-		bool isRootWidget();
+		bool isRootWidget() const;
 
 		/** Get parent widget or nullptr if no parent */
 		Widget* getParent() const;
 
+		/** Get parent widget size. If there is no parent get layer size */
 		IntSize getParentSize() const;
 
-		/** Get child widgets Enumerator */
-		EnumeratorWidgetPtr getEnumerator() const;
+		/** Get child widgets */
+		const VectorWidgetPtr& getChildWidgets() const;
 
 		/** Get child count */
-		size_t getChildCount();
+		size_t getChildCount() const;
 
 		/** Get child by index (index from 0 to child_count - 1) */
-		Widget* getChildAt(size_t _index);
+		Widget* getChildAt(size_t _index) const;
 
-		/** Find widget by name (search recursively through all childs starting from this widget) */
-		Widget* findWidget(const std::string& _name);
+		/** Find widget by name.
+			Search recursively through all childs starting from this widget.
+			@return Return first found widget with given name
+		*/
+		Widget* findWidget(std::string_view _name);
 
-		void findWidgets(const std::string& _name, VectorWidgetPtr& _result);
+		/** Find all widgets with given name and add them into _result.
+			Search recursively through all childs starting from this widget.
+		*/
+		void findWidgets(std::string_view _name, VectorWidgetPtr& _result);
 
 		/** Enable or disable widget */
 		virtual void setEnabled(bool _value);
@@ -218,110 +297,152 @@ namespace MyGUI
 		/** Is widget enabled */
 		bool getEnabled() const;
 
-		/** Is widget enabled and it's and parents enabled. */
+		/** Is widget enabled and all it's parents in hierarchy are enabled. */
 		bool getInheritedEnabled() const;
 
-		/** Get rect where child widgets placed */
-		IntCoord getClientCoord();
+		/** Get rectangle where child widgets placed */
+		IntCoord getClientCoord() const;
 
-		/** Get clien area widget or nullptr if widget don't have client */
+		/** Get client area widget or nullptr if widget don't have client */
 		Widget* getClientWidget();
+		const Widget* getClientWidget() const;
 
 		/** Detach widget from widgets hierarchy
 			@param _layer Attach to specified layer (if any)
 		*/
-		void detachFromWidget(const std::string& _layer = "");
+		void detachFromWidget(std::string_view _layer = {});
 
 		/** Attach widget to parent
 			@param _parent New parent
 			@param _style New widget style (see WidgetStyle::Enum)
 			@param _layer Attach to specified layer (if any)
 		*/
-		void attachToWidget(Widget* _parent, WidgetStyle _style = WidgetStyle::Child, const std::string& _layer = "");
+		void attachToWidget(Widget* _parent, WidgetStyle _style = WidgetStyle::Child, std::string_view _layer = {});
 
 		/** Change widget skin */
-		void changeWidgetSkin(const std::string& _skinName);
+		void changeWidgetSkin(std::string_view _skinName);
 
 		/** Set widget style.
 			@param _style New widget style (see WidgetStyle::Enum)
 			@param _layer Attach to specified layer (if any)
 			@note When choosing WidgetStyle::Popup style you also need attach widget to layer
 		*/
-		void setWidgetStyle(WidgetStyle _style, const std::string& _layer = "");
+		void setWidgetStyle(WidgetStyle _style, std::string_view _layer = {});
 		/** Get widget style */
-		WidgetStyle getWidgetStyle();
+		WidgetStyle getWidgetStyle() const;
 
 		/** Set any widget property
 			@param _key Property name (for example Alpha or Enabled)
 			@param _value Value converted to string
 		*/
-		void setProperty(const std::string& _key, const std::string& _value);
-
+		void setProperty(std::string_view _key, std::string_view _value);
 
 		/** Event : Widget property changed through setProperty (in code, or from layout)\n
-			signature : void method(MyGUI::Widget* _sender, const std::string& _key, const std::string& _value);
+			signature : void method(MyGUI::Widget* _sender, std::string_view _key, std::string_view _value);
 			@param _sender widget that called this event
 			@param _key
 			@param _value
 		*/
-		EventHandle_WidgetStringString
-			eventChangeProperty;
+		EventHandle_WidgetStringString eventChangeProperty;
 
-	/*internal:*/
-		// метод для запроса номера айтема и контейнера
-		virtual size_t _getItemIndex(Widget* _item);
+		/** Event : Widget coordinate changed (widget was resized or moved).\n
+			signature : void method(MyGUI::Widget* _sender)
+			@param _sender widget that called this event
+		*/
+		EventHandle_WidgetVoid eventChangeCoord;
 
-		// дает приоритет виджету при пиккинге
-		void _forcePeek(Widget* _widget);
+		/** Event : Widget absolute coordinates changed, including resizing and movement inherited from an ancestor.\n
+			Emitted when an update changes the absolute position or size.\n
+			signature : void method(MyGUI::Widget* _sender)
+			@param _sender widget whose absolute coordinates changed
+		*/
+		EventHandle_WidgetVoid eventChangeAbsoluteCoord;
 
-		void _initialise(WidgetStyle _style, const IntCoord& _coord, const std::string& _skinName, Widget* _parent, ICroppedRectangle* _croppedParent, const std::string& _name);
+		/** Event : Widget is about to be destroyed, but its content is valid at this point.\n
+            signature : void method(MyGUI::Widget* _sender)
+            @param _sender widget that called this event
+        */
+		EventHandle_WidgetVoid eventWidgetDestroyed;
+
+		/*internal:*/
+		// Method for requesting item index from container
+		virtual size_t _getItemIndex(Widget* _item) const;
+
+		// Gives priority to widget during picking
+		void _forcePick(Widget* _widget);
+
+		void _initialise(
+			WidgetStyle _style,
+			const IntCoord& _coord,
+			std::string_view _skinName,
+			Widget* _parent,
+			ICroppedRectangle* _croppedParent,
+			std::string_view _name);
 		void _shutdown();
 
-		// удяляет неудачника
-		void _destroyChildWidget(Widget* _widget);
+		void _destroyChildWidget(Widget* _widget) override;
 
 		void _setContainer(Widget* _value);
-		Widget* _getContainer();
+		Widget* _getContainer() const;
 
-		void _setAlign(const IntSize& _oldsize);
+		void _setAlign(const IntSize& _oldsize, const IntSize& _newSize);
 		bool _checkPoint(int _left, int _top) const;
+		void _transformVertices(Vertex* _vertices, size_t _count, const RenderTargetInfo& _info) const;
+		bool _hasRotation() const override;
 
-		Widget* _createSkinWidget(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer = "", const std::string& _name = "");
+		Widget* _createSkinWidget(
+			WidgetStyle _style,
+			std::string_view _type,
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _layer = {},
+			std::string_view _name = {});
 
-		// сброс всех данных контейнера, тултипы и все остальное
+		// Reset all container data including tooltips
 		virtual void _resetContainer(bool _update);
 
+		bool _setWidgetState(std::string_view _state);
+
+		void _updateChilds(bool _fullSort);
+
 	protected:
-		// все создание только через фабрику
-		virtual ~Widget();
+		// All creation is only through factory
+		~Widget() override;
 
 		virtual void shutdownOverride();
 		virtual void initialiseOverride();
 
-		void _updateView(); // обновления себя и детей
+		void _updateView();
 
-		// создает виджет
-		Widget* baseCreateWidget(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name, bool _template);
+		using WidgetContainer::baseCreateWidget;
 
-		// удаляет всех детей
-		void _destroyAllChildWidget();
+		Widget* baseCreateWidget(
+			WidgetStyle _style,
+			std::string_view _type,
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name,
+			bool _template);
 
-		// запрашиваем у конейтера айтем по позиции мыши
-		virtual size_t _getContainerIndex(const IntPoint& _point);
+
+		// Request item index from container by mouse position
+		virtual size_t _getContainerIndex(const IntPoint& _point) const;
 
 		virtual void baseUpdateEnable();
 
-		// наследуемся он LayerInfo
-		virtual ILayerItem* getLayerItemByPoint(int _left, int _top) const;
-		virtual const IntCoord& getLayerItemCoord() const;
+		ILayerItem* getLayerItemByPoint(int _left, int _top) const override;
+		const IntCoord& getLayerItemCoord() const override;
 
-		template <typename T>
-		void assignWidget(T * & _widget, const std::string& _name)
+		template<typename T>
+		void assignWidget(T*& _widget, std::string_view _name)
 		{
 			_widget = nullptr;
-			for (VectorWidgetPtr::iterator iter = mWidgetChildSkin.begin(); iter != mWidgetChildSkin.end(); ++iter)
+			for (const auto& iter : mWidgetChildSkin)
 			{
-				Widget* find = (*iter)->findWidget(_name);
+				Widget* find = iter->findWidget(_name);
 				if (nullptr != find)
 				{
 					_widget = find->castType<T>(false);
@@ -330,80 +451,103 @@ namespace MyGUI
 			}
 		}
 
-		VectorWidgetPtr getSkinWidgetsByName(const std::string& _name);
-
-		void destroySkinWidget(Widget* _widget);
+		VectorWidgetPtr getSkinWidgetsByName(std::string_view _name) const;
 
 		virtual void onWidgetCreated(Widget* _widget);
 		virtual void onWidgetDestroy(Widget* _widget);
 
 		void setWidgetClient(Widget* _widget);
+		/// If there is client widget return it, otherwise return this
+		Widget* _getClientWidget();
+		const Widget* _getClientWidget() const;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		virtual void setPropertyOverride(std::string_view _key, std::string_view _value);
 
 	private:
-		void frameEntered(float _frame);
+		struct RotationTransform
+		{
+			float cosine{1.0f};
+			float sine{0.0f};
+			float offsetX{0.0f};
+			float offsetY{0.0f};
 
-		const WidgetInfo* initialiseWidgetSkinBase(ResourceSkin* _info, ResourceLayout* _templateInfo);
+			FloatPoint transformPoint(const FloatPoint& _point) const;
+			FloatPoint inverseTransformPoint(const FloatPoint& _point) const;
+		};
+
+		const WidgetInfo* initialiseWidgetSkinBase(ResourceSkin* _skinInfo, ResourceLayout* _templateInfo);
 		void shutdownWidgetSkinBase();
 
 		void _updateAlpha();
-		void _updateAbsolutePoint();
+		void _updateCoord(const IntSize& _oldSize);
+		void _updateGeometry(const IntSize* _oldSize = nullptr);
+		// Detach hierarchy and layers without updating geometry
+		void _detachFromWidget(std::string_view _layer);
 
-		// для внутреннего использования
 		void _updateVisible();
 
 		void _updateEnabled();
 
-		float _getRealAlpha();
+		float _getRealAlpha() const;
 
 		void _createChildSkinWidget(ResourceSkin* _info);
 		void _destroyChildSkinWidget();
 
 		void _parseSkinProperties(ResourceSkin* _info);
 		void _checkInheristProperties();
+		template<typename T>
+		ILayerItem* getLayerItemByLocalPoint(types::TPoint<T> _point) const;
+		ILayerItem* getLayerItemByRotatedPoint(int _left, int _top) const;
+		ILayerItem* pickChildrenOrSelf(IntPoint _point) const;
+		void updateRotationTransform();
+		void updateWorldHasRotation();
+		RotationTransform getWorldRotationTransform() const;
+		void invalidateRotation();
 
-		void _linkChildWidget(Widget* _widget);
-		void _unlinkChildWidget(Widget* _widget);
+		void _linkChildWidget(Widget* _widget) override;
 
 		void setSkinProperty(ResourceSkin* _info);
 
+		void resizeLayerItemView(const IntSize& _oldView, const IntSize& _newView) override;
+
 	private:
-		// клиентская зона окна
-		// если виджет имеет пользовательские окна не в себе
-		// то обязательно проинициализировать Client
-		Widget* mWidgetClient;
+		// Client area of the widget
+		// If widget has child windows not within itself, must initialize Client
+		Widget* mWidgetClient{nullptr};
 
-		// вектор всех детей виджетов
-		VectorWidgetPtr mWidgetChild;
-
-		// вектор детей скина
+		// Child widgets created from skin
 		VectorWidgetPtr mWidgetChildSkin;
 
-		// доступен ли на виджет
-		bool mEnabled;
-		bool mInheritsEnabled;
-		// для иерархического скрытия
-		bool mInheritsVisible;
-		// прозрачность и флаг наследования альфы нашего оверлея
-		float mAlpha;
-		float mRealAlpha;
-		bool mInheritsAlpha;
-		// имя виджета
+		// availability for mouse/keyboard
+		bool mEnabled{true};
+		bool mInheritedEnabled{true};
+		// visibility on screen and for mouse
+		bool mVisible{true};
+		bool mInheritedVisible{true};
+		// transparency and transparency inheritance
+		float mAlpha{ALPHA_MAX};
+		float mRealAlpha{ALPHA_MAX};
+		bool mInheritsAlpha{true};
 		std::string mName;
 
-		// наш отец в иерархии виджетов
-		Widget* mParent;
+		// parent in widgets hierarchy
+		Widget* mParent{nullptr};
 
-		// поведение виджета, перекрывающийся дочерний или всплывающий
-		WidgetStyle mWidgetStyle;
+		WidgetStyle mWidgetStyle{WidgetStyle::Child};
 
-		Widget* mContainer;
+		Widget* mContainer{nullptr};
 
-		Align mAlign;
-		bool mVisible;
+		Align mAlign{Align::Default};
+		float mRotation{0.0f};
+		FloatPoint mRotationCenter;
+		bool mCustomRotationCenter{false};
+		// Local to parent coordinates (absolute layout coordinates for popups).
+		RotationTransform mRotationTransform;
+		// True when this widget or any logical ancestor has a nonzero rotation.
+		bool mWorldHasRotation{false};
+		int mDepth{0};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_WIDGET_H__
+#endif // MYGUI_WIDGET_H_

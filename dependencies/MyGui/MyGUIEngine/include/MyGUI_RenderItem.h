@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_RENDER_ITEM_H__
-#define __MYGUI_RENDER_ITEM_H__
+#ifndef MYGUI_RENDER_ITEM_H_
+#define MYGUI_RENDER_ITEM_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_ISubWidget.h"
@@ -31,8 +16,8 @@
 namespace MyGUI
 {
 
-	typedef std::pair<ISubWidget*, size_t> DrawItemInfo;
-	typedef std::vector<DrawItemInfo> VectorDrawItem;
+	using DrawItemInfo = std::pair<ISubWidget*, size_t>;
+	using VectorDrawItem = std::vector<DrawItemInfo>;
 
 	class MYGUI_EXPORT RenderItem
 	{
@@ -43,10 +28,7 @@ namespace MyGUI
 		void renderToTarget(IRenderTarget* _target, bool _update);
 
 		void setTexture(ITexture* _value);
-		ITexture* getTexture();
-
-		void setManualRender(bool _value);
-		bool getManualRender() const;
+		ITexture* getTexture() const;
 
 		void addDrawItem(ISubWidget* _item, size_t _count);
 		void removeDrawItem(ISubWidget* _item);
@@ -65,34 +47,32 @@ namespace MyGUI
 
 		IRenderTarget* getRenderTarget();
 
-		bool getCompression();
+		void setNeedCompression(bool _compression);
+		bool getNeedCompression() const;
 
 	private:
-#if MYGUI_DEBUG_MODE == 1
-		std::string mTextureName;
-#endif
+		void rebuildGeometry(IRenderTarget* _target);
 
-		ITexture* mTexture;
+		ITexture* mTexture{nullptr};
 
-		size_t mNeedVertexCount;
+		size_t mNeedVertexCount{0};
 
-		bool mOutOfDate;
+		bool mOutOfDate{false};
 		VectorDrawItem mDrawItems;
 
-		// колличество отрендренных реально вершин
-		size_t mCountVertex;
+		// Number of vertices actually rendered
+		size_t mCountVertex{0};
 
-		bool mCurrentUpdate;
-		Vertex* mCurrentVertex;
-		size_t mLastVertexCount;
+		bool mCurrentUpdate{true};
+		Vertex* mCurrentVertex{nullptr};
+		size_t mLastVertexCount{0};
 
-		IVertexBuffer* mVertexBuffer;
-		IRenderTarget* mRenderTarget;
+		IVertexBuffer* mVertexBuffer{nullptr};
+		IRenderTarget* mRenderTarget{nullptr};
 
-		bool mCompression;
-		bool mManualRender;
+		bool mNeedCompression{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_RENDER_ITEM_H__
+#endif // MYGUI_RENDER_ITEM_H_

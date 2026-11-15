@@ -1,30 +1,16 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		08/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_DEPRECATED_TYPES_H__
-#define __MYGUI_DEPRECATED_TYPES_H__
+#ifndef MYGUI_DEPRECATED_TYPES_H_
+#define MYGUI_DEPRECATED_TYPES_H_
 
 namespace MyGUI
 {
-	template <typename Type>
+
+	template<typename Type>
 	class MemberObsolete
 	{
 	public:
@@ -32,57 +18,57 @@ namespace MyGUI
 
 #ifndef MYGUI_DONT_USE_OBSOLETE
 
-	typedef Widget* WidgetPtr;
-	typedef Button* ButtonPtr;
-	typedef Window* WindowPtr;
-	typedef ComboBox* ComboBoxPtr;
-	typedef TabItem* TabItemPtr;
-	typedef ItemBox* ItemBoxPtr;
-	typedef MenuItem* MenuItemPtr;
-	typedef PopupMenu* PopupMenuPtr;
-	typedef MenuBar* MenuBarPtr;
-	typedef ScrollView* ScrollViewPtr;
-	typedef DDContainer* DDContainerPtr;
-	typedef Canvas* CanvasPtr;
+	using WidgetPtr = Widget*;
+	using ButtonPtr = Button*;
+	using WindowPtr = Window*;
+	using ComboBoxPtr = ComboBox*;
+	using TabItemPtr = TabItem*;
+	using ItemBoxPtr = ItemBox*;
+	using MenuItemPtr = MenuItem*;
+	using PopupMenuPtr = PopupMenu*;
+	using MenuBarPtr = MenuBar*;
+	using ScrollViewPtr = ScrollView*;
+	using DDContainerPtr = DDContainer*;
+	using CanvasPtr = Canvas*;
 
 	class HScroll;
-	typedef HScroll* HScrollPtr;
+	using HScrollPtr = HScroll*;
 
 	class VScroll;
-	typedef VScroll* VScrollPtr;
+	using VScrollPtr = VScroll*;
 
-	typedef TabItem Sheet;
-	typedef TabItem* SheetPtr;
+	using Sheet = TabItem;
+	using SheetPtr = TabItem*;
 
-	typedef Canvas RenderBox;
-	typedef Canvas* RenderBoxPtr;
+	using RenderBox = Canvas;
+	using RenderBoxPtr = Canvas*;
 
-	typedef ImageBox StaticImage;
-	typedef StaticImage* StaticImagePtr;
+	using StaticImage = ImageBox;
+	using StaticImagePtr = StaticImage*;
 
-	typedef TextBox StaticText;
-	typedef StaticText* StaticTextPtr;
+	using StaticText = TextBox;
+	using StaticTextPtr = StaticText*;
 
-	typedef ProgressBar Progress;
-	typedef Progress* ProgressPtr;
+	using Progress = ProgressBar;
+	using ProgressPtr = Progress*;
 
-	typedef ListBox List;
-	typedef List* ListPtr;
+	using List = ListBox;
+	using ListPtr = List*;
 
-	typedef EditBox Edit;
-	typedef Edit* EditPtr;
+	using Edit = EditBox;
+	using EditPtr = Edit*;
 
-	typedef TabControl Tab;
-	typedef Tab* TabPtr;
+	using Tab = TabControl;
+	using TabPtr = Tab*;
 
-	typedef MultiListBox MultiList;
-	typedef MultiList* MultiListPtr;
+	using MultiList = MultiListBox;
+	using MultiListPtr = MultiList*;
 
-	typedef MenuControl MenuCtrl;
-	typedef MenuCtrl* MenuCtrlPtr;
+	using MenuCtrl = MenuControl;
+	using MenuCtrlPtr = MenuCtrl*;
 
 #endif // MYGUI_DONT_USE_OBSOLETE
 
 } // namespace MyGUI
 
-#endif // __MYGUI_DEPRECATED_TYPES_H__
+#endif // MYGUI_DEPRECATED_TYPES_H_

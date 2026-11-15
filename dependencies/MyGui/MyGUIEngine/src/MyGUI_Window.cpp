@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_Window.h"
 #include "MyGUI_Macros.h"
@@ -27,9 +12,12 @@
 #include "MyGUI_InputManager.h"
 #include "MyGUI_WidgetManager.h"
 #include "MyGUI_ResourceSkin.h"
+#include <array>
+#include <cmath>
 
 namespace MyGUI
 {
+
 	const float WINDOW_ALPHA_ACTIVE = ALPHA_MAX;
 	const float WINDOW_ALPHA_FOCUS = 0.7f;
 	const float WINDOW_ALPHA_DEACTIVE = 0.3f;
@@ -37,26 +25,13 @@ namespace MyGUI
 
 	const int WINDOW_SNAP_DISTANSE = 10;
 
-	Window::Window() :
-		mWidgetCaption(nullptr),
-		mMouseRootFocus(false),
-		mKeyRootFocus(false),
-		mIsAutoAlpha(false),
-		mSnap(false),
-		mAnimateSmooth(false),
-		mClient(nullptr),
-		mMovable(true)
-	{
-	}
-
 	void Window::initialiseOverride()
 	{
 		Base::initialiseOverride();
 
-		// FIXME нам нужен фокус клавы
+		// FIXME we need keyboard focus
 		setNeedKeyFocus(true);
 
-		// дефолтные размеры
 		mMinmax.set(
 			(std::numeric_limits<int>::min)(),
 			(std::numeric_limits<int>::min)(),
@@ -70,19 +45,18 @@ namespace MyGUI
 			main_move = true;
 		}
 
-		assignWidget(mClient, "Client");
-		if (mClient != nullptr)
+		if (getClientWidget() != nullptr)
 		{
 			if (main_move)
 			{
-				mClient->setUserString("Scale", "1 1 0 0");
-				mClient->eventMouseButtonPressed += newDelegate(this, &Window::notifyMousePressed);
-				mClient->eventMouseButtonReleased += newDelegate(this, &Window::notifyMouseReleased);
-				mClient->eventMouseDrag += newDelegate(this, &Window::notifyMouseDrag);
+				getClientWidget()->setUserString("Scale", "1 1 0 0");
+				getClientWidget()->eventMouseButtonPressed += newDelegate(this, &Window::notifyMousePressed);
+				getClientWidget()->eventMouseButtonReleased += newDelegate(this, &Window::notifyMouseReleased);
+				getClientWidget()->eventMouseDrag += newDelegate(this, &Window::notifyMouseDrag);
 			}
-			setWidgetClient(mClient);
 		}
 
+		///@wskin_child{Window, TextBox, Caption} Caption for window.
 		assignWidget(mWidgetCaption, "Caption");
 		if (mWidgetCaption != nullptr)
 		{
@@ -93,43 +67,48 @@ namespace MyGUI
 		}
 
 		VectorWidgetPtr buttons = getSkinWidgetsByName("Button");
-		for (VectorWidgetPtr::iterator iter = buttons.begin(); iter != buttons.end(); ++iter)
+		for (auto& button : buttons)
 		{
-			(*iter)->eventMouseButtonClick += newDelegate(this, &Window::notifyPressedButtonEvent);
+			button->eventMouseButtonClick += newDelegate(this, &Window::notifyPressedButtonEvent);
 		}
 
 		VectorWidgetPtr actions = getSkinWidgetsByName("Action");
-		for (VectorWidgetPtr::iterator iter = actions.begin(); iter != actions.end(); ++iter)
+		for (auto& action : actions)
 		{
-			(*iter)->eventMouseButtonPressed += newDelegate(this, &Window::notifyMousePressed);
-			(*iter)->eventMouseButtonReleased += newDelegate(this, &Window::notifyMouseReleased);
-			(*iter)->eventMouseDrag += newDelegate(this, &Window::notifyMouseDrag);
+			action->eventMouseButtonPressed += newDelegate(this, &Window::notifyMousePressed);
+			action->eventMouseButtonReleased += newDelegate(this, &Window::notifyMouseReleased);
+			action->eventMouseDrag += newDelegate(this, &Window::notifyMouseDrag);
+			action->eventMouseWheel += newDelegate(this, &Window::notifyMouseWheel);
 		}
 
-		const size_t countNames = 8;
-		const char* resizers[2][countNames] =
-		{
-			{"ResizeLeftTop", "ResizeTop", "ResizeRightTop", "ResizeRight", "ResizeRightBottom", "ResizeBottom", "ResizeLeftBottom", "ResizeLeft"},
-			{"Left Top", "Top", "Right Top", "Right", "Right Bottom", "Bottom", "Left Bottom", "Left"}
-		};
+		constexpr size_t countNames = 8;
+		const std::array<std::pair<std::string_view, std::string_view>, countNames> resizers{
+			{{"ResizeLeftTop", "Left Top"},
+			 {"ResizeTop", "Top"},
+			 {"ResizeRightTop", "Right Top"},
+			 {"ResizeRight", "Right"},
+			 {"ResizeRightBottom", "Right Bottom"},
+			 {"ResizeBottom", "Bottom"},
+			 {"ResizeLeftBottom", "Left Bottom"},
+			 {"ResizeLeft", "Left"}}};
 
-		for (size_t index = 0; index < countNames; ++ index)
+		for (const auto& resizer : resizers)
 		{
 			Widget* widget = nullptr;
-			assignWidget(widget, resizers[0][index]);
+			assignWidget(widget, resizer.first);
 			if (widget != nullptr)
 			{
 				widget->eventMouseButtonPressed += newDelegate(this, &Window::notifyMousePressed);
 				widget->eventMouseButtonReleased += newDelegate(this, &Window::notifyMouseReleased);
 				widget->eventMouseDrag += newDelegate(this, &Window::notifyMouseDrag);
-				widget->setUserString("Action", resizers[1][index]);
+				widget->eventMouseWheel += newDelegate(this, &Window::notifyMouseWheel);
+				widget->setUserString("Action", resizer.second);
 			}
 		}
 	}
 
 	void Window::shutdownOverride()
 	{
-		mClient = nullptr;
 		mWidgetCaption = nullptr;
 
 		Base::shutdownOverride();
@@ -153,7 +132,7 @@ namespace MyGUI
 
 	void Window::onMouseDrag(int _left, int _top, MouseButton _id)
 	{
-		// на тот случай, если двигать окно, можно за любое место виджета
+		// in case window can be moved by any widget area
 		notifyMouseDrag(this, _left, _top, _id);
 
 		Base::onMouseDrag(_left, _top, _id);
@@ -179,6 +158,8 @@ namespace MyGUI
 		{
 			mPreActionCoord = mCoord;
 			mCurrentActionScale = _getActionScale(_sender);
+			if (mCurrentActionScale.width != 0 || mCurrentActionScale.height != 0)
+				mPreActionAnchor = localToLayer(getResizeAnchor());
 		}
 	}
 
@@ -187,30 +168,36 @@ namespace MyGUI
 		eventWindowButtonPressed(this, _sender->getUserString("Event"));
 	}
 
-	void Window::notifyMouseDrag(MyGUI::Widget* _sender, int _left, int _top, MouseButton _id)
+	void Window::notifyMouseDrag(MyGUI::Widget*, int, int, MouseButton _id)
 	{
-		if (_id != MouseButton::Left)
+		if (_id != MouseButton::Left || mCurrentActionScale.empty())
 			return;
 
-		const IntPoint& point = InputManager::getInstance().getLastLeftPressed();
+		const InputManager& input = InputManager::getInstance();
+		const IntPoint screenDelta = input.getMousePositionByLayer() - input.getLastPressedPosition(MouseButton::Left);
+		// Movement uses the parent's axes; resizing uses the window's axes.
+		const bool moveOnly = mCurrentActionScale.width == 0 && mCurrentActionScale.height == 0;
+		const Widget* axes = moveOnly ? getParent() : this;
+		const IntPoint localDelta = axes ? axes->unrotateVector(screenDelta) : screenDelta;
 
-		IntCoord coord = mCurrentActionScale;
-		coord.left *= (_left - point.left);
-		coord.top *= (_top - point.top);
-		coord.width *= (_left - point.left);
-		coord.height *= (_top - point.top);
+		const IntCoord coordDelta(
+			mCurrentActionScale.left * localDelta.left,
+			mCurrentActionScale.top * localDelta.top,
+			mCurrentActionScale.width * localDelta.left,
+			mCurrentActionScale.height * localDelta.top);
+		const IntCoord requestedCoord = mPreActionCoord + coordDelta;
 
-		if (coord.empty())
-			return;
-
-		if (coord.left == 0 && coord.top == 0)
-			setSize((mPreActionCoord + coord).size());
-		else if (coord.width == 0 && coord.height == 0)
-			setPosition((mPreActionCoord + coord).point());
+		if (moveOnly)
+			setPosition(requestedCoord.point());
+		else if (mCurrentActionScale.left == 0 && mCurrentActionScale.top == 0)
+			setSize(requestedCoord.size());
 		else
-			setCoord(mPreActionCoord + coord);
+			setCoord(requestedCoord);
 
-		// посылаем событие о изменении позиции и размере
+		if (!moveOnly)
+			restoreResizeAnchor();
+
+		// send event about position and size change
 		eventWindowChangeCoord(this);
 	}
 
@@ -250,11 +237,11 @@ namespace MyGUI
 	void Window::setPosition(const IntPoint& _point)
 	{
 		IntPoint point = _point;
-		// прилепляем к краям
+		// snap to edges
 		if (mSnap)
 		{
 			IntCoord coord(point, mCoord.size());
-			getSnappedCoord(coord);
+			getSnappedCoord(coord, Snap::Position);
 			point = coord.point();
 		}
 
@@ -264,7 +251,7 @@ namespace MyGUI
 	void Window::setSize(const IntSize& _size)
 	{
 		IntSize size = _size;
-		// прилепляем к краям
+		// snap to edges
 
 		if (size.width < mMinmax.left)
 			size.width = mMinmax.left;
@@ -280,7 +267,7 @@ namespace MyGUI
 		if (mSnap)
 		{
 			IntCoord coord(mCoord.point(), size);
-			getSnappedCoord(coord);
+			getSnappedCoord(coord, Snap::Size);
 			size = coord.size();
 		}
 
@@ -329,15 +316,13 @@ namespace MyGUI
 				pos.top = mCoord.top;
 		}
 
-		// прилепляем к краям
+		IntCoord coord(pos, size);
 		if (mSnap)
 		{
-			IntCoord coord(pos, size);
-			getSnappedCoord(coord);
-			size = coord.size();
+			// prefer size change over position change
+			getSnappedCoord(coord, Snap::Size);
 		}
 
-		IntCoord coord(pos, size);
 		if (coord == mCoord)
 			return;
 
@@ -352,7 +337,7 @@ namespace MyGUI
 			Base::setCaption(_caption);
 	}
 
-	const UString& Window::getCaption()
+	const UString& Window::getCaption() const
 	{
 		if (mWidgetCaption != nullptr)
 			return mWidgetCaption->getCaption();
@@ -366,7 +351,7 @@ namespace MyGUI
 		ControllerManager::getInstance().addItem(this, controller);
 	}
 
-	void Window::animateStop(Widget* _widget)
+	void Window::animateStop(Widget* _widget, ControllerItem* _controller)
 	{
 		if (mAnimateSmooth)
 		{
@@ -388,22 +373,50 @@ namespace MyGUI
 		Base::setVisible(_visible);
 	}
 
-	float Window::getAlphaVisible()
+	float Window::getAlphaVisible() const
 	{
 		return (mIsAutoAlpha && !mKeyRootFocus) ? WINDOW_ALPHA_DEACTIVE : ALPHA_MAX;
 	}
 
-	void Window::getSnappedCoord(IntCoord& _coord)
+	void Window::getSnappedCoord(IntCoord& _coord, Snap snapMode) const
 	{
-		if (abs(_coord.left) <= WINDOW_SNAP_DISTANSE) _coord.left = 0;
-		if (abs(_coord.top) <= WINDOW_SNAP_DISTANSE) _coord.top = 0;
-
 		const IntSize view_size = getParentSize();
+		bool nearLeftSide = abs(_coord.left) <= WINDOW_SNAP_DISTANSE;
+		bool nearTopSide = abs(_coord.top) <= WINDOW_SNAP_DISTANSE;
+		bool nearRightSide = abs(_coord.left + _coord.width - view_size.width) <= WINDOW_SNAP_DISTANSE;
+		bool nearBottomSide = abs(_coord.top + _coord.height - view_size.height) <= WINDOW_SNAP_DISTANSE;
 
-		if ( abs(_coord.left + _coord.width - view_size.width) < WINDOW_SNAP_DISTANSE)
-			_coord.left = view_size.width - _coord.width;
-		if ( abs(_coord.top + _coord.height - view_size.height) < WINDOW_SNAP_DISTANSE)
-			_coord.top = view_size.height - _coord.height;
+		switch (snapMode)
+		{
+		case Snap::Position:
+			if (nearLeftSide)
+				_coord.left = 0;
+			if (nearTopSide)
+				_coord.top = 0;
+
+			if (nearRightSide)
+				_coord.left = view_size.width - _coord.width;
+			if (nearBottomSide)
+				_coord.top = view_size.height - _coord.height;
+			break;
+		case Snap::Size:
+			if (nearLeftSide)
+			{
+				_coord.width = _coord.right();
+				_coord.left = 0;
+			}
+			if (nearTopSide)
+			{
+				_coord.height = _coord.bottom();
+				_coord.top = 0;
+			}
+
+			if (nearRightSide)
+				_coord.width = view_size.width - _coord.left;
+			if (nearBottomSide)
+				_coord.height = view_size.height - _coord.top;
+			break;
+		}
 	}
 
 	void Window::setVisibleSmooth(bool _visible)
@@ -450,9 +463,9 @@ namespace MyGUI
 		mMinmax.top = _value.height;
 	}
 
-	IntSize Window::getMinSize()
+	IntSize Window::getMinSize() const
 	{
-		return IntSize(mMinmax.left, mMinmax.top);
+		return {mMinmax.left, mMinmax.top};
 	}
 
 	void Window::setMaxSize(const IntSize& _value)
@@ -461,32 +474,43 @@ namespace MyGUI
 		mMinmax.bottom = _value.height;
 	}
 
-	IntSize Window::getMaxSize()
+	IntSize Window::getMaxSize() const
 	{
-		return IntSize(mMinmax.right, mMinmax.bottom);
+		return {mMinmax.right, mMinmax.bottom};
 	}
 
-	void Window::setPropertyOverride(const std::string& _key, const std::string& _value)
+	void Window::setPropertyOverride(std::string_view _key, std::string_view _value)
 	{
+		/// @wproperty{Window, AutoAlpha, bool} Transparency adjustment mode based on input focus.
 		if (_key == "AutoAlpha")
 			setAutoAlpha(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Window, Snap, bool} Snap to screen edges mode.
 		else if (_key == "Snap")
 			setSnap(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Window, MinSize, int int} Minimum window size.
 		else if (_key == "MinSize")
 			setMinSize(utility::parseValue<IntSize>(_value));
+
+		/// @wproperty{Window, MaxSize, int int} Maximum window size.
 		else if (_key == "MaxSize")
 			setMaxSize(utility::parseValue<IntSize>(_value));
+
+		/// @wproperty{Window, Movable, bool} Window movement by mouse on any area mode.
 		else if (_key == "Movable")
 			setMovable(utility::parseValue<bool>(_value));
+
 		else
 		{
 			Base::setPropertyOverride(_key, _value);
 			return;
 		}
+
 		eventChangeProperty(this, _key, _value);
 	}
 
-	const IntCoord& Window::getActionScale()
+	const IntCoord& Window::getActionScale() const
 	{
 		return mCurrentActionScale;
 	}
@@ -496,7 +520,7 @@ namespace MyGUI
 		return mIsAutoAlpha;
 	}
 
-	TextBox* Window::getCaptionWidget()
+	TextBox* Window::getCaptionWidget() const
 	{
 		return mWidgetCaption;
 	}
@@ -509,21 +533,6 @@ namespace MyGUI
 	void Window::setMaxSize(int _width, int _height)
 	{
 		setMaxSize(IntSize(_width, _height));
-	}
-
-	void Window::setPosition(int _left, int _top)
-	{
-		setPosition(IntPoint(_left, _top));
-	}
-
-	void Window::setSize(int _width, int _height)
-	{
-		setSize(IntSize(_width, _height));
-	}
-
-	void Window::setCoord(int _left, int _top, int _width, int _height)
-	{
-		setCoord(IntCoord(_left, _top, _width, _height));
 	}
 
 	bool Window::getSnap() const
@@ -544,7 +553,7 @@ namespace MyGUI
 		}
 	}
 
-	IntCoord Window::_getActionScale(Widget* _widget)
+	IntCoord Window::_getActionScale(Widget* _widget) const
 	{
 		if (_widget->isUserString("Scale"))
 		{
@@ -555,15 +564,14 @@ namespace MyGUI
 
 			return result;
 		}
-		else if (_widget->isUserString("Action"))
+		if (_widget->isUserString("Action"))
 		{
-			const std::string& action = _widget->getUserString("Action");
+			std::string_view action = _widget->getUserString("Action");
 			if (action == "Move")
 			{
 				if (mMovable)
-					return IntCoord(1, 1, 0, 0);
-				else
-					return IntCoord();
+					return {1, 1, 0, 0};
+				return {};
 			}
 
 			IntCoord coord;
@@ -592,7 +600,31 @@ namespace MyGUI
 			return coord;
 		}
 
-		return IntCoord();
+		return {};
+	}
+
+	FloatPoint Window::getResizeAnchor() const
+	{
+		return FloatPoint(
+			(float)(mCurrentActionScale.width < 0 ? mCoord.width : 0),
+			(float)(mCurrentActionScale.height < 0 ? mCoord.height : 0));
+	}
+
+	void Window::restoreResizeAnchor()
+	{
+		// Resizing can move the rotation pivot; restore the opposite displayed corner.
+		const FloatPoint currentAnchor = localToLayer(getResizeAnchor());
+		const Widget* parent = getParent();
+		const FloatPoint targetInParent = parent ? parent->layerToLocal(mPreActionAnchor) : mPreActionAnchor;
+		const FloatPoint currentInParent = parent ? parent->layerToLocal(currentAnchor) : currentAnchor;
+		const IntPoint correction(
+			(int)std::lround(targetInParent.left - currentInParent.left),
+			(int)std::lround(targetInParent.top - currentInParent.top));
+		if (correction != IntPoint())
+		{
+			// Bypass window snapping so the anchor correction is applied exactly.
+			Base::setPosition(mCoord.point() + correction);
+		}
 	}
 
 	void Window::setMovable(bool _value)
@@ -603,6 +635,12 @@ namespace MyGUI
 	bool Window::getMovable() const
 	{
 		return mMovable;
+	}
+
+	void Window::notifyMouseWheel(MyGUI::Widget* _sender, int _rel)
+	{
+		onMouseWheel(_rel);
+		eventMouseWheel(_sender, _rel);
 	}
 
 } // namespace MyGUI

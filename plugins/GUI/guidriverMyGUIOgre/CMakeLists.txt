@@ -13,9 +13,9 @@
 
 set( HEADER_FILES 
   include/guidriverMyGUIOgre.h
-  include/guidriverMyGUIOgre_CGUIContextOgre.h
-  include/guidriverMyGUIOgre_CGUIDriverOgre.h
-  include/guidriverMyGUIOgre_CImageLoader.h
+  include/guidriverMyGUIOgre_COgreContext.h
+  include/guidriverMyGUIOgre_COgreDriver.h
+  include/guidriverMyGUIOgre_ETypes.h
   include/guidriverMyGUIOgre_config.h
   include/guidriverMyGUIOgre_macros.h
   include/guidriverMyGUIOgre_pluginAPI.h
@@ -23,9 +23,8 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/guidriverMyGUIOgre.cpp
-  src/guidriverMyGUIOgre_CGUIContextOgre.cpp
-  src/guidriverMyGUIOgre_CGUIDriverOgre.cpp
-  src/guidriverMyGUIOgre_CImageLoader.cpp
+  src/guidriverMyGUIOgre_COgreContext.cpp
+  src/guidriverMyGUIOgre_COgreDriver.cpp
   src/guidriverMyGUIOgre_pluginAPI.cpp
 )
 
@@ -39,7 +38,7 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 # The minimum C++ standard of guidriverMyGUIOgre and the modules it depends on
-set( MODULE_MIN_CPP_STANDARD 14 )
+set( MODULE_MIN_CPP_STANDARD 17 )
 GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
 if ( MODULE_CPP_STANDARD_TOO_LOW )
   GUCEF_add_skipped_module( guidriverMyGUIOgre "${MODULE_MIN_CPP_STANDARD}" )
@@ -48,43 +47,46 @@ endif()
 
 set( MODULE_NAME "guidriverMyGUIOgre" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} MyGUI.Engine MyGUI.OgrePlatform Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
-target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
+add_dependencies( ${MODULE_NAME} MyGUI.Engine MyGUI.OgrePlatform Ogre gucefCORE gucefGUI gucefIMAGE gucefMT gucefVFS guidriverMyGUI )
+target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre gucefCORE gucefGUI gucefIMAGE gucefMT gucefVFS guidriverMyGUI )
 target_link_libraries( ${MODULE_NAME} PRIVATE MyGUI.OgrePlatform )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOgre" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOgre;MODULE_SEMVER=2_0_0_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_17 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 2.0.0.0 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 2.0.0.0 )
 
-include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverMyGUI/include include )
+include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../dependencies/pugixml/src ../../../dependencies/utfcpp ../../../dependencies/utfcpp/source ../../../dependencies/utfcpp/source/utf8 ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverMyGUI/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
 if ( EMSCRIPTEN32 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/src )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/src )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src )
 endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../dependencies/MyGui/Platforms/OgrePlatform/include ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

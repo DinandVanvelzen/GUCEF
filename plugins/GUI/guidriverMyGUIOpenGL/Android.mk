@@ -23,9 +23,11 @@ LOCAL_MODULE_FILENAME := libguidriverMyGUIOpenGL
 
 LOCAL_SRC_FILES := \
   src/guidriverMyGUIOpenGL.cpp \
-  src/guidriverMyGUIOpenGL_CGUIContextGL.cpp \
-  src/guidriverMyGUIOpenGL_CGUIDriverGL.cpp \
-  src/guidriverMyGUIOpenGL_CImageLoader.cpp \
+  src/guidriverMyGUIOpenGL_CGL3Backend.cpp \
+  src/guidriverMyGUIOpenGL_CGLBackend.cpp \
+  src/guidriverMyGUIOpenGL_CGLContext.cpp \
+  src/guidriverMyGUIOpenGL_CGLDriver.cpp \
+  src/guidriverMyGUIOpenGL_CGLESBackend.cpp \
   src/guidriverMyGUIOpenGL_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \
@@ -39,6 +41,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../../dependencies/pugixml/src \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source/utf8 \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
@@ -54,16 +60,14 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
   $(MY_MODULE_PATH)/../guidriverMyGUI/include
 
-LOCAL_CFLAGS := -DGUIDRIVERMYGUIOPENGL_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUIOpenGL
+LOCAL_CFLAGS := -DGL_GLEXT_PROTOTYPES -DGUIDRIVERMYGUIOPENGL_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUIOpenGL -DMODULE_SEMVER=2_0_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
   MyGUI.Engine \
-  freetype \
   gucefCORE \
   gucefGUI \
   gucefIMAGE \
-  gucefINPUT \
   gucefMT \
   gucefVFS \
   guidriverMyGUI

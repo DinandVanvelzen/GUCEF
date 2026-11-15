@@ -1,39 +1,17 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		10/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-// -- Based on boost::any, original copyright information follows --
-// Copyright Kevlin Henney, 2000, 2001, 2002. All rights reserved.
-//
-// Distributed under the Boost Software License, Version 1.0.
-// (See at http://www.boost.org/LICENSE_1_0.txt)
-// -- End original copyright --
-
-#ifndef __MYGUI_ANY_H__
-#define __MYGUI_ANY_H__
+#ifndef MYGUI_ANY_H_
+#define MYGUI_ANY_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Diagnostic.h"
-#include <algorithm>
+#include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 namespace MyGUI
 {
@@ -42,34 +20,26 @@ namespace MyGUI
 	@code
 	void f()
 	{
-		// RU: тестовый класс, с простыми типами все аналогично
-		// EN: test class, with simple types all is similar
+		// test class, with simple types everything is similar
 		struct Data { int value; };
 
-		// RU: экземпляр и инициализация
-		// EN: instance and initialization
+		// instance and initialization
 		Data data;
 		data.value = 0xDEAD;
 
-		// RU: создастся копия класса Data
-		// EN: copy of class Data will be created
+		// copy of class Data will be created
 		MyGUI::Any any = data;
-		// RU: копия класса Data
-		// EN: copy of class Data
+		// copy of class Data
 		Data copy_data = *any.castType<Data>();
-		// RU: теперь value == 0xDEAD
-		// EN: now value == 0xDEAD
+		// now value == 0xDEAD
 		int value = copy_data.value;
 
 
-		// RU: создастся копия указателя на класс Data
-		// EN: copy of pointer on class Data will be created
+		// copy of pointer on class Data will be created
 		any = &data;
-		// RU: копия указателя на класс Data и конкретно на объект data
-		// EN: copy of pointer on class Data and on object data
+		// copy of pointer on class Data and on object data
 		Data* copy_ptr = *any.castType<Data*>();
-		// RU: теперь data.value == 0
-		// EN: now value == 0
+		// now value == 0
 		copy_ptr->value = 0;
 	}
 	@endcode
@@ -78,91 +48,109 @@ namespace MyGUI
 	class MYGUI_EXPORT Any
 	{
 	public:
-		struct AnyEmpty { };
-		static AnyEmpty Null;
-
+		static const Any Null;
 		Any();
-		Any(const Any::AnyEmpty& value);
 		Any(const Any& other);
+		Any(Any&& other) noexcept;
+		~Any();
 
 		template<typename ValueType>
 		Any(const ValueType& value) :
-			mContent(new Holder<ValueType>(value))
+			mData(::new std::decay_t<const ValueType>(value)),
+			mType(getTypeOps<std::decay_t<const ValueType>>())
 		{
 		}
-
-		~Any();
-
-		Any& swap(Any& rhs);
 
 		template<typename ValueType>
-		Any& operator = (const ValueType& rhs)
+		Any& operator=(const ValueType& rhs)
 		{
-			Any(rhs).swap(*this);
-			return *this;
+			return *this = Any(rhs);
 		}
 
-		Any& operator = (const Any::AnyEmpty& rhs);
-		Any& operator = (const Any& rhs);
+		Any& operator=(const Any& rhs);
+		Any& operator=(Any&& rhs) noexcept;
 
 		bool empty() const;
 
 		const std::type_info& getType() const;
 
 		template<typename ValueType>
-		ValueType* castType(bool _throw = true) const
+		ValueType* castType(bool _throw = true)
 		{
-			if (this->getType() == typeid(ValueType))
-				return &static_cast<Any::Holder<ValueType> *>(this->mContent)->held;
-			MYGUI_ASSERT(!_throw, "Bad cast from type '" << getType().name() << "' to '" << typeid(ValueType).name() << "'");
+			if constexpr (std::is_object_v<ValueType>)
+			{
+				if (mData && mType->type == typeid(ValueType))
+					return static_cast<ValueType*>(mData);
+			}
+			if (_throw)
+				detail::throwBadCast(getType().name(), typeid(ValueType).name(), __FILE__, __LINE__);
 			return nullptr;
 		}
 
-		void* castUnsafe() const;
-
-	private:
-		class Placeholder
-		{
-		public:
-			virtual ~Placeholder() { }
-
-		public:
-			virtual const std::type_info& getType() const = 0;
-			virtual Placeholder* clone() const = 0;
-		};
-
 		template<typename ValueType>
-		class Holder :
-			public Placeholder
+		const ValueType* castType(bool _throw = true) const
 		{
-		public:
-			Holder(const ValueType& value) :
-				held(value)
+			if constexpr (std::is_object_v<ValueType>)
 			{
+				if (mData && mType->type == typeid(ValueType))
+					return static_cast<const ValueType*>(mData);
 			}
+			if (_throw)
+				detail::throwBadCast(getType().name(), typeid(ValueType).name(), __FILE__, __LINE__);
+			return nullptr;
+		}
 
-		public:
-			virtual const std::type_info& getType() const
-			{
-				return typeid(ValueType);
-			}
-
-			virtual Placeholder* clone() const
-			{
-				return new Holder(held);
-			}
-
-		public:
-			ValueType held;
-
-		private:
-			Holder& operator=(const Holder&);
-		};
+		bool compare(const Any& other) const;
 
 	private:
-		Placeholder* mContent;
+		template<typename T, typename = void>
+		struct HasOperatorEqual : std::false_type
+		{
+		};
+
+		template<typename T>
+		struct HasOperatorEqual<T, std::void_t<decltype(std::declval<const T&>() == std::declval<const T&>())>> :
+			std::is_same<bool, decltype(std::declval<const T&>() == std::declval<const T&>())>
+		{
+		};
+
+		template<typename T1, typename T2>
+		struct HasOperatorEqual<std::pair<T1, T2>> : std::conjunction<HasOperatorEqual<T1>, HasOperatorEqual<T2>>
+		{
+		};
+
+		struct TypeOps
+		{
+			const std::type_info& type;
+			void* (*copy)(const void*);
+			void (*destroy)(void*);
+			bool (*compare)(const void*, const void*, const std::type_info&);
+		};
+
+		template<typename T>
+		static const TypeOps* getTypeOps() noexcept
+		{
+			static constexpr TypeOps operations{
+				typeid(T),
+				[](const void* source) -> void* { return ::new T(*static_cast<const T*>(source)); },
+				[](void* source) { ::delete static_cast<T*>(source); },
+				[](const void* left, const void* right, const std::type_info& rightType) -> bool
+				{
+					if constexpr (HasOperatorEqual<T>::value)
+						return typeid(T) == rightType && *static_cast<const T*>(left) == *static_cast<const T*>(right);
+					else
+						MYGUI_EXCEPT("Type '" << typeid(T).name() << "' is not comparable");
+				}};
+			return &operations;
+		}
+
+	private:
+		// The allocation contains only the value; its operations are shared by type.
+		// Moving an Any transfers ownership without relocating its stored value.
+		void* mData = nullptr;
+		const TypeOps* mType = nullptr;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_ANY_H__
+#endif // MYGUI_ANY_H_

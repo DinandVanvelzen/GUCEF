@@ -1,29 +1,16 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		12/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_FLOW_DIRECTION_H__
-#define __MYGUI_FLOW_DIRECTION_H__
+#ifndef MYGUI_FLOW_DIRECTION_H_
+#define MYGUI_FLOW_DIRECTION_H_
 
 #include "MyGUI_Prerequest.h"
 #include <string>
+#include <string.h>
+#include <iostream>
 
 namespace MyGUI
 {
@@ -40,27 +27,28 @@ namespace MyGUI
 		};
 
 		FlowDirection(Enum _value = LeftToRight) :
-			value(_value)
+			mValue(_value)
 		{
 		}
 
-		static FlowDirection parse(const std::string& _value)
+		static FlowDirection parse(std::string_view _value)
 		{
 			FlowDirection type;
 			int value = 0;
 			while (true)
 			{
-				const char* name = type.getValueName(value);
-				if (strcmp(name, "") == 0 || name == _value) break;
+				std::string_view name = type.getValueName(value);
+				if (name.empty() || name == _value)
+					break;
 				value++;
 			}
-			type.value = (Enum)value;
+			type.mValue = static_cast<Enum>(value);
 			return type;
 		}
 
 		bool isHorizontal() const
 		{
-			return value == LeftToRight || value == RightToLeft;
+			return mValue == LeftToRight || mValue == RightToLeft;
 		}
 
 		bool isVertical() const
@@ -68,46 +56,53 @@ namespace MyGUI
 			return !isHorizontal();
 		}
 
-		friend bool operator == (FlowDirection const& a, FlowDirection const& b)
+		friend bool operator==(FlowDirection const& a, FlowDirection const& b)
 		{
-			return a.value == b.value;
+			return a.mValue == b.mValue;
 		}
 
-		friend bool operator != (FlowDirection const& a, FlowDirection const& b)
+		friend bool operator!=(FlowDirection const& a, FlowDirection const& b)
 		{
-			return a.value != b.value;
+			return a.mValue != b.mValue;
 		}
 
-		friend std::ostream& operator << ( std::ostream& _stream, const FlowDirection&  _value )
+		friend std::ostream& operator<<(std::ostream& _stream, const FlowDirection& _value)
 		{
-			_stream << _value.getValueName(_value.value);
+			_stream << _value.getValueName(_value.mValue);
 			return _stream;
 		}
 
-		friend std::istream& operator >> ( std::istream& _stream, FlowDirection&  _value )
+		friend std::istream& operator>>(std::istream& _stream, FlowDirection& _value)
 		{
 			std::string value;
 			_stream >> value;
-			_value = FlowDirection::parse(value);
+			_value = parse(value);
 			return _stream;
 		}
 
-		std::string print() const
+		std::string_view print() const
 		{
-			return getValueName(value);
+			return getValueName(mValue);
+		}
+
+		int getValue() const
+		{
+			return mValue;
 		}
 
 	private:
-		const char* getValueName(int _index) const
+		std::string_view getValueName(int _index) const
 		{
-			static const char* values[MAX + 1] = { "LeftToRight", "RightToLeft", "TopToBottom", "BottomToTop", "" };
-			return values[(_index < MAX && _index >= 0) ? _index : MAX];
+			if (_index < 0 || _index >= MAX)
+				return {};
+			static const std::string_view values[MAX] = {"LeftToRight", "RightToLeft", "TopToBottom", "BottomToTop"};
+			return values[_index];
 		}
 
 	private:
-		Enum value;
+		Enum mValue;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_FLOW_DIRECTION_H__
+#endif // MYGUI_FLOW_DIRECTION_H_

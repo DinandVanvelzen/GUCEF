@@ -1,28 +1,16 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_RESOURCE_IMAGE_SET_DATA_H__
-#define __MYGUI_RESOURCE_IMAGE_SET_DATA_H__
+#ifndef MYGUI_RESOURCE_IMAGE_SET_DATA_H_
+#define MYGUI_RESOURCE_IMAGE_SET_DATA_H_
 
 #include "MyGUI_Prerequest.h"
+#include "MyGUI_Types.h"
+#include <string>
+#include <vector>
 
 namespace MyGUI
 {
@@ -30,10 +18,10 @@ namespace MyGUI
 	struct IndexImage
 	{
 		std::string name;
-		float rate;
+		float rate{0};
 		std::vector<IntPoint> frames;
 	};
-	typedef std::vector<IndexImage> VectorIndexImage;
+	using VectorIndexImage = std::vector<IndexImage>;
 
 	struct GroupImage
 	{
@@ -42,9 +30,8 @@ namespace MyGUI
 		IntSize size;
 		VectorIndexImage indexes;
 	};
-	typedef std::vector<GroupImage> VectorGroupImage;
-	typedef Enumerator<VectorGroupImage> EnumeratorGroupImage;
+	using VectorGroupImage = std::vector<GroupImage>;
 
 } // namespace MyGUI
 
-#endif // __MYGUI_RESOURCE_IMAGE_SET_DATA_H__
+#endif // MYGUI_RESOURCE_IMAGE_SET_DATA_H_

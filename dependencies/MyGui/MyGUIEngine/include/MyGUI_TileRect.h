@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		05/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_TILE_RECT_H__
-#define __MYGUI_TILE_RECT_H__
+#ifndef MYGUI_TILE_RECT_H_
+#define MYGUI_TILE_RECT_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_XmlDocument.h"
@@ -34,61 +19,58 @@ namespace MyGUI
 
 	class RenderItem;
 
-	class MYGUI_EXPORT TileRect :
-		public ISubWidgetRect
+	class MYGUI_EXPORT TileRect : public ISubWidgetRect
 	{
-		MYGUI_RTTI_DERIVED( TileRect )
+		MYGUI_RTTI_DERIVED(TileRect)
 
 	public:
 		TileRect();
-		virtual ~TileRect();
 
-		virtual void setAlpha(float _alpha);
+		void setAlpha(float _alpha) override;
 
-		virtual void setVisible(bool _visible);
+		void setVisible(bool _visible) override;
 
-		virtual void createDrawItem(ITexture* _texture, ILayerNode* _node);
-		virtual void destroyDrawItem();
+		void createDrawItem(ITexture* _texture, ILayerNode* _node) override;
+		void destroyDrawItem() override;
 
-		// метод для отрисовки себя
-		virtual void doRender();
+		void doRender() override;
 
-		virtual void setStateData(IStateInfo* _data);
+		void setStateData(IStateInfo* _data) override;
 
-	/*internal:*/
-		virtual void _updateView();
-		virtual void _correctView();
+		/*internal:*/
+		void _updateView() override;
+		void _correctView() override;
 
-		virtual void _setAlign(const IntSize& _oldsize);
+		void _setAlign(const IntSize& _oldsize) override;
 
-		virtual void _setUVSet(const FloatRect& _rect);
-		virtual void _setColour(const Colour& _value);
+		void _setUVSet(const FloatRect& _rect) override;
+		void _setColour(const Colour& _value) override;
 
 	protected:
-		bool mEmptyView;
+		bool mEmptyView{false};
 
 		VertexColourType mVertexFormat;
-		uint32 mCurrentColour;
+		uint32 mCurrentColour{0xFFFFFFFF};
 
 		FloatRect mCurrentTexture;
 		IntCoord mCurrentCoord;
 
-		ILayerNode* mNode;
-		RenderItem* mRenderItem;
+		ILayerNode* mNode{nullptr};
+		RenderItem* mRenderItem{nullptr};
 
 		IntSize mTileSize;
 		size_t mCountVertex;
 
-		float mRealTileWidth;
-		float mRealTileHeight;
+		float mRealTileWidth{0};
+		float mRealTileHeight{0};
 
-		float mTextureHeightOne;
-		float mTextureWidthOne;
+		float mTextureHeightOne{0};
+		float mTextureWidthOne{0};
 
-		bool mTileH;
-		bool mTileV;
+		bool mTileH{true};
+		bool mTileV{true};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_TILE_RECT_H__
+#endif // MYGUI_TILE_RECT_H_

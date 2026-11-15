@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		12/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_COMBO_BOX_H__
-#define __MYGUI_COMBO_BOX_H__
+#ifndef MYGUI_COMBO_BOX_H_
+#define MYGUI_COMBO_BOX_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_EditBox.h"
@@ -35,26 +20,23 @@
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate2<ComboBox*, size_t> EventHandle_ComboBoxPtrSizeT;
+	using EventHandle_ComboBoxPtrSizeT = delegates::MultiDelegate<ComboBox*, size_t>;
 
-	class MYGUI_EXPORT ComboBox :
-		public EditBox,
-		public IItemContainer,
-		public MemberObsolete<ComboBox>
+	/** \brief @wpage{ComboBox}
+		ComboBox widget description should be here.
+	*/
+	class MYGUI_EXPORT ComboBox : public EditBox, public IItemContainer, public MemberObsolete<ComboBox>
 	{
-		MYGUI_RTTI_DERIVED( ComboBox )
+		MYGUI_RTTI_DERIVED(ComboBox)
 
 	public:
-		ComboBox();
-
 		//------------------------------------------------------------------------------//
-		// манипуляции айтемами
 
 		//! Get number of items
 		size_t getItemCount() const;
 
 		//! Insert an item into a array at a specified position
-		void insertItemAt(size_t _index, const UString& _name, Any _data = Any::Null);
+		void insertItemAt(size_t _index, const UString& _item, Any _data = Any::Null);
 
 		//! Add an item to the end of a array
 		void addItem(const UString& _name, Any _data = Any::Null);
@@ -71,10 +53,9 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции выделениями
 
 		//! Get index of selected item (ITEM_NONE if none selected)
-		size_t getIndexSelected();
+		size_t getIndexSelected() const;
 
 		//! Select specified _index
 		void setIndexSelected(size_t _index);
@@ -84,7 +65,6 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
 		//! Replace an item data at a specified position
 		void setItemDataAt(size_t _index, Any _data);
@@ -93,7 +73,7 @@ namespace MyGUI
 		void clearItemDataAt(size_t _index);
 
 		//! Get item data from specified position
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getItemDataAt(size_t _index, bool _throw = true)
 		{
 			return mList->getItemDataAt<ValueType>(_index, _throw);
@@ -101,17 +81,15 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции отображением
 
 		//! Replace an item name at a specified position
 		void setItemNameAt(size_t _index, const UString& _name);
 
 		//! Get item name from specified position
-		const UString& getItemNameAt(size_t _index);
+		const UString& getItemNameAt(size_t _index) const;
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции выдимостью
 
 		//! Move all elements so specified becomes visible
 		void beginToItemAt(size_t _index);
@@ -127,10 +105,9 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------------//
-		// методы для управления отображением
 
 		//! Set drop list mode (text can not be edited)
-		void setComboModeDrop(bool _value);
+		void setComboModeDrop(bool _drop);
 		//! Get drop list mode flag
 		bool getComboModeDrop() const;
 
@@ -138,6 +115,13 @@ namespace MyGUI
 		void setSmoothShow(bool _value);
 		//! Get smooth show of list flag
 		bool getSmoothShow() const;
+
+		/** Set the drop-down item height in pixels and update an open list immediately.
+			Values below 1 are clamped to 1. Does not change the input field height.
+		*/
+		void setItemHeight(int _height);
+		//! Return the drop-down item height in pixels.
+		int getItemHeight() const;
 
 		//! Get max list length
 		void setMaxListLength(int _value);
@@ -150,40 +134,39 @@ namespace MyGUI
 		//! Get direction, where drop down list appears.
 		FlowDirection getFlowDirection() const;
 
-	/*events:*/
-		/** Event : Enter pressed in combo mode or item selected in drop down list.\n
+		/*events:*/
+		/** Event : Enter pressed in combo mode or item selected in drop down list
+			and combo mode drop enabled (see void ComboBox::setComboModeDrop(bool _value)).\n
 			signature : void method(MyGUI::ComboBox* _sender, size_t _index)
 			@param _sender widget that called this event
 			@param _index item
 		*/
-		EventPair<EventHandle_WidgetVoid, EventHandle_ComboBoxPtrSizeT>
-			eventComboAccept;
+		EventPairAddParameter<EventHandle_WidgetVoid, EventHandle_ComboBoxPtrSizeT> eventComboAccept;
 
 		/** Event : Position changed.\n
 			signature : void method(MyGUI::ComboBox* _sender, size_t _index)
 			@param _sender widget that called this event
 			@param _index of new position
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_ComboBoxPtrSizeT>
-			eventComboChangePosition;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_ComboBoxPtrSizeT> eventComboChangePosition;
 
-	/*internal:*/
+		/*internal:*/
 		// IItemContainer impl
-		virtual size_t _getItemCount();
-		virtual void _addItem(const MyGUI::UString& _name);
-		virtual void _removeItemAt(size_t _index);
-		virtual void _setItemNameAt(size_t _index, const UString& _name);
-		virtual const UString& _getItemNameAt(size_t _index);
+		size_t _getItemCount() const override;
+		void _addItem(const MyGUI::UString& _name) override;
+		void _removeItemAt(size_t _index) override;
+		void _setItemNameAt(size_t _index, const UString& _name) override;
+		const UString& _getItemNameAt(size_t _index) const override;
 
-		virtual void _resetContainer(bool _update);
+		void _resetContainer(bool _update) override;
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		virtual void onKeyButtonPressed(KeyCode _key, Char _char);
+		void onKeyButtonPressed(KeyCode _key, Char _char) override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
 		void notifyButtonPressed(Widget* _sender, int _left, int _top, MouseButton _id);
@@ -195,29 +178,30 @@ namespace MyGUI
 		void notifyMousePressed(Widget* _sender, int _left, int _top, MouseButton _id);
 		void notifyEditTextChange(EditBox* _sender);
 		void notifyToolTip(Widget* _sender, const ToolTipInfo& _info);
+		void notifyChangeCoord(Widget* _sender);
 
 		void showList();
 		void hideList();
 
-		void actionWidgetHide(Widget* _widget);
+		void actionWidgetHide(Widget* _widget, ControllerItem* _controller);
 
 		ControllerFadeAlpha* createControllerFadeAlpha(float _alpha, float _coef, bool _enable);
 		IntCoord calculateListPosition();
 
 	private:
-		Button* mButton;
-		ListBox* mList;
+		Button* mButton{nullptr};
+		ListBox* mList{nullptr};
 
-		bool mListShow;
-		int mMaxListLength;
-		size_t mItemIndex;
-		bool mModeDrop;
-		bool mDropMouse;
-		bool mShowSmooth;
+		bool mListShow{false};
+		int mMaxListLength{-1};
+		size_t mItemIndex{ITEM_NONE};
+		bool mModeDrop{false};
+		bool mDropMouse{false};
+		bool mShowSmooth{false};
 
-		FlowDirection mFlowDirection;
+		FlowDirection mFlowDirection{FlowDirection::TopToBottom};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_COMBO_BOX_H__
+#endif // MYGUI_COMBO_BOX_H_

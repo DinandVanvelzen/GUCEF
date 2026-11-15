@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		04/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_MultiListBox.h"
 #include "MyGUI_MultiListItem.h"
@@ -32,34 +17,19 @@
 namespace MyGUI
 {
 
-	MultiListBox::MultiListBox() :
-		mHeightButton(0),
-		mWidthBar(0),
-		mWidgetEmpty(nullptr),
-		mLastMouseFocusIndex(ITEM_NONE),
-		mSortUp(true),
-		mSortColumnIndex(ITEM_NONE),
-		mWidthSeparator(0),
-		mOffsetButtonSeparator(2),
-		mItemSelected(ITEM_NONE),
-		mFrameAdvise(false),
-		mClient(nullptr),
-		mHeaderPlace(nullptr)
-	{
-	}
-
 	void MultiListBox::initialiseOverride()
 	{
 		Base::initialiseOverride();
 
-		std::string skinButtonEmpty;
-
 		if (isUserString("SkinButton"))
 			mSkinButton = getUserString("SkinButton");
+
 		if (isUserString("SkinList"))
 			mSkinList = getUserString("SkinList");
+
 		if (isUserString("SkinSeparator"))
 			mSkinSeparator = getUserString("SkinSeparator");
+
 		if (isUserString("WidthSeparator"))
 			mWidthSeparator = utility::parseValue<int>(getUserString("WidthSeparator"));
 
@@ -69,23 +39,23 @@ namespace MyGUI
 		if (mHeightButton < 0)
 			mHeightButton = 0;
 
+		///@wskin_child{MultiListBox, Widget, HeaderPlace} Place for column headers.
 		assignWidget(mHeaderPlace, "HeaderPlace");
 
-		assignWidget(mClient, "Client");
-		if (mClient != nullptr)
-			setWidgetClient(mClient);
-
-		if (nullptr == mClient)
-			mClient = this;
-
+		///@wskin_child{MultiListBox, Widget, Empty} Widget for header where there are no lists.
 		assignWidget(mWidgetEmpty, "Empty");
 
 		if (mWidgetEmpty == nullptr)
 		{
+			std::string_view skinButtonEmpty;
 			if (isUserString("SkinButtonEmpty"))
 				skinButtonEmpty = getUserString("SkinButtonEmpty");
+
 			if (!skinButtonEmpty.empty())
-				mWidgetEmpty = mClient->createWidget<Widget>(skinButtonEmpty, IntCoord(0, 0, mClient->getWidth(), getButtonHeight()), Align::Default);
+				mWidgetEmpty = _getClientWidget()->createWidget<Widget>(
+					skinButtonEmpty,
+					IntCoord(0, 0, _getClientWidget()->getWidth(), getButtonHeight()),
+					Align::Default);
 		}
 
 		if (getUpdateByResize())
@@ -94,16 +64,41 @@ namespace MyGUI
 
 	void MultiListBox::shutdownOverride()
 	{
-		mClient = nullptr;
-
 		Base::shutdownOverride();
+	}
+
+	void MultiListBox::setItemHeight(int _height)
+	{
+		mItemHeight = std::max(1, _height);
+		for (auto& column : mVectorColumnInfo)
+			column.list->setItemHeight(mItemHeight);
+	}
+
+	int MultiListBox::getItemHeight() const
+	{
+		if (mItemHeight != 0)
+			return mItemHeight;
+		return mVectorColumnInfo.empty() ? 1 : mVectorColumnInfo.front().list->getItemHeight();
+	}
+
+	void MultiListBox::setPropertyOverride(std::string_view _key, std::string_view _value)
+	{
+		/// @wproperty{MultiListBox, ItemHeight, int} Row height in pixels for all columns (minimum 1).
+		if (_key == "ItemHeight")
+			setItemHeight(utility::parseValue<int>(_value));
+		else
+		{
+			Base::setPropertyOverride(_key, _value);
+			return;
+		}
+
+		eventChangeProperty(this, _key, _value);
 	}
 
 	void MultiListBox::setColumnNameAt(size_t _column, const UString& _name)
 	{
 		MYGUI_ASSERT_RANGE(_column, mVectorColumnInfo.size(), "MultiListBox::setColumnNameAt");
 		mVectorColumnInfo[_column].name = _name;
-		// обновляем кэпшен сначала
 		redrawButtons();
 		updateColumns();
 	}
@@ -115,13 +110,13 @@ namespace MyGUI
 		updateColumns();
 	}
 
-	const UString& MultiListBox::getColumnNameAt(size_t _column)
+	const UString& MultiListBox::getColumnNameAt(size_t _column) const
 	{
 		MYGUI_ASSERT_RANGE(_column, mVectorColumnInfo.size(), "MultiListBox::getColumnNameAt");
 		return mVectorColumnInfo[_column].name;
 	}
 
-	int MultiListBox::getColumnWidthAt(size_t _column)
+	int MultiListBox::getColumnWidthAt(size_t _column) const
 	{
 		MYGUI_ASSERT_RANGE(_column, mVectorColumnInfo.size(), "MultiListBox::getColumnWidthAt");
 		return mVectorColumnInfo[_column].width;
@@ -140,7 +135,6 @@ namespace MyGUI
 		{
 			mSortUp = !mSortUp;
 			redrawButtons();
-			// если было недосортированно то сортируем
 			if (mFrameAdvise)
 				sortList();
 
@@ -164,9 +158,9 @@ namespace MyGUI
 	void MultiListBox::removeAllItems()
 	{
 		BiIndexBase::removeAllItems();
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		for (auto& iter : mVectorColumnInfo)
 		{
-			(*iter).list->removeAllItems();
+			iter.list->removeAllItems();
 		}
 
 		mItemSelected = ITEM_NONE;
@@ -176,16 +170,16 @@ namespace MyGUI
 	{
 		if (_index == ITEM_NONE)
 		{
-			for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+			for (auto& iter : mVectorColumnInfo)
 			{
-				(*iter).list->clearIndexSelected();
+				iter.list->clearIndexSelected();
 			}
 		}
 		else
 		{
-			for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+			for (auto& iter : mVectorColumnInfo)
 			{
-				(*iter).list->setIndexSelected(_index);
+				iter.list->setIndexSelected(_index);
 			}
 		}
 	}
@@ -195,8 +189,11 @@ namespace MyGUI
 		if (_index == mItemSelected)
 			return;
 
-		MYGUI_ASSERT_RANGE(0, mVectorColumnInfo.size(), "MultiListBox::setIndexSelected");
-		MYGUI_ASSERT_RANGE_AND_NONE(_index, mVectorColumnInfo.begin()->list->getItemCount(), "MultiListBox::setIndexSelected");
+		MYGUI_ASSERT(!mVectorColumnInfo.empty(), "MultiListBox::setIndexSelected");
+		MYGUI_ASSERT_RANGE_AND_NONE(
+			_index,
+			mVectorColumnInfo.begin()->list->getItemCount(),
+			"MultiListBox::setIndexSelected");
 
 		mItemSelected = _index;
 		updateBackSelected(BiIndexBase::convertToBack(mItemSelected));
@@ -209,12 +206,12 @@ namespace MyGUI
 		size_t index = BiIndexBase::convertToBack(_index);
 		getSubItemAt(_column)->setItemNameAt(index, _name);
 
-		// если мы попортили список с активным сортом, надо пересчитывать
+		// if we changed a sorted list, need to resort
 		if (_column == mSortColumnIndex)
 			frameAdvise(true);
 	}
 
-	const UString& MultiListBox::getSubItemNameAt(size_t _column, size_t _index)
+	const UString& MultiListBox::getSubItemNameAt(size_t _column, size_t _index) const
 	{
 		MYGUI_ASSERT_RANGE(_index, mVectorColumnInfo.begin()->list->getItemCount(), "MultiListBox::getSubItemNameAt");
 
@@ -228,7 +225,7 @@ namespace MyGUI
 		return BiIndexBase::convertToFace(index);
 	}
 
-	int MultiListBox::getButtonHeight()
+	int MultiListBox::getButtonHeight() const
 	{
 		if (mHeaderPlace != nullptr)
 			return mHeaderPlace->getHeight();
@@ -240,48 +237,52 @@ namespace MyGUI
 		if (nullptr == mWidgetEmpty)
 			return;
 
-		// кнопка, для заполнения пустоты
-		if (mWidthBar >= mClient->getWidth())
+		if (mWidthBar >= _getClientWidget()->getWidth())
 			mWidgetEmpty->setVisible(false);
 		else
 		{
-			mWidgetEmpty->setCoord(mWidthBar, 0, mClient->getWidth() - mWidthBar, getButtonHeight());
+			mWidgetEmpty->setCoord(mWidthBar, 0, _getClientWidget()->getWidth() - mWidthBar, getButtonHeight());
 			mWidgetEmpty->setVisible(true);
 		}
 	}
 
 	void MultiListBox::notifyListChangePosition(ListBox* _sender, size_t _position)
 	{
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		for (auto& iter : mVectorColumnInfo)
 		{
-			if (_sender != (*iter).list)
-				(*iter).list->setIndexSelected(_position);
+			if (_sender != iter.list)
+				iter.list->setIndexSelected(_position);
 		}
 
 		updateBackSelected(_position);
 
 		mItemSelected = BiIndexBase::convertToFace(_position);
 
-		// наш евент
 		eventListChangePosition(this, mItemSelected);
 	}
 
 	void MultiListBox::notifyListSelectAccept(ListBox* _sender, size_t _position)
 	{
-		// наш евент
 		eventListSelectAccept(this, BiIndexBase::convertToFace(_position));
+	}
+
+	void MultiListBox::notifyListNotifyItem(ListBox* _sender, const MyGUI::IBNotifyItemData& _info)
+	{
+		IBNotifyItemData infoConvertedIndex(_info);
+		infoConvertedIndex.index = BiIndexBase::convertToFace(_info.index);
+		eventNotifyItem(this, infoConvertedIndex);
 	}
 
 	void MultiListBox::notifyListChangeFocus(ListBox* _sender, size_t _position)
 	{
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		for (auto& iter : mVectorColumnInfo)
 		{
-			if (_sender != (*iter).list)
+			if (_sender != iter.list)
 			{
 				if (ITEM_NONE != mLastMouseFocusIndex)
-					(*iter).list->_setItemFocus(mLastMouseFocusIndex, false);
+					iter.list->_setItemFocus(mLastMouseFocusIndex, false);
 				if (ITEM_NONE != _position)
-					(*iter).list->_setItemFocus(_position, true);
+					iter.list->_setItemFocus(_position, true);
 			}
 		}
 		mLastMouseFocusIndex = _position;
@@ -289,10 +290,10 @@ namespace MyGUI
 
 	void MultiListBox::notifyListChangeScrollPosition(ListBox* _sender, size_t _position)
 	{
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		for (auto& iter : mVectorColumnInfo)
 		{
-			if (_sender != (*iter).list)
-				(*iter).list->setScrollPosition(_position);
+			if (_sender != iter.list)
+				iter.list->setScrollPosition(_position);
 		}
 	}
 
@@ -305,19 +306,19 @@ namespace MyGUI
 	void MultiListBox::redrawButtons()
 	{
 		size_t pos = 0;
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		for (auto& iter : mVectorColumnInfo)
 		{
 			if (pos == mSortColumnIndex)
 			{
 				if (mSortUp)
-					(*iter).button->setImageName("Up");
+					iter.button->setImageName("Up");
 				else
-					(*iter).button->setImageName("Down");
+					iter.button->setImageName("Down");
 			}
 			else
-				(*iter).button->setImageName("None");
+				iter.button->setImageName("None");
 
-			(*iter).button->setCaption((*iter).name);
+			iter.button->setCaption(iter.name);
 			pos++;
 		}
 	}
@@ -333,7 +334,7 @@ namespace MyGUI
 		{
 			if (!mFrameAdvise)
 			{
-				MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate( this, &MultiListBox::frameEntered );
+				MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate(this, &MultiListBox::frameEntered);
 				mFrameAdvise = true;
 			}
 		}
@@ -341,23 +342,22 @@ namespace MyGUI
 		{
 			if (mFrameAdvise)
 			{
-				MyGUI::Gui::getInstance().eventFrameStart -= MyGUI::newDelegate( this, &MultiListBox::frameEntered );
+				MyGUI::Gui::getInstance().eventFrameStart -= MyGUI::newDelegate(this, &MultiListBox::frameEntered);
 				mFrameAdvise = false;
 			}
 		}
 	}
 
-	Widget* MultiListBox::getSeparator(size_t _index)
+	Widget* MultiListBox::getOrCreateSeparator(size_t _index)
 	{
 		if (!mWidthSeparator || mSkinSeparator.empty())
 			return nullptr;
-		// последний столбик
 		if (_index == mVectorColumnInfo.size() - 1)
 			return nullptr;
 
 		while (_index >= mSeparators.size())
 		{
-			Widget* separator = mClient->createWidget<Widget>(mSkinSeparator, IntCoord(), Align::Default);
+			Widget* separator = _getClientWidget()->createWidget<Widget>(mSkinSeparator, IntCoord(), Align::Default);
 			mSeparators.push_back(separator);
 		}
 
@@ -372,15 +372,15 @@ namespace MyGUI
 		size_t last = mVectorColumnInfo.front().list->getItemCount();
 		if (0 == last)
 			return;
-		last --;
+		last--;
 		size_t first = 0;
 
 		while (first < last)
 		{
 			BiIndexBase::swapItemsBackAt(first, last);
-			for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+			for (auto& iter : mVectorColumnInfo)
 			{
-				(*iter).list->swapItemsAt(first, last);
+				iter.list->swapItemsAt(first, last);
 			}
 
 			first++;
@@ -396,9 +396,33 @@ namespace MyGUI
 		if (mSortUp)
 			std::swap(_left, _right);
 		if (requestOperatorLess.empty())
+		{
 			result = _list->getItemNameAt(_left) < _list->getItemNameAt(_right);
+		}
 		else
-			requestOperatorLess(this, mSortColumnIndex, _list->getItemNameAt(_left), _list->getItemNameAt(_right), result);
+		{
+#ifndef MYGUI_DONT_USE_OBSOLETE
+			requestOperatorLess.m_eventObsolete(
+				this,
+				mSortColumnIndex,
+				_list->getItemNameAt(_left),
+				_list->getItemNameAt(_right),
+				result);
+			requestOperatorLess.m_event(
+				this,
+				mSortColumnIndex,
+				BiIndexBase::convertToFace(_left),
+				BiIndexBase::convertToFace(_right),
+				result);
+#else
+			requestOperatorLess(
+				this,
+				mSortColumnIndex,
+				BiIndexBase::convertToFace(_left),
+				BiIndexBase::convertToFace(_right),
+				result);
+#endif
+		}
 		return result;
 	}
 
@@ -416,7 +440,7 @@ namespace MyGUI
 		// shell sort
 		int first;
 		size_t last;
-		for (size_t step = count >> 1; step > 0 ; step >>= 1)
+		for (size_t step = count >> 1; step > 0; step >>= 1)
 		{
 			for (size_t i = 0; i < (count - step); i++)
 			{
@@ -427,9 +451,9 @@ namespace MyGUI
 					if (compare(list, first, last))
 					{
 						BiIndexBase::swapItemsBackAt(first, last);
-						for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+						for (auto& iter : mVectorColumnInfo)
 						{
-							(*iter).list->swapItemsAt(first, last);
+							iter.list->swapItemsAt(first, last);
 						}
 					}
 					first--;
@@ -444,22 +468,20 @@ namespace MyGUI
 
 	void MultiListBox::insertItemAt(size_t _index, const UString& _name, Any _data)
 	{
-		MYGUI_ASSERT_RANGE(0, mVectorColumnInfo.size(), "MultiListBox::insertItemAt");
+		MYGUI_ASSERT(!mVectorColumnInfo.empty(), "MultiListBox::insertItemAt");
 		MYGUI_ASSERT_RANGE_INSERT(_index, mVectorColumnInfo.front().list->getItemCount(), "MultiListBox::insertItemAt");
 		if (ITEM_NONE == _index)
 			_index = mVectorColumnInfo.front().list->getItemCount();
 
-		// если надо, то меняем выделенный элемент
-		// при сортировке, обновится
 		if ((mItemSelected != ITEM_NONE) && (_index <= mItemSelected))
-			mItemSelected ++;
+			mItemSelected++;
 
 		size_t index = BiIndexBase::insertItemAt(_index);
 
-		// вставляем во все поля пустые, а потом присваиваем первому
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		// insert empty into all columns, then assign to first one
+		for (auto& iter : mVectorColumnInfo)
 		{
-			(*iter).list->insertItemAt(index, "");
+			iter.list->insertItemAt(index, UString());
 		}
 		mVectorColumnInfo.front().list->setItemNameAt(index, _name);
 		mVectorColumnInfo.front().list->setItemDataAt(index, _data);
@@ -469,47 +491,46 @@ namespace MyGUI
 
 	void MultiListBox::removeItemAt(size_t _index)
 	{
-		MYGUI_ASSERT_RANGE(0, mVectorColumnInfo.size(), "MultiListBox::removeItemAt");
+		MYGUI_ASSERT(!mVectorColumnInfo.empty(), "MultiListBox::removeItemAt");
 		MYGUI_ASSERT_RANGE(_index, mVectorColumnInfo.begin()->list->getItemCount(), "MultiListBox::removeItemAt");
 
 		size_t index = BiIndexBase::removeItemAt(_index);
 
-		for (VectorColumnInfo::iterator iter = mVectorColumnInfo.begin(); iter != mVectorColumnInfo.end(); ++iter)
+		for (auto& iter : mVectorColumnInfo)
 		{
-			(*iter).list->removeItemAt(index);
+			iter.list->removeItemAt(index);
 		}
 
-		// если надо, то меняем выделенный элемент
 		size_t count = mVectorColumnInfo.begin()->list->getItemCount();
 		if (count == 0)
 			mItemSelected = ITEM_NONE;
 		else if (mItemSelected != ITEM_NONE)
 		{
 			if (_index < mItemSelected)
-				mItemSelected --;
+				mItemSelected--;
 			else if ((_index == mItemSelected) && (mItemSelected == count))
-				mItemSelected --;
+				mItemSelected--;
 		}
 		updateBackSelected(BiIndexBase::convertToBack(mItemSelected));
 	}
 
 	void MultiListBox::swapItemsAt(size_t _index1, size_t _index2)
 	{
-		MYGUI_ASSERT_RANGE(0, mVectorColumnInfo.size(), "MultiListBox::removeItemAt");
+		MYGUI_ASSERT(!mVectorColumnInfo.empty(), "MultiListBox::removeItemAt");
 		MYGUI_ASSERT_RANGE(_index1, mVectorColumnInfo.begin()->list->getItemCount(), "MultiListBox::swapItemsAt");
 		MYGUI_ASSERT_RANGE(_index2, mVectorColumnInfo.begin()->list->getItemCount(), "MultiListBox::swapItemsAt");
 
-		// при сортированном, меняем только индексы
+		// if sorted: only indices are changed
 		BiIndexBase::swapItemsFaceAt(_index1, _index2);
 
-		// при несортированном, нужно наоборот, поменять только данные
+		// if not sorted: only data can be changed
 		// FIXME
 	}
 
 	void MultiListBox::setColumnDataAt(size_t _index, Any _data)
 	{
 		MYGUI_ASSERT_RANGE(_index, mVectorColumnInfo.size(), "MultiListBox::setColumnDataAt");
-		mVectorColumnInfo[_index].data = _data;
+		mVectorColumnInfo[_index].data = std::move(_data);
 	}
 
 	void MultiListBox::setSubItemDataAt(size_t _column, size_t _index, Any _data)
@@ -545,7 +566,7 @@ namespace MyGUI
 		setSubItemNameAt(0, _index, _name);
 	}
 
-	const UString& MultiListBox::getItemNameAt(size_t _index)
+	const UString& MultiListBox::getItemNameAt(size_t _index) const
 	{
 		return getSubItemNameAt(0, _index);
 	}
@@ -575,13 +596,13 @@ namespace MyGUI
 		setSubItemDataAt(_column, _index, Any::Null);
 	}
 
-	ListBox* MultiListBox::getSubItemAt(size_t _column)
+	ListBox* MultiListBox::getSubItemAt(size_t _column) const
 	{
 		MYGUI_ASSERT_RANGE(_column, mVectorColumnInfo.size(), "MultiListBox::getSubItemAt");
 		return mVectorColumnInfo[_column].list;
 	}
 
-	size_t MultiListBox::_getItemCount()
+	size_t MultiListBox::_getItemCount() const
 	{
 		return getColumnCount();
 	}
@@ -602,7 +623,7 @@ namespace MyGUI
 		setColumnNameAt(_index, _name);
 	}
 
-	const UString& MultiListBox::_getItemNameAt(size_t _index)
+	const UString& MultiListBox::_getItemNameAt(size_t _index) const
 	{
 		return getColumnNameAt(_index);
 	}
@@ -613,12 +634,12 @@ namespace MyGUI
 		if (_column == ITEM_NONE)
 			_column = mVectorColumnInfo.size();
 
-		createWidget<MultiListItem>("", IntCoord(), Align::Default);
+		createWidget<MultiListItem>(std::string_view{}, IntCoord(), Align::Default);
 
 		mVectorColumnInfo.back().width = _width;
 		mVectorColumnInfo.back().sizeType = ResizingPolicy::Fixed;
 		mVectorColumnInfo.back().name = _name;
-		mVectorColumnInfo.back().data = _data;
+		mVectorColumnInfo.back().data = std::move(_data);
 		mVectorColumnInfo.back().button->setCaption(_name);
 
 		if (_column == (mVectorColumnInfo.size() - 1))
@@ -687,17 +708,17 @@ namespace MyGUI
 		}
 		else
 		{
-			for (VectorColumnInfo::iterator item = mVectorColumnInfo.begin(); item != mVectorColumnInfo.end(); ++item)
+			for (auto& item : mVectorColumnInfo)
 			{
-				if ((*item).button == _widget)
-					(*item).button = nullptr;
+				if (item.button == _widget)
+					item.button = nullptr;
 			}
 		}
 	}
 
 	void MultiListBox::_wrapItem(MultiListItem* _item)
 	{
-		// скрываем у крайнего скролл
+		// hide scroll of the edge item
 		if (!mVectorColumnInfo.empty())
 			mVectorColumnInfo.back().list->setScrollVisible(false);
 		else
@@ -705,36 +726,44 @@ namespace MyGUI
 
 		ColumnInfo column;
 		column.width = 0;
+		column.realWidth = 0;
 		column.sizeType = ResizingPolicy::Auto;
 
 		column.item = _item;
-		column.list = _item->createWidget<ListBox>(mSkinList, IntCoord(0, 0, _item->getWidth(), _item->getHeight()), Align::Stretch);
+		column.list = _item->createWidget<ListBox>(
+			mSkinList,
+			IntCoord(0, 0, _item->getWidth(), _item->getHeight()),
+			Align::Stretch);
+		if (mItemHeight != 0)
+			column.list->setItemHeight(mItemHeight);
 		column.list->eventListChangePosition += newDelegate(this, &MultiListBox::notifyListChangePosition);
 		column.list->eventListMouseItemFocus += newDelegate(this, &MultiListBox::notifyListChangeFocus);
 		column.list->eventListChangeScroll += newDelegate(this, &MultiListBox::notifyListChangeScrollPosition);
 		column.list->eventListSelectAccept += newDelegate(this, &MultiListBox::notifyListSelectAccept);
+		column.list->eventNotifyItem += newDelegate(this, &MultiListBox::notifyListNotifyItem);
 
 		if (mHeaderPlace != nullptr)
 			column.button = mHeaderPlace->createWidget<Button>(mSkinButton, IntCoord(), Align::Default);
 		else
-			column.button = mClient->createWidget<Button>(mSkinButton, IntCoord(), Align::Default);
+			column.button = _getClientWidget()->createWidget<Button>(mSkinButton, IntCoord(), Align::Default);
 
 		column.button->eventMouseButtonClick += newDelegate(this, &MultiListBox::notifyButtonClick);
 
-		// если уже были столбики, то делаем то же колличество полей
+		// if columns already exist, add same number of items
 		if (!mVectorColumnInfo.empty())
 		{
 			size_t count = mVectorColumnInfo.front().list->getItemCount();
 			for (size_t pos = 0; pos < count; ++pos)
-				column.list->addItem("");
+				column.list->addItem(UString());
 		}
 
 		mVectorColumnInfo.push_back(column);
 
 		updateColumns();
 
-		// показываем скролл нового крайнего
+		// show scroll of the new edge item
 		mVectorColumnInfo.back().list->setScrollVisible(true);
+		column.list->setScrollPosition(mVectorColumnInfo.front().list->_getScrollPosition());
 	}
 
 	void MultiListBox::_unwrapItem(MultiListItem* _item)
@@ -753,6 +782,7 @@ namespace MyGUI
 
 		if (mVectorColumnInfo.empty())
 		{
+			BiIndexBase::removeAllItems();
 			mSortColumnIndex = ITEM_NONE;
 			mItemSelected = ITEM_NONE;
 		}
@@ -769,7 +799,7 @@ namespace MyGUI
 			mVectorColumnInfo.back().list->setScrollVisible(true);
 	}
 
-	Widget* MultiListBox::_getItemAt(size_t _index)
+	Widget* MultiListBox::_getItemAt(size_t _index) const
 	{
 		MYGUI_ASSERT_RANGE(_index, mVectorColumnInfo.size(), "MultiListBox::_getItemAt");
 		return mVectorColumnInfo[_index].item;
@@ -780,14 +810,14 @@ namespace MyGUI
 		setColumnNameAt(getColumnIndex(_item), _name);
 	}
 
-	const UString& MultiListBox::getColumnName(MultiListItem* _item)
+	const UString& MultiListBox::getColumnName(const MultiListItem* _item) const
 	{
 		return getColumnNameAt(getColumnIndex(_item));
 	}
 
-	size_t MultiListBox::getColumnIndex(MultiListItem* _item)
+	size_t MultiListBox::getColumnIndex(const MultiListItem* _item) const
 	{
-		for (size_t index = 0; index < mVectorColumnInfo.size(); ++ index)
+		for (size_t index = 0; index < mVectorColumnInfo.size(); ++index)
 		{
 			if (mVectorColumnInfo[index].item == _item)
 				return index;
@@ -834,56 +864,43 @@ namespace MyGUI
 			updateColumns();
 	}
 
-	void MultiListBox::setPosition(int _left, int _top)
-	{
-		setPosition(IntPoint(_left, _top));
-	}
-
-	void MultiListBox::setSize(int _width, int _height)
-	{
-		setSize(IntSize(_width, _height));
-	}
-
-	void MultiListBox::setCoord(int _left, int _top, int _width, int _height)
-	{
-		setCoord(IntCoord(_left, _top, _width, _height));
-	}
-
-	bool MultiListBox::getUpdateByResize()
+	bool MultiListBox::getUpdateByResize() const
 	{
 		if (mWidgetEmpty != nullptr)
 			return true;
 
-		for (VectorColumnInfo::iterator item = mVectorColumnInfo.begin(); item != mVectorColumnInfo.end(); ++item)
+		for (const auto& info : mVectorColumnInfo)
 		{
-			if ((*item).sizeType == ResizingPolicy::Fill)
+			if (info.sizeType == ResizingPolicy::Fill)
 				return true;
 		}
 		return false;
 	}
 
-	int MultiListBox::getColumnWidth(size_t _index, int _freeSpace, size_t _countStars, size_t _lastIndexStar, int _starWidth)
+	int MultiListBox::getColumnWidth(
+		size_t _index,
+		int _freeSpace,
+		size_t _countStars,
+		size_t _lastIndexStar,
+		int _starWidth) const
 	{
-		ColumnInfo& info = mVectorColumnInfo[_index];
+		const ColumnInfo& info = mVectorColumnInfo[_index];
 
 		if (info.sizeType == ResizingPolicy::Auto)
 		{
 			return info.realWidth;
 		}
-		else if (info.sizeType == ResizingPolicy::Fixed)
+		if (info.sizeType == ResizingPolicy::Fixed)
 		{
 			return info.realWidth;
 		}
-		else if (info.sizeType == ResizingPolicy::Fill)
+		if (info.sizeType == ResizingPolicy::Fill)
 		{
 			if (_lastIndexStar == _index)
 			{
 				return _starWidth + _freeSpace - (_starWidth * _countStars);
 			}
-			else
-			{
-				return _starWidth;
-			}
+			return _starWidth;
 		}
 		return 0;
 	}
@@ -895,22 +912,23 @@ namespace MyGUI
 
 		int width = 0;
 
-		for (size_t index = 0; index < mVectorColumnInfo.size(); ++ index)
+		for (size_t index = 0; index < mVectorColumnInfo.size(); ++index)
 		{
 			ColumnInfo& info = mVectorColumnInfo[index];
 
 			if (info.sizeType == ResizingPolicy::Auto)
 			{
-				info.realWidth = info.button->getWidth() - info.button->getTextRegion().width + info.button->getTextSize().width;
+				info.realWidth =
+					info.button->getWidth() - info.button->getTextRegion().width + info.button->getTextSize().width;
 			}
 			else if (info.sizeType == ResizingPolicy::Fixed)
 			{
-				info.realWidth =  info.width < 0 ? 0 : info.width;
+				info.realWidth = info.width < 0 ? 0 : info.width;
 			}
 			else if (info.sizeType == ResizingPolicy::Fill)
 			{
 				info.realWidth = 0;
-				_countStars ++;
+				_countStars++;
 				_lastIndexStar = index;
 			}
 			else
@@ -930,13 +948,13 @@ namespace MyGUI
 		size_t lastIndexStar = ITEM_NONE;
 
 		int allColumnsWidth = updateWidthColumns(countStars, lastIndexStar);
-		int clientWidth = mClient->getWidth();
+		int clientWidth = _getClientWidget()->getWidth();
 		int separatorsWidth = mVectorColumnInfo.empty() ? 0 : (mVectorColumnInfo.size() - 1) * mWidthSeparator;
 		int freeSpace = clientWidth - separatorsWidth - allColumnsWidth;
 		int starWidth = (countStars != 0 && freeSpace > 0) ? (freeSpace / countStars) : 0;
 
 		mWidthBar = 0;
-		for (size_t index = 0; index < mVectorColumnInfo.size(); ++ index)
+		for (size_t index = 0; index < mVectorColumnInfo.size(); ++index)
 		{
 			ColumnInfo& info = mVectorColumnInfo[index];
 
@@ -944,11 +962,12 @@ namespace MyGUI
 
 			if (mHeaderPlace != nullptr)
 			{
-				info.item->setCoord(mWidthBar, 0, columnWidth, mClient->getHeight());
+				info.item->setCoord(mWidthBar, 0, columnWidth, _getClientWidget()->getHeight());
 			}
 			else
 			{
-				info.item->setCoord(mWidthBar, mHeightButton, columnWidth, mClient->getHeight() - mHeightButton);
+				info.item
+					->setCoord(mWidthBar, mHeightButton, columnWidth, _getClientWidget()->getHeight() - mHeightButton);
 			}
 
 			info.button->setCoord(mWidthBar, 0, columnWidth, getButtonHeight());
@@ -956,11 +975,10 @@ namespace MyGUI
 
 			mWidthBar += columnWidth;
 
-			// промежуток между листами
-			Widget* separator = getSeparator(index);
+			Widget* separator = getOrCreateSeparator(index);
 			if (separator)
 			{
-				separator->setCoord(mWidthBar, 0, mWidthSeparator, mClient->getHeight());
+				separator->setCoord(mWidthBar, 0, mWidthSeparator, _getClientWidget()->getHeight());
 			}
 
 			mWidthBar += mWidthSeparator;

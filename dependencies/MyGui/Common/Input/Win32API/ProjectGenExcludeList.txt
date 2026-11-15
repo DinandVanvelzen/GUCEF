@@ -1,2 +1,0 @@
-ResourceW32Pointer.h
-ResourceW32Pointer.cpp

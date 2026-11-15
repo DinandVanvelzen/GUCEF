@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_EDIT_BOX_H__
-#define __MYGUI_EDIT_BOX_H__
+#ifndef MYGUI_EDIT_BOX_H_
+#define MYGUI_EDIT_BOX_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_TextBox.h"
@@ -32,14 +17,14 @@
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate1<EditBox*> EventHandle_EditPtr;
+	using EventHandle_EditPtr = delegates::MultiDelegate<EditBox*>;
 
-	class MYGUI_EXPORT EditBox :
-		public TextBox,
-		public ScrollViewBase,
-		public MemberObsolete<EditBox>
+	/** \brief @wpage{EditBox}
+		EditBox widget description should be here.
+	*/
+	class MYGUI_EXPORT EditBox : public TextBox, public ScrollViewBase, public MemberObsolete<EditBox>
 	{
-		MYGUI_RTTI_DERIVED( EditBox )
+		MYGUI_RTTI_DERIVED(EditBox)
 
 	public:
 		EditBox();
@@ -48,17 +33,16 @@ namespace MyGUI
 		void setTextIntervalColour(size_t _start, size_t _count, const Colour& _colour);
 
 		/** Get index of first selected character or ITEM_NONE if nothing selected */
-		size_t getTextSelectionStart();
+		size_t getTextSelectionStart() const;
 
 		/** Get index of last selected character or ITEM_NONE if nothing selected */
-		size_t getTextSelectionEnd();
+		size_t getTextSelectionEnd() const;
 
 		/** Get length of selected text */
-		size_t getTextSelectionLength();
+		size_t getTextSelectionLength() const;
 
-		// возвращает текст с тегами
 		/** Get _count characters with tags from _start position */
-		UString getTextInterval(size_t _start, size_t _count);
+		UString getTextInterval(size_t _start, size_t _count) const;
 
 		/** Set selected text interval
 			@param _start of interval
@@ -70,13 +54,13 @@ namespace MyGUI
 		void deleteTextSelection();
 
 		/** Get selected text */
-		UString getTextSelection();
+		UString getTextSelection() const;
 
 		/** Is any text selected */
-		bool isTextSelection();
+		bool isTextSelection() const;
 
 		/** Colour selected text */
-		void setTextSelectionColour(const Colour& _value);
+		void setTextSelectionColour(const Colour& _colour);
 
 		/** Set text cursor position */
 		void setTextCursor(size_t _index);
@@ -85,14 +69,14 @@ namespace MyGUI
 
 
 		/** Set edit text applying tags */
-		virtual void setCaption(const UString& _value);
+		void setCaption(const UString& _value) override;
 		/** Get edit text with tags */
-		virtual const UString& getCaption();
+		const UString& getCaption() const override;
 
 		/** Set edit text without tags */
-		void setOnlyText(const UString& _value);
+		void setOnlyText(const UString& _text);
 		/** Get edit text without tags */
-		UString getOnlyText();
+		UString getOnlyText() const;
 
 		/** Get text length excluding tags
 			For example "Hello" length is 5
@@ -127,14 +111,16 @@ namespace MyGUI
 
 		/** Enable or disable edit password mode\n
 			Password mode: you see password chars (*** by default) instead text.\n
+			Password mode is single-line: enabling it disables multiline mode, and multiline mode\n
+			can't be enabled while password mode is active.\n
 			Disabled (false) by default.
 		*/
-		void setEditPassword(bool _value);
+		void setEditPassword(bool _password);
 		/** Get edit password mode flag */
 		bool getEditPassword() const;
 
 		/** Enable or disable edit multiline mode\n
-			Multile mode: new line character moves text to new line.\n
+			Multiline mode: new line character moves text to new line.\n
 			Otherwise new lines replaced with space and all text is in single line.\n
 			Disabled (false) by default.
 		*/
@@ -151,9 +137,9 @@ namespace MyGUI
 		bool getEditStatic() const;
 
 		/** Set edit password character ('*' by default) */
-		void setPasswordChar(Char _value);
+		void setPasswordChar(Char _char);
 		/** Set edit password character ('*' by default). First character of string used. */
-		void setPasswordChar(const UString& _char);
+		void setPasswordChar(const UString& _value);
 		/** Get edit password character */
 		Char getPasswordChar() const;
 
@@ -176,25 +162,22 @@ namespace MyGUI
 		bool getTabPrinting() const;
 
 		/** Get invert selected text color property */
-		bool getInvertSelected();
+		bool getInvertSelected() const;
 		/** Enable or disable inverting color of selected text\n
 			Enabled (true) by default
 		*/
 		void setInvertSelected(bool _value);
 
-		//! @copydoc Widget::setPosition(const IntPoint& _value)
-		virtual void setPosition(const IntPoint& _value);
-		//! @copydoc Widget::setSize(const IntSize& _value)
-		virtual void setSize(const IntSize& _value);
-		//! @copydoc Widget::setCoord(const IntCoord& _value)
-		virtual void setCoord(const IntCoord& _value);
+		//! @copydoc Widget::setPosition(const IntPoint& _point)
+		void setPosition(const IntPoint& _point) override;
+		//! @copydoc Widget::setSize(const IntSize& _size)
+		void setSize(const IntSize& _size) override;
+		//! @copydoc Widget::setCoord(const IntCoord& _coord)
+		void setCoord(const IntCoord& _coord) override;
 
-		/** @copydoc Widget::setPosition(int _left, int _top) */
-		void setPosition(int _left, int _top);
-		/** @copydoc Widget::setSize(int _width, int _height) */
-		void setSize(int _width, int _height);
-		/** @copydoc Widget::setCoord(int _left, int _top, int _width, int _height) */
-		void setCoord(int _left, int _top, int _width, int _height);
+		using Widget::setPosition;
+		using Widget::setSize;
+		using Widget::setCoord;
 
 		/** Show VScroll when text size larger than EditBox */
 		void setVisibleVScroll(bool _value);
@@ -206,9 +189,9 @@ namespace MyGUI
 			30 pixels height each (i.e. 600 pixels total), then return
 			value is 400 ( = 600 - 200 ).
 		*/
-		size_t getVScrollRange();
+		size_t getVScrollRange() const;
 		/** Get current position of vertical scroll (or 0 if no scroll) */
-		size_t getVScrollPosition();
+		size_t getVScrollPosition() const;
 		/** Set current position of vertical scroll */
 		void setVScrollPosition(size_t _index);
 
@@ -221,54 +204,60 @@ namespace MyGUI
 			For example if EditBox is 200 pixels width and the longest line
 			is 600 pixels width, then return value is 400 ( = 600 - 200 ).
 		*/
-		size_t getHScrollRange();
+		size_t getHScrollRange() const;
 		/** Get current position of horizontal scroll (or 0 if no scroll) */
-		size_t getHScrollPosition();
+		size_t getHScrollPosition() const;
 		/** Set current position of horizontal scroll */
 		void setHScrollPosition(size_t _index);
 
 
 		//! @copydoc TextBox::setFontName
-		virtual void setFontName(const std::string& _value);
+		void setFontName(std::string_view _value) override;
 		//! @copydoc TextBox::setFontHeight
-		virtual void setFontHeight(int _value);
+		void setFontHeight(int _value) override;
+		//! @copydoc TextBox::getFontHeight
+		int getFontHeight() const override;
 
 		//! @copydoc TextBox::setTextAlign
-		virtual void setTextAlign(Align _value);
+		void setTextAlign(Align _value) override;
 		//! @copydoc TextBox::setTextColour
-		virtual void setTextColour(const Colour& _value);
+		void setTextColour(const Colour& _value) override;
 
 		//! @copydoc TextBox::getTextRegion
-		virtual IntCoord getTextRegion();
+		IntCoord getTextRegion() const override;
 
 		//! @copydoc TextBox::getTextSize
-		virtual IntSize getTextSize();
+		IntSize getTextSize() const override;
 
-	/*events:*/
+		//! @copydoc TextBox::setTextShadowColour
+		void setTextShadowColour(const Colour& _value) override;
+
+		//! @copydoc TextBox::setTextShadow
+		void setTextShadow(bool _value) override;
+
+		/*events:*/
 		/** Event : Enter pressed (Ctrl+enter in multiline mode).\n
 			signature : void method(MyGUI::EditBox* _sender)
 			@param _sender widget that called this event
 		*/
-		EventPair<EventHandle_WidgetVoid, EventHandle_EditPtr>
-			eventEditSelectAccept;
+		EventPair<EventHandle_WidgetVoid, EventHandle_EditPtr> eventEditSelectAccept;
 
 		/** Event : Text changed.\n
 			signature : void method(MyGUI::EditBox* _sender)
 			@param _sender widget that called this event
 		*/
-		EventPair<EventHandle_WidgetVoid, EventHandle_EditPtr>
-			eventEditTextChange;
+		EventPair<EventHandle_WidgetVoid, EventHandle_EditPtr> eventEditTextChange;
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		virtual void onMouseDrag(int _left, int _top, MouseButton _id);
-		virtual void onKeyLostFocus(Widget* _new);
-		virtual void onKeySetFocus(Widget* _old);
-		virtual void onKeyButtonPressed(KeyCode _key, Char _char);
+		void onMouseDrag(int _left, int _top, MouseButton _id) override;
+		void onKeyLostFocus(Widget* _new) override;
+		void onKeySetFocus(Widget* _old) override;
+		void onKeyButtonPressed(KeyCode _key, Char _char) override;
 
-		// потом убрать все нотифи в сраку
+		// TODO: refactor these notify methods
 		void notifyMouseSetFocus(Widget* _sender, Widget* _old);
 		void notifyMouseLostFocus(Widget* _sender, Widget* _new);
 		void notifyMousePressed(Widget* _sender, int _left, int _top, MouseButton _id);
@@ -279,121 +268,104 @@ namespace MyGUI
 		void notifyScrollChangePosition(ScrollBar* _sender, size_t _position);
 		void notifyMouseWheel(Widget* _sender, int _rel);
 
-		// обновление представления
 		void updateView();
 		void updateViewWithCursor();
 
 		void eraseView();
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
-		// устанавливает текст
-		void setText(const UString& _text, bool _history);
-		// удаляет все что выделенно
+		void setText(const UString& _caption, bool _history);
 		bool deleteTextSelect(bool _history);
-		// вставляет текст в указанную позицию
-		void insertText(const UString& _text, size_t _index, bool _history);
-		// удаляет текст
+		void insertText(const UString& _text, size_t _start, bool _history);
 		void eraseText(size_t _start, size_t _count, bool _history);
-		// выделяет цветом выделение
 		void setTextSelectColour(const Colour& _colour, bool _history);
-		// выделяет цветом диапазон
 		void _setTextColour(size_t _start, size_t _count, const Colour& _colour, bool _history);
 
 		void frameEntered(float _frame);
 
 		void updateEditState();
 
-		// обновляет курсор по координате
+		// Update text selection based on mouse coordinates
 		void updateSelectText();
 
 		void resetSelect();
 
-		// запись в историю данных о позиции
+		// Record position data in undo/redo history
 		void commandPosition(size_t _undo, size_t _redo, size_t _length, VectorChangeInfo* _info = nullptr);
 
-		// команнды отмена и повтор
 		bool commandRedo();
 		bool commandUndo();
-		// объединяет последние две комманды
+		// Merge last two commands in history
 		void commandMerge();
-		// очистка
 		void commandResetRedo();
 		void commandResetHistory();
 		void saveInHistory(VectorChangeInfo* _info = nullptr);
+		void moveCursorVertical(int _delta, size_t _clampTarget);
 
-		// работа с буфером обмена
+		// clipboard commands
 		void commandCut();
-		void commandCopy();
-		void commandPast();
+		void commandCopy() const;
+		void commandPaste();
 
-		const UString& getRealString();
+		const UString& getRealString() const;
 
 		void setRealString(const UString& _caption);
 
 		void updateCursorPosition();
 
-		// размер данных
-		virtual IntSize getContentSize();
-		// смещение данных
-		virtual IntPoint getContentPosition();
-		virtual void setContentPosition(const IntPoint& _point);
-		// размер окна, через которые видно данные
-		virtual IntSize getViewSize();
-		// размер на который прокручиваются данные при щелчке по скролу
-		virtual size_t getVScrollPage();
-		virtual size_t getHScrollPage();
+		IntSize getContentSize() const override;
+		IntPoint getContentPosition() const override;
+		void setContentPosition(const IntPoint& _point) override;
+		IntSize getViewSize() const override;
+		size_t getVScrollPage() const override;
+		size_t getHScrollPage() const override;
 
-		virtual Align getContentAlign();
+		Align getContentAlign() const override;
 
 	protected:
-		// нажата ли кнопка
-		bool mIsPressed;
-		// в фокусе ли кнопка
-		bool mIsFocus;
+		bool mIsPressed{false};
+		bool mIsFocus{false};
 
-		bool mCursorActive;
-		float mCursorTimer;
-		float mActionMouseTimer;
+		bool mCursorActive{false};
+		float mCursorTimer{0};
+		float mActionMouseTimer{0};
 
-		// позиция курсора
-		size_t mCursorPosition;
-		// максимальное колличество
-		size_t mTextLength;
+		size_t mCursorPosition{0};
+		size_t mTextLength{0};
 
-		// выделение
-		size_t mStartSelect;
-		size_t mEndSelect;
+		size_t mStartSelect{ITEM_NONE};
+		size_t mEndSelect{0};
 
-		// списоки изменений для отмены и повтора
+		// Undo/redo change history
 		DequeUndoRedoInfo mVectorUndoChangeInfo;
 		DequeUndoRedoInfo mVectorRedoChangeInfo;
 
-		bool mMouseLeftPressed;
+		bool mMouseLeftPressed{false};
 
-		bool mModeReadOnly;
-		bool mModePassword;
-		bool mModeMultiline;
-		bool mModeStatic;
-		bool mModeWordWrap;
+		bool mModeReadOnly{false};
+		bool mModePassword{false};
+		bool mModeMultiline{false};
+		bool mModeStatic{false};
+		bool mModeWordWrap{false};
 
-		bool mTabPrinting;
+		bool mTabPrinting{false};
 
-		// настоящий текст, закрытый за звездочками
+		// Actual text hidden behind password characters
 		UString mPasswordText;
 
-		// для поддержки режима статик, где курсор не нужен
+		// Original pointer name for static mode (where cursor is not needed)
 		std::string mOriginalPointer;
 
-		Char mCharPassword;
+		Char mCharPassword{'*'};
 
-		bool mOverflowToTheLeft;
+		bool mOverflowToTheLeft{false};
 		size_t mMaxTextLength;
 
-		ISubWidgetText* mClientText;
+		ISubWidgetText* mClientText{nullptr};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_EDIT_BOX_H__
+#endif // MYGUI_EDIT_BOX_H_

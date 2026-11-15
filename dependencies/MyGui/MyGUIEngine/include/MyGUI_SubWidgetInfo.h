@@ -1,40 +1,28 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		26/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_SUB_WIDGET_INFO_H__
-#define __MYGUI_SUB_WIDGET_INFO_H__
+#ifndef MYGUI_SUB_WIDGET_INFO_H_
+#define MYGUI_SUB_WIDGET_INFO_H_
 
 #include "MyGUI_Prerequest.h"
+#include "MyGUI_Align.h"
+#include "MyGUI_Types.h"
+#include <string>
+#include <utility>
 
 namespace MyGUI
 {
 
-	// информация, об одном сабвиджете
 	struct SubWidgetInfo
 	{
 	public:
-		SubWidgetInfo(const std::string& _type, const IntCoord& _coord, Align _align) :
+		SubWidgetInfo(std::string _type, const IntCoord& _coord, Align _align) :
 			coord(_coord),
 			align(_align),
-			type(_type)
+			type(std::move(_type))
 		{
 		}
 
@@ -44,8 +32,8 @@ namespace MyGUI
 		std::string type;
 	};
 
-	typedef std::vector<SubWidgetInfo> VectorSubWidgetInfo;
+	using VectorSubWidgetInfo = std::vector<SubWidgetInfo>;
 
 } // namespace MyGUI
 
-#endif // __MYGUI_SUB_WIDGET_INFO_H__
+#endif // MYGUI_SUB_WIDGET_INFO_H_

@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Evmenov Georgiy
-	@date		03/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ControllerEdgeHide.h"
 #include "MyGUI_Gui.h"
@@ -29,31 +14,24 @@
 namespace MyGUI
 {
 
-#ifndef M_PI
-	const float M_PI = 3.141593f;
+#ifdef M_PI
+	#undef M_PI
 #endif
-
-	ControllerEdgeHide::ControllerEdgeHide() :
-		mTime(1.0),
-		mRemainPixels(0),
-		mShadowSize(0),
-		mElapsedTime(0)
-	{
-	}
-
-	ControllerEdgeHide::~ControllerEdgeHide()
-	{
-	}
+	const float M_PI = 3.141593f;
 
 	void ControllerEdgeHide::prepareItem(Widget* _widget)
 	{
 		recalculateTime(_widget);
-		// вызываем пользовательский делегат для подготовки
-		eventPreAction(_widget);
+		eventPreAction(_widget, this);
 	}
 
 	bool ControllerEdgeHide::addTime(Widget* _widget, float _time)
 	{
+		const IntSize& view_size = _widget->getParentSize();
+		// do nothing if we have minimized window
+		if (view_size.width <= 1 && view_size.height <= 1)
+			return true;
+
 		Widget* keyFocus = InputManager::getInstance().getKeyFocusWidget();
 		Widget* mouseFocus = InputManager::getInstance().getMouseFocusWidget();
 
@@ -63,7 +41,7 @@ namespace MyGUI
 			mouseFocus = mouseFocus->getParent();
 
 		// if our widget or its children have focus
-		bool haveFocus = ((keyFocus != nullptr) || (mouseFocus != nullptr)) || (_widget->getVisible() == false);
+		bool haveFocus = ((keyFocus != nullptr) || (mouseFocus != nullptr)) || (!_widget->getVisible());
 
 		mElapsedTime += haveFocus ? -_time : _time;
 
@@ -77,9 +55,11 @@ namespace MyGUI
 			return true;
 		}
 
-		float k = sin(M_PI * mElapsedTime / mTime - M_PI / 2);
-		if (k < 0) k = (-pow(-k, 0.7f) + 1) / 2;
-		else k = (pow(k, 0.7f) + 1) / 2;
+		float k = std::sin(M_PI * mElapsedTime / mTime - M_PI / 2);
+		if (k < 0)
+			k = (-std::pow(-k, 0.7f) + 1) / 2;
+		else
+			k = (std::pow(k, 0.7f) + 1) / 2;
 
 		MyGUI::IntCoord coord = _widget->getCoord();
 		// if widget was moved
@@ -88,30 +68,31 @@ namespace MyGUI
 			// if still moving - leave it alone
 			if (haveFocus)
 				return true;
-			else
-				recalculateTime(_widget);
+			recalculateTime(_widget);
 		}
-
-		const IntSize& view_size = _widget->getParentSize();
 
 		bool nearBorder = false;
 
-		if ((coord.left <= 0) && !(coord.right() >= view_size.width - 1))
+		bool behindLeft = coord.left <= 0;
+		bool behindRight = coord.right() >= view_size.width - 1;
+		bool behindTop = coord.top <= 0;
+		bool behindBottom = coord.bottom() >= view_size.height - 1;
+		if (behindLeft && !behindRight)
 		{
-			coord.left = - int( float(coord.width - mRemainPixels - mShadowSize) * k);
+			coord.left = -int(float(coord.width - mRemainPixels - mShadowSize) * k);
 			nearBorder = true;
 		}
-		if ((coord.top <= 0) && !(coord.bottom() >= view_size.height - 1))
+		if (behindTop && !behindBottom)
 		{
-			coord.top = - int( float(coord.height - mRemainPixels - mShadowSize) * k);
+			coord.top = -int(float(coord.height - mRemainPixels - mShadowSize) * k);
 			nearBorder = true;
 		}
-		if ((coord.right() >= view_size.width - 1) && !(coord.left <= 0))
+		if (behindRight && !behindLeft)
 		{
 			coord.left = int(float(view_size.width - 1) - float(mRemainPixels) * k - float(coord.width) * (1.f - k));
 			nearBorder = true;
 		}
-		if ((coord.bottom() >= view_size.height - 1) && !(coord.top <= 0))
+		if (behindBottom && !behindTop)
 		{
 			coord.top = int(float(view_size.height - 1) - float(mRemainPixels) * k - float(coord.height) * (1.f - k));
 			nearBorder = true;
@@ -127,12 +108,12 @@ namespace MyGUI
 		}
 		mLastCoord = coord;
 
-		eventUpdateAction(_widget);
+		eventUpdateAction(_widget, this);
 
 		return true;
 	}
 
-	void ControllerEdgeHide::setProperty(const std::string& _key, const std::string& _value)
+	void ControllerEdgeHide::setProperty(std::string_view _key, std::string_view _value)
 	{
 		if (_key == "Time")
 			setTime(utility::parseValue<float>(_value));
@@ -148,30 +129,34 @@ namespace MyGUI
 		const MyGUI::IntCoord& coord = _widget->getCoord();
 		const MyGUI::IntSize& view_size = _widget->getParentSize();
 
+		bool behindLeft = coord.left <= 0;
+		bool behindRight = coord.right() >= view_size.width - 1;
+		bool behindTop = coord.top <= 0;
+		bool behindBottom = coord.bottom() >= view_size.height - 1;
 		// check if widget is near any border and not near opposite borders at same time
-		if ((coord.left <= 0) && !(coord.right() >= view_size.width - 1))
+		if (behindLeft && !behindRight)
 		{
-			k = - (float) coord.left / (coord.width - mRemainPixels - mShadowSize);
+			k = -(float)coord.left / (coord.width - mRemainPixels - mShadowSize);
 		}
-		else if ((coord.top <= 0) && !(coord.bottom() >= view_size.height - 1))
+		else if (behindTop && !behindBottom)
 		{
-			k = - (float)coord.top / (coord.height - mRemainPixels - mShadowSize);
+			k = -(float)coord.top / (coord.height - mRemainPixels - mShadowSize);
 		}
-		else if ((coord.right() >= view_size.width - 1) && !(coord.left <= 0))
+		else if (behindRight && !behindLeft)
 		{
-			k = (float)(coord.right() - view_size.width + 1 ) / (coord.width - mRemainPixels);
+			k = (float)(coord.right() - view_size.width + 1) / (coord.width - mRemainPixels);
 		}
-		else if ((coord.bottom() >= view_size.height - 1) && !(coord.top <= 0))
+		else if (behindBottom && !behindTop)
 		{
-			k = (float)(coord.bottom() - view_size.height + 1 ) / (coord.height - mRemainPixels);
+			k = (float)(coord.bottom() - view_size.height + 1) / (coord.height - mRemainPixels);
 		}
 
 		//mElapsedTime = (asin(k)/M_PI + 1./2) * mTime;
 		// this is reversed formula from ControllerEdgeHide::addTime k calculation
 		if (k > 0.5f)
-			mElapsedTime = (asin( pow( 2 * k - 1, 1 / 0.7f)) / M_PI + 1.f / 2) * mTime;
+			mElapsedTime = (std::asin(std::pow(2 * k - 1, 1 / 0.7f)) / M_PI + 1.f / 2) * mTime;
 		else
-			mElapsedTime = (asin(-pow(-2 * k + 1, 1 / 0.7f)) / M_PI + 1.f / 2) * mTime;
+			mElapsedTime = (std::asin(-std::pow(-2 * k + 1, 1 / 0.7f)) / M_PI + 1.f / 2) * mTime;
 	}
 
 	void ControllerEdgeHide::setTime(float _value)

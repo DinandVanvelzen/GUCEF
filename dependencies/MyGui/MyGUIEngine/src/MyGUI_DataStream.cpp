@@ -1,54 +1,45 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		08/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_DataStream.h"
+
+#include <limits>
 
 namespace MyGUI
 {
 
 	DataStream::DataStream() :
 		mStream(nullptr),
-		mSize((size_t) - 1)
+		mSize((size_t)-1)
 	{
 	}
 
 	DataStream::DataStream(std::istream* _stream) :
 		mStream(_stream),
-		mSize((size_t) - 1)
-	{
-	}
-
-	DataStream::~DataStream()
+		mSize((size_t)-1)
 	{
 	}
 
 	size_t DataStream::size()
 	{
-		if (mStream == nullptr) return 0;
-		if (mSize == (size_t) - 1)
+		if (mStream == nullptr || mStream->rdbuf() == nullptr)
+			return 0;
+		if (mSize == (size_t)-1)
 		{
-			mStream->seekg (0, std::ios::end);
-			mSize = mStream->tellg();
-			mStream->seekg (0, std::ios::beg);
+			// Query the buffer directly to preserve stream flags, including EOF and errors.
+			auto* buffer = mStream->rdbuf();
+			const auto position = buffer->pubseekoff(0, std::ios::cur, std::ios::in);
+			if (position == std::streampos(-1))
+				return 0;
+			const auto end = buffer->pubseekoff(0, std::ios::end, std::ios::in);
+			const auto restored = buffer->pubseekpos(position, std::ios::in);
+			if (end == std::streampos(-1) || restored == std::streampos(-1))
+				return 0;
+			mSize = static_cast<size_t>(end);
 		}
 		return mSize;
 	}
@@ -60,16 +51,18 @@ namespace MyGUI
 
 	void DataStream::readline(std::string& _source, Char _delim)
 	{
-		if (mStream == nullptr) return;
+		if (mStream == nullptr)
+			return;
 		std::getline(*mStream, _source, (char)_delim);
 	}
 
 	size_t DataStream::read(void* _buf, size_t _count)
 	{
-		if (mStream == nullptr) return 0;
-		size_t count = std::min(size(), _count);
-		mStream->read((char*)_buf, count);
-		return count;
+		if (mStream == nullptr || _count == 0)
+			return 0;
+		const auto count = std::min(_count, static_cast<size_t>(std::numeric_limits<std::streamsize>::max()));
+		mStream->read(static_cast<char*>(_buf), static_cast<std::streamsize>(count));
+		return static_cast<size_t>(mStream->gcount());
 	}
 
 } // namespace MyGUI

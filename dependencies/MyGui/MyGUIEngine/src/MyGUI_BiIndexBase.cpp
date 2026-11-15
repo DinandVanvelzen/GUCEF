@@ -1,37 +1,14 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_BiIndexBase.h"
 
 namespace MyGUI
 {
-
-	BiIndexBase::BiIndexBase()
-	{
-	}
-
-	BiIndexBase::~BiIndexBase()
-	{
-	}
 
 	size_t BiIndexBase::getIndexCount() const
 	{
@@ -40,10 +17,10 @@ namespace MyGUI
 
 	size_t BiIndexBase::insertItemAt(size_t _index)
 	{
-		#if MYGUI_DEBUG_MODE == 1
-			MYGUI_ASSERT_RANGE_INSERT(_index, mIndexFace.size(), "BiIndexBase::insertItemAt");
-			checkIndexes();
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		MYGUI_ASSERT_RANGE_INSERT(_index, mIndexFace.size(), "BiIndexBase::insertItemAt");
+		checkIndexes();
+#endif
 
 		if (_index == MyGUI::ITEM_NONE)
 			_index = mIndexFace.size();
@@ -52,7 +29,6 @@ namespace MyGUI
 
 		if (_index == mIndexFace.size())
 		{
-			// для вставки айтема
 			index = mIndexFace.size();
 
 			mIndexFace.push_back(_index);
@@ -60,7 +36,6 @@ namespace MyGUI
 		}
 		else
 		{
-			// для вставки айтема
 			index = mIndexFace[_index];
 
 			size_t count = mIndexFace.size();
@@ -71,7 +46,7 @@ namespace MyGUI
 			}
 			mIndexFace.insert(mIndexFace.begin() + _index, index);
 
-			count ++;
+			count++;
 			mIndexBack.push_back(0);
 			for (size_t pos = 0; pos < count; ++pos)
 			{
@@ -79,21 +54,20 @@ namespace MyGUI
 			}
 		}
 
-		#if MYGUI_DEBUG_MODE == 1
-			checkIndexes();
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		checkIndexes();
+#endif
 
 		return index;
 	}
 
 	size_t BiIndexBase::removeItemAt(size_t _index)
 	{
-		#if MYGUI_DEBUG_MODE == 1
-			MYGUI_ASSERT_RANGE(_index, mIndexFace.size(), "BiIndexBase::removeItemAt");
-			checkIndexes();
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		MYGUI_ASSERT_RANGE(_index, mIndexFace.size(), "BiIndexBase::removeItemAt");
+		checkIndexes();
+#endif
 
-		// для удаления айтема
 		size_t index = mIndexFace[_index];
 
 		mIndexFace.erase(mIndexFace.begin() + _index);
@@ -107,9 +81,9 @@ namespace MyGUI
 			mIndexBack[mIndexFace[pos]] = pos;
 		}
 
-		#if MYGUI_DEBUG_MODE == 1
-			checkIndexes();
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		checkIndexes();
+#endif
 
 		return index;
 	}
@@ -120,55 +94,53 @@ namespace MyGUI
 		mIndexBack.clear();
 	}
 
-	// на входе индексы пользователя, на выходе реальные индексы
+	// input: user indices, output: real indices
 	size_t BiIndexBase::convertToBack(size_t _index) const
 	{
-		#if MYGUI_DEBUG_MODE == 1
-			MYGUI_ASSERT_RANGE_AND_NONE(_index, mIndexFace.size(), "BiIndexBase::convertToBack");
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		MYGUI_ASSERT_RANGE_AND_NONE(_index, mIndexFace.size(), "BiIndexBase::convertToBack");
+#endif
 		return _index == ITEM_NONE ? ITEM_NONE : mIndexFace[_index];
 	}
 
-	// на входе индексы реальные, на выходе, то что видит пользователь
+	// input: real indices, output: what the user sees
 	size_t BiIndexBase::convertToFace(size_t _index) const
 	{
-		#if MYGUI_DEBUG_MODE == 1
-			MYGUI_ASSERT_RANGE_AND_NONE(_index, mIndexFace.size(), "BiIndexBase::convertToFace");
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		MYGUI_ASSERT_RANGE_AND_NONE(_index, mIndexFace.size(), "BiIndexBase::convertToFace");
+#endif
 		return _index == ITEM_NONE ? ITEM_NONE : mIndexBack[_index];
 	}
 
-	// меняет местами два индекса, индексы со стороны пользователя
+	// swap two user-facing indices
 	void BiIndexBase::swapItemsFaceAt(size_t _index1, size_t _index2)
 	{
-		#if MYGUI_DEBUG_MODE == 1
-			MYGUI_ASSERT_RANGE(_index1, mIndexFace.size(), "BiIndexBase::swapItemsFaceAt");
-			MYGUI_ASSERT_RANGE(_index2, mIndexFace.size(), "BiIndexBase::swapItemsFaceAt");
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		MYGUI_ASSERT_RANGE(_index1, mIndexFace.size(), "BiIndexBase::swapItemsFaceAt");
+		MYGUI_ASSERT_RANGE(_index2, mIndexFace.size(), "BiIndexBase::swapItemsFaceAt");
+#endif
 
 		std::swap(mIndexFace[_index1], mIndexFace[_index2]);
 		std::swap(mIndexBack[mIndexFace[_index1]], mIndexBack[mIndexFace[_index2]]);
 	}
 
-	// меняет местами два индекса, индексы со сторонны данных
+	// swap two data-side indices
 	void BiIndexBase::swapItemsBackAt(size_t _index1, size_t _index2)
 	{
-		#if MYGUI_DEBUG_MODE == 1
-			MYGUI_ASSERT_RANGE(_index1, mIndexFace.size(), "BiIndexBase::swapItemsBackAt");
-			MYGUI_ASSERT_RANGE(_index2, mIndexFace.size(), "BiIndexBase::swapItemsBackAt");
-		#endif
+#if MYGUI_DEBUG_MODE == 1
+		MYGUI_ASSERT_RANGE(_index1, mIndexFace.size(), "BiIndexBase::swapItemsBackAt");
+		MYGUI_ASSERT_RANGE(_index2, mIndexFace.size(), "BiIndexBase::swapItemsBackAt");
+#endif
 
 		std::swap(mIndexBack[_index1], mIndexBack[_index2]);
 		std::swap(mIndexFace[mIndexBack[_index1]], mIndexFace[mIndexBack[_index2]]);
 	}
 
-	#if MYGUI_DEBUG_MODE == 1
-
 	void BiIndexBase::checkIndexes()
 	{
 		assert(mIndexFace.size() == mIndexBack.size());
 
-		// проверяем на уникальность каждого индекса в маппинге
+		// check that index is unique
 		std::vector<bool> vec;
 		size_t count = mIndexFace.size();
 
@@ -178,36 +150,22 @@ namespace MyGUI
 
 		for (size_t pos = 0; pos < count; ++pos)
 		{
-			// максимум
 			size_t index = mIndexBack[pos];
-			if (index >= count)
-				throw new std::exception();
+			MYGUI_ASSERT(index < count, "Invalid index");
 
-			// максимум
 			index = mIndexFace[pos];
-			if (index >= count)
-				throw new std::exception();
+			MYGUI_ASSERT(index < count, "Invalid index");
 
-			if (vec[index])
-				throw new std::exception();
+			MYGUI_ASSERT(!vec[index], "Invalid index");
 			vec[index] = true;
 		}
 
-		for (size_t pos = 0; pos < count; ++pos)
-		{
-			if (!vec[pos])
-				throw new std::exception();
-		}
-
-		// проверяем на взаимоссылаемость индексов
+		// check for index cross-reference
 		for (size_t pos = 0; pos < count; ++pos)
 		{
 			size_t index = mIndexFace[pos];
-			if (mIndexBack[index] != pos)
-				throw new std::exception();
+			MYGUI_ASSERT(mIndexBack[index] == pos, "Invalid index: cross-reference");
 		}
 	}
-
-#endif
 
 } // namespace MyGUI

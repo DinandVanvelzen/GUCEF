@@ -1,12 +1,14 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2009
-*/
-#ifndef __MYGUI_TEXT_VIEW_DATA_H__
-#define __MYGUI_TEXT_VIEW_DATA_H__
+/*
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
+
+#ifndef MYGUI_TEXT_VIEW_DATA_H_
+#define MYGUI_TEXT_VIEW_DATA_H_
 
 #include "MyGUI_Prerequest.h"
+#include "MyGUI_Types.h"
 
 namespace MyGUI
 {
@@ -15,74 +17,127 @@ namespace MyGUI
 	{
 	public:
 		CharInfo() :
-			width(0)
+			mIsColour(false)
 		{
+			mMetrics.mWidth = 0.0f;
+			mMetrics.mHeight = 0.0f;
+			mMetrics.mAdvance = 0.0f;
+			mMetrics.mBearingX = 0.0f;
+			mMetrics.mBearingY = 0.0f;
+			mMetrics.mKerning = 0.0f;
 		}
 
-		CharInfo(const FloatRect& _rect, int _width) :
-			rect(_rect),
-			width(_width)
+		CharInfo(
+			const FloatRect& _rect,
+			float _width,
+			float _height,
+			float _advance,
+			float _bearingX,
+			float _bearingY,
+			float _kerning = 0.0f) :
+			mIsColour(false),
+			mUVRect(_rect)
 		{
+			mMetrics.mWidth = _width;
+			mMetrics.mHeight = _height;
+			mMetrics.mAdvance = _advance;
+			mMetrics.mBearingX = _bearingX;
+			mMetrics.mBearingY = _bearingY;
+			mMetrics.mKerning = _kerning;
 		}
 
 		CharInfo(uint32 _colour) :
-			rect(-1, 0, 0, 0),
-			width((int)_colour)
+			mIsColour(true),
+			mColour(_colour)
 		{
 		}
 
 		bool isColour() const
 		{
-			return rect.left == -1;
+			return mIsColour;
 		}
 
-		int getWidth() const
+		float getWidth() const
 		{
-			return width;
+			return mMetrics.mWidth;
+		}
+
+		float getHeight() const
+		{
+			return mMetrics.mHeight;
+		}
+
+		float getAdvance() const
+		{
+			return mMetrics.mAdvance;
+		}
+
+		float getBearingX() const
+		{
+			return mMetrics.mBearingX;
+		}
+
+		float getBearingY() const
+		{
+			return mMetrics.mBearingY;
+		}
+
+		float getKerning() const
+		{
+			return mMetrics.mKerning;
 		}
 
 		const FloatRect& getUVRect() const
 		{
-			return rect;
+			return mUVRect;
 		}
 
 		uint32 getColour() const
 		{
-			return (uint32)width;
+			return mColour;
 		}
 
 	private:
-		FloatRect rect;
-		int width;
+		bool mIsColour;
+		FloatRect mUVRect;
+
+		struct Metrics
+		{
+			float mWidth;
+			float mHeight;
+			float mAdvance;
+			float mBearingX;
+			float mBearingY;
+			float mKerning;
+		};
+
+		union
+		{
+			Metrics mMetrics;
+			uint32 mColour;
+		};
 	};
 
-	typedef std::vector<CharInfo> VectorCharInfo;
+	using VectorCharInfo = std::vector<CharInfo>;
 
 	struct LineInfo
 	{
-		LineInfo() :
-			width(0),
-			offset(0),
-			count(0)
-		{
-		}
-
 		void clear()
 		{
 			width = 0;
 			count = 0;
-			simbols.clear();
+			symbols.clear();
 			offset = 0;
 		}
 
-		int width;
-		int offset;
-		size_t count;
-		VectorCharInfo simbols;
+		int width{0};
+		int offset{0};
+		size_t count{0};
+		VectorCharInfo symbols;
 	};
 
-	typedef std::vector<LineInfo> VectorLineInfo;
+	using VectorLineInfo = std::vector<LineInfo>;
 
 } // namespace MyGUI
 
-#endif // __MYGUI_TEXT_VIEW_DATA_H__
+#endif // MYGUI_TEXT_VIEW_DATA_H_

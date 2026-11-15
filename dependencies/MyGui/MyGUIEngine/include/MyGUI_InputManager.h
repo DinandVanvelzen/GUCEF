@@ -1,47 +1,32 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_INPUT_MANAGER_H__
-#define __MYGUI_INPUT_MANAGER_H__
+#ifndef MYGUI_INPUT_MANAGER_H_
+#define MYGUI_INPUT_MANAGER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Macros.h"
 #include "MyGUI_Singleton.h"
 #include "MyGUI_WidgetDefines.h"
 #include "MyGUI_IUnlinkWidget.h"
-#include "MyGUI_WidgetDefines.h"
 #include "MyGUI_XmlDocument.h"
 #include "MyGUI_MouseButton.h"
 #include "MyGUI_KeyCode.h"
 #include "MyGUI_Timer.h"
 #include "MyGUI_ILayer.h"
 #include "MyGUI_Delegate.h"
+#include "MyGUI_BackwardCompatibility.h"
 
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT InputManager :
-		public Singleton<InputManager>,
-		public IUnlinkWidget
+	class MYGUI_EXPORT InputManager : public IUnlinkWidget, public MemberObsolete<InputManager>
 	{
+		MYGUI_SINGLETON_DECLARATION(InputManager);
+
 	public:
 		InputManager();
 
@@ -61,6 +46,13 @@ namespace MyGUI
 		*/
 		bool injectMouseRelease(int _absx, int _absy, MouseButton _id);
 
+		/** Set the double-click interval in seconds (default: 0.25)
+			Resets the pending double-click timer. Zero disables double-click detection
+		*/
+		void setDoubleClickTime(float _value);
+		/** Get the double-click interval in seconds */
+		float getDoubleClickTime() const;
+
 		/** Inject KeyPress event
 			@return true if event has been processed by GUI
 		*/
@@ -72,7 +64,7 @@ namespace MyGUI
 
 		/** Is any widget have mouse focus */
 		bool isFocusMouse() const;
-		/** Is any widget have key focus */
+		/** Is any widget have key focus (any widget might have it, not only EditBox or something similar) */
 		bool isFocusKey() const;
 		/** Is any widget captured mouse */
 		bool isCaptureMouse() const;
@@ -88,23 +80,24 @@ namespace MyGUI
 		Widget* getMouseFocusWidget() const;
 		/** Get key focused widget */
 		Widget* getKeyFocusWidget() const;
-		/** Get position of last left mouse button press.
+
+		/** Get position of last mouse button press.
 			Position calculated on specific layer where mouse was pressed.
 		*/
-		const IntPoint& getLastLeftPressed() const;
-		/** Get position of last right mouse button press.
-			Position calculated on specific layer where mouse was pressed.
-		*/
-		const IntPoint& getLastRightPressed() const;
+		const IntPoint& getLastPressedPosition(MouseButton _id) const;
+		/** Get a press in the unrotated coordinate space used by a widget's layout. */
+		IntPoint getLastPressedPositionForWidget(MouseButton _id, const Widget* _widget) const;
+
 		/** Get current mouse position on screen */
 		const IntPoint& getMousePosition() const;
 
 		/** Get mouse position on current layer.
 			This position might different from getMousePosition() if mouse is over non-2d layer.
 		*/
-		IntPoint getMousePositionByLayer();
+		IntPoint getMousePositionByLayer() const;
+		/** Get the pointer in the unrotated coordinate space used by a widget's layout. */
+		IntPoint getMousePositionForWidget(const Widget* _widget) const;
 
-		// работа с модальными окнами
 		/** Add modal widget - all other widgets inaccessible while modal widget exist */
 		void addWidgetModal(Widget* _widget);
 		/** Remove modal widget */
@@ -117,6 +110,10 @@ namespace MyGUI
 		bool isControlPressed() const;
 		/** Is shift button pressed */
 		bool isShiftPressed() const;
+		/** Is alt button pressed */
+		bool isAltPressed() const;
+		/** Is meta ("Windows key" or macOS "Command" key) button pressed */
+		bool isMetaPressed() const;
 
 		/** Reset mouse capture.
 			For example when we dragging and application
@@ -131,70 +128,66 @@ namespace MyGUI
 			signature : void method(MyGUI::Widget* _widget)\n
 			@param _widget
 		*/
-		delegates::CMultiDelegate1<Widget*>
-			eventChangeMouseFocus;
+		delegates::MultiDelegate<Widget*> eventChangeMouseFocus;
 
 		/** Event : MultiDelegate. Key focus was changed.\n
 			signature : void method(MyGUI::Widget* _widget)\n
 			@param _widget
 		*/
-		delegates::CMultiDelegate1<Widget*>
-			eventChangeKeyFocus;
+		delegates::MultiDelegate<Widget*> eventChangeKeyFocus;
 
-	/*internal:*/
+		/*internal:*/
 		void _resetMouseFocusWidget();
 
 	private:
-		// удаляем данный виджет из всех возможных мест
-		void _unlinkWidget(Widget* _widget);
+		// Remove widget from all tracked places (focus, capture, modal, etc)
+		void _unlinkWidget(Widget* _widget) override;
 
 		void frameEntered(float _frame);
 
 		void firstEncoding(KeyCode _key, bool bIsKeyPressed);
 
-		// запоминает клавишу для поддержки повторения
+		// Store key for repeat support
 		void storeKey(KeyCode _key, Char _text);
 
-		// сбрасывает клавишу повторения
 		void resetKey();
 
 	private:
-		// виджеты которым принадлежит фокус
-		Widget* mWidgetMouseFocus;
-		Widget* mWidgetKeyFocus;
-		ILayer* mLayerMouseFocus;
+		// Widgets that currently have focus
+		Widget* mWidgetMouseFocus{nullptr};
+		Widget* mWidgetKeyFocus{nullptr};
+		ILayer* mLayerMouseFocus{nullptr};
 
-		// таймер для двойного клика
-		Timer mTimer; //used for double click timing
+		//used for double click timing
+		float mDoubleClickTime{0.25f};
+		float mTimerDoubleClick; // time since the last click
 
-		// нажат ли шифт
-		bool mIsShiftPressed;
-		// нажат ли контрол
-		bool mIsControlPressed;
+		bool mIsShiftPressed{false};
+		bool mIsControlPressed{false};
+		bool mIsAltPressed{false};
+		bool mIsMetaPressed{false};
 
 		IntPoint mMousePosition;
 
-		// там где была последний раз нажата кнопка
-		IntPoint mLastLeftPressed;
-		IntPoint mLastRightPressed;
+		// last mouse press position (in Layer coordinates).
+		IntPoint mLastPressed[MouseButton::MAX];
 
-		// захватил ли мышь активный виджет
-		bool mLeftMouseCapture;
-		bool mRightMouseCapture;
+		// is mouse button captured by active widget
+		bool mMouseCapture[MouseButton::MAX];
 
-		// клавиша для повтора
-		KeyCode mHoldKey;
-		Char mHoldChar;
-		bool mFirstPressKey;
-		float mTimerKey;
-		int mOldAbsZ;
+		// Key repeat state
+		KeyCode mHoldKey{KeyCode::None};
+		Char mHoldChar{0};
+		bool mFirstPressKey{false};
+		float mTimerKey{0.0f};
+		int mOldAbsZ{0};
 
-		// список виджетов с модальным режимом
+		// Modal widgets stack
 		VectorWidgetPtr mVectorModalRootWidget;
 
-		bool mIsInitialise;
+		bool mIsInitialise{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_INPUT_MANAGER_H__
+#endif // MYGUI_INPUT_MANAGER_H_

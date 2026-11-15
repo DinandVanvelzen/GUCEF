@@ -1,47 +1,63 @@
 <ModuleInfoEntry>
-    <Module Name="guidriverMyGUIOpenGL" Type="SharedLibrary" Platform="All" Tags="plugin" >
+    <Module Name="guidriverMyGUIOpenGL" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>2.0.0.0</SemVer>
+            <DescriptionHeadline>MyGUI 3.5.4 driver for gucefGUI drawing with OpenGL, OpenGL 3 or OpenGL ES 3 / WebGL 2</DescriptionHeadline>
+            <DescriptionDetails>One plugin for every OpenGL: on desktops it picks the OpenGL 3 platform of MyGUI (OpenGL 3.3 and later) or the legacy OpenGL platform at run time from the OpenGL version of the window, on Android and in browsers it uses the OpenGL ES 3 platform (WebGL 2). Images and data go through gucefIMAGE and the virtual file system. Built as C++17, which MyGUI requires.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
         <Dependencies>
+            <Dependency Name="guidriverMyGUI" />
             <Dependency Name="gucefVFS" />
-            <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefGUI" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
-            <Dependency Name="freetype" />
             <Dependency Name="MyGUI.Engine" />
-            <Dependency Name="guidriverMyGUI" />
         </Dependencies>
         <Linker>
+            <Dependency Name="guidriverMyGUI" />
             <Dependency Name="gucefVFS" />
-            <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefGUI" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
-            <Dependency Name="freetype" />
             <Dependency Name="MyGUI.Engine" />
-            <Dependency Name="guidriverMyGUI" />
         </Linker>
         <Preprocessor>
             <Define String="GUIDRIVERMYGUIOPENGL_BUILD_MODULE" />
+            <Define String="GL_GLEXT_PROTOTYPES" />
         </Preprocessor>
+        <Compiler MinCppStandard="17" />
     </Module>
     <Module Platform="mswin">
         <Dependencies>
+            <Dependency Name="MyGUI.OpenGL3Platform" />
             <Dependency Name="MyGUI.OpenGLPlatform" />
+            <Dependency Name="glew" />
         </Dependencies>
         <Linker>
-            <Dependency Name="OpenGL32" />
+            <Dependency Name="MyGUI.OpenGL3Platform" />
             <Dependency Name="MyGUI.OpenGLPlatform" />
+            <Dependency Name="glew" />
+            <Dependency Name="OpenGL32" />
         </Linker>
     </Module>
     <Module Platform="linux">
         <Dependencies>
+            <Dependency Name="MyGUI.OpenGL3Platform" />
             <Dependency Name="MyGUI.OpenGLPlatform" />
         </Dependencies>
         <Linker>
-            <Dependency Name="GL" />
+            <Dependency Name="MyGUI.OpenGL3Platform" />
             <Dependency Name="MyGUI.OpenGLPlatform" />
+            <Dependency Name="GL" />
         </Linker>
     </Module>
     <Module Platform="android">
@@ -49,8 +65,19 @@
             <Dependency Name="MyGUI.OpenGLESPlatform" />
         </Dependencies>
         <Linker>
-            <Dependency Name="GLESv1_CM" />
             <Dependency Name="MyGUI.OpenGLESPlatform" />
+            <Dependency Name="EGL" />
+            <Dependency Name="GLESv3" />
+        </Linker>
+    </Module>
+    <Module Platform="emscripten">
+        <Dependencies>
+            <Dependency Name="MyGUI.OpenGLESPlatform" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="MyGUI.OpenGLESPlatform" />
+            <Dependency Name="-sMAX_WEBGL_VERSION=2" />
+            <Dependency Name="-sMIN_WEBGL_VERSION=2" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

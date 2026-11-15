@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		03/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ToolTipManager.h"
 #include "MyGUI_Gui.h"
@@ -28,17 +13,10 @@
 namespace MyGUI
 {
 
-	template <> ToolTipManager* Singleton<ToolTipManager>::msInstance = nullptr;
-	template <> const char* Singleton<ToolTipManager>::mClassTypeName("ToolTipManager");
+	MYGUI_SINGLETON_DEFINITION(ToolTipManager);
 
 	ToolTipManager::ToolTipManager() :
-		mDelayVisible(0.5f),
-		mOldFocusWidget(nullptr),
-		mToolTipVisible(false),
-		mCurrentTime(0),
-		mOldIndex(ITEM_NONE),
-		mNeedToolTip(false),
-		mIsInitialise(false)
+		mSingletonHolder(this)
 	{
 	}
 
@@ -110,11 +88,6 @@ namespace MyGUI
 				IntPoint point = InputManager::getInstance().getMousePositionByLayer();
 				if (!mToolTipVisible && point != mOldMousePoint)
 				{
-					if (mToolTipVisible)
-					{
-						mToolTipVisible = false;
-						hideToolTip(mOldFocusWidget);
-					}
 					mCurrentTime = 0;
 					mOldMousePoint = point;
 					mOldIndex = getToolTipIndex(mOldFocusWidget);
@@ -208,6 +181,11 @@ namespace MyGUI
 		if (container != nullptr)
 			return container->_getItemIndex(_widget);
 		return ITEM_NONE;
+	}
+
+	void ToolTipManager::setDelayVisible(float _value)
+	{
+		mDelayVisible = _value;
 	}
 
 	float ToolTipManager::getDelayVisible() const

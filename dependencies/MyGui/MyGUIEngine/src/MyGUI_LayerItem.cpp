@@ -1,42 +1,15 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_LayerItem.h"
 #include <algorithm>
 
 namespace MyGUI
 {
-
-	LayerItem::LayerItem() :
-		mLayer(nullptr),
-		mLayerNode(nullptr),
-		mSaveLayerNode(nullptr),
-		mTexture(nullptr)
-	{
-	}
-
-	LayerItem::~LayerItem()
-	{
-	}
 
 	void LayerItem::addChildItem(LayerItem* _item)
 	{
@@ -49,7 +22,7 @@ namespace MyGUI
 
 	void LayerItem::removeChildItem(LayerItem* _item)
 	{
-		VectorLayerItem::iterator item = std::remove(mLayerItems.begin(), mLayerItems.end(), _item);
+		VectorLayerItem::iterator item = std::find(mLayerItems.begin(), mLayerItems.end(), _item);
 		MYGUI_ASSERT(item != mLayerItems.end(), "item not found");
 		mLayerItems.erase(item);
 	}
@@ -59,7 +32,7 @@ namespace MyGUI
 		mLayerNodes.push_back(_item);
 		if (mLayerNode != nullptr)
 		{
-			// создаем оверлаппеду новый айтем
+			// create new item for overlapped node
 			ILayerNode* child_node = mLayerNode->createChildItemNode();
 			_item->attachToLayerItemNode(child_node, true);
 		}
@@ -67,7 +40,7 @@ namespace MyGUI
 
 	void LayerItem::removeChildNode(LayerItem* _item)
 	{
-		VectorLayerItem::iterator item = std::remove(mLayerNodes.begin(), mLayerNodes.end(), _item);
+		VectorLayerItem::iterator item = std::find(mLayerNodes.begin(), mLayerNodes.end(), _item);
 		MYGUI_ASSERT(item != mLayerNodes.end(), "item not found");
 		mLayerNodes.erase(item);
 	}
@@ -85,11 +58,14 @@ namespace MyGUI
 
 	void LayerItem::setRenderItemTexture(ITexture* _texture)
 	{
+		if (mTexture == _texture)
+			return;
+
 		mTexture = _texture;
 		if (mLayerNode)
 		{
 			ILayerNode* node = mLayerNode;
-			// позже сделать детач без текста
+			// later implement detach without text
 			detachFromLayerItemNode(false);
 			attachToLayerItemNode(node, false);
 		}
@@ -119,22 +95,21 @@ namespace MyGUI
 
 	void LayerItem::detachFromLayer()
 	{
-		// мы уже отдетачены в доску
-		if (nullptr == mLayer) return;
+		// we are already detached
+		if (nullptr == mLayer)
+			return;
 
-		// такого быть не должно
-		MYGUI_ASSERT(mLayerNode, "_item->mLayerNode == nullptr");
+		MYGUI_ASSERT(mLayerNode, "mLayerNode == nullptr");
 
-		// отписываемся от пиккинга
+		// unsubscribe from picking
 		mLayerNode->detachLayerItem(this);
 
-		// при детаче обнулиться
+		// will be zeroed on detach
 		ILayerNode* save = mLayerNode;
 
-		// физически отсоединяем
 		detachFromLayerItemNode(true);
 
-		// отсоединяем леер и обнуляем у рутового виджета
+		// detach layer and zero at root widget
 		mLayer->destroyChildItemNode(save);
 		mLayerNode = nullptr;
 		mLayer = nullptr;
@@ -142,50 +117,56 @@ namespace MyGUI
 
 	void LayerItem::upLayerItem()
 	{
-		if (mLayerNode) mLayerNode->getLayer()->upChildItemNode(mLayerNode);
+		MyGUI::ILayerNode* node = mLayerNode;
+		while (node)
+		{
+			node->getLayer()->upChildItemNode(node);
+			node = node->getParent();
+		}
 	}
 
 	void LayerItem::attachToLayerItemNode(ILayerNode* _item, bool _deep)
 	{
 		MYGUI_DEBUG_ASSERT(nullptr != _item, "attached item must be valid");
 
-		// сохраняем, чтобы последующие дети могли приаттачиться
+		// save so subsequent children can attach
 		mLayerNode = _item;
 
-		for (VectorSubWidget::iterator skin = mDrawItems.begin(); skin != mDrawItems.end(); ++skin)
+		for (auto& drawItem : mDrawItems)
 		{
-			(*skin)->createDrawItem(mTexture, _item);
+			drawItem->createDrawItem(mTexture, _item);
 		}
 
-		for (VectorLayerItem::iterator item = mLayerItems.begin(); item != mLayerItems.end(); ++item)
+		for (auto& layerItem : mLayerItems)
 		{
-			(*item)->attachToLayerItemNode(_item, _deep);
+			layerItem->attachToLayerItemNode(_item, _deep);
 		}
 
-		for (VectorLayerItem::iterator item = mLayerNodes.begin(); item != mLayerNodes.end(); ++item)
+		for (auto& layerNode : mLayerNodes)
 		{
-			// создаем оверлаппеду новый айтем
-			if (_deep)
+			// Reparented descendants need new nodes even on a shallow attachment.
+			// Existing nodes are retained when only rebuilding child draw order.
+			if (_deep || layerNode->getLayerNode() == nullptr)
 			{
 				ILayerNode* child_node = _item->createChildItemNode();
-				(*item)->attachToLayerItemNode(child_node, _deep);
+				layerNode->attachToLayerItemNode(child_node, true);
 			}
 		}
 	}
 
 	void LayerItem::detachFromLayerItemNode(bool _deep)
 	{
-		for (VectorLayerItem::iterator item = mLayerItems.begin(); item != mLayerItems.end(); ++item)
+		for (auto& layerItem : mLayerItems)
 		{
-			(*item)->detachFromLayerItemNode(_deep);
+			layerItem->detachFromLayerItemNode(_deep);
 		}
 
-		for (VectorLayerItem::iterator item = mLayerNodes.begin(); item != mLayerNodes.end(); ++item)
+		for (auto& layerNode : mLayerNodes)
 		{
 			if (_deep)
 			{
-				ILayerNode* node = (*item)->mLayerNode;
-				(*item)->detachFromLayerItemNode(_deep);
+				ILayerNode* node = layerNode->mLayerNode;
+				layerNode->detachFromLayerItemNode(_deep);
 				if (node)
 				{
 					node->getLayer()->destroyChildItemNode(node);
@@ -193,22 +174,15 @@ namespace MyGUI
 			}
 		}
 
-		// мы уже отаттачены
+		// we are already detached
 		ILayerNode* node = mLayerNode;
 		if (node)
 		{
-			//for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget) (*widget)->_detachFromLayerItemKeeperByStyle(_deep);
-			for (VectorSubWidget::iterator skin = mDrawItems.begin(); skin != mDrawItems.end(); ++skin)
+			for (auto& drawItem : mDrawItems)
 			{
-				(*skin)->destroyDrawItem();
+				drawItem->destroyDrawItem();
 			}
 
-			// при глубокой очистке, если мы оверлаппед, то для нас создавали айтем
-			/*if (_deep && !this->isRootWidget() && mWidgetStyle == WidgetStyle::Overlapped)
-			{
-				node->destroyItemNode();
-			}*/
-			// очищаем
 			mLayerNode = nullptr;
 		}
 	}
@@ -216,6 +190,11 @@ namespace MyGUI
 	ILayer* LayerItem::getLayer() const
 	{
 		return mLayer;
+	}
+
+	ILayerNode* LayerItem::getLayerNode() const
+	{
+		return mLayerNode;
 	}
 
 } // namespace MyGUI

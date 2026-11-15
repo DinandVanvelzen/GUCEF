@@ -1,0 +1,36 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverMyGUI_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="guidriverMyGUI" />
+            <Dependency Name="MyGUI.Engine" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="guidriverMyGUI" />
+            <Dependency Name="MyGUI.Engine" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERMYGUI_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="17" />
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverMyGUIOpenGL" />
+            <RuntimeDependency Name="guidriverEGL" />
+            <RuntimeDependency Name="imgpluginFreeImage" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="vfspluginZIP" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

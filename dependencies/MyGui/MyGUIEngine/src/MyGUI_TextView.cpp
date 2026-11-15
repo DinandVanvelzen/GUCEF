@@ -1,47 +1,42 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_TextView.h"
 
 namespace MyGUI
 {
+	namespace
+	{
+
+		template<typename T>
+		void setMin(T& _var, const T& _newValue)
+		{
+			if (_newValue < _var)
+				_var = _newValue;
+		}
+
+		template<typename T>
+		void setMax(T& _var, const T& _newValue)
+		{
+			if (_var < _newValue)
+				_var = _newValue;
+		}
+
+	}
 
 	class RollBackPoint
 	{
 	public:
-		RollBackPoint() :
-			position(0),
-			count(0),
-			lenght(0),
-			rollback(false)
-		{
-		}
-
-		void set(size_t _position, UString::const_iterator& _space_point, size_t _count, int _length)
+		void set(size_t _position, const UString::const_iterator& _space_point, size_t _count, float _width)
 		{
 			position = _position;
 			space_point = _space_point;
 			count = _count;
-			lenght = _length;
+			width = _width;
 			rollback = true;
 		}
 
@@ -55,10 +50,10 @@ namespace MyGUI
 			return !rollback;
 		}
 
-		int getLenght() const
+		float getWidth() const
 		{
 			MYGUI_DEBUG_ASSERT(rollback, "rollback point not valid");
-			return lenght;
+			return width;
 		}
 
 		size_t getCount() const
@@ -80,41 +75,39 @@ namespace MyGUI
 		}
 
 	private:
-		size_t position;
+		size_t position{0};
 		UString::const_iterator space_point;
-		size_t count;
-		int lenght;
-		bool rollback;
+		size_t count{0};
+		float width{0};
+		bool rollback{false};
 	};
 
-	TextView::TextView() :
-		mLength(0),
-		mFontHeight(0)
-	{
-	}
-
-	void TextView::update(const UString& _text, IFont* _font, int _height, Align _align, VertexColourType _format, int _maxheight)
+	void TextView::update(
+		const UString& _text,
+		IFont* _font,
+		int _height,
+		Align _align,
+		VertexColourType _format,
+		int _maxWidth)
 	{
 		mFontHeight = _height;
 
-		// массив дл€ быстрой конвертации цветов
-		static const char convert_colour[64] =
-		{
-			0,  1,  2,  3,  4,  5,  6, 7, 8, 9, 0, 0, 0, 0, 0, 0,
-			0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0
-		};
+		// array for fast colour conversion
+		static const char convert_colour[64] = {
+			0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 		mViewSize.clear();
 
 		RollBackPoint roll_back;
 		IntSize result;
-		int width = 0;
+		float width = 0.0f;
 		size_t count = 0;
 		mLength = 0;
-		mLineInfo.clear();
-		LineInfo line_info;
+		// Clear line contents while retaining symbol capacity for reuse
+		for (auto& line : mLineInfo)
+			line.clear();
+		size_t current_line = 0;
 		int font_height = _font->getDefaultHeight();
 
 		UString::const_iterator end = _text.end();
@@ -125,14 +118,17 @@ namespace MyGUI
 
 		result.height += _height;
 
+		Char previousChar = 0;
+
 		for (; index != end; ++index)
 		{
+			if (current_line == mLineInfo.size())
+				mLineInfo.emplace_back();
+			auto& line_info = mLineInfo[current_line];
 			Char character = *index;
 
-			// нова€ строка
-			if (character == FontCodeType::CR
-				|| character == FontCodeType::NEL
-				|| character == FontCodeType::LF)
+			// new line
+			if (character == FontCodeType::CR || character == FontCodeType::NEL || character == FontCodeType::LF)
 			{
 				if (character == FontCodeType::CR)
 				{
@@ -142,215 +138,234 @@ namespace MyGUI
 						index = peeki; // skip both as one newline
 				}
 
-				line_info.width = width;
+				line_info.width = (int)std::ceil(width);
 				line_info.count = count;
 				mLength += line_info.count + 1;
 
 				result.height += _height;
-				if (result.width < width)
-					result.width = width;
+				setMax(result.width, line_info.width);
 				width = 0;
 				count = 0;
 
-				mLineInfo.push_back(line_info);
-				line_info.clear();
+				++current_line;
 
-				// отмен€ем откат
 				roll_back.clear();
+				previousChar = 0;
 
 				continue;
 			}
-			// тег
-			else if (character == L'#')
+			// tag
+			if (character == U'#')
 			{
-				// берем следующий символ
-				++ index;
+				// check next character
+				++index;
 				if (index == end)
 				{
-					--index;    // это защита
+					--index;
 					continue;
 				}
 
 				character = *index;
-				// если два подр€д, то рисуем один шарп, если нет то мен€ем цвет
-				if (character != L'#')
+				// "##" converted to visible '#', change colour otherwise
+				if (character != U'#')
 				{
-					// парсим первый символ
-					uint32 colour = convert_colour[(character-48) & 0x3F];
+					// read first character
+					uint32 colour = convert_colour[(character - 48) & 0x3F];
 
-					// и еще п€ть символов после шарпа
+					// and 5 more after '#'
 					for (char i = 0; i < 5; i++)
 					{
-						++ index;
+						++index;
 						if (index == end)
 						{
-							--index;    // это защита
+							--index;
 							continue;
 						}
 						colour <<= 4;
-						colour += convert_colour[ ((*index) - 48) & 0x3F ];
+						colour += convert_colour[((*index) - 48) & 0x3F];
 					}
 
-					// если нужно, то мен€ем красный и синий компоненты
+					// convert to ABGR if we use that colour format
 					texture_utility::convertColour(colour, _format);
 
-					line_info.simbols.push_back( CharInfo(colour) );
+					line_info.symbols.emplace_back(colour);
 
 					continue;
 				}
 			}
 
-			GlyphInfo* info = _font->getGlyphInfo(character);
-			if (FontCodeType::Space == character)
+			const GlyphInfo* info = _font->getGlyphInfo(character);
+
+			if (info == nullptr)
 			{
-				roll_back.set(line_info.simbols.size(), index, count, width);
-			}
-			else if (FontCodeType::Tab == character)
-			{
-				roll_back.set(line_info.simbols.size(), index, count, width);
+				previousChar = 0;
+				continue;
 			}
 
-			int char_width = info->width;
-			if (font_height != _height)
+			if (FontCodeType::Space == character || FontCodeType::Tab == character)
 			{
-				char_width = char_width * _height / font_height;
-				if (!char_width) char_width = 1;
+				roll_back.set(line_info.symbols.size(), index, count, width);
 			}
 
-			// перенос слов
-			if (_maxheight != -1
-				&& (width + char_width) > _maxheight
-				&& !roll_back.empty())
-			{
-				// откатываем до последнего пробела
-				width = roll_back.getLenght();
-				count = roll_back.getCount();
-				index = roll_back.getTextIter();
-				line_info.simbols.erase(line_info.simbols.begin() + roll_back.getPosition(), line_info.simbols.end());
+			float char_width = info->width;
+			float char_height = info->height;
+			float char_advance = info->advance;
+			float char_bearingX = info->bearingX;
+			float char_bearingY = info->bearingY;
+			float kerning = (previousChar != 0) ? _font->getKerning(previousChar, character) : 0.0f;
 
-				// запоминаем место отката, как полную строку
-				line_info.width = width;
+			if (_height != font_height)
+			{
+				float scale = (float)_height / font_height;
+
+				char_width *= scale;
+				char_height *= scale;
+				char_advance *= scale;
+				char_bearingX *= scale;
+				char_bearingY *= scale;
+				kerning *= scale;
+			}
+
+			float char_fullAdvance = char_advance + kerning;
+
+			// word wrap
+			if (_maxWidth != -1 && (width + char_fullAdvance) > _maxWidth)
+			{
+				if (!roll_back.empty())
+				{
+					// roll back to last space
+					width = roll_back.getWidth();
+					count = roll_back.getCount();
+					index = roll_back.getTextIter();
+					line_info.symbols.erase(
+						line_info.symbols.begin() + roll_back.getPosition(),
+						line_info.symbols.end());
+				}
+
+				// remember rollback point as full line
+				line_info.width = (int)std::ceil(width);
 				line_info.count = count;
 				mLength += line_info.count + 1;
 
 				result.height += _height;
-				if (result.width < width)
-					result.width = width;
+				setMax(result.width, line_info.width);
 				width = 0;
 				count = 0;
 
-				mLineInfo.push_back(line_info);
-				line_info.clear();
+				++current_line;
+				previousChar = 0;
 
-				// отмен€ем откат
-				roll_back.clear();
+				// cancel rollback
+				if (!roll_back.empty())
+					roll_back.clear();
 
 				continue;
 			}
 
-			line_info.simbols.push_back(CharInfo(info->uvRect, char_width));
-			width += char_width;
-			count ++;
+			line_info.symbols.emplace_back(
+				info->uvRect,
+				char_width,
+				char_height,
+				char_advance,
+				char_bearingX,
+				char_bearingY,
+				kerning);
+			width += char_fullAdvance;
+			previousChar = character;
+			count++;
 		}
 
-		line_info.width = width;
+		mLineInfo.resize(current_line + 1);
+		auto& line_info = mLineInfo[current_line];
+		line_info.width = (int)std::ceil(width);
 		line_info.count = count;
 		mLength += line_info.count;
 
-		mLineInfo.push_back(line_info);
+		setMax(result.width, line_info.width);
 
-		if (result.width < width)
-			result.width = width;
-
-		// теперь выравниванием строки
-		for (VectorLineInfo::iterator line = mLineInfo.begin(); line != mLineInfo.end(); ++line)
+		// now align lines
+		for (auto& line : mLineInfo)
 		{
 			if (_align.isRight())
-				line->offset = result.width - line->width;
+				line.offset = result.width - line.width;
 			else if (_align.isHCenter())
-				line->offset = (result.width - line->width) / 2;
+				line.offset = (result.width - line.width) / 2;
 		}
 
 		mViewSize = result;
 	}
 
-	size_t TextView::getCursorPosition(const IntPoint& _value)
+	size_t TextView::getCursorPosition(const IntPoint& _value) const
 	{
-		const int height = mFontHeight;
 		size_t result = 0;
 		int top = 0;
 
 		for (VectorLineInfo::const_iterator line = mLineInfo.begin(); line != mLineInfo.end(); ++line)
 		{
-			// это последн€€ строка
-			bool lastline = !(line + 1 != mLineInfo.end());
+			bool lastline = line + 1 == mLineInfo.end();
 
-			// наша строчка
-			if (top + height > _value.top || lastline)
+			if (top + mFontHeight <= _value.top && !lastline)
 			{
-				top += height;
-				int left = line->offset;
+				top += mFontHeight;
+				result += line->count + 1;
+			}
+			else
+			{
+				float left = (float)line->offset;
 				int count = 0;
 
-				// ищем символ
-				for (VectorCharInfo::const_iterator sim = line->simbols.begin(); sim != line->simbols.end(); ++sim)
+				for (const auto& sym : line->symbols)
 				{
-					if (sim->isColour())
+					if (sym.isColour())
 						continue;
 
-					if ((left + (sim->getWidth() / 2)) > _value.left)
+					float fullAdvance = sym.getAdvance() + sym.getKerning();
+					if (left + fullAdvance / 2.0f > _value.left)
 					{
 						break;
 					}
-					left += sim->getWidth();
-					count ++;
+					left += fullAdvance;
+					count++;
 				}
 
 				result += count;
 				break;
-			}
-
-			if (!lastline)
-			{
-				top += height;
-				result += line->count + 1;
 			}
 		}
 
 		return result;
 	}
 
-	IntPoint TextView::getCursorPoint(size_t _position)
+	IntPoint TextView::getCursorPoint(size_t _position) const
 	{
-		if (_position >= mLength + 1)
-			_position = mLength;
+		setMin(_position, mLength);
 
 		size_t position = 0;
 		int top = 0;
-		int left = 0;
-		for (VectorLineInfo::const_iterator line = mLineInfo.begin(); line != mLineInfo.end(); ++line)
+		float left = 0.0f;
+		for (const auto& line : mLineInfo)
 		{
-			left = line->offset;
-			if (position + line->count >= _position)
+			left = (float)line.offset;
+			if (position + line.count >= _position)
 			{
-				for (VectorCharInfo::const_iterator sim = line->simbols.begin(); sim != line->simbols.end(); ++sim)
+				for (const auto& sym : line.symbols)
 				{
-					if (sim->isColour())
+					if (sym.isColour())
 						continue;
 
 					if (position == _position)
 						break;
 
-					position ++;
-					left += sim->getWidth();
+					position++;
+					left += sym.getAdvance() + sym.getKerning();
 				}
 				break;
 			}
-			position += line->count + 1;
+			position += line.count + 1;
 			top += mFontHeight;
 		}
 
-		return IntPoint(left, top);
+		return {(int)left, top};
 	}
 
 	const IntSize& TextView::getViewSize() const

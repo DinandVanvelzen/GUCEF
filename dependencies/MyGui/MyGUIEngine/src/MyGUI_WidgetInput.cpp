@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		05/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_WidgetInput.h"
 #include "MyGUI_Widget.h"
@@ -26,19 +11,9 @@
 namespace MyGUI
 {
 
-	WidgetInput::WidgetInput() :
-		mNeedToolTip(false),
-		mInheritsPick(false),
-		mNeedKeyFocus(false),
-		mNeedMouseFocus(true),
-		mRootMouseFocus(false),
-		mRootKeyFocus(false)
-	{
-	}
+	WidgetInput::WidgetInput() = default;
 
-	WidgetInput::~WidgetInput()
-	{
-	}
+	WidgetInput::~WidgetInput() = default;
 
 	void WidgetInput::setMaskPick(const std::string& _filename)
 	{
@@ -55,7 +30,7 @@ namespace MyGUI
 
 	bool WidgetInput::isMaskPickInside(const IntPoint& _point, const IntCoord& _coord) const
 	{
-		return !mOwnMaskPickInfo.empty() && mOwnMaskPickInfo.pick(_point, _coord);
+		return mOwnMaskPickInfo.empty() || mOwnMaskPickInfo.pick(_point, _coord);
 	}
 
 	void WidgetInput::_riseMouseLostFocus(Widget* _new)
@@ -158,7 +133,7 @@ namespace MyGUI
 		return mNeedToolTip;
 	}
 
-	void WidgetInput::setPointer(const std::string& _value)
+	void WidgetInput::setPointer(std::string_view _value)
 	{
 		mPointer = _value;
 	}
@@ -183,19 +158,9 @@ namespace MyGUI
 		mNeedMouseFocus = _value;
 	}
 
-	bool WidgetInput::getNeedMouseFocus() const
-	{
-		return mNeedMouseFocus;
-	}
-
 	void WidgetInput::setInheritsPick(bool _value)
 	{
 		mInheritsPick = _value;
-	}
-
-	bool WidgetInput::getInheritsPick() const
-	{
-		return mInheritsPick;
 	}
 
 	bool WidgetInput::getRootMouseFocus() const

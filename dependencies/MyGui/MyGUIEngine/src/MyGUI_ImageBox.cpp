@@ -1,46 +1,21 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ImageBox.h"
 #include "MyGUI_CoordConverter.h"
 #include "MyGUI_ResourceManager.h"
 #include "MyGUI_ResourceSkin.h"
-#include "MyGUI_RotatingSkin.h"
 #include "MyGUI_Gui.h"
-#include "MyGUI_TextureUtility.h"
+#include "MyGUI_RenderManager.h"
 
 namespace MyGUI
 {
 
 	const size_t IMAGE_MAX_INDEX = 256;
-
-	ImageBox::ImageBox() :
-		mIndexSelect(ITEM_NONE),
-		mFrameAdvise(false),
-		mCurrentTime(0),
-		mCurrentFrame(0),
-		mResource(nullptr)
-	{
-	}
 
 	void ImageBox::shutdownOverride()
 	{
@@ -49,10 +24,10 @@ namespace MyGUI
 		Base::shutdownOverride();
 	}
 
-	void ImageBox::setImageInfo(const std::string& _texture, const IntCoord& _coord, const IntSize& _tile)
+	void ImageBox::setImageInfo(std::string_view _texture, const IntCoord& _coord, const IntSize& _tile)
 	{
 		mCurrentTextureName = _texture;
-		mSizeTexture = texture_utility::getTextureSize(mCurrentTextureName);
+		mSizeTexture = RenderManager::getInstance().getTextureSize(mCurrentTextureName);
 
 		mSizeTile = _tile;
 		mRectImage.left = _coord.left;
@@ -68,10 +43,11 @@ namespace MyGUI
 	{
 		mSizeTile = _tile;
 
-		// если размер еще не установлен, то ставим тот что у тайла
-		if (mRectImage.empty()) mRectImage.set(0, 0, _tile.width, _tile.height);
-		//если индекса еще нет, то ставим 0
-		if (mIndexSelect == ITEM_NONE) mIndexSelect = 0;
+		// use title size if mRectImage was not set yet
+		if (mRectImage.empty())
+			mRectImage.set(0, 0, _tile.width, _tile.height);
+		if (mIndexSelect == ITEM_NONE)
+			mIndexSelect = 0;
 
 		recalcIndexes();
 		updateSelectIndex(mIndexSelect);
@@ -84,34 +60,29 @@ namespace MyGUI
 		mRectImage.right = _coord.left + _coord.width;
 		mRectImage.bottom = _coord.top + _coord.height;
 
-		// если тайл еще не установлен, то ставим тот что у координат
-		if (mSizeTile.empty()) mSizeTile = _coord.size();
-		//если индекса еще нет, то ставим 0
-		if (mIndexSelect == ITEM_NONE) mIndexSelect = 0;
-
-		recalcIndexes();
-		updateSelectIndex(mIndexSelect);
+		setImageRect(mRectImage);
 	}
 
 	void ImageBox::setImageRect(const IntRect& _rect)
 	{
 		mRectImage = _rect;
 
-		// если тайл еще не установлен, то ставим тот что у координат
-		if (mSizeTile.empty()) mSizeTile.set(_rect.width(), _rect.height());
-		//если индекса еще нет, то ставим 0
-		if (mIndexSelect == ITEM_NONE) mIndexSelect = 0;
+		// use mRectImage size tile was not set yet
+		if (mSizeTile.empty())
+			mSizeTile.set(_rect.width(), _rect.height());
+		if (mIndexSelect == ITEM_NONE)
+			mIndexSelect = 0;
 
 		recalcIndexes();
 		updateSelectIndex(mIndexSelect);
 	}
 
-	void ImageBox::setImageTexture(const std::string& _texture)
+	void ImageBox::setImageTexture(std::string_view _texture)
 	{
 		mCurrentTextureName = _texture;
-		mSizeTexture = texture_utility::getTextureSize(mCurrentTextureName);
+		mSizeTexture = RenderManager::getInstance().getTextureSize(mCurrentTextureName);
 
-		// если первый раз, то ставим во всю текстуру
+		// set entire texture on the first call
 		if (mItems.empty())
 		{
 			_setUVSet(FloatRect(0, 0, 1, 1));
@@ -138,12 +109,18 @@ namespace MyGUI
 
 		if ((count_h * count_v) > IMAGE_MAX_INDEX)
 		{
-			MYGUI_LOG(Warning, "Tile count very mach, rect : " << mRectImage.print() << " tile : " << mSizeTile.print() << " texture : " << _getTextureName() << " indexes : " << (count_h * count_v) << " max : " << IMAGE_MAX_INDEX);
+			MYGUI_LOG(
+				Warning,
+				"Tile count very mach, rect : "
+					<< mRectImage.print() << " tile : " << mSizeTile.print() << " texture : " << _getTextureName()
+					<< " indexes : " << (count_h * count_v) << " max : " << IMAGE_MAX_INDEX);
 			return;
 		}
 
 		int pos_h = mRectImage.left;
 		int pos_v = mRectImage.top;
+		const size_t selected = mIndexSelect;
+		mIndexSelect = ITEM_NONE;
 
 		for (size_t v = 0; v < count_v; ++v)
 		{
@@ -155,6 +132,7 @@ namespace MyGUI
 			pos_v += mSizeTile.height;
 			pos_h = mRectImage.left;
 		}
+		mIndexSelect = selected;
 	}
 
 	void ImageBox::updateSelectIndex(size_t _index)
@@ -163,13 +141,12 @@ namespace MyGUI
 
 		if ((_index == ITEM_NONE) || (_index >= mItems.size()))
 		{
-			_setTextureName("");
+			_setTextureName(std::string_view{});
 			return;
 		}
-		else
-		{
-			_setTextureName(mCurrentTextureName);
-		}
+
+		_setTextureName(mCurrentTextureName);
+
 
 		VectorImages::iterator iter = mItems.begin() + _index;
 
@@ -179,7 +156,7 @@ namespace MyGUI
 		}
 		else
 		{
-			if ( ! mFrameAdvise)
+			if (!mFrameAdvise)
 			{
 				mCurrentTime = 0;
 				mCurrentFrame = 0;
@@ -187,7 +164,7 @@ namespace MyGUI
 			frameAdvise(true);
 		}
 
-		if ( ! iter->images.empty())
+		if (!iter->images.empty())
 		{
 			_setUVSet(iter->images.front());
 		}
@@ -201,8 +178,12 @@ namespace MyGUI
 
 		if (mIndexSelect != ITEM_NONE)
 		{
-			if (mItems.empty()) updateSelectIndex(ITEM_NONE);
-			else if ((_index < mIndexSelect) || (mIndexSelect == mItems.size())) updateSelectIndex(mIndexSelect--);
+			if (mItems.empty())
+				updateSelectIndex(ITEM_NONE);
+			else if ((_index < mIndexSelect) || (mIndexSelect == mItems.size()))
+				updateSelectIndex(mIndexSelect - 1);
+			else if (_index == mIndexSelect)
+				updateSelectIndex(mIndexSelect);
 		}
 	}
 
@@ -215,13 +196,15 @@ namespace MyGUI
 	void ImageBox::insertItem(size_t _index, const IntCoord& _item)
 	{
 		MYGUI_ASSERT_RANGE_INSERT(_index, mItems.size(), "ImageBox::insertItem");
-		if (_index == ITEM_NONE) _index = mItems.size();
+		if (_index == ITEM_NONE)
+			_index = mItems.size();
 
 		VectorImages::iterator iter = mItems.insert(mItems.begin() + _index, ImageItem());
 
 		iter->images.push_back(CoordConverter::convertTextureCoord(_item, mSizeTexture));
 
-		if ((mIndexSelect != ITEM_NONE) && (_index <= mIndexSelect)) updateSelectIndex(mIndexSelect++);
+		if ((mIndexSelect != ITEM_NONE) && (_index <= mIndexSelect))
+			updateSelectIndex(mIndexSelect + 1);
 	}
 
 	void ImageBox::setItem(size_t _index, const IntCoord& _item)
@@ -232,24 +215,29 @@ namespace MyGUI
 		iter->images.clear();
 		iter->images.push_back(CoordConverter::convertTextureCoord(_item, mSizeTexture));
 
-		if (_index == mIndexSelect) updateSelectIndex(mIndexSelect);
+		if (_index == mIndexSelect)
+			updateSelectIndex(mIndexSelect);
 	}
 
 	void ImageBox::frameEntered(float _frame)
 	{
-		if (mIndexSelect == ITEM_NONE) return;
+		if (mIndexSelect == ITEM_NONE)
+			return;
 
-		if (mItems.empty()) return;
+		if (mItems.empty())
+			return;
 		VectorImages::iterator iter = mItems.begin() + mIndexSelect;
-		if ((iter->images.size() < 2) || (iter->frame_rate == 0)) return;
+		if ((iter->images.size() < 2) || (iter->frame_rate == 0))
+			return;
 
 		mCurrentTime += _frame;
 
 		while (mCurrentTime >= iter->frame_rate)
 		{
 			mCurrentTime -= iter->frame_rate;
-			mCurrentFrame ++;
-			if (mCurrentFrame >= (iter->images.size())) mCurrentFrame = 0;
+			mCurrentFrame++;
+			if (mCurrentFrame >= (iter->images.size()))
+				mCurrentFrame = 0;
 		}
 
 		_setUVSet(iter->images[mCurrentFrame]);
@@ -276,19 +264,19 @@ namespace MyGUI
 		iter->frame_rate = _rate;
 	}
 
-	float ImageBox::getItemFrameRate(size_t _index)
+	float ImageBox::getItemFrameRate(size_t _index) const
 	{
 		MYGUI_ASSERT_RANGE(_index, mItems.size(), "ImageBox::getItemFrameRate");
-		VectorImages::iterator iter = mItems.begin() + _index;
+		VectorImages::const_iterator iter = mItems.begin() + _index;
 		return iter->frame_rate;
 	}
 
-	void ImageBox::addItemFrameDublicate(size_t _index, size_t _indexSourceFrame)
+	void ImageBox::addItemFrameDuplicate(size_t _index, size_t _indexSourceFrame)
 	{
-		MYGUI_ASSERT_RANGE(_index, mItems.size(), "ImageBox::addItemFrameDublicate");
+		MYGUI_ASSERT_RANGE(_index, mItems.size(), "ImageBox::addItemFrameDuplicate");
 
 		VectorImages::iterator iter = mItems.begin() + _index;
-		MYGUI_ASSERT_RANGE(_indexSourceFrame, iter->images.size(), "ImageBox::addItemFrameDublicate");
+		MYGUI_ASSERT_RANGE(_indexSourceFrame, iter->images.size(), "ImageBox::addItemFrameDuplicate");
 		iter->images.push_back(iter->images[_indexSourceFrame]);
 	}
 
@@ -298,21 +286,24 @@ namespace MyGUI
 
 		VectorImages::iterator iter = mItems.begin() + _index;
 		MYGUI_ASSERT_RANGE_INSERT(_indexFrame, iter->images.size(), "ImageBox::insertItemFrame");
-		if (_indexFrame == ITEM_NONE) _indexFrame = iter->images.size() - 1;
+		if (_indexFrame == ITEM_NONE)
+			_indexFrame = iter->images.size() - 1;
 
-		iter->images.insert(iter->images.begin() + _indexFrame,
+		iter->images.insert(
+			iter->images.begin() + _indexFrame,
 			CoordConverter::convertTextureCoord(_item, mSizeTexture));
 	}
 
-	void ImageBox::insertItemFrameDublicate(size_t _index, size_t _indexFrame, size_t _indexSourceFrame)
+	void ImageBox::insertItemFrameDuplicate(size_t _index, size_t _indexFrame, size_t _indexSourceFrame)
 	{
-		MYGUI_ASSERT_RANGE(_index, mItems.size(), "ImageBox::insertItemFrameDublicate");
+		MYGUI_ASSERT_RANGE(_index, mItems.size(), "ImageBox::insertItemFrameDuplicate");
 
 		VectorImages::iterator iter = mItems.begin() + _index;
-		MYGUI_ASSERT_RANGE_INSERT(_indexFrame, iter->images.size(), "ImageBox::insertItemFrameDublicate");
-		if (_indexFrame == ITEM_NONE) _indexFrame = iter->images.size() - 1;
+		MYGUI_ASSERT_RANGE_INSERT(_indexFrame, iter->images.size(), "ImageBox::insertItemFrameDuplicate");
+		if (_indexFrame == ITEM_NONE)
+			_indexFrame = iter->images.size() - 1;
 
-		MYGUI_ASSERT_RANGE(_indexSourceFrame, iter->images.size(), "ImageBox::insertItemFrameDublicate");
+		MYGUI_ASSERT_RANGE(_indexSourceFrame, iter->images.size(), "ImageBox::insertItemFrameDuplicate");
 
 		iter->images.insert(iter->images.begin() + _indexFrame, iter->images[_indexSourceFrame]);
 	}
@@ -332,8 +323,9 @@ namespace MyGUI
 		MYGUI_ASSERT_RANGE(_index, mItems.size(), "ImageBox::deleteItemFrame");
 
 		VectorImages::iterator iter = mItems.begin() + _index;
-		MYGUI_ASSERT_RANGE_INSERT(_indexFrame, iter->images.size(), "ImageBox::deleteItemFrame");
-		if (_indexFrame == ITEM_NONE) _indexFrame = iter->images.size() - 1;
+		if (_indexFrame == ITEM_NONE)
+			_indexFrame = iter->images.size() - 1;
+		MYGUI_ASSERT_RANGE(_indexFrame, iter->images.size(), "ImageBox::deleteItemFrame");
 
 		iter->images.erase(iter->images.begin() + _indexFrame);
 	}
@@ -341,11 +333,11 @@ namespace MyGUI
 	void ImageBox::setItemResourceInfo(const ImageIndexInfo& _info)
 	{
 		mCurrentTextureName = _info.texture;
-		mSizeTexture = texture_utility::getTextureSize(mCurrentTextureName);
+		mSizeTexture = RenderManager::getInstance().getTextureSize(mCurrentTextureName);
 
 		mItems.clear();
 
-		if (_info.frames.size() != 0)
+		if (!_info.frames.empty())
 		{
 			std::vector<IntPoint>::const_iterator iter = _info.frames.begin();
 
@@ -356,14 +348,13 @@ namespace MyGUI
 			{
 				addItemFrame(0, MyGUI::IntCoord(*iter, _info.size));
 			}
-
 		}
 
 		mIndexSelect = 0;
 		updateSelectIndex(mIndexSelect);
 	}
 
-	bool ImageBox::setItemResource(const std::string& _name)
+	bool ImageBox::setItemResource(std::string_view _name)
 	{
 		IResourcePtr resource = ResourceManager::getInstance().getByName(_name, false);
 		setItemResourcePtr(resource ? resource->castType<ResourceImageSet>() : nullptr);
@@ -375,32 +366,30 @@ namespace MyGUI
 		if (mResource == _resource)
 			return;
 
-		// если первый раз то устанавливаем дефолтное
-		if (mResource == nullptr && _resource != nullptr)
+		if (mResource == nullptr)
 		{
 			if (mItemGroup.empty())
 			{
-				EnumeratorGroupImage iter_group = _resource->getEnumerator();
-				while (iter_group.next())
+				const auto& groups = _resource->getGroups();
+				if (!groups.empty())
 				{
-					mItemGroup = iter_group.current().name;
-					if (mItemName.empty() && !iter_group.current().indexes.empty())
+					const auto& group = groups.front();
+					mItemGroup = group.name;
+					if (mItemName.empty() && !group.indexes.empty())
 					{
-						mItemName = iter_group.current().indexes[0].name;
+						mItemName = group.indexes[0].name;
 					}
-					break;
 				}
 			}
 			else if (mItemName.empty())
 			{
-				EnumeratorGroupImage iter_group = _resource->getEnumerator();
-				while (iter_group.next())
+				for (const auto& group : _resource->getGroups())
 				{
-					if (mItemGroup == iter_group.current().name)
+					if (mItemGroup == group.name)
 					{
-						if (!iter_group.current().indexes.empty())
+						if (!group.indexes.empty())
 						{
-							mItemName = iter_group.current().indexes[0].name;
+							mItemName = group.indexes[0].name;
 							break;
 						}
 					}
@@ -409,54 +398,62 @@ namespace MyGUI
 		}
 
 		mResource = _resource;
-		if (!mResource || mItemGroup.empty() || mItemName.empty()) updateSelectIndex(ITEM_NONE);
-		else setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
+		if (!mResource || mItemGroup.empty() || mItemName.empty())
+			updateSelectIndex(ITEM_NONE);
+		else
+			setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
 	}
 
-	void ImageBox::setItemGroup(const std::string& _group)
+	void ImageBox::setItemGroup(std::string_view _group)
 	{
 		if (mItemGroup == _group)
 			return;
 
 		mItemGroup = _group;
-		if (!mResource || mItemGroup.empty() || mItemName.empty()) updateSelectIndex(ITEM_NONE);
-		else setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
+		if (!mResource || mItemGroup.empty() || mItemName.empty())
+			updateSelectIndex(ITEM_NONE);
+		else
+			setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
 	}
 
-	void ImageBox::setItemName(const std::string& _name)
+	void ImageBox::setItemName(std::string_view _name)
 	{
 		if (mItemName == _name)
 			return;
 
 		mItemName = _name;
-		if (!mResource || mItemGroup.empty() || mItemName.empty()) updateSelectIndex(ITEM_NONE);
-		else setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
+		if (!mResource || mItemGroup.empty() || mItemName.empty())
+			updateSelectIndex(ITEM_NONE);
+		else
+			setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
 	}
 
-	void ImageBox::setItemResourceInfo(ResourceImageSetPtr _resource, const std::string& _group, const std::string& _name)
+	void ImageBox::setItemResourceInfo(ResourceImageSetPtr _resource, std::string_view _group, std::string_view _name)
 	{
 		mResource = _resource;
 		mItemGroup = _group;
 		mItemName = _name;
-		if (!mResource || mItemGroup.empty() || mItemName.empty()) updateSelectIndex(ITEM_NONE);
-		else setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
+		if (!mResource || mItemGroup.empty() || mItemName.empty())
+			updateSelectIndex(ITEM_NONE);
+		else
+			setItemResourceInfo(mResource->getIndexInfo(mItemGroup, mItemName));
 	}
 
 	void ImageBox::frameAdvise(bool _advise)
 	{
-		if ( _advise )
+		if (_advise)
 		{
-			if ( ! mFrameAdvise )
+			if (!mFrameAdvise)
 			{
-				MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate( this, &ImageBox::frameEntered );
+				MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate(this, &ImageBox::frameEntered);
 				mFrameAdvise = true;
 			}
 		}
 		else
 		{
-			if ( mFrameAdvise )
+			if (mFrameAdvise)
 			{
-				MyGUI::Gui::getInstance().eventFrameStart -= MyGUI::newDelegate( this, &ImageBox::frameEntered );
+				MyGUI::Gui::getInstance().eventFrameStart -= MyGUI::newDelegate(this, &ImageBox::frameEntered);
 				mFrameAdvise = false;
 			}
 		}
@@ -467,14 +464,20 @@ namespace MyGUI
 		setItemSelect(_index);
 	}
 
-	size_t ImageBox::getImageIndex()
+	size_t ImageBox::getImageIndex() const
 	{
 		return getItemSelect();
 	}
 
+	IntSize ImageBox::getImageSize() const
+	{
+		return mSizeTexture;
+	}
+
 	void ImageBox::setItemSelect(size_t _index)
 	{
-		if (mIndexSelect != _index) updateSelectIndex(_index);
+		if (mIndexSelect != _index)
+			updateSelectIndex(_index);
 	}
 
 	void ImageBox::_setUVSet(const FloatRect& _rect)
@@ -483,27 +486,42 @@ namespace MyGUI
 			getSubWidgetMain()->_setUVSet(_rect);
 	}
 
-	void ImageBox::setPropertyOverride(const std::string& _key, const std::string& _value)
+	void ImageBox::setPropertyOverride(std::string_view _key, std::string_view _value)
 	{
+		/// @wproperty{ImageBox, ImageTexture, string} Texture for the widget.
 		if (_key == "ImageTexture")
 			setImageTexture(_value);
+
+		/// @wproperty{ImageBox, ImageCoord, int int int int} Coordinates in the texture.
 		else if (_key == "ImageCoord")
 			setImageCoord(utility::parseValue<IntCoord>(_value));
+
+		/// @wproperty{ImageBox, ImageTile, int int} Tile size of the texture.
 		else if (_key == "ImageTile")
 			setImageTile(utility::parseValue<IntSize>(_value));
+
+		/// @wproperty{ImageBox, ImageIndex, size_t} Tile index in the texture.
 		else if (_key == "ImageIndex")
 			setItemSelect(utility::parseValue<size_t>(_value));
+
+		/// @wproperty{ImageBox, ImageResource, string} Image resource name.
 		else if (_key == "ImageResource")
 			setItemResource(_value);
+
+		/// @wproperty{ImageBox, ImageGroup, string} Image group name in the resource.
 		else if (_key == "ImageGroup")
 			setItemGroup(_value);
+
+		/// @wproperty{ImageBox, ImageName, string} Image name in the resource group.
 		else if (_key == "ImageName")
 			setItemName(_value);
+
 		else
 		{
 			Base::setPropertyOverride(_key, _value);
 			return;
 		}
+
 		eventChangeProperty(this, _key, _value);
 	}
 
@@ -527,7 +545,7 @@ namespace MyGUI
 		insertItem(ITEM_NONE, _item);
 	}
 
-	ResourceImageSetPtr ImageBox::getItemResource()
+	ResourceImageSetPtr ImageBox::getItemResource() const
 	{
 		return mResource;
 	}

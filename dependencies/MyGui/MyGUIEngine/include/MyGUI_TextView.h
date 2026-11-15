@@ -1,10 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2009
-*/
-#ifndef __MYGUI_TEXT_VIEW_H__
-#define __MYGUI_TEXT_VIEW_H__
+/*
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
+
+#ifndef MYGUI_TEXT_VIEW_H_
+#define MYGUI_TEXT_VIEW_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_TextureUtility.h"
@@ -14,16 +15,20 @@
 namespace MyGUI
 {
 
-	class TextView
+	class MYGUI_EXPORT TextView
 	{
 	public:
-		TextView();
+		void update(
+			const UString& _text,
+			IFont* _font,
+			int _height,
+			Align _align,
+			VertexColourType _format,
+			int _maxWidth = -1);
 
-		void update(const UString& _text, IFont* _font, int _height, Align _align, VertexColourType _format, int _maxheight = -1);
+		size_t getCursorPosition(const IntPoint& _value) const;
 
-		size_t getCursorPosition(const IntPoint& _value);
-
-		IntPoint getCursorPoint(size_t _position);
+		IntPoint getCursorPoint(size_t _position) const;
 
 		const IntSize& getViewSize() const;
 
@@ -33,11 +38,11 @@ namespace MyGUI
 
 	private:
 		IntSize mViewSize;
-		size_t mLength;
+		size_t mLength{0};
 		VectorLineInfo mLineInfo;
-		int mFontHeight;
+		int mFontHeight{0};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_TEXT_VIEW_H__
+#endif // MYGUI_TEXT_VIEW_H_

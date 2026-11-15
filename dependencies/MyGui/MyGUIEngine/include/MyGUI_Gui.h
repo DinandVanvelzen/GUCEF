@@ -1,45 +1,29 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_GUI_H__
-#define __MYGUI_GUI_H__
+#ifndef MYGUI_GUI_H_
+#define MYGUI_GUI_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
 #include "MyGUI_Singleton.h"
 #include "MyGUI_XmlDocument.h"
 #include "MyGUI_IUnlinkWidget.h"
+#include "MyGUI_WidgetContainer.h"
 #include "MyGUI_Widget.h"
 #include "MyGUI_BackwardCompatibility.h"
 
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate1<float> EventHandle_FrameEventDelegate;
+	using EventHandle_FrameEventDelegate = delegates::MultiDelegate<float>;
 
-	class MYGUI_EXPORT Gui :
-		public Singleton<Gui>,
-		public IUnlinkWidget,
-		public MemberObsolete<Gui>
+	class MYGUI_EXPORT Gui : public WidgetContainer, public IUnlinkWidget, public MemberObsolete<Gui>
 	{
+		MYGUI_SINGLETON_DECLARATION(Gui);
 		friend class WidgetManager;
 
 	public:
@@ -53,11 +37,6 @@ namespace MyGUI
 		*/
 		void initialise(const std::string& _core = "MyGUI_Core.xml");
 
-#ifndef MYGUI_DONT_USE_OBSOLETE
-		MYGUI_OBSOLETE(" is deprecated, use : void Gui::initialise(const std::string& _core) and set log filename in Platform")
-		void initialise(const std::string& _core, const std::string& _logFileName);
-#endif // MYGUI_DONT_USE_OBSOLETE
-
 		/** Shutdown GUI and all GUI Managers*/
 		void shutdown();
 
@@ -70,38 +49,101 @@ namespace MyGUI
 			@param _layer layer where widget will be created (all layers usually defined in core_layer.xml file).
 			@param _name optional widget name (you can use it for finding widget by name later)
 		*/
-		Widget* createWidgetT(const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name = "");
+		Widget* createWidgetT(
+			std::string_view _type,
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {});
 		/** See Gui::createWidgetT */
-		Widget* createWidgetT(const std::string& _type, const std::string& _skin, int _left, int _top, int _width, int _height, Align _align, const std::string& _layer, const std::string& _name = "");
+		Widget* createWidgetT(
+			std::string_view _type,
+			std::string_view _skin,
+			int _left,
+			int _top,
+			int _width,
+			int _height,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {});
 		/** Create widget using coordinates relative to parent widget. see Gui::createWidgetT */
-		Widget* createWidgetRealT(const std::string& _type, const std::string& _skin, const FloatCoord& _coord, Align _align, const std::string& _layer, const std::string& _name = "");
+		Widget* createWidgetRealT(
+			std::string_view _type,
+			std::string_view _skin,
+			const FloatCoord& _coord,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {});
 		/** Create widget using coordinates relative to parent. see Gui::createWidgetT */
-		Widget* createWidgetRealT(const std::string& _type, const std::string& _skin, float _left, float _top, float _width, float _height, Align _align, const std::string& _layer, const std::string& _name = "");
+		Widget* createWidgetRealT(
+			std::string_view _type,
+			std::string_view _skin,
+			float _left,
+			float _top,
+			float _width,
+			float _height,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {});
 
 		// templates for creating widgets by type
 		/** Same as Gui::createWidgetT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidget(const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name = "")
+		template<typename T>
+		T* createWidget(
+			std::string_view _skin,
+			const IntCoord& _coord,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {})
 		{
 			return static_cast<T*>(createWidgetT(T::getClassTypeName(), _skin, _coord, _align, _layer, _name));
 		}
 		/** Same as Gui::createWidgetT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidget(const std::string& _skin, int _left, int _top, int _width, int _height, Align _align, const std::string& _layer, const std::string& _name = "")
+		template<typename T>
+		T* createWidget(
+			std::string_view _skin,
+			int _left,
+			int _top,
+			int _width,
+			int _height,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {})
 		{
-			return static_cast<T*>(createWidgetT(T::getClassTypeName(), _skin, IntCoord(_left, _top, _width, _height), _align, _layer, _name));
+			return static_cast<T*>(createWidgetT(
+				T::getClassTypeName(),
+				_skin,
+				IntCoord(_left, _top, _width, _height),
+				_align,
+				_layer,
+				_name));
 		}
 		/** Same as Gui::createWidgetRealT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidgetReal(const std::string& _skin, const FloatCoord& _coord, Align _align, const std::string& _layer, const std::string& _name = "")
+		template<typename T>
+		T* createWidgetReal(
+			std::string_view _skin,
+			const FloatCoord& _coord,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {})
 		{
 			return static_cast<T*>(createWidgetRealT(T::getClassTypeName(), _skin, _coord, _align, _layer, _name));
 		}
 		/** Same as Gui::createWidgetRealT but return T* instead of Widget* */
-		template <typename T>
-		T* createWidgetReal(const std::string& _skin, float _left, float _top, float _width, float _height, Align _align, const std::string& _layer, const std::string& _name = "")
+		template<typename T>
+		T* createWidgetReal(
+			std::string_view _skin,
+			float _left,
+			float _top,
+			float _width,
+			float _height,
+			Align _align,
+			std::string_view _layer,
+			std::string_view _name = {})
 		{
-			return static_cast<T*>(createWidgetRealT(T::getClassTypeName(), _skin, _left, _top, _width, _height, _align, _layer, _name));
+			return static_cast<T*>(
+				createWidgetRealT(T::getClassTypeName(), _skin, _left, _top, _width, _height, _align, _layer, _name));
 		}
 
 		/** Destroy any created widget */
@@ -110,37 +152,27 @@ namespace MyGUI
 		/** Destroy vector of widgets */
 		void destroyWidgets(const VectorWidgetPtr& _widgets);
 
-		/** Destroy Enumerator of widgets */
-		void destroyWidgets(EnumeratorWidgetPtr& _widgets);
+#ifndef MYGUI_DONT_USE_OBSOLETE
+		using MemberObsolete<Gui>::destroyWidgets;
+		using MemberObsolete<Gui>::findWidgetT;
+		using MemberObsolete<Gui>::findWidget;
+#endif
 
 		/** Find widget by name
 			If widget is not found the exception will be thrown, or if the second parameter is false the nullptr pointer will be returned
 		*/
-		Widget* findWidgetT(const std::string& _name, bool _throw = true);
-
-		/** Find widget by name and prefix
-			If widget is not found the exception will be thrown, or if the second parameter is false the nullptr pointer will be returned
-		*/
-		Widget* findWidgetT(const std::string& _name, const std::string& _prefix, bool _throw = true);
+		Widget* findWidgetT(std::string_view _name, bool _throw = true) const;
 
 		/** Find widget by name and cast it to T type.
 			If widget not found or T and found widget have different types exception will be thrown, or if the second parameter is false the nullptr pointer will be returned
 		*/
-		template <typename T>
-		T* findWidget(const std::string& _name, bool _throw = true)
+		template<typename T>
+		T* findWidget(std::string_view _name, bool _throw = true) const
 		{
 			Widget* widget = findWidgetT(_name, _throw);
-			if (nullptr == widget) return nullptr;
+			if (nullptr == widget)
+				return nullptr;
 			return widget->castType<T>(_throw);
-		}
-
-		/** Find widget by name and prefix and cast it to T type
-			If widget not found or T and found widget have different types cause exception, or if the second parameter is false the nullptr pointer will be returned
-		*/
-		template <typename T>
-		T* findWidget(const std::string& _name, const std::string& _prefix, bool _throw = true)
-		{
-			return findWidget<T>(_prefix + _name, _throw);
 		}
 
 		/** Destroy child widget or throw exception if this child widget not found */
@@ -149,69 +181,53 @@ namespace MyGUI
 		/** Destroy all child widgets */
 		void destroyAllChildWidget();
 
-		/** Get root widgets Enumerator */
-		EnumeratorWidgetPtr getEnumerator() const;
+		/** Get root widgets */
+		const VectorWidgetPtr& getRootWidgets() const;
 
-	/*events:*/
+		/** Inject frame entered event (called be renderer, do not call it manually).
+			This function is called every frame by renderer.
+		*/
+		void frameEvent(float _time) const;
+
+		/** Set global DPI scale factor for the GUI.
+			@param _value DPI scale. Default value is 1.0
+			Should be called before initialise() so that fonts with AutoDpi enabled can read it during initialization.
+		*/
+		void setDpiScale(float _value);
+		/** Get global DPI scale factor for the GUI. */
+		float getDpiScale() const;
+
+		/*events:*/
 		/** Event : Multidelegate. GUI per frame call.\n
 			signature : void method(float _time)\n
 			@param _time Time elapsed since last frame
 		*/
-		EventHandle_FrameEventDelegate
-			eventFrameStart;
-
-	/*internal:*/
-		/** Inject frame entered event (called be renderer, do not call it manually).
-			This function is called every frame by renderer.
-		*/
-		void _injectFrameEntered(float _time);
-
-		void _linkChildWidget(Widget* _widget);
-		void _unlinkChildWidget(Widget* _widget);
-
-		/** Resize GUI area (called by renderer, do not call it manually). */
-		void _resizeWindow(const IntSize& _size);
+		EventHandle_FrameEventDelegate eventFrameStart;
 
 	private:
-		// создает виджет
-		Widget* baseCreateWidget(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name);
-
-		// удяляет неудачника
-		void _destroyChildWidget(Widget* _widget);
-
-		// удаляет всех детей
-		void _destroyAllChildWidget();
-
-		virtual void _unlinkWidget(Widget* _widget);
+		void _unlinkWidget(Widget* _widget) override;
 
 	private:
-		// вектор всех детей виджетов
-		VectorWidgetPtr mWidgetChild;
+		// GUI manager singletons
+		InputManager* mInputManager{nullptr};
+		SubWidgetManager* mSubWidgetManager{nullptr};
+		LayerManager* mLayerManager{nullptr};
+		SkinManager* mSkinManager{nullptr};
+		WidgetManager* mWidgetManager{nullptr};
+		FontManager* mFontManager{nullptr};
+		ControllerManager* mControllerManager{nullptr};
+		PointerManager* mPointerManager{nullptr};
+		ClipboardManager* mClipboardManager{nullptr};
+		LayoutManager* mLayoutManager{nullptr};
+		LanguageManager* mLanguageManager{nullptr};
+		ResourceManager* mResourceManager{nullptr};
+		FactoryManager* mFactoryManager{nullptr};
+		ToolTipManager* mToolTipManager{nullptr};
 
-		// размеры экрана
-		IntSize mViewSize;
-
-		// синглтоны гуя
-		InputManager* mInputManager;
-		SubWidgetManager* mSubWidgetManager;
-		LayerManager* mLayerManager;
-		SkinManager* mSkinManager;
-		WidgetManager* mWidgetManager;
-		FontManager* mFontManager;
-		ControllerManager* mControllerManager;
-		PointerManager* mPointerManager;
-		ClipboardManager* mClipboardManager;
-		LayoutManager* mLayoutManager;
-		DynLibManager* mDynLibManager;
-		PluginManager* mPluginManager;
-		LanguageManager* mLanguageManager;
-		ResourceManager* mResourceManager;
-		FactoryManager* mFactoryManager;
-		ToolTipManager* mToolTipManager;
-
-		bool mIsInitialise;
+		float mDpiScale{1.0f};
+		bool mIsInitialise{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_GUI_H__
+#endif // MYGUI_GUI_H_

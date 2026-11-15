@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Evmenov Georgiy
-	@date		03/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_CONTROLLER_POSITION_H__
-#define __MYGUI_CONTROLLER_POSITION_H__
+#ifndef MYGUI_CONTROLLER_POSITION_H_
+#define MYGUI_CONTROLLER_POSITION_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Delegate.h"
@@ -32,24 +17,31 @@ namespace MyGUI
 {
 
 	/** This controller used for smooth changing position of widget in time */
-	class MYGUI_EXPORT ControllerPosition :
-		public ControllerItem
+	class MYGUI_EXPORT ControllerPosition : public ControllerItem
 	{
-		MYGUI_RTTI_DERIVED( ControllerPosition )
+		MYGUI_RTTI_DERIVED(ControllerPosition)
 
 	public:
-		typedef delegates::CDelegate4<const IntCoord&, const IntCoord&, IntCoord&, float> FrameAction;
+		using FrameAction = delegates::Delegate<const IntCoord&, const IntCoord&, IntCoord&, float>;
 
 		ControllerPosition();
-		virtual ~ControllerPosition();
 
-		void setCoord(const IntCoord& _value);
+		void setCoord(const IntCoord& _destCoord);
 
-		void setSize(const IntSize& _value);
+		void setSize(const IntSize& _destSize);
 
-		void setPosition(const IntPoint& _value);
+		void setPosition(const IntPoint& _destPoint);
 
-		void setFunction(const std::string& _value);
+		/**
+		 * Set acceleration behavior, same as calling controller->setAction(MyGUI::newDelegate(chosen by value))
+		 * @param _value could be one of
+		 * 	    "Linear" (default) @see action::linearMoveFunction
+		 * 	    "Inertional" @see action::inertionalMoveFunction
+		 * 	    "Accelerated" @see action::acceleratedMoveFunction<30>
+		 * 	    "Slowed" @see action::acceleratedMoveFunction<4>
+		 * 	    "Jump" @see action::jumpMoveFunction<5>
+		 */
+		void setFunction(std::string_view _value);
 
 		/**
 			@param _value seconds in which widget planned to reach destination coordinate
@@ -61,21 +53,20 @@ namespace MyGUI
 		*/
 		void setAction(FrameAction::IDelegate* _value);
 
-		virtual void setProperty(const std::string& _key, const std::string& _value);
+		bool addTime(Widget* _widget, float _time) override;
+		void prepareItem(Widget* _widget) override;
+		void setProperty(std::string_view _key, std::string_view _value) override;
 
 	private:
-		bool addTime(Widget* _widget, float _time);
-		void prepareItem(Widget* _widget);
-
 		IntCoord mStartCoord;
 		IntCoord mDestCoord;
-		float mTime;
-		float mElapsedTime;
+		float mTime{1};
+		float mElapsedTime{0};
 
 		// controller changing position
-		bool mCalcPosition;
+		bool mCalcPosition{false};
 		// controller changing size
-		bool mCalcSize;
+		bool mCalcSize{false};
 
 		/** Event : Every frame action while controller exist.\n
 			signature : void method(const IntRect& _startRect, const IntRect& _destRect, IntRect& _result, float _current_time)\n
@@ -89,4 +80,4 @@ namespace MyGUI
 
 } // namespace MyGUI
 
-#endif // __MYGUI_CONTROLLER_POSITION_H__
+#endif // MYGUI_CONTROLLER_POSITION_H_

@@ -1,0 +1,180 @@
+![MyGUI logo](http://mygui.info/images/MyGUI_Logo.png)
+
+[![CI](https://github.com/MyGUI/mygui/actions/workflows/build.yml/badge.svg)](https://github.com/MyGUI/mygui/actions)
+[![Code coverage](https://raw.githubusercontent.com/MyGUI/mygui/coverage-badge/coverage.svg)](https://github.com/MyGUI/mygui/actions/workflows/coverage.yml)
+
+MyGUI is a cross-platform library for creating graphical user interfaces (GUIs) for games and 3D applications. It is
+written in C++17 and is designed to be fast, flexible, and easy to integrate with various rendering engines.
+
+[**Online demos**](https://mygui.info/demos/) | [**Showcase**](http://mygui.info/#look) |
+[**Projects using MyGUI**](http://mygui.info/#projects)
+
+## Features
+
+- **Wide widget set:** buttons, edit boxes, combo boxes, lists, tree controls, item boxes, tab controls, scroll bars,
+  progress bars, windows, and more
+- **Multiple render backends:** Vulkan, Direct3D 9, Direct3D 11, OpenGL (legacy), OpenGL 3.x, OpenGL ES 3 / WebGL 2,
+  Ogre, OgreNext, OpenSceneGraph
+- **Skin system:** fully customizable widget appearance via XML-based skin definitions
+- **Layout system:** load UI layouts from XML files at runtime; includes a visual **Layout Editor**
+- **Tools:** built-in editors for layouts, skins, images, and fonts
+- **Font rendering:** TrueType fonts via FreeType, bitmap fonts, and MSDF (multi-channel signed distance field) font support
+  - Five hinting modes: native, auto-hint, no-auto-hint, monochrome, and disabled
+  - Dynamic kerning with per-pair spacing adjustments
+  - Configurable Unicode code point ranges with inclusion and exclusion support
+  - Text effects: shadow, colour, selection highlighting, cursor, word wrap, and alignment
+  - MSDF shaders for OpenGL 3.x, OpenGL ES, DirectX 11, Ogre, OgreNext (GLSL, HLSL, Metal, SPIR-V)
+  - Visual FontEditor tool for authoring and previewing font definitions
+- **Platform support:** Windows, Linux, macOS; also runs in the browser via Emscripten
+- **High DPI support:** automatic DPI scaling for font rendering; demos and tools scale automatically on high-DPI displays
+  - Fonts auto-scale to the display DPI (`AutoDpi`, on by default); set
+    `Gui::setDpiScale()` before `initialise()` to control the scale, or use the
+    `DpiScale` property in font XML for a manual override. `setDpiScale()` can
+    also be used to scale the entire GUI uniformly without touching the OS DPI.
+    Fonts are re-rasterized at the scaled size, so they remain pixel-perfect.
+  - To enable high DPI in your SDL application:
+    1. On Windows, call `SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)` before creating the window
+    2. Create the SDL window with `SDL_WINDOW_ALLOW_HIGHDPI` and initialize the rendering context
+    3. Compute `dpiScale`: Windows uses `SDL_GetDisplayDPI() / 96.0f`; macOS uses
+       pixel width (`SDL_GetWindowSizeInPixels()`) divided by window width (`SDL_GetWindowSize()`)
+    4. Call `Gui::setDpiScale(dpiScale)` before `Gui::initialise()`
+    5. Divide SDL window sizes and mouse coordinates by `dpiScale` on Windows; keep them unchanged on macOS.
+       Use these logical dimensions for `setViewSize()` and drawable pixels for the rendering viewport.
+- **Localization:** built-in language string management
+- **Animation:** configurable widget controllers for fades, slides, and more
+- **Rotation:** rotate widgets and their descendants in 2D space.
+
+## Rendering Backends
+
+| Backend                    | CMake ID |
+|----------------------------|----------|
+| Dummy (no-op)              | 1        |
+| Ogre                       | 3        |
+| OpenGL                     | 4        |
+| Direct3D 9                 | 5        |
+| Direct3D 11                | 6        |
+| OpenGL 3.x                 | 7        |
+| OpenGL ES 3 / WebGL 2 (Emscripten) | 8 |
+| OgreNext                   | 9        |
+| Vulkan                     | 10       |
+| OpenSceneGraph             | 11       |
+
+Select a backend with the `-DMYGUI_RENDERSYSTEM=<id>` CMake option.
+
+## Build
+
+### Requirements
+
+- CMake ≥ 3.22
+- C++17 compiler
+- SDL2 for tools and demos
+- FreeType (optional, enabled by default)
+- glad (required on Windows for OpenGL and OpenGL 3.x backends)
+- One of the render systems
+
+### Quick start
+
+```bash
+git clone https://github.com/MyGUI/mygui.git
+cd mygui
+cmake -S . -B build -DMYGUI_RENDERSYSTEM=7
+cmake --build build
+```
+
+### Usage in your project
+
+After installing MyGUI, use it from your CMake project with modern targets:
+
+```cmake
+find_package(MyGUI REQUIRED)
+target_link_libraries(myapp PRIVATE MyGUI::MyGUI MyGUI::OgrePlatform)
+```
+
+Available targets:
+
+| Target                     | Description            |
+|----------------------------|------------------------|
+| `MyGUI::MyGUI`             | Core library           |
+| `MyGUI::OgrePlatform`      | Ogre backend           |
+| `MyGUI::OpenGLPlatform`    | OpenGL backend         |
+| `MyGUI::OpenGL3Platform`   | OpenGL 3.x backend     |
+| `MyGUI::OpenGLESPlatform`  | OpenGLES backend (Emscripten) |
+| `MyGUI::DirectXPlatform`   | Direct3D 9 backend     |
+| `MyGUI::DirectX11Platform` | Direct3D 11 backend    |
+| `MyGUI::OgreNextPlatform`  | OgreNext backend       |
+| `MyGUI::VulkanPlatform`    | Vulkan backend         |
+| `MyGUI::OsgPlatform`       | OpenSceneGraph backend |
+
+For OgreNext, add its installation prefix to `CMAKE_PREFIX_PATH` when configuring the consumer, or set `OGRE_DIR`.
+
+Build options:
+
+| Option                  | Default        | Description                          |
+|-------------------------|----------------|--------------------------------------|
+| `MYGUI_RENDERSYSTEM`    | 7 (OpenGL 3.x) | Render backend                       |
+| `MYGUI_USE_FREETYPE`    | ON             | Enable FreeType font rendering       |
+| `MYGUI_MSDF_FONTS`      | OFF            | Enable MSDF font support             |
+| `MYGUI_BUILD_DEMOS`     | ON             | Build demo applications              |
+| `MYGUI_BUILD_ADVANCED_DEMOS` | ON        | Build advanced demo applications     |
+| `MYGUI_BUILD_TOOLS`     | ON             | Build layout/skin/font/image editors |
+| `MYGUI_BUILD_UNITTESTS` | ON             | Build headless unit tests            |
+| `MYGUI_BUILD_WRAPPER`   | OFF            | Build C# bindings (Windows only)     |
+| `MYGUI_BUILD_TEST_APP`  | OFF            | Build test application               |
+
+## Tools
+
+MyGUI ships with several visual editors under `Tools/`:
+
+- **LayoutEditor** — WYSIWYG layout designer (produces `.layout` XML files)
+- **SkinEditor** — widget skin creator
+- **ImageEditor** — image resource editor
+- **FontEditor** — font resource editor
+- **FontConverter** — headless CLI tool that converts a `ResourceTrueTypeFont` XML into a `ResourceManualFont` XML + PNG
+  atlas pair. Useful for re-baking fonts from source without launching a GUI editor.
+
+## Tests
+
+Run tests with `ctest --test-dir build -C RelWithDebInfo --output-on-failure` (use your build configuration).
+
+Run `python3 Scripts/Tests/test_install.py` to build, install, relocate, and run an OpenGL3 platform consumer without creating a
+graphics context. Add `--static` to test static linking or `--rendersystem <ID>` to select another backend. CI uses
+`--skip-build --build-dir build` to reuse its existing build; installation, relocation, and the consumer test always run.
+
+Run `python3 Scripts/Tests/compare_screenshots.py build` to compare demos and tools screenshots against reference images,
+checking rendering consistency across platforms and render backends. Requires built applications, a graphical display,
+and NumPy/Pillow (`python3 -m pip install numpy pillow`).
+MacOS OpenGL and DirectX require `--tolerance 1` due to rounding specifics not related to MyGUI.
+
+## Documentation
+
+- Website: http://mygui.info/
+- API docs: build with `cmake --build build --target api-docs` (requires Doxygen)
+
+## Code formatting
+
+This project uses `clang-format` to enforce a consistent C++ code style. Before committing, run the formatting check:
+
+```bash
+Scripts/run-clang-format.py
+```
+
+Use `--dry` to not change any files and only see formatting issues:
+
+To run the check automatically on every commit, install [pre-commit](https://pre-commit.com):
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+The pre-commit hook is optional — it skips automatically if `clang-format` is not installed.
+
+## License
+
+This project is licensed under the MIT License — see [COPYING.MIT](COPYING.MIT) for details.
+
+## Links
+
+- Website: http://mygui.info/
+- Repository: https://github.com/MyGUI/mygui
+- CI: https://github.com/MyGUI/mygui/actions

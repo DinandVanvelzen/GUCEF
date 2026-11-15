@@ -1,75 +1,67 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_LAYER_H__
-#define __MYGUI_I_LAYER_H__
+#ifndef MYGUI_I_LAYER_H_
+#define MYGUI_I_LAYER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
 #include "MyGUI_IRenderTarget.h"
 #include "MyGUI_ILayerNode.h"
 #include "MyGUI_ISerializable.h"
+#include "MyGUI_BackwardCompatibility.h"
 
 namespace MyGUI
 {
 
 	class ILayerItem;
 
-	class MYGUI_EXPORT ILayer :
-		public ISerializable
+	class MYGUI_EXPORT ILayer : public ISerializable, public MemberObsolete<ILayer>
 	{
-		MYGUI_RTTI_DERIVED( ILayer )
+		MYGUI_RTTI_DERIVED(ILayer)
 
 	public:
-		ILayer() { }
-		virtual ~ILayer() { }
+		ILayer() = default;
 
-		// имя леера
 		const std::string& getName() const
 		{
 			return mName;
 		}
 
-		// создаем дочерний нод
+		void setName(std::string_view _name)
+		{
+			mName = _name;
+		}
+
 		virtual ILayerNode* createChildItemNode() = 0;
-		// удаляем дочерний нод
 		virtual void destroyChildItemNode(ILayerNode* _node) = 0;
 
-		// поднимаем дочерний нод
-		virtual void upChildItemNode(ILayerNode* _node) = 0;
+		// up child item (make it draw and pick above others)
+		virtual void upChildItemNode(ILayerNode* _item) = 0;
 
-		// список детей
-		virtual EnumeratorILayerNode getEnumerator() const = 0;
+		// child items list
+		virtual const VectorILayerNode& getChildItems() const = 0;
 
-		// возвращает виджет по позиции
+		virtual size_t getLayerNodeCount() const = 0;
+
+		virtual ILayerNode* getLayerNodeAt(size_t _index) const = 0;
+
+		// return widget at position
 		virtual ILayerItem* getLayerItemByPoint(int _left, int _top) const = 0;
 
-		// возвращает позицию в координатах леера
+		// return position in layer coordinates
 		virtual IntPoint getPosition(int _left, int _top) const = 0;
 
-		// возвращает размер леера
+		// return layer size
 		virtual const IntSize& getSize() const = 0;
 
-		// рисует леер
+		// render layer
 		virtual void renderToTarget(IRenderTarget* _target, bool _update) = 0;
+
+		virtual void resizeView(const IntSize& _viewSize) = 0;
 
 	protected:
 		std::string mName;
@@ -77,4 +69,4 @@ namespace MyGUI
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_LAYER_H__
+#endif // MYGUI_I_LAYER_H_

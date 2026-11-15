@@ -1,31 +1,15 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		08/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_ALIGN_H__
-#define __MYGUI_ALIGN_H__
+#ifndef MYGUI_ALIGN_H_
+#define MYGUI_ALIGN_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Macros.h"
 #include "MyGUI_Diagnostic.h"
-#include "MyGUI_StringUtility.h"
 #include <map>
 
 namespace MyGUI
@@ -52,156 +36,113 @@ namespace MyGUI
 		};
 
 		Align(Enum _value = Default) :
-			value(_value)
+			mValue(_value)
 		{
 		}
 
 		bool isHCenter() const
 		{
-			return HCenter == (value & ((int)HStretch));
+			return HCenter == (mValue & HStretch);
 		}
 
 		bool isVCenter() const
 		{
-			return VCenter == (value & ((int)VStretch));
+			return VCenter == (mValue & VStretch);
 		}
 
 		bool isCenter() const
 		{
-			return Center == (value & ((int)Stretch));
+			return Center == (mValue & Stretch);
 		}
 
 		bool isLeft() const
 		{
-			return Left == (value & ((int)HStretch));
+			return Left == (mValue & HStretch);
 		}
 
 		bool isRight() const
 		{
-			return Right == (value & ((int)HStretch));
+			return Right == (mValue & HStretch);
 		}
 
 		bool isHStretch() const
 		{
-			return HStretch == (value & ((int)HStretch));
+			return HStretch == (mValue & HStretch);
 		}
 
 		bool isTop() const
 		{
-			return Top == (value & ((int)VStretch));
+			return Top == (mValue & VStretch);
 		}
 
 		bool isBottom() const
 		{
-			return (Bottom == (value & ((int)VStretch)));
+			return Bottom == (mValue & VStretch);
 		}
 
 		bool isVStretch() const
 		{
-			return (VStretch == (value & ((int)VStretch)));
+			return VStretch == (mValue & VStretch);
 		}
 
 		bool isStretch() const
 		{
-			return (Stretch == (value & ((int)Stretch)));
+			return Stretch == (mValue & Stretch);
 		}
 
 		bool isDefault() const
 		{
-			return (Default == (value & ((int)Stretch)));
+			return Default == (mValue & Stretch);
 		}
 
-		Align& operator |= (Align const& _other)
+		Align& operator|=(Align const& _other)
 		{
-			value = Enum(int(value) | int(_other.value));
+			mValue = (mValue | _other.mValue).mValue;
 			return *this;
 		}
 
-		friend Align operator | (Enum const& a, Enum const& b)
+		friend Align operator|(Enum const& a, Enum const& b)
 		{
-			return Align(Enum(int(a) | int(b)));
+			return {Enum((unsigned int)a | (unsigned int)b)};
 		}
 
-		friend Align operator | (Align const& a, Align const& b)
+		friend Align operator|(Align const& a, Align const& b)
 		{
-			return Align(Enum(int(a.value) | int(b.value)));
+			return a.mValue | b.mValue;
 		}
 
-		friend bool operator == (Align const& a, Align const& b)
+		friend bool operator==(Align const& a, Align const& b)
 		{
-			return a.value == b.value;
+			return a.mValue == b.mValue;
 		}
 
-		friend bool operator != (Align const& a, Align const& b)
+		friend bool operator!=(Align const& a, Align const& b)
 		{
-			return a.value != b.value;
+			return a.mValue != b.mValue;
 		}
 
-		typedef std::map<std::string, int> MapAlign;
+		using MapAlign = std::map<std::string, Align>;
 
-		static Align parse(const std::string& _value)
-		{
-			Align result(Enum(0));
-			const MapAlign& map_names = result.getValueNames();
-			const std::vector<std::string>& vec = utility::split(_value);
-			for (size_t pos = 0; pos < vec.size(); pos++)
-			{
-				MapAlign::const_iterator iter = map_names.find(vec[pos]);
-				if (iter != map_names.end())
-				{
-					result.value = Enum(int(result.value) | int(iter->second));
-				}
-			}
-			return result;
-		}
+		static Align parse(std::string_view _value);
 
-		std::string print() const
-		{
-			std::string result;
+		std::string print() const;
 
-			if (value & Left)
-			{
-				if (value & Right)
-					result = "HStretch";
-				else
-					result = "Left";
-			}
-			else if (value & Right)
-				result = "Right";
-			else
-				result = "HCenter";
-
-			if (value & Top)
-			{
-				if (value & Bottom)
-					result += " VStretch";
-				else
-					result += " Top";
-			}
-			else if (value & Bottom)
-				result += " Bottom";
-			else
-				result += " VCenter";
-
-			return result;
-		}
-
-		friend std::ostream& operator << ( std::ostream& _stream, const Align&  _value )
+		friend std::ostream& operator<<(std::ostream& _stream, const Align& _value)
 		{
 			_stream << _value.print();
 			return _stream;
 		}
 
-		friend std::istream& operator >> ( std::istream& _stream, Align&  _value )
+		friend std::istream& operator>>(std::istream& _stream, Align& _value)
 		{
-			_value.value = Enum(0);
+			_value.mValue = Enum(0);
 			std::string value;
 			_stream >> value;
 
-			const MapAlign& map_names = _value.getValueNames();
-			MapAlign::const_iterator iter = map_names.find(value);
+			const MapAlign& map_names = Align::getValueNames();
+			auto iter = map_names.find(value);
 			if (iter != map_names.end())
-				_value.value = Enum(int(_value.value) | int(iter->second));
+				_value |= iter->second;
 
 			if (!_stream.eof())
 			{
@@ -209,52 +150,24 @@ namespace MyGUI
 				_stream >> value2;
 				iter = map_names.find(value2);
 				if (iter != map_names.end())
-					_value.value = Enum(int(_value.value) | int(iter->second));
+					_value |= iter->second;
 			}
 
 			return _stream;
 		}
 
-	private:
-		const MapAlign& getValueNames() const
+		int getValue() const
 		{
-			static MapAlign map_names;
-
-			if (map_names.empty())
-			{
-				// OBSOLETE
-				map_names["ALIGN_HCENTER"] = HCenter;
-				map_names["ALIGN_VCENTER"] = VCenter;
-				map_names["ALIGN_CENTER"] = Center;
-				map_names["ALIGN_LEFT"] = Left;
-				map_names["ALIGN_RIGHT"] = Right;
-				map_names["ALIGN_HSTRETCH"] = HStretch;
-				map_names["ALIGN_TOP"] = Top;
-				map_names["ALIGN_BOTTOM"] = Bottom;
-				map_names["ALIGN_VSTRETCH"] = VStretch;
-				map_names["ALIGN_STRETCH"] = Stretch;
-				map_names["ALIGN_DEFAULT"] = Default;
-
-				MYGUI_REGISTER_VALUE(map_names, HCenter);
-				MYGUI_REGISTER_VALUE(map_names, VCenter);
-				MYGUI_REGISTER_VALUE(map_names, Center);
-				MYGUI_REGISTER_VALUE(map_names, Left);
-				MYGUI_REGISTER_VALUE(map_names, Right);
-				MYGUI_REGISTER_VALUE(map_names, HStretch);
-				MYGUI_REGISTER_VALUE(map_names, Top);
-				MYGUI_REGISTER_VALUE(map_names, Bottom);
-				MYGUI_REGISTER_VALUE(map_names, VStretch);
-				MYGUI_REGISTER_VALUE(map_names, Stretch);
-				MYGUI_REGISTER_VALUE(map_names, Default);
-			}
-
-			return map_names;
+			return mValue;
 		}
 
 	private:
-		Enum value;
+		static const MapAlign& getValueNames();
+
+	private:
+		Enum mValue;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_ALIGN_H__
+#endif // MYGUI_ALIGN_H_

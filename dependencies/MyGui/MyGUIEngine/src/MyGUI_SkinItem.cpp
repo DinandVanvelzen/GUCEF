@@ -1,58 +1,36 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		06/2008
-*/
 /*
-	This file is part of MyGUI.
-
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_SkinItem.h"
 #include "MyGUI_FactoryManager.h"
 #include "MyGUI_Widget.h"
 #include "MyGUI_RenderManager.h"
+#include "MyGUI_SubWidgetManager.h"
 
 namespace MyGUI
 {
-	SkinItem::SkinItem() :
-		mText(nullptr),
-		mMainSkin(nullptr),
-		mTexture(nullptr),
-		mSubSkinsVisible(true)
-	{
-	}
 
 	void SkinItem::_setSkinItemAlign(const IntSize& _size)
 	{
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
-			(*skin)->_setAlign(_size);
+		for (auto& skin : mSubSkinChild)
+			skin->_setAlign(_size);
 	}
 
 	void SkinItem::_setSkinItemVisible(bool _value)
 	{
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
-			(*skin)->setVisible(_value);
+		for (auto& skin : mSubSkinChild)
+			skin->setVisible(_value);
 	}
 
 	void SkinItem::_setSkinItemColour(const Colour& _value)
 	{
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
+		for (auto& skin : mSubSkinChild)
 		{
-			ISubWidgetRect* rect = (*skin)->castType<ISubWidgetRect>(false);
+			ISubWidgetRect* rect = skin->castType<ISubWidgetRect>(false);
 			if (rect)
 				rect->_setColour(_value);
 		}
@@ -60,23 +38,23 @@ namespace MyGUI
 
 	void SkinItem::_setSkinItemAlpha(float _value)
 	{
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
-			(*skin)->setAlpha(_value);
+		for (auto& skin : mSubSkinChild)
+			skin->setAlpha(_value);
 	}
 
 	void SkinItem::_correctSkinItemView()
 	{
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
-			(*skin)->_correctView();
+		for (auto& skin : mSubSkinChild)
+			skin->_correctView();
 	}
 
 	void SkinItem::_updateSkinItemView()
 	{
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
-			(*skin)->_updateView();
+		for (auto& skin : mSubSkinChild)
+			skin->_updateView();
 	}
 
-	bool SkinItem::_setSkinItemState(const std::string& _state)
+	bool SkinItem::_setSkinItemState(std::string_view _state)
 	{
 		MapWidgetStateInfo::const_iterator iter = mStateInfo.find(_state);
 		if (iter == mStateInfo.end())
@@ -96,29 +74,30 @@ namespace MyGUI
 	{
 		mStateInfo = _info->getStateInfo();
 
-		// все что с текстурой можно тоже перенести в скин айтем и setRenderItemTexture
+		// everything with texture can be moved to SkinItem and setRenderItemTexture
 		mTextureName = _info->getTextureName();
 		mTexture = RenderManager::getInstance().getTexture(mTextureName);
 
 		setRenderItemTexture(mTexture);
 
-		// загружаем кирпичики виджета
+		const std::string& categoryName = SubWidgetManager::getInstance().getCategoryName();
+		// load widget subcomponents
 		FactoryManager& factory = FactoryManager::getInstance();
-		for (VectorSubWidgetInfo::const_iterator iter = _info->getBasisInfo().begin(); iter != _info->getBasisInfo().end(); ++iter)
+		for (const auto& iter : _info->getBasisInfo())
 		{
-			IObject* object = factory.createObject("BasisSkin", (*iter).type);
+			IObject* object = factory.createObject(categoryName, iter.type);
 			if (object == nullptr)
 				continue;
 
 			ISubWidget* sub = object->castType<ISubWidget>();
 			sub->_setCroppedParent(static_cast<Widget*>(this));
-			sub->setCoord((*iter).coord);
-			sub->setAlign((*iter).align);
+			sub->setCoord(iter.coord);
+			sub->setAlign(iter.align);
 
 			mSubSkinChild.push_back(sub);
 			addRenderItem(sub);
 
-			// ищем дефолтные сабвиджеты
+			// look for default subwidgets
 			if (mMainSkin == nullptr)
 				mMainSkin = sub->castType<ISubWidgetRect>(false);
 			if (mText == nullptr)
@@ -135,16 +114,15 @@ namespace MyGUI
 		mStateInfo.clear();
 
 		removeAllRenderItems();
-		// удаляем все сабскины
 		mMainSkin = nullptr;
 		mText = nullptr;
 
-		for (VectorSubWidget::iterator skin = mSubSkinChild.begin(); skin != mSubSkinChild.end(); ++skin)
-			delete (*skin);
+		for (auto& skin : mSubSkinChild)
+			delete skin;
 		mSubSkinChild.clear();
 	}
 
-	void SkinItem::_setTextureName(const std::string& _texture)
+	void SkinItem::_setTextureName(std::string_view _texture)
 	{
 		mTextureName = _texture;
 		mTexture = RenderManager::getInstance().getTexture(mTextureName);
@@ -166,12 +144,12 @@ namespace MyGUI
 		_updateSkinItemView();
 	}
 
-	ISubWidgetText* SkinItem::getSubWidgetText()
+	ISubWidgetText* SkinItem::getSubWidgetText() const
 	{
 		return mText;
 	}
 
-	ISubWidgetRect* SkinItem::getSubWidgetMain()
+	ISubWidgetRect* SkinItem::getSubWidgetMain() const
 	{
 		return mMainSkin;
 	}

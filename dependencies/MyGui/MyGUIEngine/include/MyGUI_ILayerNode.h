@@ -1,31 +1,17 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_LAYER_NODE_H__
-#define __MYGUI_I_LAYER_NODE_H__
+#ifndef MYGUI_I_LAYER_NODE_H_
+#define MYGUI_I_LAYER_NODE_H_
 
 #include "MyGUI_Prerequest.h"
-#include "MyGUI_Enumerator.h"
 #include "MyGUI_IObject.h"
 #include "MyGUI_IRenderTarget.h"
+#include "MyGUI_Types.h"
+#include "MyGUI_BackwardCompatibility.h"
 
 namespace MyGUI
 {
@@ -36,52 +22,50 @@ namespace MyGUI
 
 	class RenderItem;
 
-	typedef std::vector<ILayerNode*> VectorILayerNode;
-	typedef Enumerator<VectorILayerNode> EnumeratorILayerNode;
+	using VectorILayerNode = std::vector<ILayerNode*>;
 
-	class MYGUI_EXPORT ILayerNode :
-		public IObject
+	class MYGUI_EXPORT ILayerNode : public IObject, public MemberObsolete<ILayerNode>
 	{
-		MYGUI_RTTI_DERIVED( ILayerNode )
+		MYGUI_RTTI_DERIVED(ILayerNode)
 
 	public:
-		virtual ~ILayerNode() { }
-
-		// леер, которому мы принадлежим
+		// Layer we belong to
 		virtual ILayer* getLayer() const = 0;
 
-		// возвращает отца или nullptr
+		// Return parent or nullptr
 		virtual ILayerNode* getParent() const = 0;
 
-		// создаем дочерний нод
 		virtual ILayerNode* createChildItemNode() = 0;
-		// удаляем дочерний нод
 		virtual void destroyChildItemNode(ILayerNode* _node) = 0;
 
-		// поднимаем дочерний нод
-		virtual void upChildItemNode(ILayerNode* _node) = 0;
+		// up child item (make it draw and pick above others)
+		virtual void upChildItemNode(ILayerNode* _item) = 0;
 
-		// список детей
-		virtual EnumeratorILayerNode getEnumerator() const = 0;
+		// child items list
+		virtual const VectorILayerNode& getChildItems() const = 0;
 
+		virtual size_t getLayerNodeCount() const = 0;
 
-		// добавляем айтем к ноду
+		virtual ILayerNode* getLayerNodeAt(size_t _index) const = 0;
+
 		virtual void attachLayerItem(ILayerItem* _item) = 0;
-		// удаляем айтем из нода
 		virtual void detachLayerItem(ILayerItem* _root) = 0;
 
-		// добавляет саб айтем и возвращает рендер айтем
-		virtual RenderItem* addToRenderItem(ITexture* _texture, bool _firstQueue, bool _separate) = 0;
-		// необходимо обновление нода
+#ifndef MYGUI_DONT_USE_OBSOLETE
+		using MemberObsolete<ILayerNode>::addToRenderItem;
+#endif
+		virtual RenderItem* addToRenderItem(ITexture* _texture, bool _firstQueue) = 0;
 		virtual void outOfDate(RenderItem* _item) = 0;
 
-		// возвращает виджет по позиции
 		virtual ILayerItem* getLayerItemByPoint(int _left, int _top) const = 0;
 
-		// рисует леер
 		virtual void renderToTarget(IRenderTarget* _target, bool _update) = 0;
+
+		virtual void resizeView(const IntSize& _viewSize) = 0;
+
+		virtual float getNodeDepth() const = 0;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_LAYER_NODE_H__
+#endif // MYGUI_I_LAYER_NODE_H_

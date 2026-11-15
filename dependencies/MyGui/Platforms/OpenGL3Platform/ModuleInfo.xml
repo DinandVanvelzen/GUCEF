@@ -1,0 +1,35 @@
+<ModuleInfoEntry>
+    <Module Name="MyGUI.OpenGL3Platform" Type="StaticLibrary" Platform="mswin;linux">
+        <ModuleMetaData>
+            <License>MIT</License>
+            <SemVer>3.5.4.0</SemVer>
+            <DescriptionHeadline>MyGUI 3.5.4 render system for OpenGL 3.x (core profile, shaders)</DescriptionHeadline>
+            <DescriptionDetails>The OpenGL 3 platform of MyGUI: render manager with GLSL 330 shaders (MyGUI_OpenGL3_VP.glsl and MyGUI_OpenGL3_FP.glsl, read through the data manager), textures, render targets and vertex arrays. The image loader is an interface the user of the module implements. Its data manager (a disk based one) is not used by GUCEF, the GUI driver provides one over the virtual file system.</DescriptionDetails>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="MyGUI.Engine" />
+            <Dependency Name="MyGUI.Common.FileSystemInfo" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="MyGUI.Engine" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GL_GLEXT_PROTOTYPES" />
+        </Preprocessor>
+        <Compiler MinCppStandard="17" />
+    </Module>
+    <Module Platform="mswin">
+        <Dependencies>
+            <Dependency Name="glew" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="glew" />
+            <Dependency Name="opengl32" />
+        </Linker>
+    </Module>
+    <Module Platform="linux">
+        <Linker>
+            <Dependency Name="GL" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

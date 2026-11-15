@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		01/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_PROGRESS_BAR_H__
-#define __MYGUI_PROGRESS_BAR_H__
+#ifndef MYGUI_PROGRESS_BAR_H_
+#define MYGUI_PROGRESS_BAR_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Align.h"
@@ -30,80 +15,76 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT ProgressBar :
-		public Widget,
-		public MemberObsolete<ProgressBar>
+	/** \brief @wpage{ProgressBar}
+		ProgressBar widget description should be here.
+	*/
+	class MYGUI_EXPORT ProgressBar : public Widget, public MemberObsolete<ProgressBar>
 	{
-		MYGUI_RTTI_DERIVED( ProgressBar )
+		MYGUI_RTTI_DERIVED(ProgressBar)
 
 	public:
-		ProgressBar();
-
 		/** Set progress range */
-		void setProgressRange(size_t _value);
+		void setProgressRange(size_t _range);
 		/** Get progress range */
 		size_t getProgressRange() const;
 
 		/** Set progress position */
-		void setProgressPosition(size_t _value);
+		void setProgressPosition(size_t _pos);
 		/** Get progress position */
 		size_t getProgressPosition() const;
 
 		/** Enable or disable progress auto tracking */
-		void setProgressAutoTrack(bool _value);
+		void setProgressAutoTrack(bool _auto);
 		/** Get progress auto tracking flag */
 		bool getProgressAutoTrack() const;
 
 		void setFlowDirection(FlowDirection _value);
 		FlowDirection getFlowDirection() const;
 
-		//! @copydoc Widget::setPosition(const IntPoint& _value)
-		virtual void setPosition(const IntPoint& _value);
-		//! @copydoc Widget::setSize(const IntSize& _value)
-		virtual void setSize(const IntSize& _value);
-		//! @copydoc Widget::setCoord(const IntCoord& _value)
-		virtual void setCoord(const IntCoord& _value);
+		//! @copydoc Widget::setPosition(const IntPoint& _point)
+		void setPosition(const IntPoint& _point) override;
+		//! @copydoc Widget::setSize(const IntSize& _size)
+		void setSize(const IntSize& _size) override;
+		//! @copydoc Widget::setCoord(const IntCoord& _coord)
+		void setCoord(const IntCoord& _coord) override;
 
-		/** @copydoc Widget::setPosition(int _left, int _top) */
-		void setPosition(int _left, int _top);
-		/** @copydoc Widget::setSize(int _width, int _height) */
-		void setSize(int _width, int _height);
-		/** @copydoc Widget::setCoord(int _left, int _top, int _width, int _height) */
-		void setCoord(int _left, int _top, int _width, int _height);
+		using Widget::setPosition;
+		using Widget::setSize;
+		using Widget::setCoord;
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
 		void frameEntered(float _time);
 		void updateTrack();
 
-		int getClientWidth();
-		int getClientHeight();
+		int getClientWidth() const;
+		int getClientHeight() const;
 
 		void setTrackPosition(Widget* _widget, int _left, int _top, int _width, int _height);
 
 	private:
 		std::string mTrackSkin;
-		int mTrackWidth;
-		int mTrackStep;
-		int mTrackMin;
+		int mTrackWidth{1};
+		int mTrackStep{0};
+		int mTrackMin{0};
 
 		VectorWidgetPtr mVectorTrack;
-		size_t mRange;
-		size_t mStartPosition, mEndPosition;
-		float mAutoPosition;
-		bool mAutoTrack;
-		bool mFillTrack;
+		size_t mRange{0};
+		size_t mStartPosition{0}, mEndPosition{0};
+		float mAutoPosition{0.0f};
+		bool mAutoTrack{false};
+		bool mFillTrack{false};
 
 		FlowDirection mFlowDirection;
 
-		Widget* mClient;
+		Widget* mTrackPlace{nullptr};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_PROGRESS_BAR_H__
+#endif // MYGUI_PROGRESS_BAR_H_

@@ -1,29 +1,15 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_LAYOUT_MANAGER_H__
-#define __MYGUI_LAYOUT_MANAGER_H__
+#ifndef MYGUI_LAYOUT_MANAGER_H_
+#define MYGUI_LAYOUT_MANAGER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Singleton.h"
+#include "MyGUI_EventPair.h"
 #include "MyGUI_XmlDocument.h"
 #include "MyGUI_WidgetDefines.h"
 #include "MyGUI_ResourceLayout.h"
@@ -32,12 +18,15 @@
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate3<Widget*, const std::string&, const std::string&> EventHandle_AddUserStringDelegate;
+	using EventHandle_CreateWidgetDelegate = delegates::MultiDelegate<Widget*, const WidgetInfo&>;
+	using EventHandle_AddUserStringDelegate = EventPairConvertStringView<
+		delegates::MultiDelegate<Widget*, const std::string&, const std::string&>,
+		delegates::MultiDelegate<Widget*, std::string_view, std::string_view>>;
 
-	class MYGUI_EXPORT LayoutManager :
-		public Singleton<LayoutManager>,
-		public MemberObsolete<LayoutManager>
+	class MYGUI_EXPORT LayoutManager : public MemberObsolete<LayoutManager>
 	{
+		MYGUI_SINGLETON_DECLARATION(LayoutManager);
+
 	public:
 		LayoutManager();
 
@@ -50,37 +39,46 @@ namespace MyGUI
 			@param _parent widget to load on
 			@return Return vector of pointers of loaded root widgets (root == without parents)
 		*/
-		VectorWidgetPtr loadLayout(const std::string& _file, const std::string& _prefix = "", Widget* _parent = nullptr);
+		VectorWidgetPtr loadLayout(std::string_view _file, std::string_view _prefix = {}, Widget* _parent = nullptr);
 
 		/** Unload layout (actually deletes vector of widgets returned by loadLayout) */
 		void unloadLayout(VectorWidgetPtr& _widgets);
 
 		/** Get ResourceLayout by name */
-		ResourceLayout* getByName(const std::string& _name, bool _throw = true) const;
+		ResourceLayout* getByName(std::string_view _name, bool _throw = true) const;
 
 		/** Check if skin with specified name exist */
-		bool isExist(const std::string& _name) const;
+		bool isExist(std::string_view _name) const;
+
+		/** Event : Multidelegate. Widget was created from layout.\n
+		signature : void method(MyGUI::Widget* _sender, const MyGUI::WidgetInfo& _widgetInfo)
+		@param _widget Widget that got new UserString.
+		@param _key UserString key.
+		@param _key UserString value.
+		@note Happens only when Widget was loaded from layout, but not when it was created in code.
+		*/
+		EventHandle_CreateWidgetDelegate eventCreateWidget;
 
 		/** Event : Multidelegate. UserString was added from layout.\n
-			signature : void method(MyGUI::Widget* _widget, const std::string& _key, const std::string& _value)
+			signature : void method(MyGUI::Widget* _widget, std::string_view _key, std::string_view _value)
 			@param _widget Widget that got new UserString.
 			@param _key UserString key.
 			@param _key UserString value.
 			@note Happens only when UserString was loaded from layout, but not when it was added in code.
 		*/
-		EventHandle_AddUserStringDelegate
-			eventAddUserString;
+		EventHandle_AddUserStringDelegate eventAddUserString;
 
 		const std::string& getCurrentLayout() const;
 
 	private:
-		void _load(xml::ElementPtr _node, const std::string& _file, Version _version);
+		void _load(xml::ElementPtr _node, std::string_view _file, Version _version);
 
 	private:
-		bool mIsInitialise;
+		bool mIsInitialise{false};
 		std::string mCurrentLayoutName;
+		std::string mXmlLayoutTagName;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_LAYOUT_MANAGER_H__
+#endif // MYGUI_LAYOUT_MANAGER_H_

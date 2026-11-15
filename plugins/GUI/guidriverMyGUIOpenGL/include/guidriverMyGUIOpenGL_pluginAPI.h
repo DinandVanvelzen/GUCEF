@@ -1,24 +1,23 @@
 /*
- *  guidriverMyGUIOpenGL: glue module for the MyGUI GUI backend using OpenGL
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  guidriverMyGUIOpenGL: GUI backend using MyGUI with OpenGL, OpenGL 3 or OpenGL ES 3 / WebGL 2
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
-#ifndef GUCEF_MYGUIGL_PLUGINAPI_H
-#define GUCEF_MYGUIGL_PLUGINAPI_H
+#ifndef GUCEF_guidriverMyGUIOpenGL_PLUGINAPI_H
+#define GUCEF_guidriverMyGUIOpenGL_PLUGINAPI_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,10 +30,20 @@
 #define GUCEF_CORE_ESTRUCTS_H
 #endif /* GUCEF_CORE_ESTRUCTS_H ? */
 
-#ifndef GUCEF_MYGUIGL_MACROS_H
+#ifndef GUCEF_guidriverMyGUIOpenGL_MACROS_H
 #include "guidriverMyGUIOpenGL_macros.h"
-#define GUCEF_MYGUIGL_MACROS_H
-#endif /* GUCEF_MYGUIGL_MACROS_H ? */
+#define GUCEF_guidriverMyGUIOpenGL_MACROS_H
+#endif /* GUCEF_guidriverMyGUIOpenGL_MACROS_H ? */
+
+/*
+ *  On the web there is no loading of modules: the plugin is linked into the application and its entry points get
+ *  unique names (guidriverMyGUIOpenGL_GUCEFPlugin_Load ...), which the application calls itself
+ */
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+  #define GUIDRIVERMYGUIOPENGL_ENTRY( func ) guidriverMyGUIOpenGL_##func
+#else
+  #define GUIDRIVERMYGUIOPENGL_ENTRY( func ) func
+#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -43,7 +52,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MYGUIGL {
+namespace guidriverMyGUIOpenGL {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -60,30 +69,30 @@ extern "C" {
 
 /*---------------------------------------------------------------------------*/
 
-GUCEF_MYGUIGL_EXPORT_C GUCEF::CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_Load( GUCEF::CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUCEF_guidriverMyGUIOpenGL_PUBLIC_C CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUIDRIVERMYGUIOPENGL_ENTRY( GUCEFPlugin_Load )( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_MYGUIGL_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUCEF_guidriverMyGUIOpenGL_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUIDRIVERMYGUIOPENGL_ENTRY( GUCEFPlugin_Unload )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_MYGUIGL_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetVersion( GUCEF::CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUCEF_guidriverMyGUIOpenGL_PUBLIC_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUIDRIVERMYGUIOPENGL_ENTRY( GUCEFPlugin_GetVersion )( GUCEF::CORE::TVersion* versionInfo ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_MYGUIGL_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUCEF_guidriverMyGUIOpenGL_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUIDRIVERMYGUIOPENGL_ENTRY( GUCEFPlugin_GetCopyright )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_MYGUIGL_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX 
-GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUCEF_guidriverMyGUIOpenGL_PUBLIC_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUIDRIVERMYGUIOPENGL_ENTRY( GUCEFPlugin_GetDescription )( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
-/*---------------------------------------------------------------------------*/                 
+/*---------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
    }
@@ -95,20 +104,9 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MYGUIGL */
-}; /* namespace GUCE */
+}; /* namespace guidriverMyGUIOpenGL */
+}; /* namespace GUCEF */
 
-/*--------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MYGUIGL_PLUGINAPI_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 04-05-2005 :
-        - Dinand: Initial version.
-
------------------------------------------------------------------------------*/
+#endif /* GUCEF_guidriverMyGUIOpenGL_PLUGINAPI_H ? */

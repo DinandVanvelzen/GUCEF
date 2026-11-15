@@ -1,69 +1,53 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		05/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_Exception.h"
+#include "MyGUI_Diagnostic.h"
 #include "MyGUI_StringUtility.h"
+
+#include <utility>
 
 namespace MyGUI
 {
 
-	Exception::Exception(const std::string& _description, const std::string& _source, const char* _file, long _line ) :
-		mDescription(_description),
-		mSource(_source),
-		mFile(_file),
+	void detail::throwBadCast(std::string_view _from, std::string_view _to, const char* _file, int _line)
+	{
+		std::ostringstream stream;
+		stream << "Cannot cast from type '" << _from << "' to type '" << _to << "'.";
+		std::string message = stream.str();
+		LogManager::getInstance().log(MYGUI_LOG_SECTION, LogLevel::Critical, message, _file, _line);
+		message += '\n';
+		throw Exception(std::move(message), "MyGUI", _file, _line);
+	}
+
+	Exception::Exception(std::string _description, std::string _source, std::string _file, long _line) :
+		mDescription(std::move(_description)),
+		mSource(std::move(_source)),
+		mFile(std::move(_file)),
 		mLine(_line)
 	{
-	}
-
-	Exception::Exception(const Exception& _rhs) :
-		mDescription(_rhs.mDescription),
-		mSource(_rhs.mSource),
-		mFile(_rhs.mFile),
-		mLine(_rhs.mLine),
-		mFullDesc(_rhs.mFullDesc)
-	{
-	}
-
-	Exception::~Exception() throw()
-	{
-	}
-
-	Exception& Exception::operator = (const Exception& _rhs)
-	{
-		mDescription = _rhs.mDescription;
-		mSource = _rhs.mSource;
-		mFile = _rhs.mFile;
-		mLine = _rhs.mLine;
-		mFullDesc = _rhs.mFullDesc;
-		return *this;
 	}
 
 	const std::string& Exception::getFullDescription() const
 	{
 		if (mFullDesc.empty())
 		{
-			if ( mLine > 0 )
+			if (mLine > 0)
 			{
-				mFullDesc = utility::toString("MyGUI EXCEPTION : ", mDescription, " in ", mSource, " at ", mFile, " (line ", mLine, ")");
+				mFullDesc = utility::toString(
+					"MyGUI EXCEPTION : ",
+					mDescription,
+					" in ",
+					mSource,
+					" at ",
+					mFile,
+					" (line ",
+					mLine,
+					")");
 			}
 			else
 			{
@@ -95,7 +79,7 @@ namespace MyGUI
 	}
 
 	// Override std::exception::what
-	const char* Exception::what() const throw()
+	const char* Exception::what() const noexcept
 	{
 		return getFullDescription().c_str();
 	}

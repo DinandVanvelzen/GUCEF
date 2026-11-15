@@ -1,0 +1,104 @@
+/*!
+	@file
+	@author		Albert Semenov
+	@date		12/2009
+*/
+
+#include "MyGUI_OpenGLRTTexture.h"
+#include "MyGUI_OpenGLRenderManager.h"
+#include "MyGUI_OpenGLDiagnostic.h"
+
+#include <MyGUI_GL.h>
+
+namespace MyGUI
+{
+
+	OpenGLRTTexture::OpenGLRTTexture(unsigned int _texture, int _width, int _height) :
+		mWidth(_width),
+		mHeight(_height)
+	{
+		GLint drawFramebuffer = 0, readFramebuffer = 0;
+		const bool separate = OpenGLRenderManager::getInstance().isSeparateFramebufferSupported();
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFramebuffer);
+		if (separate)
+			glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFramebuffer);
+		MYGUI_PLATFORM_ASSERT(mWidth > 0 && mHeight > 0, "Render target texture has no storage");
+
+		mRenderTargetInfo.maximumDepth = 1.0f;
+		mRenderTargetInfo.hOffset = 0;
+		mRenderTargetInfo.vOffset = 0;
+		mRenderTargetInfo.aspectCoef = float(mHeight) / float(mWidth);
+		mRenderTargetInfo.pixScaleX = 1.0f / float(mWidth);
+		mRenderTargetInfo.pixScaleY = 1.0f / float(mHeight);
+
+		// create a framebuffer object, you need to delete them when program exits.
+		glGenFramebuffers(1, &mFBOID);
+		glBindFramebuffer(GL_FRAMEBUFFER, mFBOID);
+
+		// attach a texture to FBO color attachement point
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _texture, 0);
+
+		const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if (separate)
+		{
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFramebuffer);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, readFramebuffer);
+		}
+		else
+			glBindFramebuffer(GL_FRAMEBUFFER, drawFramebuffer);
+		if (status != GL_FRAMEBUFFER_COMPLETE)
+		{
+			glDeleteFramebuffers(1, &mFBOID);
+			MYGUI_PLATFORM_EXCEPT("Incomplete render target framebuffer: " << status);
+		}
+	}
+
+	OpenGLRTTexture::~OpenGLRTTexture()
+	{
+		if (mFBOID != 0)
+		{
+			glDeleteFramebuffers(1, &mFBOID);
+			mFBOID = 0;
+		}
+	}
+
+	void OpenGLRTTexture::begin()
+	{
+		TargetState state;
+		glGetIntegerv(GL_VIEWPORT, state.viewport);
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &state.drawFramebuffer);
+		if (OpenGLRenderManager::getInstance().isSeparateFramebufferSupported())
+			glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &state.readFramebuffer);
+		mStates.push_back(state);
+
+		// Save raster state before changing the viewport or clear colour.
+		OpenGLRenderManager::getInstance().begin();
+		glBindFramebuffer(GL_FRAMEBUFFER, mFBOID);
+		glViewport(0, 0, mWidth, mHeight);
+		glOrtho(-1, 1, 1, -1, -1, 1);
+		glClearColor(0, 0, 0, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
+	void OpenGLRTTexture::end()
+	{
+		MYGUI_PLATFORM_ASSERT(!mStates.empty(), "Unbalanced render target pass");
+		OpenGLRenderManager::getInstance().end();
+		const auto state = mStates.back();
+		mStates.pop_back();
+		if (OpenGLRenderManager::getInstance().isSeparateFramebufferSupported())
+		{
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, state.drawFramebuffer);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, state.readFramebuffer);
+		}
+		else
+			glBindFramebuffer(GL_FRAMEBUFFER, state.drawFramebuffer);
+		glViewport(state.viewport[0], state.viewport[1], state.viewport[2], state.viewport[3]);
+	}
+
+	void OpenGLRTTexture::doRender(IVertexBuffer* _buffer, ITexture* _texture, size_t _count)
+	{
+		OpenGLRenderManager::getInstance().doRender(_buffer, _texture, _count);
+	}
+
+} // namespace MyGUI

@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		04/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_RENDER_FORMAT_H__
-#define __MYGUI_RENDER_FORMAT_H__
+#ifndef MYGUI_RENDER_FORMAT_H_
+#define MYGUI_RENDER_FORMAT_H_
 
 #include "MyGUI_Macros.h"
 
@@ -38,22 +23,27 @@ namespace MyGUI
 		};
 
 		VertexColourType(Enum _value = MAX) :
-			value(_value)
+			mValue(_value)
 		{
 		}
 
-		friend bool operator == (VertexColourType const& a, VertexColourType const& b)
+		friend bool operator==(VertexColourType const& a, VertexColourType const& b)
 		{
-			return a.value == b.value;
+			return a.mValue == b.mValue;
 		}
 
-		friend bool operator != (VertexColourType const& a, VertexColourType const& b)
+		friend bool operator!=(VertexColourType const& a, VertexColourType const& b)
 		{
-			return a.value != b.value;
+			return a.mValue != b.mValue;
+		}
+
+		int getValue() const
+		{
+			return mValue;
 		}
 
 	private:
-		Enum value;
+		Enum mValue;
 	};
 
 	struct MYGUI_EXPORT PixelFormat
@@ -68,22 +58,40 @@ namespace MyGUI
 		};
 
 		PixelFormat(Enum _value = Unknow) :
-			value(_value)
+			mValue(_value)
 		{
 		}
 
-		friend bool operator == (PixelFormat const& a, PixelFormat const& b)
+		friend bool operator==(PixelFormat const& a, PixelFormat const& b)
 		{
-			return a.value == b.value;
+			return a.mValue == b.mValue;
 		}
 
-		friend bool operator != (PixelFormat const& a, PixelFormat const& b)
+		friend bool operator!=(PixelFormat const& a, PixelFormat const& b)
 		{
-			return a.value != b.value;
+			return a.mValue != b.mValue;
+		}
+
+		int getValue() const
+		{
+			return mValue;
+		}
+
+		int getBytesPerPixel() const
+		{
+			switch (mValue)
+			{
+			case L8: return 1;
+			case L8A8: return 2;
+			case R8G8B8: return 3;
+			case R8G8B8A8: return 4;
+			case Unknow: return 0;
+			}
+			return 0;
 		}
 
 	private:
-		Enum value;
+		Enum mValue;
 	};
 
 	struct MYGUI_EXPORT TextureUsage
@@ -100,46 +108,51 @@ namespace MyGUI
 		};
 
 		TextureUsage(Enum _value = Default) :
-			value(_value)
+			mValue(_value)
 		{
 		}
 
-		friend bool operator == (TextureUsage const& a, TextureUsage const& b)
+		friend bool operator==(TextureUsage const& a, TextureUsage const& b)
 		{
-			return a.value == b.value;
+			return a.mValue == b.mValue;
 		}
 
-		friend bool operator != (TextureUsage const& a, TextureUsage const& b)
+		friend bool operator!=(TextureUsage const& a, TextureUsage const& b)
 		{
-			return a.value != b.value;
+			return a.mValue != b.mValue;
 		}
 
-		TextureUsage& operator |= (TextureUsage const& _other)
+		TextureUsage& operator|=(TextureUsage const& _other)
 		{
-			value = Enum(int(value) | int(_other.value));
+			mValue = (mValue | _other.mValue).mValue;
 			return *this;
 		}
 
-		friend TextureUsage operator | (Enum const& a, Enum const& b)
+		friend TextureUsage operator|(Enum const& a, Enum const& b)
 		{
-			return TextureUsage(Enum(int(a) | int(b)));
+			return {Enum((unsigned int)a | (unsigned int)b)};
 		}
 
-		friend TextureUsage operator | (TextureUsage const& a, TextureUsage const& b)
+		friend TextureUsage operator|(TextureUsage const& a, TextureUsage const& b)
 		{
-			return TextureUsage(Enum(int(a.value) | int(b.value)));
+			return a.mValue | b.mValue;
 		}
 
 		bool isValue(Enum _value) const
 		{
-			return 0 != (value & _value);
+			return 0 != (mValue & _value);
+		}
+
+		int getValue() const
+		{
+			return mValue;
 		}
 
 	private:
-		Enum value;
+		Enum mValue;
 	};
 
 } // namespace MyGUI
 
 
-#endif // __MYGUI_RENDER_FORMAT_H__
+#endif // MYGUI_RENDER_FORMAT_H_

@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		04/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_LOG_LISTENER_H__
-#define __MYGUI_I_LOG_LISTENER_H__
+#ifndef MYGUI_I_LOG_LISTENER_H_
+#define MYGUI_I_LOG_LISTENER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_LogLevel.h"
@@ -31,18 +16,32 @@ namespace MyGUI
 	class MYGUI_EXPORT ILogListener
 	{
 	public:
-		virtual ~ILogListener() { }
+		virtual ~ILogListener() = default;
 
 		/** Opens log listener. (for example open file) */
-		virtual void open() { }
+		virtual void open()
+		{
+		}
 		/** Opens log listener. (for example close file) */
-		virtual void close() { }
+		virtual void close()
+		{
+		}
 		/** Flush log listener messages.*/
-		virtual void flush() { }
+		virtual void flush()
+		{
+		}
 		/** Log message.*/
-		virtual void log(const std::string& _section, LogLevel _level, const struct tm* _time, const std::string& _message, const char* _file, int _line) { }
+		virtual void log(
+			std::string_view /*_section*/,
+			LogLevel /*_level*/,
+			const struct tm* /*_time*/,
+			std::string_view /*_message*/,
+			std::string_view /*_file*/,
+			int /*_line*/)
+		{
+		}
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_LOG_LISTENER_H__
+#endif // MYGUI_I_LOG_LISTENER_H_

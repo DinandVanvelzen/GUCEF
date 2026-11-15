@@ -1,70 +1,95 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		08/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_BACKWARD_COMPATIBILITY_H__
-#define __MYGUI_BACKWARD_COMPATIBILITY_H__
+#ifndef MYGUI_BACKWARD_COMPATIBILITY_H_
+#define MYGUI_BACKWARD_COMPATIBILITY_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Colour.h"
-#include "MyGUI_ResourceSkin.h"
 #include "MyGUI_Any.h"
 #include "MyGUI_MouseButton.h"
 #include "MyGUI_KeyCode.h"
 #include "MyGUI_Macros.h"
 #include "MyGUI_WidgetDefines.h"
-#include "MyGUI_IResource.h"
+#include "MyGUI_ResourceImageSetData.h"
+#include "MyGUI_Enumerator.h"
 #include <map>
-#include <set>
 
 namespace MyGUI
 {
 
+	class ILayer;
+	class ILayerNode;
+	class ITexture;
+	class RenderItem;
+	class ResourceImageSet;
+	class ResourceSkin;
+	class UString;
+
+	namespace xml
+	{
+
+		class Document;
+		class ElementPtr;
+
+	}
+
 #ifndef MYGUI_DONT_USE_OBSOLETE
 
-	template <>
-	class MemberObsolete<Button>
+	MYGUI_SUPPRESS_MSVC(4996)
+	MYGUI_SUPPRESS_GCC("-Wdeprecated-declarations")
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<xml::Document>
+	{
+	public:
+		MYGUI_OBSOLETE(
+			"use : ElementPtr Document::createDeclaration(std::string_view _version, std::string_view _encoding)")
+		xml::ElementPtr createInfo(std::string_view _version = "1.0", std::string_view _encoding = "UTF-8");
+	};
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<Button>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void Button::setStateSelected(bool _value)")
 		void setButtonPressed(bool _value);
 		MYGUI_OBSOLETE(" is deprecated, use : bool Button::getStateSelected()")
-		bool getButtonPressed();
+		bool getButtonPressed() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void Button::setStateSelected(bool _value)")
 		void setStateCheck(bool _value);
 		MYGUI_OBSOLETE(" is deprecated, use : bool Button::getStateSelected()")
-		bool getStateCheck();
+		bool getStateCheck() const;
 		MYGUI_OBSOLETE(" is deprecated")
-		ImageBox* getStaticImage();
-		MYGUI_OBSOLETE(" is deprecated, use : void Button::setImageName(const std::string& _name)")
-		void setImageIndex(size_t _value);
+		ImageBox* getStaticImage() const;
+		MYGUI_OBSOLETE(" is deprecated, use : void Button::setImageName(std::string_view _name)")
+		void setImageIndex(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated")
-		size_t getImageIndex();
+		size_t getImageIndex() const;
 	};
 
-	template <>
-	class MemberObsolete<ComboBox>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ImageBox>
+	{
+	public:
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void ImageBox::addItemFrameDuplicate(size_t _index, size_t _indexSourceFrame)")
+		void addItemFrameDublicate(size_t _index, size_t _indexSourceFrame);
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void ImageBox::insertItemFrameDuplicate(size_t _index, size_t "
+			"_indexFrame, size_t _indexSourceFrame)")
+		void insertItemFrameDublicate(size_t _index, size_t _indexFrame, size_t _indexSourceFrame);
+	};
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ComboBox>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ComboBox::getIndexSelected()")
-		size_t getItemIndexSelected();
+		size_t getItemIndexSelected() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::setIndexSelected(size_t _index)")
 		void setItemSelectedAt(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::clearIndexSelected()")
@@ -75,13 +100,13 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::setItemNameAt(size_t _index, const UString& _name)")
 		void setItem(size_t _index, const UString& _item);
 		MYGUI_OBSOLETE(" is deprecated, use : const UString& ComboBox::getItemNameAt(size_t _index)")
-		const UString& getItem(size_t _index);
+		const UString& getItem(size_t _index) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::removeItemAt(size_t _index)")
 		void deleteItem(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::removeAllItems()")
 		void deleteAllItems();
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ComboBox::getIndexSelected()")
-		size_t getItemSelect();
+		size_t getItemSelect() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void void ComboBox::clearIndexSelected()")
 		void resetItemSelect();
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::setIndexSelected(size_t _index)")
@@ -90,11 +115,11 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void ComboBox::setMaxListLength(int _value)")
 		void setMaxListHeight(int _value);
 		MYGUI_OBSOLETE(" is deprecated, use : int ComboBox::getMaxListLength()")
-		int getMaxListHeight();
+		int getMaxListHeight() const;
 	};
 
-	template <>
-	class MemberObsolete<EditBox>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<EditBox>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void EditBox::setVisibleVScroll(bool _visible)")
@@ -106,30 +131,32 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : bool EditBox::isVisibleHScroll()")
 		bool isShowHScroll();
 
-		MYGUI_OBSOLETE(" is deprecated, use : void EditBox::setTextIntervalColour(size_t _start, size_t _count, const Colour& _colour)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void EditBox::setTextIntervalColour(size_t _start, size_t _count, const "
+			"Colour& _colour)")
 		void setTextColour(size_t _start, size_t _count, const Colour& _colour);
 		MYGUI_OBSOLETE(" is deprecated, use : size_t EditBox::getTextSelectionStart() , size_t getTextSelectionEnd()")
-		void getTextSelect(size_t& _start, size_t& _end);
+		void getTextSelect(size_t& _start, size_t& _end) const;
 		MYGUI_OBSOLETE(" is deprecated, use : UString EditBox::getTextInterval(size_t _start, size_t _count)")
-		UString getText(size_t _start, size_t _count);
+		UString getText(size_t _start, size_t _count) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void EditBox::setTextSelection(size_t _start, size_t _end)")
 		void setTextSelect(size_t _start, size_t _end);
 		MYGUI_OBSOLETE(" is deprecated, use : void EditBox::deleteTextSelection()")
 		void deleteTextSelect();
 		MYGUI_OBSOLETE(" is deprecated, use : UString EditBox::getTextSelection()")
-		UString getSelectedText();
+		UString getSelectedText() const;
 		MYGUI_OBSOLETE(" is deprecated, use : bool EditBox::isTextSelection()")
 		bool isTextSelect();
 		MYGUI_OBSOLETE(" is deprecated, use : void EditBox::setTextSelectionColour(const Colour& _colour)")
 		void setTextSelectColour(const Colour& _colour);
 	};
 
-	template <>
-	class MemberObsolete<ItemBox>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ItemBox>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ItemBox::getItemIndexSelected()")
-		size_t getItemIndexSelected();
+		size_t getItemIndexSelected() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::setIndexSelected(size_t _index)")
 		void setItemSelectedAt(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::clearIndexSelected()")
@@ -144,29 +171,29 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::removeAllItems()")
 		void deleteAllItems();
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ItemBox::getIndexSelected()")
-		size_t getItemSelect();
+		size_t getItemSelect() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::clearIndexSelected()")
 		void resetItemSelect();
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::setIndexSelected(size_t _index)")
 		void setItemSelect(size_t _index);
 
 		MYGUI_OBSOLETE(" is deprecated, use : Widget* ItemBox::getWidgetDrag()")
-		Widget* getWidgetDrop();
+		Widget* getWidgetDrop() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::resetDrag()")
 		void resetDrop();
 
 		MYGUI_OBSOLETE(" is deprecated, use : void ItemBox::setVerticalAlignment(bool _value)")
 		void setItemBoxAlignVert(bool _value);
 		MYGUI_OBSOLETE(" is deprecated, use : bool ItemBox::getVerticalAlignment() const")
-		bool getItemBoxAlignVert();
+		bool getItemBoxAlignVert() const;
 	};
 
-	template <>
-	class MemberObsolete<ListBox>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ListBox>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ListBox::getIndexSelected()")
-		size_t getItemIndexSelected();
+		size_t getItemIndexSelected() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::setIndexSelected(size_t _index)")
 		void setItemSelectedAt(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::clearIndexSelected()")
@@ -177,7 +204,7 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::setItemNameAt(size_t _index, const UString& _name)")
 		void setItem(size_t _index, const UString& _item);
 		MYGUI_OBSOLETE(" is deprecated, use : const UString& ListBox::getItemNameAt(size_t _index)")
-		const UString& getItem(size_t _index);
+		const UString& getItem(size_t _index) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::removeItemAt(size_t _index)")
 		void deleteItem(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::removeAllItems()")
@@ -185,7 +212,7 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ListBox::findItemIndexWith(const UString& _name)")
 		size_t findItem(const UString& _item);
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ListBox::getIndexSelected()")
-		size_t getItemSelect();
+		size_t getItemSelect() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::clearIndexSelected()")
 		void resetItemSelect();
 		MYGUI_OBSOLETE(" is deprecated, use : void ListBox::setIndexSelected(size_t _index)")
@@ -204,8 +231,8 @@ namespace MyGUI
 		bool isItemSelectVisible(bool _fill = true);
 	};
 
-	template <>
-	class MemberObsolete<MenuControl>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<MenuControl>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void Widget::setVisible(bool _value)")
@@ -227,11 +254,11 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void MenuControl::setVerticalAlignment(bool _value)")
 		void setAlignVert(bool _value);
 		MYGUI_OBSOLETE(" is deprecated, use : bool MenuControl::getVerticalAlignment() const")
-		bool getAlignVert();
+		bool getAlignVert() const;
 	};
 
-	template <>
-	class MemberObsolete<MenuItem>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<MenuItem>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void setItemChildVisible(bool _visible)")
@@ -240,69 +267,77 @@ namespace MyGUI
 		void hideItemChild();
 	};
 
-	template <>
-	class MemberObsolete<MultiListBox>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<MultiListBox>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : size_t MultiListBox::getIndexSelected()")
-		size_t getItemIndexSelected();
+		size_t getItemIndexSelected() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::setIndexSelected(size_t _index)")
 		void setItemSelectedAt(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::clearIndexSelected()")
 		void clearItemSelected();
 
-		MYGUI_OBSOLETE(" is deprecated, use : size_t MultiListBox::findSubItemWith(size_t _column, const UString& _name)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : size_t MultiListBox::findSubItemWith(size_t _column, const UString& _name)")
 		size_t findItem(size_t _column, const UString& _name);
-		MYGUI_OBSOLETE(" is deprecated, use : const UString& MultiListBox::getSubItemNameAt(size_t _column, size_t _index)")
-		const UString& getSubItem(size_t _column, size_t _index);
-		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::setSubItemNameAt(size_t _column, size_t _index, const UString& _name)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : const UString& MultiListBox::getSubItemNameAt(size_t _column, size_t _index)")
+		const UString& getSubItem(size_t _column, size_t _index) const;
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void MultiListBox::setSubItemNameAt(size_t _column, size_t _index, const "
+			"UString& _name)")
 		void setSubItem(size_t _column, size_t _index, const UString& _name);
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::removeColumnAt(size_t _column)")
 		void deleteColumn(size_t _column);
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::removeAllColumns()")
 		void deleteAllColumns();
 		MYGUI_OBSOLETE(" is deprecated, use : int MultiListBox::getColumnWidthAt(size_t _column)")
-		int getColumnWidth(size_t _column);
+		int getColumnWidth(size_t _column) const;
 		MYGUI_OBSOLETE(" is deprecated, use : const UString& MultiListBox::getColumnNameAt(size_t _column)")
-		const UString& getColumnName(size_t _column);
+		const UString& getColumnName(size_t _column) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::setColumnWidthAt(size_t _column, int _width)")
 		void setColumnWidth(size_t _column, int _width);
-		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::addColumn(const UString& _name, int _width, Any _data)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void MultiListBox::addColumn(const UString& _name, int _width, Any _data)")
 		void addColumn(int _width, const UString& _name);
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::setColumnNameAt(size_t _column, const UString& _name)")
 		void setColumnName(size_t _column, const UString& _name);
-		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::insertColumnAt(size_t _column, const UString& _name, int _width, Any _data)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void MultiListBox::insertColumnAt(size_t _column, const UString& _name, "
+			"int _width, Any _data)")
 		void insertColumn(size_t _column, int _width, const UString& _name);
 		MYGUI_OBSOLETE(" is deprecated, use : size_t MultiListBox::getIndexSelected()")
-		size_t getItemSelect();
+		size_t getItemSelect() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::clearIndexSelected()")
 		void resetItemSelect();
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::setIndexSelected(size_t _index)")
 		void setItemSelect(size_t _index);
-		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::insertItemAt(size_t _index, const UString& _name, Any _data)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void MultiListBox::insertItemAt(size_t _index, const UString& _name, Any _data)")
 		void insertItem(size_t _index, const UString& _name);
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::setItemNameAt(size_t _index, const UString& _name)")
 		void setItem(size_t _index, const UString& _name);
 		MYGUI_OBSOLETE(" is deprecated, use : const UString& MultiListBox::getItemNameAt(size_t _index)")
-		const UString& getItem(size_t _index);
+		const UString& getItem(size_t _index) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::removeItemAt(size_t _index)")
 		void deleteItem(size_t _index);
 		MYGUI_OBSOLETE(" is deprecated, use : void MultiListBox::removeAllItems()")
 		void deleteAllItems();
 	};
 
-	template <>
-	class MemberObsolete<ProgressBar>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ProgressBar>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void ProgressBar::setFlowDirection(FlowDirection _value)")
 		void setProgressStartPoint(Align _value);
 		MYGUI_OBSOLETE(" is deprecated, use : FlowDirection ProgressBar::getFlowDirection()")
-		Align getProgressStartPoint();
+		Align getProgressStartPoint() const;
 	};
 
-	template <>
-	class MemberObsolete<ScrollView>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ScrollView>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void ScrollView::setVisibleVScroll(bool _visible)")
@@ -315,14 +350,16 @@ namespace MyGUI
 		bool isShowHScroll();
 	};
 
-	template <>
-	class MemberObsolete<TabControl>
+	//	MYGUI_OBSOLETE(" is deprecated, use : TabControl::DEFAULT_WIDTH")
+	constexpr int DEFAULT = -1; // actually TabControl::DEFAULT_WIDTH
+	template<>
+	class MYGUI_EXPORT MemberObsolete<TabControl>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : int TabControl::getButtonWidthAt(size_t _index)")
-		int getSheetButtonWidthIndex(size_t _index);
+		int getSheetButtonWidthIndex(size_t _index) const;
 		MYGUI_OBSOLETE(" is deprecated, use : int TabControl::getButtonWidth(TabItem* _item)")
-		int getSheetButtonWidth(TabItem* _sheet);
+		int getSheetButtonWidth(TabItem* _sheet) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::setButtonWidthAt(size_t _index, int _width)")
 		void setSheetButtonWidthIndex(size_t _index, int _width = DEFAULT);
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::setButtonWidth(TabItem* _item, int _width)")
@@ -332,20 +369,21 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::beginToItemSelected()")
 		void showBarSelectButton();
 		MYGUI_OBSOLETE(" is deprecated, use : size_t TabControl::getItemCount()")
-		size_t getSheetCount();
+		size_t getSheetCount() const;
 		MYGUI_OBSOLETE(" is deprecated, use : const UString& TabControl::getItemName(TabItem* _item)")
-		const UString& getSheetName(TabItem* _sheet);
+		const UString& getSheetName(TabItem* _sheet) const;
 		MYGUI_OBSOLETE(" is deprecated, use : const UString& TabControl::getItemNameAt(size_t _index)")
-		const UString& getSheetNameIndex(size_t _index);
+		const UString& getSheetNameIndex(size_t _index) const;
 		MYGUI_OBSOLETE(" is deprecated, use : TabItem* TabControl::getItemAt(size_t _index)")
-		TabItem* getSheet(size_t _index);
+		TabItem* getSheet(size_t _index) const;
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::setItemNameAt(size_t _index, const UString& _name)")
 		void setSheetNameIndex(size_t _index, const UString& _name, int _width = DEFAULT);
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::setItemName(TabItem* _item, const UString& _name)")
 		void setSheetName(TabItem* _sheet, const UString& _name, int _width = DEFAULT);
 		MYGUI_OBSOLETE(" is deprecated, use : TabItem* TabControl::addItem(const UString& _name, Any _data)")
 		TabItem* addSheet(const UString& _name, int _width = DEFAULT);
-		MYGUI_OBSOLETE(" is deprecated, use : TabItem* TabControl::insertItemAt(size_t _index, const UString& _name, Any _data)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : TabItem* TabControl::insertItemAt(size_t _index, const UString& _name, Any _data)")
 		TabItem* insertSheet(size_t _index, const UString& _name, int _width = DEFAULT);
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::removeItemAt(size_t _index)")
 		void removeSheetIndex(size_t _index);
@@ -356,16 +394,18 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : void TabControl::setItemSelected(TabItem* _item)")
 		void selectSheet(TabItem* _sheet, bool _smooth = true);
 		MYGUI_OBSOLETE(" is deprecated, use : size_t TabControl::getIndexSelected()")
-		size_t getSelectSheetIndex();
+		size_t getSelectSheetIndex() const;
 
 		MYGUI_OBSOLETE(" is deprecated, use : size_t Widget::getIndexSelected()")
-		size_t getItemIndexSelected();
+		size_t getItemIndexSelected() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void Widget::setIndexSelected(size_t _index)")
 		void setItemSelectedAt(size_t _index);
 	};
 
-	template <>
-	class MemberObsolete<Widget>
+	using EnumeratorWidgetPtr = Enumerator<VectorWidgetPtr>;
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<Widget>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : bool Widget::getEnabled() const")
@@ -380,10 +420,12 @@ namespace MyGUI
 		bool isInheritsPick();
 		MYGUI_OBSOLETE(" is deprecated, use : bool Widget::getVisible() const")
 		bool isVisible();
+		MYGUI_OBSOLETE("use : getChildWidgets()")
+		EnumeratorWidgetPtr getEnumerator() const;
 	};
 
-	template <>
-	class MemberObsolete<Window>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<Window>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : void Widget::setCoord(const IntCoord& _coord)")
@@ -395,26 +437,50 @@ namespace MyGUI
 		void showSmooth(bool _reset = false);
 		MYGUI_OBSOLETE(" is deprecated, use : void setVisibleSmooth(bool _visible)")
 		void hideSmooth();
-		MYGUI_OBSOLETE(" is deprecated, use : void setMinSize(const IntSize& _min) , void setMaxSize(const IntSize& _min)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void setMinSize(const IntSize& _min) , void setMaxSize(const IntSize& _min)")
 		void setMinMax(const IntRect& _minmax);
-		MYGUI_OBSOLETE(" is deprecated, use : void setMinSize(const IntSize& _min) , void setMaxSize(const IntSize& _min)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void setMinSize(const IntSize& _min) , void setMaxSize(const IntSize& _min)")
 		void setMinMax(int _min_w, int _min_h, int _max_w, int _max_h);
 		MYGUI_OBSOLETE(" is deprecated, use : IntSize getMinSize() , IntSize getMaxSize()")
-		IntRect getMinMax();
+		IntRect getMinMax() const;
 	};
 
-	template <>
-	class MemberObsolete<FontManager>
+	class Version;
+	template<>
+	class MYGUI_EXPORT MemberObsolete<FontManager>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : bool ResourceManager::load(const std::string& _file)")
 		bool load(const std::string& _file);
+		void loadOldFontFormat(xml::ElementPtr _node, std::string_view _file, Version _version, std::string_view _tag);
 	};
 
-	template <>
-	class MemberObsolete<Gui>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<Gui>
 	{
 	public:
+		MYGUI_OBSOLETE(
+			" is deprecated, use : void Gui::initialise(const std::string& _core) and set log filename in Platform")
+		void initialise(const std::string& _core, std::string_view _logFileName);
+
+		MYGUI_OBSOLETE("use : destroyWidgets(const VectorWidgetPtr&)")
+		void destroyWidgets(EnumeratorWidgetPtr& _widgets);
+
+		MYGUI_OBSOLETE("use : findWidgetT(_prefix + _name)")
+		Widget* findWidgetT(std::string_view _name, std::string_view _prefix, bool _throw = true) const;
+		Widget* findWidgetHelper(std::string_view _name, bool _throw) const;
+
+		template<typename T>
+		MYGUI_OBSOLETE("use : findWidget(_prefix + _name)")
+		T* findWidget(std::string_view _name, std::string_view _prefix, bool _throw = true) const
+		{
+			std::string name{_prefix};
+			name += _name;
+			return static_cast<T*>(findWidgetHelper(name, _throw));
+		}
+
 		MYGUI_OBSOLETE(" is deprecated, use : void Gui::destroyWidgets(VectorWidgetPtr &_widgets)")
 		void destroyWidgetsVector(VectorWidgetPtr& _widgets);
 
@@ -425,18 +491,22 @@ namespace MyGUI
 		MYGUI_OBSOLETE(" is deprecated, use : bool Gui::isVisiblePointer()")
 		bool isShowPointer();
 		MYGUI_OBSOLETE("called be renderer, do not call it manually")
-		void injectFrameEntered(float _time) { }
+		void injectFrameEntered(float /*_time*/)
+		{
+		}
 
 		MYGUI_OBSOLETE(" is deprecated, use : void Gui::getViewSize().width")
-		int getViewWidth();
+		int getViewWidth() const;
 		MYGUI_OBSOLETE(" is deprecated, use : void Gui::getViewSize().height")
-		int getViewHeight();
+		int getViewHeight() const;
 
 		MYGUI_OBSOLETE(" is deprecated, use : bool InputManager::injectMouseMove(int _absx, int _absy, int _absz)")
 		bool injectMouseMove(int _absx, int _absy, int _absz);
-		MYGUI_OBSOLETE(" is deprecated, use : bool InputManager::injectMousePress(int _absx, int _absy, MouseButton _id)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : bool InputManager::injectMousePress(int _absx, int _absy, MouseButton _id)")
 		bool injectMousePress(int _absx, int _absy, MouseButton _id);
-		MYGUI_OBSOLETE(" is deprecated, use : bool InputManager::injectMouseRelease(int _absx, int _absy, MouseButton _id)")
+		MYGUI_OBSOLETE(
+			" is deprecated, use : bool InputManager::injectMouseRelease(int _absx, int _absy, MouseButton _id)")
 		bool injectMouseRelease(int _absx, int _absy, MouseButton _id);
 		MYGUI_OBSOLETE(" is deprecated, use : bool InputManager::injectKeyPress(KeyCode _key, Char _text = 0)")
 		bool injectKeyPress(KeyCode _key, Char _text = 0);
@@ -452,47 +522,62 @@ namespace MyGUI
 		bool load(const std::string& _file);
 
 		MYGUI_OBSOLETE(" is deprecated, use : const IntSize& RenderManager::getViewSize() const")
-		const IntSize& getViewSize();
+		const IntSize& getViewSize() const;
+
+		MYGUI_OBSOLETE(" is deprecated, use : RenderManager::onFrameEvent(float _time)")
+		void _injectFrameEntered(float _time);
+		MYGUI_OBSOLETE(" is deprecated, use : RenderManager::onResizeView(const IntSize& _size)")
+		void _resizeWindow(const IntSize& _size);
 	};
 
-	template <>
-	class MemberObsolete<LanguageManager>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<InputManager>
+	{
+	public:
+		MYGUI_OBSOLETE(
+			" is deprecated, use : const IntPoint& getLastPressedPosition(MouseButton _id) with _id MouseButton::Left")
+		const IntPoint& getLastLeftPressed() const;
+		MYGUI_OBSOLETE(
+			" is deprecated, use : const IntPoint& getLastPressedPosition(MouseButton _id) with _id MouseButton::Right")
+		const IntPoint& getLastRightPressed() const;
+	};
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<LanguageManager>
 	{
 	public:
 		MYGUI_OBSOLETE(" is deprecated, use : bool ResourceManager::load(const std::string& _file)")
 		bool load(const std::string& _file);
 	};
 
-	template <>
-	class MemberObsolete<LayerManager>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<LayerManager>
 	{
 	public:
+		using EnumeratorLayer = Enumerator<std::vector<ILayer*>>;
+
 		MYGUI_OBSOLETE(" is deprecated, use : bool ResourceManager::load(const std::string& _file)")
 		bool load(const std::string& _file);
+		MYGUI_OBSOLETE("use : getLayers()")
+		EnumeratorLayer getEnumerator() const;
 	};
 
-	template <>
-	class MemberObsolete<LayoutManager>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<LayoutManager>
 	{
 	public:
-		MYGUI_OBSOLETE(" is deprecated, use : VectorWidgetPtr& LayoutManager::loadLayout(const std::string& _file, const std::string& _prefix, Widget* _parent)")
-		VectorWidgetPtr load(const std::string& _file);
+		MYGUI_OBSOLETE(
+			" is deprecated, use : VectorWidgetPtr& LayoutManager::loadLayout(std::string_view _file, "
+			"std::string_view _prefix, Widget* _parent)")
+		VectorWidgetPtr load(std::string_view _file);
 	};
 
-	template <>
-	class MemberObsolete<PluginManager>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<PointerManager>
 	{
 	public:
-		MYGUI_OBSOLETE(" is deprecated, use : bool ResourceManager::load(const std::string& _file)")
-		bool load(const std::string& _file);
-	};
-
-	template <>
-	class MemberObsolete<PointerManager>
-	{
-	public:
-		MYGUI_OBSOLETE(" is deprecated, use : void PointerManager::setDefaultPointer(const std::string& _value)")
-		void setDeafultPointer(const std::string& _value);
+		MYGUI_OBSOLETE(" is deprecated, use : void PointerManager::setDefaultPointer(std::string_view _value)")
+		void setDeafultPointer(std::string_view _value);
 		MYGUI_OBSOLETE(" is deprecated, use : void PointerManager::setVisible(bool _visible)")
 		void show();
 		MYGUI_OBSOLETE(" is deprecated, use : void PointerManager::setVisible(bool _visible)")
@@ -501,66 +586,118 @@ namespace MyGUI
 		bool isShow();
 		MYGUI_OBSOLETE(" is deprecated, use : bool ResourceManager::load(const std::string& _file)")
 		bool load(const std::string& _file);
+
+		void loadOldPointerFormat(
+			xml::ElementPtr _node,
+			std::string_view _file,
+			Version _version,
+			std::string_view _tag);
 	};
 
-	template <>
-	class MemberObsolete<ResourceManager>
+	class IResource;
+	using IResourcePtr = IResource*;
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ResourceManager>
 	{
 	public:
+		using EnumeratorPtr = Enumerator<std::map<std::string, IResource*, std::less<>>>;
+
+		MYGUI_OBSOLETE("use : getResources()")
+		EnumeratorPtr getEnumerator() const;
 		MYGUI_OBSOLETE(" is deprecated, use : size_t ResourceManager::getCount()")
-		size_t getResourceCount();
-		MYGUI_OBSOLETE(" is deprecated, use : IResourcePtr ResourceManager::getByName(const std::string& _name, bool _throw)")
-		IResourcePtr getResource(const std::string& _name, bool _throw = true);
+		size_t getResourceCount() const;
+		MYGUI_OBSOLETE(
+			" is deprecated, use : IResourcePtr ResourceManager::getByName(std::string_view _name, bool _throw)")
+		IResourcePtr getResource(std::string_view _name, bool _throw = true) const;
 	};
 
-	template <>
-	class MemberObsolete<SkinManager>
+	using EnumeratorILayerNode = Enumerator<std::vector<ILayerNode*>>;
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ILayer>
 	{
 	public:
-		MYGUI_OBSOLETE(" is deprecated, use : ResourceSkin* SkinManager::getByName(const std::string& _name)")
-		ResourceSkin* getSkin(const std::string& _name);
+		MYGUI_OBSOLETE("use : getChildItems()")
+		EnumeratorILayerNode getEnumerator() const;
+	};
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<SkinManager>
+	{
+	public:
+		MYGUI_OBSOLETE(" is deprecated, use : ResourceSkin* SkinManager::getByName(std::string_view _name)")
+		ResourceSkin* getSkin(std::string_view _name) const;
 		MYGUI_OBSOLETE(" is deprecated, use : bool ResourceManager::load(const std::string& _file)")
 		bool load(const std::string& _file);
+
+		void loadOldSkinFormat(xml::ElementPtr _node, std::string_view _file, Version _version, std::string_view _tag);
 	};
 
-	template <>
-	class MemberObsolete<WidgetManager>
+	template<>
+	class MYGUI_EXPORT MemberObsolete<WidgetManager>
 	{
 	public:
+		MYGUI_OBSOLETE("use : destroyWidgets(const VectorWidgetPtr&)")
+		void destroyWidgets(EnumeratorWidgetPtr _widgets);
 		MYGUI_OBSOLETE(" is deprecated, use : void WidgetManager::destroyWidgets(VectorWidgetPtr &_widgets)")
 		void destroyWidgetsVector(VectorWidgetPtr& _widgets);
-		MYGUI_OBSOLETE(" is deprecated")
-		Widget* findWidgetT(const std::string& _name, bool _throw = true);
-		MYGUI_OBSOLETE(" is deprecated")
-		Widget* findWidgetT(const std::string& _name, const std::string& _prefix, bool _throw = true);
-		MYGUI_OBSOLETE(" is deprecated, use : void Widget::setProperty(const std::string &_key, const std::string &_value)")
-		void parse(Widget* _widget, const std::string& _key, const std::string& _value);
+		MYGUI_OBSOLETE(" is deprecated, use Gui::findWidgetT")
+		Widget* findWidgetT(std::string_view _name, bool _throw = true);
+		MYGUI_OBSOLETE(" is deprecated, use Gui::findWidgetT(_prefix + _name)")
+		Widget* findWidgetT(std::string_view _name, std::string_view _prefix, bool _throw = true);
+		MYGUI_OBSOLETE(" is deprecated, use : void Widget::setProperty(std::string_view_key, std::string_view_value)")
+		void parse(Widget* _widget, std::string_view _key, std::string_view _value);
 	};
 
-#endif // MYGUI_DONT_USE_OBSOLETE
-
-	class BackwardCompatibility
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ILayerNode>
 	{
 	public:
-		static bool checkProperty(Widget* _owner, std::string& _key, std::string& _value);
+		// The former manual-render flag is ignored; rendering uses the regular batch queues.
+		MYGUI_OBSOLETE("use : addToRenderItem(ITexture*, bool); the manual-render flag is ignored")
+		RenderItem* addToRenderItem(ITexture* _texture, bool _firstQueue, bool _manualRender);
+
+		MYGUI_OBSOLETE("use : getChildItems()")
+		EnumeratorILayerNode getEnumerator() const;
+	};
+
+	using EnumeratorGroupImage = Enumerator<VectorGroupImage>;
+
+	template<>
+	class MYGUI_EXPORT MemberObsolete<ResourceImageSet>
+	{
+	public:
+		MYGUI_OBSOLETE("use : getGroups()")
+		EnumeratorGroupImage getEnumerator() const;
+	};
+
+	MYGUI_UNSUPPRESS_GCC()
+	MYGUI_UNSUPPRESS_MSVC()
+
+#endif // MYGUI_DONT_USE_OBSOLETE
+
+	class MYGUI_EXPORT BackwardCompatibility
+	{
+	public:
+		/** Convert legacy property names and values without modifying a widget.
+			Returns one or more replacement properties, preserving their application order.
+			Properties without a conversion (including ignored and action properties) are returned unchanged.
+			Type prefixes are preserved unless an explicit conversion handles them.
+			With MYGUI_DONT_USE_OBSOLETE, all properties are returned unchanged.
+		*/
+		static VectorStringPairs upgradeProperty(std::string_view _key, std::string_view _value);
+		static bool processDeprecatedProperty(Widget* _owner, std::string& _key, std::string& _value);
 		static void initialise();
 		static void shutdown();
-		static bool isIgnoreProperty(const std::string& _key);
-		static std::string MYGUI_EXPORT getPropertyRename(const std::string& _propertyName);
-		static std::string MYGUI_EXPORT getFactoryRename(const std::string& _categoryName, const std::string& _factoryName);
-		static std::string MYGUI_EXPORT getSkinRename(const std::string& _skinName);
+		static bool isIgnoreProperty(std::string_view _key);
+		/** Resolve an explicit property alias, otherwise optionally remove the prefix through the first underscore.
+			Prefix removal is available even with MYGUI_DONT_USE_OBSOLETE.
+		*/
+		static std::string_view getPropertyRename(std::string_view _propertyName, bool _trimTypePrefix = true);
+		static std::string_view getFactoryRename(std::string_view _categoryName, std::string_view _factoryName);
+		static std::string_view getSkinRename(std::string_view _skinName);
 		static void registerWidgetTypes();
-
-	private:
-#ifndef MYGUI_DONT_USE_OBSOLETE
-		typedef std::map<std::string, std::string> MapString;
-		typedef std::set<std::string> SetString;
-		static MapString mPropertyRename;
-		static SetString mPropertyIgnore;
-		static MapString mSkinRename;
-#endif // MYGUI_DONT_USE_OBSOLETE
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_BACKWARD_COMPATIBILITY_H__
+#endif // MYGUI_BACKWARD_COMPATIBILITY_H_

@@ -1,69 +1,43 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_Widget.h"
 #include "MyGUI_Gui.h"
 #include "MyGUI_InputManager.h"
 #include "MyGUI_SkinManager.h"
-#include "MyGUI_SubWidgetManager.h"
 #include "MyGUI_WidgetManager.h"
 #include "MyGUI_ResourceSkin.h"
 #include "MyGUI_WidgetDefines.h"
 #include "MyGUI_LayerItem.h"
 #include "MyGUI_LayerManager.h"
 #include "MyGUI_RenderItem.h"
-#include "MyGUI_ISubWidget.h"
-#include "MyGUI_ISubWidgetText.h"
-#include "MyGUI_TextBox.h"
 #include "MyGUI_FactoryManager.h"
 #include "MyGUI_CoordConverter.h"
 #include "MyGUI_RenderManager.h"
 #include "MyGUI_ToolTipManager.h"
 #include "MyGUI_LayoutManager.h"
+#include "MyGUI_GeometryUtility.h"
+#include <cmath>
+#include <type_traits>
 
 namespace MyGUI
 {
 
-	Widget::Widget() :
-		mWidgetClient(nullptr),
-		mEnabled(true),
-		mInheritsEnabled(true),
-		mInheritsVisible(true),
-		mAlpha(ALPHA_MAX),
-		mRealAlpha(ALPHA_MAX),
-		mInheritsAlpha(true),
-		mParent(nullptr),
-		mWidgetStyle(WidgetStyle::Child),
-		mContainer(nullptr),
-		mAlign(Align::Default),
-		mVisible(true)
-	{
-	}
+	Widget::Widget() = default;
 
-	Widget::~Widget()
-	{
-	}
+	Widget::~Widget() = default;
 
-	void Widget::_initialise(WidgetStyle _style, const IntCoord& _coord, const std::string& _skinName, Widget* _parent, ICroppedRectangle* _croppedParent, const std::string& _name)
+	void Widget::_initialise(
+		WidgetStyle _style,
+		const IntCoord& _coord,
+		std::string_view _skinName,
+		Widget* _parent,
+		ICroppedRectangle* _croppedParent,
+		std::string_view _name)
 	{
 		ResourceSkin* skinInfo = nullptr;
 		ResourceLayout* templateInfo = nullptr;
@@ -81,10 +55,11 @@ namespace MyGUI
 
 		mCroppedParent = _croppedParent;
 		mParent = _parent;
+		updateWorldHasRotation();
 
 
 #if MYGUI_DEBUG_MODE == 1
-		// проверяем соответсвие входных данных
+		// check input data consistency
 		if (mWidgetStyle == WidgetStyle::Child)
 		{
 			MYGUI_ASSERT(mCroppedParent, "must be cropped");
@@ -101,29 +76,28 @@ namespace MyGUI
 		}
 #endif
 
-		// корректируем абсолютные координаты
+		// adjust absolute coordinates
 		mAbsolutePosition = _coord.point();
 
 		if (nullptr != mCroppedParent)
 			mAbsolutePosition += mCroppedParent->getAbsolutePosition();
+		updateRotationTransform();
 
 		const WidgetInfo* root = initialiseWidgetSkinBase(skinInfo, templateInfo);
 
-		// дочернее окно обыкновенное
+		// regular child window
 		if (mWidgetStyle == WidgetStyle::Child)
 		{
 			if (mParent)
 				mParent->addChildItem(this);
 		}
-		// дочернее нуно перекрывающееся
 		else if (mWidgetStyle == WidgetStyle::Overlapped)
 		{
-			// дочернее перекрывающееся
 			if (mParent)
 				mParent->addChildNode(this);
 		}
 
-		// витр метод для наследников
+		// virtual method for subclasses
 		initialiseOverride();
 
 		if (skinInfo != nullptr)
@@ -131,32 +105,33 @@ namespace MyGUI
 
 		if (root != nullptr)
 		{
-			for (VectorStringPairs::const_iterator iter = root->properties.begin(); iter != root->properties.end(); ++iter)
+			for (const auto& property : root->properties)
 			{
-				setProperty(iter->first, iter->second);
+				setProperty(property.first, property.second);
 			}
 		}
 	}
 
 	void Widget::_shutdown()
 	{
-		// витр метод для наследников
+		eventWidgetDestroyed(this);
+
+		setUserData(Any::Null);
+
+		// virtual method for subclasses
 		shutdownOverride();
 
 		shutdownWidgetSkinBase();
 
 		_destroyAllChildWidget();
 
-		// дочернее окно обыкновенное
 		if (mWidgetStyle == WidgetStyle::Child)
 		{
 			if (mParent)
 				mParent->removeChildItem(this);
 		}
-		// дочернее нуно перекрывающееся
 		else if (mWidgetStyle == WidgetStyle::Overlapped)
 		{
-			// дочернее перекрывающееся
 			if (mParent)
 				mParent->removeChildNode(this);
 		}
@@ -165,7 +140,7 @@ namespace MyGUI
 		mCroppedParent = nullptr;
 	}
 
-	void Widget::changeWidgetSkin(const std::string& _skinName)
+	void Widget::changeWidgetSkin(std::string_view _skinName)
 	{
 		ResourceSkin* skinInfo = nullptr;
 		ResourceLayout* templateInfo = nullptr;
@@ -191,30 +166,30 @@ namespace MyGUI
 
 		if (root != nullptr)
 		{
-			for (VectorStringPairs::const_iterator iter = root->properties.begin(); iter != root->properties.end(); ++iter)
+			for (const auto& property : root->properties)
 			{
-				setProperty(iter->first, iter->second);
+				setProperty(property.first, property.second);
 			}
 		}
 	}
 
 	const WidgetInfo* Widget::initialiseWidgetSkinBase(ResourceSkin* _skinInfo, ResourceLayout* _templateInfo)
 	{
-		const WidgetInfo* root  = nullptr;
+		const WidgetInfo* root = nullptr;
 		bool skinOnly = false;
 
 		if (_skinInfo == nullptr)
 		{
 			skinOnly = true;
-			std::string skinName;
+			std::string_view skinName;
 
 			const VectorWidgetInfo& data = _templateInfo->getLayoutData();
-			for (VectorWidgetInfo::const_iterator item = data.begin(); item != data.end(); ++item)
+			for (const auto& item : data)
 			{
-				if ((*item).name == "Root")
+				if (item.name == "Root")
 				{
-					skinName = (*item).skin;
-					root = &(*item);
+					skinName = item.skin;
+					root = &item;
 					break;
 				}
 			}
@@ -225,103 +200,147 @@ namespace MyGUI
 		//SAVE
 		const IntSize& _size = mCoord.size();
 
-		//FIXME - явный вызов
-		Widget::setSize(_skinInfo->getSize());
+		if (_skinInfo != nullptr)
+		{
+			// Bypass derived resize handlers while skin children are being initialized.
+			Widget::setSize(_skinInfo->getSize());
 
-		_createSkinItem(_skinInfo);
+			_createSkinItem(_skinInfo);
+		}
 
-		// выставляем альфу, корректировка по отцу автоматически
+		// set alpha, auto-adjusted from parent
 		_updateAlpha();
 		_updateEnabled();
 		_updateVisible();
 
 		if (!skinOnly)
 		{
+#ifndef MYGUI_DONT_USE_OBSOLETE
 			const MapString& properties = _skinInfo->getProperties();
-			for (MapString::const_iterator item = properties.begin(); item != properties.end(); ++item)
+			for (const auto& property : properties)
 			{
-				if (BackwardCompatibility::isIgnoreProperty((*item).first))
-					setUserString((*item).first, (*item).second);
+				if (BackwardCompatibility::isIgnoreProperty(property.first))
+				{
+					MYGUI_LOG(
+						Warning,
+						property.first
+							<< " skin property is deprecated, move it to UserString in a widget in ResourceLayout"
+							<< LayoutManager::getInstance().getCurrentLayout() << "]");
+					setUserString(property.first, property.second);
+				}
 			}
+#endif
 
-			// создаем детей скина
+			// create skin childs
 			const VectorChildSkinInfo& child = _skinInfo->getChild();
-			for (VectorChildSkinInfo::const_iterator iter = child.begin(); iter != child.end(); ++iter)
+			for (const auto& iter : child)
 			{
-				Widget* widget = baseCreateWidget(iter->style, iter->type, iter->skin, iter->coord, iter->align, iter->layer, iter->name, true);
-				// заполняем UserString пропертями
-				for (MapString::const_iterator prop = iter->params.begin(); prop != iter->params.end(); ++prop)
-					widget->setUserString(prop->first, prop->second);
+				Widget* widget = baseCreateWidget(
+					iter.style,
+					iter.type,
+					iter.skin,
+					iter.coord,
+					iter.align,
+					iter.layer,
+					iter.name,
+					true);
+				// fill UserString with skin properties
+				for (const auto& prop : iter.params)
+					widget->setUserString(prop.first, prop.second);
 			}
 		}
 
 		if (root != nullptr)
 		{
-			//FIXME - явный вызов
+			// Bypass derived resize handlers while skin children are being initialized.
 			Widget::setSize(root->intCoord.size());
 
-			for (MapString::const_iterator iter = root->userStrings.begin(); iter != root->userStrings.end(); ++iter)
+			for (const auto& userString : root->userStrings)
 			{
-				setUserString(iter->first, iter->second);
+				setUserString(userString.first, userString.second);
 			}
 
-			for (VectorWidgetInfo::const_iterator iter = root->childWidgetsInfo.begin(); iter != root->childWidgetsInfo.end(); ++iter)
+			for (const auto& iter : root->childWidgetsInfo)
 			{
-				_templateInfo->createWidget(*iter, "", this, true);
+				_templateInfo->createWidget(iter, {}, this, true);
 			}
 		}
 
-		//FIXME - явный вызов
-		Widget::setSize(_size);
+		// Newly created skin subwidgets need geometry even when the size is unchanged.
+		if (mCoord.size() == _size)
+			_updateCoord(_size);
+		else
+			Widget::setSize(_size);
 
 		return root;
 	}
 
 	void Widget::shutdownWidgetSkinBase()
 	{
-		setMaskPick("");
+		setMaskPick(MaskPickInfo{});
 
 		_deleteSkinItem();
 
-		// удаляем виджеты чтобы ли в скине
-		for (VectorWidgetPtr::iterator iter = mWidgetChildSkin.begin(); iter != mWidgetChildSkin.end(); ++iter)
+		// remove widgets that were in skin
+		for (auto& iter : mWidgetChildSkin)
 		{
-			// Добавляем себя чтобы удалилось
-			mWidgetChild.push_back(*iter);
-			_destroyChildWidget(*iter);
+			// add self so it gets deleted
+			mWidgetChild.push_back(iter);
+			_destroyChildWidget(iter);
 		}
 		mWidgetChildSkin.clear();
 
 		mWidgetClient = nullptr;
 	}
 
-	Widget* Widget::baseCreateWidget(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name, bool _template)
+	Widget* Widget::baseCreateWidget(
+		WidgetStyle _style,
+		std::string_view _type,
+		std::string_view _skin,
+		const IntCoord& _coord,
+		Align _align,
+		std::string_view _layer,
+		std::string_view _name,
+		bool _template)
 	{
 		Widget* widget = nullptr;
 
 		if (_template)
 		{
-			widget = WidgetManager::getInstance().createWidget(_style, _type, _skin, _coord, this, _style == WidgetStyle::Popup ? nullptr : this, _name);
+			widget = WidgetManager::getInstance().createWidget(
+				_style,
+				_type,
+				_skin,
+				_coord,
+				this,
+				_style == WidgetStyle::Popup ? nullptr : this,
+				_name);
 			mWidgetChildSkin.push_back(widget);
 		}
 		else
 		{
 			if (mWidgetClient != nullptr)
 			{
-				widget = mWidgetClient->baseCreateWidget(_style, _type, _skin, _coord, _align, _layer, _name, _template);
+				widget =
+					mWidgetClient->baseCreateWidget(_style, _type, _skin, _coord, _align, _layer, _name, _template);
 				onWidgetCreated(widget);
 				return widget;
 			}
-			else
-			{
-				widget = WidgetManager::getInstance().createWidget(_style, _type, _skin, _coord, this, _style == WidgetStyle::Popup ? nullptr : this, _name);
-				mWidgetChild.push_back(widget);
-			}
+
+			widget = WidgetManager::getInstance().createWidget(
+				_style,
+				_type,
+				_skin,
+				_coord,
+				this,
+				_style == WidgetStyle::Popup ? nullptr : this,
+				_name);
+			_linkChildWidget(widget);
 		}
 
 		widget->setAlign(_align);
 
-		// присоединяем виджет с уровню
+		// attach widget to layer
 		if (!_layer.empty() && widget->isRootWidget())
 			LayerManager::getInstance().attachToLayerNode(_layer, widget);
 
@@ -330,7 +349,12 @@ namespace MyGUI
 		return widget;
 	}
 
-	Widget* Widget::createWidgetRealT(const std::string& _type, const std::string& _skin, const FloatCoord& _coord, Align _align, const std::string& _name)
+	Widget* Widget::createWidgetRealT(
+		std::string_view _type,
+		std::string_view _skin,
+		const FloatCoord& _coord,
+		Align _align,
+		std::string_view _name)
 	{
 		return createWidgetT(_type, _skin, CoordConverter::convertFromRelative(_coord, getSize()), _align, _name);
 	}
@@ -339,51 +363,48 @@ namespace MyGUI
 	{
 		bool margin = mCroppedParent ? _checkMargin() : false;
 
-		// вьюпорт стал битым
+		// viewport became invalid
 		if (margin)
 		{
-			// проверка на полный выход за границу
-			if (_checkOutside())
+			if (_checkOutsideUnrotated())
 			{
-				// запоминаем текущее состояние
+				// remember current state
 				mIsMargin = margin;
 
-				// скрываем
 				_setSubSkinVisible(false);
 
-				// вся иерархия должна быть проверенна
-				for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-					(*widget)->_updateView();
-				for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-					(*widget)->_updateView();
+				// entire hierarchy must be checked
+				for (auto& widget : mWidgetChild)
+					widget->_updateView();
+				for (auto& widget : mWidgetChildSkin)
+					widget->_updateView();
 
 				return;
 			}
-
 		}
-		// мы не обрезаны и были нормальные
+		// we are not clipped and were normal
 		else if (!mIsMargin)
 		{
 			_updateSkinItemView();
 			return;
 		}
 
-		// запоминаем текущее состояние
+		// remember current state
 		mIsMargin = margin;
 
-		// если скин был скрыт, то покажем
+		// if skin was hidden, show it
 		_setSubSkinVisible(true);
 
-		// обновляем наших детей, а они уже решат обновлять ли своих детей
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_updateView();
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_updateView();
+		// update our children, they decide whether to update theirs
+		for (auto& widget : mWidgetChild)
+			widget->_updateView();
+		for (auto& widget : mWidgetChildSkin)
+			widget->_updateView();
 
 		_updateSkinItemView();
 	}
 
-	bool Widget::setState(const std::string& _state)
+	bool Widget::_setWidgetState(std::string_view _state)
 	{
 		return _setSkinItemState(_state);
 	}
@@ -397,52 +418,14 @@ namespace MyGUI
 
 		onWidgetDestroy(_widget);
 
-		VectorWidgetPtr::iterator iter = std::find(mWidgetChild.begin(), mWidgetChild.end(), _widget);
-		if (iter != mWidgetChild.end())
-		{
-			// сохраняем указатель
-			MyGUI::Widget* widget = *iter;
-
-			// удаляем из списка
-			*iter = mWidgetChild.back();
-			mWidgetChild.pop_back();
-
-			// отписываем от всех
-			WidgetManager::getInstance().unlinkFromUnlinkers(_widget);
-
-			// непосредственное удаление
-			WidgetManager::getInstance()._deleteWidget(widget);
-		}
-		else
-		{
-			MYGUI_EXCEPT("Widget '" << _widget->getName() << "' not found");
-		}
+		WidgetContainer::_destroyChildWidget(_widget);
 	}
 
-	// удаляет всех детей
-	void Widget::_destroyAllChildWidget()
+	IntCoord Widget::getClientCoord() const
 	{
-		WidgetManager& manager = WidgetManager::getInstance();
-		while (!mWidgetChild.empty())
-		{
-			// сразу себя отписывем, иначе вложенной удаление убивает все
-			Widget* widget = mWidgetChild.back();
-			mWidgetChild.pop_back();
-
-			// отписываем от всех
-			manager.unlinkFromUnlinkers(widget);
-
-			// и сами удалим, так как его больше в списке нет
-			WidgetManager::getInstance()._deleteWidget(widget);
-		}
-	}
-
-	IntCoord Widget::getClientCoord()
-	{
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
 		if (mWidgetClient != nullptr)
 			return mWidgetClient->getCoord();
-		return IntCoord(0, 0, mCoord.width, mCoord.height);
+		return {0, 0, mCoord.width, mCoord.height};
 	}
 
 	void Widget::setAlpha(float _alpha)
@@ -461,96 +444,151 @@ namespace MyGUI
 		else
 			mRealAlpha = mAlpha;
 
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_updateAlpha();
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_updateAlpha();
+		for (auto& widget : mWidgetChild)
+			widget->_updateAlpha();
+		for (auto& widget : mWidgetChildSkin)
+			widget->_updateAlpha();
 
 		_setSkinItemAlpha(mRealAlpha);
 	}
 
 	void Widget::setInheritsAlpha(bool _inherits)
 	{
+		if (mInheritsAlpha == _inherits)
+			return;
 		mInheritsAlpha = _inherits;
 		_updateAlpha();
 	}
 
 	ILayerItem* Widget::getLayerItemByPoint(int _left, int _top) const
 	{
-		// проверяем попадание
-		if (!mEnabled
-			|| !mVisible
-			|| (!getNeedMouseFocus() && !getInheritsPick())
-			|| !_checkPoint(_left, _top)
-			// если есть маска, проверяем еще и по маске
-			|| isMaskPickInside(IntPoint(_left - mCoord.left, _top - mCoord.top), mCoord)
-			)
+		if (!mInheritedEnabled || !mInheritedVisible || (!getNeedMouseFocus() && !getInheritsPick()))
 			return nullptr;
 
-		// спрашиваем у детишек
-		for (VectorWidgetPtr::const_reverse_iterator widget = mWidgetChild.rbegin(); widget != mWidgetChild.rend(); ++widget)
+		// Recursive picking has already removed ancestor rotations; only the local rotation matters.
+		// Popups enter from a layer and still need the full world transform.
+		if (mRotation == 0.0f && (mCroppedParent || !mParent))
+			return getLayerItemByLocalPoint(IntPoint(_left - mCoord.left, _top - mCoord.top));
+
+		return getLayerItemByRotatedPoint(_left, _top);
+	}
+
+	ILayerItem* Widget::getLayerItemByRotatedPoint(int _left, int _top) const
+	{
+		const FloatPoint point((float)_left, (float)_top);
+		// Popups enter from a layer, bypassing their logical parent's picking traversal.
+		const FloatPoint localPoint =
+			(mParent && !mCroppedParent) ? layerToLocal(point) : mRotationTransform.inverseTransformPoint(point);
+		return getLayerItemByLocalPoint(localPoint);
+	}
+
+	template<typename T>
+	ILayerItem* Widget::getLayerItemByLocalPoint(types::TPoint<T> _point) const
+	{
+		// check point hit
+		if (_point.left < mMargin.left || _point.top < mMargin.top || _point.left >= mCoord.width - mMargin.right ||
+			_point.top >= mCoord.height - mMargin.bottom
+			// if there is a mask, also check by mask
+			|| !isMaskPickInside(IntPoint((int)_point.left, (int)_point.top), mCoord))
+			return nullptr;
+
+		// ask children
+		int childLeft = (int)_point.left;
+		int childTop = (int)_point.top;
+		if constexpr (std::is_floating_point_v<T>)
 		{
-			// общаемся только с послушными детьми
+			childLeft = (int)std::floor(_point.left);
+			childTop = (int)std::floor(_point.top);
+		}
+		return pickChildrenOrSelf({childLeft, childTop});
+	}
+
+	ILayerItem* Widget::pickChildrenOrSelf(IntPoint _point) const
+	{
+		for (VectorWidgetPtr::const_reverse_iterator widget = mWidgetChild.rbegin(); widget != mWidgetChild.rend();
+			 ++widget)
+		{
+			// only talk to obedient children
 			if ((*widget)->mWidgetStyle == WidgetStyle::Popup)
 				continue;
 
-			ILayerItem* item = (*widget)->getLayerItemByPoint(_left - mCoord.left, _top - mCoord.top);
+			ILayerItem* item = (*widget)->getLayerItemByPoint(_point.left, _point.top);
 			if (item != nullptr)
 				return item;
 		}
-		// спрашиваем у детишек скна
-		for (VectorWidgetPtr::const_reverse_iterator widget = mWidgetChildSkin.rbegin(); widget != mWidgetChildSkin.rend(); ++widget)
+		// ask skin children
+		for (VectorWidgetPtr::const_reverse_iterator widget = mWidgetChildSkin.rbegin();
+			 widget != mWidgetChildSkin.rend();
+			 ++widget)
 		{
-			ILayerItem* item = (*widget)->getLayerItemByPoint(_left - mCoord.left, _top - mCoord.top);
+			ILayerItem* item = (*widget)->getLayerItemByPoint(_point.left, _point.top);
 			if (item != nullptr)
 				return item;
 		}
 
-		// непослушные дети
-		return getInheritsPick() ? nullptr : (ILayerItem*)(this);
+		// disobedient children
+		return getInheritsPick() ? nullptr : const_cast<Widget*>(this);
 	}
 
-	void Widget::_updateAbsolutePoint()
+	void Widget::_updateGeometry(const IntSize* _oldSize)
 	{
-		// мы рут, нам не надо
-		if (!mCroppedParent)
-			return;
+		const IntPoint oldPosition = mAbsolutePosition;
+		mAbsolutePosition = mCroppedParent ? mCroppedParent->getAbsolutePosition() + mCoord.point() : mCoord.point();
+		updateRotationTransform();
 
-		mAbsolutePosition = mCroppedParent->getAbsolutePosition() + mCoord.point();
-
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_updateAbsolutePoint();
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_updateAbsolutePoint();
+		for (auto& widget : mWidgetChild)
+			if (_oldSize != nullptr)
+				widget->_setAlign(*_oldSize, getSize());
+			else if (widget->mCroppedParent != nullptr)
+				widget->_updateGeometry();
+			else if (widget->mWorldHasRotation)
+				widget->invalidateRotation();
+		for (auto& widget : mWidgetChildSkin)
+			if (_oldSize != nullptr)
+				widget->_setAlign(*_oldSize, getSize());
+			else if (widget->mCroppedParent != nullptr)
+				widget->_updateGeometry();
+			else if (widget->mWorldHasRotation)
+				widget->invalidateRotation();
 
 		_correctSkinItemView();
+
+		if (mAbsolutePosition != oldPosition || (_oldSize != nullptr && getSize() != *_oldSize))
+			eventChangeAbsoluteCoord(this);
 	}
 
-	void Widget::_forcePeek(Widget* _widget)
+	void Widget::_forcePick(Widget* _widget)
 	{
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
 		if (mWidgetClient != nullptr)
-			mWidgetClient->_forcePeek(_widget);
-
-		VectorWidgetPtr::iterator item = std::remove(mWidgetChild.begin(), mWidgetChild.end(), _widget);
-		if (item != mWidgetChild.end())
 		{
-			mWidgetChild.erase(item);
-			mWidgetChild.insert(mWidgetChild.begin(), _widget);
+			mWidgetClient->_forcePick(_widget);
+			return;
 		}
+
+		auto iter = std::find(mWidgetChild.begin(), mWidgetChild.end(), _widget);
+		if (iter == mWidgetChild.end())
+			return;
+
+		for (auto& widget : mWidgetChild)
+		{
+			if (widget == _widget)
+				widget->mDepth = -1;
+			else if (widget->getDepth() == -1)
+				widget->mDepth = 0;
+		}
+		_updateChilds(true);
 	}
 
-	Widget* Widget::findWidget(const std::string& _name)
+	Widget* Widget::findWidget(std::string_view _name)
 	{
 		if (_name == mName)
 			return this;
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
 		if (mWidgetClient != nullptr)
 			return mWidgetClient->findWidget(_name);
 
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
+		for (const auto& widget : mWidgetChild)
 		{
-			Widget* find = (*widget)->findWidget(_name);
+			Widget* find = widget->findWidget(_name);
 			if (nullptr != find)
 				return find;
 		}
@@ -559,173 +597,102 @@ namespace MyGUI
 
 	void Widget::setRealPosition(const FloatPoint& _point)
 	{
-		setPosition(CoordConverter::convertFromRelative(_point, mCroppedParent == nullptr ? RenderManager::getInstance().getViewSize() : mCroppedParent->getSize()));
+		auto parentSize =
+			mCroppedParent == nullptr ? RenderManager::getInstance().getViewSize() : mCroppedParent->getSize();
+		setPosition(CoordConverter::convertFromRelative(_point, parentSize));
 	}
 
 	void Widget::setRealSize(const FloatSize& _size)
 	{
-		setSize(CoordConverter::convertFromRelative(_size, mCroppedParent == nullptr ? RenderManager::getInstance().getViewSize() : mCroppedParent->getSize()));
+		auto parentSize =
+			mCroppedParent == nullptr ? RenderManager::getInstance().getViewSize() : mCroppedParent->getSize();
+		setSize(CoordConverter::convertFromRelative(_size, parentSize));
 	}
 
 	void Widget::setRealCoord(const FloatCoord& _coord)
 	{
-		setCoord(CoordConverter::convertFromRelative(_coord, mCroppedParent == nullptr ? RenderManager::getInstance().getViewSize() : mCroppedParent->getSize()));
+		auto parentSize =
+			mCroppedParent == nullptr ? RenderManager::getInstance().getViewSize() : mCroppedParent->getSize();
+		setCoord(CoordConverter::convertFromRelative(_coord, parentSize));
 	}
 
-	void Widget::_setAlign(const IntSize& _oldsize)
+	void Widget::_setAlign(const IntSize& _oldsize, const IntSize& _newSize)
 	{
-		const IntSize& size = getParentSize();
+		auto [coord, resize, move] = CoordConverter::applyAlign(mAlign, mCoord, _newSize, _oldsize);
 
-		bool need_move = false;
-		bool need_size = false;
-		IntCoord coord = mCoord;
-
-		// первоначальное выравнивание
-		if (mAlign.isHStretch())
-		{
-			// растягиваем
-			coord.width = mCoord.width + (size.width - _oldsize.width);
-			need_size = true;
-		}
-		else if (mAlign.isRight())
-		{
-			// двигаем по правому краю
-			coord.left = mCoord.left + (size.width - _oldsize.width);
-			need_move = true;
-		}
-		else if (mAlign.isHCenter())
-		{
-			// выравнивание по горизонтали без растяжения
-			coord.left = (size.width - mCoord.width) / 2;
-			need_move = true;
-		}
-
-		if (mAlign.isVStretch())
-		{
-			// растягиваем
-			coord.height = mCoord.height + (size.height - _oldsize.height);
-			need_size = true;
-		}
-		else if (mAlign.isBottom())
-		{
-			// двигаем по нижнему краю
-			coord.top = mCoord.top + (size.height - _oldsize.height);
-			need_move = true;
-		}
-		else if (mAlign.isVCenter())
-		{
-			// выравнивание по вертикали без растяжения
-			coord.top = (size.height - mCoord.height) / 2;
-			need_move = true;
-		}
-
-		if (need_move)
-		{
-			if (need_size)
-				setCoord(coord);
-			else
-				setPosition(coord.point());
-		}
-		else if (need_size)
-		{
+		if (move && resize)
+			setCoord(coord);
+		else if (move)
+			setPosition(coord.point());
+		else if (resize)
 			setSize(coord.size());
-		}
+
+		// Unchanged local coordinates (including a resize rejected by an override) can still inherit movement.
+		if (mCroppedParent != nullptr && mAbsolutePosition != mCroppedParent->getAbsolutePosition() + mCoord.point())
+			_updateGeometry();
+
+		// Parent clipping can change even when alignments leave coordinates unchanged
+		// The coordinate setters may return early, so refresh the view explicitly
+		// Descendants also inherit rotation around the parent's changed pivot.
+		if (mWorldHasRotation)
+			invalidateRotation();
 		else
-		{
-			_updateView(); // только если не вызвано передвижение и сайз
-		}
+			_updateView();
 	}
 
 	void Widget::setPosition(const IntPoint& _point)
 	{
-		// обновляем абсолютные координаты
-		mAbsolutePosition += _point - mCoord.point();
-
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_updateAbsolutePoint();
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_updateAbsolutePoint();
-
+		if (mCoord.point() == _point)
+			return;
 		mCoord = _point;
+		_updateGeometry();
 
 		_updateView();
+
+		eventChangeCoord(this);
 	}
 
 	void Widget::setSize(const IntSize& _size)
 	{
-		// устанавливаем новую координату а старую пускаем в расчеты
-		IntSize old = mCoord.size();
-		mCoord = _size;
-
-		bool visible = true;
-
-		// обновляем выравнивание
-		bool margin = mCroppedParent ? _checkMargin() : false;
-
-		if (margin)
-		{
-			// проверка на полный выход за границу
-			if (_checkOutside())
-			{
-				// скрываем
-				visible = false;
-			}
-		}
-
-		_setSubSkinVisible(visible);
-
-		// передаем старую координату , до вызова, текущая координата отца должна быть новой
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_setAlign(old);
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_setAlign(old);
-
-		_setSkinItemAlign(old);
-
-		// запоминаем текущее состояние
-		mIsMargin = margin;
+		if (mCoord.size() == _size)
+			return;
+		Widget::setCoord(IntCoord(mCoord.point(), _size));
 	}
 
 	void Widget::setCoord(const IntCoord& _coord)
 	{
-		// обновляем абсолютные координаты
-		mAbsolutePosition += _coord.point() - mCoord.point();
-
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_updateAbsolutePoint();
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_updateAbsolutePoint();
-
-		// устанавливаем новую координату а старую пускаем в расчеты
-		IntCoord old = mCoord;
+		if (mCoord == _coord)
+			return;
+		// set new coordinate, use old one in calculations
+		IntSize old = mCoord.size();
 		mCoord = _coord;
 
+		_updateCoord(old);
+
+		eventChangeCoord(this);
+	}
+
+	void Widget::_updateCoord(const IntSize& _oldSize)
+	{
 		bool visible = true;
 
-		// обновляем выравнивание
 		bool margin = mCroppedParent ? _checkMargin() : false;
 
 		if (margin)
 		{
-			// проверка на полный выход за границу
-			if (_checkOutside())
+			if (_checkOutsideUnrotated())
 			{
-				// скрываем
 				visible = false;
 			}
 		}
 
 		_setSubSkinVisible(visible);
 
-		// передаем старую координату , до вызова, текущая координата отца должна быть новой
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_setAlign(old.size());
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_setAlign(old.size());
+		_updateGeometry(&_oldSize);
 
-		_setSkinItemAlign(old.size());
+		_setSkinItemAlign(_oldSize);
 
-		// запоминаем текущее состояние
+		// remember current state
 		mIsMargin = margin;
 	}
 
@@ -734,15 +701,195 @@ namespace MyGUI
 		mAlign = _value;
 	}
 
-	void Widget::detachFromWidget(const std::string& _layer)
+	void Widget::setRotation(float _radians)
 	{
-		std::string oldlayer = getLayer() != nullptr ? getLayer()->getName() : "";
+		if (mRotation == _radians)
+			return;
+		const bool rotationPresenceChanged = (mRotation == 0.0f) != (_radians == 0.0f);
+		mRotation = _radians;
+		if (rotationPresenceChanged)
+			updateWorldHasRotation();
+		mRotationTransform.cosine = std::cos(_radians);
+		mRotationTransform.sine = std::sin(_radians);
+		invalidateRotation();
+	}
 
-		Widget* parent = getParent();
-		if (parent)
+	float Widget::getRotation() const
+	{
+		return mRotation;
+	}
+
+	void Widget::setRotationCenter(const FloatPoint& _center)
+	{
+		if (mCustomRotationCenter && mRotationCenter == _center)
+			return;
+		mRotationCenter = _center;
+		mCustomRotationCenter = true;
+		invalidateRotation();
+	}
+
+	FloatPoint Widget::getRotationCenter() const
+	{
+		return mCustomRotationCenter ? mRotationCenter : FloatPoint(mCoord.width * 0.5f, mCoord.height * 0.5f);
+	}
+
+	FloatPoint Widget::RotationTransform::transformPoint(const FloatPoint& _point) const
+	{
+		return FloatPoint(
+			cosine * _point.left - sine * _point.top + offsetX,
+			sine * _point.left + cosine * _point.top + offsetY);
+	}
+
+	FloatPoint Widget::RotationTransform::inverseTransformPoint(const FloatPoint& _point) const
+	{
+		const float x = _point.left - offsetX;
+		const float y = _point.top - offsetY;
+		return FloatPoint(cosine * x + sine * y, cosine * y - sine * x);
+	}
+
+	void Widget::updateRotationTransform()
+	{
+		// Map widget-local points into the coordinate space used by mCoord.
+		mRotationTransform.offsetX = (float)mCoord.left;
+		mRotationTransform.offsetY = (float)mCoord.top;
+		if (mRotation == 0.0f)
+			return;
+		const FloatPoint center = getRotationCenter();
+		mRotationTransform.offsetX +=
+			center.left - mRotationTransform.cosine * center.left + mRotationTransform.sine * center.top;
+		mRotationTransform.offsetY +=
+			center.top - mRotationTransform.sine * center.left - mRotationTransform.cosine * center.top;
+	}
+
+	void Widget::updateWorldHasRotation()
+	{
+		const bool hasRotation = mRotation != 0.0f || (mParent && mParent->mWorldHasRotation);
+		if (mWorldHasRotation == hasRotation)
+			return;
+		mWorldHasRotation = hasRotation;
+		for (auto* widget : mWidgetChild)
+			widget->updateWorldHasRotation();
+		for (auto* widget : mWidgetChildSkin)
+			widget->updateWorldHasRotation();
+	}
+
+	Widget::RotationTransform Widget::getWorldRotationTransform() const
+	{
+		if (mParent == nullptr)
+			return mRotationTransform;
+		const RotationTransform parent = mParent->getWorldRotationTransform();
+		FloatPoint offset(mRotationTransform.offsetX, mRotationTransform.offsetY);
+		// Popup positions are absolute, but the parent transform takes local coordinates.
+		if (!mCroppedParent)
+			offset -= FloatPoint((float)mParent->getAbsoluteLeft(), (float)mParent->getAbsoluteTop());
+		offset = parent.transformPoint(offset);
+		RotationTransform result;
+		result.cosine = parent.cosine * mRotationTransform.cosine - parent.sine * mRotationTransform.sine;
+		result.sine = parent.sine * mRotationTransform.cosine + parent.cosine * mRotationTransform.sine;
+		result.offsetX = offset.left;
+		result.offsetY = offset.top;
+		return result;
+	}
+
+	FloatPoint Widget::localToLayer(const FloatPoint& _point) const
+	{
+		return getWorldRotationTransform().transformPoint(_point);
+	}
+
+	void Widget::localToLayer(FloatPoint* _points, size_t _count) const
+	{
+		const RotationTransform transform = getWorldRotationTransform();
+		for (size_t i = 0; i < _count; ++i)
+			_points[i] = transform.transformPoint(_points[i]);
+	}
+
+	FloatPoint Widget::layerToLocal(const FloatPoint& _point) const
+	{
+		return getWorldRotationTransform().inverseTransformPoint(_point);
+	}
+
+	FloatPoint Widget::rotatePoint(const FloatPoint& _point) const
+	{
+		if (!mWorldHasRotation)
+			return _point;
+		const RotationTransform transform = getWorldRotationTransform();
+		return transform.transformPoint(
+			_point - FloatPoint((float)mAbsolutePosition.left, (float)mAbsolutePosition.top));
+	}
+
+	FloatPoint Widget::unrotatePoint(const FloatPoint& _point) const
+	{
+		if (!mWorldHasRotation)
+			return _point;
+		const RotationTransform transform = getWorldRotationTransform();
+		return transform.inverseTransformPoint(_point) +
+			FloatPoint((float)mAbsolutePosition.left, (float)mAbsolutePosition.top);
+	}
+
+	IntPoint Widget::unrotateVector(const IntPoint& _vector) const
+	{
+		const RotationTransform transform = getWorldRotationTransform();
+		return IntPoint(
+			(int)std::lround(transform.cosine * _vector.left + transform.sine * _vector.top),
+			(int)std::lround(transform.cosine * _vector.top - transform.sine * _vector.left));
+	}
+
+	void Widget::_transformVertices(Vertex* _vertices, size_t _count, const RenderTargetInfo& _info) const
+	{
+		if (!mWorldHasRotation)
+			return;
+		const RotationTransform transform = getWorldRotationTransform();
+
+		for (size_t i = 0; i < _count; ++i)
 		{
-			// отдетачиваемся от лееров
-			if ( ! isRootWidget() )
+			Vertex& vertex = _vertices[i];
+			const FloatPoint pixel = geometry_utility::fromRenderTarget({vertex.x, vertex.y}, _info, mAbsolutePosition);
+			const FloatPoint transformed = geometry_utility::toRenderTarget(transform.transformPoint(pixel), _info);
+			vertex.x = transformed.left;
+			vertex.y = transformed.top;
+		}
+	}
+
+	bool Widget::_hasRotation() const
+	{
+		return mWorldHasRotation;
+	}
+
+	void Widget::invalidateRotation()
+	{
+		updateRotationTransform();
+		_updateView();
+		for (auto* widget : mWidgetChild)
+			widget->invalidateRotation();
+		for (auto* widget : mWidgetChildSkin)
+			widget->invalidateRotation();
+	}
+
+	void Widget::detachFromWidget(std::string_view _layer)
+	{
+		const bool hadRotation = mWorldHasRotation;
+		_detachFromWidget(_layer);
+		_updateAlpha();
+		_updateEnabled();
+		_updateVisible();
+		_updateGeometry();
+		// A rotation change affects descendant clipping even when this widget stays unclipped.
+		if (hadRotation != mWorldHasRotation)
+			invalidateRotation();
+		else
+			_updateView();
+	}
+
+	void Widget::_detachFromWidget(std::string_view _layer)
+	{
+		std::string_view oldlayer;
+		if (getLayer())
+			oldlayer = getLayer()->getName();
+
+		if (mParent != nullptr)
+		{
+			// detach from layers
+			if (!isRootWidget())
 			{
 				detachFromLayerItemNode(true);
 
@@ -759,29 +906,14 @@ namespace MyGUI
 
 				mCroppedParent = nullptr;
 
-				// обновляем координаты
-				mAbsolutePosition = mCoord.point();
-
-				for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-					(*widget)->_updateAbsolutePoint();
-				for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-					(*widget)->_updateAbsolutePoint();
-
-				// сбрасываем обрезку
+				// reset clipping
 				mMargin.clear();
-
-				_updateView();
 			}
 
-			// нам нужен самый рутовый парент
-			while (parent->getParent())
-				parent = parent->getParent();
-
-			//mIWidgetCreator = parent->mIWidgetCreator;
-			//mIWidgetCreator->_linkChildWidget(this);
 			Gui::getInstance()._linkChildWidget(this);
 			mParent->_unlinkChildWidget(this);
 			mParent = nullptr;
+			updateWorldHasRotation();
 		}
 
 		if (!_layer.empty())
@@ -792,11 +924,9 @@ namespace MyGUI
 		{
 			LayerManager::getInstance().attachToLayerNode(oldlayer, this);
 		}
-
-		_updateAlpha();
 	}
 
-	void Widget::attachToWidget(Widget* _parent, WidgetStyle _style, const std::string& _layer)
+	void Widget::attachToWidget(Widget* _parent, WidgetStyle _style, std::string_view _layer)
 	{
 		MYGUI_ASSERT(_parent, "parent must be valid");
 		MYGUI_ASSERT(_parent != this, "cyclic attach (attaching to self)");
@@ -805,7 +935,6 @@ namespace MyGUI
 		if (_parent->getClientWidget())
 			_parent = _parent->getClientWidget();
 
-		// проверяем на цикличность атача
 		Widget* parent = _parent;
 		while (parent->getParent())
 		{
@@ -813,21 +942,20 @@ namespace MyGUI
 			parent = parent->getParent();
 		}
 
-		// отдетачиваемся от всего
-		detachFromWidget();
+		const bool hadRotation = mWorldHasRotation;
+		_detachFromWidget({});
 
 		mWidgetStyle = _style;
 
 		if (_style == WidgetStyle::Popup)
 		{
-			//mIWidgetCreator->_unlinkChildWidget(this);
-			//mIWidgetCreator = _parent;
 			if (mParent == nullptr)
 				Gui::getInstance()._unlinkChildWidget(this);
 			else
 				mParent->_unlinkChildWidget(this);
 
 			mParent = _parent;
+			updateWorldHasRotation();
 			mParent->_linkChildWidget(this);
 
 			mCroppedParent = nullptr;
@@ -841,123 +969,131 @@ namespace MyGUI
 		{
 			LayerManager::getInstance().detachFromLayer(this);
 
-			//mIWidgetCreator->_unlinkChildWidget(this);
-			//mIWidgetCreator = _parent;
 			if (mParent == nullptr)
 				Gui::getInstance()._unlinkChildWidget(this);
 			else
 				mParent->_unlinkChildWidget(this);
 
 			mParent = _parent;
+			updateWorldHasRotation();
+			mParent->addChildItem(this);
 			mParent->_linkChildWidget(this);
 
 			mCroppedParent = _parent;
-			mAbsolutePosition = _parent->getAbsolutePosition() + mCoord.point();
-
-			for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-				(*widget)->_updateAbsolutePoint();
-			for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-				(*widget)->_updateAbsolutePoint();
-
-			mParent->addChildItem(this);
-
-			_updateView();
 		}
 		else if (_style == WidgetStyle::Overlapped)
 		{
 			LayerManager::getInstance().detachFromLayer(this);
 
-			//mIWidgetCreator->_unlinkChildWidget(this);
-			//mIWidgetCreator = _parent;
 			if (mParent == nullptr)
 				Gui::getInstance()._unlinkChildWidget(this);
 			else
 				mParent->_unlinkChildWidget(this);
 
 			mParent = _parent;
+			updateWorldHasRotation();
 			mParent->_linkChildWidget(this);
 
 			mCroppedParent = _parent;
-			mAbsolutePosition = _parent->getAbsolutePosition() + mCoord.point();
-
-			for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-				(*widget)->_updateAbsolutePoint();
-			for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-				(*widget)->_updateAbsolutePoint();
 
 			mParent->addChildNode(this);
-
-			_updateView();
 		}
 
 		_updateAlpha();
+		_updateEnabled();
+		_updateVisible();
+		_updateGeometry();
+		// Refresh descendants after the final parent, cropping parent, and geometry are established.
+		if (hadRotation != mWorldHasRotation)
+			invalidateRotation();
+		else
+			_updateView();
 	}
 
-	void Widget::setWidgetStyle(WidgetStyle _style, const std::string& _layer)
+	void Widget::setWidgetStyle(WidgetStyle _style, std::string_view _layer)
 	{
 		if (_style == mWidgetStyle)
 			return;
 		if (nullptr == getParent())
 			return;
 
-		Widget* parent = mParent;
-
-		detachFromWidget();
-		attachToWidget(parent, _style, _layer);
-		// ищем леер к которому мы присоедененны
+		attachToWidget(mParent, _style, _layer);
+		// find layer to which we are attached
 	}
 
-	Widget* Widget::createWidgetT(const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _name)
+	Widget* Widget::createWidgetT(
+		std::string_view _type,
+		std::string_view _skin,
+		const IntCoord& _coord,
+		Align _align,
+		std::string_view _name)
 	{
-		return baseCreateWidget(WidgetStyle::Child, _type, _skin, _coord, _align, "", _name, false);
+		return baseCreateWidget(WidgetStyle::Child, _type, _skin, _coord, _align, {}, _name, false);
 	}
 
-	Widget* Widget::createWidgetT(const std::string& _type, const std::string& _skin, int _left, int _top, int _width, int _height, Align _align, const std::string& _name)
+	Widget* Widget::createWidgetT(
+		std::string_view _type,
+		std::string_view _skin,
+		int _left,
+		int _top,
+		int _width,
+		int _height,
+		Align _align,
+		std::string_view _name)
 	{
 		return createWidgetT(_type, _skin, IntCoord(_left, _top, _width, _height), _align, _name);
 	}
 
-	Widget* Widget::createWidgetRealT(const std::string& _type, const std::string& _skin, float _left, float _top, float _width, float _height, Align _align, const std::string& _name)
+	Widget* Widget::createWidgetRealT(
+		std::string_view _type,
+		std::string_view _skin,
+		float _left,
+		float _top,
+		float _width,
+		float _height,
+		Align _align,
+		std::string_view _name)
 	{
 		return createWidgetRealT(_type, _skin, FloatCoord(_left, _top, _width, _height), _align, _name);
 	}
 
-	Widget* Widget::createWidgetT(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name)
+	Widget* Widget::createWidgetT(
+		WidgetStyle _style,
+		std::string_view _type,
+		std::string_view _skin,
+		const IntCoord& _coord,
+		Align _align,
+		std::string_view _layer,
+		std::string_view _name)
 	{
 		return baseCreateWidget(_style, _type, _skin, _coord, _align, _layer, _name, false);
 	}
 
-	EnumeratorWidgetPtr Widget::getEnumerator() const
+	const VectorWidgetPtr& Widget::getChildWidgets() const
 	{
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
 		if (mWidgetClient != nullptr)
-			return mWidgetClient->getEnumerator();
-		return Enumerator<VectorWidgetPtr>(mWidgetChild.begin(), mWidgetChild.end());
+			return mWidgetClient->getChildWidgets();
+		return mWidgetChild;
 	}
 
-	size_t Widget::getChildCount()
+	size_t Widget::getChildCount() const
 	{
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
-		if (mWidgetClient != nullptr)
-			return mWidgetClient->getChildCount();
-		return mWidgetChild.size();
+		return getChildWidgets().size();
 	}
 
-	Widget* Widget::getChildAt(size_t _index)
+	Widget* Widget::getChildAt(size_t _index) const
 	{
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
-		if (mWidgetClient != nullptr)
-			return mWidgetClient->getChildAt(_index);
-		MYGUI_ASSERT_RANGE(_index, mWidgetChild.size(), "Widget::getChildAt");
-		return mWidgetChild[_index];
+		const auto& widgets = getChildWidgets();
+		MYGUI_ASSERT_RANGE(_index, widgets.size(), "Widget::getChildAt");
+		return widgets[_index];
 	}
 
 	void Widget::baseUpdateEnable()
 	{
-		if (mEnabled)
-			setState("normal");
+		if (getInheritedEnabled())
+			_setWidgetState("normal");
 		else
-			setState("disabled");
+			_setWidgetState("disabled");
 	}
 
 	void Widget::setVisible(bool _value)
@@ -971,18 +1107,20 @@ namespace MyGUI
 
 	void Widget::_updateVisible()
 	{
-		mInheritsVisible = mParent == nullptr || (mParent->getVisible() && mParent->getInheritedVisible());
-		bool value = mVisible && mInheritsVisible;
+		mInheritedVisible = mParent == nullptr || mParent->getInheritedVisible();
+		mInheritedVisible = mVisible && mInheritedVisible;
 
-		_setSkinItemVisible(value);
+		_setSkinItemVisible(mInheritedVisible);
 
-		for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-			(*widget)->_updateVisible();
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->_updateVisible();
+		for (auto& widget : mWidgetChild)
+			widget->_updateVisible();
+		for (auto& widget : mWidgetChildSkin)
+			widget->_updateVisible();
 
-		if (!value && InputManager::getInstance().getMouseFocusWidget() == this)
+		if (!mInheritedVisible && InputManager::getInstance().getMouseFocusWidget() == this)
 			InputManager::getInstance()._resetMouseFocusWidget();
+		if (!mInheritedVisible && InputManager::getInstance().getKeyFocusWidget() == this)
+			InputManager::getInstance().resetKeyFocusWidget();
 	}
 
 	void Widget::setEnabled(bool _value)
@@ -996,17 +1134,17 @@ namespace MyGUI
 
 	void Widget::_updateEnabled()
 	{
-		mInheritsEnabled = mParent == nullptr || (mParent->getEnabled() && mParent->getInheritedEnabled());
-		bool value = mEnabled && mInheritsEnabled;
+		mInheritedEnabled = mParent == nullptr || (mParent->getInheritedEnabled());
+		mInheritedEnabled = mInheritedEnabled && mEnabled;
 
-		for (VectorWidgetPtr::iterator iter = mWidgetChild.begin(); iter != mWidgetChild.end(); ++iter)
-			(*iter)->_updateEnabled();
-		for (VectorWidgetPtr::iterator iter = mWidgetChildSkin.begin(); iter != mWidgetChildSkin.end(); ++iter)
-			(*iter)->_updateEnabled();
+		for (auto& iter : mWidgetChild)
+			iter->_updateEnabled();
+		for (auto& iter : mWidgetChildSkin)
+			iter->_updateEnabled();
 
 		baseUpdateEnable();
 
-		if (!value)
+		if (!mInheritedEnabled)
 			InputManager::getInstance().unlinkWidget(this);
 	}
 
@@ -1014,8 +1152,8 @@ namespace MyGUI
 	{
 		_setSkinItemColour(_value);
 
-		for (VectorWidgetPtr::iterator widget = mWidgetChildSkin.begin(); widget != mWidgetChildSkin.end(); ++widget)
-			(*widget)->setColour(_value);
+		for (auto& widget : mWidgetChildSkin)
+			widget->setColour(_value);
 	}
 
 	IntSize Widget::getParentSize() const
@@ -1036,21 +1174,14 @@ namespace MyGUI
 
 	bool Widget::_checkPoint(int _left, int _top) const
 	{
-		return ! ((_getViewLeft() > _left) || (_getViewTop() > _top) || (_getViewRight() < _left) || (_getViewBottom() < _top));
+		// Exclude the right and bottom edges to match the rendered pixel bounds.
+		return _getViewLeft() <= _left && _getViewTop() <= _top && _left < _getViewRight() && _top < _getViewBottom();
 	}
 
 	void Widget::_linkChildWidget(Widget* _widget)
 	{
-		VectorWidgetPtr::iterator iter = std::find(mWidgetChild.begin(), mWidgetChild.end(), _widget);
-		MYGUI_ASSERT(iter == mWidgetChild.end(), "widget already exist");
-		mWidgetChild.push_back(_widget);
-	}
-
-	void Widget::_unlinkChildWidget(Widget* _widget)
-	{
-		VectorWidgetPtr::iterator iter = std::remove(mWidgetChild.begin(), mWidgetChild.end(), _widget);
-		MYGUI_ASSERT(iter != mWidgetChild.end(), "widget not found");
-		mWidgetChild.erase(iter);
+		WidgetContainer::_linkChildWidget(_widget);
+		_updateChilds(false);
 	}
 
 	void Widget::shutdownOverride()
@@ -1059,64 +1190,50 @@ namespace MyGUI
 
 	void Widget::initialiseOverride()
 	{
+		///@wskin_child{Widget, Widget, Client} Client area, all child widgets are created inside this area.
+		assignWidget(mWidgetClient, "Client");
 	}
 
 	void Widget::setSkinProperty(ResourceSkin* _info)
 	{
 		const MapString& properties = _info->getProperties();
-		for (MapString::const_iterator item = properties.begin(); item != properties.end(); ++item)
-			setProperty((*item).first, (*item).second);
+		for (const auto& property : properties)
+			setProperty(property.first, property.second);
 	}
 
-	void Widget::setProperty(const std::string& _key, const std::string& _value)
+	void Widget::setProperty(std::string_view _key, std::string_view _value)
 	{
-		std::string key = _key;
-		std::string value = _value;
+		std::string key{_key};
+		std::string value{_value};
 
-		if (BackwardCompatibility::checkProperty(this, key, value))
-		{
-			size_t index = key.find("_");
-			if (index != std::string::npos)
-			{
-				MYGUI_LOG(Warning, "Widget property '" << key << "' have type prefix - use '" << key.substr(index + 1) << "' instead [" << LayoutManager::getInstance().getCurrentLayout() << "]");
-				key = key.substr(index + 1);
-			}
-
+		if (BackwardCompatibility::processDeprecatedProperty(this, key, value))
 			setPropertyOverride(key, value);
-		}
 	}
 
-	VectorWidgetPtr Widget::getSkinWidgetsByName(const std::string& _name)
+	VectorWidgetPtr Widget::getSkinWidgetsByName(std::string_view _name) const
 	{
 		VectorWidgetPtr result;
 
-		for (VectorWidgetPtr::iterator iter = mWidgetChildSkin.begin(); iter != mWidgetChildSkin.end(); ++iter)
-			(*iter)->findWidgets(_name, result);
+		for (const auto& childSkin : mWidgetChildSkin)
+			childSkin->findWidgets(_name, result);
 
 		return result;
 	}
 
-	void Widget::findWidgets(const std::string& _name, VectorWidgetPtr& _result)
+	void Widget::findWidgets(std::string_view _name, VectorWidgetPtr& _result)
 	{
 		if (_name == mName)
 			_result.push_back(this);
 
-		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
 		if (mWidgetClient != nullptr)
 		{
 			mWidgetClient->findWidgets(_name, _result);
 		}
 		else
 		{
-			for (VectorWidgetPtr::iterator widget = mWidgetChild.begin(); widget != mWidgetChild.end(); ++widget)
-				(*widget)->findWidgets(_name, _result);
+			for (const auto& widget : mWidgetChild)
+				widget->findWidgets(_name, _result);
 		}
-	}
-
-	void Widget::destroySkinWidget(Widget* _widget)
-	{
-		mWidgetChild.push_back(_widget);
-		WidgetManager::getInstance().destroyWidget(_widget);
 	}
 
 	void Widget::onWidgetCreated(Widget* _widget)
@@ -1129,53 +1246,106 @@ namespace MyGUI
 
 	void Widget::setWidgetClient(Widget* _widget)
 	{
+		MYGUI_ASSERT(mWidgetClient != this, "mWidgetClient can not be this widget");
 		mWidgetClient = _widget;
 	}
 
-	Widget* Widget::_createSkinWidget(WidgetStyle _style, const std::string& _type, const std::string& _skin, const IntCoord& _coord, Align _align, const std::string& _layer, const std::string& _name)
+	Widget* Widget::_getClientWidget()
+	{
+		return getClientWidget() == nullptr ? this : getClientWidget();
+	}
+
+	const Widget* Widget::_getClientWidget() const
+	{
+		return getClientWidget() == nullptr ? this : getClientWidget();
+	}
+
+	Widget* Widget::_createSkinWidget(
+		WidgetStyle _style,
+		std::string_view _type,
+		std::string_view _skin,
+		const IntCoord& _coord,
+		Align _align,
+		std::string_view _layer,
+		std::string_view _name)
 	{
 		return baseCreateWidget(_style, _type, _skin, _coord, _align, _layer, _name, true);
 	}
 
-	void Widget::setPropertyOverride(const std::string& _key, const std::string& _value)
+	void Widget::setPropertyOverride(std::string_view _key, std::string_view _value)
 	{
+		/// @wproperty{Widget, Rotation, float} Rotation in radians.
+		if (_key == "Rotation")
+			setRotation(utility::parseValue<float>(_value));
+		/// @wproperty{Widget, RotationCenter, FloatPoint} Rotation pivot in widget-local pixels.
+		else if (_key == "RotationCenter")
+			setRotationCenter(utility::parseValue<FloatPoint>(_value));
 		/// @wproperty{Widget, Position, IntPoint} Set widget position.
-		if (_key == "Position")
+		else if (_key == "Position")
 			setPosition(utility::parseValue<IntPoint>(_value));
+
 		/// @wproperty{Widget, Size, IntSize} Set widget size.
 		else if (_key == "Size")
 			setSize(utility::parseValue<IntSize>(_value));
+
 		/// @wproperty{Widget, Coord, IntCoord} Set widget coordinates (position and size).
 		else if (_key == "Coord")
 			setCoord(utility::parseValue<IntCoord>(_value));
+
 		/// @wproperty{Widget, Visible, bool} Show or hide widget.
 		else if (_key == "Visible")
 			setVisible(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, Depth, int} Child widget rendering depth.
+		else if (_key == "Depth")
+			setDepth(utility::parseValue<int>(_value));
+
+		/// @wproperty{Widget, Alpha, float} Widget transparency from 0 to 1.
 		else if (_key == "Alpha")
 			setAlpha(utility::parseValue<float>(_value));
+
+		/// @wproperty{Widget, Colour, Colour} Widget colour.
 		else if (_key == "Colour")
 			setColour(utility::parseValue<Colour>(_value));
+
+		/// @wproperty{Widget, InheritsAlpha, bool} Alpha inheritance mode.
 		else if (_key == "InheritsAlpha")
 			setInheritsAlpha(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, InheritsPick, bool} Mouse accessibility inheritance mode.
 		else if (_key == "InheritsPick")
 			setInheritsPick(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, MaskPick, string} Texture file name for mouse accessibility mask.
 		else if (_key == "MaskPick")
-			setMaskPick(_value);
-		else if (_key == "State")
-			setState(_value);
+			setMaskPick(std::string{_value});
+
+		/// @wproperty{Widget, NeedKey, bool} Keyboard input accessibility mode.
 		else if (_key == "NeedKey")
 			setNeedKeyFocus(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, NeedMouse, bool} Mouse input accessibility mode.
 		else if (_key == "NeedMouse")
 			setNeedMouseFocus(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, Enabled, bool} Widget enabled mode.
 		else if (_key == "Enabled")
 			setEnabled(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, NeedToolTip, bool} Tooltip support mode.
 		else if (_key == "NeedToolTip")
 			setNeedToolTip(utility::parseValue<bool>(_value));
+
+		/// @wproperty{Widget, Pointer, string} Mouse pointer for this widget.
 		else if (_key == "Pointer")
 			setPointer(_value);
+
 		else
 		{
-			MYGUI_LOG(Warning, "Widget property '" << _key << "' not found" << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
+			MYGUI_LOG(
+				Warning,
+				"Widget '" << getName() << "|" << getTypeName() << "' have unknown property '" << _key << "' "
+						   << " [" << LayoutManager::getInstance().getCurrentLayout() << "]");
 			return;
 		}
 
@@ -1232,12 +1402,12 @@ namespace MyGUI
 		return mAlpha;
 	}
 
-	bool Widget::getInheritsAlpha()  const
+	bool Widget::getInheritsAlpha() const
 	{
 		return mInheritsAlpha;
 	}
 
-	bool Widget::isRootWidget()
+	bool Widget::isRootWidget() const
 	{
 		return nullptr == mCroppedParent;
 	}
@@ -1262,12 +1432,17 @@ namespace MyGUI
 		return mWidgetClient;
 	}
 
-	WidgetStyle Widget::getWidgetStyle()
+	const Widget* Widget::getClientWidget() const
+	{
+		return mWidgetClient;
+	}
+
+	WidgetStyle Widget::getWidgetStyle() const
 	{
 		return mWidgetStyle;
 	}
 
-	size_t Widget::_getItemIndex(Widget* _item)
+	size_t Widget::_getItemIndex(Widget* _item) const
 	{
 		return ITEM_NONE;
 	}
@@ -1277,12 +1452,12 @@ namespace MyGUI
 		mContainer = _value;
 	}
 
-	Widget* Widget::_getContainer()
+	Widget* Widget::_getContainer() const
 	{
 		return mContainer;
 	}
 
-	size_t Widget::_getContainerIndex(const IntPoint& _point)
+	size_t Widget::_getContainerIndex(const IntPoint& _point) const
 	{
 		return ITEM_NONE;
 	}
@@ -1292,19 +1467,84 @@ namespace MyGUI
 		return mCoord;
 	}
 
-	float Widget::_getRealAlpha()
+	float Widget::_getRealAlpha() const
 	{
 		return mRealAlpha;
 	}
 
 	bool Widget::getInheritedEnabled() const
 	{
-		return mInheritsEnabled;
+		return mInheritedEnabled;
 	}
 
 	bool Widget::getInheritedVisible() const
 	{
-		return mInheritsVisible;
+		return mInheritedVisible;
+	}
+
+	void Widget::resizeLayerItemView(const IntSize& _oldView, const IntSize& _newView)
+	{
+		_setAlign(_oldView, _newView);
+	}
+
+	void Widget::setDepth(int _value)
+	{
+		if (mDepth == _value)
+			return;
+
+		mDepth = _value;
+
+		if (mParent != nullptr)
+		{
+			// move element to last position, then bubble sort it
+			mParent->_unlinkChildWidget(this);
+			mParent->_linkChildWidget(this);
+			mParent->_updateChilds(false);
+		}
+	}
+
+	int Widget::getDepth() const
+	{
+		return mDepth;
+	}
+
+	void Widget::_updateChilds(bool _fullSort)
+	{
+		if (_fullSort)
+		{
+			std::stable_sort(
+				mWidgetChild.begin(),
+				mWidgetChild.end(),
+				[](Widget* lhs, Widget* rhs) { return lhs->getDepth() > rhs->getDepth(); });
+		}
+		else if (!mWidgetChild.empty())
+		{
+			// raise newly added item if necessary
+			size_t index = mWidgetChild.size() - 1;
+			while (index > 0 && mWidgetChild[index]->getDepth() > mWidgetChild[index - 1]->getDepth())
+			{
+				std::swap(mWidgetChild[index], mWidgetChild[index - 1]);
+				--index;
+			}
+		}
+
+		for (auto& widget : mWidgetChild)
+		{
+			if (widget->getWidgetStyle() == WidgetStyle::Child)
+			{
+				widget->detachFromLayerItemNode(false);
+				removeChildItem(widget);
+			}
+		}
+
+		for (auto& widget : mWidgetChild)
+		{
+			if (widget->getWidgetStyle() == WidgetStyle::Child)
+			{
+				addChildItem(widget);
+				widget->_updateView();
+			}
+		}
 	}
 
 } // namespace MyGUI

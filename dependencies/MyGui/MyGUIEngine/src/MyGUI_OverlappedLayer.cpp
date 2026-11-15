@@ -1,24 +1,8 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
-
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_LayerItem.h"
@@ -26,43 +10,52 @@
 #include "MyGUI_LayerNode.h"
 #include "MyGUI_RenderManager.h"
 
+#include <pugixml.hpp>
+
 namespace MyGUI
 {
 
-	OverlappedLayer::OverlappedLayer() :
-		mIsPick(false),
-		mOutOfDate(false)
+	OverlappedLayer::OverlappedLayer()
 	{
+		mViewSize = RenderManager::getInstance().getViewSize();
 	}
 
 	OverlappedLayer::~OverlappedLayer()
 	{
-		MYGUI_ASSERT(mChildItems.empty(), "Layer '" << getName() << "' must be empty before destroy");
+		if (!mChildItems.empty())
+			MYGUI_LOG(Critical, "Layer '" << getName() << "' must be empty before destroy");
 	}
 
 	void OverlappedLayer::deserialization(xml::ElementPtr _node, Version _version)
 	{
-		mName = _node->findAttribute("name");
+		mName = _node.node().attribute("name").value();
 		if (_version >= Version(1, 2))
 		{
-			MyGUI::xml::ElementEnumerator propert = _node->getElementEnumerator();
-			while (propert.next("Property"))
+			for (auto propert : _node.node().children("Property"))
 			{
-				const std::string& key = propert->findAttribute("key");
-				const std::string& value = propert->findAttribute("value");
+				std::string_view key = propert.attribute("key").value();
+				std::string_view value = propert.attribute("value").value();
 				if (key == "Pick")
-					mIsPick = utility::parseValue<bool>(value);
+					setPick(utility::parseValue<bool>(value));
 			}
+		}
+		else if (_version >= Version(1, 0))
+		{
+			setPick(utility::parseBool(_node.node().attribute("pick").value()));
 		}
 		else
 		{
-			mIsPick = utility::parseBool(_version < Version(1, 0) ? _node->findAttribute("peek") : _node->findAttribute("pick"));
+			setPick(utility::parseBool(_node.node().attribute("peek").value()));
 		}
+	}
+
+	void OverlappedLayer::setPick(bool _pick)
+	{
+		mIsPick = _pick;
 	}
 
 	ILayerNode* OverlappedLayer::createChildItemNode()
 	{
-		// создаем рутовый айтем
 		ILayerNode* node = new LayerNode(this);
 		mChildItems.push_back(node);
 
@@ -73,7 +66,7 @@ namespace MyGUI
 
 	void OverlappedLayer::destroyChildItemNode(ILayerNode* _item)
 	{
-		// если есть отец, то русть сам и удаляет
+		// if has parent, let parent handle deletion
 		ILayerNode* parent = _item->getParent();
 		if (parent)
 		{
@@ -84,7 +77,6 @@ namespace MyGUI
 			return;
 		}
 
-		// айтем рутовый, мы удаляем
 		for (VectorILayerNode::iterator iter = mChildItems.begin(); iter != mChildItems.end(); ++iter)
 		{
 			if ((*iter) == _item)
@@ -103,7 +95,7 @@ namespace MyGUI
 
 	void OverlappedLayer::upChildItemNode(ILayerNode* _item)
 	{
-		// если есть отец, то пусть сам рулит
+		// if has parent, let parent handle
 		ILayerNode* parent = _item->getParent();
 		if (parent != nullptr)
 		{
@@ -151,32 +143,52 @@ namespace MyGUI
 
 	IntPoint OverlappedLayer::getPosition(int _left, int _top) const
 	{
-		return IntPoint(_left, _top);
+		return {_left, _top};
 	}
 
 	void OverlappedLayer::renderToTarget(IRenderTarget* _target, bool _update)
 	{
-		for (VectorILayerNode::iterator iter = mChildItems.begin(); iter != mChildItems.end(); ++iter)
-			(*iter)->renderToTarget(_target, _update);
+		for (auto& childItem : mChildItems)
+			childItem->renderToTarget(_target, _update);
 
 		mOutOfDate = false;
 	}
 
-	EnumeratorILayerNode OverlappedLayer::getEnumerator() const
+	void OverlappedLayer::resizeView(const IntSize& _viewSize)
 	{
-		return EnumeratorILayerNode(mChildItems);
+		for (auto& childItem : mChildItems)
+			childItem->resizeView(_viewSize);
+
+		mViewSize = _viewSize;
+	}
+
+	const VectorILayerNode& OverlappedLayer::getChildItems() const
+	{
+		return mChildItems;
+	}
+
+	size_t OverlappedLayer::getLayerNodeCount() const
+	{
+		return mChildItems.size();
+	}
+
+	ILayerNode* OverlappedLayer::getLayerNodeAt(size_t _index) const
+	{
+		MYGUI_ASSERT_RANGE(_index, mChildItems.size(), "OverlappedLayer::getLayerNodeAt");
+
+		return mChildItems[_index];
 	}
 
 	const IntSize& OverlappedLayer::getSize() const
 	{
-		return RenderManager::getInstance().getViewSize();
+		return mViewSize;
 	}
 
 	bool OverlappedLayer::isOutOfDate() const
 	{
-		for (VectorILayerNode::const_iterator iter = mChildItems.begin(); iter != mChildItems.end(); ++iter)
+		for (const auto& childItem : mChildItems)
 		{
-			if (static_cast<const LayerNode*>(*iter)->isOutOfDate())
+			if (static_cast<const LayerNode*>(childItem)->isOutOfDate())
 				return true;
 		}
 

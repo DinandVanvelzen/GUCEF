@@ -1,38 +1,25 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		03/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_TOOL_TIP_MANAGER_H__
-#define __MYGUI_TOOL_TIP_MANAGER_H__
+#ifndef MYGUI_TOOL_TIP_MANAGER_H_
+#define MYGUI_TOOL_TIP_MANAGER_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_IUnlinkWidget.h"
+#include "MyGUI_Macros.h"
 #include "MyGUI_Singleton.h"
+#include "MyGUI_Types.h"
 
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT ToolTipManager :
-		public Singleton<ToolTipManager>,
-		public IUnlinkWidget
+	class MYGUI_EXPORT ToolTipManager : public IUnlinkWidget
 	{
+		MYGUI_SINGLETON_DECLARATION(ToolTipManager);
+
 	public:
 		ToolTipManager();
 
@@ -42,8 +29,8 @@ namespace MyGUI
 		void setDelayVisible(float _value);
 		float getDelayVisible() const;
 
-	/*internal:*/
-		void _unlinkWidget(Widget* _widget);
+		/*internal:*/
+		void _unlinkWidget(Widget* _widget) override;
 
 	private:
 		void notifyEventFrameStart(float _time);
@@ -56,17 +43,17 @@ namespace MyGUI
 		size_t getToolTipIndex(Widget* _widget) const;
 
 	private:
-		float mDelayVisible;
-		Widget* mOldFocusWidget;
+		float mDelayVisible{0.5f};
+		Widget* mOldFocusWidget{nullptr};
 		IntPoint mOldMousePoint;
-		bool mToolTipVisible;
-		float mCurrentTime;
-		size_t mOldIndex;
-		bool mNeedToolTip;
+		bool mToolTipVisible{false};
+		float mCurrentTime{0};
+		size_t mOldIndex{ITEM_NONE};
+		bool mNeedToolTip{false};
 
-		bool mIsInitialise;
+		bool mIsInitialise{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_TOOL_TIP_MANAGER_H__
+#endif // MYGUI_TOOL_TIP_MANAGER_H_

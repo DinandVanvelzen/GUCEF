@@ -1,131 +1,119 @@
-/*!
-	@file
-	@author		George Evmenov
-	@date		12/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_GeometryUtility.h"
 
-namespace MyGUI
+namespace MyGUI::geometry_utility
 {
 
-	namespace geometry_utility
+	VectorFloatPoint cropPolygon(const FloatPoint* _baseVerticiesPos, size_t _size, const IntCoord& _cropRectangle)
 	{
-
-		VectorFloatPoint cropPolygon(FloatPoint* _baseVerticiesPos, size_t _size, const IntCoord& _cropRectangle)
+		VectorFloatPoint resultVerticiesPos;
+		resultVerticiesPos.resize(_size);
+		for (size_t i = 0; i < _size; ++i)
 		{
-			VectorFloatPoint resultVerticiesPos;
-			resultVerticiesPos.resize(_size);
-			for (size_t i = 0; i < _size; ++i)
+			resultVerticiesPos[i] = _baseVerticiesPos[i];
+		}
+
+		cropPolygonSide(resultVerticiesPos, _cropRectangle.left, Left);
+		cropPolygonSide(resultVerticiesPos, _cropRectangle.right(), Right);
+		cropPolygonSide(resultVerticiesPos, _cropRectangle.top, Top);
+		cropPolygonSide(resultVerticiesPos, _cropRectangle.bottom(), Bottom);
+
+		return resultVerticiesPos;
+	}
+
+	void cropPolygonSide(VectorFloatPoint& _verticies, int _sideCoord, Side _side)
+	{
+		VectorFloatPoint result;
+		result.reserve(_verticies.size() + 1);
+		const bool horizontal = _side == Left || _side == Right;
+		const float direction = (_side == Right || _side == Bottom) ? -1.0f : 1.0f;
+		for (size_t i = 0; i < _verticies.size(); ++i)
+		{
+			const FloatPoint& a = _verticies[i];
+			const FloatPoint& b = _verticies[(i + 1) % _verticies.size()];
+			const float distanceA = direction * ((horizontal ? a.left : a.top) - _sideCoord);
+			const float distanceB = direction * ((horizontal ? b.left : b.top) - _sideCoord);
+			if (distanceA >= 0)
+				result.push_back(a);
+			// A vertex on the boundary is already emitted by its own edge.
+			if ((distanceA > 0 && distanceB < 0) || (distanceA < 0 && distanceB > 0))
 			{
-				resultVerticiesPos[i] = _baseVerticiesPos[i];
+				const float t = distanceA / (distanceA - distanceB);
+				FloatPoint intersection(a.left + t * (b.left - a.left), a.top + t * (b.top - a.top));
+				if (horizontal)
+					intersection.left = (float)_sideCoord;
+				else
+					intersection.top = (float)_sideCoord;
+				result.push_back(intersection);
 			}
-
-			cropPolygonSide(resultVerticiesPos, _cropRectangle.left, Left);
-			cropPolygonSide(resultVerticiesPos, _cropRectangle.right(), Right);
-			cropPolygonSide(resultVerticiesPos, _cropRectangle.top, Top);
-			cropPolygonSide(resultVerticiesPos, _cropRectangle.bottom(), Bottom);
-
-			return resultVerticiesPos;
 		}
+		_verticies.swap(result);
+	}
 
-		void cropPolygonSide(VectorFloatPoint& _verticies, int _sideCoord, Side _side)
+	FloatPoint toRenderTarget(FloatPoint _point, const RenderTargetInfo& _info, IntPoint _origin)
+	{
+		toRenderTargetInPlace(&_point, 1, _info, _origin);
+		return _point;
+	}
+
+	FloatRect toRenderTarget(const FloatRect& _rect, const RenderTargetInfo& _info, IntPoint _origin)
+	{
+		std::array<FloatPoint, 2> corners = {{{_rect.left, _rect.top}, {_rect.right, _rect.bottom}}};
+		toRenderTargetInPlace(corners, _info, _origin);
+		return {corners[0].left, corners[0].top, corners[1].left, corners[1].top};
+	}
+
+	void toRenderTargetInPlace(FloatPoint* _points, size_t _count, const RenderTargetInfo& _info, IntPoint _origin)
+	{
+		const float left = ((_info.pixScaleX * (_origin.left - _info.leftOffset) + _info.hOffset) * 2) - 1;
+		const float top = 1 - ((_info.pixScaleY * (_origin.top - _info.topOffset) + _info.vOffset) * 2);
+		for (size_t i = 0; i < _count; ++i)
 		{
-			VectorFloatPoint newVerticies;
-			int invert = (_side == Right || _side == Bottom) ? -1 : 1;
-			for (size_t i = 0; i < _verticies.size(); ++i)
-			{
-				FloatPoint& v0 = _verticies[i];
-				FloatPoint& v1 = _verticies[(i+1)%_verticies.size()];
-				switch (_side)
-				{
-				case Left:
-				case Right:
-					// both inside
-					if (invert* v0.left >= invert* _sideCoord && invert* v1.left >= invert * _sideCoord)
-						newVerticies.push_back(v0);
-					// intersect side (1st vertex in)
-					else if (invert* v0.left >= invert * _sideCoord && invert * v1.left < invert * _sideCoord)
-					{
-						newVerticies.push_back(v0);
-						float c = (v0.left - _sideCoord) / (_sideCoord - v1.left);
-						newVerticies.push_back(FloatPoint((float)_sideCoord, (v0.top + c * v1.top) / (c + 1)));
-					}
-					// intersect side (2nd vertex in)
-					else if (invert* v0.left <= invert * _sideCoord && invert * v1.left > invert * _sideCoord)
-					{
-						float c = (v0.left - _sideCoord) / (_sideCoord - v1.left);
-						newVerticies.push_back(FloatPoint((float)_sideCoord, (v0.top + c * v1.top) / (c + 1)));
-					}
-					// else don't add any verticies
-					break;
-				case Top:
-				case Bottom:
-					// both inside
-					if (invert* v0.top >= invert* _sideCoord && invert* v1.top >= invert * _sideCoord)
-						newVerticies.push_back(v0);
-					// intersect side (1st vertex in)
-					else if (invert* v0.top >= invert * _sideCoord && invert * v1.top < invert * _sideCoord)
-					{
-						newVerticies.push_back(v0);
-						float c = (v0.top - _sideCoord) / (_sideCoord - v1.top);
-						newVerticies.push_back(FloatPoint((v0.left + c * v1.left) / (c + 1), (float)_sideCoord));
-					}
-					// intersect side (2nd vertex in)
-					else if (invert* v0.top <= invert * _sideCoord && invert * v1.top > invert * _sideCoord)
-					{
-						float c = (v0.top - _sideCoord) / (_sideCoord - v1.top);
-						newVerticies.push_back(FloatPoint((v0.left + c * v1.left) / (c + 1), (float)_sideCoord));
-					}
-					// else don't add any verticies
-					break;
-				}
-			}
-
-			_verticies = newVerticies;
+			_points[i].left = left + _points[i].left * _info.pixScaleX * 2;
+			_points[i].top = top - _points[i].top * _info.pixScaleY * 2;
 		}
+	}
 
-		FloatPoint getPositionInsideRect(const FloatPoint& _point, const FloatPoint& _corner0, const FloatPoint& _corner1, const FloatPoint& _corner2)
-		{
-			FloatPoint result;
+	FloatPoint fromRenderTarget(FloatPoint _point, const RenderTargetInfo& _info, IntPoint _origin)
+	{
+		return {
+			((_point.left + 1) * 0.5f - _info.hOffset) / _info.pixScaleX + _info.leftOffset - _origin.left,
+			((1 - _point.top) * 0.5f - _info.vOffset) / _info.pixScaleY + _info.topOffset - _origin.top};
+	}
 
-			FloatPoint point = _point - _corner0;
-			FloatPoint dirX = _corner1 - _corner0;
-			FloatPoint dirY = _corner2 - _corner0;
+	FloatPoint getPositionInsideRect(
+		const FloatPoint& _point,
+		const FloatPoint& _corner0,
+		const FloatPoint& _corner1,
+		const FloatPoint& _corner2)
+	{
+		FloatPoint point = _point - _corner0;
+		FloatPoint dirX = _corner1 - _corner0;
+		FloatPoint dirY = _corner2 - _corner0;
 
-			float div = dirX.left * dirY.top - dirX.top * dirY.left;
-			if (div == 0.0f)
-				return FloatPoint();
-			return FloatPoint(
-				(point.top * dirX.left - point.left * dirX.top) / div,
-				(point.left * dirY.top - point.top * dirY.left) / div
-				);
-		}
+		float div = dirX.left * dirY.top - dirX.top * dirY.left;
+		if (div == 0.0f)
+			return {};
+		return {
+			(point.top * dirX.left - point.left * dirX.top) / div,
+			(point.left * dirY.top - point.top * dirY.left) / div};
+	}
 
-		FloatPoint getUVFromPositionInsideRect(const FloatPoint& _point, const FloatPoint& _v0, const FloatPoint& _v1, const FloatPoint& _baseUV)
-		{
-			return FloatPoint(
-				_baseUV.left + _point.left * _v0.left + _point.top * _v1.left,
-				_baseUV.top  + _point.left * _v0.top  + _point.top * _v1.top
-				);
-		}
-
-	} // namespace geometry_utility
+	FloatPoint getUVFromPositionInsideRect(
+		const FloatPoint& _point,
+		const FloatPoint& _v0,
+		const FloatPoint& _v1,
+		const FloatPoint& _baseUV)
+	{
+		return {
+			_baseUV.left + _point.left * _v0.left + _point.top * _v1.left,
+			_baseUV.top + _point.left * _v0.top + _point.top * _v1.top};
+	}
 
 } // namespace MyGUI

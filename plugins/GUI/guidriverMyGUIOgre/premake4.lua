@@ -29,23 +29,23 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "MyGUI.Engine", "MyGUI.OgrePlatform", "Ogre", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
+links( { "MyGUI.Engine", "MyGUI.OgrePlatform", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
 
 configuration( {} )
-links( { "MyGUI.Engine", "MyGUI.OgrePlatform", "Ogre", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
+links( { "MyGUI.Engine", "MyGUI.OgrePlatform", "Ogre", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefMT", "gucefVFS", "guidriverMyGUI" } )
 
 
 configuration( {} )
-defines( { "GUIDRIVERMYGUIOGRE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverMyGUIOgre", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverMyGUIOgre" } )
+defines( { "GUIDRIVERMYGUIOGRE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverMyGUIOgre", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverMyGUIOgre", "MODULE_SEMVER=2_0_0_0" } )
 
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/guidriverMyGUIOgre.h",
-  "include/guidriverMyGUIOgre_CGUIContextOgre.h",
-  "include/guidriverMyGUIOgre_CGUIDriverOgre.h",
-  "include/guidriverMyGUIOgre_CImageLoader.h",
+  "include/guidriverMyGUIOgre_COgreContext.h",
+  "include/guidriverMyGUIOgre_COgreDriver.h",
+  "include/guidriverMyGUIOgre_ETypes.h",
   "include/guidriverMyGUIOgre_config.h",
   "include/guidriverMyGUIOgre_macros.h",
   "include/guidriverMyGUIOgre_pluginAPI.h"
@@ -57,36 +57,35 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/guidriverMyGUIOgre.cpp",
-  "src/guidriverMyGUIOgre_CGUIContextOgre.cpp",
-  "src/guidriverMyGUIOgre_CGUIDriverOgre.cpp",
-  "src/guidriverMyGUIOgre_CImageLoader.cpp",
+  "src/guidriverMyGUIOgre_COgreContext.cpp",
+  "src/guidriverMyGUIOgre_COgreDriver.cpp",
   "src/guidriverMyGUIOgre_pluginAPI.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverMyGUI/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../dependencies/pugixml/src", "../../../dependencies/utfcpp", "../../../dependencies/utfcpp/source", "../../../dependencies/utfcpp/source/utf8", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverMyGUI/include", "include" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "EMSCRIPTEN32" } )
-includedirs( { "../../../dependencies/Ogre/OgreMain/src" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src" } )
 
 configuration( { "EMSCRIPTEN64" } )
-includedirs( { "../../../dependencies/Ogre/OgreMain/src" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src", "../../../platform/gucefCORE/include/linux" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src", "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src", "../../../platform/gucefCORE/include/linux" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../dependencies/Ogre/OgreMain/src", "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../dependencies/MyGui/Platforms/Ogre/OgrePlatform/include", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../dependencies/MyGui/Platforms/OgrePlatform/include", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		12/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_Colour.h"
 
@@ -32,15 +17,7 @@ namespace MyGUI
 	const Colour Colour::Green = Colour(0, 1, 0, 1);
 	const Colour Colour::Blue = Colour(0, 0, 1, 1);
 
-	Colour::Colour() :
-		red(1),
-		green(1),
-		blue(1),
-		alpha(1)
-	{
-	}
-
-	Colour::Colour( float _red, float _green, float _blue, float _alpha) :
+	Colour::Colour(float _red, float _green, float _blue, float _alpha) :
 		red(_red),
 		green(_green),
 		blue(_blue),
@@ -48,28 +25,19 @@ namespace MyGUI
 	{
 	}
 
-	Colour::Colour(const std::string& _value)
+	Colour::Colour(std::string_view _value)
 	{
 		*this = parse(_value);
 	}
 
-	Colour& Colour::operator = (Colour const& _value)
-	{
-		red = _value.red;
-		green = _value.green;
-		blue = _value.blue;
-		alpha = _value.alpha;
-		return *this;
-	}
-
-	bool Colour::operator == (Colour const& _value) const
+	bool Colour::operator==(Colour const& _value) const
 	{
 		return ((red == _value.red) && (green == _value.green) && (blue == _value.blue) && (alpha == _value.alpha));
 	}
 
-	bool Colour::operator != (Colour const& _value) const
+	bool Colour::operator!=(Colour const& _value) const
 	{
-		return ! (*this == _value);
+		return !(*this == _value);
 	}
 
 	void Colour::set(float _red, float _green, float _blue, float _alpha)
@@ -92,43 +60,49 @@ namespace MyGUI
 		return stream.str();
 	}
 
-	Colour Colour::parse(const std::string& _value)
+	Colour Colour::parse(std::string_view _value)
 	{
 		if (!_value.empty())
 		{
 			if (_value[0] == '#')
 			{
-				std::istringstream stream(_value.substr(1));
+				std::stringstream stream{std::string{_value.substr(1)}};
 				int result = 0;
 				stream >> std::hex >> result;
 				if (!stream.fail())
 				{
-					return Colour( (unsigned char)( result >> 16 ) / 256.0f, (unsigned char)( result >> 8 ) / 256.0f, (unsigned char)( result ) / 256.0f );
+					return {
+						(unsigned char)(result >> 16) / 256.0f,
+						(unsigned char)(result >> 8) / 256.0f,
+						(unsigned char)(result) / 256.0f};
 				}
 			}
 			else
 			{
-				float red, green, blue, alpha = 1;
-				std::istringstream stream(_value);
+				float red;
+				float green;
+				float blue;
+				std::stringstream stream{std::string{_value}};
 				stream >> red >> green >> blue;
 				if (!stream.fail())
 				{
+					float alpha = ALPHA_MAX;
 					if (!stream.eof())
 						stream >> alpha;
-					return Colour(red, green, blue, alpha);
+					return {red, green, blue, alpha};
 				}
 			}
 		}
 		return Colour::Zero;
 	}
 
-	std::ostream& Colour::operatorShiftLeft(std::ostream& _stream, const Colour&  _value)
+	std::ostream& Colour::operatorShiftLeft(std::ostream& _stream, const Colour& _value)
 	{
 		_stream << _value.red << " " << _value.green << " " << _value.blue << " " << _value.alpha;
 		return _stream;
 	}
 
-	std::istream& Colour::operatorShiftRight(std::istream& _stream, Colour&  _value)
+	std::istream& Colour::operatorShiftRight(std::istream& _stream, Colour& _value)
 	{
 		_value.clear();
 
@@ -140,7 +114,7 @@ namespace MyGUI
 
 		if (value[0] == '#')
 		{
-			_value = Colour::parse(value);
+			_value = parse(value);
 		}
 		else
 		{

@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_MENU_ITEM_H__
-#define __MYGUI_MENU_ITEM_H__
+#ifndef MYGUI_MENU_ITEM_H_
+#define MYGUI_MENU_ITEM_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Button.h"
@@ -30,29 +15,33 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT MenuItem :
-		public Button,
-		public IItem,
-		public MemberObsolete<MenuItem>
+	/** \brief @wpage{MenuItem}
+		MenuItem widget description should be here.
+	*/
+	class MYGUI_EXPORT MenuItem : public Button, public IItem, public MemberObsolete<MenuItem>
 	{
-		MYGUI_RTTI_DERIVED( MenuItem )
+		MYGUI_RTTI_DERIVED(MenuItem)
 
 	public:
-		MenuItem();
-
 		/** @copydoc TextBox::setCaption(const UString& _value) */
-		virtual void setCaption(const UString& _value);
+		void setCaption(const UString& _value) override;
+
+		/** @copydoc TextBox::setFontName(std::string_view _value) */
+		void setFontName(std::string_view _value) override;
+
+		/** @copydoc TextBox::setFontHeight(int _value) */
+		void setFontHeight(int _value) override;
 
 		//! Replace an item name
 		void setItemName(const UString& _value);
 		//! Get item name
-		const UString& getItemName();
+		const UString& getItemName() const;
 
 		//! Replace an item name
-		void setItemData(Any _value);
+		void setItemData(Any _data);
 
 		//! Get item data
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getItemData(bool _throw = true)
 		{
 			return mOwner->getItemData<ValueType>(this, _throw);
@@ -62,62 +51,62 @@ namespace MyGUI
 		void removeItem();
 
 		//! Replace an item id at a specified position
-		void setItemId(const std::string& _value);
+		void setItemId(std::string_view _id);
 		//! Get item id from specified position
-		const std::string& getItemId();
+		const std::string& getItemId() const;
 
 		//! Get item index
-		size_t getItemIndex();
+		size_t getItemIndex() const;
 
 		/** Create child item (submenu), MenuItem can have only one child */
 		MenuControl* createItemChild();
 
 		/** Create specific type child item (submenu), MenuItem can have only one child */
-		template <typename Type>
+		template<typename Type>
 		Type* createItemChildT()
 		{
 			return mOwner->createItemChildT<Type>(this);
 		}
 
 		/** Set item type (see MenuItemType) */
-		void setItemType(MenuItemType _value);
+		void setItemType(MenuItemType _type);
 		/** Get item type (see MenuItemType) */
-		MenuItemType getItemType();
+		MenuItemType getItemType() const;
 
 		/** Hide or show child item (submenu) */
-		void setItemChildVisible(bool _value);
+		void setItemChildVisible(bool _visible);
 
 		/** Get parent MenuControl */
-		MenuControl* getMenuCtrlParent();
+		MenuControl* getMenuCtrlParent() const;
 
 		/** Get child item (submenu) */
-		MenuControl* getItemChild();
+		MenuControl* getItemChild() const;
 
 		bool getItemChecked() const;
 		void setItemChecked(bool _value);
 
-	/*internal:*/
-		virtual IItemContainer* _getItemContainer();
-		IntSize _getContentSize();
+		/*internal:*/
+		IItemContainer* _getItemContainer() const override;
+		IntSize _getContentSize() const;
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
-		virtual void onWidgetCreated(Widget* _widget);
+		void onWidgetCreated(Widget* _widget) override;
 
 	private:
 		void updateCheck();
 
 	private:
-		MenuControl* mOwner;
-		IntSize mMinSize;
-		Widget* mCheck;
-		bool mCheckValue;
+		MenuControl* mOwner{nullptr};
+		IntSize mMinSize{10, 10};
+		Widget* mCheck{nullptr};
+		bool mCheckValue{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_MENU_ITEM_H__
+#endif // MYGUI_MENU_ITEM_H_

@@ -1,0 +1,20 @@
+<ModuleInfoEntry>
+    <Module Name="MyGUI.OgrePlatform" Type="StaticLibrary" Platform="mswin;linux;android;emscripten">
+        <ModuleMetaData>
+            <License>MIT</License>
+            <SemVer>3.5.4.0</SemVer>
+            <DescriptionHeadline>MyGUI 3.5.4 render system for Ogre 1.x</DescriptionHeadline>
+            <DescriptionDetails>The Ogre platform of MyGUI (Ogre 14 API): render queue listener, hardware vertex buffers, Ogre textures and render targets. Textures and data go through the Ogre resource system; the Ogre glue plugins of GUCEF route that into the virtual file system and gucefIMAGE. Built with the Ogre module of this code base.</DescriptionDetails>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="MyGUI.Engine" />
+            <Dependency Name="MyGUI.Common.FileSystemInfo" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="MyGUI.Engine" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Compiler MinCppStandard="17" />
+    </Module>
+</ModuleInfoEntry>

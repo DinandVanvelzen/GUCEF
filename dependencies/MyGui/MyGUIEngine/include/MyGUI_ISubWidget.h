@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_SUB_WIDGET_H__
-#define __MYGUI_I_SUB_WIDGET_H__
+#ifndef MYGUI_I_SUB_WIDGET_H_
+#define MYGUI_I_SUB_WIDGET_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_ICroppedRectangle.h"
@@ -34,24 +19,23 @@ namespace MyGUI
 {
 
 	class ISubWidget;
-	typedef std::vector<ISubWidget*> VectorSubWidget;
+	using VectorSubWidget = std::vector<ISubWidget*>;
 
-	class MYGUI_EXPORT ISubWidget :
-		public ICroppedRectangle,
-		public IObject
+	class MYGUI_EXPORT ISubWidget : public ICroppedRectangle, public IObject
 	{
-		MYGUI_RTTI_DERIVED( ISubWidget )
+		MYGUI_RTTI_DERIVED(ISubWidget)
 
 	public:
-		ISubWidget() : mVisible(true) { }
-		virtual ~ISubWidget() { }
-
 		virtual void createDrawItem(ITexture* _texture, ILayerNode* _node) = 0;
 		virtual void destroyDrawItem() = 0;
 
-		virtual void setAlpha(float _alpha) { }
+		virtual void setAlpha(float /*_alpha*/)
+		{
+		}
 
-		virtual void setStateData(IStateInfo* _data) { }
+		virtual void setStateData(IStateInfo* /*_data*/)
+		{
+		}
 
 		virtual void doRender() = 0;
 
@@ -64,18 +48,22 @@ namespace MyGUI
 			mVisible = _value;
 		}
 
-		virtual void _updateView() { }
-		virtual void _correctView() { }
+		virtual void _updateView()
+		{
+		}
+		virtual void _correctView()
+		{
+		}
 
-		virtual void _setAlign(const IntSize& _oldsize)  { }
-
-		virtual void doManualRender(IVertexBuffer* _buffer, ITexture* _texture, size_t _count) { }
+		virtual void _setAlign(const IntSize& /*_oldsize*/)
+		{
+		}
 
 	protected:
 		Align mAlign;
-		bool mVisible;
+		bool mVisible{true};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_SUB_WIDGET_H__
+#endif // MYGUI_I_SUB_WIDGET_H_

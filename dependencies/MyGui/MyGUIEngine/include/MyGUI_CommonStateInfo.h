@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		06/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_COMMON_STATE_INFO_H__
-#define __MYGUI_COMMON_STATE_INFO_H__
+#ifndef MYGUI_COMMON_STATE_INFO_H_
+#define MYGUI_COMMON_STATE_INFO_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_IStateInfo.h"
@@ -31,53 +16,28 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT SubSkinStateInfo :
-		public IStateInfo
+	class MYGUI_EXPORT SubSkinStateInfo : public IStateInfo
 	{
-		MYGUI_RTTI_DERIVED( SubSkinStateInfo )
+		MYGUI_RTTI_DERIVED(SubSkinStateInfo)
 
 	public:
-		virtual ~SubSkinStateInfo() { }
-
 		const FloatRect& getRect() const
 		{
 			return mRect;
 		}
 
 	private:
-		virtual void deserialization(xml::ElementPtr _node, Version _version)
-		{
-			std::string texture = _node->getParent()->getParent()->findAttribute("texture");
-
-			// поддержка замены тегов в скинах
-			if (_version >= Version(1, 1))
-			{
-				texture = LanguageManager::getInstance().replaceTags(texture);
-			}
-
-			const IntSize& size = texture_utility::getTextureSize(texture);
-			const IntCoord& coord = IntCoord::parse(_node->findAttribute("offset"));
-			mRect = CoordConverter::convertTextureCoord(coord, size);
-		}
+		void deserialization(xml::ElementPtr _node, Version _version) override;
 
 	private:
 		FloatRect mRect;
 	};
 
-	class MYGUI_EXPORT TileRectStateInfo :
-		public IStateInfo
+	class MYGUI_EXPORT TileRectStateInfo : public IStateInfo
 	{
-		MYGUI_RTTI_DERIVED( TileRectStateInfo )
+		MYGUI_RTTI_DERIVED(TileRectStateInfo)
 
 	public:
-		TileRectStateInfo() :
-			mTileH(true),
-			mTileV(true)
-		{
-		}
-
-		virtual ~TileRectStateInfo() { }
-
 		const FloatRect& getRect() const
 		{
 			return mRect;
@@ -99,52 +59,52 @@ namespace MyGUI
 		}
 
 	private:
-		virtual void deserialization(xml::ElementPtr _node, Version _version)
-		{
-			std::string texture = _node->getParent()->getParent()->findAttribute("texture");
-
-			// поддержка замены тегов в скинах
-			if (_version >= Version(1, 1))
-			{
-				texture = LanguageManager::getInstance().replaceTags(texture);
-			}
-
-			const IntSize& size = texture_utility::getTextureSize(texture);
-			const IntCoord& coord = IntCoord::parse(_node->findAttribute("offset"));
-			mRect = CoordConverter::convertTextureCoord(coord, size);
-
-			xml::ElementEnumerator prop = _node->getElementEnumerator();
-			while (prop.next("Property"))
-			{
-				const std::string& key = prop->findAttribute("key");
-				const std::string& value = prop->findAttribute("value");
-				if (key == "TileH") mTileH = utility::parseBool(value);
-				else if (key == "TileV") mTileV = utility::parseBool(value);
-				else if (key == "TileSize") mTileSize = IntSize::parse(value);
-			}
-		}
+		void deserialization(xml::ElementPtr _node, Version _version) override;
 
 	private:
 		FloatRect mRect;
 		IntSize mTileSize;
-		bool mTileH;
-		bool mTileV;
+		bool mTileH{true};
+		bool mTileV{true};
 	};
 
-	class MYGUI_EXPORT EditTextStateInfo :
-		public IStateInfo
+#ifndef MYGUI_DONT_USE_OBSOLETE
+	class MYGUI_EXPORT RotatingSkinStateInfo : public IStateInfo
 	{
-		MYGUI_RTTI_DERIVED( EditTextStateInfo )
+		MYGUI_RTTI_DERIVED(RotatingSkinStateInfo)
 
 	public:
-		EditTextStateInfo() :
-			mColour(Colour::White),
-			mShift(false)
+		float getAngle() const
 		{
+			return mAngle;
 		}
 
-		virtual ~EditTextStateInfo() { }
+		const IntPoint& getCenter() const
+		{
+			return mCenter;
+		}
 
+		const FloatRect& getRect() const
+		{
+			return mRect;
+		}
+
+	private:
+		void deserialization(xml::ElementPtr _node, Version _version) override;
+
+	private:
+		FloatRect mRect;
+		IntPoint mCenter;
+		float mAngle{0}; // Angle in radians
+	};
+#endif // MYGUI_DONT_USE_OBSOLETE
+
+
+	class MYGUI_EXPORT EditTextStateInfo : public IStateInfo
+	{
+		MYGUI_RTTI_DERIVED(EditTextStateInfo)
+
+	public:
 		const Colour& getColour() const
 		{
 			return mColour;
@@ -156,24 +116,13 @@ namespace MyGUI
 		}
 
 	private:
-		virtual void deserialization(xml::ElementPtr _node, Version _version)
-		{
-			mShift = utility::parseBool(_node->findAttribute("shift"));
-
-			std::string colour = _node->findAttribute("colour");
-			if (_version >= Version(1, 1))
-			{
-				colour = LanguageManager::getInstance().replaceTags(colour);
-			}
-
-			mColour = Colour::parse(colour);
-		}
+		void deserialization(xml::ElementPtr _node, Version _version) override;
 
 	private:
-		Colour mColour;
-		bool mShift;
+		Colour mColour{Colour::White};
+		bool mShift{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_COMMON_STATE_INFO_H__
+#endif // MYGUI_COMMON_STATE_INFO_H_

@@ -1,43 +1,23 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		26/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ResourceSkin.h"
 #include "MyGUI_FactoryManager.h"
 #include "MyGUI_LanguageManager.h"
+#include "MyGUI_SubWidgetManager.h"
+
+#include <pugixml.hpp>
 
 namespace MyGUI
 {
 
-	ResourceSkin::ResourceSkin()
-	{
-	}
-
 	ResourceSkin::~ResourceSkin()
 	{
-		for (MapWidgetStateInfo::iterator item = mStates.begin(); item != mStates.end(); ++ item)
-		{
-			for (VectorStateInfo::iterator info = (*item).second.begin(); info != (*item).second.end(); ++ info)
-				delete (*info);
-		}
+		clear();
 		mStates.clear();
 	}
 
@@ -45,19 +25,21 @@ namespace MyGUI
 	{
 		Base::deserialization(_node, _version);
 
-		// парсим атрибуты скина
-		std::string name, texture, tmp;
+		const std::string& stateCategory = SubWidgetManager::getInstance().getStateCategoryName();
+
+		std::string_view name{_node.node().attribute("name").value()};
+		std::string texture{_node.node().attribute("texture").value()};
 		IntSize size;
-		_node->findAttribute("name", name);
-		_node->findAttribute("texture", texture);
-		if (_node->findAttribute("size", tmp)) size = IntSize::parse(tmp);
+		std::string_view tmp{_node.node().attribute("size").value()};
+		if (!tmp.empty())
+			size = IntSize::parse(tmp);
 
 		LanguageManager& localizator = LanguageManager::getInstance();
 
-		// вспомогательный класс для биндинга сабскинов
+		// helper class for binding subskins
 		SubWidgetBinding bind;
 
-		// поддержка замены тегов в скинах
+		// tags replacement support for Skins
 		if (_version >= Version(1, 1))
 		{
 			texture = localizator.replaceTags(texture);
@@ -65,133 +47,129 @@ namespace MyGUI
 
 		setInfo(size, texture);
 
-		// проверяем маску
-		if (_node->findAttribute("mask", tmp))
+		tmp = _node.node().attribute("mask").value();
+		if (!tmp.empty())
 			addProperty("MaskPick", tmp);
 
-		// берем детей и крутимся, цикл с саб скинами
-		xml::ElementEnumerator basis = _node->getElementEnumerator();
-		while (basis.next())
+		for (auto basis : _node.node())
 		{
-			if (basis->getName() == "Property")
+			if (basis.name() == std::string_view("Property"))
 			{
-				// загружаем свойства
-				std::string key, value;
-				if (!basis->findAttribute("key", key)) continue;
-				if (!basis->findAttribute("value", value)) continue;
+				std::string_view key{basis.attribute("key").value()};
+				if (key.empty())
+					continue;
+				std::string value{basis.attribute("value").value()};
+				if (value.empty())
+					continue;
 
-				// поддержка замены тегов в скинах
+				// tags replacement support for Skins
 				if (_version >= Version(1, 1))
 				{
 					value = localizator.replaceTags(value);
 				}
 
-				// добавляем свойство
 				addProperty(key, value);
 			}
-			else if (basis->getName() == "Child")
+			else if (basis.name() == std::string_view("Child"))
 			{
 				ChildSkinInfo child(
-					basis->findAttribute("type"),
-					WidgetStyle::parse(basis->findAttribute("style")),
-					basis->findAttribute("skin"),
-					IntCoord::parse(basis->findAttribute("offset")),
-					Align::parse(basis->findAttribute("align")),
-					basis->findAttribute("layer"),
-					basis->findAttribute("name")
-				);
+					basis.attribute("type").value(),
+					WidgetStyle::parse(basis.attribute("style").value()),
+					basis.attribute("skin").value(),
+					IntCoord::parse(basis.attribute("offset").value()),
+					Align::parse(basis.attribute("align").value()),
+					basis.attribute("layer").value(),
+					basis.attribute("name").value());
 
-				xml::ElementEnumerator child_params = basis->getElementEnumerator();
-				while (child_params.next("Property"))
-					child.addParam(child_params->findAttribute("key"), child_params->findAttribute("value"));
+				for (auto child_params : basis.children("Property"))
+					child.addParam(child_params.attribute("key").value(), child_params.attribute("value").value());
 
 				addChild(child);
-				//continue;
 			}
-			else if (basis->getName() == "BasisSkin")
+			else if (basis.name() == std::string_view("BasisSkin"))
 			{
-				// парсим атрибуты
-				std::string basisSkinType, tmp_str;
+				std::string_view basisSkinType{basis.attribute("type").value()};
 				IntCoord offset;
 				Align align = Align::Default;
-				basis->findAttribute("type", basisSkinType);
-				if (basis->findAttribute("offset", tmp_str)) offset = IntCoord::parse(tmp_str);
-				if (basis->findAttribute("align", tmp_str)) align = Align::parse(tmp_str);
+				tmp = basis.attribute("offset").value();
+				if (!tmp.empty())
+					offset = IntCoord::parse(tmp);
+				tmp = basis.attribute("align").value();
+				if (!tmp.empty())
+					align = Align::parse(tmp);
 
 				bind.create(offset, align, basisSkinType);
 
-				// берем детей и крутимся, цикл со стейтами
-				xml::ElementEnumerator state = basis->getElementEnumerator();
-
-				// проверяем на новый формат стейтов
+				// check for new state format
 				bool new_format = false;
-				// если версия меньше 1.0 то переименовываем стейты
+				// if version < 1.0 rename states
 				if (_version < Version(1, 0))
 				{
-					while (state.next())
+					for (auto state : basis)
 					{
-						if (state->getName() == "State")
+						if (state.name() == std::string_view("State"))
 						{
-							const std::string& name_state = state->findAttribute("name");
-							if ((name_state == "normal_checked") || (state->findAttribute("name") == "normal_check"))
+							std::string_view name_state = state.attribute("name").value();
+							if (name_state == "normal_checked" || name_state == "normal_check")
 							{
 								new_format = true;
 								break;
 							}
 						}
 					}
-					// обновляем
-					state = basis->getElementEnumerator();
 				}
 
-				while (state.next())
+				for (auto state : basis)
 				{
-					if (state->getName() == "State")
+					if (state.name() == std::string_view("State"))
 					{
-						// парсим атрибуты стейта
-						std::string basisStateName;
-						state->findAttribute("name", basisStateName);
+						std::string_view basisStateName{state.attribute("name").value()};
 
-						// если версия меньше 1.0 то переименовываем стейты
+						// if version < 1.0 rename states
 						if (_version < Version(1, 0))
 						{
-							// это обсолет новых типов
-							if (basisStateName == "disable_check") basisStateName = "disabled_checked";
-							else if (basisStateName == "normal_check") basisStateName = "normal_checked";
-							else if (basisStateName == "active_check") basisStateName = "highlighted_checked";
-							else if (basisStateName == "pressed_check") basisStateName = "pushed_checked";
-							else if (basisStateName == "disable") basisStateName = "disabled";
-							else if (basisStateName == "active") basisStateName = "highlighted";
-							else if (basisStateName == "select") basisStateName = "pushed";
+							// obsolete new types
+							if (basisStateName == "disable_check")
+								basisStateName = "disabled_checked";
+							else if (basisStateName == "normal_check")
+								basisStateName = "normal_checked";
+							else if (basisStateName == "active_check")
+								basisStateName = "highlighted_checked";
+							else if (basisStateName == "pressed_check")
+								basisStateName = "pushed_checked";
+							else if (basisStateName == "disable")
+								basisStateName = "disabled";
+							else if (basisStateName == "active")
+								basisStateName = "highlighted";
+							else if (basisStateName == "select")
+								basisStateName = "pushed";
 							else if (basisStateName == "pressed")
 							{
-								if (new_format) basisStateName = "pushed";
-								else basisStateName = "normal_checked";
+								if (new_format)
+									basisStateName = "pushed";
+								else
+									basisStateName = "normal_checked";
 							}
 						}
 
-						// конвертируем инфу о стейте
 						IStateInfo* data = nullptr;
-						IObject* object = FactoryManager::getInstance().createObject("BasisSkin/State", basisSkinType);
+						IObject* object = FactoryManager::getInstance().createObject(stateCategory, basisSkinType);
 						if (object != nullptr)
 						{
 							data = object->castType<IStateInfo>();
-							data->deserialization(state.current(), _version);
+							data->deserialization(state, _version);
 						}
 
-						// добавляем инфо о стайте
 						bind.add(basisStateName, data, name);
 					}
 				}
 
-				// теперь всё вместе добавляем в скин
 				addInfo(bind);
 			}
-
 		}
 	}
 
-	void ResourceSkin::setInfo(const IntSize& _size, const std::string& _texture)
+	void ResourceSkin::setInfo(const IntSize& _size, std::string_view _texture)
 	{
 		mSize = _size;
 		mTexture = _texture;
@@ -200,14 +178,14 @@ namespace MyGUI
 	void ResourceSkin::addInfo(const SubWidgetBinding& _bind)
 	{
 		checkState(_bind.mStates);
-		mBasis.push_back(SubWidgetInfo(_bind.mType, _bind.mOffset, _bind.mAlign));
+		mBasis.emplace_back(_bind.mType, _bind.mOffset, _bind.mAlign);
 		checkBasis();
 		fillState(_bind.mStates, mBasis.size() - 1);
 	}
 
-	void ResourceSkin::addProperty(const std::string& _key, const std::string& _value)
+	void ResourceSkin::addProperty(std::string_view _key, std::string_view _value)
 	{
-		mProperties[_key] = _value;
+		mapSet(mProperties, _key, _value);
 	}
 
 	void ResourceSkin::addChild(const ChildSkinInfo& _child)
@@ -217,48 +195,44 @@ namespace MyGUI
 
 	void ResourceSkin::clear()
 	{
-		for (MapWidgetStateInfo::iterator iter = mStates.begin(); iter != mStates.end(); ++iter)
+		for (auto& state : mStates)
 		{
-			for (VectorStateInfo::iterator iter2 = iter->second.begin(); iter2 != iter->second.end(); ++iter2)
-			{
-				delete *iter2;
-			}
+			for (auto& info : state.second)
+				delete info;
 		}
 	}
 
 	void ResourceSkin::checkState(const MapStateInfo& _states)
 	{
-		for (MapStateInfo::const_iterator iter = _states.begin(); iter != _states.end(); ++iter)
+		for (const auto& state : _states)
 		{
-			checkState(iter->first);
+			checkState(state.first);
 		}
 	}
 
-	void ResourceSkin::checkState(const std::string& _name)
+	void ResourceSkin::checkState(std::string_view _name)
 	{
-		// ищем такой же ключ
 		MapWidgetStateInfo::const_iterator iter = mStates.find(_name);
 		if (iter == mStates.end())
 		{
-			// добавляем новый стейт
-			mStates[_name] = VectorStateInfo();
+			mStates.emplace(_name, VectorStateInfo());
 		}
 	}
 
 	void ResourceSkin::checkBasis()
 	{
-		// и увеличиваем размер смещений по колличеству сабвиджетов
-		for (MapWidgetStateInfo::iterator iter = mStates.begin(); iter != mStates.end(); ++iter)
+		// increase offset array size by number of subwidgets
+		for (auto& state : mStates)
 		{
-			iter->second.resize(mBasis.size());
+			state.second.resize(mBasis.size());
 		}
 	}
 
 	void ResourceSkin::fillState(const MapStateInfo& _states, size_t _index)
 	{
-		for (MapStateInfo::const_iterator iter = _states.begin(); iter != _states.end(); ++iter)
+		for (const auto& state : _states)
 		{
-			mStates[iter->first][_index] = iter->second;
+			mStates[state.first][_index] = state.second;
 		}
 	}
 

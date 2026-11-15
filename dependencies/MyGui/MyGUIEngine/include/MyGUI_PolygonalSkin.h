@@ -1,43 +1,27 @@
-/*!
-	@file
-	@author		George Evmenov
-	@date		07/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_POLYGONAL_SKIN_H__
-#define __MYGUI_POLYGONAL_SKIN_H__
+#ifndef MYGUI_POLYGONAL_SKIN_H_
+#define MYGUI_POLYGONAL_SKIN_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
 #include "MyGUI_ISubWidgetRect.h"
 #include "MyGUI_RenderFormat.h"
+#include "MyGUI_VertexData.h"
 
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT PolygonalSkin :
-		public ISubWidgetRect
+	class MYGUI_EXPORT PolygonalSkin : public ISubWidgetRect
 	{
-		MYGUI_RTTI_DERIVED( PolygonalSkin )
+		MYGUI_RTTI_DERIVED(PolygonalSkin)
 
 	public:
 		PolygonalSkin();
-		virtual ~PolygonalSkin();
 
 		/** Set line points. */
 		void setPoints(const std::vector<FloatPoint>& _points);
@@ -45,57 +29,61 @@ namespace MyGUI
 		/** Set line width in pixels. */
 		void setWidth(float _width);
 
-		virtual void setAlpha(float _alpha);
+		/** Set line stroke step. 0 to disable stroke. */
+		void setStroke(size_t _value);
 
-		virtual void setVisible(bool _visible);
+		void setAlpha(float _alpha) override;
 
-		virtual void setStateData(IStateInfo* _data);
+		void setVisible(bool _visible) override;
 
-		virtual void createDrawItem(ITexture* _texture, ILayerNode* _node);
-		virtual void destroyDrawItem();
+		void setStateData(IStateInfo* _data) override;
 
-		// метод для отрисовки себя
-		virtual void doRender();
+		void createDrawItem(ITexture* _texture, ILayerNode* _node) override;
+		void destroyDrawItem() override;
 
-	/*internal:*/
-		virtual void _updateView();
-		virtual void _correctView();
+		void doRender() override;
 
-		virtual void _setAlign(const IntSize& _oldsize);
+		/*internal:*/
+		void _updateView() override;
+		void _correctView() override;
 
-		virtual void _setUVSet(const FloatRect& _rect);
-		virtual void _setColour(const Colour& _value);
+		void _setAlign(const IntSize& _oldsize) override;
+
+		void _setUVSet(const FloatRect& _rect) override;
+		void _setColour(const Colour& _value) override;
 
 	protected:
 		void _rebuildGeometry();
-		FloatPoint _getPerpendicular(const FloatPoint& _point1, const FloatPoint& _point2);
+		FloatPoint _getPerpendicular(const FloatPoint& _point1, const FloatPoint& _point2) const;
 		// line from center of p1-p2 line to p3
-		FloatPoint _getMiddleLine(const FloatPoint& _point1, const FloatPoint& _point2, const FloatPoint& _point3);
+		FloatPoint _getMiddleLine(const FloatPoint& _point1, const FloatPoint& _point2, const FloatPoint& _point3)
+			const;
 
 	private:
-		bool mGeometryOutdated;
+		bool mGeometryOutdated{false};
 
-		float mLineWidth;
+		float mLineWidth{1.0f};
+		size_t mLineStroke{0};
 		std::vector<FloatPoint> mLinePoints;
-		float mLineLength;
+		float mLineLength{0.0f};
 
 		std::vector<FloatPoint> mResultVerticiesPos;
 		std::vector<FloatPoint> mResultVerticiesUV;
 
-		size_t mVertexCount;
+		size_t mVertexCount{VertexQuad::VertexCount};
 
-		bool mEmptyView;
+		bool mEmptyView{false};
 
 		VertexColourType mVertexFormat;
-		uint32 mCurrentColour;
+		uint32 mCurrentColour{0xFFFFFFFF};
 
 		FloatRect mCurrentTexture;
 		IntCoord mCurrentCoord;
 
-		ILayerNode* mNode;
-		RenderItem* mRenderItem;
+		ILayerNode* mNode{nullptr};
+		RenderItem* mRenderItem{nullptr};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_POLYGONAL_SKIN_H__
+#endif // MYGUI_POLYGONAL_SKIN_H_

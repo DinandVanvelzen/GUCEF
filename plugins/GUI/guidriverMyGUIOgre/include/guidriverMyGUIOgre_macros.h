@@ -1,29 +1,23 @@
 /*
- *  guidriverMyGUIOgre: glue module for the MyGUI GUI backend using OpenGL
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  guidriverMyGUIOgre: GUI backend using MyGUI with Ogre
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
-#ifndef GUCEF_MYGUIOGRE_MACROS_H
-#define GUCEF_MYGUIOGRE_MACROS_H
-
-/*
- *      Build configuration specific macros.
- *      Also includes the generic macros which are build config independant.
- */
+#ifndef GUCEF_guidriverMyGUIOgre_MACROS_H
+#define GUCEF_guidriverMyGUIOgre_MACROS_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,15 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MYGUI_ETYPES_H
-#include "guceMyGUI_ETypes.h"        /* simple types */
-#define GUCEF_MYGUI_ETYPES_H
-#endif /* GUCEF_MYGUI_ETYPES_H ? */
+#ifndef GUCEF_guidriverMyGUIOgre_ETYPES_H
+#include "guidriverMyGUIOgre_ETypes.h"
+#define GUCEF_guidriverMyGUIOgre_ETYPES_H
+#endif /* GUCEF_guidriverMyGUIOgre_ETYPES_H ? */
 
-#ifndef GUCEF_MYGUIOGRE_CONFIG_H
+#ifndef GUCEF_guidriverMyGUIOgre_CONFIG_H
 #include "guidriverMyGUIOgre_config.h"        /* Module build configuration */
-#define GUCEF_MYGUIOGRE_CONFIG_H
-#endif /* GUCEF_MYGUIOGRE_CONFIG_H ? */
+#define GUCEF_guidriverMyGUIOgre_CONFIG_H
+#endif /* GUCEF_guidriverMyGUIOgre_CONFIG_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -51,38 +45,33 @@
  *      Macros for dynamic linking or static linking. Use the switches in the
  *      config file to control the export type.
  */
-#undef GUCEF_MYGUIOGRE_EXPORTSPEC
-#ifdef GUIDRIVERMYGUIOGRE_BUILD_MODULE
-  #define GUCEF_MYGUIOGRE_EXPORTSPEC GUCEF_EXPORT
+#undef GUCEF_EXPORTSPEC
+#if defined( GUIDRIVERMYGUIOGRE_BUILD_MODULE ) || defined( GUCEF_guidriverMyGUIOgre_BUILD_MODULE )
+  #define GUCEF_EXPORTSPEC GUCEF_EXPORT
 #else
-  #define GUCEF_MYGUIOGRE_EXPORTSPEC GUCEF_IMPORT
-#endif /* guidriverMyGUIOgre_BUILD_MODULE ? */
+  #define GUCEF_EXPORTSPEC GUCEF_IMPORT
+#endif /* GUIDRIVERMYGUIOGRE_BUILD_MODULE ? */
 
-#undef GUCEF_MYGUIOGRE_EXPORT_CPP
-#ifdef GUCEF_MYGUIOGRE_EXPORT_CPP_CODE
-  #define GUCEF_MYGUIOGRE_EXPORT_CPP GUCEF_MYGUIOGRE_EXPORTSPEC
+#undef GUCEF_guidriverMyGUIOgre_PUBLIC_CPP
+#ifdef GUCEF_guidriverMyGUIOgre_PUBLIC_CPP_CODE
+  #define GUCEF_guidriverMyGUIOgre_PUBLIC_CPP GUCEF_EXPORTSPEC
 #else
-  #define GUCEF_MYGUIOGRE_EXPORT_CPP GUCEF_HIDDEN
-#endif /* GUCEF_MYGUIOGRE_EXPORT_CPP_CODE */
+  #define GUCEF_guidriverMyGUIOgre_PUBLIC_CPP GUCEF_HIDDEN
+#endif /* GUCEF_guidriverMyGUIOgre_PUBLIC_CPP_CODE ? */
 
-#undef GUCEF_MYGUIOGRE_EXPORT_C
-#ifdef GUCEF_MYGUIOGRE_EXPORT_C_CODE
-  #define GUCEF_MYGUIOGRE_EXPORT_C GUCEF_MYGUIOGRE_EXPORTSPEC
+#undef GUCEF_guidriverMyGUIOgre_PRIVATE_CPP
+#define GUCEF_guidriverMyGUIOgre_PRIVATE_CPP GUCEF_HIDDEN
+
+#undef GUCEF_guidriverMyGUIOgre_PUBLIC_C
+#ifdef GUCEF_guidriverMyGUIOgre_PUBLIC_C_CODE
+  #define GUCEF_guidriverMyGUIOgre_PUBLIC_C GUCEF_EXPORTSPEC
 #else
-  #define GUCEF_MYGUIOGRE_EXPORT_C GUCEF_HIDDEN
-#endif /* GUCEF_MYGUIOGRE_EXPORT_C_CODE */
+  #define GUCEF_guidriverMyGUIOgre_PUBLIC_C GUCEF_HIDDEN
+#endif /* GUCEF_guidriverMyGUIOgre_PUBLIC_C_CODE ? */
+
+#undef GUCEF_guidriverMyGUIOgre_PRIVATE_C
+#define GUCEF_guidriverMyGUIOgre_PRIVATE_C GUCEF_HIDDEN
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MYGUIOGRE_MACROS_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 02-03-2007 :
-        - Dinand: re-added this header
-
------------------------------------------------------------------------------*/
+#endif /* GUCEF_guidriverMyGUIOgre_MACROS_H ? */

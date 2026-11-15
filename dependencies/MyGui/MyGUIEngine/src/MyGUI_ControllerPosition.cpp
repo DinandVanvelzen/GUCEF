@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Evmenov Georgiy
-	@date		03/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ControllerPosition.h"
 #include "MyGUI_Gui.h"
@@ -30,16 +15,9 @@
 namespace MyGUI
 {
 
-	ControllerPosition::ControllerPosition() :
-		mTime(1),
-		mElapsedTime(0),
-		mCalcPosition(false),
-		mCalcSize(false)
+	ControllerPosition::ControllerPosition()
 	{
-	}
-
-	ControllerPosition::~ControllerPosition()
-	{
+		setFunction("Linear");
 	}
 
 	void ControllerPosition::setCoord(const IntCoord& _destCoord)
@@ -71,51 +49,37 @@ namespace MyGUI
 
 		mStartCoord = _widget->getCoord();
 
-		// вызываем пользовательский делегат для подготовки
-		eventPreAction(_widget);
+		eventPreAction(_widget, this);
 	}
 
 	bool ControllerPosition::addTime(Widget* _widget, float _time)
 	{
 		mElapsedTime += _time;
 
-		if (mElapsedTime < mTime)
-		{
-			IntCoord coord;
-			eventFrameAction(mStartCoord, mDestCoord, coord, mElapsedTime / mTime);
-			if (mCalcPosition)
-			{
-				if (mCalcSize) _widget->setCoord(coord);
-				else _widget->setPosition(coord.point());
-			}
-			else if (mCalcSize) _widget->setSize(coord.size());
+		float currentTime = std::min(1.0f, mElapsedTime / mTime);
 
-			// вызываем пользовательский делегат обновления
-			eventUpdateAction(_widget);
-
-			return true;
-		}
-
-		// поставить точно в конец
 		IntCoord coord;
-		eventFrameAction(mStartCoord, mDestCoord, coord, 1.0f);
+		eventFrameAction(mStartCoord, mDestCoord, coord, currentTime);
 		if (mCalcPosition)
 		{
-			if (mCalcSize) _widget->setCoord(coord);
-			else _widget->setPosition(coord.point());
+			if (mCalcSize)
+				_widget->setCoord(coord);
+			else
+				_widget->setPosition(coord.point());
 		}
-		else if (mCalcSize) _widget->setSize(coord.size());
+		else if (mCalcSize)
+			_widget->setSize(coord.size());
 
-		// вызываем пользовательский делегат обновления
-		eventUpdateAction(_widget);
+		eventUpdateAction(_widget, this);
 
-		// вызываем пользовательский делегат пост обработки
-		eventPostAction(_widget);
+		if (currentTime < 1.0f)
+			return true;
 
+		eventPostAction(_widget, this);
 		return false;
 	}
 
-	void ControllerPosition::setProperty(const std::string& _key, const std::string& _value)
+	void ControllerPosition::setProperty(std::string_view _key, std::string_view _value)
 	{
 		if (_key == "Time")
 			setTime(utility::parseValue<float>(_value));
@@ -129,9 +93,11 @@ namespace MyGUI
 			setFunction(_value);
 	}
 
-	void ControllerPosition::setFunction(const std::string& _value)
+	void ControllerPosition::setFunction(std::string_view _value)
 	{
-		if (_value == "Inertional")
+		if (_value == "Linear")
+			setAction(MyGUI::newDelegate(action::linearMoveFunction));
+		else if (_value == "Inertional")
 			setAction(MyGUI::newDelegate(action::inertionalMoveFunction));
 		else if (_value == "Accelerated")
 			setAction(MyGUI::newDelegate(action::acceleratedMoveFunction<30>));

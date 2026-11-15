@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_IMAGE_BOX_H__
-#define __MYGUI_IMAGE_BOX_H__
+#ifndef MYGUI_IMAGE_BOX_H_
+#define MYGUI_IMAGE_BOX_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Widget.h"
@@ -30,14 +15,14 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT ImageBox :
-		public Widget
+	/** \brief @wpage{ImageBox}
+		ImageBox widget description should be here.
+	*/
+	class MYGUI_EXPORT ImageBox : public Widget, public MemberObsolete<ImageBox>
 	{
-		MYGUI_RTTI_DERIVED( ImageBox )
+		MYGUI_RTTI_DERIVED(ImageBox)
 
 	public:
-		ImageBox();
-
 		//------------------------------------------------------------------------------//
 		// The simple interface
 		//------------------------------------------------------------------------------//
@@ -47,21 +32,21 @@ namespace MyGUI
 			@param _coord - part of texture where we take tiles
 			@param _tile size
 		*/
-		void setImageInfo(const std::string& _texture, const IntCoord& _coord, const IntSize& _tile);
+		void setImageInfo(std::string_view _texture, const IntCoord& _coord, const IntSize& _tile);
 
 		/* Set texture
 			@param _texture file name or texture name
 		*/
-		void setImageTexture(const std::string& _value);
+		void setImageTexture(std::string_view _texture);
 
 		/** Set _rect - part of texture where we take tiles */
-		void setImageRect(const IntRect& _value);
+		void setImageRect(const IntRect& _rect);
 
 		/** Set _coord - part of texture where we take tiles */
-		void setImageCoord(const IntCoord& _value);
+		void setImageCoord(const IntCoord& _coord);
 
 		/** Set _tile size */
-		void setImageTile(const IntSize& _value);
+		void setImageTile(const IntSize& _tile);
 
 		/** Set current tile index
 			@param _index - tile index
@@ -77,7 +62,10 @@ namespace MyGUI
 		*/
 		void setImageIndex(size_t _index);
 		/** Get current tile index */
-		size_t getImageIndex();
+		size_t getImageIndex() const;
+
+		/** Get size of currently used image */
+		IntSize getImageSize() const;
 
 		//------------------------------------------------------------------------------//
 		// The expanded interface
@@ -105,7 +93,7 @@ namespace MyGUI
 		//! Delete all items
 		void deleteAllItems();
 
-		// работа с фреймами анимированных индексов
+		// Work with animated frame indices
 		/** Add frame
 			@param _index Image item index
 			@param _item Frame coordinates at image texture
@@ -123,14 +111,14 @@ namespace MyGUI
 			@param _index Image item index
 			@param _indexSourceFrame Frame index of frame that we copying
 		*/
-		void addItemFrameDublicate(size_t _index, size_t _indexSourceFrame);
+		void addItemFrameDuplicate(size_t _index, size_t _indexSourceFrame);
 
 		/** Insert copy of frame (similar to ImageBox::insertItemFrame but we copy frame coordinates)
 			@param _index Image item index
 			@param _indexFrame Frame index where we insert frame
 			@param _indexSourceFrame Frame index of frame that we copying
 		*/
-		void insertItemFrameDublicate(size_t _index, size_t _indexFrame, size_t _indexSourceFrame);
+		void insertItemFrameDuplicate(size_t _index, size_t _indexFrame, size_t _indexSourceFrame);
 
 		/** Change frame
 			@param _index Image item index
@@ -159,7 +147,7 @@ namespace MyGUI
 		/** Get item frame rate
 			@param _index Image item index
 		*/
-		float getItemFrameRate(size_t _index);
+		float getItemFrameRate(size_t _index) const;
 
 		//------------------------------------------------------------------------------//
 		// The interface with support of resources
@@ -169,12 +157,12 @@ namespace MyGUI
 			@param _name Resource name
 			@return false if resource with such name not exist
 		*/
-		bool setItemResource(const std::string& _name);
+		bool setItemResource(std::string_view _name);
 
 		/** Select current item group */
-		void setItemGroup(const std::string& _value);
+		void setItemGroup(std::string_view _group);
 		/** Select current item mane */
-		void setItemName(const std::string& _value);
+		void setItemName(std::string_view _name);
 
 		/** Select current items resource used in ImageBox
 			@param _resource Resource pointer
@@ -184,14 +172,14 @@ namespace MyGUI
 		void setItemResourceInfo(const ImageIndexInfo& _info);
 
 		/** Get current items resource used in ImageBox */
-		ResourceImageSetPtr getItemResource();
+		ResourceImageSetPtr getItemResource() const;
 		/** Select current item resource, group and name */
-		void setItemResourceInfo(ResourceImageSetPtr _resource, const std::string& _group, const std::string& _name);
+		void setItemResourceInfo(ResourceImageSetPtr _resource, std::string_view _group, std::string_view _name);
 
 	protected:
-		virtual void shutdownOverride();
+		void shutdownOverride() override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
 		void frameEntered(float _frame);
@@ -204,22 +192,19 @@ namespace MyGUI
 		void _setUVSet(const FloatRect& _rect);
 
 	private:
-		// кусок в текстуре наших картинок
+		// Part of texture where our images are
 		IntRect mRectImage;
-		// размер одной картинки
 		IntSize mSizeTile;
-		// размер текстуры
 		IntSize mSizeTexture;
-		// текущая картинка
-		size_t mIndexSelect;
+		size_t mIndexSelect{ITEM_NONE};
 
 		VectorImages mItems;
 
-		bool mFrameAdvise;
-		float mCurrentTime;
-		size_t mCurrentFrame;
+		bool mFrameAdvise{false};
+		float mCurrentTime{0};
+		size_t mCurrentFrame{0};
 
-		ResourceImageSetPtr mResource;
+		ResourceImageSetPtr mResource{nullptr};
 		std::string mItemName;
 		std::string mItemGroup;
 		std::string mCurrentTextureName;
@@ -227,4 +212,4 @@ namespace MyGUI
 
 } // namespace MyGUI
 
-#endif // __MYGUI_IMAGE_BOX_H__
+#endif // MYGUI_IMAGE_BOX_H_

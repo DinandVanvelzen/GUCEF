@@ -15,7 +15,6 @@ set( HEADER_FILES
   include/MyGUI.h
   include/MyGUI_ActionController.h
   include/MyGUI_Align.h
-  include/MyGUI_Allocator.h
   include/MyGUI_Any.h
   include/MyGUI_BackwardCompatibility.h
   include/MyGUI_BiIndexBase.h
@@ -28,6 +27,7 @@ set( HEADER_FILES
   include/MyGUI_ComboBox.h
   include/MyGUI_Common.h
   include/MyGUI_CommonStateInfo.h
+  include/MyGUI_Config.h
   include/MyGUI_ConsoleLogListener.h
   include/MyGUI_Constants.h
   include/MyGUI_ControllerEdgeHide.h
@@ -35,20 +35,18 @@ set( HEADER_FILES
   include/MyGUI_ControllerItem.h
   include/MyGUI_ControllerManager.h
   include/MyGUI_ControllerPosition.h
+  include/MyGUI_ControllerRepeatClick.h
   include/MyGUI_CoordConverter.h
-  include/MyGUI_CustomAllocator.h
   include/MyGUI_DDContainer.h
   include/MyGUI_DDItemInfo.h
   include/MyGUI_DataFileStream.h
   include/MyGUI_DataManager.h
   include/MyGUI_DataStream.h
+  include/MyGUI_DataStreamHolder.h
   include/MyGUI_Delegate.h
-  include/MyGUI_DelegateImplement.h
   include/MyGUI_DeprecatedTypes.h
   include/MyGUI_DeprecatedWidgets.h
   include/MyGUI_Diagnostic.h
-  include/MyGUI_DynLib.h
-  include/MyGUI_DynLibManager.h
   include/MyGUI_EditBox.h
   include/MyGUI_EditText.h
   include/MyGUI_Enumerator.h
@@ -56,6 +54,7 @@ set( HEADER_FILES
   include/MyGUI_Exception.h
   include/MyGUI_FactoryManager.h
   include/MyGUI_FileLogListener.h
+  include/MyGUI_FileSystemUtility.h
   include/MyGUI_FlowDirection.h
   include/MyGUI_FontData.h
   include/MyGUI_FontManager.h
@@ -114,8 +113,6 @@ set( HEADER_FILES
   include/MyGUI_MultiListItem.h
   include/MyGUI_OverlappedLayer.h
   include/MyGUI_Platform.h
-  include/MyGUI_Plugin.h
-  include/MyGUI_PluginManager.h
   include/MyGUI_PointerManager.h
   include/MyGUI_PolygonalSkin.h
   include/MyGUI_PopupMenu.h
@@ -172,6 +169,7 @@ set( HEADER_FILES
   include/MyGUI_Version.h
   include/MyGUI_VertexData.h
   include/MyGUI_Widget.h
+  include/MyGUI_WidgetContainer.h
   include/MyGUI_WidgetDefines.h
   include/MyGUI_WidgetInput.h
   include/MyGUI_WidgetManager.h
@@ -180,11 +178,13 @@ set( HEADER_FILES
   include/MyGUI_WidgetTranslate.h
   include/MyGUI_WidgetUserData.h
   include/MyGUI_Window.h
+  include/MyGUI_WindowsClipboardHandler.h
   include/MyGUI_XmlDocument.h
 )
 
 set( SOURCE_FILES 
   src/MyGUI_ActionController.cpp
+  src/MyGUI_Align.cpp
   src/MyGUI_Any.cpp
   src/MyGUI_BackwardCompatibility.cpp
   src/MyGUI_BiIndexBase.cpp
@@ -194,18 +194,19 @@ set( SOURCE_FILES
   src/MyGUI_ClipboardManager.cpp
   src/MyGUI_Colour.cpp
   src/MyGUI_ComboBox.cpp
+  src/MyGUI_CommonStateInfo.cpp
   src/MyGUI_ConsoleLogListener.cpp
   src/MyGUI_Constants.cpp
   src/MyGUI_ControllerEdgeHide.cpp
   src/MyGUI_ControllerFadeAlpha.cpp
   src/MyGUI_ControllerManager.cpp
   src/MyGUI_ControllerPosition.cpp
+  src/MyGUI_ControllerRepeatClick.cpp
+  src/MyGUI_CoordConverter.cpp
   src/MyGUI_DDContainer.cpp
   src/MyGUI_DataFileStream.cpp
   src/MyGUI_DataManager.cpp
   src/MyGUI_DataStream.cpp
-  src/MyGUI_DynLib.cpp
-  src/MyGUI_DynLibManager.cpp
   src/MyGUI_EditBox.cpp
   src/MyGUI_EditText.cpp
   src/MyGUI_Exception.cpp
@@ -214,6 +215,10 @@ set( SOURCE_FILES
   src/MyGUI_FontManager.cpp
   src/MyGUI_GeometryUtility.cpp
   src/MyGUI_Gui.cpp
+  src/MyGUI_IDataStream.cpp
+  src/MyGUI_IObject.cpp
+  src/MyGUI_IResource.cpp
+  src/MyGUI_ISerializable.cpp
   src/MyGUI_ImageBox.cpp
   src/MyGUI_InputManager.cpp
   src/MyGUI_ItemBox.cpp
@@ -234,7 +239,6 @@ set( SOURCE_FILES
   src/MyGUI_MultiListBox.cpp
   src/MyGUI_MultiListItem.cpp
   src/MyGUI_OverlappedLayer.cpp
-  src/MyGUI_PluginManager.cpp
   src/MyGUI_PointerManager.cpp
   src/MyGUI_PolygonalSkin.cpp
   src/MyGUI_PopupMenu.cpp
@@ -259,6 +263,7 @@ set( SOURCE_FILES
   src/MyGUI_SimpleText.cpp
   src/MyGUI_SkinItem.cpp
   src/MyGUI_SkinManager.cpp
+  src/MyGUI_StringUtility.cpp
   src/MyGUI_SubSkin.cpp
   src/MyGUI_SubWidgetBinding.cpp
   src/MyGUI_SubWidgetManager.cpp
@@ -273,10 +278,12 @@ set( SOURCE_FILES
   src/MyGUI_ToolTipManager.cpp
   src/MyGUI_UString.cpp
   src/MyGUI_Widget.cpp
+  src/MyGUI_WidgetContainer.cpp
   src/MyGUI_WidgetInput.cpp
   src/MyGUI_WidgetManager.cpp
   src/MyGUI_WidgetUserData.cpp
   src/MyGUI_Window.cpp
+  src/MyGUI_WindowsClipboardHandler.cpp
   src/MyGUI_XmlDocument.cpp
 )
 
@@ -289,16 +296,34 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-set( MODULE_NAME "MyGUI.Engine" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} freetype )
-target_link_libraries( ${MODULE_NAME} PUBLIC freetype )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_Engine;MODULE_NAME=MyGUI_Engine;MYGUI_BUILD;MYGUI_BUILD_DLL;MYGUI_USE_FREETYPE" )
+# The minimum C++ standard of MyGUI.Engine and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 17 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( MyGUI.Engine "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
 
-include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts include )
+set( MODULE_NAME "MyGUI.Engine" )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
+add_dependencies( ${MODULE_NAME} freetype pugixml )
+target_link_libraries( ${MODULE_NAME} PUBLIC freetype pugixml )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_Engine;MODULE_NAME=MyGUI_Engine;MODULE_SEMVER=3_5_4_0;MYGUI_BUILD;MYGUI_BUILD_DLL" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_17 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 3.5.4.0 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 3.5.4.0 )
+
+include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../../pugixml/src ../../utfcpp ../../utfcpp/source ../../utfcpp/source/utf8 include )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
 GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES utfcpp )
 
 
 

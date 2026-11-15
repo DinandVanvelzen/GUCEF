@@ -22,42 +22,15 @@ LOCAL_MODULE_FILENAME := libguidriverMyGUI
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  include/guceMyGUI_CIOAccessToMyGuiDataStreamAdapter.cpp \
-  src/guceMyGUI.cpp \
-  src/guceMyGUI_CButtonImp.cpp \
-  src/guceMyGUI_CCheckboxImp.cpp \
-  src/guceMyGUI_CComboboxImp.cpp \
-  src/guceMyGUI_CDataManager.cpp \
-  src/guceMyGUI_CEditboxImp.cpp \
-  src/guceMyGUI_CFileOpenDialogImp.cpp \
-  src/guceMyGUI_CFileSaveDialogImp.cpp \
-  src/guceMyGUI_CFileSystemDialogImp.cpp \
-  src/guceMyGUI_CFormBackendImp.cpp \
-  src/guceMyGUI_CGUIContext.cpp \
-  src/guceMyGUI_CGridViewImp.cpp \
-  src/guceMyGUI_CImageFrameImp.cpp \
-  src/guceMyGUI_CLabelImp.cpp \
-  src/guceMyGUI_CListboxImp.cpp \
-  src/guceMyGUI_CMemoboxImp.cpp \
-  src/guceMyGUI_CMenuBarImp.cpp \
-  src/guceMyGUI_CModule.cpp \
-  src/guceMyGUI_CMyGUIInputAdapter.cpp \
-  src/guceMyGUI_CPopupMenuImp.cpp \
-  src/guceMyGUI_CProgressBarImp.cpp \
-  src/guceMyGUI_CPushButtonImp.cpp \
-  src/guceMyGUI_CRenderContextImp.cpp \
-  src/guceMyGUI_CSpinnerImp.cpp \
-  src/guceMyGUI_CTabContentPaneImp.cpp \
-  src/guceMyGUI_CTabControlImp.cpp \
-  src/guceMyGUI_CTreeviewImp.cpp \
-  src/guceMyGUI_CVFSHandleToMyGuiDataStreamAdapter.cpp \
-  src/guceMyGUI_CVFSInfoProvider.cpp \
-  src/guceMyGUI_CWidgetImp.cpp \
-  src/guceMyGUI_CWindowImp.cpp \
-  src/guceMyGUI_pluginAPI.cpp \
-  src/guidriverMyGUI_CLogAdapter.cpp \
-  src/guidriverMyGUI_CMyGuiDriver.cpp \
-  src/guidriverMyGUI_widgets.cpp
+  src/guidriverMyGUI.cpp \
+  src/guidriverMyGUI_CMyGUIContext.cpp \
+  src/guidriverMyGUI_CMyGUIDataManager.cpp \
+  src/guidriverMyGUI_CMyGUIDriver.cpp \
+  src/guidriverMyGUI_CMyGUIImageCodec.cpp \
+  src/guidriverMyGUI_CMyGUILogListener.cpp \
+  src/guidriverMyGUI_CMyGUIVfsDataStream.cpp \
+  src/guidriverMyGUI_CMyGUIWidgetHandler.cpp \
+  src/guidriverMyGUI_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
@@ -70,6 +43,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../../dependencies/pugixml/src \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source/utf8 \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
@@ -84,15 +61,14 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api
 
-LOCAL_CFLAGS := -DGUIDRIVERMYGUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUI -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUI
+LOCAL_CFLAGS := -DGUIDRIVERMYGUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUI -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUI -DMODULE_SEMVER=2_0_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
   MyGUI.Engine \
-  freetype \
   gucefCORE \
   gucefGUI \
-  gucefINPUT \
+  gucefIMAGE \
   gucefMT \
   gucefVFS
 

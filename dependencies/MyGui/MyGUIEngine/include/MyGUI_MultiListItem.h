@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		12/2010
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_MULTI_LIST_ITEM_H__
-#define __MYGUI_MULTI_LIST_ITEM_H__
+#ifndef MYGUI_MULTI_LIST_ITEM_H_
+#define MYGUI_MULTI_LIST_ITEM_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_TextBox.h"
@@ -30,34 +15,33 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT MultiListItem :
-		public TextBox
+	/** \brief @wpage{MultiListItem}
+		MultiListItem widget description should be here.
+	*/
+	class MYGUI_EXPORT MultiListItem : public TextBox
 	{
-		MYGUI_RTTI_DERIVED( MultiListItem )
+		MYGUI_RTTI_DERIVED(MultiListItem)
 
 	public:
-		MultiListItem();
-
 		/** Set item caption */
-		virtual void setCaption(const UString& _value);
+		void setCaption(const UString& _value) override;
 		/** Get item caption */
-		virtual const UString& getCaption();
+		const UString& getCaption() const override;
 
 		void setItemResizingPolicy(ResizingPolicy _value);
 
 		void setItemWidth(int _value);
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
-		MultiListBox* getOwner();
-
+		MultiListBox* getOwner() const;
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_MULTI_LIST_ITEM_H__
+#endif // MYGUI_MULTI_LIST_ITEM_H_

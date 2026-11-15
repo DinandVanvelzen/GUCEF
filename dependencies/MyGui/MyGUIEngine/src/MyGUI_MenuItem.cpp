@@ -1,43 +1,20 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_MenuItem.h"
 
 namespace MyGUI
 {
 
-	MenuItem::MenuItem() :
-		mOwner(nullptr),
-		mMinSize(10, 10),
-		mCheck(nullptr),
-		mCheckValue(false)
-	{
-	}
-
 	void MenuItem::initialiseOverride()
 	{
 		Base::initialiseOverride();
 
-		// FIXME проверить смену скина ибо должно один раз вызываться
+		// FIXME check skin change as it should be called only once
 		Widget* parent = getParent();
 		MYGUI_ASSERT(parent, "MenuItem must have parent MenuControl");
 		if (!parent->isType<MenuControl>())
@@ -50,12 +27,13 @@ namespace MyGUI
 		}
 		mOwner = parent->castType<MenuControl>();
 
+		///@wskin_child{MenuItem, Widget, Check} Check mark for checked state.
 		assignWidget(mCheck, "Check");
 
 		//if (isUserString("MinSize"))
-			//mMinSize = IntSize::parse(getUserString("MinSize"));
+		//	mMinSize = IntSize::parse(getUserString("MinSize"));
 
-		//FIXME нам нуженфокус клавы
+		//FIXME we need key focus
 		setNeedKeyFocus(true);
 
 		updateCheck();
@@ -63,7 +41,7 @@ namespace MyGUI
 
 	void MenuItem::shutdownOverride()
 	{
-		// FIXME проверить смену скина ибо должно один раз вызываться
+		// FIXME check skin change as it should be called only once
 		mOwner->_notifyDeleteItem(this);
 
 		Base::shutdownOverride();
@@ -86,7 +64,21 @@ namespace MyGUI
 		mOwner->_notifyUpdateName(this);
 	}
 
-	const UString& MenuItem::getItemName()
+	void MenuItem::setFontName(std::string_view _value)
+	{
+		Button::setFontName(_value);
+		if (!getCaption().empty())
+			mOwner->_notifyUpdateName(this);
+	}
+
+	void MenuItem::setFontHeight(int _value)
+	{
+		Button::setFontHeight(_value);
+		if (!getCaption().empty())
+			mOwner->_notifyUpdateName(this);
+	}
+
+	const UString& MenuItem::getItemName() const
 	{
 		return mOwner->getItemName(this);
 	}
@@ -106,17 +98,17 @@ namespace MyGUI
 		mOwner->removeItem(this);
 	}
 
-	void MenuItem::setItemId(const std::string& _id)
+	void MenuItem::setItemId(std::string_view _id)
 	{
 		mOwner->setItemId(this, _id);
 	}
 
-	const std::string& MenuItem::getItemId()
+	const std::string& MenuItem::getItemId() const
 	{
 		return mOwner->getItemId(this);
 	}
 
-	size_t MenuItem::getItemIndex()
+	size_t MenuItem::getItemIndex() const
 	{
 		return mOwner->getItemIndex(this);
 	}
@@ -131,7 +123,7 @@ namespace MyGUI
 		mOwner->setItemType(this, _type);
 	}
 
-	MenuItemType MenuItem::getItemType()
+	MenuItemType MenuItem::getItemType() const
 	{
 		return mOwner->getItemType(this);
 	}
@@ -141,38 +133,45 @@ namespace MyGUI
 		mOwner->setItemChildVisible(this, _visible);
 	}
 
-	MenuControl* MenuItem::getItemChild()
+	MenuControl* MenuItem::getItemChild() const
 	{
 		return mOwner->getItemChild(this);
 	}
 
-	void MenuItem::setPropertyOverride(const std::string& _key, const std::string& _value)
+	void MenuItem::setPropertyOverride(std::string_view _key, std::string_view _value)
 	{
+		/// @wproperty{MenuItem, MenuItemId, string} Menu item identifier.
 		if (_key == "MenuItemId")
 			setItemId(_value);
+
+		/// @wproperty{MenuItem, MenuItemType, MenuItemType} Menu item type.
 		else if (_key == "MenuItemType")
 			setItemType(utility::parseValue<MenuItemType>(_value));
+
+		/// @wproperty{MenuItem, MenuItemChecked, bool} Checked state of the menu item.
 		else if (_key == "MenuItemChecked")
 			setItemChecked(utility::parseValue<bool>(_value));
+
 		else
 		{
 			Base::setPropertyOverride(_key, _value);
 			return;
 		}
+
 		eventChangeProperty(this, _key, _value);
 	}
 
-	MenuControl* MenuItem::getMenuCtrlParent()
+	MenuControl* MenuItem::getMenuCtrlParent() const
 	{
 		return mOwner;
 	}
 
-	IItemContainer* MenuItem::_getItemContainer()
+	IItemContainer* MenuItem::_getItemContainer() const
 	{
 		return mOwner;
 	}
 
-	IntSize MenuItem::_getContentSize()
+	IntSize MenuItem::_getContentSize() const
 	{
 		ISubWidgetText* text = getSubWidgetText();
 		if (text == nullptr)

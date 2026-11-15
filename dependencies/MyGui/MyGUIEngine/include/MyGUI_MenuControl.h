@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_MENU_CONTROL_H__
-#define __MYGUI_MENU_CONTROL_H__
+#ifndef MYGUI_MENU_CONTROL_H_
+#define MYGUI_MENU_CONTROL_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Types.h"
@@ -28,7 +13,6 @@
 #include "MyGUI_Widget.h"
 #include "MyGUI_Any.h"
 #include "MyGUI_EventPair.h"
-#include "MyGUI_MenuItemType.h"
 #include "MyGUI_ControllerFadeAlpha.h"
 #include "MyGUI_IItem.h"
 #include "MyGUI_IItemContainer.h"
@@ -36,29 +20,32 @@
 namespace MyGUI
 {
 
-	typedef delegates::CMultiDelegate2<MenuControl*, MenuItem*> EventHandle_MenuCtrlPtrMenuItemPtr;
-	typedef delegates::CMultiDelegate1<MenuControl*> EventHandle_MenuCtrlPtr;
+	using EventHandle_MenuCtrlPtrMenuItemPtr = delegates::MultiDelegate<MenuControl*, MenuItem*>;
+	using EventHandle_MenuCtrlPtr = delegates::MultiDelegate<MenuControl*>;
 
-	class MYGUI_EXPORT MenuControl :
-		public Widget,
-		public IItemContainer,
-		public MemberObsolete<MenuControl>
+	/** \brief @wpage{MenuControl}
+		MenuControl widget description should be here.
+	*/
+	class MYGUI_EXPORT MenuControl : public Widget, public IItemContainer, public MemberObsolete<MenuControl>
 	{
-		MYGUI_RTTI_DERIVED( MenuControl )
+		MYGUI_RTTI_DERIVED(MenuControl)
 
 	public:
-		MenuControl();
-
 		struct ItemInfo
 		{
-			ItemInfo(MenuItem* _item, const UString& _name, MenuItemType _type, MenuControl* _submenu, const std::string& _id, Any _data) :
+			ItemInfo(
+				MenuItem* _item,
+				const UString& _name,
+				MenuItemType _type,
+				MenuControl* _submenu,
+				std::string_view _id,
+				Any _data) :
 				item(_item),
 				name(_name),
 				type(_type),
 				submenu(_submenu),
 				id(_id),
-				data(_data),
-				width(0)
+				data(_data)
 			{
 			}
 
@@ -75,31 +62,44 @@ namespace MyGUI
 			/** User data */
 			Any data;
 			/** Item width */
-			int width;
+			int width{0};
 		};
 
-		typedef std::vector<ItemInfo> VectorMenuItemInfo;
+		using VectorMenuItemInfo = std::vector<ItemInfo>;
 
 	public:
 		/** @copydoc Widget::setVisible */
-		virtual void setVisible(bool _value);
+		void setVisible(bool _visible) override;
 
 		/** Hide or show Menu smooth */
-		void setVisibleSmooth(bool _value);
+		void setVisibleSmooth(bool _visible);
 
 		//------------------------------------------------------------------------------//
-		// манипуляции айтемами
 
 		//! Get number of items
 		size_t getItemCount() const;
 
 		//! Insert an item into a array at a specified position
-		MenuItem* insertItemAt(size_t _index, const UString& _name, MenuItemType _type = MenuItemType::Normal, const std::string& _id = "", Any _data = Any::Null);
+		MenuItem* insertItemAt(
+			size_t _index,
+			const UString& _name,
+			MenuItemType _type = MenuItemType::Normal,
+			std::string_view _id = {},
+			Any _data = Any::Null);
 		//! Insert an item into a array
-		MenuItem* insertItem(MenuItem* _to, const UString& _name, MenuItemType _type = MenuItemType::Normal, const std::string& _id = "", Any _data = Any::Null);
+		MenuItem* insertItem(
+			MenuItem* _to,
+			const UString& _name,
+			MenuItemType _type = MenuItemType::Normal,
+			std::string_view _id = {},
+			Any _data = Any::Null);
 
 		//! Add an item to the end of a array
-		MenuItem* addItem(const UString& _name, MenuItemType _type = MenuItemType::Normal, const std::string& _id = "", Any _data = Any::Null);
+		MenuItem* addItem(
+			const UString& _name,
+			MenuItemType _type = MenuItemType::Normal,
+			std::string_view _id = {},
+			Any _data = Any::Null);
 
 		//! Remove item at a specified position
 		void removeItemAt(size_t _index);
@@ -109,12 +109,11 @@ namespace MyGUI
 		//! Remove all items
 		void removeAllItems();
 
-
 		//! Get item from specified position
-		MenuItem* getItemAt(size_t _index);
+		MenuItem* getItemAt(size_t _index) const;
 
 		//! Get item index
-		size_t getItemIndex(MenuItem* _item);
+		size_t getItemIndex(const MenuItem* _item) const;
 
 		//! Search item, returns the position of the first occurrence in array or ITEM_NONE if item not found
 		size_t findItemIndex(MenuItem* _item);
@@ -123,7 +122,6 @@ namespace MyGUI
 		MenuItem* findItemWith(const UString& _name);
 
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
 		//! Replace an item data at a specified position
 		void setItemDataAt(size_t _index, Any _data);
@@ -136,39 +134,38 @@ namespace MyGUI
 		void clearItemData(MenuItem* _item);
 
 		//! Get item data from specified position
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getItemDataAt(size_t _index, bool _throw = true)
 		{
 			MYGUI_ASSERT_RANGE(_index, mItemsInfo.size(), "MenuControl::getItemDataAt");
 			return mItemsInfo[_index].data.castType<ValueType>(_throw);
 		}
 		//! Get item data
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getItemData(MenuItem* _item, bool _throw = true)
 		{
 			return getItemDataAt<ValueType>(getItemIndex(_item), _throw);
 		}
 
 		//! Replace an item id at a specified position
-		void setItemIdAt(size_t _index, const std::string& _id);
+		void setItemIdAt(size_t _index, std::string_view _id);
 		//! Replace an item id
-		void setItemId(MenuItem* _item, const std::string& _id);
+		void setItemId(MenuItem* _item, std::string_view _id);
 
 		//! Get item id from specified position
-		const std::string& getItemIdAt(size_t _index);
+		const std::string& getItemIdAt(size_t _index) const;
 		//! Get item id
-		const std::string& getItemId(MenuItem* _item);
+		const std::string& getItemId(const MenuItem* _item) const;
 
 		/** Get item by id */
-		MenuItem* getItemById(const std::string& _id);
+		MenuItem* getItemById(std::string_view _id) const;
 
 		/** Find item by id */
-		MenuItem* findItemById(const std::string& _id, bool _recursive = false);
+		MenuItem* findItemById(std::string_view _id, bool _recursive = false);
 
 		/** Get item index by id */
-		size_t getItemIndexById(const std::string& _id);
+		size_t getItemIndexById(std::string_view _id) const;
 		//------------------------------------------------------------------------------//
-		// манипуляции отображением
 
 		//! Replace an item name at a specified position
 		void setItemNameAt(size_t _index, const UString& _name);
@@ -176,9 +173,9 @@ namespace MyGUI
 		void setItemName(MenuItem* _item, const UString& _name);
 
 		//! Get item from specified position
-		const UString& getItemNameAt(size_t _index);
+		const UString& getItemNameAt(size_t _index) const;
 		//! Get item from specified position
-		const UString& getItemName(MenuItem* _item);
+		const UString& getItemName(const MenuItem* _item) const;
 
 		//! Search item, returns the position of the first occurrence in array or ITEM_NONE if item not found
 		size_t findItemIndexWith(const UString& _name);
@@ -189,27 +186,26 @@ namespace MyGUI
 		void setItemChildVisible(MenuItem* _item, bool _visible);
 
 		//------------------------------------------------------------------------------//
-		// остальные манипуляции
 
 		/** Create specific type child item (submenu) for item by index */
-		template <typename Type>
+		template<typename Type>
 		Type* createItemChildTAt(size_t _index)
 		{
 			return static_cast<Type*>(createItemChildByType(_index, Type::getClassTypeName()));
 		}
 
 		/** Create specific type child item (submenu) for item */
-		template <typename Type>
+		template<typename Type>
 		Type* createItemChildT(MenuItem* _item)
 		{
 			return createItemChildTAt<Type>(getItemIndex(_item));
 		}
 
 		/** Get child item (submenu) from item by index */
-		MenuControl* getItemChildAt(size_t _index);
+		MenuControl* getItemChildAt(size_t _index) const;
 
 		/** Get child item (submenu) from item */
-		MenuControl* getItemChild(MenuItem* _item);
+		MenuControl* getItemChild(const MenuItem* _item) const;
 
 		/** Create child item (submenu) for item by index */
 		MenuControl* createItemChildAt(size_t _index);
@@ -225,10 +221,10 @@ namespace MyGUI
 
 
 		/** Get item type (see MenuItemType) from item by index */
-		MenuItemType getItemTypeAt(size_t _index);
+		MenuItemType getItemTypeAt(size_t _index) const;
 
 		/** Get item type (see MenuItemType) from item */
-		MenuItemType getItemType(MenuItem* _item);
+		MenuItemType getItemType(const MenuItem* _item) const;
 
 		/** Set item type (see MenuItemType) from item by index */
 		void setItemTypeAt(size_t _index, MenuItemType _type);
@@ -241,7 +237,7 @@ namespace MyGUI
 		bool getPopupAccept() const;
 
 		/** Get parent menu item or nullptr if no item */
-		MenuItem* getMenuItemParent();
+		MenuItem* getMenuItemParent() const;
 
 		/** Set vertical alignment mode */
 		void setVerticalAlignment(bool _value);
@@ -249,82 +245,85 @@ namespace MyGUI
 		bool getVerticalAlignment() const;
 
 
-	/*events:*/
+		/*events:*/
 		/** Event : Enter pressed or mouse clicked.\n
 			signature : void method(MyGUI::MenuControl* _sender, MyGUI::MenuItem* _item)\n
 			@param _sender widget that called this event
 			@param _item Selected item
 		*/
-		EventHandle_MenuCtrlPtrMenuItemPtr
-			eventMenuCtrlAccept;
+		EventHandle_MenuCtrlPtrMenuItemPtr eventMenuCtrlAccept;
 
 		/** Event : Menu was closed by select or focus change.\n
 			signature : void method(MyGUI::MenuControl* _sender)\n
 			@param _sender widget that called this event
 		*/
-		EventHandle_MenuCtrlPtr
-			eventMenuCtrlClose;
+		EventHandle_MenuCtrlPtr eventMenuCtrlClose;
 
 
-	/*internal:*/
+		/*internal:*/
 		void _notifyDeleteItem(MenuItem* _item);
 		void _notifyDeletePopup(MenuItem* _item);
 		void _notifyUpdateName(MenuItem* _item);
 		void _wrapItemChild(MenuItem* _item, MenuControl* _widget);
 
 		// IItemContainer impl
-		virtual size_t _getItemCount();
-		virtual void _addItem(const MyGUI::UString& _name);
-		virtual void _removeItemAt(size_t _index);
-		virtual Widget* _getItemAt(size_t _index);
-		virtual void _setItemNameAt(size_t _index, const UString& _name);
-		virtual const UString& _getItemNameAt(size_t _index);
-		virtual void _setItemSelected(IItem* _item);
+		size_t _getItemCount() const override;
+		void _addItem(const MyGUI::UString& _name) override;
+		void _removeItemAt(size_t _index) override;
+		Widget* _getItemAt(size_t _index) const override;
+		void _setItemNameAt(size_t _index, const UString& _name) override;
+		const UString& _getItemNameAt(size_t _index) const override;
+		void _setItemSelected(IItem* _item) override;
 
 		void _updateItems(size_t _index);
 		void _updateSizeForEmpty();
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
 
-		virtual void onKeyChangeRootFocus(bool _focus);
+		void onKeyChangeRootFocus(bool _focus) override;
 
-		virtual void onWidgetCreated(Widget* _widget);
+		void onWidgetCreated(Widget* _widget) override;
 
-		virtual void setPropertyOverride(const std::string& _key, const std::string& _value);
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
 	private:
-		void notifyRootKeyChangeFocus(Widget* _sender, bool _focus);
+		void notifyRootKeyChangeFocus(Widget* _sender, bool _focus) const;
 		void notifyMouseButtonClick(Widget* _sender);
 		void notifyMouseSetFocus(Widget* _sender, Widget* _new);
+		void notifyChangeCoord(Widget* _sender);
+		void updateSubmenuPosition(size_t _index);
 
-		const std::string& getSkinByType(MenuItemType _type);
-		std::string getIconIndexByType(MenuItemType _type);
+		const std::string& getSkinByType(MenuItemType _type) const;
+		std::string_view getIconIndexByType(MenuItemType _type) const;
 
 		void update();
 
-		MenuItemType getItemType(bool _submenu, bool _separator);
+		MenuItemType getItemType(bool _submenu, bool _separator) const;
 
 		void notifyMenuCtrlAccept(MenuItem* _item);
 
-		Widget* createItemChildByType(size_t _index, const std::string& _type);
+		Widget* createItemChildByType(size_t _index, std::string_view _type);
 
-		void _wrapItem(MenuItem* _item, size_t _index, const UString& _name, MenuItemType _type, const std::string& _id, Any _data);
+		void _wrapItem(
+			MenuItem* _item,
+			size_t _index,
+			const UString& _name,
+			MenuItemType _type,
+			std::string_view _id,
+			Any _data);
 
 		ControllerFadeAlpha* createControllerFadeAlpha(float _alpha, float _coef, bool _enable);
-
-		Widget* _getClientWidget();
 
 		void _setItemChildVisibleAt(size_t _index, bool _visible, bool _smooth);
 
 	protected:
-		bool mHideByAccept;
-		// нужно ли выбрасывать по нажатию
-		bool mMenuDropMode;
-		bool mIsMenuDrop;
-		bool mHideByLostKey;
-		bool mResizeToContent;
+		bool mHideByAccept{true};
+		bool mMenuDropMode{false};
+		bool mIsMenuDrop{true};
+		bool mHideByLostKey{false};
+		bool mResizeToContent{true};
 
 	private:
 		VectorMenuItemInfo mItemsInfo;
@@ -336,19 +335,19 @@ namespace MyGUI
 		std::string mSubMenuSkin;
 		std::string mSubMenuLayer;
 
-		// флаг, чтобы отсеч уведомления от айтемов, при общем шутдауне виджета
-		bool mShutdown;
+		// Flag to ignore notifications from items during widget shutdown
+		bool mShutdown{false};
 
-		bool mVerticalAlignment;
-		int mDistanceButton;
-		bool mPopupAccept;
-		MenuItem* mOwner;
-		bool mAnimateSmooth;
+		bool mVerticalAlignment{true};
+		int mDistanceButton{0};
+		bool mPopupAccept{false};
+		MenuItem* mOwner{nullptr};
+		bool mAnimateSmooth{false};
 
-		bool mChangeChildSkin;
-		Widget* mClient;
+		bool mChangeChildSkin{false};
+		bool mInternalCreateChild{false};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_MENU_CONTROL_H__
+#endif // MYGUI_MENU_CONTROL_H_

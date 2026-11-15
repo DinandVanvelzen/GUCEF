@@ -1,44 +1,22 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		01/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_LogManager.h"
 #include "MyGUI_FileLogListener.h"
 #include "MyGUI_ConsoleLogListener.h"
 #include "MyGUI_LevelLogFilter.h"
-#include "MyGUI_LogSource.h"
-#include <time.h>
+#include <ctime>
 
 namespace MyGUI
 {
 
 	LogManager* LogManager::msInstance = nullptr;
 
-	LogManager::LogManager() :
-		mConsole(nullptr),
-		mFile(nullptr),
-		mFilter(nullptr),
-		mDefaultSource(nullptr),
-		mLevel(LogLevel::Info),
-		mConsoleEnable(true)
+	LogManager::LogManager()
 	{
 		msInstance = this;
 	}
@@ -48,25 +26,12 @@ namespace MyGUI
 		flush();
 		close();
 
-		delete mDefaultSource;
-		mDefaultSource = nullptr;
-		delete mConsole;
-		mConsole = nullptr;
-		delete mFile;
-		mFile = nullptr;
-		delete mFilter;
-		mFilter = nullptr;
-
 		msInstance = nullptr;
 	}
 
 	LogManager& LogManager::getInstance()
 	{
-		if (msInstance == nullptr)
-		{
-			MYGUI_DBG_BREAK;
-			MYGUI_BASE_EXCEPT("Singleton instance LogManager was not created", "MyGUI");
-		}
+		MYGUI_ASSERT(nullptr != getInstancePtr(), "Singleton instance LogManager was not created");
 		return *msInstance;
 	}
 
@@ -77,25 +42,30 @@ namespace MyGUI
 
 	void LogManager::flush()
 	{
-		for (VectorLogSource::iterator item = mSources.begin(); item != mSources.end(); ++item)
-			(*item)->flush();
+		for (auto& source : mSources)
+			source->flush();
 	}
 
-	void LogManager::log(const std::string& _section, LogLevel _level, const std::string& _message, const char* _file, int _line)
+	void LogManager::log(
+		std::string_view _section,
+		LogLevel _level,
+		std::string_view _message,
+		std::string_view _file,
+		int _line)
 	{
 		time_t ctTime;
 		time(&ctTime);
 		struct tm* currentTime;
 		currentTime = localtime(&ctTime);
 
-		for (VectorLogSource::iterator item = mSources.begin(); item != mSources.end(); ++item)
-			(*item)->log(_section, _level, currentTime, _message, _file, _line);
+		for (auto& source : mSources)
+			source->log(_section, _level, currentTime, _message, _file, _line);
 	}
 
 	void LogManager::close()
 	{
-		for (VectorLogSource::iterator item = mSources.begin(); item != mSources.end(); ++item)
-			(*item)->close();
+		for (auto& source : mSources)
+			source->close();
 	}
 
 	void LogManager::addLogSource(LogSource* _source)
@@ -103,24 +73,27 @@ namespace MyGUI
 		mSources.push_back(_source);
 	}
 
-	void LogManager::createDefaultSource(const std::string& _logname)
+	void LogManager::createDefaultSource(std::string_view _logname)
 	{
-		mConsole = new ConsoleLogListener();
-		mFile = new FileLogListener();
-		mFilter = new LevelLogFilter();
+		mDefaultSource = std::make_unique<LogSource>();
 
-		mFile->setFileName(_logname);
+		mConsole = std::make_unique<ConsoleLogListener>();
 		mConsole->setEnabled(mConsoleEnable);
-		mFilter->setLoggingLevel(mLevel);
+		mDefaultSource->addLogListener(mConsole.get());
 
-		mDefaultSource = new LogSource();
-		mDefaultSource->addLogListener(mFile);
-		mDefaultSource->addLogListener(mConsole);
-		mDefaultSource->setLogFilter(mFilter);
+#ifndef __EMSCRIPTEN__
+		mFile = std::make_unique<FileLogListener>();
+		mFile->setFileName(_logname);
+		mDefaultSource->addLogListener(mFile.get());
+#endif
+
+		mFilter = std::make_unique<LevelLogFilter>();
+		mFilter->setLoggingLevel(mLevel);
+		mDefaultSource->setLogFilter(mFilter.get());
 
 		mDefaultSource->open();
 
-		LogManager::getInstance().addLogSource(mDefaultSource);
+		LogManager::getInstance().addLogSource(mDefaultSource.get());
 	}
 
 	void LogManager::setSTDOutputEnabled(bool _value)

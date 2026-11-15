@@ -29,59 +29,31 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "MyGUI.Engine", "freetype", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "MyGUI.Engine", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefMT", "gucefVFS" } )
 
 configuration( {} )
-links( { "MyGUI.Engine", "freetype", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "MyGUI.Engine", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "GUIDRIVERMYGUI_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverMyGUI", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverMyGUI" } )
+defines( { "GUIDRIVERMYGUI_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverMyGUI", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverMyGUI", "MODULE_SEMVER=2_0_0_0" } )
 
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/MyGUI_LastHeader.h",
-  "include/guceMyGUI.h",
-  "include/guceMyGUI_CButtonImp.h",
-  "include/guceMyGUI_CCheckboxImp.h",
-  "include/guceMyGUI_CComboboxImp.h",
-  "include/guceMyGUI_CDataManager.h",
-  "include/guceMyGUI_CEditboxImp.h",
-  "include/guceMyGUI_CFileOpenDialogImp.h",
-  "include/guceMyGUI_CFileSaveDialogImp.h",
-  "include/guceMyGUI_CFileSystemDialogImp.h",
-  "include/guceMyGUI_CFormBackendImp.h",
-  "include/guceMyGUI_CGUIContext.h",
-  "include/guceMyGUI_CGridViewImp.h",
-  "include/guceMyGUI_CIOAccessToMyGuiDataStreamAdapter.h",
-  "include/guceMyGUI_CImageFrameImp.h",
-  "include/guceMyGUI_CLabelImp.h",
-  "include/guceMyGUI_CListBoxImp.h",
-  "include/guceMyGUI_CMemoboxImp.h",
-  "include/guceMyGUI_CMenuBarImp.h",
-  "include/guceMyGUI_CModule.h",
-  "include/guceMyGUI_CMyGUIInputAdapter.h",
-  "include/guceMyGUI_CPopupMenuImp.h",
-  "include/guceMyGUI_CProgressBarImp.h",
-  "include/guceMyGUI_CPushButtonImp.h",
-  "include/guceMyGUI_CRenderContextImp.h",
-  "include/guceMyGUI_CSpinnerImp.h",
-  "include/guceMyGUI_CTabContentPaneImp.h",
-  "include/guceMyGUI_CTabControlImp.h",
-  "include/guceMyGUI_CTreeviewImp.h",
-  "include/guceMyGUI_CVFSHandleToMyGuiDataStreamAdapter.h",
-  "include/guceMyGUI_CVFSInfoProvider.h",
-  "include/guceMyGUI_CWidgetImp.h",
-  "include/guceMyGUI_CWindowImp.h",
-  "include/guceMyGUI_ETypes.h",
-  "include/guceMyGUI_config.h",
-  "include/guceMyGUI_macros.h",
-  "include/guceMyGUI_pluginAPI.h",
-  "include/guidriverMyGUI_CLogAdapter.h",
-  "include/guidriverMyGUI_CMyGuiDriver.h",
-  "include/guidriverMyGUI_widgets.h"
+  "include/guidriverMyGUI.h",
+  "include/guidriverMyGUI_CMyGUIContext.h",
+  "include/guidriverMyGUI_CMyGUIDataManager.h",
+  "include/guidriverMyGUI_CMyGUIDriver.h",
+  "include/guidriverMyGUI_CMyGUIImageCodec.h",
+  "include/guidriverMyGUI_CMyGUILogListener.h",
+  "include/guidriverMyGUI_CMyGUIVfsDataStream.h",
+  "include/guidriverMyGUI_CMyGUIWidgetHandler.h",
+  "include/guidriverMyGUI_ETypes.h",
+  "include/guidriverMyGUI_config.h",
+  "include/guidriverMyGUI_macros.h",
+  "include/guidriverMyGUI_pluginAPI.h"
  } )
 
 
@@ -89,47 +61,20 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
-  "include/guceMyGUI_CIOAccessToMyGuiDataStreamAdapter.cpp",
-  "src/guceMyGUI.cpp",
-  "src/guceMyGUI_CButtonImp.cpp",
-  "src/guceMyGUI_CCheckboxImp.cpp",
-  "src/guceMyGUI_CComboboxImp.cpp",
-  "src/guceMyGUI_CDataManager.cpp",
-  "src/guceMyGUI_CEditboxImp.cpp",
-  "src/guceMyGUI_CFileOpenDialogImp.cpp",
-  "src/guceMyGUI_CFileSaveDialogImp.cpp",
-  "src/guceMyGUI_CFileSystemDialogImp.cpp",
-  "src/guceMyGUI_CFormBackendImp.cpp",
-  "src/guceMyGUI_CGUIContext.cpp",
-  "src/guceMyGUI_CGridViewImp.cpp",
-  "src/guceMyGUI_CImageFrameImp.cpp",
-  "src/guceMyGUI_CLabelImp.cpp",
-  "src/guceMyGUI_CListboxImp.cpp",
-  "src/guceMyGUI_CMemoboxImp.cpp",
-  "src/guceMyGUI_CMenuBarImp.cpp",
-  "src/guceMyGUI_CModule.cpp",
-  "src/guceMyGUI_CMyGUIInputAdapter.cpp",
-  "src/guceMyGUI_CPopupMenuImp.cpp",
-  "src/guceMyGUI_CProgressBarImp.cpp",
-  "src/guceMyGUI_CPushButtonImp.cpp",
-  "src/guceMyGUI_CRenderContextImp.cpp",
-  "src/guceMyGUI_CSpinnerImp.cpp",
-  "src/guceMyGUI_CTabContentPaneImp.cpp",
-  "src/guceMyGUI_CTabControlImp.cpp",
-  "src/guceMyGUI_CTreeviewImp.cpp",
-  "src/guceMyGUI_CVFSHandleToMyGuiDataStreamAdapter.cpp",
-  "src/guceMyGUI_CVFSInfoProvider.cpp",
-  "src/guceMyGUI_CWidgetImp.cpp",
-  "src/guceMyGUI_CWindowImp.cpp",
-  "src/guceMyGUI_pluginAPI.cpp",
-  "src/guidriverMyGUI_CLogAdapter.cpp",
-  "src/guidriverMyGUI_CMyGuiDriver.cpp",
-  "src/guidriverMyGUI_widgets.cpp"
+  "src/guidriverMyGUI.cpp",
+  "src/guidriverMyGUI_CMyGUIContext.cpp",
+  "src/guidriverMyGUI_CMyGUIDataManager.cpp",
+  "src/guidriverMyGUI_CMyGUIDriver.cpp",
+  "src/guidriverMyGUI_CMyGUIImageCodec.cpp",
+  "src/guidriverMyGUI_CMyGUILogListener.cpp",
+  "src/guidriverMyGUI_CMyGUIVfsDataStream.cpp",
+  "src/guidriverMyGUI_CMyGUIWidgetHandler.cpp",
+  "src/guidriverMyGUI_pluginAPI.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../dependencies/pugixml/src", "../../../dependencies/utfcpp", "../../../dependencies/utfcpp/source", "../../../dependencies/utfcpp/source/utf8", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )

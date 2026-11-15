@@ -1,24 +1,9 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		02/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_RenderItem.h"
 #include "MyGUI_LayerNode.h"
@@ -26,23 +11,100 @@
 #include "MyGUI_Gui.h"
 #include "MyGUI_RenderManager.h"
 #include "MyGUI_DataManager.h"
-#include "MyGUI_RenderManager.h"
+#include "MyGUI_Widget.h"
+#include "MyGUI_GeometryUtility.h"
+#include <array>
+#include <algorithm>
+#include <cmath>
 
 namespace MyGUI
 {
+	namespace
+	{
 
-	RenderItem::RenderItem() :
-		mTexture(nullptr),
-		mNeedVertexCount(0),
-		mOutOfDate(false),
-		mCountVertex(0),
-		mCurrentUpdate(true),
-		mCurrentVertex(nullptr),
-		mLastVertexCount(0),
-		mVertexBuffer(nullptr),
-		mRenderTarget(nullptr),
-		mCompression(false),
-		mManualRender(false)
+		float edgeDistance(const FloatPoint& _a, const FloatPoint& _b, const FloatPoint& _point)
+		{
+			return (_b.left - _a.left) * (_point.top - _a.top) - (_b.top - _a.top) * (_point.left - _a.left);
+		}
+
+		Vertex interpolate(const Vertex& _a, const Vertex& _b, float _t)
+		{
+			Vertex result = _a;
+			result.x += (_b.x - _a.x) * _t;
+			result.y += (_b.y - _a.y) * _t;
+			result.z += (_b.z - _a.z) * _t;
+			result.u += (_b.u - _a.u) * _t;
+			result.v += (_b.v - _a.v) * _t;
+			uint32 colour = 0;
+			for (unsigned shift = 0; shift < 32; shift += 8)
+			{
+				const float a = float((_a.colour >> shift) & 0xFF);
+				const float b = float((_b.colour >> shift) & 0xFF);
+				colour |= uint32(std::lround(a + (b - a) * _t)) << shift;
+			}
+			result.colour = colour;
+			return result;
+		}
+
+		std::array<FloatPoint, 4> clipQuad(const Widget* _widget, const RenderTargetInfo& _info)
+		{
+			const float width = (float)_widget->getWidth();
+			const float height = (float)_widget->getHeight();
+			std::array<FloatPoint, 4> corners = {{{0, 0}, {width, 0}, {width, height}, {0, height}}};
+			_widget->localToLayer(corners.data(), corners.size());
+			geometry_utility::toRenderTargetInPlace(corners, _info);
+			return corners;
+		}
+
+		void appendClippedTriangles(
+			std::vector<Vertex>& _output,
+			const Vertex* _input,
+			size_t _count,
+			const Widget* _owner,
+			const RenderTargetInfo& _info)
+		{
+			std::vector<std::array<FloatPoint, 4>> quads;
+			for (const ICroppedRectangle* crop = _owner; crop != nullptr; crop = crop->getCroppedParent())
+				quads.push_back(clipQuad(static_cast<const Widget*>(crop), _info));
+			std::vector<Vertex> polygon;
+			std::vector<Vertex> clipped;
+			for (size_t base = 0; base + 2 < _count; base += 3)
+			{
+				polygon.assign(_input + base, _input + base + 3);
+				for (const auto& quad : quads)
+				{
+					const float sign = edgeDistance(quad[0], quad[1], quad[2]) >= 0.0f ? 1.0f : -1.0f;
+					for (size_t side = 0; side < quad.size() && !polygon.empty(); ++side)
+					{
+						clipped.clear();
+						const FloatPoint& a = quad[side];
+						const FloatPoint& b = quad[(side + 1) % quad.size()];
+						for (size_t i = 0; i < polygon.size(); ++i)
+						{
+							const Vertex& current = polygon[i];
+							const Vertex& next = polygon[(i + 1) % polygon.size()];
+							const float first = sign * edgeDistance(a, b, {current.x, current.y});
+							const float second = sign * edgeDistance(a, b, {next.x, next.y});
+							if (first >= 0.0f)
+								clipped.push_back(current);
+							if ((first < 0.0f && second > 0.0f) || (first > 0.0f && second < 0.0f))
+								clipped.push_back(interpolate(current, next, first / (first - second)));
+						}
+						polygon.swap(clipped);
+					}
+				}
+				for (size_t i = 1; i + 1 < polygon.size(); ++i)
+				{
+					_output.push_back(polygon[0]);
+					_output.push_back(polygon[i]);
+					_output.push_back(polygon[i + 1]);
+				}
+			}
+		}
+
+	}
+
+	RenderItem::RenderItem()
 	{
 		mVertexBuffer = RenderManager::getInstance().createVertexBuffer();
 	}
@@ -51,6 +113,72 @@ namespace MyGUI
 	{
 		RenderManager::getInstance().destroyVertexBuffer(mVertexBuffer);
 		mVertexBuffer = nullptr;
+	}
+
+	void RenderItem::rebuildGeometry(IRenderTarget* _target)
+	{
+		mCountVertex = 0;
+		bool rotated = false;
+		// Adjacent skin items often share an owner; check its rotation once per group.
+		// Remember the owner only during this scan so later rebuilds observe rotation changes.
+		const ICroppedRectangle* previousOwner = nullptr;
+		for (const auto& item : mDrawItems)
+		{
+			const auto* owner = item.first->getCroppedParent();
+			if (owner && owner != previousOwner && owner->_hasRotation())
+			{
+				rotated = true;
+				break;
+			}
+			previousOwner = owner;
+		}
+		if (rotated)
+		{
+			// Rotated triangles can gain vertices when clipped by ancestor bounds.
+			// Generate in CPU storage first, then size the render buffer to fit.
+			std::vector<Vertex> scratch(mNeedVertexCount);
+			std::vector<Vertex> vertices;
+			for (auto& item : mDrawItems)
+			{
+				mCurrentVertex = scratch.data();
+				mLastVertexCount = 0;
+				item.first->doRender();
+				MYGUI_DEBUG_ASSERT(mLastVertexCount <= item.second, "It is too much vertexes");
+				MYGUI_DEBUG_ASSERT(mLastVertexCount <= scratch.size(), "It is too much vertexes");
+				if (mLastVertexCount == 0)
+					continue;
+				if (const auto* owner = item.first->getCroppedParent(); owner && owner->_hasRotation())
+				{
+					const auto* widget = static_cast<const Widget*>(owner);
+					widget->_transformVertices(scratch.data(), mLastVertexCount, _target->getInfo());
+					appendClippedTriangles(vertices, scratch.data(), mLastVertexCount, widget, _target->getInfo());
+				}
+				else
+					vertices.insert(vertices.end(), scratch.begin(), scratch.begin() + mLastVertexCount);
+			}
+			mVertexBuffer->setVertexCount(std::max(mNeedVertexCount, vertices.size()));
+			if (Vertex* buffer = mVertexBuffer->lock())
+			{
+				std::copy(vertices.begin(), vertices.end(), buffer);
+				mVertexBuffer->unlock();
+				mCountVertex = vertices.size();
+			}
+		}
+		else if (Vertex* buffer = mVertexBuffer->lock())
+		{
+			for (auto& item : mDrawItems)
+			{
+				mCurrentVertex = buffer;
+				mLastVertexCount = 0;
+				item.first->doRender();
+				MYGUI_DEBUG_ASSERT(mLastVertexCount <= item.second, "It is too much vertexes");
+				buffer += mLastVertexCount;
+				mCountVertex += mLastVertexCount;
+			}
+			mVertexBuffer->unlock();
+		}
+
+		mOutOfDate = false;
 	}
 
 	void RenderItem::renderToTarget(IRenderTarget* _target, bool _update)
@@ -63,50 +191,21 @@ namespace MyGUI
 		mCurrentUpdate = _update;
 
 		if (mOutOfDate || _update)
-		{
-			mCountVertex = 0;
-			Vertex* buffer = (Vertex*)mVertexBuffer->lock();
+			rebuildGeometry(_target);
 
-			for (VectorDrawItem::iterator iter = mDrawItems.begin(); iter != mDrawItems.end(); ++iter)
-			{
-				// перед вызовом запоминаем позицию в буфере
-				mCurrentVertex = buffer;
-				mLastVertexCount = 0;
-
-				(*iter).first->doRender();
-
-				// колличество отрисованных вершин
-				MYGUI_DEBUG_ASSERT(mLastVertexCount <= (*iter).second, "It is too much vertexes");
-				buffer += mLastVertexCount;
-				mCountVertex += mLastVertexCount;
-			}
-
-			mVertexBuffer->unlock();
-
-			mOutOfDate = false;
-		}
-
-		// хоть с 0 не выводиться батч, но все равно не будем дергать стейт и операцию
+		// batch doesn't render with 0 count, but still avoid changing state
 		if (0 != mCountVertex)
 		{
 #if MYGUI_DEBUG_MODE == 1
 			if (!RenderManager::getInstance().checkTexture(mTexture))
 			{
+				auto textureName = mTexture->getName();
 				mTexture = nullptr;
-				MYGUI_EXCEPT("texture pointer is not valid, texture name '" << mTextureName << "'");
+				MYGUI_EXCEPT("texture pointer is not valid, texture name '" << textureName << "'");
 				return;
 			}
 #endif
-			// непосредственный рендринг
-			if (mManualRender)
-			{
-				for (VectorDrawItem::iterator iter = mDrawItems.begin(); iter != mDrawItems.end(); ++iter)
-					(*iter).first->doManualRender(mVertexBuffer, mTexture, mCountVertex);
-			}
-			else
-			{
-				_target->doRender(mVertexBuffer, mTexture, mCountVertex);
-			}
+			_target->doRender(mVertexBuffer, mTexture, mCountVertex);
 		}
 	}
 
@@ -122,11 +221,11 @@ namespace MyGUI
 
 				mVertexBuffer->setVertexCount(mNeedVertexCount);
 
-				// если все отдетачились, расскажем отцу
+				// if all detached, notify parent
 				if (mDrawItems.empty())
 				{
 					mTexture = nullptr;
-					mCompression = true;
+					mNeedCompression = true;
 				}
 
 				return;
@@ -137,16 +236,14 @@ namespace MyGUI
 
 	void RenderItem::addDrawItem(ISubWidget* _item, size_t _count)
 	{
-
-// проверяем только в дебаге
 #if MYGUI_DEBUG_MODE == 1
-		for (VectorDrawItem::iterator iter = mDrawItems.begin(); iter != mDrawItems.end(); ++iter)
+		for (const auto& item : mDrawItems)
 		{
-			MYGUI_ASSERT((*iter).first != _item, "DrawItem exist");
+			MYGUI_ASSERT(item.first != _item, "DrawItem exist");
 		}
 #endif
 
-		mDrawItems.push_back(DrawItemInfo(_item, _count));
+		mDrawItems.emplace_back(_item, _count);
 		mNeedVertexCount += _count;
 		mOutOfDate = true;
 
@@ -155,16 +252,16 @@ namespace MyGUI
 
 	void RenderItem::reallockDrawItem(ISubWidget* _item, size_t _count)
 	{
-		for (VectorDrawItem::iterator iter = mDrawItems.begin(); iter != mDrawItems.end(); ++iter)
+		for (auto& item : mDrawItems)
 		{
-			if ((*iter).first == _item)
+			if (item.first == _item)
 			{
-				// если нужно меньше, то ниче не делаем
-				if ((*iter).second < _count)
+				// if smaller, keep as is
+				if (item.second < _count)
 				{
-					mNeedVertexCount -= (*iter).second;
+					mNeedVertexCount -= item.second;
 					mNeedVertexCount += _count;
-					(*iter).second = _count;
+					item.second = _count;
 					mOutOfDate = true;
 
 					mVertexBuffer->setVertexCount(mNeedVertexCount);
@@ -184,32 +281,21 @@ namespace MyGUI
 		MYGUI_DEBUG_ASSERT(mNeedVertexCount == 0, "change texture only empty buffer");
 
 		mTexture = _value;
-
-#if MYGUI_DEBUG_MODE == 1
-		mTextureName = mTexture == nullptr ? "" : mTexture->getName();
-#endif
 	}
 
-	ITexture* RenderItem::getTexture()
+	ITexture* RenderItem::getTexture() const
 	{
 		return mTexture;
 	}
 
-	bool RenderItem::getCompression()
+	void RenderItem::setNeedCompression(bool _compression)
 	{
-		bool result = mCompression;
-		mCompression = false;
-		return result;
+		mNeedCompression = _compression;
 	}
 
-	void RenderItem::setManualRender(bool _value)
+	bool RenderItem::getNeedCompression() const
 	{
-		mManualRender = _value;
-	}
-
-	bool RenderItem::getManualRender() const
-	{
-		return mManualRender;
+		return mNeedCompression;
 	}
 
 	void RenderItem::outOfDate()

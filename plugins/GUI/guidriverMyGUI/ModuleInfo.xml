@@ -1,25 +1,36 @@
 <ModuleInfoEntry>
     <Module Name="guidriverMyGUI" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>2.0.0.0</SemVer>
+            <DescriptionHeadline>MyGUI 3.5.4 driver for gucefGUI, the part shared by the renderer drivers</DescriptionHeadline>
+            <DescriptionDetails>Context, widget handlers, the MyGUI data manager over the virtual file system, the log listener and the image codec bridge to gucefIMAGE. The renderer drivers (guidriverMyGUIOpenGL, guidriverMyGUIOgre) derive from it. Built as C++17, which MyGUI requires.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
         <Dependencies>
             <Dependency Name="gucefVFS" />
-            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefGUI" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
-            <Dependency Name="freetype" />
             <Dependency Name="MyGUI.Engine" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefVFS" />
-            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefGUI" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefMT" />
-            <Dependency Name="freetype" />
             <Dependency Name="MyGUI.Engine" />
         </Linker>
         <Preprocessor>
             <Define String="GUIDRIVERMYGUI_BUILD_MODULE" />
         </Preprocessor>
+        <Compiler MinCppStandard="17" />
     </Module>
 </ModuleInfoEntry>

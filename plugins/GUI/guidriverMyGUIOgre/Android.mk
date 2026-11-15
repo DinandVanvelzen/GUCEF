@@ -23,9 +23,8 @@ LOCAL_MODULE_FILENAME := libguidriverMyGUIOgre
 
 LOCAL_SRC_FILES := \
   src/guidriverMyGUIOgre.cpp \
-  src/guidriverMyGUIOgre_CGUIContextOgre.cpp \
-  src/guidriverMyGUIOgre_CGUIDriverOgre.cpp \
-  src/guidriverMyGUIOgre_CImageLoader.cpp \
+  src/guidriverMyGUIOgre_COgreContext.cpp \
+  src/guidriverMyGUIOgre_COgreDriver.cpp \
   src/guidriverMyGUIOgre_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \
@@ -44,6 +43,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../../dependencies/pugixml/src \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source \
+  $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source/utf8 \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
@@ -59,17 +62,15 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
   $(MY_MODULE_PATH)/../guidriverMyGUI/include
 
-LOCAL_CFLAGS := -DGUIDRIVERMYGUIOGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUIOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUIOgre
+LOCAL_CFLAGS := -DGUIDRIVERMYGUIOGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUIOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUIOgre -DMODULE_SEMVER=2_0_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
   MyGUI.Engine \
   Ogre \
-  freetype \
   gucefCORE \
   gucefGUI \
   gucefIMAGE \
-  gucefINPUT \
   gucefMT \
   gucefVFS \
   guidriverMyGUI

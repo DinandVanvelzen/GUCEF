@@ -13,9 +13,10 @@
 
 set( HEADER_FILES 
   include/guidriverMyGUIOpenGL.h
-  include/guidriverMyGUIOpenGL_CGUIContextGL.h
-  include/guidriverMyGUIOpenGL_CGUIDriverGL.h
-  include/guidriverMyGUIOpenGL_CImageLoader.h
+  include/guidriverMyGUIOpenGL_CGLContext.h
+  include/guidriverMyGUIOpenGL_CGLDriver.h
+  include/guidriverMyGUIOpenGL_ETypes.h
+  include/guidriverMyGUIOpenGL_IGLBackend.h
   include/guidriverMyGUIOpenGL_config.h
   include/guidriverMyGUIOpenGL_macros.h
   include/guidriverMyGUIOpenGL_pluginAPI.h
@@ -23,9 +24,11 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/guidriverMyGUIOpenGL.cpp
-  src/guidriverMyGUIOpenGL_CGUIContextGL.cpp
-  src/guidriverMyGUIOpenGL_CGUIDriverGL.cpp
-  src/guidriverMyGUIOpenGL_CImageLoader.cpp
+  src/guidriverMyGUIOpenGL_CGL3Backend.cpp
+  src/guidriverMyGUIOpenGL_CGLBackend.cpp
+  src/guidriverMyGUIOpenGL_CGLContext.cpp
+  src/guidriverMyGUIOpenGL_CGLDriver.cpp
+  src/guidriverMyGUIOpenGL_CGLESBackend.cpp
   src/guidriverMyGUIOpenGL_pluginAPI.cpp
 )
 
@@ -38,72 +41,103 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of guidriverMyGUIOpenGL and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 17 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( guidriverMyGUIOpenGL "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "guidriverMyGUIOpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} MyGUI.Engine freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
-target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOPENGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOpenGL" )
+add_dependencies( ${MODULE_NAME} MyGUI.Engine gucefCORE gucefGUI gucefIMAGE gucefMT gucefVFS guidriverMyGUI )
+target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine gucefCORE gucefGUI gucefIMAGE gucefMT gucefVFS guidriverMyGUI )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GL_GLEXT_PROTOTYPES;GUIDRIVERMYGUIOPENGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOpenGL;MODULE_SEMVER=2_0_0_0" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_17 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 2.0.0.0 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 2.0.0.0 )
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )
   target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLESPlatform )
-target_link_libraries( ${MODULE_NAME} PRIVATE GLESv1_CM )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv3 )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )
   target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLESPlatform )
-target_link_libraries( ${MODULE_NAME} PRIVATE GLESv1_CM )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv3 )
 endif( ANDROID64 )
 
+if ( EMSCRIPTEN32 )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLESPlatform )
+target_link_libraries( ${MODULE_NAME} PRIVATE -sMAX_WEBGL_VERSION=2 -sMIN_WEBGL_VERSION=2 )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLESPlatform )
+target_link_libraries( ${MODULE_NAME} PRIVATE -sMAX_WEBGL_VERSION=2 -sMIN_WEBGL_VERSION=2 )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLPlatform )
-  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLPlatform )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform )
 target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLPlatform )
-  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLPlatform )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform )
 target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLPlatform )
-  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLPlatform )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform glew )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform glew )
 target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32 )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLPlatform )
-  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGLPlatform )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform glew )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.OpenGL3Platform MyGUI.OpenGLPlatform glew )
 target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32 )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverMyGUI/include include )
+include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../dependencies/pugixml/src ../../../dependencies/utfcpp ../../../dependencies/utfcpp/source ../../../dependencies/utfcpp/source/utf8 ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverMyGUI/include include )
 
 if ( ANDROID32 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../platform/gucefCORE/include/android OpenGLESPlatform/include )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGLESPlatform/include ../../../platform/gucefCORE/include/android )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../platform/gucefCORE/include/android OpenGLESPlatform/include )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGLESPlatform/include ../../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGLESPlatform/include )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGLESPlatform/include )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/GL ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include/linux )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGL3Platform/include ../../../dependencies/MyGui/Platforms/OpenGLPlatform/include ../../../platform/gucefCORE/include/linux )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/GL ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include/linux )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGL3Platform/include ../../../dependencies/MyGui/Platforms/OpenGLPlatform/include ../../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/GL ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGL3Platform/include ../../../dependencies/MyGui/Platforms/OpenGLPlatform/include ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include ../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/GL ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../dependencies/MyGui/Platforms/OpenGL3Platform/include ../../../dependencies/MyGui/Platforms/OpenGLPlatform/include ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

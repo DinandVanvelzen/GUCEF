@@ -1,106 +1,259 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		06/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_RESOURCE_TRUE_TYPE_FONT_H__
-#define __MYGUI_RESOURCE_TRUE_TYPE_FONT_H__
+#ifndef MYGUI_RESOURCE_TRUE_TYPE_FONT_H_
+#define MYGUI_RESOURCE_TRUE_TYPE_FONT_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_ITexture.h"
 #include "MyGUI_IFont.h"
+#include <cstddef>
+
+#ifdef MYGUI_USE_FREETYPE
+
+using FT_UInt = unsigned int;
+using FT_Int32 = signed int;
+struct FT_FaceRec_;
+using FT_Face = FT_FaceRec_*;
+struct FT_LibraryRec_;
+using FT_Library = FT_LibraryRec_*;
+struct FT_GlyphSlotRec_;
+using FT_GlyphSlot = FT_GlyphSlotRec_*;
+
+	#ifdef MYGUI_MSDF_FONTS
+namespace msdfgen
+{
+
+	class FontHandle;
+	class Shape;
+
+}
+	#endif
+
+#endif // MYGUI_USE_FREETYPE
+
+#include <unordered_map>
 
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT ResourceTrueTypeFont :
-		public IFont
+	class MYGUI_EXPORT ResourceTrueTypeFont : public IFont, public ITextureInvalidateListener
 	{
-		MYGUI_RTTI_DERIVED( ResourceTrueTypeFont )
+		MYGUI_RTTI_DERIVED(ResourceTrueTypeFont)
 
 	public:
-		typedef std::vector<PairCodePoint> VectorPairCodePoint;
-		typedef std::vector<RangeInfo> VectorRangeInfo;
-		typedef std::vector<PairCodeCoord> VectorPairCodeCoord;
+		~ResourceTrueTypeFont() override;
 
-		ResourceTrueTypeFont();
-		virtual ~ResourceTrueTypeFont();
+		void deserialization(xml::ElementPtr _node, Version _version) override;
 
-		virtual void deserialization(xml::ElementPtr _node, Version _version);
+		// Returns the glyph info for the specified code point, or the glyph info for a substitute glyph if the code point does not
+		// exist in this font. Returns nullptr if there is a problem with the font.
+		const GlyphInfo* getGlyphInfo(Char _id) const override;
 
-		virtual GlyphInfo* getGlyphInfo(Char _id);
+		ITexture* getTextureFont() const override;
 
-		virtual ITexture* getTextureFont();
+		// Resulting height in pixels after generation
+		int getDefaultHeight() const override;
 
-		// получившаяся высота при генерации в пикселях
-		virtual int getDefaultHeight();
+		// update texture after render device lost event
+		void textureInvalidate(ITexture* _texture) override;
 
-	private:
-		void addCodePointRange(Char _first, Char _second);
-		void addHideCodePointRange(Char _first, Char _second);
+		float getKerning(Char _left, Char _right) const override;
 
-		// проверяет, входит ли символ в зоны ненужных символов
-		bool checkHidePointCode(Char _id);
+		// Returns a collection of code-point ranges that are supported by this font. Each range is specified as [first, second];
+		// for example, a range containing a single code point will have the same value for both first and second.
+		std::vector<std::pair<Char, Char>> getCodePointRanges() const;
 
-		/** Clear the list of code point ranges. */
-		void clearCodePointRanges();
+		// Returns the code point that is used as a substitute for code points that don't exist in the font. The default substitute
+		// code point is FontCodeType::NotDefined, but it can be customized in the font definition file.
+		Char getSubstituteCodePoint() const;
 
 		void initialise();
 
-		void addGlyph(GlyphInfo* _info, Char _index, int _left, int _top, int _right, int _bottom, int _finalw, int _finalh, float _aspect, int _addHeight = 0);
-		// write 2 or 4 bytes into buffer: LA or LLLA if _rgba is true
-		uint8* writeData(uint8* _pDest, unsigned char _luminance, unsigned char _alpha, bool _rgba);
+		void setSource(std::string_view _value);
+		void setShader(std::string_view _value);
+		void setSize(float _value);
+		void setResolution(unsigned int _value);
+		void setHinting(std::string_view _value);
+		void setAntialias(bool _value);
+		void setTabWidth(float _value);
+		void setOffsetHeight(int _value);
+		void setSubstituteCode(int _value);
+		void setDistance(int _value);
+		void setMsdfMode(bool _value);
+		void setMsdfRange(int _value);
+		void setKerningEnabled(bool _value);
+		void setDpiScale(float _value);
+		void setAutoDpi(bool _value);
+
+		void addCodePointRange(Char _first, Char _second);
+		void removeCodePointRange(Char _first, Char _second);
+
+#ifdef MYGUI_USE_FREETYPE
+	private:
+		enum Hinting
+		{
+			// Use native hints with auto-hinter fallback (FT_LOAD_DEFAULT). Best default for most fonts
+			HintingUseNative,
+			// Always use FreeType's auto-hinter (FT_LOAD_FORCE_AUTOHINT). Override bad font hints
+			HintingForceAuto,
+			// Use only native hints, disable the auto-hinter (FT_LOAD_NO_AUTOHINT). For fonts where auto-hinter degrades quality
+			HintingDisableAuto,
+			// Mono font with some anti-aliasing. Best for very small sizes (FT_LOAD_TARGET_MONO + FT_RENDER_MODE_NORMAL)
+			HintingMonochrome,
+			// Disable all hinting entirely (FT_LOAD_NO_HINTING). Use for large/display text where shape fidelity matters more than crispness
+			HintingDisableAll,
+		};
+
+		void addCodePoint(Char _codePoint);
+
+		// The following variables are set directly from values specified by the user.
+		std::string mSource; // Source (filename) of the font.
+		std::string mShader; // Optional shader, applied to the font.
+		float mSize{0}; // Size of the font, in points (there are 72 points per inch).
+		unsigned int mResolution{96}; // Resolution of the font, in pixels per inch.
+		Hinting mHinting{HintingUseNative}; // What type of hinting to use when rendering the font.
+		bool mAntialias{
+			false}; // Whether or not to anti-alias the font by copying its alpha channel to its luminance channel.
+		float mSpaceWidth{0.0f}; // The width of a "Space" character, in pixels. If zero, the default width is used.
+		int mGlyphSpacing{-1}; // How far apart the glyphs are placed from each other in the font texture, in pixels.
+		float mTabWidth{0.0f}; // The width of the "Tab" special character, in pixels.
+		int mOffsetHeight{
+			0}; // How far up to nudge text rendered in this font, in pixels. May be negative to nudge text down.
+		Char mSubstituteCodePoint{static_cast<Char>(
+			FontCodeType::
+				NotDefined)}; // The code point to use as a substitute for code points that don't exist in the font.
+		bool mMsdfMode{
+			false}; // Signed distance field texture, designed to be used with shader (see https://github.com/Chlumsky/msdfgen)
+		int mMsdfRange{2}; // Gradient area range in pixels for msdf mode (higher range is required for thick outlines)
+		bool mKerningEnabled{true}; // Whether kerning is enabled for this font.
+		float mDpiScale{1.0f}; // DPI scale factor for generating a higher-resolution atlas.
+		bool mAutoDpi{true}; // When true, use the global DPI scale from Gui instead of mDpiScale.
+
+		// The following variables are calculated automatically.
+		int mDefaultHeight{0}; // The nominal height of the font in pixels.
+		GlyphInfo* mSubstituteGlyphInfo{
+			nullptr}; // The glyph info to use as a substitute for code points that don't exist in the font.
+		MyGUI::ITexture* mTexture{nullptr}; // The texture that contains all of the rendered glyphs in the font.
+
+		// The following constants used to be mutable, but they no longer need to be. Do not modify their values!
+		static const int
+			mDefaultGlyphSpacing; // How far apart the glyphs are placed from each other in the font texture, in pixels.
+		static const float mDefaultTabWidth; // Default "Tab" width, used only when tab width is no specified.
+		static const float
+			mSelectedWidth; // The width of the "Selected" and "SelectedBack" special characters, in pixels.
+		static const float mCursorWidth; // The width of the "Cursor" special character, in pixels.
 
 	private:
-		// Source of the font
-		std::string mSource;
-		// Size of the truetype font, in points
-		float mTtfSize;
-		// Resolution (dpi) of truetype font
-		uint mTtfResolution;
+		// A map of code points to glyph indices.
+		using CharMap = std::map<Char, FT_UInt>;
 
-		bool mAntialiasColour;
+		// A map of glyph indices to glyph info objects.
+		using GlyphMap = std::unordered_map<Char, GlyphInfo>;
 
-		int mDistance;
-		int mSpaceWidth;
-		int mTabWidth;
-		int mCursorWidth;
-		int mSelectionWidth;
-		int mOffsetHeight;
-		int mHeightPix;
+		// A map of glyph heights to the set of paired glyph indices and glyph info objects that are of that height.
+		using GlyphHeightMap = std::map<int, std::map<FT_UInt, GlyphInfo*>>;
 
-		// отдельная информация о символах
-		GlyphInfo mSpaceGlyphInfo;
-		GlyphInfo mTabGlyphInfo;
-		GlyphInfo mSelectGlyphInfo;
-		GlyphInfo mSelectDeactiveGlyphInfo;
-		GlyphInfo mCursorGlyphInfo;
+		template<bool LAMode, bool Antialias>
+		void initialiseFreeType();
 
-		// символы которые не нужно рисовать
-		VectorPairCodePoint mVectorHideCodePoint;
+		// Loads the font face as specified by mSource, mSize, and mResolution. Automatically adjusts code-point ranges according
+		// to the capabilities of the font face.
+		// Returns a handle to the FreeType face object for the face, or nullptr if the face could not be loaded.
+		// Stores the font file in _fontBuffer, which must remain unchanged until FT_Done_Face() is called on the face.
+		FT_Face loadFace(const FT_Library& _ftLibrary, std::vector<std::byte>& _fontBuffer);
 
-		// вся информация о символах
-		VectorRangeInfo mVectorRangeInfo;
+		// Loads kerning pairs from the font face.
+		void loadKerning(const FT_Face& _ftFace);
 
-		MyGUI::ITexture* mTexture;
+		// Wraps the current texture coordinates _texX and _texY to the beginning of the next line if the specified glyph width
+		// doesn't fit at the end of the current line. Automatically takes the glyph spacing into account.
+		void autoWrapGlyphPos(int _glyphWidth, int _texWidth, int _lineHeight, int& _texX, int& _texY) const;
+
+		// Creates a GlyphInfo object using the specified information.
+		GlyphInfo createFaceGlyphInfo(Char _codePoint, int _fontAscent, FT_GlyphSlot _glyph) const;
+
+		// Creates a glyph with the specified glyph index and assigns it to the specified code point.
+		// Automatically updates _glyphHeightMap, mCharMap, and mGlyphMap with data from the new glyph..
+		int createGlyph(
+			FT_UInt _glyphIndex,
+			const GlyphInfo& _glyphInfo,
+			GlyphHeightMap& _glyphHeightMap,
+			float _scale = -1.0);
+
+		// Creates a glyph with the specified index from the specified font face and assigns it to the specified code point.
+		// Automatically updates _glyphHeightMap with data from the newly created glyph.
+		int createFaceGlyph(
+			FT_UInt _glyphIndex,
+			Char _codePoint,
+			int _fontAscent,
+			const FT_Face& _ftFace,
+			FT_Int32 _ftLoadFlags,
+			GlyphHeightMap& _glyphHeightMap);
+
+		// Renders all of the glyphs in _glyphHeightMap into the specified texture buffer using data from the specified font face.
+		template<bool LAMode, bool Antialias>
+		void renderGlyphs(
+			const GlyphHeightMap& _glyphHeightMap,
+			const FT_Library& _ftLibrary,
+			const FT_Face& _ftFace,
+			FT_Int32 _ftLoadFlags,
+			uint8* _texBuffer,
+			int _texWidth,
+			int _texHeight);
+
+		// Renders the glyph described by the specified glyph info according to the specified parameters.
+		// Supports two types of rendering, depending on the value of UseBuffer: Texture block transfer and rectangular color fill.
+		// The _luminance0 value is used for even-numbered columns (from zero), while _luminance1 is used for odd-numbered ones.
+		template<bool LAMode, bool UseBuffer, bool Antialias>
+		void renderGlyph(
+			GlyphInfo& _info,
+			uint8 _luminance0,
+			uint8 _luminance1,
+			uint8 _alpha,
+			int _lineHeight,
+			uint8* _texBuffer,
+			int _texWidth,
+			int _texHeight,
+			int& _texX,
+			int& _texY,
+			int _bitmapWidth,
+			int _bitmapHeight,
+			uint8* _glyphBuffer = nullptr);
+
+		CharMap mCharMap; // A map of code points to glyph indices.
+		GlyphMap mGlyphMap; // A map of code points to glyph info objects.
+		KerningMap mKerningMap; // A map of kerning pairs to kerning values.
+
+	#ifdef MYGUI_MSDF_FONTS
+		double mMsdfScale{1.0};
+
+		GlyphInfo createMsdfFaceGlyphInfo(
+			Char _codePoint,
+			const msdfgen::Shape& _shape,
+			double _advance,
+			int _fontAscent);
+		int createMsdfFaceGlyph(
+			FT_UInt _glyphIndex,
+			Char _codePoint,
+			int _fontAscent,
+			msdfgen::FontHandle* _fontHandle,
+			GlyphHeightMap& _glyphHeightMap);
+
+		void renderMsdfGlyphs(
+			const GlyphHeightMap& _glyphHeightMap,
+			msdfgen::FontHandle* _fontHandle,
+			uint8* _texBuffer,
+			int _texWidth,
+			int _texHeight);
+	#endif
+
+#endif // MYGUI_USE_FREETYPE
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_RESOURCE_TRUE_TYPE_FONT_H__
+#endif // MYGUI_RESOURCE_TRUE_TYPE_FONT_H_

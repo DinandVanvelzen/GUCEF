@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		04/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_MULTI_LIST_BOX_H__
-#define __MYGUI_MULTI_LIST_BOX_H__
+#ifndef MYGUI_MULTI_LIST_BOX_H_
+#define MYGUI_MULTI_LIST_BOX_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_Widget.h"
@@ -36,40 +21,52 @@ namespace MyGUI
 {
 
 	//OBSOLETE
-	typedef delegates::CMultiDelegate5<Widget*, size_t, const UString&, const UString&, bool&> EventHandle_WidgetIntUTFStringUTFStringBool;
+	using EventHandle_WidgetIntUTFStringUTFStringBool =
+		delegates::MultiDelegate<Widget*, size_t, const UString&, const UString&, bool&>;
 
-	typedef delegates::CDelegate5<MultiListBox*, size_t, const UString&, const UString&, bool&> EventHandle_MultiListPtrSizeTCUTFStringRefCUTFStringRefBoolRef;
-	typedef delegates::CMultiDelegate2<MultiListBox*, size_t> EventHandle_MultiListPtrSizeT;
+	using EventHandle_MultiListPtrSizeTCUTFStringRefCUTFStringRefBoolRef =
+		delegates::Delegate<MultiListBox*, size_t, const UString&, const UString&, bool&>;
+	using EventHandle_MultiListPtrSizeTSizeTSizeTBoolRef =
+		delegates::Delegate<MultiListBox*, size_t, size_t, size_t, bool&>;
+	using EventHandle_MultiListPtrSizeT = delegates::MultiDelegate<MultiListBox*, size_t>;
+	using EventHandle_MultiListPtrCIBNotifyCellDataRef =
+		delegates::MultiDelegate<MultiListBox*, const IBNotifyItemData&>;
 
+	/** \brief @wpage{MultiListBox}
+		MultiListBox widget description should be here.
+	*/
 	class MYGUI_EXPORT MultiListBox :
 		public Widget,
 		public BiIndexBase,
 		public IItemContainer,
 		public MemberObsolete<MultiListBox>
 	{
-		MYGUI_RTTI_DERIVED( MultiListBox )
+		MYGUI_RTTI_DERIVED(MultiListBox)
 
 	public:
-		MultiListBox();
+		//! @copydoc Widget::setPosition(const IntPoint& _point)
+		void setPosition(const IntPoint& _point) override;
+		//! @copydoc Widget::setSize(const IntSize& _size)
+		void setSize(const IntSize& _size) override;
+		//! @copydoc Widget::setCoord(const IntCoord& _coord)
+		void setCoord(const IntCoord& _coord) override;
 
-		//! @copydoc Widget::setPosition(const IntPoint& _value)
-		virtual void setPosition(const IntPoint& _value);
-		//! @copydoc Widget::setSize(const IntSize& _value)
-		virtual void setSize(const IntSize& _value);
-		//! @copydoc Widget::setCoord(const IntCoord& _value)
-		virtual void setCoord(const IntCoord& _value);
+		using Widget::setPosition;
+		using Widget::setSize;
+		using Widget::setCoord;
 
-		/** @copydoc Widget::setPosition(int _left, int _top) */
-		void setPosition(int _left, int _top);
-		/** @copydoc Widget::setSize(int _width, int _height) */
-		void setSize(int _width, int _height);
-		/** @copydoc Widget::setCoord(int _left, int _top, int _width, int _height) */
-		void setCoord(int _left, int _top, int _width, int _height);
+		/** Set the row height in pixels for existing and future columns.
+			Values below 1 are clamped to 1. Does not change the header height.
+		*/
+		void setItemHeight(int _height);
+		/** Return the explicit row height, or the first column's skin-defined height.
+			Returns 1 when no height has been set and there are no columns.
+		*/
+		int getItemHeight() const;
 
 		//------------------------------------------------------------------------------//
-		// Methods for work with columns (RU:методы для работы со столбцами)
+		// Methods for work with columns
 		//------------------------------------------------------------------------------//
-		// манипуляции айтемами
 
 		//! Get number of columns
 		size_t getColumnCount() const;
@@ -99,7 +96,6 @@ namespace MyGUI
 		void swapColumnsAt(size_t _index1, size_t _index2);
 
 		//------------------------------------------------------------------------------//
-		// манипуляции отображением
 
 		/** Set column name
 			@param _column Index of column
@@ -126,19 +122,19 @@ namespace MyGUI
 		void setColumnWidth(MultiListItem* _item, int _width);
 
 		/** Get _column name */
-		const UString& getColumnNameAt(size_t _column);
+		const UString& getColumnNameAt(size_t _column) const;
 
 		/** Get _column name */
-		const UString& getColumnName(MultiListItem* _item);
+		const UString& getColumnName(const MultiListItem* _item) const;
 
 		/** Get _column width */
-		int getColumnWidthAt(size_t _column);
+		int getColumnWidthAt(size_t _column) const;
 
 		/** Sort multilist by column */
 		void sortByColumn(size_t _column, bool _backward = false);
 
 		//! Get column index
-		size_t getColumnIndex(MultiListItem* _item);
+		size_t getColumnIndex(const MultiListItem* _item) const;
 
 		/** Set resizing policy of column. \sa ResizingPolicy
 			@param _item Pointer to column
@@ -152,7 +148,6 @@ namespace MyGUI
 		void setColumnResizingPolicyAt(size_t _index, ResizingPolicy _value);
 
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
 		//! Replace an item data at a specified position
 		void setColumnDataAt(size_t _index, Any _data);
@@ -161,7 +156,7 @@ namespace MyGUI
 		void clearColumnDataAt(size_t _index);
 
 		//! Get item data from specified position
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getColumnDataAt(size_t _index, bool _throw = true)
 		{
 			MYGUI_ASSERT_RANGE(_index, mVectorColumnInfo.size(), "MultiListBox::getItemDataAt");
@@ -169,14 +164,13 @@ namespace MyGUI
 		}
 
 		//------------------------------------------------------------------------------//
-		// Methods for work with lines (RU:методы для работы со строками)
+		// Methods for work with lines
 		/** @note
 		All indexes used here is indexes of unsorted Multilist. Even if you sorted
 			it - all items indexes will be same as before sort.
 		*/
 
 		//------------------------------------------------------------------------------//
-		// манипуляции айтемами
 
 		/** Get number of items (lines) */
 		size_t getItemCount() const;
@@ -198,17 +192,15 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции отображением
 
 		//! Replace an item name
 		void setItemNameAt(size_t _index, const UString& _name);
 
 		//! Get item name from specified position
-		const UString& getItemNameAt(size_t _index);
+		const UString& getItemNameAt(size_t _index) const;
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции выделениями
 
 		/** Get index of selected item (ITEM_NONE if none selected) */
 		size_t getIndexSelected() const;
@@ -221,7 +213,6 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
 		//! Replace an item data at a specified position
 		void setItemDataAt(size_t _index, Any _data);
@@ -230,7 +221,7 @@ namespace MyGUI
 		void clearItemDataAt(size_t _index);
 
 		//! Get item data from specified position
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getItemDataAt(size_t _index, bool _throw = true)
 		{
 			return getSubItemDataAt<ValueType>(0, _index, _throw);
@@ -238,9 +229,8 @@ namespace MyGUI
 
 
 		//------------------------------------------------------------------------------//
-		// Methods for work with sub lines (RU:методы для работы со саб строками)
+		// Methods for work with sub lines
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
 		/** Set sub item
 			@param _column Index of column
@@ -250,13 +240,12 @@ namespace MyGUI
 		void setSubItemNameAt(size_t _column, size_t _index, const UString& _name);
 
 		/** Get sub item name*/
-		const UString& getSubItemNameAt(size_t _column, size_t _index);
+		const UString& getSubItemNameAt(size_t _column, size_t _index) const;
 
 		/** Search item in specified _column, returns index of the first occurrence in column or ITEM_NONE if item not found */
 		size_t findSubItemWith(size_t _column, const UString& _name);
 
 		//------------------------------------------------------------------------------//
-		// манипуляции данными
 
 		//! Replace an item data at a specified position
 		void setSubItemDataAt(size_t _column, size_t _index, Any _data);
@@ -265,58 +254,69 @@ namespace MyGUI
 		void clearSubItemDataAt(size_t _column, size_t _index);
 
 		//! Get item data from specified position
-		template <typename ValueType>
+		template<typename ValueType>
 		ValueType* getSubItemDataAt(size_t _column, size_t _index, bool _throw = true)
 		{
-			MYGUI_ASSERT_RANGE(_index, mVectorColumnInfo.begin()->list->getItemCount(), "MultiListBox::getSubItemDataAt");
+			MYGUI_ASSERT_RANGE(
+				_index,
+				mVectorColumnInfo.begin()->list->getItemCount(),
+				"MultiListBox::getSubItemDataAt");
 
 			size_t index = BiIndexBase::convertToBack(_index);
 			return getSubItemAt(_column)->getItemDataAt<ValueType>(index, _throw);
 		}
 
-	/*events:*/
+		/*events:*/
 		/** Event : Enter pressed or double click.\n
 			signature : void method(MyGUI::MultiListBox* _sender, size_t _index)\n
 			@param _sender widget that called this event
 			@param _index of selected item
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_MultiListPtrSizeT>
-			eventListSelectAccept;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_MultiListPtrSizeT> eventListSelectAccept;
 
 		/** Event : Selected item position changed.\n
 			signature : void method(MyGUI::MultiListBox* _sender, size_t _index)\n
 			@param _sender widget that called this event
 			@param _index of new item
 		*/
-		EventPair<EventHandle_WidgetSizeT, EventHandle_MultiListPtrSizeT>
-			eventListChangePosition;
+		EventPair<EventHandle_WidgetSizeT, EventHandle_MultiListPtrSizeT> eventListChangePosition;
 
 		/** Event : Less than operator for sort multilist by columns.\n
-			signature : void method(MyGUI::MultiListBox* _sender, size_t _column, const UString& _firstItem, const UString& _secondItem, bool& _less)\n
+			signature : void method(MyGUI::MultiListBox* _sender, size_t _column, size_t _index1, size_t _index2, bool& _less)\n
 			@param _sender widget that called this event
 			@param _column Index of column
-			@param _firstItem Strings for compare
-			@param _secondItem Strings for compare
+			@param _index1 Index of row for compare
+			@param _index2 Index of row for compare
 			@param _less Comparsion result (write your value here)
 		*/
-		EventHandle_MultiListPtrSizeTCUTFStringRefCUTFStringRefBoolRef
+		EventPair<
+			EventHandle_MultiListPtrSizeTCUTFStringRefCUTFStringRefBoolRef,
+			EventHandle_MultiListPtrSizeTSizeTSizeTBoolRef>
 			requestOperatorLess;
 
-	/*internal:*/
+		/** Event : Notify about event in item widget.\n
+		signature : void method(MyGUI::MultiList* _sender, const MyGUI::IBNotifyItemData& _info)
+		@param _sender widget that called this event
+		@param _info info about item notify
+		*/
+		EventHandle_MultiListPtrCIBNotifyCellDataRef eventNotifyItem;
+
+		/*internal:*/
 		// IItemContainer impl
-		virtual size_t _getItemCount();
-		virtual void _addItem(const MyGUI::UString& _name);
-		virtual void _removeItemAt(size_t _index);
-		virtual Widget* _getItemAt(size_t _index);
-		virtual void _setItemNameAt(size_t _index, const UString& _name);
-		virtual const UString& _getItemNameAt(size_t _index);
+		size_t _getItemCount() const override;
+		void _addItem(const MyGUI::UString& _name) override;
+		void _removeItemAt(size_t _index) override;
+		Widget* _getItemAt(size_t _index) const override;
+		void _setItemNameAt(size_t _index, const UString& _name) override;
+		const UString& _getItemNameAt(size_t _index) const override;
 
 	protected:
-		virtual void initialiseOverride();
-		virtual void shutdownOverride();
+		void initialiseOverride() override;
+		void shutdownOverride() override;
+		void setPropertyOverride(std::string_view _key, std::string_view _value) override;
 
-		virtual void onWidgetCreated(Widget* _widget);
-		virtual void onWidgetDestroy(Widget* _widget);
+		void onWidgetCreated(Widget* _widget) override;
+		void onWidgetDestroy(Widget* _widget) override;
 
 	private:
 		void notifyListChangePosition(ListBox* _sender, size_t _position);
@@ -324,6 +324,7 @@ namespace MyGUI
 		void notifyListChangeScrollPosition(ListBox* _sender, size_t _position);
 		void notifyButtonClick(Widget* _sender);
 		void notifyListSelectAccept(ListBox* _sender, size_t _position);
+		void notifyListNotifyItem(ListBox* _sender, const MyGUI::IBNotifyItemData& _info);
 
 		void updateColumns();
 		void redrawButtons();
@@ -333,7 +334,7 @@ namespace MyGUI
 		void sortList();
 		void flipList();
 
-		Widget* getSeparator(size_t _index);
+		Widget* getOrCreateSeparator(size_t _index);
 
 		void updateBackSelected(size_t _index);
 
@@ -349,49 +350,50 @@ namespace MyGUI
 			ResizingPolicy sizeType;
 		};
 
-		typedef std::vector<ColumnInfo> VectorColumnInfo;
+		using VectorColumnInfo = std::vector<ColumnInfo>;
 
 		void frameEntered(float _frame);
 		void frameAdvise(bool _advise);
 
-		ListBox* getSubItemAt(size_t _column);
-		int getButtonHeight();
+		ListBox* getSubItemAt(size_t _column) const;
+		int getButtonHeight() const;
 
 		void _wrapItem(MultiListItem* _item);
 		void _unwrapItem(MultiListItem* _item);
 		void _swapColumnsAt(size_t _index1, size_t _index2);
 
-		int getColumnWidth(size_t _index, int _freeSpace, size_t _countStars, size_t _lastIndexStar, int _starWidth);
-		bool getUpdateByResize();
+		int getColumnWidth(size_t _index, int _freeSpace, size_t _countStars, size_t _lastIndexStar, int _starWidth)
+			const;
+		bool getUpdateByResize() const;
 		int updateWidthColumns(size_t& _countStars, size_t& _lastIndexStar);
 
 	private:
-		int mHeightButton;
-		int mWidthBar;
+		int mHeightButton{0};
+		// Zero keeps the height defined by the column list skin.
+		int mItemHeight{0};
+		int mWidthBar{0};
 		std::string mSkinButton;
 		std::string mSkinList;
-		Widget* mWidgetEmpty;
+		Widget* mWidgetEmpty{nullptr};
 
 		VectorColumnInfo mVectorColumnInfo;
 
 		VectorWidgetPtr mSeparators;
 
-		size_t mLastMouseFocusIndex;
+		size_t mLastMouseFocusIndex{ITEM_NONE};
 
-		bool mSortUp;
-		size_t mSortColumnIndex;
+		bool mSortUp{true};
+		size_t mSortColumnIndex{ITEM_NONE};
 
-		int mWidthSeparator;
+		int mWidthSeparator{0};
 		std::string mSkinSeparator;
-		int mOffsetButtonSeparator;
 
-		size_t mItemSelected;
+		size_t mItemSelected{ITEM_NONE};
 
-		bool mFrameAdvise;
-		Widget* mClient;
-		Widget* mHeaderPlace;
+		bool mFrameAdvise{false};
+		Widget* mHeaderPlace{nullptr};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_MULTI_LIST_BOX_H__
+#endif // MYGUI_MULTI_LIST_BOX_H_

@@ -1,182 +1,156 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		09/2008
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
 #include "MyGUI_Precompiled.h"
 #include "MyGUI_ResourceImageSet.h"
 #include "MyGUI_ResourceManager.h"
 #include "MyGUI_LanguageManager.h"
 #include "MyGUI_Constants.h"
 
+#include <pugixml.hpp>
+
 namespace MyGUI
 {
-
-	std::vector<IntPoint> ResourceImageSet::mFramesEmpty;
-
-	ResourceImageSet::ResourceImageSet()
-	{
-	}
-
-	ResourceImageSet::~ResourceImageSet()
-	{
-	}
 
 	void ResourceImageSet::deserialization(xml::ElementPtr _node, Version _version)
 	{
 		Base::deserialization(_node, _version);
 
-		// берем детей и крутимся, основной цикл
-		xml::ElementEnumerator group_node = _node->getElementEnumerator();
-		while (group_node.next("Group"))
+		for (auto group_node : _node.node().children("Group"))
 		{
 			GroupImage group;
-			group.name = group_node->findAttribute("name");
+			group.name = group_node.attribute("name").value();
 
-			group.texture = group_node->findAttribute("texture");
-			// поддержка замены тегов
+			group.texture = group_node.attribute("texture").value();
+			// tags replacement support for Skins
 			if (_version >= Version(1, 1))
 			{
 				group.texture = LanguageManager::getInstance().replaceTags(group.texture);
 			}
 
-			group.size = IntSize::parse(group_node->findAttribute("size"));
+			group.size = IntSize::parse(group_node.attribute("size").value());
 
-			xml::ElementEnumerator index_node = group_node->getElementEnumerator();
-			while (index_node.next("Index"))
+			for (auto index_node : group_node.children("Index"))
 			{
 				IndexImage index;
-				index.name = index_node->findAttribute("name");
-				index.rate = utility::parseFloat(index_node->findAttribute("rate"));
+				index.name = index_node.attribute("name").value();
+				index.rate = utility::parseFloat(index_node.attribute("rate").value());
 
-				xml::ElementEnumerator frame_node = index_node->getElementEnumerator();
-				while (frame_node.next("Frame"))
+				for (auto frame_node : index_node.children("Frame"))
 				{
-					size_t count = utility::parseSizeT(frame_node->findAttribute("count"));
-					const IntPoint& point = IntPoint::parse(frame_node->findAttribute("point"));
-					if ((count < 1) || (count > 256)) count = 1;
+					size_t count = utility::parseSizeT(frame_node.attribute("count").value());
+					const IntPoint& point = IntPoint::parse(frame_node.attribute("point").value());
+					if ((count < 1) || (count > 256))
+						count = 1;
 					while (count > 0)
 					{
 						index.frames.push_back(point);
-						-- count;
+						--count;
 					}
 				}
 
 				group.indexes.push_back(index);
 			}
 
-			mGroups.push_back(group);
+			AddGroupImage(group);
 		}
 	}
 
-	ImageIndexInfo ResourceImageSet::getIndexInfo(const std::string& _group, const std::string& _index)
+	ImageIndexInfo ResourceImageSet::getIndexInfo(std::string_view _group, std::string_view _index) const
 	{
 		size_t index_group = getGroupIndex(_group);
 		if (index_group != ITEM_NONE)
 		{
-			GroupImage& group = mGroups[index_group];
+			const GroupImage& group = mGroups[index_group];
 			size_t index_image = getImageIndex(group, _index);
 			if (index_image != ITEM_NONE)
 			{
-				IndexImage& index = group.indexes[index_image];
-				return ImageIndexInfo(group.texture, group.size, index.rate, index.frames);
+				const IndexImage& index = group.indexes[index_image];
+				return {group.texture, group.size, index.rate, index.frames};
 			}
 		}
-		return ImageIndexInfo(Constants::getEmptyString(), Constants::getZeroIntSize(), 0, mFramesEmpty);
+		return {std::string_view{}, Constants::getZeroIntSize(), 0, {}};
 	}
 
-	ImageIndexInfo ResourceImageSet::getIndexInfo(size_t _group, const std::string& _index)
+	ImageIndexInfo ResourceImageSet::getIndexInfo(size_t _group, std::string_view _index) const
 	{
 		if (_group < mGroups.size())
 		{
-			GroupImage& group = mGroups[_group];
+			const GroupImage& group = mGroups[_group];
 			size_t index_image = getImageIndex(group, _index);
 			if (index_image != ITEM_NONE)
 			{
-				IndexImage& index = group.indexes[index_image];
-				return ImageIndexInfo(group.texture, group.size, index.rate, index.frames);
+				const IndexImage& index = group.indexes[index_image];
+				return {group.texture, group.size, index.rate, index.frames};
 			}
 		}
-		return ImageIndexInfo(Constants::getEmptyString(), Constants::getZeroIntSize(), 0, mFramesEmpty);
+		return {std::string_view{}, Constants::getZeroIntSize(), 0, {}};
 	}
 
-	ImageIndexInfo ResourceImageSet::getIndexInfo(const std::string& _group, size_t _index)
+	ImageIndexInfo ResourceImageSet::getIndexInfo(std::string_view _group, size_t _index) const
 	{
 		size_t index_group = getGroupIndex(_group);
 		if (index_group != ITEM_NONE)
 		{
-			GroupImage& group = mGroups[index_group];
+			const GroupImage& group = mGroups[index_group];
 			if (_index < group.indexes.size())
 			{
-				IndexImage& index = group.indexes[_index];
-				return ImageIndexInfo(group.texture, group.size, index.rate, index.frames);
+				const IndexImage& index = group.indexes[_index];
+				return {group.texture, group.size, index.rate, index.frames};
 			}
 		}
-		return ImageIndexInfo(Constants::getEmptyString(), Constants::getZeroIntSize(), 0, mFramesEmpty);
+		return {std::string_view{}, Constants::getZeroIntSize(), 0, {}};
 	}
 
-	ImageIndexInfo ResourceImageSet::getIndexInfo(size_t _group, size_t _index)
+	ImageIndexInfo ResourceImageSet::getIndexInfo(size_t _group, size_t _index) const
 	{
 		if (_group < mGroups.size())
 		{
-			GroupImage& group = mGroups[_group];
+			const GroupImage& group = mGroups[_group];
 			if (_index < group.indexes.size())
 			{
-				IndexImage& index = group.indexes[_index];
-				return ImageIndexInfo(group.texture, group.size, index.rate, index.frames);
+				const IndexImage& index = group.indexes[_index];
+				return {group.texture, group.size, index.rate, index.frames};
 			}
 		}
-		return ImageIndexInfo(Constants::getEmptyString(), Constants::getZeroIntSize(), 0, mFramesEmpty);
+		return {std::string_view{}, Constants::getZeroIntSize(), 0, {}};
 	}
 
-	ImageIndexInfo ResourceImageSet::getIndexInfo(const IntSize& _group, size_t _index)
+	ImageIndexInfo ResourceImageSet::getIndexInfo(const IntSize& _group, size_t _index) const
 	{
 		size_t index_group = getGroupIndex(_group);
 		if (index_group != ITEM_NONE)
 		{
-			GroupImage& group = mGroups[index_group];
+			const GroupImage& group = mGroups[index_group];
 			if (_index < group.indexes.size())
 			{
-				IndexImage& index = group.indexes[_index];
-				return ImageIndexInfo(group.texture, group.size, index.rate, index.frames);
+				const IndexImage& index = group.indexes[_index];
+				return {group.texture, group.size, index.rate, index.frames};
 			}
 		}
-		return ImageIndexInfo(Constants::getEmptyString(), Constants::getZeroIntSize(), 0, mFramesEmpty);
+		return {std::string_view{}, Constants::getZeroIntSize(), 0, {}};
 	}
 
-	ImageIndexInfo ResourceImageSet::getIndexInfo(const IntSize& _group, const std::string& _index)
+	ImageIndexInfo ResourceImageSet::getIndexInfo(const IntSize& _group, std::string_view _index) const
 	{
 		size_t index_group = getGroupIndex(_group);
 		if (index_group != ITEM_NONE)
 		{
-			GroupImage& group = mGroups[index_group];
+			const GroupImage& group = mGroups[index_group];
 			size_t index_image = getImageIndex(group, _index);
 			if (index_image != ITEM_NONE)
 			{
-				IndexImage& index = group.indexes[index_image];
-				return ImageIndexInfo(group.texture, group.size, index.rate, index.frames);
+				const IndexImage& index = group.indexes[index_image];
+				return {group.texture, group.size, index.rate, index.frames};
 			}
 		}
-		return ImageIndexInfo(Constants::getEmptyString(), Constants::getZeroIntSize(), 0, mFramesEmpty);
+		return {std::string_view{}, Constants::getZeroIntSize(), 0, {}};
 	}
 
-	size_t ResourceImageSet::getGroupIndex(const std::string& _name)
+	size_t ResourceImageSet::getGroupIndex(std::string_view _name) const
 	{
 		for (size_t index = 0; index < mGroups.size(); ++index)
 		{
@@ -186,7 +160,7 @@ namespace MyGUI
 		return ITEM_NONE;
 	}
 
-	size_t ResourceImageSet::getGroupIndex(const IntSize& _size)
+	size_t ResourceImageSet::getGroupIndex(const IntSize& _size) const
 	{
 		for (size_t index = 0; index < mGroups.size(); ++index)
 		{
@@ -196,37 +170,25 @@ namespace MyGUI
 		return ITEM_NONE;
 	}
 
-	size_t ResourceImageSet::getImageIndex(GroupImage& _group, const std::string& _name)
+	size_t ResourceImageSet::getImageIndex(const GroupImage& _group, std::string_view _name) const
 	{
-		VectorIndexImage& indexes = _group.indexes;
-		for (size_t index = 0; index < indexes.size(); ++index)
+		const VectorIndexImage& indices = _group.indexes;
+		for (size_t index = 0; index < indices.size(); ++index)
 		{
-			if (indexes[index].name == _name)
+			if (indices[index].name == _name)
 				return index;
 		}
 		return ITEM_NONE;
 	}
 
-	const IntSize& ResourceImageSet::getGroupSize(size_t _index)
+	const VectorGroupImage& ResourceImageSet::getGroups() const
 	{
-		if (_index >= mGroups.size())
-			return Constants::getZeroIntSize();
-		return mGroups[_index].size;
+		return mGroups;
 	}
 
-	const IntSize& ResourceImageSet::getGroupSize(const std::string& _group)
+	void ResourceImageSet::AddGroupImage(const GroupImage& _group)
 	{
-		for (size_t index = 0; index < mGroups.size(); ++index)
-		{
-			if (mGroups[index].name == _group)
-				return mGroups[index].size;
-		}
-		return Constants::getZeroIntSize();
-	}
-
-	EnumeratorGroupImage ResourceImageSet::getEnumerator() const
-	{
-		return EnumeratorGroupImage(mGroups);
+		mGroups.push_back(_group);
 	}
 
 } // namespace MyGUI

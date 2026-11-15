@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		04/2009
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_I_TEXTURE_H__
-#define __MYGUI_I_TEXTURE_H__
+#ifndef MYGUI_I_TEXTURE_H_
+#define MYGUI_I_TEXTURE_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_IRenderTarget.h"
@@ -29,44 +14,52 @@
 
 namespace MyGUI
 {
+
 	class ITexture;
 
 	class MYGUI_EXPORT ITextureInvalidateListener
 	{
 	public:
-		virtual ~ITextureInvalidateListener() { }
+		virtual ~ITextureInvalidateListener() = default;
+		// update texture after render device lost event
 		virtual void textureInvalidate(ITexture* _texture) = 0;
 	};
 
 	class MYGUI_EXPORT ITexture
 	{
 	public:
-		virtual ~ITexture() { }
+		virtual ~ITexture() = default;
 
 		virtual const std::string& getName() const = 0;
 
 		virtual void createManual(int _width, int _height, TextureUsage _usage, PixelFormat _format) = 0;
 		virtual void loadFromFile(const std::string& _filename) = 0;
 		virtual void saveToFile(const std::string& _filename) = 0;
+		virtual void setShader(const std::string& _shaderName) = 0;
 
-		virtual void setInvalidateListener(ITextureInvalidateListener* _listener) { }
+		virtual void setInvalidateListener(ITextureInvalidateListener* /*_listener*/)
+		{
+		}
 
 		virtual void destroy() = 0;
 
 		virtual void* lock(TextureUsage _access) = 0;
 		virtual void unlock() = 0;
-		virtual bool isLocked() = 0;
+		virtual bool isLocked() const = 0;
 
-		virtual int getWidth() = 0;
-		virtual int getHeight() = 0;
+		virtual int getWidth() const = 0;
+		virtual int getHeight() const = 0;
 
-		virtual PixelFormat getFormat() = 0;
-		virtual TextureUsage getUsage() = 0;
-		virtual size_t getNumElemBytes() = 0;
+		virtual PixelFormat getFormat() const = 0;
+		virtual TextureUsage getUsage() const = 0;
+		virtual size_t getNumElemBytes() const = 0;
 
-		virtual IRenderTarget* getRenderTarget() { return nullptr; }
+		virtual IRenderTarget* getRenderTarget()
+		{
+			return nullptr;
+		}
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_I_TEXTURE_H__
+#endif // MYGUI_I_TEXTURE_H_

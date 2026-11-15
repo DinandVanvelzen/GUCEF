@@ -1,26 +1,11 @@
-/*!
-	@file
-	@author		Albert Semenov
-	@date		11/2007
-*/
 /*
-	This file is part of MyGUI.
+ * This source file is part of MyGUI. For the latest info, see http://mygui.info/
+ * Distributed under the MIT License
+ * (See accompanying file COPYING.MIT or copy at http://opensource.org/licenses/MIT)
+ */
 
-	MyGUI is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesser General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	MyGUI is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU Lesser General Public License for more details.
-
-	You should have received a copy of the GNU Lesser General Public License
-	along with MyGUI.  If not, see <http://www.gnu.org/licenses/>.
-*/
-#ifndef __MYGUI_SKIN_ITEM_H__
-#define __MYGUI_SKIN_ITEM_H__
+#ifndef MYGUI_SKIN_ITEM_H_
+#define MYGUI_SKIN_ITEM_H_
 
 #include "MyGUI_Prerequest.h"
 #include "MyGUI_LayerItem.h"
@@ -31,18 +16,15 @@
 namespace MyGUI
 {
 
-	class MYGUI_EXPORT SkinItem :
-		public LayerItem
+	class MYGUI_EXPORT SkinItem : public LayerItem
 	{
 	public:
-		SkinItem();
-
 		/** Get text sub widget or nullptr if no text sub widget */
-		ISubWidgetText* getSubWidgetText();
+		ISubWidgetText* getSubWidgetText() const;
 		/** Get sub widget of first texture or nullptr if no sub widget with texture */
-		ISubWidgetRect* getSubWidgetMain();
+		ISubWidgetRect* getSubWidgetMain() const;
 
-		void _setTextureName(const std::string& _texture);
+		void _setTextureName(std::string_view _texture);
 		const std::string& _getTextureName() const;
 
 	protected:
@@ -56,25 +38,21 @@ namespace MyGUI
 		void _correctSkinItemView();
 		void _updateSkinItemView();
 
-		bool _setSkinItemState(const std::string& _state);
+		bool _setSkinItemState(std::string_view _state);
 		void _setSubSkinVisible(bool _visible);
 
 	private:
-		// вектор всех детей сабскинов
 		VectorSubWidget mSubSkinChild;
-		// указатель на окно текста
-		ISubWidgetText* mText;
-		// указатель на первый не текстовой сабскин
-		ISubWidgetRect* mMainSkin;
-		// список всех стейтов
+		ISubWidgetText* mText{nullptr};
+		ISubWidgetRect* mMainSkin{nullptr};
 		MapWidgetStateInfo mStateInfo;
 
 		std::string mTextureName;
-		ITexture* mTexture;
+		ITexture* mTexture{nullptr};
 
-		bool mSubSkinsVisible;
+		bool mSubSkinsVisible{true};
 	};
 
 } // namespace MyGUI
 
-#endif // __MYGUI_SKIN_ITEM_H__
+#endif // MYGUI_SKIN_ITEM_H_
