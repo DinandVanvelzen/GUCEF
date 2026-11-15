@@ -46,43 +46,30 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} Ogre gucefCORE gucefGUI gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC Ogre gucefCORE gucefGUI gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVEROGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverOgre" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> )
+endif()
 
-include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Hash ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/nedmalloc ../../../dependencies/Ogre/OgreMain/src/stbi ../../../dependencies/Ogre/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefAUDIO/include ../../../platform/gucefMATH/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
+include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
 
-if ( ANDROID32 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/Android ../../../platform/gucefCORE/include/android )
-endif( ANDROID32 )
+if ( ANDROID )
+  include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )
+endif( ANDROID )
 
-if ( ANDROID64 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/Android ../../../platform/gucefCORE/include/android )
-endif( ANDROID64 )
-
-if ( EMSCRIPTEN32 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/Emscripten )
-endif( EMSCRIPTEN32 )
-
-if ( EMSCRIPTEN64 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/Emscripten )
-endif( EMSCRIPTEN64 )
-
-if ( IOS )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/iOS )
-endif( IOS )
+if ( EMSCRIPTEN )
+  include_directories( ../../../dependencies/Ogre/OgreMain/src )
+endif( EMSCRIPTEN )
 
 if ( LINUX32 )
-  include_directories( ../../../platform/gucefCORE/include/linux )
+  include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../platform/gucefCORE/include/linux )
+  include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
-if ( OSX )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/OSX )
-endif( OSX )
-
 if ( WIN32 )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/WIN32 ../../../dependencies/Ogre/OgreMain/src/WIN32 ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )

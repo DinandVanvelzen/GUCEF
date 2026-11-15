@@ -32,22 +32,16 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include \
-  $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/src \
-  $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/src/nedmalloc \
-  $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/src/stbi \
+  $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/src/Android \
+  $(MY_MODULE_PATH)/../../../../../Ogre/OgreMain/src/zip \
   $(MY_MODULE_PATH)/../../../../../Ogre/include \
-  $(MY_MODULE_PATH)/../../../../../freetype/include \
-  $(MY_MODULE_PATH)/../../../../../freetype/include/freetype \
-  $(MY_MODULE_PATH)/../../../../../freetype/include/freetype/config \
-  $(MY_MODULE_PATH)/../../../../../freetype/include/freetype/internal \
-  $(MY_MODULE_PATH)/../../../../../freetype/include/freetype/internal/services \
-  $(MY_MODULE_PATH)/../../../../../freetype/src \
-  $(MY_MODULE_PATH)/../../../../../freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../../include
 
 LOCAL_CFLAGS := -DCEGUIOGRERENDERER_EXPORTS -DMODULE_CONSENSUS_NAME=CEGUI_RendererModule_Ogre -DMODULE_NAME=CEGUI_RendererModule_Ogre
+
+LOCAL_CPPFLAGS +=-std=c++14
 
 
 LOCAL_SHARED_LIBRARIES := \

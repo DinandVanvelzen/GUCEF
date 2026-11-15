@@ -51,25 +51,16 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../../../Ogre/OgreMain/include", "../../../../../Ogre/OgreMain/include/Hash", "../../../../../Ogre/OgreMain/include/Threading", "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/nedmalloc", "../../../../../Ogre/OgreMain/src/stbi", "../../../../../Ogre/include", "../../../../../freetype/include", "../../../../../freetype/include/freetype", "../../../../../freetype/include/freetype/config", "../../../../../freetype/include/freetype/internal", "../../../../../freetype/include/freetype/internal/services", "../../../../../freetype/src", "../../../../../freetype/src/winfonts", "../../../include" } )
+includedirs( { "../../../../../Ogre/OgreMain/include", "../../../../../Ogre/OgreMain/include/Threading", "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/zip", "../../../../../Ogre/include", "../../../include" } )
 
-configuration( { "ANDROID32" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/Android" } )
+configuration( { "ANDROID" } )
+includedirs( { "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/Android" } )
 
-configuration( { "ANDROID64" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/Android" } )
+configuration( { "EMSCRIPTEN" } )
+includedirs( { "../../../../../Ogre/OgreMain/src" } )
 
-configuration( { "EMSCRIPTEN32" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/Emscripten" } )
+configuration( { "LINUX32" } )
+includedirs( { "../../../../../Ogre/OgreMain/src" } )
 
-configuration( { "EMSCRIPTEN64" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/Emscripten" } )
-
-configuration( { "IOS" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/iOS" } )
-
-configuration( { "OSX" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/OSX" } )
-
-configuration( { "WIN32" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/WIN32", "../../../../../Ogre/OgreMain/src/WIN32" } )
+configuration( { "LINUX64" } )
+includedirs( { "../../../../../Ogre/OgreMain/src" } )

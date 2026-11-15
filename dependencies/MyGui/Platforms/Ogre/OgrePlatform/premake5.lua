@@ -161,13 +161,13 @@ configuration( { "WIN32" } )
 
 
 configuration( {} )
-includedirs( { "../../../../Ogre/OgreMain/include", "../../../../Ogre/OgreMain/include/Hash", "../../../../Ogre/OgreMain/include/Threading", "../../../../Ogre/OgreMain/src", "../../../../Ogre/OgreMain/src/nedmalloc", "../../../../Ogre/OgreMain/src/stbi", "../../../../Ogre/include", "../../../../freetype/include", "../../../../freetype/include/freetype", "../../../../freetype/include/freetype/config", "../../../../freetype/include/freetype/internal", "../../../../freetype/include/freetype/internal/services", "../../../../freetype/src", "../../../../freetype/src/winfonts", "../../../MyGUIEngine/include" } )
+includedirs( { "../../../../Ogre/OgreMain/include", "../../../../Ogre/OgreMain/include/Threading", "../../../../Ogre/OgreMain/src", "../../../../Ogre/OgreMain/src/zip", "../../../../Ogre/include", "../../../../freetype/include", "../../../../freetype/include/freetype", "../../../../freetype/include/freetype/config", "../../../../freetype/include/freetype/internal", "../../../../freetype/include/freetype/internal/services", "../../../../freetype/src", "../../../../freetype/src/winfonts", "../../../MyGUIEngine/include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../../Common/FileSystemInfo", "include" } )
+includedirs( { "../../../../Ogre/OgreMain/src", "../../../Common/FileSystemInfo", "include" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../../Common/FileSystemInfo", "include" } )
+includedirs( { "../../../../Ogre/OgreMain/src", "../../../Common/FileSystemInfo", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../../Ogre/OgreMain/include/WIN32", "../../../../Ogre/OgreMain/src/WIN32", "../../../Common/FileSystemInfo", "include" } )
+includedirs( { "../../../Common/FileSystemInfo", "include" } )

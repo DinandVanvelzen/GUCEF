@@ -273,22 +273,22 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
             Ogre::RenderSystemList::const_iterator i = rsList.begin();
             while ( i != rsList.end() )
             {
-                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Available Ogre render system: " + (*i)->getFriendlyName() );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Available Ogre render system: " << (*i)->getName() );
                 if ( ogreRenderSystem == (*i)->getName() )
                 {
-                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Found desired/preferred Ogre render system: " + (*i)->getFriendlyName() );
+                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Found desired/preferred Ogre render system: " << (*i)->getName() );
                     renderSystem = (*i); 
                 }
                 ++i;
             }
             if ( renderSystem == nullptr )
             {
-                GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "OgreWindowContext: Preferred Ogre render systems not available, using first available alternative: " + (*rsList.begin())->getFriendlyName() );
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "OgreWindowContext: Preferred Ogre render systems not available, using first available alternative: " << (*rsList.begin())->getName() );
                 renderSystem = *rsList.begin();
             }
 
             ogreRoot->setRenderSystem( renderSystem );
-            m_sceneManager = ogreRoot->createSceneManager( Ogre::ST_GENERIC );
+            m_sceneManager = ogreRoot->createSceneManager( "DefaultSceneManager" );
 
             //renderSystem->setConfigOption( "Full Screen", "False" );
             m_renderWindow = ogreRoot->initialise( false, title );

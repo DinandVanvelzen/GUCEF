@@ -33,11 +33,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../common/include \
   $(MY_MODULE_PATH)/../../../dependencies/MyGui/MyGUIEngine/include \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/nedmalloc \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/stbi \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/Android \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/zip \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/include \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype \
@@ -49,10 +48,14 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefCORE/src \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefINPUT/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefMATH/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefMATH/src \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
@@ -60,6 +63,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../guidriverMyGUI/include
 
 LOCAL_CFLAGS := -DGUIDRIVERMYGUIOGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverMyGUIOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverMyGUIOgre
+
+LOCAL_CPPFLAGS +=-std=c++14
 
 
 LOCAL_SHARED_LIBRARIES := \

@@ -9,5 +9,9 @@
             <Dependency Name="MyGUI.Engine" />
             <Dependency Name="Ogre" />
         </Linker>
+        <!-- the headers of Ogre need C++14, which MSVC does by default -->
+        <Compiler>
+            <CompilerFlags CompilerName="G++" Flags="-std=c++14" />
+        </Compiler>
     </Module>
 </ModuleInfoEntry>

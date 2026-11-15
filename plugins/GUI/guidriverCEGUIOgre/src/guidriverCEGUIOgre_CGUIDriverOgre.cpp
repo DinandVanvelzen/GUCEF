@@ -163,9 +163,12 @@ CGUIDriverOgre::Init( GUI::TWindowContextPtr windowContext )
             unsigned short viewportCount = renderTarget->getNumViewports();
             if ( 0 == viewportCount )
             {
+                // A camera is positioned and aimed through the scene node it is attached to
                 Ogre::Camera* camera = sceneManager->createCamera( "CEGUI" );
-                camera->setPosition( Ogre::Vector3( 0, 0, 500 ) );
-                camera->lookAt( Ogre::Vector3( 0, 0, -300 ) );
+                Ogre::SceneNode* cameraNode = sceneManager->getRootSceneNode()->createChildSceneNode( "CEGUI" );
+                cameraNode->attachObject( camera );
+                cameraNode->setPosition( Ogre::Vector3( 0, 0, 500 ) );
+                cameraNode->lookAt( Ogre::Vector3( 0, 0, -300 ), Ogre::Node::TS_WORLD );
                 camera->setNearClipDistance( 5 );
 
                 // Create a viewport covering whole window

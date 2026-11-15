@@ -33,32 +33,30 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Hash \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/nedmalloc \
-  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/stbi \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/Android \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src/zip \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/include \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/include \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/config \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
-  $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefCORE/src \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
   $(MY_MODULE_PATH)/../../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefINPUT/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefMATH/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefMATH/src \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api
 
 LOCAL_CFLAGS := -DGUIDRIVEROGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverOgre -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverOgre
+
+LOCAL_CPPFLAGS +=-std=c++14
 
 
 LOCAL_SHARED_LIBRARIES := \

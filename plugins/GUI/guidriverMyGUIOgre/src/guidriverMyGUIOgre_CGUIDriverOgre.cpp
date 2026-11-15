@@ -120,7 +120,9 @@ CGUIDriverOgre::CreateGUIContext( GUI::TWindowContextPtr windowContext )
 
         m_renderManager.initialise( renderWindow, sceneManager );
         
-        Ogre::Viewport* viewport = renderWindow->getViewport(0);
+        Ogre::Viewport* viewport = nullptr;
+        if ( renderWindow->getNumViewports() > 0 )
+            viewport = renderWindow->getViewport( 0 );
         if ( nullptr == viewport )
         {
             Ogre::Camera* camera = sceneManager->createCamera( "MyGUI" );

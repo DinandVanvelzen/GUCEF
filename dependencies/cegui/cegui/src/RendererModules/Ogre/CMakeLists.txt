@@ -35,36 +35,27 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} CEGUI Ogre )
 target_link_libraries( ${MODULE_NAME} PUBLIC CEGUI Ogre )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIOGRERENDERER_EXPORTS;MODULE_CONSENSUS_NAME=CEGUI_RendererModule_Ogre;MODULE_NAME=CEGUI_RendererModule_Ogre" )
+if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++14> )
+endif()
 
-include_directories( ../../../../../Ogre/OgreMain/include ../../../../../Ogre/OgreMain/include/Hash ../../../../../Ogre/OgreMain/include/Threading ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/nedmalloc ../../../../../Ogre/OgreMain/src/stbi ../../../../../Ogre/include ../../../../../freetype/include ../../../../../freetype/include/freetype ../../../../../freetype/include/freetype/config ../../../../../freetype/include/freetype/internal ../../../../../freetype/include/freetype/internal/services ../../../../../freetype/src ../../../../../freetype/src/winfonts ../../../include )
+include_directories( ../../../../../Ogre/OgreMain/include ../../../../../Ogre/OgreMain/include/Threading ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/zip ../../../../../Ogre/include ../../../include )
 
-if ( ANDROID32 )
-  include_directories( ../../../../../Ogre/OgreMain/include/Android )
-endif( ANDROID32 )
+if ( ANDROID )
+  include_directories( ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/Android )
+endif( ANDROID )
 
-if ( ANDROID64 )
-  include_directories( ../../../../../Ogre/OgreMain/include/Android )
-endif( ANDROID64 )
+if ( EMSCRIPTEN )
+  include_directories( ../../../../../Ogre/OgreMain/src )
+endif( EMSCRIPTEN )
 
-if ( EMSCRIPTEN32 )
-  include_directories( ../../../../../Ogre/OgreMain/include/Emscripten )
-endif( EMSCRIPTEN32 )
+if ( LINUX32 )
+  include_directories( ../../../../../Ogre/OgreMain/src )
+endif( LINUX32 )
 
-if ( EMSCRIPTEN64 )
-  include_directories( ../../../../../Ogre/OgreMain/include/Emscripten )
-endif( EMSCRIPTEN64 )
-
-if ( IOS )
-  include_directories( ../../../../../Ogre/OgreMain/include/iOS )
-endif( IOS )
-
-if ( OSX )
-  include_directories( ../../../../../Ogre/OgreMain/include/OSX )
-endif( OSX )
-
-if ( WIN32 )
-  include_directories( ../../../../../Ogre/OgreMain/include/WIN32 ../../../../../Ogre/OgreMain/src/WIN32 )
-endif( WIN32 )
+if ( LINUX64 )
+  include_directories( ../../../../../Ogre/OgreMain/src )
+endif( LINUX64 )
 
 
 

@@ -186,6 +186,20 @@ The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each m
 | `<RuntimeDependencies>` | run-time dependencies | Inclusion of plugins in output project |
 | `<Linker>` | Link-time dependencies | Libraries to link |
 | `<Preprocessor>` | Compiler definitions | #define statements |
+| `<Compiler>` | Compile options of the module per compiler | `CompilerFlags` entries named `GCC` (C code), `G++` (C++ code) or `MSVC` |
+
+### Language standard and compile options of a module
+
+The CMake build does not choose a language standard for the modules, so they are compiled with the default of the compiler. A module which needs a specific standard states it with a compile option, which applies to that module only, so the other modules of the build are not affected. The `GCC` and `G++` entries are passed to the GNU and Clang compilers, `MSVC` to the Microsoft compiler. The options of a module do not apply to the modules that depend on it, a module that includes the headers of such a module repeats the option.
+
+```xml
+<Module Name="Ogre" Type="SharedLibrary" Platform="All">
+    <Compiler>
+        <CompilerFlags CompilerName="G++" Flags="-std=c++14" />
+        <CompilerFlags CompilerName="MSVC" Flags="/std:c++14" />
+    </Compiler>
+</Module>
+```
 
 ### Module Attributes
 
