@@ -15,10 +15,14 @@
 
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
+    include/TestChannelOperations.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
+    include/TestImageCompressorRegistry.h
     include/TestImageUpscaler.h
+    include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
+    include/TestPixelMapResampler.h
     include/TestPngImageCodec.h
   )
 
@@ -26,10 +30,14 @@ if (LINUX32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestChannelOperations.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
+    src/TestImageCompressorRegistry.cpp
     src/TestImageUpscaler.cpp
+    src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPixelMapResampler.cpp
     src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
@@ -39,10 +47,14 @@ if (LINUX32)
 
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
+    include/TestChannelOperations.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
+    include/TestImageCompressorRegistry.h
     include/TestImageUpscaler.h
+    include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
+    include/TestPixelMapResampler.h
     include/TestPngImageCodec.h
   )
 
@@ -50,10 +62,14 @@ elseif (LINUX64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestChannelOperations.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
+    src/TestImageCompressorRegistry.cpp
     src/TestImageUpscaler.cpp
+    src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPixelMapResampler.cpp
     src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
@@ -63,10 +79,14 @@ elseif (LINUX64)
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
+    include/TestChannelOperations.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
+    include/TestImageCompressorRegistry.h
     include/TestImageUpscaler.h
+    include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
+    include/TestPixelMapResampler.h
     include/TestPngImageCodec.h
   )
 
@@ -74,10 +94,14 @@ elseif (WIN32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestChannelOperations.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
+    src/TestImageCompressorRegistry.cpp
     src/TestImageUpscaler.cpp
+    src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPixelMapResampler.cpp
     src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
@@ -87,10 +111,14 @@ elseif (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
+    include/TestChannelOperations.h
     include/TestImageAnimation.h
     include/TestImageCodecPlugins.h
+    include/TestImageCompressorRegistry.h
     include/TestImageUpscaler.h
+    include/TestMipChainGenerator.h
     include/TestPixelMapConversion.h
+    include/TestPixelMapResampler.h
     include/TestPngImageCodec.h
   )
 
@@ -98,10 +126,14 @@ elseif (WIN64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestChannelOperations.cpp
     src/TestImageAnimation.cpp
     src/TestImageCodecPlugins.cpp
+    src/TestImageCompressorRegistry.cpp
     src/TestImageUpscaler.cpp
+    src/TestMipChainGenerator.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPixelMapResampler.cpp
     src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )

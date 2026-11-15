@@ -64,6 +64,11 @@
 #define GUCEF_IMAGE_CIMAGEUPSCALERREGISTRY_H
 #endif /* GUCEF_IMAGE_CIMAGEUPSCALERREGISTRY_H ? */
 
+#ifndef GUCEF_IMAGE_CIMAGECOMPRESSORREGISTRY_H
+#include "gucefIMAGE_CImageCompressorRegistry.h"
+#define GUCEF_IMAGE_CIMAGECOMPRESSORREGISTRY_H
+#endif /* GUCEF_IMAGE_CIMAGECOMPRESSORREGISTRY_H ? */
+
 #ifndef GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H
 #include "gucefIMAGE_CMmpxImageUpscaler.h"
 #define GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H
@@ -160,6 +165,7 @@ CImageGlobal::Initialize( void )
 
     m_imageCodecRegistry = new CImageCodecRegistry();
     m_imageUpscalerRegistry = new CImageUpscalerRegistry();
+    m_imageCompressorRegistry = new CImageCompressorRegistry();
     m_mmpxUpscaler = new CMmpxImageUpscaler();
     m_imageUpscalerRegistry->Register( m_mmpxUpscaler );
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncImageUpscale::TaskType, &g_asyncImageUpscaleTaskFactory );
@@ -175,6 +181,7 @@ CImageGlobal::CImageGlobal( void )
     : m_imageCodecPluginManager( GUCEF_NULL ) ,
       m_imageCodecRegistry( GUCEF_NULL )      ,
       m_imageUpscalerRegistry( GUCEF_NULL )   ,
+      m_imageCompressorRegistry( GUCEF_NULL ) ,
       m_mmpxUpscaler( GUCEF_NULL )            ,
       m_pngCodec()
 {GUCEF_TRACE;
@@ -213,6 +220,8 @@ CImageGlobal::~CImageGlobal()
     m_imageCodecRegistry = GUCEF_NULL;
     delete m_imageUpscalerRegistry;
     m_imageUpscalerRegistry = GUCEF_NULL;
+    delete m_imageCompressorRegistry;
+    m_imageCompressorRegistry = GUCEF_NULL;
     delete m_mmpxUpscaler;
     m_mmpxUpscaler = GUCEF_NULL;
 }
@@ -242,6 +251,15 @@ CImageGlobal::GetImageUpscalerRegistry( void )
 {GUCEF_TRACE;
 
     return *m_imageUpscalerRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CImageCompressorRegistry&
+CImageGlobal::GetImageCompressorRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_imageCompressorRegistry;
 }
 
 /*-------------------------------------------------------------------------//

@@ -128,6 +128,34 @@ namespace GUCEF
 #endif /* GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H ? */
 
 /*
+ *  Image processing: resampling, mip chains, channel operations and the compressor registry
+ */
+#ifndef GUCEF_IMAGE_CPIXELMAPRESAMPLER_H
+#include "gucefIMAGE_CPixelMapResampler.h"
+#define GUCEF_IMAGE_CPIXELMAPRESAMPLER_H
+#endif /* GUCEF_IMAGE_CPIXELMAPRESAMPLER_H ? */
+
+#ifndef GUCEF_IMAGE_CMIPCHAINSETTINGS_H
+#include "gucefIMAGE_CMipChainSettings.h"
+#define GUCEF_IMAGE_CMIPCHAINSETTINGS_H
+#endif /* GUCEF_IMAGE_CMIPCHAINSETTINGS_H ? */
+
+#ifndef GUCEF_IMAGE_CMIPCHAINGENERATOR_H
+#include "gucefIMAGE_CMipChainGenerator.h"
+#define GUCEF_IMAGE_CMIPCHAINGENERATOR_H
+#endif /* GUCEF_IMAGE_CMIPCHAINGENERATOR_H ? */
+
+#ifndef GUCEF_IMAGE_CCHANNELOPERATIONS_H
+#include "gucefIMAGE_CChannelOperations.h"
+#define GUCEF_IMAGE_CCHANNELOPERATIONS_H
+#endif /* GUCEF_IMAGE_CCHANNELOPERATIONS_H ? */
+
+#ifndef GUCEF_IMAGE_CIMAGECOMPRESSORREGISTRY_H
+#include "gucefIMAGE_CImageCompressorRegistry.h"
+#define GUCEF_IMAGE_CIMAGECOMPRESSORREGISTRY_H
+#endif /* GUCEF_IMAGE_CIMAGECOMPRESSORREGISTRY_H ? */
+
+/*
  *  Built-in PNG encoder, image codec "png"
  */
 #ifndef GUCEF_IMAGE_CPNGIMAGECODEC_H

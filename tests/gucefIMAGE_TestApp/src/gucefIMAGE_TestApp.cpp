@@ -52,6 +52,10 @@
 #include "TestImageUpscaler.h"
 #include "TestImageCodecPlugins.h"
 #include "TestPngImageCodec.h"
+#include "TestPixelMapResampler.h"
+#include "TestMipChainGenerator.h"
+#include "TestChannelOperations.h"
+#include "TestImageCompressorRegistry.h"
 
 using namespace GUCEF;
 
@@ -226,6 +230,10 @@ GUCEF_OSMAIN_BEGIN
         PerformImageUpscalerTests();
         PerformPngImageCodecTests();
         PerformImageCodecPluginTests();
+        PerformPixelMapResamplerTests();
+        PerformMipChainGeneratorTests();
+        PerformChannelOperationsTests();
+        PerformImageCompressorRegistryTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

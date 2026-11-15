@@ -26,6 +26,7 @@ LOCAL_SRC_FILES := \
   src/gucefIMAGE.cpp \
   src/gucefIMAGE_CAsyncImageUpscale.cpp \
   src/gucefIMAGE_CCPluginImageCodecItem.cpp \
+  src/gucefIMAGE_CChannelOperations.cpp \
   src/gucefIMAGE_CGUIImageCodec.cpp \
   src/gucefIMAGE_CIImageCodec.cpp \
   src/gucefIMAGE_CIMGCodec.cpp \
@@ -33,12 +34,18 @@ LOCAL_SRC_FILES := \
   src/gucefIMAGE_CImageCodecPlugin.cpp \
   src/gucefIMAGE_CImageCodecPluginManager.cpp \
   src/gucefIMAGE_CImageCodecRegistry.cpp \
+  src/gucefIMAGE_CImageCompressor.cpp \
+  src/gucefIMAGE_CImageCompressorRegistry.cpp \
   src/gucefIMAGE_CImageGlobal.cpp \
   src/gucefIMAGE_CImageUpscaler.cpp \
   src/gucefIMAGE_CImageUpscalerRegistry.cpp \
+  src/gucefIMAGE_CMipChainGenerator.cpp \
+  src/gucefIMAGE_CMipChainSettings.cpp \
   src/gucefIMAGE_CMmpxImageUpscaler.cpp \
   src/gucefIMAGE_CPixel.cpp \
   src/gucefIMAGE_CPixelMap.cpp \
+  src/gucefIMAGE_CPixelMapChannelAccess.cpp \
+  src/gucefIMAGE_CPixelMapResampler.cpp \
   src/gucefIMAGE_CPngImageCodec.cpp
 
 LOCAL_C_INCLUDES := \

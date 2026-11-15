@@ -103,6 +103,122 @@ typedef CORE::TBuildinDataType TBuildinDataType;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      PROCESSING TYPES                                                   //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** The colour space the colour channels of a picture are stored in */
+enum EColourSpace
+{
+    COLOURSPACE_LINEAR = 0 ,
+    COLOURSPACE_SRGB
+};
+typedef enum EColourSpace TColourSpace;
+
+/** The filter that weighs the source pixels when a picture is resampled */
+enum EResampleFilter
+{
+    RESAMPLEFILTER_BOX = 0 ,
+    RESAMPLEFILTER_TRIANGLE ,
+    RESAMPLEFILTER_KAISER ,
+    RESAMPLEFILTER_LANCZOS3
+};
+typedef enum EResampleFilter TResampleFilter;
+
+/** What a filter does with the pixels beyond the edge of the picture */
+enum EWrapMode
+{
+    WRAPMODE_CLAMP = 0 ,
+    WRAPMODE_REPEAT ,
+    WRAPMODE_MIRROR
+};
+typedef enum EWrapMode TWrapMode;
+
+/** What the pixels of a picture mean, which decides how they are filtered */
+enum EImageContent
+{
+    IMAGECONTENT_COLOUR = 0 ,
+    IMAGECONTENT_NORMALMAP ,
+    IMAGECONTENT_DATA          /**< masks, roughness, metallic, occlusion: linear, never treated as colour */
+};
+typedef enum EImageContent TImageContent;
+
+/*-------------------------------------------------------------------------*/
+
+/** The names of the values, as used by settings files: "linear", "srgb" */
+inline CString ToString( TColourSpace value )
+{
+    return COLOURSPACE_SRGB == value ? CString( "srgb" ) : CString( "linear" );
+}
+
+inline bool FromString( const CString& name, TColourSpace& value )
+{
+    if ( name.Equals( "linear", false ) ) { value = COLOURSPACE_LINEAR; return true; }
+    if ( name.Equals( "srgb", false ) ) { value = COLOURSPACE_SRGB; return true; }
+    return false;
+}
+
+/** "box", "triangle", "kaiser", "lanczos3" */
+inline CString ToString( TResampleFilter value )
+{
+    switch ( value )
+    {
+        case RESAMPLEFILTER_BOX : return CString( "box" );
+        case RESAMPLEFILTER_TRIANGLE : return CString( "triangle" );
+        case RESAMPLEFILTER_LANCZOS3 : return CString( "lanczos3" );
+        default : return CString( "kaiser" );
+    }
+}
+
+inline bool FromString( const CString& name, TResampleFilter& value )
+{
+    if ( name.Equals( "box", false ) ) { value = RESAMPLEFILTER_BOX; return true; }
+    if ( name.Equals( "triangle", false ) ) { value = RESAMPLEFILTER_TRIANGLE; return true; }
+    if ( name.Equals( "kaiser", false ) ) { value = RESAMPLEFILTER_KAISER; return true; }
+    if ( name.Equals( "lanczos3", false ) ) { value = RESAMPLEFILTER_LANCZOS3; return true; }
+    return false;
+}
+
+/** "clamp", "repeat", "mirror" */
+inline CString ToString( TWrapMode value )
+{
+    switch ( value )
+    {
+        case WRAPMODE_REPEAT : return CString( "repeat" );
+        case WRAPMODE_MIRROR : return CString( "mirror" );
+        default : return CString( "clamp" );
+    }
+}
+
+inline bool FromString( const CString& name, TWrapMode& value )
+{
+    if ( name.Equals( "clamp", false ) ) { value = WRAPMODE_CLAMP; return true; }
+    if ( name.Equals( "repeat", false ) ) { value = WRAPMODE_REPEAT; return true; }
+    if ( name.Equals( "mirror", false ) ) { value = WRAPMODE_MIRROR; return true; }
+    return false;
+}
+
+/** "colour", "normalmap", "data" */
+inline CString ToString( TImageContent value )
+{
+    switch ( value )
+    {
+        case IMAGECONTENT_NORMALMAP : return CString( "normalmap" );
+        case IMAGECONTENT_DATA : return CString( "data" );
+        default : return CString( "colour" );
+    }
+}
+
+inline bool FromString( const CString& name, TImageContent& value )
+{
+    if ( name.Equals( "colour", false ) || name.Equals( "color", false ) ) { value = IMAGECONTENT_COLOUR; return true; }
+    if ( name.Equals( "normalmap", false ) ) { value = IMAGECONTENT_NORMALMAP; return true; }
+    if ( name.Equals( "data", false ) ) { value = IMAGECONTENT_DATA; return true; }
+    return false;
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/

@@ -53,6 +53,7 @@ namespace IMAGE {
 class CImageCodecPluginManager;
 class CImageCodecRegistry;
 class CImageUpscalerRegistry;
+class CImageCompressorRegistry;
 class CMmpxImageUpscaler;
 
 /*-------------------------------------------------------------------------*/
@@ -73,6 +74,9 @@ class GUCEF_IMAGE_EXPORT_CPP CImageGlobal
     /** The image upscalers: "mmpx" built in, others from plugins */
     CImageUpscalerRegistry& GetImageUpscalerRegistry( void );
 
+    /** The image compressors of the loaded plugins */
+    CImageCompressorRegistry& GetImageCompressorRegistry( void );
+
     private:
     friend class CModule;
 
@@ -91,6 +95,7 @@ class GUCEF_IMAGE_EXPORT_CPP CImageGlobal
     CImageCodecPluginManager* m_imageCodecPluginManager;
     CImageCodecRegistry* m_imageCodecRegistry;
     CImageUpscalerRegistry* m_imageUpscalerRegistry;
+    CImageCompressorRegistry* m_imageCompressorRegistry;
     CMmpxImageUpscaler* m_mmpxUpscaler;
     CORE::CCodecRegistry::TICodecPtr m_pngCodec;    /**< the built-in "png" codec, registered in the codec registry of gucefCORE */
     

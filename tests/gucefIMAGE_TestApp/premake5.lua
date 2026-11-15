@@ -110,19 +110,27 @@ defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefIMAGE_TestApp" 
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestChannelOperations.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
+      "include/TestImageCompressorRegistry.h",
       "include/TestImageUpscaler.h",
+      "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
+      "include/TestPixelMapResampler.h",
       "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestChannelOperations.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
+      "src/TestImageCompressorRegistry.cpp",
       "src/TestImageUpscaler.cpp",
+      "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPixelMapResampler.cpp",
       "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
@@ -132,19 +140,27 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestChannelOperations.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
+      "include/TestImageCompressorRegistry.h",
       "include/TestImageUpscaler.h",
+      "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
+      "include/TestPixelMapResampler.h",
       "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestChannelOperations.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
+      "src/TestImageCompressorRegistry.cpp",
       "src/TestImageUpscaler.cpp",
+      "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPixelMapResampler.cpp",
       "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
@@ -154,19 +170,27 @@ configuration( { "LINUX64" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestChannelOperations.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
+      "include/TestImageCompressorRegistry.h",
       "include/TestImageUpscaler.h",
+      "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
+      "include/TestPixelMapResampler.h",
       "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestChannelOperations.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
+      "src/TestImageCompressorRegistry.cpp",
       "src/TestImageUpscaler.cpp",
+      "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPixelMapResampler.cpp",
       "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
@@ -176,19 +200,27 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestChannelOperations.h",
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
+      "include/TestImageCompressorRegistry.h",
       "include/TestImageUpscaler.h",
+      "include/TestMipChainGenerator.h",
       "include/TestPixelMapConversion.h",
+      "include/TestPixelMapResampler.h",
       "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestChannelOperations.cpp",
       "src/TestImageAnimation.cpp",
       "src/TestImageCodecPlugins.cpp",
+      "src/TestImageCompressorRegistry.cpp",
       "src/TestImageUpscaler.cpp",
+      "src/TestMipChainGenerator.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPixelMapResampler.cpp",
       "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
