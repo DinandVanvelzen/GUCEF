@@ -11,6 +11,7 @@
 
 # Packages of the modules MyGUI.Engine depends on
 set( MODULE_DEPENDENCIES freetype gucefHeaders pugixml utfcpp )
+set( MODULE_DEPENDENCIES freetype gucefHeaders msdfgen-core msdfgen-ext pugixml utfcpp )
 
 # The minimum C++ standard of MyGUI.Engine and the modules it depends on
 set( MODULE_MIN_CPP_STANDARD 17 )

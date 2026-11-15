@@ -8,6 +8,7 @@ dependencies/MyGui/Platforms/Utils/*
 dependencies/freetype/*
 dependencies/glew/*
 dependencies/minizip/*
+dependencies/msdfgen/*
 dependencies/pugixml/*
 dependencies/utfcpp/*
 dependencies/zlib/*

@@ -33,6 +33,7 @@ dependencies/libparsifal/*
 dependencies/libpng/*
 dependencies/libsquish/*
 dependencies/minizip/*
+dependencies/msdfgen/*
 dependencies/openexr/*
 dependencies/pcre/*
 dependencies/pugixml/*

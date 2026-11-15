@@ -30,6 +30,7 @@ dependencies/libsquish/*
 dependencies/libvorbis/*
 dependencies/libvpx/*
 dependencies/libwebm/*
+dependencies/msdfgen/*
 dependencies/ncnn/*
 dependencies/openexr/*
 dependencies/opus/*

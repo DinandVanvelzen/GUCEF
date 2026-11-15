@@ -14,8 +14,10 @@ platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
 plugins/GUI/guidriverOgre/*
+plugins/GUI/guidriverWAYLAND/*
 plugins/GUI/guidriverXWinGL/*
 plugins/OGRE/OgreCodec_GucefIMAGE/*
 plugins/OGRE/OgrePlugin_GucefVFS/*
 plugins/SHARED/pluginglueOGRE/*
+plugins/SHARED/pluginglueWAYLAND/*
 tests/guidriverOgre_TestApp/*
