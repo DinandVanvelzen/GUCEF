@@ -195,6 +195,9 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
      */
     virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Ends the wait between cycles (also the wait for a task) so that the thread sees the request to stop now */
+    virtual void OnDeactivationRequested( void ) GUCEF_VIRTUAL_OVERRIDE;
+
     /**
      *  Last chance notification to descended classes of impending end of the tread
      *  If the 'willBeForced' flag is true the thread will be killed next
@@ -265,10 +268,26 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     void ApplyRequestedPulseDelta( void );
 
     /**
+     *  The longest wait of a delegator without a task for a task to be queued (1000 ms): the pool wakes a waiting
+     *  delegator when it queues one (WakeUpIfWaitingForTask()), so an idle worker thread does not look at the queue
+     *  every cycle delay. Without a working semaphore the cycle delay remains the wait.
+     */
+    static const UInt32 IdleTaskWaitMs;
+
+    /**
+     *  Ends the wait of a delegator that has no task and waits for one to be queued; any thread. True when it was
+     *  waiting: it is no longer counted as waiting, so the next task queued wakes another one.
+     */
+    bool WakeUpIfWaitingForTask( void );
+
+    /**
      *  Ends a wait of the delegator thread between its cycles, for a pulse request made on another thread.
      *  The delegator thread itself looks at the requests before it waits, its own requests need no wake-up.
      */
     void WakeUp( void );
+
+    /** On the delegator thread without a task: waits for one to be queued (see IdleTaskWaitMs); true with m_task set */
+    bool WaitForQueuedTask( void );
 
     /**
      *  Waits on the delegator thread until the next pulse time window of its pulse generator, as
@@ -301,6 +320,7 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_driverSystemThreadId; )   /**< display only, written with m_driverThreadId */
     MT::CSemaphore* m_wakeUpSignal;         /**< posted to end the delegator thread's wait between cycles, counts at most 1; NULL without a working semaphore (CTaskManager::IsTaskDelegatorWakeUpAvailable()) */
     MT::CTAtomic< bool > m_wakeUpPosted;    /**< whether m_wakeUpSignal holds a post the delegator thread did not take yet */
+    MT::CTAtomic< bool > m_waitingForTask;  /**< set by the delegator thread while it has no task and waits for one, cleared by the thread pool that wakes it for a queued task */
 };
 
 /*-------------------------------------------------------------------------*/

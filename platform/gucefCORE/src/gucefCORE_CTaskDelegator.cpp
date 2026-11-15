@@ -60,6 +60,7 @@ const CEvent CTaskDelegator::ThreadStartedEvent = "GUCEF::CORE::CTaskDelegator::
 const CEvent CTaskDelegator::ThreadPausedEvent = "GUCEF::CORE::CTaskDelegator::ThreadPausedEvent";
 const CEvent CTaskDelegator::ThreadResumedEvent = "GUCEF::CORE::CTaskDelegator::ThreadResumedEvent";
 const CEvent CTaskDelegator::ThreadFinishedEvent = "GUCEF::CORE::CTaskDelegator::ThreadFinishedEvent";
+const UInt32 CTaskDelegator::IdleTaskWaitMs = 1000;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -98,6 +99,7 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
     , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
     , m_wakeUpPosted( false )
+    , m_waitingForTask( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -130,6 +132,7 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool ,
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
     , m_wakeUpSignal( CTaskManager::IsTaskDelegatorWakeUpAvailable() ? GUCEF_NEW MT::CSemaphore( 0 ) : GUCEF_NULL )
     , m_wakeUpPosted( false )
+    , m_waitingForTask( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -359,14 +362,63 @@ CTaskDelegator::IsStopOfCurrentTaskRequested( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CTaskDelegator::WaitForQueuedTask( void )
+{GUCEF_TRACE;
+
+    // Without a task the thread waits until the pool queues one (CThreadPool wakes a waiting delegator,
+    // WakeUpIfWaitingForTask()), at most IdleTaskWaitMs, instead of looking at the queue again after every cycle delay:
+    // an idle worker thread wakes once per IdleTaskWaitMs, not 40 times per second. The flag is set before the queue is
+    // looked at again, so a task queued in between is either found here or wakes the wait. Without a working
+    // semaphore the cycle delay of the active object is the wait, as before
+    if ( GUCEF_NULL == m_wakeUpSignal || IsDeactivationRequested() )
+        return false;
+
+    m_waitingForTask.Store( true );
+    bool haveTask = m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
+    if ( !haveTask )
+    {
+        if ( 0 == m_wakeUpSignal->WaitOrTimeout( IdleTaskWaitMs ) )
+            m_wakeUpPosted.Store( false );     // taken: a request made from now on posts again
+        m_waitingForTask.Store( false );
+        haveTask = !IsDeactivationRequested() && m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL();
+    }
+    m_waitingForTask.Store( false );
+    return haveTask;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskDelegator::WakeUpIfWaitingForTask( void )
+{GUCEF_TRACE;
+
+    bool waiting = true;
+    if ( !m_waitingForTask.CompareExchangeStrong( waiting, false ) )
+        return false;
+    WakeUp();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTaskDelegator::OnDeactivationRequested( void )
+{GUCEF_TRACE;
+
+    // the wait for a task, or between the cycles of a task, ends now: the thread sees the request at once
+    WakeUp();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTaskDelegator::OnThreadCycle( void* )
 {GUCEF_TRACE;
 
     ApplyRequestedPulseDelta();
 
     if ( ( !m_threadPool.IsNULL() ) &&
-         ( m_threadPool->GetQueuedTask( m_task ) ) &&
-         !m_task.IsNULL()                           )
+         ( ( m_threadPool->GetQueuedTask( m_task ) && !m_task.IsNULL() ) || WaitForQueuedTask() ) )
     {
         try
         {
@@ -506,7 +558,18 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
                             while ( !IsStopOfCurrentTaskRequested() && timeLeftToWait >= m_minimalCycleDeltaInMilliSecs )
                             {
                                 UInt32 elapsedWaitTimeInMilliSecs = 0;
-                                WaitTillNextPulseWindowOrWakeUp( *pulseGenerator, m_minimalCycleDeltaInMilliSecs, timeLeftToWait, &elapsedWaitTimeInMilliSecs );
+                                if ( !m_sendRegularPulses.Load() && GUCEF_NULL != m_wakeUpSignal )
+                                {
+                                    // no periodic pulses are asked for: nothing to do before the delay is over but to
+                                    // answer a request (WakeUp() ends the wait), so the thread sleeps the whole delay
+                                    // instead of waking at every pulse window of its pulse generator
+                                    UInt64 waitStart = MT::PrecisionTickCount();
+                                    if ( 0 == m_wakeUpSignal->WaitOrTimeout( timeLeftToWait ) )
+                                        m_wakeUpPosted.Store( false );
+                                    elapsedWaitTimeInMilliSecs = (UInt32) MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - waitStart );
+                                }
+                                else
+                                    WaitTillNextPulseWindowOrWakeUp( *pulseGenerator, m_minimalCycleDeltaInMilliSecs, timeLeftToWait, &elapsedWaitTimeInMilliSecs );
 
                                 Int64 timeLeftToWaitResult = ((Int64)timeLeftToWait) - elapsedWaitTimeInMilliSecs;
                                 if ( timeLeftToWaitResult < m_minimalCycleDeltaInMilliSecs )

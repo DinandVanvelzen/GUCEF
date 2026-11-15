@@ -308,6 +308,16 @@ FileSize( const CString& filename );
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Sets the size of an existing file, as truncate() does: a larger size extends it with zero bytes, a smaller one cuts
+ *  off what is beyond it. For an appender that has to take back a record it could not write whole (a full disk) so
+ *  that the next record does not follow a fragment. False when the file does not exist or cannot be changed.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+TruncateFile( const CString& filename, UInt64 newSize );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP bool
 PathExists( const CString& path );
 

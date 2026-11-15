@@ -74,6 +74,7 @@ CRollingFileAccess::CRollingFileAccess( const CString& file ,
     , m_baseFilename( file )
     , m_fileMode()
     , m_currentFile()
+    , m_currentFileName()
     , m_maxRolloverFilesBeforeDeletion( DEFAULT_MAX_ROLLED_FILES )
 {GUCEF_TRACE;
 
@@ -93,6 +94,7 @@ CRollingFileAccess::CRollingFileAccess( void )
     , m_baseFilename()
     , m_fileMode()
     , m_currentFile()
+    , m_currentFileName()
     , m_maxRolloverFilesBeforeDeletion( DEFAULT_MAX_ROLLED_FILES )
 {GUCEF_TRACE;
 
@@ -108,6 +110,7 @@ CRollingFileAccess::CRollingFileAccess( const CRollingFileAccess& src )
     , m_baseFilename( src.m_baseFilename )
     , m_fileMode( src.m_fileMode )
     , m_currentFile()
+    , m_currentFileName()
     , m_maxRolloverFilesBeforeDeletion( src.m_maxRolloverFilesBeforeDeletion )
 {GUCEF_TRACE;
 
@@ -155,10 +158,17 @@ CRollingFileAccess::GetExistingMatchingFiles( UInt64ToStringMap& files ) const
         {
             if ( fsIterator.IsAFile() )
             {
+                // The file being written is never a candidate, whatever its time says: after the wall clock was set
+                // back it is the "oldest" one. File times have a resolution of a second here (st_ctime), so files of
+                // the same second get keys of their own instead of replacing each other, which hid them from the count
                 CResourceMetaData metaData;
-                if ( fsIterator.TryReadMetaData( metaData ) && metaData.hasName && metaData.hasCreationDateTime )
+                if ( fsIterator.TryReadMetaData( metaData ) && metaData.hasName && metaData.hasCreationDateTime &&
+                     metaData.name != m_currentFileName )
                 {
-                    files[ metaData.creationDateTime.ToUnixEpochBasedTicksInMillisecs() ] = CombinePath( dirPath, metaData.name );
+                    UInt64 key = metaData.creationDateTime.ToUnixEpochBasedTicksInMillisecs();
+                    while ( files.find( key ) != files.end() )
+                        ++key;
+                    files[ key ] = CombinePath( dirPath, metaData.name );
                 }
             }
         }
@@ -213,6 +223,7 @@ CRollingFileAccess::Open( const CString& file ,
         CString actualFilename = GenerateCurrentFilename( file, m_currentFileIndex, false );
         if ( m_currentFile.Open( actualFilename, mode ) )
         {
+            m_currentFileName = ExtractFilename( actualFilename );
             m_offset = m_currentFile.Tell();
             return true;
         }
@@ -293,16 +304,18 @@ CRollingFileAccess::PerformRolledoverFilesCleanup( void )
     if ( m_maxRolloverFilesBeforeDeletion < 1 )
         return;
 
+    // the files other than the one being written, oldest first: with it at most the maximum remain
     UInt64ToStringMap files;
     GetExistingMatchingFiles( files );
+    const size_t othersToKeep = (size_t) m_maxRolloverFilesBeforeDeletion - ( m_currentFile.Opened() ? 1 : 0 );
 
-    if ( files.size() > (size_t) m_maxRolloverFilesBeforeDeletion )
+    if ( files.size() > othersToKeep )
     {    
         CString::StringVector failedFiles;
         CString::StringVector deletedFiles;
-        deletedFiles.reserve( files.size() - (size_t) m_maxRolloverFilesBeforeDeletion );
+        deletedFiles.reserve( files.size() - othersToKeep );
 
-        while ( files.size() > (size_t) m_maxRolloverFilesBeforeDeletion )
+        while ( files.size() > othersToKeep )
         {
             const CString& fileToDelete = (*files.begin()).second;
             if ( DeleteFile( fileToDelete ) )

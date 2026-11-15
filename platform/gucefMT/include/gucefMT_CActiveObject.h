@@ -211,6 +211,14 @@ class GUCEF_MT_PUBLIC_CPP CActiveObject : public virtual MT::CILockable
     virtual void OnThreadResumed( void* taskdata );
 
     /**
+     *  Called by Deactivate() on the calling thread right after the request to stop was recorded, before it waits for
+     *  the thread (or kills it). A descendant whose thread waits for something between its cycles ends that wait here,
+     *  so the thread sees the request now instead of when its wait times out. It may be called with the object's lock
+     *  held, so it must not wait for the thread or take a lock the thread holds while it cycles; the default does nothing.
+     */
+    virtual void OnDeactivationRequested( void );
+
+    /**
      *  Last chance notification to decended classes of impending end of the tread
      *  If the 'willBeForced' flag is true the thread will be killed next
      *  Since this would be used in cases where the thread is misbehaving one should

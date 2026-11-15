@@ -1123,11 +1123,20 @@ PrecisionTickCount( void )
     }
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
-    struct timeval time;
-    gettimeofday( &time, NULL );
-
-    return time.tv_usec +    /* Microseconds. */
-           time.tv_sec * 1000000; /* Seconds. */
+    /*
+     *  The monotonic clock, in microseconds, as QueryPerformanceCounter() on Windows: every user of the tick count
+     *  measures durations (timeouts, pulse intervals, grace periods), which a step of the wall clock (an NTP step, an
+     *  operator setting the date, a VM resumed) must not shorten or lengthen. Not the time of the day: that is CDateTime
+     */
+    struct timespec now;
+    if ( 0 != clock_gettime( CLOCK_MONOTONIC, &now ) )
+    {
+        struct timeval time;
+        gettimeofday( &time, NULL );
+        return (UInt64) time.tv_usec + (UInt64) time.tv_sec * 1000000;
+    }
+    return (UInt64) ( now.tv_nsec / 1000 ) +    /* Microseconds. */
+           (UInt64) now.tv_sec * 1000000;       /* Seconds. */
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 

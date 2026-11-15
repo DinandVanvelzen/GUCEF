@@ -126,12 +126,19 @@ class CActiveModules
     TModuleVector m_modules;
 };
 
+/**
+ *  At namespace scope, made when the library is loaded: its destructor runs after the exit handler that stops the
+ *  application and unloads the plugins (AtExitApplicationStop, registered later, runs first). A static inside the
+ *  function was made at the first plugin load, after that handler was registered, and went before it: the unload at
+ *  exit then locked a destroyed mutex ("pure virtual method called")
+ */
+CActiveModules g_activeModules;
+
 CActiveModules&
 GetActiveModules( void )
 {GUCEF_TRACE;
 
-    static CActiveModules activeModules;
-    return activeModules;
+    return g_activeModules;
 }
 
 CString

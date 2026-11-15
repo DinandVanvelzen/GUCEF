@@ -80,6 +80,9 @@
   /* #include <dir.h>: obsolete *//* needed for MAXFILE define */
   #include <io.h>                 /* Dir itteration: findfirst ect. */
   #include <direct.h>             /* dir tools */
+  #include <fcntl.h>              /* _O_RDWR, TruncateFile() */
+  #include <share.h>              /* _SH_DENYNO */
+  #include <sys/stat.h>           /* _S_IREAD */
   #include "Shlwapi.h"
   #define MAX_DIR_LENGTH MAX_PATH
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
@@ -2300,7 +2303,7 @@ inline bool
 IsLinuxUserSpaceApiFile( const CString& filename )
 {GUCEF_TRACE;
 
-    if ( filename.StartsWith( "/proc/" ) )
+    if ( filename.StartsWith( "/proc/" ) || filename.StartsWith( "/sys/" ) )
         return true;
     return false;
 }
@@ -2612,7 +2615,12 @@ FileSize( const CString& filename )
                 // Those are generated on demand and are user space APIs
                 // As such the file size can also fluctuate but in a way that is no different from other
                 // file types where in between non-transactional/atomic operations someone could change a file
-                if ( IsSpecialLinuxFile( statInfo ) || IsLinuxUserSpaceApiFile( filename ) )
+                // Only the generated files of the kernel's interfaces (/proc, /sys) are read for their size. A
+                // character device, a FIFO or a socket has no size: reading one to its end never ends (/dev/zero,
+                // /dev/full, /dev/urandom), blocks (a FIFO without a writer) or takes what is meant for someone else
+                if ( IsSpecialLinuxFile( statInfo ) && !IsLinuxUserSpaceApiFile( filename ) )
+                    return 0;
+                if ( IsLinuxUserSpaceApiFile( filename ) )
                 {
                     FILE* fptr = fopen( filename.C_String(), "rb" );
                     if ( NULL != fptr )
@@ -2656,6 +2664,37 @@ FileSize( const CString& filename )
     }
 
     return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+TruncateFile( const CString& filename, UInt64 newSize )
+{GUCEF_TRACE;
+
+    if ( filename.IsNULLOrEmpty() )
+        return false;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    std::wstring wFilename = ToWString( RelativePath( filename ) );
+    int fd = -1;
+    if ( 0 != _wsopen_s( &fd, wFilename.c_str(), _O_RDWR | _O_BINARY, _SH_DENYNO, _S_IREAD | _S_IWRITE ) || fd < 0 )
+        return false;
+    const bool success = 0 == _chsize_s( fd, (__int64) newSize );
+    _close( fd );
+    return success;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    return 0 == ::truncate( RelativePath( filename ).C_String(), (off_t) newSize );
+
+    #else
+
+    GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TruncateFile: Platform has no supported implementation" );
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

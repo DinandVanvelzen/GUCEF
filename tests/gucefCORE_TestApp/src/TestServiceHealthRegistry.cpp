@@ -420,6 +420,62 @@ PerformServiceHealthRegistryTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A failing liveness check fails liveness (WARN passes) and not readiness; readiness checks never fail liveness; each kind is counted and removed apart" )
+        try
+        {
+            PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+            CServiceHealthRegistry registry( pulseGenerator );
+            CTestHealthCheck heartbeat( "protocol-thread" );
+            CTestHealthCheck database( "database" );
+            ASSERT_TRUE( registry.RegisterLivenessCheck( &heartbeat ) );
+            ASSERT_FALSE( registry.RegisterLivenessCheck( &heartbeat ) );
+            ASSERT_TRUE( registry.RegisterReadinessCheck( &database ) );
+            ASSERT_TRUE( 1 == registry.GetLivenessCheckCount() && 1 == registry.GetReadinessCheckCount() );
+            registry.SetStarted( true );
+            registry.EvaluateChecks();
+
+            CServiceHealthRegistry::SHealthReport report;
+            registry.GetLiveness( report );
+            ASSERT_TRUE( HEALTH_PASS == report.state && 1 == report.checks.size() && GUCEF_NULL != FindOutcome( report, "protocol-thread" ) );
+            registry.GetReadiness( report );
+            ASSERT_TRUE( HEALTH_PASS == report.state && 1 == report.checks.size() && GUCEF_NULL != FindOutcome( report, "database" ) );
+
+            // the protocol thread stopped making progress: a restart cures that, liveness fails; readiness does not
+            heartbeat.state = HEALTH_FAIL;
+            heartbeat.detail = "no cycle for 40 s";
+            registry.EvaluateChecks();
+            registry.GetLiveness( report );
+            ASSERT_TRUE( HEALTH_FAIL == report.state && !report.isStale );
+            ASSERT_TRUE( GUCEF_NULL != FindOutcome( report, "protocol-thread" ) && "no cycle for 40 s" == FindOutcome( report, "protocol-thread" )->detail );
+            registry.GetReadiness( report );
+            ASSERT_TRUE( HEALTH_PASS == report.state );
+
+            heartbeat.state = HEALTH_WARN;
+            registry.EvaluateChecks();
+            registry.GetLiveness( report );
+            ASSERT_TRUE( report.Passes() );
+
+            // a dependency that is down fails readiness only
+            heartbeat.state = HEALTH_PASS;
+            database.state = HEALTH_FAIL;
+            registry.EvaluateChecks();
+            registry.GetLiveness( report );
+            ASSERT_TRUE( HEALTH_PASS == report.state );
+            registry.GetReadiness( report );
+            ASSERT_TRUE( HEALTH_FAIL == report.state );
+
+            // removed by kind
+            ASSERT_FALSE( registry.UnregisterReadinessCheck( &heartbeat ) );
+            ASSERT_TRUE( registry.UnregisterLivenessCheck( &heartbeat ) );
+            ASSERT_TRUE( 0 == registry.GetLivenessCheckCount() && 1 == registry.GetReadinessCheckCount() );
+            ASSERT_TRUE( registry.UnregisterReadinessCheck( &database ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: Registration refuses nothing and doubles, and the info is kept as given" )
         try
         {

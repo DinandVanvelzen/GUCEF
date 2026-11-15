@@ -451,6 +451,8 @@ UInt64
 CPulseGenerator::GetTickCountAtLastPulse( void ) const
 {GUCEF_TRACE;
     
+    // written by the driver thread at every pulse under the data lock; read from any thread (a heartbeat check)
+    MT::CScopeMutex dataLock( m_dataLock );
     return m_lastCycleTickCount;
 }
 

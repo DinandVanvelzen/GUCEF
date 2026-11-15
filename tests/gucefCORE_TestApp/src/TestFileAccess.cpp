@@ -49,6 +49,9 @@
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
 
+#include "gucefCORE_CRollingFileAccess.h"
+#include "dvcppfileutils.h"
+
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #include <io.h>
     #include <fcntl.h>
@@ -102,6 +105,26 @@ CloseDescriptor( int fd )
     #else
     close( fd );
     #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The files of the directory whose names begin with the prefix */
+static UInt32
+CountFilesStartingWith( const CORE::CString& dir, const CORE::CString& prefix )
+{
+    UInt32 count = 0;
+    CORE::CFileSystemIterator iterator;
+    if ( iterator.FindFirst( dir ) )
+    {
+        do
+        {
+            if ( iterator.IsAFile() && 0 == iterator.GetResourceName().HasSubstr( prefix, true ) )
+                ++count;
+        }
+        while ( iterator.FindNext() );
+    }
+    return count;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -272,6 +295,96 @@ PerformFileAccessTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A rolling file keeps at most its maximum of rolled files across restarts: the limit set after opening applies at once (a service started again and again)" )
+        try
+        {
+            TESTFW::CScopedTestDir rollDir( "gucefCORE_TestApp_RollingRestarts" );
+            CORE::CString basePath = CORE::CombinePath( rollDir.GetPath(), "service.log" );
+            for ( UInt32 run=0; run<12; ++run )
+            {
+                // as a service opens its log at every start (pubsub2pubsub, InvestmentService): open, then the limit
+                CORE::CRollingFileAccess log( basePath, "ab" );
+                ASSERT_TRUE( log.Opened() );
+                log.SetMaxRolloverFilesBeforeDeletion( 5 );
+                log.Write( CORE::CString( "a line of the run " ) + CORE::ToString( run ) );
+                ASSERT_TRUE( CountFilesStartingWith( rollDir.GetPath(), "service." ) <= 5 );
+            }
+            UInt32 kept = CountFilesStartingWith( rollDir.GetPath(), "service." );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Rolling file: 12 starts with a limit of 5 rolled files keep " << kept << " files" );
+            ASSERT_TRUE( 5 == kept );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A rolling file that rolls over several times within one second keeps its maximum of files and never deletes the file it writes (file times have a resolution of a second)" )
+        try
+        {
+            TESTFW::CScopedTestDir rollDir( "gucefCORE_TestApp_RollingFast" );
+            CORE::CString basePath = CORE::CombinePath( rollDir.GetPath(), "fast.log" );
+            CORE::CRollingFileAccess log( basePath, "ab" );
+            ASSERT_TRUE( log.Opened() );
+            log.SetRolloverSizeThreshold( 100 );
+            log.SetMaxRolloverFilesBeforeDeletion( 3 );
+            const CORE::CString line = "0123456789012345678901234567890123456789012345678";
+            for ( UInt32 i=0; i<20; ++i )
+            {
+                ASSERT_TRUE( line.Length() + 1 == log.Write( line ) );
+                ASSERT_TRUE( log.Opened() );
+                ASSERT_TRUE( CountFilesStartingWith( rollDir.GetPath(), "fast." ) <= 3 );
+            }
+            // what is written last is in a file that is still there
+            const CORE::CString last = "the last line";
+            ASSERT_TRUE( last.Length() + 1 == log.Write( last ) );
+            log.Close();
+            bool found = false;
+            CORE::CFileSystemIterator iterator;
+            if ( iterator.FindFirst( rollDir.GetPath() ) )
+            {
+                do
+                {
+                    if ( iterator.IsAFile() )
+                    {
+                        CORE::CFileAccess reader( CORE::CombinePath( rollDir.GetPath(), iterator.GetResourceName() ), "rb" );
+                        while ( reader.Opened() && !reader.Eof() && !found )
+                            found = reader.ReadLine().HasSubstr( last, true ) >= 0;
+                    }
+                }
+                while ( !found && iterator.FindNext() );
+            }
+            ASSERT_TRUE( found );
+            ASSERT_TRUE( 3 == CountFilesStartingWith( rollDir.GetPath(), "fast." ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+    GUCEF_TESTFW_TESTCASE( "Test: A character device that never ends (/dev/zero, /dev/full) has no size and opens at once; a write to /dev/full fails at the sync; /proc files keep their generated size" )
+        try
+        {
+            ASSERT_TRUE( 0 == CORE::FileSize( "/dev/zero" ) );
+            ASSERT_TRUE( 0 == CORE::FileSize( "/dev/full" ) );
+            {
+                CORE::CFileAccess full( "/dev/full", "ab" );
+                ASSERT_TRUE( full.IsValid() );
+                const char data[] = "a record that does not fit";
+                full.Write( data, 1, sizeof( data ) );
+                ASSERT_FALSE( full.Sync() );
+            }
+            ASSERT_TRUE( CORE::FileSize( "/proc/self/status" ) > 0 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+    #endif
 
     GUCEF_TESTFW_TESTCASE( "Test: A memory block is read through the memory access classes" )
         try

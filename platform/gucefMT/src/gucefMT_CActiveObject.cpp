@@ -385,6 +385,7 @@ CActiveObject::Deactivate( bool force, bool callerShouldWait )
             // Set the flag to allow the thread to exit the run cycle gracefully
             m_isDeactivationRequested = true;            
             Unlock();
+            OnDeactivationRequested();
 
             // Lets give the thread up to 5 seconds to shut down
             // If it refuses we kill it
@@ -418,12 +419,27 @@ CActiveObject::Deactivate( bool force, bool callerShouldWait )
         {
             OnThreadEnding( m_threadData, false );
 
+            // the wake-up after the ending notification: a thread woken earlier can end its work while the
+            // notification still reads it (threading work list T4)
+            OnDeactivationRequested();
             lock.EarlyUnlock();
             UInt32 waitResult = ThreadWait( _td, 15000 );
             if ( ClaimThreadEndedNotification() )
                 OnThreadEnded( m_threadData, false );
         }
+        else
+        {
+            OnDeactivationRequested();
+        }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CActiveObject::OnDeactivationRequested( void )
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/

@@ -54,6 +54,11 @@
 
 #include "TestSemaphore.h"
 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+#include <time.h>
+#include <sys/time.h>
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      MACROS                                                             //
@@ -213,6 +218,41 @@ PerformSemaphoreTests( void )
 
         MT::CSemaphore zero( 0 );
         ASSERT_TRUE( 0 == zero.Value() && 1 == zero.TryWait() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Precision timer: the tick count is the monotonic clock, not the time of the day, so a step of the wall clock does not move timeouts and intervals" )
+    try
+    {
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
+        // the clock that a wall clock step leaves alone is the one the ticks follow, within the time of the calls
+        struct timespec monotonic;
+        ASSERT_TRUE( 0 == clock_gettime( CLOCK_MONOTONIC, &monotonic ) );
+        const UInt64 ticks = MT::PrecisionTickCount();
+        const Int64 monotonicUs = (Int64) monotonic.tv_sec * 1000000 + monotonic.tv_nsec / 1000;
+        struct timeval wall;
+        gettimeofday( &wall, GUCEF_NULL );
+        const Int64 wallUs = (Int64) wall.tv_sec * 1000000 + wall.tv_usec;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Precision timer: ticks " << ticks << ", monotonic clock " << monotonicUs << " us, wall clock " << wallUs << " us" );
+        ASSERT_TRUE( 1000000 == MT::PrecisionTimerResolution() );
+        ASSERT_TRUE( (Int64) ticks >= monotonicUs && (Int64) ticks - monotonicUs < 1000000 );
+        ASSERT_TRUE( wallUs - (Int64) ticks > 1000000 || (Int64) ticks - wallUs > 1000000 );
+        #endif
+
+        // and it never goes back
+        UInt64 previous = MT::PrecisionTickCount();
+        for ( UInt32 i=0; i<100000; ++i )
+        {
+            const UInt64 next = MT::PrecisionTickCount();
+            ASSERT_TRUE( next >= previous );
+            if ( next < previous )
+                break;
+            previous = next;
+        }
     }
     catch( ... )
     {

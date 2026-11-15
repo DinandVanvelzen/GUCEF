@@ -109,6 +109,7 @@ CServiceHealthRegistry::CServiceHealthRegistry( void )
     , m_listening( false )
     , m_checks()
     , m_outcomes()
+    , m_isLivenessCheck()
     , m_started( false )
     , m_info()
     , m_checkIntervalInMs( DefaultCheckIntervalInMs )
@@ -130,6 +131,7 @@ CServiceHealthRegistry::CServiceHealthRegistry( PulseGeneratorPtr pulseGenerator
     , m_listening( false )
     , m_checks()
     , m_outcomes()
+    , m_isLivenessCheck()
     , m_started( false )
     , m_info()
     , m_checkIntervalInMs( DefaultCheckIntervalInMs )
@@ -210,6 +212,24 @@ bool
 CServiceHealthRegistry::RegisterReadinessCheck( CIServiceHealthCheck* check )
 {GUCEF_TRACE;
 
+    return RegisterCheck( check, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CServiceHealthRegistry::RegisterLivenessCheck( CIServiceHealthCheck* check )
+{GUCEF_TRACE;
+
+    return RegisterCheck( check, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CServiceHealthRegistry::RegisterCheck( CIServiceHealthCheck* check, bool liveness )
+{GUCEF_TRACE;
+
     if ( GUCEF_NULL == check )
         return false;
 
@@ -226,6 +246,7 @@ CServiceHealthRegistry::RegisterReadinessCheck( CIServiceHealthCheck* check )
     outcome.sinceUtcMs = NowUtcMs();
     m_checks.push_back( check );
     m_outcomes.push_back( outcome );
+    m_isLivenessCheck.push_back( liveness );
     lock.EarlyUnlock();
     ListenToPulses();
     return true;
@@ -237,15 +258,34 @@ bool
 CServiceHealthRegistry::UnregisterReadinessCheck( CIServiceHealthCheck* check )
 {GUCEF_TRACE;
 
+    return UnregisterCheck( check, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CServiceHealthRegistry::UnregisterLivenessCheck( CIServiceHealthCheck* check )
+{GUCEF_TRACE;
+
+    return UnregisterCheck( check, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CServiceHealthRegistry::UnregisterCheck( CIServiceHealthCheck* check, bool liveness )
+{GUCEF_TRACE;
+
     // an evaluation in progress on the pulse thread may be calling the check: wait for it
     MT::CScopeMutex evaluationLock( m_evaluationLock );
     MT::CScopeMutex lock( m_dataLock );
     for ( size_t i=0; i<m_checks.size(); ++i )
     {
-        if ( m_checks[ i ] == check )
+        if ( m_checks[ i ] == check && m_isLivenessCheck[ i ] == liveness )
         {
             m_checks.erase( m_checks.begin() + i );
             m_outcomes.erase( m_outcomes.begin() + i );
+            m_isLivenessCheck.erase( m_isLivenessCheck.begin() + i );
             return true;
         }
     }
@@ -259,7 +299,25 @@ CServiceHealthRegistry::GetReadinessCheckCount( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_dataLock );
-    return (UInt32) m_checks.size();
+    UInt32 count = 0;
+    for ( size_t i=0; i<m_isLivenessCheck.size(); ++i )
+        if ( !m_isLivenessCheck[ i ] )
+            ++count;
+    return count;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CServiceHealthRegistry::GetLivenessCheckCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_dataLock );
+    UInt32 count = 0;
+    for ( size_t i=0; i<m_isLivenessCheck.size(); ++i )
+        if ( m_isLivenessCheck[ i ] )
+            ++count;
+    return count;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -471,7 +529,18 @@ CServiceHealthRegistry::GetLiveness( SHealthReport& report ) const
 
     MT::CScopeMutex lock( m_dataLock );
     FillCommonWhileLocked( report );
-    report.state = report.isStale ? HEALTH_FAIL : HEALTH_PASS;
+
+    // the pulse thread evaluated within the window, and no liveness check fails
+    TServiceHealthState worst = HEALTH_PASS;
+    for ( size_t i=0; i<m_outcomes.size(); ++i )
+    {
+        if ( !m_isLivenessCheck[ i ] )
+            continue;
+        report.checks.push_back( m_outcomes[ i ] );
+        if ( HEALTH_FAIL == m_outcomes[ i ].state )
+            worst = HEALTH_FAIL;
+    }
+    report.state = report.isStale ? HEALTH_FAIL : worst;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -482,12 +551,16 @@ CServiceHealthRegistry::GetReadiness( SHealthReport& report ) const
 
     MT::CScopeMutex lock( m_dataLock );
     FillCommonWhileLocked( report );
-    report.checks = m_outcomes;
 
     TServiceHealthState worst = HEALTH_PASS;
     for ( size_t i=0; i<m_outcomes.size(); ++i )
+    {
+        if ( m_isLivenessCheck[ i ] )
+            continue;
+        report.checks.push_back( m_outcomes[ i ] );
         if ( m_outcomes[ i ].state > worst )
             worst = m_outcomes[ i ].state;
+    }
     if ( report.isStale || !m_started )
         worst = HEALTH_FAIL;
     report.state = worst;

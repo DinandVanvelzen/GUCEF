@@ -644,6 +644,9 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
 
     TTaskDelegatorBasicPtr GetDelegatorForThreadId( const TSystemThreadId threadId ) const;
 
+    /** Wakes one worker thread that waits for a task, after one was queued */
+    void WakeDelegatorWaitingForTask( void );
+
     void SubscribeToTaskConsumerEvents( CTaskConsumerPtr& taskConsumer );
 
     bool GetOrCreateTaskConsumerOfType( const CString& taskConsumerType ,

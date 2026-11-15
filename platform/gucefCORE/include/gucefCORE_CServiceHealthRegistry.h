@@ -75,9 +75,11 @@ namespace CORE {
  *  readiness and startup probes), kept apart from how it is served (gucefWEB serves it over HTTP):
  *
  *  - liveness:  the thread that drives the pulse generator of the registry evaluated the checks within the
- *               liveness staleness window (default 10 s). A hung pulse thread fails liveness without a check of
- *               its own. Liveness never depends on an outside dependency, so a database that is down never gets
- *               the process restarted.
+ *               liveness staleness window (default 10 s), and no liveness check (RegisterLivenessCheck()) fails.
+ *               A hung pulse thread fails liveness without a check of its own; a liveness check covers another
+ *               thread the process cannot work without (the heartbeat of a protocol thread), which a restart cures.
+ *               Liveness never depends on an outside dependency, so a database that is down never gets the process
+ *               restarted.
  *  - readiness: the service said it started (SetStarted()), the cached outcome of every readiness check passes
  *               (WARN passes) and the cache is not older than the staleness window.
  *  - startup:   the service said it started.
@@ -146,6 +148,18 @@ class GUCEF_CORE_PUBLIC_CPP CServiceHealthRegistry : public CObserver
 
     UInt32 GetReadinessCheckCount( void ) const;
 
+    /**
+     *  Adds a check that liveness depends on, evaluated with the readiness checks on the pulse thread: a FAIL fails
+     *  liveness (WARN passes), readiness does not look at it. Only for what a restart of the process cures, such as a
+     *  thread of the process that stopped making progress. Ownership and unregistering as for readiness checks
+     */
+    bool RegisterLivenessCheck( CIServiceHealthCheck* check );
+
+    /** Removes a liveness check, as UnregisterReadinessCheck() */
+    bool UnregisterLivenessCheck( CIServiceHealthCheck* check );
+
+    UInt32 GetLivenessCheckCount( void ) const;
+
     /** Whether the service finished its start; startup and readiness fail until it says so */
     void SetStarted( bool started );
 
@@ -198,8 +212,12 @@ class GUCEF_CORE_PUBLIC_CPP CServiceHealthRegistry : public CObserver
     MT::CMutex m_evaluationLock;            /**< held while the checks run, so an unregistered check is not in use */
     PulseGeneratorPtr m_pulseGenerator;
     bool m_listening;
+    bool RegisterCheck( CIServiceHealthCheck* check, bool liveness );
+    bool UnregisterCheck( CIServiceHealthCheck* check, bool liveness );
+
     TCheckVector m_checks;
     TCheckOutcomeVector m_outcomes;         /**< in the order of m_checks */
+    GUCEF::vector< bool > m_isLivenessCheck;    /**< in the order of m_checks: a liveness check, else a readiness check */
     bool m_started;
     CValueList m_info;
     UInt32 m_checkIntervalInMs;

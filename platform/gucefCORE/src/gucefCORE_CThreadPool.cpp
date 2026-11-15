@@ -538,29 +538,26 @@ CThreadPool::EnforceDesiredNrOfThreads( Int32 desiredMaxTotalNrOfThreads   ,
     else
     if ( threadHeadroom < 0 )
     {
-        // Check the number of threads that are already asked to deactivate
+        // Check the number of threads that are already asked to deactivate. A delegator whose thread already ended
+        // counts as well: it stays in the sets until its end notification is handled on the pulse thread, and an
+        // idle worker asked to stop ends at once, so a second enforcement right after the first must not take it
+        // for a live thread and ask yet another one to stop
         Int32 deactivatingCount = 0;
         TTaskDelegatorSet::iterator i = m_taskGenericDelegators.begin();
         while ( i != m_taskGenericDelegators.end() )
         {
-            if ( (*i)->IsActive() )
+            if ( (*i)->HasThreadEnded() || ( (*i)->IsActive() && (*i)->IsDeactivationRequested() ) )
             {
-                if ( (*i)->IsDeactivationRequested() )
-                {
-                    ++deactivatingCount;
-                }
+                ++deactivatingCount;
             }
             ++i;
         }
         i = m_taskDedicatedDelegators.begin();
         while ( i != m_taskDedicatedDelegators.end() )
         {
-            if ( (*i)->IsActive() )
+            if ( (*i)->HasThreadEnded() || ( (*i)->IsActive() && (*i)->IsDeactivationRequested() ) )
             {
-                if ( (*i)->IsDeactivationRequested() )
-                {
-                    ++deactivatingCount;
-                }
+                ++deactivatingCount;
             }
             ++i;
         }
@@ -786,6 +783,7 @@ CThreadPool::QueueTask( CTaskPtr task )
                 EnforceDesiredNrOfThreads( m_desiredMaxTotalNrOfThreads, 1, true );
             }
         }
+        WakeDelegatorWaitingForTask();
         return task;
     }
     else
@@ -799,6 +797,26 @@ CThreadPool::QueueTask( CTaskPtr task )
         }
 
         return TTaskStatus::TASKSTATUS_QUEUEING_FAILED;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPool::WakeDelegatorWaitingForTask( void )
+{GUCEF_TRACE;
+
+    // A worker thread without a task waits for one (CTaskDelegator::IdleTaskWaitMs): one of the waiting ones is woken
+    // for every task queued, the others keep waiting. One that is no longer waiting (it found a task meanwhile) is not
+    // counted, so the next task wakes another one; when none waits, the busy ones take the task after their own
+    MT::CObjectScopeLock lock( this );
+    TTaskDelegatorSet::iterator i = m_taskGenericDelegators.begin();
+    while ( i != m_taskGenericDelegators.end() )
+    {
+        TTaskDelegatorBasicPtr delegator = (*i);
+        if ( !delegator.IsNULL() && delegator->WakeUpIfWaitingForTask() )
+            return;
+        ++i;
     }
 }
 
@@ -861,6 +879,7 @@ CThreadPool::QueueTaskChain( const TTaskPtrVector& tasks )
                 EnforceDesiredNrOfThreads( m_desiredMaxTotalNrOfThreads, 1, true );
             }
         }
+        WakeDelegatorWaitingForTask();
 
         // We return the last task as that is the task one would wait for to finish the chain
         // any failure earlier in the chain will propagate to the last task as well

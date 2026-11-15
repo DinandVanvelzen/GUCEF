@@ -198,6 +198,7 @@ class GUCEF_CORE_PUBLIC_CPP CRollingFileAccess : public CIOAccess
     CString m_baseFilename;
     CString m_fileMode;
     CFileAccess m_currentFile;
+    CString m_currentFileName;      /**< the name of the file being written, never deleted by the clean up */
     Int32 m_maxRolloverFilesBeforeDeletion;
 };
 
