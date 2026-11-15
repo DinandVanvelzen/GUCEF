@@ -891,7 +891,9 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
     if ( 0 != m_readinessId )
         m_readinessWaiter->Arm( m_readinessId, CSocketReadinessWaiter::ReadinessRead );
 
-    m_pulseGenerator->RequestPeriodicPulses( this, 10 );
+    // with the readiness wake the periodic pulses only look again (a socket that holds its maximum of connections is
+    // not armed): the pulse generator's task sleeps while nothing arrives
+    m_pulseGenerator->RequestPeriodicPulses( this, 0 != m_readinessId ? CSocketReadinessWaiter::FallbackPulseIntervalMs : 10 );
 
     return true;
 }

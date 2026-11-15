@@ -107,6 +107,12 @@ CDnsCacheRefreshTaskConsumer::OnTaskStart( CORE::CTaskPtr task )
         // Set the task cycle interval
         RequestTaskCycleDelayInMs( dnsCache->GetAsyncRefreshIntervalInMs() );
 
+        // The work is done in the cycles, minutes apart, and nothing mails this task: its pulse generator needs no
+        // periodic pulses meanwhile, so the thread sleeps between the refreshes instead of waking 100 times per second
+        CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+        if ( !pulseGenerator.IsNULL() )
+            pulseGenerator->ForceStopOfPeriodicPulses();
+
         return true;
     }
     return false;
@@ -119,6 +125,10 @@ CDnsCacheRefreshTaskConsumer::OnTaskEnding( CORE::CTaskPtr task ,
                                             bool willBeForced   )
 {GUCEF_TRACE;
 
+    // the pulse generator is the delegator's, which runs other tasks after this one
+    CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+    if ( !pulseGenerator.IsNULL() )
+        pulseGenerator->AllowPeriodicPulses();
 }
 
 /*-------------------------------------------------------------------------*/

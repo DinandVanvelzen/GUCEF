@@ -527,13 +527,11 @@ CTCPClientSocket::Connect( bool blocking )
                     if ( m_isConnecting && _active )
                         MT::PrecisionDelay( 25 );
                 }
+            }
 
-                m_pulseGenerator->RequestPeriodicPulses( this, MAX_PULSE_INTERVAL_IN_MS );
-            }
-            else
-            {
-                m_pulseGenerator->RequestPeriodicPulses( this, MAX_PULSE_INTERVAL_IN_MS );
-            }
+            // with the readiness wake the periodic pulses only look again: the connect, received data and room to
+            // send wake the owner, so the pulse generator's task sleeps while nothing happens
+            m_pulseGenerator->RequestPeriodicPulses( this, 0 != m_readinessId ? CSocketReadinessWaiter::FallbackPulseIntervalMs : MAX_PULSE_INTERVAL_IN_MS );
 
             return true;
         }

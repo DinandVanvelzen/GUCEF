@@ -1252,8 +1252,8 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
 
         if ( !NotifyObservers( UDPSocketOpenedEvent ) ) return true;
 
-        // We will now be requiring periodic updates to poll for data
-        m_pulseGenerator->RequestPeriodicPulses( this, GUCEF_PULSE_UPDATE_INTERVAL );
+        // We will now be requiring periodic updates to poll for data; with the readiness wake they only look again
+        m_pulseGenerator->RequestPeriodicPulses( this, 0 != m_readinessId ? CSocketReadinessWaiter::FallbackPulseIntervalMs : GUCEF_PULSE_UPDATE_INTERVAL );
 
         return true;
     }

@@ -106,6 +106,7 @@ class GUCEF_COMCORE_EXPORT_CPP CSocketReadinessWaiter : public CORE::CTaskConsum
     static const CORE::CString TaskType;
     static const CORE::CString ThreadPoolName;  /**< "gucef.comcore.readiness" */
     static const UInt32 WaitTimeoutInMs;        /**< longest OS wait, the time a task stopped from outside needs to end */
+    static const UInt32 FallbackPulseIntervalMs;    /**< periodic pulses a socket registered with the waiter still asks for (250): readiness wakes it at once, these only look again, so an idle socket owner on a task sleeps */
 
     /** Use CreateSharedObj(): the task holds a reference while it runs */
     CSocketReadinessWaiter( void );

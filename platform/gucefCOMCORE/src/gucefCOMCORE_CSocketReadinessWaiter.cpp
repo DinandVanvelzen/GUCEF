@@ -92,6 +92,7 @@ const UInt32 CSocketReadinessWaiter::ReadinessWrite = 2;
 const CORE::CString CSocketReadinessWaiter::TaskType = "GUCEF::COMCORE::CSocketReadinessWaiter";
 const CORE::CString CSocketReadinessWaiter::ThreadPoolName = "gucef.comcore.readiness";
 const UInt32 CSocketReadinessWaiter::WaitTimeoutInMs = 100;
+const UInt32 CSocketReadinessWaiter::FallbackPulseIntervalMs = 250;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
