@@ -1,0 +1,11 @@
+<ModuleInfoEntry>
+    <Module Name="utfcpp" Type="HeaderIncludeLocation" Platform="All">
+        <ModuleMetaData>
+            <License>BSL-1.0</License>
+            <SemVer>4.1.1.0</SemVer>
+            <DescriptionHeadline>UTF8-CPP, UTF-8 with C++ in a portable way</DescriptionHeadline>
+            <DescriptionDetails>UTF8-CPP 4.1.1 (Nemanja Trifunovic), header only. Needed by MyGUI 3.5.4.</DescriptionDetails>
+        </ModuleMetaData>
+        <Compiler MinCppStandard="17" />
+    </Module>
+</ModuleInfoEntry>

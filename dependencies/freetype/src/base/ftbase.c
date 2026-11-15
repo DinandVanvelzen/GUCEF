@@ -31,6 +31,9 @@
 #include "fttrigon.c"
 #include "ftutil.c"
 
+/* DV edit: the Windows FNT header API (FT_Get_WinFNT_Header), which MyGUI uses, is part of this library */
+#include "ftwinfnt.c"
+
 #if defined( __APPLE__ ) && !defined ( DARWIN_NO_CARBON )
 #include "ftmac.c"
 #endif

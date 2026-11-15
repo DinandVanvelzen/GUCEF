@@ -1,0 +1,11 @@
+<ModuleInfoEntry>
+    <Module Name="pugixml" Type="StaticLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>MIT</License>
+            <SemVer>1.16.0.0</SemVer>
+            <DescriptionHeadline>pugixml, light-weight XML processing library</DescriptionHeadline>
+            <DescriptionDetails>pugixml 1.16 (Arseny Kapoulkine), the DOM parser and writer with XPath. Needed by MyGUI 3.5.4, usable by other modules. Built as C++17 so the string_view interface of its header is part of the library.</DescriptionDetails>
+        </ModuleMetaData>
+        <Compiler MinCppStandard="17" />
+    </Module>
+</ModuleInfoEntry>
