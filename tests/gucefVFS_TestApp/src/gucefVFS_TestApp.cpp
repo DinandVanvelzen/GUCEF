@@ -103,6 +103,11 @@
 #include "TestVfsCodecs.h"
 #define GUCEF_VFS_TESTAPP_TESTVFSCODECS_H
 #endif /* GUCEF_VFS_TESTAPP_TESTVFSCODECS_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSMOUNTLOCKING_H
+#include "TestVfsMountLocking.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSMOUNTLOCKING_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSMOUNTLOCKING_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -360,8 +365,11 @@ GUCEF_OSMAIN_BEGIN
 
     try
     {
+        bool onlyMountLocking = false;
         for ( int i=1; i<argc; ++i )
         {
+            if ( 0 == strcmp( argv[ i ], "-only-mountlocking" ) )
+                onlyMountLocking = true;
             if ( 0 == strcmp( argv[ i ], "-manual" ) )
                 return RunManualTests( argc, argv );
             if ( 0 == strcmp( argv[ i ], "-large" ) )
@@ -385,16 +393,20 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefVFS_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
-        PerformVFSFileLoadUnloadTest();
-        PerformZipArchiveWriterTests();
-        PerformMountFromResourceTests();
-        PerformLibArchiveTests();
-        PerformItvArchiveTests();
-        PerformIso9660ArchiveTests();
-        PerformCueBinArchiveTests();
-        PerformFileSystemAccessTests();
-        PerformVfsConfigTests();
-        PerformVfsCodecTests();
+        if ( !onlyMountLocking )
+        {
+            PerformVFSFileLoadUnloadTest();
+            PerformZipArchiveWriterTests();
+            PerformMountFromResourceTests();
+            PerformLibArchiveTests();
+            PerformItvArchiveTests();
+            PerformIso9660ArchiveTests();
+            PerformCueBinArchiveTests();
+            PerformFileSystemAccessTests();
+            PerformVfsConfigTests();
+            PerformVfsCodecTests();
+        }
+        PerformVfsMountLockingTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

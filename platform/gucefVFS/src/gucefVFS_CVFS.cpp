@@ -1869,14 +1869,18 @@ bool
 CVFS::MountArchive( const CArchiveSettings& settings )
 {GUCEF_TRACE;
 
+    // The archive is made before the lock is taken and declared before it, so it is also let go of after the lock: making or
+    // destroying an archive may wait for other locks (a file system archive subscribes its directory watcher to the pulse
+    // generator), and the thread that holds those may be waiting for the VFS meanwhile
+    TArchivePtr archive = m_abstractArchiveFactory.Create( settings.GetArchiveType() );
+
     MT::CScopeWriterLock lock( m_rwdataLock );
 
     // Either determine the actual non-vfs path based on previously loaded/mounted archives or use the given explicit path if any
     CString actualArchivePath = CORE::ResolveVars( settings.GetActualArchivePath() );
     if ( !actualArchivePath.IsNULLOrEmpty() || GetActualFilePath( settings.GetArchivePath(), actualArchivePath ) )
     {
-        // Found a compatible type,.. create an archive for the type
-        TArchivePtr archive = m_abstractArchiveFactory.Create( settings.GetArchiveType() );
+        // Found a compatible type,.. the archive made for the type
         if ( !archive.IsNULL() )
         {
             // Try to load from the resource
@@ -1941,10 +1945,10 @@ CVFS::MountArchive( const CString& archiveName           ,
     if ( archiveResource.IsNULL() )
         return false;
 
-    MT::CScopeWriterLock lock( m_rwdataLock );
-
-    // create an archive for the type
+    // create an archive for the type, before the lock and declared before it (see MountArchive( const CArchiveSettings& ))
     TArchivePtr archive = m_abstractArchiveFactory.Create( archiveType );
+
+    MT::CScopeWriterLock lock( m_rwdataLock );
     if ( !archive.IsNULL() )
     {
         // Try to load from the resource
@@ -2377,7 +2381,7 @@ CVFS::TArchivePtr
 CVFS::CreateArchive( const CString& archiveType )
 {GUCEF_TRACE;
 
-    MT::CScopeReaderLock lock( m_rwdataLock );
+    // the factory has a lock of its own; the lock of the VFS is not held while an archive is made (see MountArchive())
     return m_abstractArchiveFactory.Create( archiveType );
 }
 
