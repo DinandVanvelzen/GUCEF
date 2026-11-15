@@ -62,6 +62,7 @@ namespace guidriverMyGUI {
 //-------------------------------------------------------------------------*/
 
 const char* CMyGUIContext::WidgetLayerName = "Overlapped";
+const char* CMyGUIContext::MsdfShaderName = "MsdfFontShader";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -76,6 +77,8 @@ CMyGUIContext::CMyGUIContext( GUI::CGUIDriver* driver, GUI::TWindowContextPtr wi
     , m_appliedScale( 1 )
     , m_textureCounter( 0 )
     , m_textures()
+    , m_msdfFonts()
+    , m_msdfShaderReady( false )
 {GUCEF_TRACE;
 
 }
@@ -140,6 +143,8 @@ CMyGUIContext::ReleaseGui( void )
         delete m_gui;
         m_gui = GUCEF_NULL;
     }
+    m_msdfFonts.clear();
+    m_msdfShaderReady = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -425,9 +430,12 @@ bool
 CMyGUIContext::HasMyGUIFont( const CString& fontName ) const
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_gui || GUCEF_NULL == MyGUI::FontManager::getInstancePtr() )
+    if ( GUCEF_NULL == m_gui || GUCEF_NULL == MyGUI::ResourceManager::getInstancePtr() )
         return false;
-    return GUCEF_NULL != MyGUI::FontManager::getInstance().getByName( fontName.C_String() );
+
+    // not the font manager: it answers the default font for a name it does not know
+    MyGUI::IResource* resource = MyGUI::ResourceManager::getInstance().getByName( fontName.C_String(), false );
+    return GUCEF_NULL != resource && GUCEF_NULL != resource->castType< MyGUI::IFont >( false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -445,6 +453,61 @@ CMyGUIContext::LoadFont( const CString& name, const CString& vfsPath, UInt32 siz
                          "<Property key=\"Size\" value=\"" + CORE::UInt32ToString( size ) + "\"/>\n" +
                          "<Codes><Code range=\"32 126\"/><Code range=\"160 255\"/></Codes>\n" +
                          "</Resource>\n</MyGUI>\n";
+    return LoadFontDefinition( definition, name, vfsPath );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIContext::LoadMsdfFont( const CString& name, const CString& vfsPath, UInt32 size, UInt32 atlasSize )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_gui || size < 1 || atlasSize < 1 || !SupportsMsdfFonts() )
+        return false;
+    if ( !MyGUI::DataManager::getInstance().isDataExist( vfsPath.C_String() ) )
+        return false;
+
+    if ( !m_msdfShaderReady )
+        m_msdfShaderReady = RegisterMsdfShader();
+    if ( !m_msdfShaderReady )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "MyGUIContext: The MSDF shader of the render platform is not available, the font " << vfsPath << " is not loaded as an MSDF font" );
+        return false;
+    }
+
+    // MyGUI reads the font through its data manager, the VFS, and generates the distance fields from it. The range
+    // of the distance fields (in pixels) is the one the MSDF shaders of MyGUI expect, they have it as a constant.
+    CString definition = CString( "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<MyGUI type=\"Resource\" version=\"1.1\">\n" ) +
+                         "<Resource type=\"ResourceTrueTypeFont\" name=\"" + name + "\">\n" +
+                         "<Property key=\"Source\" value=\"" + vfsPath + "\"/>\n" +
+                         "<Property key=\"Size\" value=\"" + CORE::UInt32ToString( atlasSize ) + "\"/>\n" +
+                         "<Property key=\"Hinting\" value=\"disable_all\"/>\n" +
+                         "<Property key=\"MsdfMode\" value=\"true\"/>\n" +
+                         "<Property key=\"MsdfRange\" value=\"2\"/>\n" +
+                         "<Property key=\"Shader\" value=\"" + MsdfShaderName + "\"/>\n" +
+                         "<Codes><Code range=\"32 126\"/><Code range=\"160 255\"/></Codes>\n" +
+                         "</Resource>\n</MyGUI>\n";
+    if ( !LoadFontDefinition( definition, name, vfsPath ) )
+        return false;
+
+    // the text has the height the same font has as a bitmap font of 'size': the height of the glyphs of the
+    // distance fields in proportion
+    MyGUI::IFont* font = MyGUI::FontManager::getInstance().getByName( name.C_String() );
+    if ( GUCEF_NULL == font || font->getDefaultHeight() < 1 )
+        return false;
+    Int32 height = (Int32) ( ( (double) font->getDefaultHeight() * (double) size ) / (double) atlasSize + 0.5 );
+    if ( height < 1 )
+        height = 1;
+    m_msdfFonts[ name ] = height;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIContext::LoadFontDefinition( const CString& definition, const CString& name, const CString& vfsPath )
+{GUCEF_TRACE;
+
     try
     {
         CMyGUIVfsDataStream stream( definition.C_String(), definition.Length() );
@@ -464,6 +527,68 @@ CMyGUIContext::LoadFont( const CString& name, const CString& vfsPath, UInt32 siz
 /*-------------------------------------------------------------------------*/
 
 bool
+CMyGUIContext::SupportsMsdfFonts( void ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIContext::RegisterMsdfShader( void )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIContext::IsMsdfFont( const CString& fontName ) const
+{GUCEF_TRACE;
+
+    return m_msdfFonts.find( fontName ) != m_msdfFonts.end() && HasMyGUIFont( fontName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CMyGUIContext::GetMyGUIFontHeight( const CString& fontName ) const
+{GUCEF_TRACE;
+
+    TMsdfFontMap::const_iterator i = m_msdfFonts.find( fontName );
+    if ( i == m_msdfFonts.end() || !HasMyGUIFont( fontName ) )
+        return 0;
+    return (*i).second * (Int32) GetRenderScale();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMyGUIContext::ApplyMsdfFontHeights( void )
+{GUCEF_TRACE;
+
+    if ( m_msdfFonts.empty() )
+        return;
+    TWidgetSet widgets = GetOwnedWidgets();
+    for ( TWidgetSet::iterator i=widgets.begin(); i!=widgets.end(); ++i )
+    {
+        MyGUI::Widget* native = GetNativeWidget( **i );
+        MyGUI::TextBox* text = ( GUCEF_NULL == native ? GUCEF_NULL : native->castType< MyGUI::TextBox >( false ) );
+        if ( GUCEF_NULL != text )
+        {
+            const std::string_view fontView = text->getFontName();
+            const CString fontName( fontView.data(), (UInt32) fontView.size() );
+            if ( m_msdfFonts.find( fontName ) != m_msdfFonts.end() )
+                text->setFontHeight( GetMyGUIFontHeight( fontName ) );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CMyGUIContext::MeasureText( const CString& fontName, const CString& text, Int32 maxWidth, Int32& width, Int32& height )
 {GUCEF_TRACE;
 
@@ -474,8 +599,15 @@ CMyGUIContext::MeasureText( const CString& fontName, const CString& text, Int32 
     if ( GUCEF_NULL == font )
         return GUI::CGUIContext::MeasureText( fontName, text, maxWidth, width, height );
 
-    // MyGUI draws fonts at the scale of the render, layout is in logical pixels
-    const float scale = 1.0f / (float) GetRenderScale();
+    // MyGUI draws fonts at the scale of the render, layout is in logical pixels; an MSDF font is drawn at the
+    // logical height (its glyphs, made at the atlas size, are scaled to that height)
+    float scale = 1.0f / (float) GetRenderScale();
+    float lineHeight = (float) font->getDefaultHeight() * scale;
+    if ( IsMsdfFont( fontName ) && font->getDefaultHeight() > 0 )
+    {
+        lineHeight = (float) GetMyGUIFontHeight( fontName ) / (float) GetRenderScale();
+        scale = lineHeight / (float) font->getDefaultHeight();
+    }
     float widest = 0.0f;
     float line = 0.0f;
     UInt32 lines = 1;
@@ -496,7 +628,7 @@ CMyGUIContext::MeasureText( const CString& fontName, const CString& text, Int32 
     }
     if ( line > widest ) widest = line;
     width = (Int32) ( widest * scale + 0.5f );
-    height = (Int32) ( (float) ( font->getDefaultHeight() * (int) lines ) * scale + 0.5f );
+    height = (Int32) ( lineHeight * (float) lines + 0.5f );
     return true;
 }
 
@@ -573,6 +705,7 @@ CMyGUIContext::PrepareFrame( void )
         TWidgetSet widgets = GetOwnedWidgets();
         for ( TWidgetSet::iterator i=widgets.begin(); i!=widgets.end(); ++i )
             PlaceNativeWidget( GetNativeWidget( **i ), (*i)->GetRect() );
+        ApplyMsdfFontHeights();
     }
 
     RefreshVisibility();

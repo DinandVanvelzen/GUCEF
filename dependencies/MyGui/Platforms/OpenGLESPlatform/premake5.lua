@@ -305,7 +305,7 @@ configuration( { "LINUX64" } )
 
 
 configuration( {} )
-includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../../pugixml/src", "../../../utfcpp", "../../../utfcpp/source", "../../../utfcpp/source/utf8", "../../MyGUIEngine/include", "../Utils" } )
+includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../../msdfgen", "../../../msdfgen/", "../../../msdfgen/core", "../../../msdfgen/ext", "../../../pugixml/src", "../../../utfcpp", "../../../utfcpp/source", "../../../utfcpp/source/utf8", "../../MyGUIEngine/include", "../Utils" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "include" } )

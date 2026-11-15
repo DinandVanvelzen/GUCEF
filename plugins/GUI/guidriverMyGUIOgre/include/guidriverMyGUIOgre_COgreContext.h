@@ -76,6 +76,9 @@ class GUCEF_guidriverMyGUIOgre_PUBLIC_CPP COgreContext : public guidriverMyGUI::
     /** The Ogre platform of MyGUI uses PF_A8R8G8B8 for its 32 bit textures */
     virtual bool IsBgraTextureMemory( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The Ogre platform of MyGUI has an MSDF font shader in GLSL and HLSL, whatever render system of Ogre is in use has one of the two */
+    virtual bool SupportsMsdfFonts( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     /** The render window as it is now, without the next frame: what the user sees (the scene and the widgets) */
     virtual bool CapturePresentedFrame( IMAGE::TPixelMapPtr& pixels ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -86,6 +89,8 @@ class GUCEF_guidriverMyGUIOgre_PUBLIC_CPP COgreContext : public guidriverMyGUI::
     protected:
 
     virtual void OnRender( void ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool RegisterMsdfShader( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

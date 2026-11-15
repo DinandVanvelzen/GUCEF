@@ -39,14 +39,14 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "freetype", "pugixml" } )
+links( { "freetype", "msdfgen-core", "msdfgen-ext", "pugixml" } )
 
 configuration( {} )
-links( { "freetype", "pugixml" } )
+links( { "freetype", "msdfgen-core", "msdfgen-ext", "pugixml" } )
 
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=MyGUI_Engine", "MODULE_NAME=MyGUI_Engine", "MODULE_SEMVER=3_5_4_0", "MYGUI_BUILD", "MYGUI_BUILD_DLL" } )
+defines( { "MODULE_CONSENSUS_NAME=MyGUI_Engine", "MODULE_NAME=MyGUI_Engine", "MODULE_SEMVER=3_5_4_0", "MSDFGEN_DISABLE_PNG", "MSDFGEN_DISABLE_SVG", "MSDFGEN_DISABLE_VARIABLE_FONTS", "MSDFGEN_EXTENSIONS", "MSDFGEN_EXT_PUBLIC=", "MSDFGEN_PUBLIC=", "MSDFGEN_USE_CPP11", "MYGUI_BUILD", "MYGUI_BUILD_DLL" } )
 
 
 configuration( {} )
@@ -333,4 +333,4 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../freetype/include", "../../freetype/include/freetype", "../../freetype/include/freetype/config", "../../freetype/include/freetype/internal", "../../freetype/include/freetype/internal/services", "../../freetype/src", "../../freetype/src/winfonts", "../../pugixml/src", "../../utfcpp", "../../utfcpp/source", "../../utfcpp/source/utf8", "include" } )
+includedirs( { "../../freetype/include", "../../freetype/include/freetype", "../../freetype/include/freetype/config", "../../freetype/include/freetype/internal", "../../freetype/include/freetype/internal/services", "../../freetype/src", "../../freetype/src/winfonts", "../../msdfgen", "../../msdfgen/", "../../msdfgen/core", "../../msdfgen/ext", "../../pugixml/src", "../../utfcpp", "../../utfcpp/source", "../../utfcpp/source/utf8", "include" } )

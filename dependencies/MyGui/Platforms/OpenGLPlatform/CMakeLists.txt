@@ -202,19 +202,19 @@ target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_17 )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../msdfgen ../../../msdfgen/core ../../../msdfgen/ext ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../msdfgen ../../../msdfgen/core ../../../msdfgen/ext ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../msdfgen ../../../msdfgen/core ../../../msdfgen/ext ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../../msdfgen ../../../msdfgen/core ../../../msdfgen/ext ../../../pugixml/src ../../../utfcpp ../../../utfcpp/source ../../../utfcpp/source/utf8 ../../MyGUIEngine/include ../Utils include )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

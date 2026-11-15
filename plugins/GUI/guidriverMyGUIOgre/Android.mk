@@ -43,6 +43,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../../dependencies/msdfgen \
+  $(MY_MODULE_PATH)/../../../dependencies/msdfgen/ \
+  $(MY_MODULE_PATH)/../../../dependencies/msdfgen/core \
+  $(MY_MODULE_PATH)/../../../dependencies/msdfgen/ext \
   $(MY_MODULE_PATH)/../../../dependencies/pugixml/src \
   $(MY_MODULE_PATH)/../../../dependencies/utfcpp \
   $(MY_MODULE_PATH)/../../../dependencies/utfcpp/source \

@@ -77,6 +77,15 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIDriver : public GUI::CGUIDriver
     /** The name of the data of MyGUI.Engine in the VFS, where the standard skins are */
     static const char* EngineDataName;
 
+    /** The name of the section of the configuration of the driver */
+    static const char* ConfigSectionName;
+
+    /** The point size of the fonts: what the text of the widgets has, bitmap font or MSDF font */
+    static const UInt32 FontSize;
+
+    /** The size the glyphs of an MSDF font are generated at, when the configuration says nothing else */
+    static const UInt32 DefaultMsdfFontSize;
+
     /**
      *  @param ownDataManager  true: MyGUI reads its resources from the VFS through the data manager of this module;
      *                         false: the derived driver makes the data manager (the Ogre platform of MyGUI reads
@@ -102,8 +111,27 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIDriver : public GUI::CGUIDriver
 
     virtual TStringSet GetAvailableFonts( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    /** Loads a TrueType font from the VFS; its MyGUI name is the file name without the extension */
+    /**
+     *  Loads a TrueType font from the VFS; its MyGUI name is the file name without the extension. It is a bitmap
+     *  font, unless MSDF fonts are on (SetMsdfFonts()) and the render platform draws them: then it is an MSDF font.
+     */
     virtual bool LoadFontFromAsset( const CString& assetPath ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Makes the fonts that are loaded from here on multi-channel signed distance field (MSDF) fonts where the
+     *  render platform draws them: they stay sharp at every size and use one texture, where a bitmap font is
+     *  generated at one size. Small text is better as a bitmap font, which is what it is by default. A platform that
+     *  has no MSDF shader (the legacy OpenGL platform) keeps the bitmap fonts. The fonts that are loaded already
+     *  are not changed. The setting is also in the configuration of the driver: the attributes MsdfFonts and
+     *  MsdfFontSize of the section MyGUI.
+     *
+     *  @param atlasSize  the size the glyphs are generated at, in points; 0 keeps the size that is set
+     */
+    void SetMsdfFonts( bool enabled, UInt32 atlasSize = 0 );
+
+    bool GetMsdfFonts( void ) const;
+
+    UInt32 GetMsdfFontSize( void ) const;
 
     virtual CString GetDriverProperty( const CString& propertyName ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -128,6 +156,9 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIDriver : public GUI::CGUIDriver
 
     void AddContext( GUI::TGuiContextPtr& context );
 
+    /** Whether a context exists that draws MSDF fonts */
+    bool HasMsdfContext( void );
+
     /** Loads the fonts that were asked for before the context of MyGUI existed, and makes them known to it */
     void LoadPendingFonts( CMyGUIContext& context );
 
@@ -135,6 +166,8 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIDriver : public GUI::CGUIDriver
 
     CMyGUIDriver( const CMyGUIDriver& src );
     CMyGUIDriver& operator=( const CMyGUIDriver& src );
+
+    bool LoadFontIntoContext( CMyGUIContext& context, const CString& name, const CString& assetPath );
 
     private:
 
@@ -146,6 +179,8 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIDriver : public GUI::CGUIDriver
     TWeakContextSet m_contexts;
     TStringSet m_fonts;
     TFontMap m_fontPaths;
+    bool m_msdfFonts;
+    UInt32 m_msdfFontSize;
 };
 
 /*-------------------------------------------------------------------------//

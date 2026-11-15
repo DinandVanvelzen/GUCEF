@@ -118,6 +118,7 @@ configuration( { "LINUX32" } )
       "src/TestMyGUICommon.cpp",
       "src/TestMyGUIDataManager.cpp",
       "src/TestMyGUIImageCodec.cpp",
+      "src/TestMyGUIMsdf.cpp",
       "src/TestMyGUIRender.cpp",
       "src/guidriverMyGUI_TestApp.cpp"
     } )
@@ -135,6 +136,7 @@ configuration( { "LINUX64" } )
       "src/TestMyGUICommon.cpp",
       "src/TestMyGUIDataManager.cpp",
       "src/TestMyGUIImageCodec.cpp",
+      "src/TestMyGUIMsdf.cpp",
       "src/TestMyGUIRender.cpp",
       "src/guidriverMyGUI_TestApp.cpp"
     } )
@@ -152,6 +154,7 @@ configuration( { "WIN32" } )
       "src/TestMyGUICommon.cpp",
       "src/TestMyGUIDataManager.cpp",
       "src/TestMyGUIImageCodec.cpp",
+      "src/TestMyGUIMsdf.cpp",
       "src/TestMyGUIRender.cpp",
       "src/guidriverMyGUI_TestApp.cpp"
     } )
@@ -169,13 +172,14 @@ configuration( { "WIN64" } )
       "src/TestMyGUICommon.cpp",
       "src/TestMyGUIDataManager.cpp",
       "src/TestMyGUIImageCodec.cpp",
+      "src/TestMyGUIMsdf.cpp",
       "src/TestMyGUIRender.cpp",
       "src/guidriverMyGUI_TestApp.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/MyGui/MyGUIEngine/include", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../dependencies/pugixml/src", "../../dependencies/utfcpp", "../../dependencies/utfcpp/source", "../../dependencies/utfcpp/source/utf8", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/guidriverMyGUI/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/MyGui/MyGUIEngine/include", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../dependencies/msdfgen", "../../dependencies/msdfgen/", "../../dependencies/msdfgen/core", "../../dependencies/msdfgen/ext", "../../dependencies/pugixml/src", "../../dependencies/utfcpp", "../../dependencies/utfcpp/source", "../../dependencies/utfcpp/source/utf8", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/guidriverMyGUI/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCORE/include/linux", "include" } )

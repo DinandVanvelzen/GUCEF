@@ -122,6 +122,24 @@ CGLContext::IsBgraTextureMemory( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CGLContext::SupportsMsdfFonts( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_backend && m_backend->SupportsMsdfFonts();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGLContext::RegisterMsdfShader( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_backend && m_backend->RegisterMsdfShader( MsdfShaderName );
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CGLContext::GetWindowFramebuffer( void ) const
 {GUCEF_TRACE;

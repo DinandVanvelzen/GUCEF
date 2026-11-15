@@ -351,6 +351,7 @@ CMyGUIWidgetHandler::ApplyProperty( GUI::CWidget& widget, const CString& name, c
         if ( GUCEF_NULL == text )
             return false;
         text->setFontName( context->GetMyGUIFontName( value ) );
+        text->setFontHeight( context->GetMyGUIFontHeight( value ) );
         return true;
     }
     if ( "HTextAlign" == name || "VTextAlign" == name )

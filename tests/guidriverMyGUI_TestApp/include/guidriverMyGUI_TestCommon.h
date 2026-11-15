@@ -51,6 +51,7 @@ GUCEF::GUI::TGuiContextPtr CreateMyGUIContext( void );
 void PerformMyGUIDataManagerTests( void );
 void PerformMyGUIImageCodecTests( void );
 void PerformMyGUIRenderTests( void );
+void PerformMyGUIMsdfTests( void );
 
 /*-------------------------------------------------------------------------*/
 

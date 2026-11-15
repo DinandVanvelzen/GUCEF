@@ -55,6 +55,10 @@ namespace guidriverMyGUIOpenGL {
  *  context is made, from the OpenGL of the window: on desktops the OpenGL 3 platform (GLSL 330) from OpenGL 3.3
  *  on and the legacy OpenGL platform below that, on Android and in browsers the OpenGL ES 3 platform (WebGL 2).
  *  The window gives the OpenGL context through its properties GL_API, GL_VERSION and GL_FRAMEBUFFER.
+ *
+ *  The configuration (section MyGUI) can force the desktop platform with the attribute Platform: "OpenGL3" or
+ *  "OpenGL" (legacy), anything else leaves the decision to the OpenGL version of the window. Only the OpenGL 3 and
+ *  the OpenGL ES platform draw MSDF fonts (see SetMsdfFonts()): on the legacy platform fonts stay bitmap fonts.
  */
 class GUCEF_guidriverMyGUIOpenGL_PUBLIC_CPP CGLDriver : public guidriverMyGUI::CMyGUIDriver
 {
@@ -74,6 +78,10 @@ class GUCEF_guidriverMyGUIOpenGL_PUBLIC_CPP CGLDriver : public guidriverMyGUI::C
 
     virtual TStringSet GetCapabilities( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool LoadConfig( const CORE::CDataNode& treeroot ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
@@ -84,6 +92,7 @@ class GUCEF_guidriverMyGUIOpenGL_PUBLIC_CPP CGLDriver : public guidriverMyGUI::C
     private:
 
     CString m_backendName;
+    CString m_platform;
 };
 
 /*-------------------------------------------------------------------------//

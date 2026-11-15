@@ -78,6 +78,9 @@ class GUCEF_guidriverMyGUIOpenGL_PUBLIC_CPP CGLContext : public guidriverMyGUI::
 
     virtual bool IsBgraTextureMemory( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The OpenGL 3 and OpenGL ES platforms have an MSDF font shader, the legacy OpenGL platform does not */
+    virtual bool SupportsMsdfFonts( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool CaptureFrame( IMAGE::TPixelMapPtr& pixels ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool CapturePresentedFrame( IMAGE::TPixelMapPtr& pixels ) GUCEF_VIRTUAL_OVERRIDE;
@@ -87,6 +90,8 @@ class GUCEF_guidriverMyGUIOpenGL_PUBLIC_CPP CGLContext : public guidriverMyGUI::
     protected:
 
     virtual void OnRender( void ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool RegisterMsdfShader( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

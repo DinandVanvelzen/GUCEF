@@ -312,14 +312,14 @@ elseif( EMSCRIPTEN64 )
 else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} freetype pugixml )
-target_link_libraries( ${MODULE_NAME} PUBLIC freetype pugixml )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_Engine;MODULE_NAME=MyGUI_Engine;MODULE_SEMVER=3_5_4_0;MYGUI_BUILD;MYGUI_BUILD_DLL" )
+add_dependencies( ${MODULE_NAME} freetype msdfgen-core msdfgen-ext pugixml )
+target_link_libraries( ${MODULE_NAME} PUBLIC freetype msdfgen-core msdfgen-ext pugixml )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_Engine;MODULE_NAME=MyGUI_Engine;MODULE_SEMVER=3_5_4_0;MSDFGEN_DISABLE_PNG;MSDFGEN_DISABLE_SVG;MSDFGEN_DISABLE_VARIABLE_FONTS;MSDFGEN_EXTENSIONS;MSDFGEN_EXT_PUBLIC=;MSDFGEN_PUBLIC=;MSDFGEN_USE_CPP11;MYGUI_BUILD;MYGUI_BUILD_DLL" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_17 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 3.5.4.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 3.5.4.0 )
 
-include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../../pugixml/src ../../utfcpp ../../utfcpp/source ../../utfcpp/source/utf8 include )
+include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../../msdfgen ../../msdfgen/core ../../msdfgen/ext ../../pugixml/src ../../utfcpp ../../utfcpp/source ../../utfcpp/source/utf8 include )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
 GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )

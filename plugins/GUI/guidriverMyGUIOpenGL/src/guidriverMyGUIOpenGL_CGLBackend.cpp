@@ -131,6 +131,19 @@ class CBackend : public IGLBackend
         return true;
     }
 
+    virtual bool SupportsMsdfFonts( void ) const override
+    {
+        return false;
+    }
+
+    virtual bool RegisterMsdfShader( const char* shaderName ) override
+    {GUCEF_TRACE;
+
+        // the legacy platform draws with the fixed function pipeline: it has no shaders, fonts stay bitmap fonts
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "MyGUIOpenGL: The legacy OpenGL platform has no shaders, no MSDF font shader " << shaderName );
+        return false;
+    }
+
     virtual const char* GetName( void ) const override
     {
         return "OpenGL";

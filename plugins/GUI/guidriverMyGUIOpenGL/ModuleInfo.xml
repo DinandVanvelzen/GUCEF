@@ -4,7 +4,7 @@
             <License>APACHEv2</License>
             <SemVer>2.0.0.0</SemVer>
             <DescriptionHeadline>MyGUI 3.5.4 driver for gucefGUI drawing with OpenGL, OpenGL 3 or OpenGL ES 3 / WebGL 2</DescriptionHeadline>
-            <DescriptionDetails>One plugin for every OpenGL: on desktops it picks the OpenGL 3 platform of MyGUI (OpenGL 3.3 and later) or the legacy OpenGL platform at run time from the OpenGL version of the window, on Android and in browsers it uses the OpenGL ES 3 platform (WebGL 2). Images and data go through gucefIMAGE and the virtual file system. Built as C++17, which MyGUI requires.</DescriptionDetails>
+            <DescriptionDetails>One plugin for every OpenGL: on desktops it picks the OpenGL 3 platform of MyGUI (OpenGL 3.3 and later) or the legacy OpenGL platform at run time from the OpenGL version of the window, on Android and in browsers it uses the OpenGL ES 3 platform (WebGL 2). MSDF fonts are drawn by the OpenGL 3 and OpenGL ES 3 platforms, the legacy OpenGL platform keeps bitmap fonts. Images and data go through gucefIMAGE and the virtual file system. Built as C++17, which MyGUI requires.</DescriptionDetails>
             <Authors>
                 <Author>Dinand Vanvelzen</Author>
             </Authors>

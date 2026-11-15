@@ -25,6 +25,11 @@
 #endif
 
 // MYGUI_MSDF_FONTS:
-//   Multi-channel signed distance field fonts need msdfgen, which is not part of this code base: not defined
+//   Multi-channel signed distance field fonts, generated at run time from a TrueType font (font property
+//   MsdfMode). Needs msdfgen (the msdfgen-core and msdfgen-ext modules of this code base), implies MYGUI_USE_FREETYPE.
+//   The fonts also need a render platform with the MSDF shader registered: OpenGL 3, OpenGL ES and Ogre have one.
+#ifndef MYGUI_MSDF_FONTS
+    #define MYGUI_MSDF_FONTS
+#endif
 
 #endif // MYGUI_CONFIG_H_

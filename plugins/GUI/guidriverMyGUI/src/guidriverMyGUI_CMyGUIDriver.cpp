@@ -83,6 +83,9 @@ namespace guidriverMyGUI {
 //-------------------------------------------------------------------------*/
 
 const char* CMyGUIDriver::EngineDataName = "MyGUI.Engine";
+const char* CMyGUIDriver::ConfigSectionName = "MyGUI";
+const UInt32 CMyGUIDriver::FontSize = 12;
+const UInt32 CMyGUIDriver::DefaultMsdfFontSize = 32;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -100,6 +103,8 @@ CMyGUIDriver::CMyGUIDriver( bool ownDataManager )
     , m_contexts()
     , m_fonts()
     , m_fontPaths()
+    , m_msdfFonts( false )
+    , m_msdfFontSize( DefaultMsdfFontSize )
 {GUCEF_TRACE;
 
     // the messages of MyGUI go to the GUCEF logging
@@ -254,7 +259,7 @@ CMyGUIDriver::LoadFontFromAsset( const CString& assetPath )
         CMyGUIContext* context = static_cast< CMyGUIContext* >( guiContext );
         if ( GUCEF_NULL != context && context->IsGuiStarted() )
         {
-            if ( !context->LoadFont( name, assetPath, 12 ) )
+            if ( !LoadFontIntoContext( *context, name, assetPath ) )
             {
                 m_fontPaths.erase( name );
                 return false;
@@ -273,7 +278,75 @@ CMyGUIDriver::LoadPendingFonts( CMyGUIContext& context )
 
     for ( TFontMap::iterator i=m_fontPaths.begin(); i!=m_fontPaths.end(); ++i )
         if ( !context.HasMyGUIFont( (*i).first ) )
-            context.LoadFont( (*i).first, (*i).second, 12 );
+            LoadFontIntoContext( context, (*i).first, (*i).second );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIDriver::LoadFontIntoContext( CMyGUIContext& context, const CString& name, const CString& assetPath )
+{GUCEF_TRACE;
+
+    if ( m_msdfFonts )
+    {
+        if ( context.SupportsMsdfFonts() )
+        {
+            if ( context.LoadMsdfFont( name, assetPath, FontSize, m_msdfFontSize ) )
+                return true;
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "MyGUIDriver: The font " << assetPath << " could not be loaded as an MSDF font, it is loaded as a bitmap font" );
+        }
+        else
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "MyGUIDriver: MSDF fonts are on, the render platform has no MSDF shader: the font " << assetPath << " is loaded as a bitmap font" );
+        }
+    }
+    return context.LoadFont( name, assetPath, FontSize );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMyGUIDriver::SetMsdfFonts( bool enabled, UInt32 atlasSize )
+{GUCEF_TRACE;
+
+    m_msdfFonts = enabled;
+    if ( atlasSize > 0 )
+        m_msdfFontSize = atlasSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIDriver::GetMsdfFonts( void ) const
+{GUCEF_TRACE;
+
+    return m_msdfFonts;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CMyGUIDriver::GetMsdfFontSize( void ) const
+{GUCEF_TRACE;
+
+    return m_msdfFontSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CMyGUIDriver::HasMsdfContext( void )
+{GUCEF_TRACE;
+
+    TGUIContextSet contexts = GetContextList();
+    for ( TGUIContextSet::iterator i=contexts.begin(); i!=contexts.end(); ++i )
+    {
+        GUI::TGuiContextPtr contextPtr = (*i);
+        CMyGUIContext* context = static_cast< CMyGUIContext* >( contextPtr->AsGUIContext() );
+        if ( GUCEF_NULL != context && context->SupportsMsdfFonts() )
+            return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -284,6 +357,10 @@ CMyGUIDriver::GetDriverProperty( const CString& propertyName ) const
 
     if ( "MyGUIVersion" == propertyName )
         return "3.5.4";
+    if ( "MsdfFonts" == propertyName )
+        return CORE::BoolToString( m_msdfFonts );
+    if ( "MsdfFontSize" == propertyName )
+        return CORE::UInt32ToString( m_msdfFontSize );
     return CString::Empty;
 }
 
@@ -315,6 +392,8 @@ CMyGUIDriver::GetCapabilities( void )
     capabilities.insert( "NativeWidgets" );
     capabilities.insert( "VectorFonts" );
     capabilities.insert( "DynamicImages" );
+    if ( HasMsdfContext() )
+        capabilities.insert( "MsdfFonts" );
     return capabilities;
 }
 
@@ -333,6 +412,11 @@ bool
 CMyGUIDriver::SaveConfig( CORE::CDataNode& tree ) const
 {GUCEF_TRACE;
 
+    CORE::CDataNode* section = tree.Structure( ConfigSectionName, '/' );
+    if ( GUCEF_NULL == section )
+        return false;
+    section->SetAttribute( "MsdfFonts", CORE::BoolToString( m_msdfFonts ) );
+    section->SetAttribute( "MsdfFontSize", CORE::UInt32ToString( m_msdfFontSize ) );
     return true;
 }
 
@@ -342,6 +426,16 @@ bool
 CMyGUIDriver::LoadConfig( const CORE::CDataNode& treeroot )
 {GUCEF_TRACE;
 
+    const CORE::CDataNode* section = &treeroot;
+    if ( treeroot.GetName() != ConfigSectionName )
+        section = treeroot.FindChild( ConfigSectionName );
+    if ( GUCEF_NULL == section )
+        return true;
+
+    m_msdfFonts = section->GetAttributeValueOrChildValueByName( "MsdfFonts" ).AsBool( m_msdfFonts, true );
+    m_msdfFontSize = section->GetAttributeValueOrChildValueByName( "MsdfFontSize" ).AsUInt32( m_msdfFontSize, true );
+    if ( m_msdfFontSize < 1 )
+        m_msdfFontSize = DefaultMsdfFontSize;
     return true;
 }
 

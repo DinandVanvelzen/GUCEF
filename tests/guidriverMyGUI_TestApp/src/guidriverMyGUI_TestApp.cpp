@@ -79,6 +79,7 @@ GUCEF_OSMAIN_BEGIN
         PerformMyGUIDataManagerTests();
         PerformMyGUIImageCodecTests();
         PerformMyGUIRenderTests();
+        PerformMyGUIMsdfTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

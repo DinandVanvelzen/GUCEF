@@ -104,6 +104,7 @@ ParseVersion( const char* text, int& major, int& minor )
 CGLDriver::CGLDriver( void )
     : guidriverMyGUI::CMyGUIDriver()
     , m_backendName()
+    , m_platform()
 {GUCEF_TRACE;
 
 }
@@ -162,7 +163,10 @@ CGLDriver::CreateGUIContext( GUI::TWindowContextPtr windowContext )
         CString version = windowContext->GetProperty( "GL_VERSION" );
         if ( !ParseVersion( version.C_String(), major, minor ) )
             ParseVersion( reinterpret_cast< const char* >( glGetString( GL_VERSION ) ), major, minor );
-        if ( major > 3 || ( 3 == major && minor >= 3 ) )
+        if ( "OpenGL" == m_platform )
+            backend = CreateGLBackend();
+        else
+        if ( "OpenGL3" == m_platform || major > 3 || ( 3 == major && minor >= 3 ) )
             backend = CreateGL3Backend();
         else
             backend = CreateGLBackend();
@@ -219,6 +223,37 @@ CGLDriver::GetCapabilities( void )
     capabilities.insert( "CaptureFrame" );
     capabilities.insert( "PresentScaling" );
     return capabilities;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGLDriver::SaveConfig( CORE::CDataNode& tree ) const
+{GUCEF_TRACE;
+
+    if ( !guidriverMyGUI::CMyGUIDriver::SaveConfig( tree ) )
+        return false;
+    CORE::CDataNode* section = tree.Structure( ConfigSectionName, '/' );
+    if ( GUCEF_NULL == section )
+        return false;
+    section->SetAttribute( "Platform", m_platform );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGLDriver::LoadConfig( const CORE::CDataNode& treeroot )
+{GUCEF_TRACE;
+
+    if ( !guidriverMyGUI::CMyGUIDriver::LoadConfig( treeroot ) )
+        return false;
+    const CORE::CDataNode* section = &treeroot;
+    if ( treeroot.GetName() != ConfigSectionName )
+        section = treeroot.FindChild( ConfigSectionName );
+    if ( GUCEF_NULL != section )
+        m_platform = section->GetAttributeValueOrChildValueByName( "Platform" ).AsString( m_platform, true );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

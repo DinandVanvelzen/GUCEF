@@ -25,6 +25,7 @@ if (LINUX32)
     src/TestMyGUICommon.cpp
     src/TestMyGUIDataManager.cpp
     src/TestMyGUIImageCodec.cpp
+    src/TestMyGUIMsdf.cpp
     src/TestMyGUIRender.cpp
     src/guidriverMyGUI_TestApp.cpp
   )
@@ -44,6 +45,7 @@ elseif (LINUX64)
     src/TestMyGUICommon.cpp
     src/TestMyGUIDataManager.cpp
     src/TestMyGUIImageCodec.cpp
+    src/TestMyGUIMsdf.cpp
     src/TestMyGUIRender.cpp
     src/guidriverMyGUI_TestApp.cpp
   )
@@ -63,6 +65,7 @@ elseif (WIN32)
     src/TestMyGUICommon.cpp
     src/TestMyGUIDataManager.cpp
     src/TestMyGUIImageCodec.cpp
+    src/TestMyGUIMsdf.cpp
     src/TestMyGUIRender.cpp
     src/guidriverMyGUI_TestApp.cpp
   )
@@ -82,6 +85,7 @@ elseif (WIN64)
     src/TestMyGUICommon.cpp
     src/TestMyGUIDataManager.cpp
     src/TestMyGUIImageCodec.cpp
+    src/TestMyGUIMsdf.cpp
     src/TestMyGUIRender.cpp
     src/guidriverMyGUI_TestApp.cpp
   )
@@ -162,19 +166,19 @@ target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_17 )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/msdfgen ../../dependencies/msdfgen/core ../../dependencies/msdfgen/ext ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/msdfgen ../../dependencies/msdfgen/core ../../dependencies/msdfgen/ext ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/msdfgen ../../dependencies/msdfgen/core ../../dependencies/msdfgen/ext ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
+  include_directories( ../../common/include ../../common/test/include ../../dependencies/MyGui/MyGUIEngine/include ../../dependencies/freetype/include ../../dependencies/freetype/include/freetype ../../dependencies/freetype/include/freetype/config ../../dependencies/freetype/include/freetype/internal ../../dependencies/freetype/include/freetype/internal/services ../../dependencies/freetype/src ../../dependencies/freetype/src/winfonts ../../dependencies/msdfgen ../../dependencies/msdfgen/core ../../dependencies/msdfgen/ext ../../dependencies/pugixml/src ../../dependencies/utfcpp ../../dependencies/utfcpp/source ../../dependencies/utfcpp/source/utf8 ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMATH/include ../../platform/gucefMATH/src ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../plugins/GUI/guidriverMyGUI/include include )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

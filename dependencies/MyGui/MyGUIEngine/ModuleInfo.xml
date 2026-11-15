@@ -4,20 +4,31 @@
             <License>MIT</License>
             <SemVer>3.5.4.0</SemVer>
             <DescriptionHeadline>MyGUI 3.5.4, the GUI engine (widgets, skins, layouts, fonts)</DescriptionHeadline>
-            <DescriptionDetails>The render system independent core of MyGUI 3.5.4. The render systems are the platform modules MyGUI.OpenGLPlatform, MyGUI.OpenGL3Platform, MyGUI.OpenGLESPlatform and MyGUI.OgrePlatform. The header MyGUI_Config.h which the upstream CMake build generates is checked in. TrueType fonts use the freetype module, XML uses the pugixml module and text conversion the utfcpp module. MyGUI is built as C++17.</DescriptionDetails>
+            <DescriptionDetails>The render system independent core of MyGUI 3.5.4. The render systems are the platform modules MyGUI.OpenGLPlatform, MyGUI.OpenGL3Platform, MyGUI.OpenGLESPlatform and MyGUI.OgrePlatform. The header MyGUI_Config.h which the upstream CMake build generates is checked in. TrueType fonts use the freetype module, MSDF fonts (MYGUI_MSDF_FONTS) the msdfgen-core and msdfgen-ext modules, XML uses the pugixml module and text conversion the utfcpp module. MyGUI is built as C++17.</DescriptionDetails>
         </ModuleMetaData>
         <Dependencies>
             <Dependency Name="freetype" />
+            <Dependency Name="msdfgen-core" />
+            <Dependency Name="msdfgen-ext" />
             <Dependency Name="pugixml" />
             <Dependency Name="utfcpp" />
         </Dependencies>
         <Linker>
             <Dependency Name="freetype" />
+            <Dependency Name="msdfgen-core" />
+            <Dependency Name="msdfgen-ext" />
             <Dependency Name="pugixml" />
         </Linker>
         <Preprocessor>
             <Define String="MYGUI_BUILD" />
             <Define String="MYGUI_BUILD_DLL" />
+            <Define String="MSDFGEN_USE_CPP11" />
+            <Define String="MSDFGEN_PUBLIC=" />
+            <Define String="MSDFGEN_EXT_PUBLIC=" />
+            <Define String="MSDFGEN_EXTENSIONS" />
+            <Define String="MSDFGEN_DISABLE_SVG" />
+            <Define String="MSDFGEN_DISABLE_PNG" />
+            <Define String="MSDFGEN_DISABLE_VARIABLE_FONTS" />
         </Preprocessor>
         <Compiler MinCppStandard="17" />
     </Module>

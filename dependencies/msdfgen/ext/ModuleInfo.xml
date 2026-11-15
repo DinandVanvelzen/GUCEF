@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <Module Name="msdfgen-ext" Type="StaticLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>MIT</License>
+            <SemVer>1.13.0.0</SemVer>
+            <DescriptionHeadline>msdfgen extensions, font import for the multi-channel signed distance field generator</DescriptionHeadline>
+            <DescriptionDetails>The extensions of msdfgen 1.13 (Viktor Chlumsky): loading of glyph shapes from fonts with the freetype module. SVG, PNG and Skia support are switched off and variable fonts are switched off since the FreeType of this code base (2.6.3) does not have the variable font interface. Needed by MyGUI 3.5.4 for MSDF fonts. The source tree is unmodified: the configuration is made with the preprocessor definitions of this module.</DescriptionDetails>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="msdfgen-core" />
+            <Dependency Name="freetype" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="msdfgen-core" />
+            <Dependency Name="freetype" />
+        </Linker>
+        <Preprocessor>
+            <Define String="MSDFGEN_USE_CPP11" />
+            <Define String="MSDFGEN_PUBLIC=" />
+            <Define String="MSDFGEN_EXT_PUBLIC=" />
+            <Define String="MSDFGEN_EXTENSIONS" />
+            <Define String="MSDFGEN_DISABLE_SVG" />
+            <Define String="MSDFGEN_DISABLE_PNG" />
+            <Define String="MSDFGEN_DISABLE_VARIABLE_FONTS" />
+        </Preprocessor>
+        <Compiler MinCppStandard="11" />
+    </Module>
+</ModuleInfoEntry>

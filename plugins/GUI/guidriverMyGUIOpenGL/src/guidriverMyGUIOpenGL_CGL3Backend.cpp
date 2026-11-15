@@ -131,6 +131,28 @@ class CBackend : public IGLBackend
         return true;
     }
 
+    virtual bool SupportsMsdfFonts( void ) const override
+    {
+        return true;
+    }
+
+    virtual bool RegisterMsdfShader( const char* shaderName ) override
+    {GUCEF_TRACE;
+
+        if ( !m_running || GUCEF_NULL == m_renderManager )
+            return false;
+        try
+        {
+            m_renderManager->registerShader( shaderName, "MyGUI_OpenGL3_VP.glsl", "Msdf_OpenGL3_FP.glsl" );
+        }
+        catch ( const std::exception& e )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "MyGUIOpenGL: The MSDF font shader of the OpenGL3 platform could not be made: " << e.what() );
+            return false;
+        }
+        return true;
+    }
+
     virtual const char* GetName( void ) const override
     {
         return "OpenGL3";

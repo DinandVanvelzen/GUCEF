@@ -1,0 +1,15 @@
+<ModuleInfoEntry>
+    <Module Name="msdfgen-core" Type="StaticLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>MIT</License>
+            <SemVer>1.13.0.0</SemVer>
+            <DescriptionHeadline>msdfgen core, multi-channel signed distance field generator</DescriptionHeadline>
+            <DescriptionDetails>The core of msdfgen 1.13 (Viktor Chlumsky): shapes, edge coloring and the generators of signed distance fields, with no dependencies of its own. Needed by MyGUI 3.5.4 for MSDF fonts. The source tree is unmodified: the configuration is made with the preprocessor definitions of this module. C++11 is enabled, the DLL export macro is empty since the module is a static library.</DescriptionDetails>
+        </ModuleMetaData>
+        <Preprocessor>
+            <Define String="MSDFGEN_USE_CPP11" />
+            <Define String="MSDFGEN_PUBLIC=" />
+        </Preprocessor>
+        <Compiler MinCppStandard="11" />
+    </Module>
+</ModuleInfoEntry>

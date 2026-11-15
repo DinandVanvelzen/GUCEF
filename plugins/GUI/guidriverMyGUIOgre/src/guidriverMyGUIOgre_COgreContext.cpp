@@ -119,6 +119,38 @@ COgreContext::IsBgraTextureMemory( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+COgreContext::SupportsMsdfFonts( void ) const
+{GUCEF_TRACE;
+
+    return m_isValid && GUCEF_NULL != m_renderManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COgreContext::RegisterMsdfShader( void )
+{GUCEF_TRACE;
+
+    if ( !m_isValid || GUCEF_NULL == m_renderManager )
+        return false;
+    try
+    {
+        // the shader files are in the data of MyGUI.Engine, which the Ogre resource group of MyGUI has as an
+        // archive of the VFS: no resource of its own is needed. The vertex program is the one of the default shader.
+        const std::string extension = m_renderManager->getShaderExtension( true );
+        m_renderManager->registerShader( MsdfShaderName, "MyGUI_Ogre_VP." + extension, "Msdf_Ogre_FP." + extension );
+    }
+    catch ( const std::exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "MyGUIOgreContext: The MSDF font shader could not be made: " << e.what() );
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 COgreContext::OnRender( void )
 {GUCEF_TRACE;

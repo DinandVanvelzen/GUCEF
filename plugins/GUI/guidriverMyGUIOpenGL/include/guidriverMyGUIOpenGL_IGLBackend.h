@@ -71,6 +71,15 @@ class GUCEF_guidriverMyGUIOpenGL_PUBLIC_CPP IGLBackend
 
     /** Which platform of MyGUI it is: "OpenGL3", "OpenGL" or "OpenGLES" */
     virtual const char* GetName( void ) const = 0;
+
+    /**
+     *  Whether the platform has a shader for MSDF fonts: the OpenGL 3 and OpenGL ES platforms do, the legacy
+     *  OpenGL platform has no shaders at all
+     */
+    virtual bool SupportsMsdfFonts( void ) const = 0;
+
+    /** Registers the MSDF font shader with the render manager (the GL context must be current); false when it fails or there is none */
+    virtual bool RegisterMsdfShader( const char* shaderName ) = 0;
 };
 
 /*-------------------------------------------------------------------------*/

@@ -72,6 +72,9 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIContext : public GUI::CGUIContext
     /** The layer all widgets are in */
     static const char* WidgetLayerName;
 
+    /** The name the MSDF font shader of the render platform is registered with */
+    static const char* MsdfShaderName;
+
     CMyGUIContext( GUI::CGUIDriver* driver, GUI::TWindowContextPtr windowContext );
 
     virtual ~CMyGUIContext();
@@ -121,6 +124,28 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIContext : public GUI::CGUIContext
     /** Loads a TrueType font from the VFS as a MyGUI font under the name, at a point size */
     bool LoadFont( const CString& name, const CString& vfsPath, UInt32 size );
 
+    /**
+     *  Loads a TrueType font from the VFS as a multi-channel signed distance field (MSDF) font under the name:
+     *  MyGUI generates the distance fields of the glyphs once, at 'atlasSize', and the MSDF shader of the
+     *  render platform draws them sharp at every text height. The text has the size a bitmap font of 'size'
+     *  has (see GetMyGUIFontHeight()). False when the platform has no MSDF shader (SupportsMsdfFonts()) or the
+     *  font cannot be loaded; the caller falls back to LoadFont().
+     */
+    bool LoadMsdfFont( const CString& name, const CString& vfsPath, UInt32 size, UInt32 atlasSize );
+
+    /** Whether the render platform of this context draws MSDF fonts: it has a shader for them */
+    virtual bool SupportsMsdfFonts( void ) const;
+
+    /** Whether the MyGUI font was loaded with LoadMsdfFont() */
+    bool IsMsdfFont( const CString& fontName ) const;
+
+    /**
+     *  The height in render pixels to give the MyGUI text widgets that use the font: an MSDF font is drawn at the
+     *  logical text height times the render scale (it stays sharp), a bitmap font, or a name that is no font, has 0
+     *  which is the default height of the font
+     */
+    Int32 GetMyGUIFontHeight( const CString& fontName ) const;
+
     virtual bool MeasureText( const CString& fontName, const CString& text, Int32 maxWidth, Int32& width, Int32& height ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -132,6 +157,12 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIContext : public GUI::CGUIContext
     virtual bool IsBgraTextureMemory( void ) const;
 
     protected:
+
+    /**
+     *  Registers the MSDF shader of the render platform with the render manager of MyGUI under MsdfShaderName;
+     *  false when the platform has none or it does not compile. Only a platform that says SupportsMsdfFonts() is asked.
+     */
+    virtual bool RegisterMsdfShader( void );
 
     /**
      *  Brings the MyGUI widgets up to date for a frame: visibility, stacking and the size of the view; the render
@@ -154,6 +185,7 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIContext : public GUI::CGUIContext
     };
     typedef struct STextureEntry TTextureEntry;
     typedef GUCEF::map< CString, TTextureEntry > TTextureMap;
+    typedef GUCEF::map< CString, Int32 > TMsdfFontMap;
 
     CMyGUIContext( const CMyGUIContext& src );
     CMyGUIContext& operator=( const CMyGUIContext& src );
@@ -168,6 +200,10 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIContext : public GUI::CGUIContext
 
     bool WriteTexturePixels( MyGUI::ITexture& texture, IMAGE::CPixelMap& pixels ) const;
 
+    bool LoadFontDefinition( const CString& definition, const CString& name, const CString& vfsPath );
+
+    void ApplyMsdfFontHeights( void );
+
     private:
 
     MyGUI::Gui* m_gui;
@@ -175,6 +211,8 @@ class GUCEF_guidriverMyGUI_PUBLIC_CPP CMyGUIContext : public GUI::CGUIContext
     UInt32 m_appliedScale;
     UInt32 m_textureCounter;
     TTextureMap m_textures;
+    TMsdfFontMap m_msdfFonts;
+    bool m_msdfShaderReady;
 };
 
 /*-------------------------------------------------------------------------//

@@ -391,7 +391,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../Ogre/OgreMain/include", "../../../Ogre/OgreMain/include/Threading", "../../../Ogre/OgreMain/src", "../../../Ogre/OgreMain/src/zip", "../../../Ogre/include", "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../../pugixml/src", "../../../utfcpp", "../../../utfcpp/source", "../../../utfcpp/source/utf8", "../../MyGUIEngine/include", "../Utils" } )
+includedirs( { "../../../Ogre/OgreMain/include", "../../../Ogre/OgreMain/include/Threading", "../../../Ogre/OgreMain/src", "../../../Ogre/OgreMain/src/zip", "../../../Ogre/include", "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../../msdfgen", "../../../msdfgen/", "../../../msdfgen/core", "../../../msdfgen/ext", "../../../pugixml/src", "../../../utfcpp", "../../../utfcpp/source", "../../../utfcpp/source/utf8", "../../MyGUIEngine/include", "../Utils" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../Ogre/OgreMain/src", "../../../Ogre/OgreMain/src/Android", "include" } )

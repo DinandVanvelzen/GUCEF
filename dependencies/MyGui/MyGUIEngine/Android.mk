@@ -134,12 +134,16 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../freetype/include/freetype/internal/services \
   $(MY_MODULE_PATH)/../../freetype/src \
   $(MY_MODULE_PATH)/../../freetype/src/winfonts \
+  $(MY_MODULE_PATH)/../../msdfgen \
+  $(MY_MODULE_PATH)/../../msdfgen/ \
+  $(MY_MODULE_PATH)/../../msdfgen/core \
+  $(MY_MODULE_PATH)/../../msdfgen/ext \
   $(MY_MODULE_PATH)/../../pugixml/src \
   $(MY_MODULE_PATH)/../../utfcpp \
   $(MY_MODULE_PATH)/../../utfcpp/source \
   $(MY_MODULE_PATH)/../../utfcpp/source/utf8
 
-LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=MyGUI_Engine -DMODULE_NAME=MyGUI_Engine -DMODULE_SEMVER=3_5_4_0 -DMYGUI_BUILD -DMYGUI_BUILD_DLL
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=MyGUI_Engine -DMODULE_NAME=MyGUI_Engine -DMODULE_SEMVER=3_5_4_0 -DMSDFGEN_DISABLE_PNG -DMSDFGEN_DISABLE_SVG -DMSDFGEN_DISABLE_VARIABLE_FONTS -DMSDFGEN_EXTENSIONS -DMSDFGEN_EXT_PUBLIC= -DMSDFGEN_PUBLIC= -DMSDFGEN_USE_CPP11 -DMYGUI_BUILD -DMYGUI_BUILD_DLL
 
 
 LOCAL_SHARED_LIBRARIES := \
@@ -147,6 +151,8 @@ LOCAL_SHARED_LIBRARIES := \
 
 
 LOCAL_STATIC_LIBRARIES := \
+  msdfgen-core \
+  msdfgen-ext \
   pugixml
 
 include $(BUILD_SHARED_LIBRARY)

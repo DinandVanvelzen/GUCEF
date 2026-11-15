@@ -4,7 +4,7 @@
             <License>APACHEv2</License>
             <SemVer>2.0.0.0</SemVer>
             <DescriptionHeadline>MyGUI 3.5.4 driver for gucefGUI drawing inside Ogre 14 render windows</DescriptionHeadline>
-            <DescriptionDetails>Uses the Ogre platform of MyGUI, which draws in the overlay render queue of the scene manager of the window of guidriverOgre. MyGUI reads its data and textures through the resource system of Ogre, which the Ogre glue plugins (OgrePlugin_GucefVFS, OgreCodec_GucefIMAGE) route into the virtual file system and gucefIMAGE. Built as C++17, which MyGUI requires.</DescriptionDetails>
+            <DescriptionDetails>Uses the Ogre platform of MyGUI, which draws in the overlay render queue of the scene manager of the window of guidriverOgre. MyGUI reads its data and textures through the resource system of Ogre, which the Ogre glue plugins (OgrePlugin_GucefVFS, OgreCodec_GucefIMAGE) route into the virtual file system and gucefIMAGE; the MSDF font shader files are in the data of MyGUI.Engine, which the resource group of MyGUI has as an archive. Built as C++17, which MyGUI requires.</DescriptionDetails>
             <Authors>
                 <Author>Dinand Vanvelzen</Author>
             </Authors>
