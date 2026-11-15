@@ -1,0 +1,11 @@
+<PROJECTGENERATOR>
+    <!-- Import only build: the exporters are not built (ASSIMP_NO_EXPORT) -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="FBXExporter.cpp" TYPE="FILE" />
+        <ITEM NAME="FBXExporter.h" TYPE="FILE" />
+        <ITEM NAME="FBXExportNode.cpp" TYPE="FILE" />
+        <ITEM NAME="FBXExportNode.h" TYPE="FILE" />
+        <ITEM NAME="FBXExportProperty.cpp" TYPE="FILE" />
+        <ITEM NAME="FBXExportProperty.h" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

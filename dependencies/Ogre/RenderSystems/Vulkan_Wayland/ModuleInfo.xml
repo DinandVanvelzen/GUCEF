@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Vulkan render system plugin, Wayland flavour</DescriptionHeadline>
+        <DescriptionDetails>The sources of OgreRenderSystem_Vulkan (the directory Vulkan) built for Wayland (VK_USE_PLATFORM_WAYLAND_KHR, the equivalent of the upstream option OGRE_USE_WAYLAND), so that its render windows are made on a wl_surface of a Wayland window (externalWlDisplay, externalWlSurface). An application on Wayland lists this plugin instead of OgreRenderSystem_Vulkan; the render system has the same name. The module lists the sources of the other directory in its ProjectGenInstructions.xml.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreRenderSystem_Vulkan_Wayland" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="Vulkan-Headers.Includes" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="dl" />
+        </Linker>
+        <Preprocessor>
+            <Define String="RenderSystem_Vulkan_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+            <Define String="VK_USE_PLATFORM_WAYLAND_KHR" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

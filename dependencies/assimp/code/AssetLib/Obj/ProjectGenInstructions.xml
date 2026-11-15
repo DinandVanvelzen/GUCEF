@@ -1,0 +1,7 @@
+<PROJECTGENERATOR>
+    <!-- Import only build: the exporters are not built (ASSIMP_NO_EXPORT) -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="ObjExporter.cpp" TYPE="FILE" />
+        <ITEM NAME="ObjExporter.h" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

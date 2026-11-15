@@ -1,0 +1,7 @@
+<PROJECTGENERATOR>
+    <!-- Import only build: the exporters are not built (ASSIMP_NO_EXPORT) -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="X3DExporter.cpp" TYPE="FILE" />
+        <ITEM NAME="X3DExporter.hpp" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

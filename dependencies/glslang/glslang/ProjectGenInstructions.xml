@@ -1,0 +1,11 @@
+<PROJECTGENERATOR>
+    <!-- The GLSL front end only: the HLSL front end, the C interface, the GLSL sources of the extension headers (used by the
+         standalone tool), the grammar update scripts and the stub of the split upstream libraries are not built -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="HLSL" TYPE="DIR" />
+        <ITEM NAME="CInterface" TYPE="DIR" />
+        <ITEM NAME="ExtensionHeaders" TYPE="DIR" />
+        <ITEM NAME="updateGrammar" TYPE="DIR" />
+        <ITEM NAME="stub.cpp" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

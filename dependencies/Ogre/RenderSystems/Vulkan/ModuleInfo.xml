@@ -1,0 +1,52 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Vulkan render system plugin</DescriptionHeadline>
+        <DescriptionDetails>The Vulkan render system of OGRE 14.6.3 (beta upstream), a plugin of the Ogre core library. The Vulkan functions are loaded at run time by volk (src/volk.c), memory is managed by the Vulkan Memory Allocator (src/vk_mem_alloc.h), both part of the upstream render system; the Vulkan headers come from the module Vulkan-Headers.Includes. Its programs are SPIR-V, which the plugin OgrePlugin_GLSLangProgramManager compiles from GLSL (language "glslang"), so an application that lists this render system lists that plugin as well. Render windows are made on an X11 window (externalWindowHandle) on Linux, on an HWND on Windows and on an ANativeWindow on Android; OgreRenderSystem_Vulkan_Wayland is the Wayland flavour.</DescriptionDetails>
+    </ModuleMetaData>
+    <!-- Android links the render system into the application, as OgreRenderSystem_GLES2: the application hands the plugin
+         object to pluginglueOGRE (COgrePluginManager::RegisterLinkedOgrePlugin) -->
+    <Module Type="StaticLibrary" Platform="android">
+        <Preprocessor>
+            <Define String="VK_USE_PLATFORM_ANDROID_KHR" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="dl" />
+            <Dependency Name="android" />
+        </Linker>
+    </Module>
+    <Module Name="OgreRenderSystem_Vulkan" Type="SharedLibrary" Platform="linux;mswin;android" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="Vulkan-Headers.Includes" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="RenderSystem_Vulkan_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux">
+        <Preprocessor>
+            <Define String="VK_USE_PLATFORM_XLIB_KHR" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="X11" />
+            <Dependency Name="dl" />
+        </Linker>
+    </Module>
+    <Module Platform="mswin">
+        <Preprocessor>
+            <Define String="VK_USE_PLATFORM_WIN32_KHR" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

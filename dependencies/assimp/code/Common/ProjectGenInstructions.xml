@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- Import only build: the exporters are not built (ASSIMP_NO_EXPORT) -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="Exporter.cpp" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

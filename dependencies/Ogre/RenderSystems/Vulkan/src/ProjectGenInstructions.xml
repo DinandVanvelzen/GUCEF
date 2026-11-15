@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- The window of Apple platforms (Objective-C++, VK_EXT_metal_surface) is not built -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="OgreVulkanWindowApple.mm" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

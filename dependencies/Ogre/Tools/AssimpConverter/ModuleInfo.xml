@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Assimp converter: converts the model formats of Assimp to .mesh, .skeleton and .material</DescriptionHeadline>
+        <DescriptionDetails>OgreAssimpConverter of OGRE 14.6.3, a command line tool that converts any model format of the module assimp (glTF, FBX, Collada, OBJ, ...) to the native .mesh, .skeleton and .material files. It runs without a render system. The converter is linked with OgreCodec_Assimp and installs its plugin object itself, see the edit marked DV edit in main.cpp.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreAssimpConverter" Type="Executable" Platform="linux;mswin" Tags="tools">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+            <Dependency Name="OgreCodec_Assimp" />
+            <Dependency Name="assimp.Includes" />
+            <Dependency Name="assimp" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+            <Dependency Name="OgreCodec_Assimp" />
+            <Dependency Name="assimp" />
+        </Linker>
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <!-- the module assimp is a DLL on Windows -->
+    <Module Platform="mswin">
+        <Preprocessor>
+            <Define String="ASSIMP_DLL" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

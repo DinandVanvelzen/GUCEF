@@ -1,0 +1,6 @@
+<PROJECTGENERATOR>
+    <!-- The C interface of the SPIR-V back end is not built -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="CInterface" TYPE="DIR" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

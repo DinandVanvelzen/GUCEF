@@ -1,0 +1,30 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE glslang plugin: GLSL programs compiled to SPIR-V</DescriptionHeadline>
+        <DescriptionDetails>The glslang plugin of OGRE 14.6.3 (Plugin_GLSLangProgramManager upstream), a plugin of the Ogre core library. It adds the program language "glslang": GLSL that glslang (the module glslang) compiles to SPIR-V for the Vulkan render system, which only takes SPIR-V. The RTSS writes its programs in this language on Vulkan. Local edits marked "DV edit" in src/OgreGLSLang.cpp.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Type="StaticLibrary" Platform="android">
+    </Module>
+    <Module Name="OgrePlugin_GLSLangProgramManager" Type="SharedLibrary" Platform="linux;mswin;android" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="glslang" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="glslang" />
+        </Linker>
+        <Preprocessor>
+            <Define String="Plugin_GLSLangProgramManager_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

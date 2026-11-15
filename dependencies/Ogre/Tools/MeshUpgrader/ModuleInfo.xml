@@ -1,0 +1,22 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE mesh upgrader: converts meshes to the current format, with LOD levels and tangents</DescriptionHeadline>
+        <DescriptionDetails>OgreMeshUpgrader of OGRE 14.6.3, a command line tool that upgrades .mesh files to the current format and can generate levels of detail (module OgreMeshLodGenerator), tangents, edge lists and other mesh changes. It runs without a render system.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreMeshUpgrader" Type="Executable" Platform="linux;mswin" Tags="tools">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreMeshLodGenerator" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreMeshLodGenerator" />
+        </Linker>
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

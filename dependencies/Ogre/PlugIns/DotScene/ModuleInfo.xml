@@ -1,0 +1,41 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE DotScene plugin: loads .scene files into a scene manager</DescriptionHeadline>
+        <DescriptionDetails>The DotScene plugin of OGRE 14.6.3 (Plugin_DotScene upstream), a plugin of the Ogre core library. It registers the codec for the .scene format (an XML description of a node tree with entities, lights, cameras and, with the Terrain component, terrain), which fills a scene manager. The XML is read with the module pugixml. Terrain support is compiled in where OgreComponents.h enables the Terrain component (every platform but WebAssembly).</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgrePlugin_DotScene" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="pugixml" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="pugixml" />
+        </Linker>
+        <Preprocessor>
+            <Define String="Plugin_DotScene_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <!-- the module pugixml is built as C++17 -->
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <!-- WebAssembly and Android builds link the modules into the application, as static libraries -->
+    <Module Type="StaticLibrary" Platform="android;emscripten">
+    </Module>
+    <!-- OGRE_BUILD_COMPONENT_TERRAIN is on everywhere but WebAssembly (OgreComponents.h) -->
+    <Module Platform="linux;mswin;android">
+        <Dependencies>
+            <Dependency Name="OgreTerrain" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="OgreTerrain" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

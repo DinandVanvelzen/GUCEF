@@ -1,0 +1,40 @@
+<PROJECTGENERATOR>
+    <!-- The Wayland flavour of the render system: the sources of ../Vulkan, built with VK_USE_PLATFORM_WAYLAND_KHR. The module has no sources of its own. -->
+    <INCLUDES PLATFORM="linux">
+        <ITEM NAME="../Vulkan/include/OgreVulkanDescriptorPool.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanDevice.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanHardwareBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanHardwareBufferManager.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanMappings.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanPlugin.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanPrerequisites.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanProgram.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanQueue.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanRenderPassDescriptor.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanRenderSystem.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanTextureGpu.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanTextureGpuManager.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanTextureGpuWindow.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanUtils.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/include/OgreVulkanWindow.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanDescriptorPool.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanDevice.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanHardwareBuffer.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanHardwareBufferManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanMappings.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanPlugin.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanProgram.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanQueue.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanRenderPassDescriptor.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanRenderSystem.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanTextureGpu.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanTextureGpuManager.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanTextureGpuWindow.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanUtils.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/OgreVulkanWindow.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/vk_mem_alloc.h" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/vma.cpp" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/volk.c" TYPE="FILE" />
+        <ITEM NAME="../Vulkan/src/volk.h" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

@@ -1,0 +1,14 @@
+<PROJECTGENERATOR>
+    <!-- The operating system part: Unix on Linux and Android, Windows on Windows. Web is the JavaScript build of upstream -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="Unix" TYPE="DIR" />
+        <ITEM NAME="Windows" TYPE="DIR" />
+        <ITEM NAME="Web" TYPE="DIR" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="linux;android">
+        <ITEM NAME="Unix" TYPE="DIR" />
+    </INCLUDES>
+    <INCLUDES PLATFORM="mswin">
+        <ITEM NAME="Windows" TYPE="DIR" />
+    </INCLUDES>
+</PROJECTGENERATOR>

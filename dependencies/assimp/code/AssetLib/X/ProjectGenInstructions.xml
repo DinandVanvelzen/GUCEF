@@ -1,0 +1,7 @@
+<PROJECTGENERATOR>
+    <!-- Import only build: the exporters are not built (ASSIMP_NO_EXPORT) -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="XFileExporter.cpp" TYPE="FILE" />
+        <ITEM NAME="XFileExporter.h" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

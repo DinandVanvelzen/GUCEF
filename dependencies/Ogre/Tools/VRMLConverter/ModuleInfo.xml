@@ -1,0 +1,23 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE VRML converter: converts VRML 2 files to .mesh</DescriptionHeadline>
+        <DescriptionDetails>OgreVRMLConverter of OGRE 14.6.3, a command line tool that converts VRML 2 (.wrl) files to the native .mesh format, with the vrmllib that comes with it. It runs without a render system.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreVRMLConverter" Type="Executable" Platform="linux;mswin" Tags="tools">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+        <Includes Source="Self">
+            <Include Path="vrmllib/include" />
+        </Includes>
+    </Module>
+</ModuleInfoEntry>

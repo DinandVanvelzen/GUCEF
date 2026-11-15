@@ -1,0 +1,22 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE XML converter: .mesh and .skeleton to XML and back</DescriptionHeadline>
+        <DescriptionDetails>OgreXMLConverter of OGRE 14.6.3, a command line tool that converts the binary .mesh and .skeleton files to their XML form and back. The XML is read and written with the module pugixml. It runs without a render system.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreXMLConverter" Type="Executable" Platform="linux;mswin" Tags="tools">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="pugixml" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="pugixml" />
+        </Linker>
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,40 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>14.6.3.0</SemVer>
+        <DescriptionHeadline>OGRE Assimp plugin: loads the model formats of Assimp as meshes</DescriptionHeadline>
+        <DescriptionDetails>The Assimp plugin of OGRE 14.6.3 (Codec_Assimp upstream), a plugin of the Ogre core library. It registers a mesh codec for the formats of the module assimp (glTF, FBX, Collada, OBJ, 3DS, Blender and many more), so that MeshManager loads such a file directly, with its skeleton, animations and materials. The RTSS module is linked as upstream does, for the shader based materials. It is also the code behind the tool OgreAssimpConverter.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="OgreCodec_Assimp" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+            <Dependency Name="assimp.Includes" />
+            <Dependency Name="assimp" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+            <Dependency Name="assimp" />
+        </Linker>
+        <Preprocessor>
+            <Define String="Codec_Assimp_EXPORTS" />
+            <Define String="OGRE_GCC_VISIBILITY" />
+        </Preprocessor>
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <!-- WebAssembly and Android builds link the modules into the application, as static libraries -->
+    <Module Type="StaticLibrary" Platform="android;emscripten">
+    </Module>
+    <!-- the module assimp is a DLL on Windows -->
+    <Module Platform="mswin">
+        <Preprocessor>
+            <Define String="ASSIMP_DLL" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

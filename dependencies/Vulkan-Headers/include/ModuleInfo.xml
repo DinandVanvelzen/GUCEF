@@ -1,0 +1,10 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>Apache-2.0 OR MIT</License>
+        <SemVer>1.4.363.0</SemVer>
+        <DescriptionHeadline>Vulkan headers of the Khronos Group</DescriptionHeadline>
+        <DescriptionDetails>The C headers of the Vulkan API (vulkan/*.h and vk_video/*.h) of the Vulkan-Headers release vulkan-sdk-1.4.363.0. Header only: the Vulkan functions are loaded at run time (volk in the Vulkan render system of Ogre), so nothing links to a Vulkan library. The C++ bindings (vulkan.hpp and the C++ modules) are not part of it.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="Vulkan-Headers.Includes" Type="HeaderIncludeLocation" ConsiderSubDirs="False" Platform="All" >
+    </Module>
+</ModuleInfoEntry>

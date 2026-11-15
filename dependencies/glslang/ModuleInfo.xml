@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>BSD-3-Clause AND BSD-2-Clause AND MIT AND Apache-2.0 AND AML-glslang AND GPL-3.0-or-later WITH Bison-exception-2.2</License>
+        <SemVer>16.6.0.0</SemVer>
+        <DescriptionHeadline>glslang: the GLSL front end and SPIR-V generator of the Khronos Group</DescriptionHeadline>
+        <DescriptionDetails>glslang 16.6.0, which compiles GLSL to SPIR-V. It is the shader compiler of the Vulkan render system of Ogre (the plugin OgrePlugin_GLSLangProgramManager). Built: the GLSL front end (glslang/MachineIndependent, GenericCodeGen, OSDependent), the SPIR-V back end (SPIRV) and the default resource limits (glslang/ResourceLimits). Not built: the HLSL front end, the C interfaces, the SPIR-V optimiser (SPIRV-Tools is not part of this code base, so the SPIR-V is not optimised for size), the tools and the tests. Consumers include its headers as glslang/... and SPIRV/..., from the directory of this module.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="glslang" Type="StaticLibrary" Platform="linux;mswin;android">
+        <Includes Source="Self" >
+            <Include Path="." />
+        </Includes>
+        <Preprocessor>
+            <Define String="ENABLE_SPIRV" />
+        </Preprocessor>
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux">
+        <Preprocessor>
+            <Define String="GLSLANG_OSINCLUDE_UNIX" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="pthread" />
+        </Linker>
+    </Module>
+    <Module Platform="android">
+        <Preprocessor>
+            <Define String="GLSLANG_OSINCLUDE_UNIX" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="mswin">
+        <Preprocessor>
+            <Define String="GLSLANG_OSINCLUDE_WIN32" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

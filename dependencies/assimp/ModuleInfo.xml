@@ -1,0 +1,87 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>BSD-3-Clause</License>
+        <SemVer>6.0.5.0</SemVer>
+        <DescriptionHeadline>Assimp: the Open Asset Import Library, import only, for the OGRE asset tools</DescriptionHeadline>
+        <DescriptionDetails>Open Asset Import Library 6.0.5, which reads the common 3D model formats (glTF, FBX, Collada, OBJ, 3DS, Blender and many more) into one scene description. It is configured as OGRE 14.6.3 configures it for its Assimp plugin: import only (no exporters) and without the OGRE and IFC importers; the M3D, USD and VRML importers, which upstream leaves off by default, are off as well. It is built against the zlib module and the pugixml module instead of the copies upstream bundles. The headers config.h and revision.h, which the upstream CMake configure step generates, are checked in under include/assimp. It is the importer behind OgreCodec_Assimp and OgreAssimpConverter. Local edits are marked "DV edit" or "DV added".</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="assimp" Type="SharedLibrary" Platform="All">
+        <Includes Source="Self">
+            <Include Path="." />
+            <Include Path="code" />
+            <Include Path="include" />
+            <Include Path="contrib" />
+            <Include Path="contrib/openddlparser/include" />
+            <Include Path="contrib/rapidjson/include" />
+            <Include Path="contrib/utf8cpp/source" />
+        </Includes>
+        <Dependencies>
+            <Dependency Name="assimp.Includes" />
+            <Dependency Name="pugixml" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="pugixml" />
+        </Linker>
+        <Preprocessor>
+            <!-- import only, with the importer set of OGRE 14.6.3: every importer except OGRE and IFC (M3D, USD and VRML are off by default upstream) -->
+            <Define String="ASSIMP_BUILD_NO_EXPORT" />
+            <Define String="ASSIMP_BUILD_NO_OGRE_IMPORTER" />
+            <Define String="ASSIMP_BUILD_NO_IFC_IMPORTER" />
+            <Define String="ASSIMP_BUILD_NO_M3D_IMPORTER" />
+            <Define String="ASSIMP_BUILD_NO_M3D_EXPORTER" />
+            <Define String="ASSIMP_BUILD_NO_USD_IMPORTER" />
+            <Define String="ASSIMP_BUILD_NO_VRML_IMPORTER" />
+            <Define String="ASSIMP_BUILD_NO_C4D_IMPORTER" />
+            <!-- zlib comes from the zlib module -->
+            <Define String="ASSIMP_BUILD_NO_OWN_ZLIB" />
+            <Define String="RAPIDJSON_HAS_STDSTRING=1" />
+            <Define String="RAPIDJSON_NOMEMBERITERATORCLASS" />
+            <Define String="OPENDDLPARSER_BUILD" />
+            <Define String="ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1" />
+        </Preprocessor>
+        <Compiler MinCppStandard="17">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
+            <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
+            <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
+        </Compiler>
+    </Module>
+    <!-- WebAssembly and Android builds link the modules into the application, as static libraries -->
+    <Module Type="StaticLibrary" Platform="android;emscripten">
+        <Preprocessor>
+            <Define String="OPENDDL_STATIC_LIBARY" />
+            <Define String="P2T_STATIC_EXPORTS" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="linux;mswin">
+        <Preprocessor>
+            <Define String="ASSIMP_BUILD_DLL_EXPORT" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="linux;mswin;emscripten">
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="zlib" />
+        </Linker>
+    </Module>
+    <Module Platform="android">
+        <Linker>
+            <Dependency Name="z" />
+        </Linker>
+    </Module>
+    <Module Platform="linux32">
+        <Preprocessor>
+            <Define String="_FILE_OFFSET_BITS=64" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="mswin">
+        <Preprocessor>
+            <Define String="WIN32_LEAN_AND_MEAN" />
+            <Define String="UNICODE" />
+            <Define String="_UNICODE" />
+            <Define String="_SCL_SECURE_NO_WARNINGS" />
+            <Define String="_CRT_SECURE_NO_WARNINGS" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

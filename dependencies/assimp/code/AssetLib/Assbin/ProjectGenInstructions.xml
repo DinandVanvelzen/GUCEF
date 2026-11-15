@@ -1,0 +1,9 @@
+<PROJECTGENERATOR>
+    <!-- Import only build: the exporters are not built (ASSIMP_NO_EXPORT) -->
+    <EXCLUDES PLATFORM="All">
+        <ITEM NAME="AssbinExporter.cpp" TYPE="FILE" />
+        <ITEM NAME="AssbinExporter.h" TYPE="FILE" />
+        <ITEM NAME="AssbinFileWriter.cpp" TYPE="FILE" />
+        <ITEM NAME="AssbinFileWriter.h" TYPE="FILE" />
+    </EXCLUDES>
+</PROJECTGENERATOR>

@@ -1,0 +1,4 @@
+<ModuleInfoEntry>
+    <Module Name="assimp.Includes" Type="HeaderIncludeLocation" ConsiderSubDirs="False" Platform="All">
+    </Module>
+</ModuleInfoEntry>
