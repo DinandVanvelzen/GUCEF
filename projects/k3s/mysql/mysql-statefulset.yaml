@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
+  namespace: mysql
 spec:
   serviceName: mysql
   replicas: 1
@@ -15,28 +16,36 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: mysql:5.7  # Adjust the MySQL version as needed
+          image: mysql:8.4
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: mysql-root-password  # Set a secure password
-            - name: MYSQL_DATABASE
-              value: your_database_name  # Optionally create a database
-            - name: MYSQL_USER
-              value: mysql-user  # Optionally create a user
-            - name: MYSQL_PASSWORD
-              value: mysql-user-password  # User password
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_ROOT_PASSWORD
           ports:
-            - containerPort: 3306
+            - name: mysql
+              containerPort: 3306
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"${MYSQL_ROOT_PASSWORD}\" --silent"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"${MYSQL_ROOT_PASSWORD}\" --silent"]
+            initialDelaySeconds: 60
+            periodSeconds: 20
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql
-  volumeClaimTemplates:
-    - metadata:
-        name: mysql-storage
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 10Gi  # This should match the size in the PVC
-        storageClassName: raid
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc

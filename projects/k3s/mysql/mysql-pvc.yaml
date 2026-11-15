@@ -2,10 +2,11 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
+  namespace: mysql
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi  # Adjust storage size as needed
-  storageClassName: longhorn-raid
+      storage: ${MYSQL_PVC_SIZE}
+  storageClassName: ${MYSQL_STORAGE_CLASS}
