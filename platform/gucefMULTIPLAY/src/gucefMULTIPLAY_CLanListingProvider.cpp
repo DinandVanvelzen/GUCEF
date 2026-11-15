@@ -37,6 +37,11 @@
 #define GUCEF_COMCORE_CCOMCOREGLOBAL_H
 #endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
 
+#ifndef GUCEF_COMCORE_CDISCOVERYCLIENTLIST_H
+#include "gucefCOMCORE_CDiscoveryClientList.h"
+#define GUCEF_COMCORE_CDISCOVERYCLIENTLIST_H
+#endif /* GUCEF_COMCORE_CDISCOVERYCLIENTLIST_H ? */
+
 #include "gucefMULTIPLAY_CLanListingProvider.h"
 
 /*-------------------------------------------------------------------------//
@@ -109,20 +114,7 @@ bool
 CDiscoveryClientList::CreateFromTypes( const CORE::CString::StringVector& types, TDiscoveryClientVector& clients )
 {GUCEF_TRACE;
 
-    COMCORE::CDiscoveryClientFactory& factory = COMCORE::CComCoreGlobal::Instance()->GetDiscoveryClientFactory();
-    bool allMade = true;
-    for ( size_t i=0; i<types.size(); ++i )
-    {
-        COMCORE::CIDiscoveryClientPtr client = factory.Create( types[ i ] );
-        if ( client.IsNULL() )
-        {
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DiscoveryClientList: There is no discovery client of type \"" << types[ i ] << "\"" );
-            allMade = false;
-            continue;
-        }
-        clients.push_back( client );
-    }
-    return allMade;
+    return COMCORE::CDiscoveryClientList::CreateFromTypes( types, clients );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -131,53 +123,9 @@ bool
 CDiscoveryClientList::CreateFromConfig( const CORE::CDataNode& config, TDiscoveryClientVector& clients )
 {GUCEF_TRACE;
 
-    COMCORE::CDiscoveryClientFactory& factory = COMCORE::CComCoreGlobal::Instance()->GetDiscoveryClientFactory();
-    bool allMade = true;
-    bool anyChild = false;
-    CORE::CDataNode::const_iterator i = config.ConstBegin();
-    while ( i != config.ConstEnd() )
-    {
-        const CORE::CDataNode& child = *(*i);
-        ++i;
-        if ( "DiscoveryClient" != child.GetName() )
-            continue;
-
-        anyChild = true;
-        CORE::CString type = child.GetAttributeValueOrChildValueByName( "type" ).AsString( CORE::CString::Empty, true );
-        COMCORE::CIDiscoveryClientPtr client = factory.Create( type );
-        if ( client.IsNULL() )
-        {
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DiscoveryClientList: There is no discovery client of type \"" << type << "\"" );
-            allMade = false;
-            continue;
-        }
-        if ( !client->LoadConfig( child ) )
-        {
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "DiscoveryClientList: The config of the discovery client of type \"" << type << "\" has problems" );
-            allMade = false;
-        }
-        clients.push_back( client );
-    }
-    if ( anyChild )
-        return allMade;
-
-    CORE::CString::StringVector types;
-    CORE::CString typeList = config.GetAttributeValueOrChildValueByName( "discoveryClients" ).AsString( CORE::CString::Empty, true );
-    if ( typeList.IsNULLOrEmpty() )
-    {
-        GetDefaultClientTypes( types );
-    }
-    else
-    {
-        CORE::CString::StringVector parts = typeList.ParseElements( ',', false );
-        for ( size_t n=0; n<parts.size(); ++n )
-        {
-            CORE::CString type = parts[ n ].Trim( true ).Trim( false );
-            if ( !type.IsNULLOrEmpty() )
-                types.push_back( type );
-        }
-    }
-    return CreateFromTypes( types, clients );
+    CORE::CString::StringVector defaultTypes;
+    GetDefaultClientTypes( defaultTypes );
+    return COMCORE::CDiscoveryClientList::CreateFromConfig( config, defaultTypes, clients );
 }
 
 /*-------------------------------------------------------------------------*/

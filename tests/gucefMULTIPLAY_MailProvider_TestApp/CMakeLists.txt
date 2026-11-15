@@ -60,7 +60,7 @@ add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucef
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB matchprovidermail )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefMULTIPLAY_MailProvider_TestApp;MODULE_NAME=gucefMULTIPLAY_MailProvider_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/MULTIPLAY/matchprovidermail/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/MULTIPLAY/matchprovidermail/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

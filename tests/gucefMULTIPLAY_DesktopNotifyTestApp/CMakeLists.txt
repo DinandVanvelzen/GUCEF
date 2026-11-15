@@ -81,11 +81,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/MULTIPLAY/notifysinkpluginDESKTOP/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/MULTIPLAY/notifysinkpluginDESKTOP/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/MULTIPLAY/notifysinkpluginDESKTOP/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/MULTIPLAY/notifysinkpluginDESKTOP/include include )
 endif( LINUX64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

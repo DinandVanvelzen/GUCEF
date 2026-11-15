@@ -75,7 +75,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../plugins/AUTH/authpluginEOS/include", "../../plugins/DRN/drnchannelpluginEOSP2P/include", "../../plugins/MULTIPLAY/lobbyservicepluginEOS/include", "../../plugins/SHARED/pluginglueEOS/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../plugins/AUTH/authpluginEOS/include", "../../plugins/DRN/drnchannelpluginEOSP2P/include", "../../plugins/MULTIPLAY/lobbyservicepluginEOS/include", "../../plugins/SHARED/pluginglueEOS/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

@@ -51,17 +51,18 @@ namespace MULTIPLAY {
 
 CGameAdvertiser::CGameAdvertiser( void )
     : CORE::CIConfigurable()
-    , m_serviceType( CLanListingProvider::DefaultServiceType )
-    , m_ttlInSecs( 30 )
-    , m_clients()
+    , m_discovery()
     , m_services()
-    , m_clientConfig()
-    , m_clientsCreated( false )
     , m_advertising( false )
     , m_listing()
-    , m_entry()
 {GUCEF_TRACE;
 
+    COMCORE::CServiceAdvertiserSettings settings;
+    settings.serviceType = CLanListingProvider::DefaultServiceType;
+    settings.ttlInSecs = 30;
+    settings.defaultClientTypes.clear();
+    CDiscoveryClientList::GetDefaultClientTypes( settings.defaultClientTypes );
+    m_discovery.SetSettings( settings );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -74,57 +75,40 @@ CGameAdvertiser::~CGameAdvertiser()
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CGameAdvertiser::EnsureClients( void )
+void
+CGameAdvertiser::MakeAnnouncement( COMCORE::CServiceAnnouncement& announcement ) const
 {GUCEF_TRACE;
 
-    if ( m_clientsCreated )
-        return true;
-    m_clientsCreated = true;
-
-    bool configured = !m_clientConfig.GetAttributeValueOrChildValueByName( "discoveryClients" ).AsString( CORE::CString::Empty, true ).IsNULLOrEmpty();
-    CORE::CDataNode::const_iterator i = m_clientConfig.ConstBegin();
-    while ( i != m_clientConfig.ConstEnd() && !configured )
-    {
-        configured = "DiscoveryClient" == (*i)->GetName();
-        ++i;
-    }
-
-    // Clients or services given by hand replace the default clients
-    if ( !configured && ( !m_clients.empty() || !m_services.empty() ) )
-        return true;
-    return CDiscoveryClientList::CreateFromConfig( m_clientConfig, m_clients );
-}
-
-/*-------------------------------------------------------------------------*/
-
-COMCORE::CIDiscoveryEntryPtr
-CGameAdvertiser::MakeEntry( void ) const
-{GUCEF_TRACE;
-
-    COMCORE::CDiscoveryEntry* entry = GUCEF_NEW COMCORE::CDiscoveryEntry();
-    CLanListingProvider::ListingToEntry( m_listing, m_serviceType, *entry );
-    entry->SetTtlInSecs( m_ttlInSecs );
-    return COMCORE::CIDiscoveryEntryPtr( entry );
+    COMCORE::CDiscoveryEntry entry;
+    CLanListingProvider::ListingToEntry( m_listing, m_discovery.GetSettings().serviceType, entry );
+    announcement.FromEntry( entry );
+    announcement.ttlInSecs = m_discovery.GetSettings().ttlInSecs;
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CGameAdvertiser::Publish( void )
+CGameAdvertiser::Publish( bool first )
 {GUCEF_TRACE;
-
-    // A new entry with the same key replaces the advertised one, the clients announce the change
-    m_entry = MakeEntry();
 
     bool anyPublished = false;
-    for ( size_t i=0; i<m_clients.size(); ++i )
+    COMCORE::CServiceAnnouncement announcement;
+    MakeAnnouncement( announcement );
+    if ( first )
     {
-        if ( m_clients[ i ]->Advertise( m_entry ) )
+        // Clients or services given by hand replace the default clients, the configured clients are always made
+        m_discovery.SetCreateDefaultClients( m_services.empty() );
+        bool useDiscovery = m_services.empty() || !m_discovery.GetDiscoveryClients().empty() ||
+                            COMCORE::CDiscoveryClientList::NamesClients( m_discovery.GetSettings().clientConfig );
+        if ( useDiscovery && m_discovery.Advertise( announcement ) )
             anyPublished = true;
-        else
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "GameAdvertiser: The discovery client " << m_clients[ i ]->GetDiscoveryClientName() << " cannot advertise the game" );
     }
+    else
+    if ( m_discovery.IsAdvertising() && m_discovery.Update( announcement ) )
+    {
+        anyPublished = true;
+    }
+
     for ( size_t i=0; i<m_services.size(); ++i )
     {
         if ( m_services[ i ]->PublishListing( m_listing ) )
@@ -142,12 +126,11 @@ CGameAdvertiser::Advertise( const CGameListingEntry& listing )
     if ( m_advertising )
         Withdraw();
 
-    EnsureClients();
     m_listing = listing;
     if ( m_listing.listingId.IsNULLOrEmpty() )
         m_listing.listingId = CPlayerIdentity::MakeGuid();
 
-    m_advertising = Publish();
+    m_advertising = Publish( true );
     if ( !m_advertising )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "GameAdvertiser: Nothing could publish the game " << m_listing.name );
     return m_advertising;
@@ -168,7 +151,7 @@ CGameAdvertiser::UpdateListing( const CGameListingEntry& listing )
     if ( updated.HasSameContent( m_listing ) )
         return true;
     m_listing = updated;
-    return Publish();
+    return Publish( false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -183,7 +166,7 @@ CGameAdvertiser::UpdatePlayers( UInt32 players, UInt32 spectators )
         return true;
     m_listing.players = players;
     m_listing.spectators = spectators;
-    return Publish();
+    return Publish( false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -195,12 +178,9 @@ CGameAdvertiser::Withdraw( void )
     if ( !m_advertising )
         return false;
     m_advertising = false;
-
-    for ( size_t i=0; i<m_clients.size(); ++i )
-        m_clients[ i ]->Withdraw( m_entry );
+    m_discovery.Withdraw();
     for ( size_t i=0; i<m_services.size(); ++i )
         m_services[ i ]->WithdrawListing( m_listing.listingId );
-    m_entry.Unlink();
     return true;
 }
 
@@ -228,15 +208,7 @@ bool
 CGameAdvertiser::AddDiscoveryClient( COMCORE::CIDiscoveryClientPtr client )
 {GUCEF_TRACE;
 
-    if ( client.IsNULL() )
-        return false;
-    for ( size_t i=0; i<m_clients.size(); ++i )
-        if ( m_clients[ i ] == client )
-            return true;
-    m_clients.push_back( client );
-    if ( m_advertising && !m_entry.IsNULL() )
-        return client->Advertise( m_entry );
-    return true;
+    return m_discovery.AddDiscoveryClient( client );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -262,7 +234,7 @@ const CGameAdvertiser::TDiscoveryClientVector&
 CGameAdvertiser::GetDiscoveryClients( void ) const
 {GUCEF_TRACE;
 
-    return m_clients;
+    return m_discovery.GetDiscoveryClients();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -271,7 +243,9 @@ void
 CGameAdvertiser::SetServiceType( const CORE::CString& serviceType )
 {GUCEF_TRACE;
 
-    m_serviceType = serviceType;
+    COMCORE::CServiceAdvertiserSettings settings( m_discovery.GetSettings() );
+    settings.serviceType = serviceType;
+    m_discovery.SetSettings( settings );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -280,7 +254,9 @@ void
 CGameAdvertiser::SetTtlInSecs( UInt32 ttlInSecs )
 {GUCEF_TRACE;
 
-    m_ttlInSecs = ttlInSecs;
+    COMCORE::CServiceAdvertiserSettings settings( m_discovery.GetSettings() );
+    settings.ttlInSecs = ttlInSecs;
+    m_discovery.SetSettings( settings );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -289,17 +265,10 @@ bool
 CGameAdvertiser::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
-    config.SetAttribute( "serviceType", m_serviceType );
-    config.SetAttribute( "ttlInSecs", m_ttlInSecs );
-    CORE::CDataNode::const_iterator i = m_clientConfig.ConstBegin();
-    while ( i != m_clientConfig.ConstEnd() )
-    {
-        config.AddChild( *(*i) );
-        ++i;
-    }
-    CORE::CString typeList = m_clientConfig.GetAttributeValueOrChildValueByName( "discoveryClients" ).AsString( CORE::CString::Empty, true );
-    if ( !typeList.IsNULLOrEmpty() )
-        config.SetAttribute( "discoveryClients", typeList );
+    const COMCORE::CServiceAdvertiserSettings& settings = m_discovery.GetSettings();
+    config.SetAttribute( "serviceType", settings.serviceType );
+    config.SetAttribute( "ttlInSecs", settings.ttlInSecs );
+    COMCORE::CDiscoveryClientList::CopyClientConfig( settings.clientConfig, config );
     return true;
 }
 
@@ -309,9 +278,12 @@ bool
 CGameAdvertiser::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
-    m_serviceType = config.GetAttributeValueOrChildValueByName( "serviceType" ).AsString( m_serviceType, true );
-    m_ttlInSecs = config.GetAttributeValueOrChildValueByName( "ttlInSecs" ).AsUInt32( m_ttlInSecs, true );
-    m_clientConfig = config;
+    COMCORE::CServiceAdvertiserSettings settings( m_discovery.GetSettings() );
+    settings.serviceType = config.GetAttributeValueOrChildValueByName( "serviceType" ).AsString( settings.serviceType, true );
+    settings.ttlInSecs = config.GetAttributeValueOrChildValueByName( "ttlInSecs" ).AsUInt32( settings.ttlInSecs, true );
+    settings.clientConfig.Clear();
+    COMCORE::CDiscoveryClientList::CopyClientConfig( config, settings.clientConfig );
+    m_discovery.SetSettings( settings );
     return true;
 }
 

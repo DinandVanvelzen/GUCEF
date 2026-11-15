@@ -30,6 +30,11 @@
 #define GUCEF_MULTIPLAY_CLANLISTINGPROVIDER_H
 #endif /* GUCEF_MULTIPLAY_CLANLISTINGPROVIDER_H ? */
 
+#ifndef GUCEF_COMCORE_CSERVICEADVERTISER_H
+#include "gucefCOMCORE_CServiceAdvertiser.h"
+#define GUCEF_COMCORE_CSERVICEADVERTISER_H
+#endif /* GUCEF_COMCORE_CSERVICEADVERTISER_H ? */
+
 #ifndef GUCEF_MULTIPLAY_CILOBBYSERVICE_H
 #include "gucefMULTIPLAY_CILobbyService.h"
 #define GUCEF_MULTIPLAY_CILOBBYSERVICE_H
@@ -57,6 +62,9 @@ namespace MULTIPLAY {
  *
  *  Config: serviceType (default "_gucef-game._udp"), ttlInSecs (default 30), discoveryClients or
  *  "DiscoveryClient" children as for CDiscoveryClientList
+ *
+ *  The LAN part is a COMCORE::CServiceAdvertiser with the listing as its announcement (the listing id is the instance
+ *  id, the listing fields are properties), so the same answer limits and the same validation apply as for any service.
  */
 class GUCEF_MULTIPLAY_EXPORT_CPP CGameAdvertiser : public CORE::CIConfigurable
 {
@@ -109,21 +117,15 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGameAdvertiser : public CORE::CIConfigurable
     CGameAdvertiser( const CGameAdvertiser& src );
     CGameAdvertiser& operator=( const CGameAdvertiser& src );
 
-    bool EnsureClients( void );
-    COMCORE::CIDiscoveryEntryPtr MakeEntry( void ) const;
-    bool Publish( void );
+    void MakeAnnouncement( COMCORE::CServiceAnnouncement& announcement ) const;
+    bool Publish( bool first );
 
     private:
 
-    CORE::CString m_serviceType;
-    UInt32 m_ttlInSecs;
-    TDiscoveryClientVector m_clients;
+    COMCORE::CServiceAdvertiser m_discovery;
     TLobbyServiceVector m_services;
-    CORE::CDataNode m_clientConfig;
-    bool m_clientsCreated;
     bool m_advertising;
     CGameListingEntry m_listing;
-    COMCORE::CIDiscoveryEntryPtr m_entry;
 };
 
 /*-------------------------------------------------------------------------//
