@@ -1,0 +1,25 @@
+<ModuleInfoEntry>
+    <Module Name="pluginglueOGRECOMMON" Type="HeaderIncludeLocation" Platform="All">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Header only adapters between GUCEF and the Ogre 1.x API</DescriptionHeadline>
+            <DescriptionDetails>Ogre data streams over CIOAccess and over resources of the VFS, a CIOAccess over an Ogre data stream, the mapping of the Ogre log levels to the GUCEF logs, and the Ogre archives over a directory of the VFS, over an archive file of the VFS and over named in-memory resources. The classes are compiled into each module that uses them, so a plugin set for another Ogre line can use the same sources.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Compiler MinCppStandard="14" />
+    </Module>
+</ModuleInfoEntry>

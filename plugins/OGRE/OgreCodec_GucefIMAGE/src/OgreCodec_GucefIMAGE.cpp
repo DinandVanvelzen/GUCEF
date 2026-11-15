@@ -1,0 +1,68 @@
+/*
+ *  OgreCodec_GucefIMAGE: Ogre plugin that decodes and encodes the image formats of gucefIMAGE for Ogre
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      INCLUDES                                                           //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#include "OgreRoot.h"
+
+#ifndef GUCEF_OGRECODEC_GUCEFIMAGE_CGUCEFIMAGEOGREPLUGIN_H
+#include "OgreCodec_GucefIMAGE_CGucefImageOgrePlugin.h"
+#define GUCEF_OGRECODEC_GUCEFIMAGE_CGUCEFIMAGEOGREPLUGIN_H
+#endif /* GUCEF_OGRECODEC_GUCEFIMAGE_CGUCEFIMAGEOGREPLUGIN_H ? */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/*
+ *  The entry points of an Ogre plugin module. They are not there in builds where the plugin is linked into the
+ *  application (OGRE_STATIC_LIB): the application then makes a CGucefImageOgrePlugin, gives it to
+ *  COgrePluginManager::RegisterStaticOgrePlugin() of pluginglueOGRE and lets the bootstrap configuration install it.
+ */
+#ifndef OGRE_STATIC_LIB
+
+static GUCEF::PLUGINGLUE::OGRE::CGucefImageOgrePlugin* g_plugin = GUCEF_NULL;
+
+extern "C" GUCEF_OGRECODEC_GUCEFIMAGE_EXPORT_C void
+dllStartPlugin( void )
+{GUCEF_TRACE;
+
+    g_plugin = new GUCEF::PLUGINGLUE::OGRE::CGucefImageOgrePlugin();
+    Ogre::Root::getSingleton().installPlugin( g_plugin );
+}
+
+/*-------------------------------------------------------------------------*/
+
+extern "C" GUCEF_OGRECODEC_GUCEFIMAGE_EXPORT_C void
+dllStopPlugin( void )
+{GUCEF_TRACE;
+
+    Ogre::Root::getSingleton().uninstallPlugin( g_plugin );
+    delete g_plugin;
+    g_plugin = GUCEF_NULL;
+}
+
+#endif /* OGRE_STATIC_LIB ? */
+
+/*-------------------------------------------------------------------------*/

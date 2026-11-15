@@ -1,0 +1,38 @@
+<ModuleInfoEntry>
+    <Module Name="pluginglueOGRE" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Support library of the Ogre 1.x plugin set: Ogre Root setup, log and plugin loading</DescriptionHeadline>
+            <DescriptionDetails>Makes the Ogre Root without plugin, configuration and log files, directs the Ogre log to the GUCEF logs, loads the Ogre plugins that the bootstrap configuration lists (plugin type OgrePlugin, installed in the Root; on platforms without module loading the plugin objects are handed over by the application) and holds the Ogre section of the global configuration: the render systems to use and the resource groups over the VFS. It is also a GUCEF plugin, so the bootstrap configuration can load it before the Ogre plugins.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_PLUGINGLUE_OGRE_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+    <!-- WebAssembly builds link the library into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>

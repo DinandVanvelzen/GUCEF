@@ -1,0 +1,40 @@
+<ModuleInfoEntry>
+    <Module Name="OgreCodec_GucefIMAGE" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Ogre plugin that decodes and encodes the image formats of gucefIMAGE for Ogre</DescriptionHeadline>
+            <DescriptionDetails>Registers an Ogre image codec for every file extension that gucefIMAGE has a decoder or an encoder for, so Ogre does not decode PNG, JPEG and the other common formats itself. Formats that are uploaded to the GPU as they are (DDS, KTX, PKM, ASTC, PVR) stay with the codecs of Ogre. Cube maps and mipmap levels are carried over in the layout of Ogre::Image.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_OGRECODEC_GUCEFIMAGE_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+    <!-- WebAssembly builds link the plugin into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>
