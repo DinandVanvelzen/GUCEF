@@ -93,6 +93,40 @@ static const UInt32 ScanGapKeyCount = 4096;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The name of the memory table that holds the copy of the rows a scan reads. Any grid
+ *  name is allowed ("svc/jobs", "gucef.drnutils/<host>/runs"), a data table name only
+ *  [A-Za-z0-9_.-] without a leading or trailing '.' and no device name of Windows: every
+ *  other byte becomes '_', a leading or trailing '.' too, and a name that still is not
+ *  usable (a device name) gets the prefix "grid_". The mapping is deterministic; the
+ *  published table itself keeps the grid name (GetName(), GetDefinition()).
+ */
+static CORE::CString
+CopyTableNameOfGrid( const CORE::CString& gridName )
+{GUCEF_TRACE;
+
+    if ( CORE::CDataTableDefinition::IsValidTableName( gridName ) )
+        return gridName;
+
+    CORE::CUtf8String utf8 = CORE::ToUtf8String( gridName );
+    const UInt32 length = utf8.ByteSize() > 0 ? utf8.ByteSize() - 1 : 0;
+    GUCEF::vector< char > bytes( length + 1, '\0' );
+    const char* source = utf8.C_String();
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        char c = source[ i ];
+        bool allowed = ( c >= 'A' && c <= 'Z' ) || ( c >= 'a' && c <= 'z' ) || ( c >= '0' && c <= '9' ) || '_' == c || '-' == c ||
+                       ( '.' == c && 0 != i && length - 1 != i );
+        bytes[ i ] = allowed ? c : '_';
+    }
+    CORE::CString name = 0 == length ? CORE::CString( "grid" ) : CORE::ToString( CORE::CUtf8String( &bytes[ 0 ], length ) );
+    if ( !CORE::CDataTableDefinition::IsValidTableName( name ) )
+        name = "grid_" + name;
+    return name;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDRNPublishedTable::RegisterEvents( void )
 {GUCEF_TRACE;
@@ -763,6 +797,8 @@ CDRNPublishedTable::BuildCopy( CORE::CMemoryDataTablePtr& copy )
                 rows.push_back( m_rows[ i ] );
     }
 
+    // the copy is named after the grid as far as a data table name allows (CopyTableNameOfGrid)
+    definition.name = CopyTableNameOfGrid( definition.name );
     copy = CORE::CMemoryDataTablePtr( GUCEF_NEW CORE::CMemoryDataTable( definition, &pool, GetPulseGenerator() ) );
     if ( !copy->IsValid() )
         return Fail( CORE::DATATABLE_STATUS_INVALID_ARGUMENT, "The rows cannot be stored: " + copy->GetLastErrorMessage() );

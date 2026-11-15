@@ -215,10 +215,11 @@ class CPageArrived : public CTestCondition
     public:
     DRN::CDRNSession& m_session;
     UInt64 m_revision;
-    CPageArrived( DRN::CDRNSession& session, UInt64 revision ) : m_session( session ), m_revision( revision ) {}
+    CORE::CString m_gridName;
+    CPageArrived( DRN::CDRNSession& session, UInt64 revision, const CORE::CString& gridName = "page" ) : m_session( session ), m_revision( revision ), m_gridName( gridName ) {}
     virtual bool IsMet( void ) GUCEF_VIRTUAL_OVERRIDE
     {
-        DRN::CDRNDataGrid* grid = m_session.FindGrid( "page" );
+        DRN::CDRNDataGrid* grid = m_session.FindGrid( m_gridName );
         if ( GUCEF_NULL == grid )
             return false;
         DRN::CDRNPublishedTable table( *grid, DRN::CDRNPublishedTableSettings() );
@@ -236,9 +237,10 @@ class CPageWorld
     CGroup group;
     DRN::CDRNDataGrid* grid;
     DRN::CDRNTablePublisher* publisher;
+    CORE::CString gridName;
 
-    CPageWorld( const CORE::CString& name, const CORE::CString& channel = "mem" )
-        : group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, name, channel ), grid( GUCEF_NULL ), publisher( GUCEF_NULL )
+    CPageWorld( const CORE::CString& name, const CORE::CString& channel = "mem", const CORE::CString& pageGridName = "page" )
+        : group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, name, channel ), grid( GUCEF_NULL ), publisher( GUCEF_NULL ), gridName( pageGridName )
     {}
 
     ~CPageWorld()
@@ -251,7 +253,7 @@ class CPageWorld
         if ( !group.Start( 2 ) )
             return false;
         DRN::CDRNDataGridSettings gridSettings;
-        gridSettings.name = "page";
+        gridSettings.name = gridName;
         gridSettings.reliable = true;
         gridSettings.deltaAgainstAck = true;
         grid = group[ 0 ].CreateGrid( gridSettings );
@@ -272,10 +274,10 @@ class CPageWorld
 
     DRN::CDRNDataGrid* Replica( UInt64 revision )
     {
-        CPageArrived arrived( group[ 1 ], revision );
+        CPageArrived arrived( group[ 1 ], revision, gridName );
         if ( !PumpUntil( arrived, 15000 ) )
             return GUCEF_NULL;
-        return group[ 1 ].FindGrid( "page" );
+        return group[ 1 ].FindGrid( gridName );
     }
 };
 
@@ -1030,6 +1032,48 @@ PerformDRNTablePublisherTests( void )
         published.Unlink();
         plainClient->Close();
         client->Close();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Published tables: a grid of any name (with '/', a space, a trailing '.', a device name of Windows) is scanned through the replica; the table keeps the grid name, the CSV equals that of a memory table" )
+    try
+    {
+        const char* gridNames[ 4 ] = { "svc/jobs", "gucef.drnutils/host 1/runs", "svc/lanes.", "CON" };
+        for ( UInt32 n=0; n<4; ++n )
+        {
+            CPageWorld world( "pub-names", "mem", gridNames[ n ] );
+            REQUIRE_TRUE( world.Start() );
+            REQUIRE_TRUE( world.Publish( 25 ) );
+            world.group[ 1 ].Subscribe( gridNames[ n ] );
+            DRN::CDRNDataGrid* replica = world.Replica( 1 );
+            REQUIRE_TRUE( GUCEF_NULL != replica );
+            DRN::CDRNPublishedTable table( *replica, DRN::CDRNPublishedTableSettings() );
+            ASSERT_TRUE( table.GetName() == gridNames[ n ] && table.GetDefinition().name == gridNames[ n ] );
+
+            TRowMap rows;
+            ASSERT_TRUE( ReadAll( table, rows ) );
+            ASSERT_TRUE( 25 == rows.size() );
+            if ( 25 != rows.size() )
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Published table \"" << gridNames[ n ] << "\": " << rows.size() << " rows scanned, " << table.GetLastErrorMessage() );
+
+            CORE::CDataTableSchemaPtr publishedSchema = table.GetSchema();
+            REQUIRE_TRUE( !publishedSchema.IsNULL() );
+            CORE::CDataTableDefinition memoryDefinition;
+            memoryDefinition.name = "page";
+            memoryDefinition.schema = *publishedSchema;
+            CORE::CMemoryDataTable memory( memoryDefinition );
+            REQUIRE_TRUE( FillMemoryTable( memory, 0, 25 ) );
+            CORE::CDynamicBuffer publishedCsv;
+            CORE::CDynamicBuffer memoryCsv;
+            ASSERT_TRUE( ExportCsv( table, publishedCsv ) );
+            REQUIRE_TRUE( ExportCsv( memory, memoryCsv ) );
+            ASSERT_TRUE( publishedCsv.GetDataSize() == memoryCsv.GetDataSize() &&
+                         0 == memcmp( publishedCsv.GetConstBufferPtr(), memoryCsv.GetConstBufferPtr(), publishedCsv.GetDataSize() ) );
+        }
     }
     catch ( ... )
     {
