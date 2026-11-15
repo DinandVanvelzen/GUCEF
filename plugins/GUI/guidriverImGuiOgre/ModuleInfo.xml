@@ -1,0 +1,48 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverImGuiOgre" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefGUI driver ImGuiOgre: Dear ImGui drawn through Ogre over the 3D scene of an Ogre window</DescriptionHeadline>
+            <DescriptionDetails>Registers the GUI driver "ImGuiOgre". Its contexts are the Dear ImGui contexts of guidriverImGui in windows of the window backend Ogre (guidriverOgre); they draw as overlays of the window after the viewports of the application, with batches of their own through the Ogre render system (dynamic vertex and index buffers with 32-bit indices, the scissor rectangle of each draw command) and the GUI material of guidriverOgre with straight alpha blending. The textures of Dear ImGui are Ogre textures; Ogre textures of the application are shown with ImGui::Image. Needs C++14, as Ogre does.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="guidriverImGui" />
+            <Dependency Name="imgui" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="guidriverImGui" />
+            <Dependency Name="imgui" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERIMGUIOGRE_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+    <!-- WebAssembly builds link the plugin into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>

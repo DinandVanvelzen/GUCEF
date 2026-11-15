@@ -1,0 +1,17 @@
+<ModuleInfoEntry>
+    <ModuleMetaData>
+        <License>MIT</License>
+        <SemVer>1.93.0.0</SemVer>
+        <DescriptionHeadline>Dear ImGui 1.93.0, an immediate mode GUI library</DescriptionHeadline>
+        <DescriptionDetails>Dear ImGui of the master line (no docking, no multi viewports) as a shared library, so that the application, the GUI driver library guidriverImGui and the renderer plugins share one current context, one allocator and one set of globals; a static library on the web, where everything links into one binary. imconfig.h holds the GUCEF configuration (32-bit indices and characters, no file, shell or Win32 functions, no stb_truetype, no obsolete functions, assertions and the debug log through imgui_gucef.cpp). The backends, examples, documentation and misc folders of upstream are not built. Dear ImGui needs C++11.</DescriptionDetails>
+    </ModuleMetaData>
+    <Module Name="imgui" Type="SharedLibrary" Platform="All">
+        <Preprocessor>
+            <Define String="IMGUI_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="11" />
+    </Module>
+    <!-- WebAssembly builds link the modules into the application, as static libraries -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>

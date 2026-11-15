@@ -1,0 +1,64 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverImGuiOpenGL" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefGUI driver ImGui: Dear ImGui drawn with OpenGL and OpenGL ES</DescriptionHeadline>
+            <DescriptionDetails>Registers the GUI driver "ImGui". Its contexts are the Dear ImGui contexts of guidriverImGui in windows that have a GL context (the window drivers XWinGL, Wayland, EGL, AndroidGLES and Emscripten): OpenGL 3.3 core, OpenGL ES 3.0 and WebGL 2. They draw with the OpenGL 3 backend of Dear ImGui (imgui_impl_opengl3, copied unchanged, whose loader is fed with the function of the window) straight into the framebuffer of the window at the present rectangle, and capture frames through a framebuffer object of their own. Needs C++11, as Dear ImGui does.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="guidriverImGui" />
+            <Dependency Name="imgui" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="guidriverImGui" />
+            <Dependency Name="imgui" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERIMGUIGL_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="11" />
+    </Module>
+    <Module Platform="mswin">
+        <Linker>
+            <Dependency Name="OpenGL32.lib" />
+        </Linker>
+    </Module>
+    <!-- WebAssembly builds link the plugin into the application, as a static library, drawing with WebGL 2 -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+        <Preprocessor>
+            <Define String="IMGUI_IMPL_OPENGL_ES3" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="-sMAX_WEBGL_VERSION=2" />
+            <Dependency Name="-sMIN_WEBGL_VERSION=2" />
+        </Linker>
+    </Module>
+    <Module Platform="android">
+        <Preprocessor>
+            <Define String="IMGUI_IMPL_OPENGL_ES3" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="EGL" />
+            <Dependency Name="GLESv3" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

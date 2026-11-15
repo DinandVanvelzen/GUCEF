@@ -1,0 +1,41 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverImGui" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>The gucefGUI driver library of Dear ImGui, shared by its renderer drivers</DescriptionHeadline>
+            <DescriptionDetails>Dear ImGui contexts as gucefGUI contexts (CImGuiContext): immediate-mode frames built in handlers of BuildFrameEvent, retained gucefGUI widgets drawn below the ImGui windows with the pixels of the software reference renderer, input through the previews and layer predicates of gucefGUI, fonts through the gucefGUI font rasterizers (fontpluginFREETYPE), images as textures of Dear ImGui, and a CPU rasterizer of the draw data for captures without a GPU. It registers no GUI driver: the renderer plugins guidriverImGuiOpenGL and guidriverImGuiOgre register the drivers ImGui and ImGuiOgre. Needs C++11, as Dear ImGui does.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="imgui" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="imgui" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERIMGUI_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="11" />
+    </Module>
+    <!-- WebAssembly builds link the library into the application, as a static library -->
+    <Module Type="StaticLibrary" Platform="emscripten">
+    </Module>
+</ModuleInfoEntry>

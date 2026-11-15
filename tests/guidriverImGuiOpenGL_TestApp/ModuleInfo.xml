@@ -1,0 +1,54 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverImGuiOpenGL_TestApp" Type="Executable" Platform="mswin;linux;android;emscripten" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="imgui" />
+            <Dependency Name="guidriverImGui" />
+            <Dependency Name="guidriverImGuiOpenGL" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="imgui" />
+            <Dependency Name="guidriverImGui" />
+            <Dependency Name="guidriverImGuiOpenGL" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERIMGUIGL_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="11" />
+    </Module>
+    <Module Platform="mswin;linux;android" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="fontpluginFREETYPE" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverEGL" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux" >
+        <Linker>
+            <Dependency Name="EGL" />
+        </Linker>
+    </Module>
+    <Module Platform="emscripten" >
+        <Dependencies>
+            <Dependency Name="fontpluginFREETYPE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="fontpluginFREETYPE" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>
