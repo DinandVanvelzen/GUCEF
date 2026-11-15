@@ -137,6 +137,11 @@
 #define GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H
 #endif /* GUCEF_WEB_TESTAPP_TESTSERVICEHEALTHHTTPENDPOINTS_H ? */
 
+#ifndef GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H
+#include "TestWebViewSuites.h"
+#define GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H
+#endif /* GUCEF_WEBVIEWTEST_TESTWEBVIEWSUITES_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -157,6 +162,26 @@ RunManualTests( int argc, char** argv )
     SetupHTTPClientTest();
     RunHTTPServerTest( argc, argv );
     return 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Loads a plugin from the directory of the test app, the debug or release build of it; an absent plugin is no failure */
+static bool
+LoadTestPlugin( const char* moduleName, const char* pluginGroup )
+{GUCEF_TRACE;
+
+    GUCEF::CORE::CString release = GUCEF::CORE::CString( "$MODULEDIR$/" ) + moduleName;
+    GUCEF::CORE::CString debug = release + "_d";
+    #ifdef GUCEF_DEBUG_MODE
+    const GUCEF::CORE::CString& first = debug;
+    const GUCEF::CORE::CString& second = release;
+    #else
+    const GUCEF::CORE::CString& first = release;
+    const GUCEF::CORE::CString& second = debug;
+    #endif
+    GUCEF::CORE::CPluginControl& pluginControl = GUCEF::CORE::CCoreGlobal::Instance()->GetPluginControl();
+    return pluginControl.AddPluginFromDir( first, pluginGroup, true ) || pluginControl.AddPluginFromDir( second, pluginGroup, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -204,6 +229,16 @@ GUCEF_OSMAIN_BEGIN
         PerformHttpHeaderParsingTests();
         PerformIrcWebSocketTests();
         PerformServiceHealthHttpEndpointsTests();
+
+        // the web views: the engines of the bootstrap of a real application, each allowed to be absent
+        WEB::CWebViewGlobal::Instance()->SetApplicationName( "gucefWEB_TestApp" );
+        if ( !LoadTestPlugin( "webviewpluginNULL", "webview" ) )
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB_TestApp: the plugin webviewpluginNULL is not there, its web view engine is skipped" );
+        PerformWebViewTypeTests();
+        PerformWebViewFrameExchangeTests();
+        PerformWebViewEngineHostTests();
+        PerformWebViewConformanceTests();
+        WEB::CWebViewGlobal::Instance()->Shutdown();
 
         // The threads of the pools end here, not at the end of the process: what a TLS library keeps per thread is released when they do
         CORE::CCoreGlobal::Instance()->GetTaskManager().RequestAllThreadsToStop( true, false, 5000 );

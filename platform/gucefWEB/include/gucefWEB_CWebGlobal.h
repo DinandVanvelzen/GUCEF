@@ -62,6 +62,7 @@ namespace WEB {
 //-------------------------------------------------------------------------*/
 
 class CGlobalHttpCodecLinks;
+class CWebViewGlobal;
 
 /*-------------------------------------------------------------------------*/
 
@@ -85,6 +86,9 @@ class GUCEF_WEB_PUBLIC_CPP CWebGlobal
      */
     TMcpHttpAuthenticatorFactory& GetMcpHttpAuthenticatorFactory( void ) const;
 
+    /** The globals of the web views: engines, their settings (also reached through CWebViewGlobal::Instance()) */
+    CWebViewGlobal* GetWebViewGlobal( void ) const;
+
     private:
     friend class CModule;
 
@@ -105,6 +109,7 @@ class GUCEF_WEB_PUBLIC_CPP CWebGlobal
     CGlobalHttpCodecLinks* m_globalHttpCodecLinks;
     THttpClientBackendFactory* m_httpClientBackendFactory;
     TMcpHttpAuthenticatorFactory* m_mcpHttpAuthenticatorFactory;
+    CWebViewGlobal* m_webViewGlobal;
 };
 
 /*-------------------------------------------------------------------------//

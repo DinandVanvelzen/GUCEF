@@ -50,6 +50,8 @@ set( HEADER_FILES
   include/gucefWEB_CIHttpServerRequestHandler.h
   include/gucefWEB_CIMcpHttpAuthenticator.h
   include/gucefWEB_CIWebSocketUpgradeHandler.h
+  include/gucefWEB_CIWebViewEngineLoop.h
+  include/gucefWEB_CIWebViewPresenter.h
   include/gucefWEB_CIrcWebSocketTransport.h
   include/gucefWEB_CJsonRpcClient.h
   include/gucefWEB_CJsonRpcServer.h
@@ -76,10 +78,47 @@ set( HEADER_FILES
   include/gucefWEB_CWebSocketHandshake.h
   include/gucefWEB_CWebSocketMessageParser.h
   include/gucefWEB_CWebSocketServer.h
+  include/gucefWEB_CWebViewBase.h
+  include/gucefWEB_CWebViewCapabilities.h
+  include/gucefWEB_CWebViewCertificateError.h
+  include/gucefWEB_CWebViewCommand.h
+  include/gucefWEB_CWebViewCommandResult.h
+  include/gucefWEB_CWebViewConsoleMessage.h
+  include/gucefWEB_CWebViewCookie.h
+  include/gucefWEB_CWebViewDownloadRequest.h
+  include/gucefWEB_CWebViewEngineBase.h
+  include/gucefWEB_CWebViewEngineHost.h
+  include/gucefWEB_CWebViewEngineRegistry.h
+  include/gucefWEB_CWebViewEngineSelection.h
+  include/gucefWEB_CWebViewEventRelay.h
+  include/gucefWEB_CWebViewFrameExchange.h
+  include/gucefWEB_CWebViewFrameInfo.h
+  include/gucefWEB_CWebViewGlobal.h
+  include/gucefWEB_CWebViewGlobalSettings.h
+  include/gucefWEB_CWebViewHostAllowList.h
+  include/gucefWEB_CWebViewInputEvent.h
+  include/gucefWEB_CWebViewKeyCodes.h
+  include/gucefWEB_CWebViewLoadError.h
+  include/gucefWEB_CWebViewNavigationRequest.h
+  include/gucefWEB_CWebViewPermissionRequest.h
+  include/gucefWEB_CWebViewPolicy.h
+  include/gucefWEB_CWebViewPopupRequest.h
+  include/gucefWEB_CWebViewPresentation.h
+  include/gucefWEB_CWebViewProfileSettings.h
+  include/gucefWEB_CWebViewRect.h
+  include/gucefWEB_CWebViewScriptDialog.h
+  include/gucefWEB_CWebViewSemaphoreEngineLoop.h
+  include/gucefWEB_CWebViewSettings.h
   include/gucefWEB_ETypes.h
   include/gucefWEB_HTTPCode.h
+  include/gucefWEB_IWebView.h
+  include/gucefWEB_IWebViewEngine.h
   include/gucefWEB_ViewTypes.h
   include/gucefWEB_WebSocketTypes.h
+  include/gucefWEB_WebView.h
+  include/gucefWEB_WebViewInputTypes.h
+  include/gucefWEB_WebViewTypeNames.h
+  include/gucefWEB_WebViewTypes.h
   include/gucefWEB_config.h
   include/gucefWEB_macros.h
 )
@@ -121,6 +160,8 @@ set( SOURCE_FILES
   src/gucefWEB_CIHttpClientBackend.cpp
   src/gucefWEB_CIHttpServerRequestHandler.cpp
   src/gucefWEB_CIMcpHttpAuthenticator.cpp
+  src/gucefWEB_CIWebViewEngineLoop.cpp
+  src/gucefWEB_CIWebViewPresenter.cpp
   src/gucefWEB_CIrcWebSocketTransport.cpp
   src/gucefWEB_CJsonRpcClient.cpp
   src/gucefWEB_CJsonRpcServer.cpp
@@ -146,6 +187,40 @@ set( SOURCE_FILES
   src/gucefWEB_CWebSocketHandshake.cpp
   src/gucefWEB_CWebSocketMessageParser.cpp
   src/gucefWEB_CWebSocketServer.cpp
+  src/gucefWEB_CWebViewBase.cpp
+  src/gucefWEB_CWebViewCapabilities.cpp
+  src/gucefWEB_CWebViewCertificateError.cpp
+  src/gucefWEB_CWebViewCommand.cpp
+  src/gucefWEB_CWebViewCommandResult.cpp
+  src/gucefWEB_CWebViewConsoleMessage.cpp
+  src/gucefWEB_CWebViewCookie.cpp
+  src/gucefWEB_CWebViewDownloadRequest.cpp
+  src/gucefWEB_CWebViewEngineBase.cpp
+  src/gucefWEB_CWebViewEngineHost.cpp
+  src/gucefWEB_CWebViewEngineRegistry.cpp
+  src/gucefWEB_CWebViewEngineSelection.cpp
+  src/gucefWEB_CWebViewEventRelay.cpp
+  src/gucefWEB_CWebViewFrameExchange.cpp
+  src/gucefWEB_CWebViewFrameInfo.cpp
+  src/gucefWEB_CWebViewGlobal.cpp
+  src/gucefWEB_CWebViewGlobalSettings.cpp
+  src/gucefWEB_CWebViewHostAllowList.cpp
+  src/gucefWEB_CWebViewInputEvent.cpp
+  src/gucefWEB_CWebViewKeyCodes.cpp
+  src/gucefWEB_CWebViewLoadError.cpp
+  src/gucefWEB_CWebViewNavigationRequest.cpp
+  src/gucefWEB_CWebViewPermissionRequest.cpp
+  src/gucefWEB_CWebViewPolicy.cpp
+  src/gucefWEB_CWebViewPopupRequest.cpp
+  src/gucefWEB_CWebViewPresentation.cpp
+  src/gucefWEB_CWebViewProfileSettings.cpp
+  src/gucefWEB_CWebViewRect.cpp
+  src/gucefWEB_CWebViewScriptDialog.cpp
+  src/gucefWEB_CWebViewSemaphoreEngineLoop.cpp
+  src/gucefWEB_CWebViewSettings.cpp
+  src/gucefWEB_IWebView.cpp
+  src/gucefWEB_IWebViewEngine.cpp
+  src/gucefWEB_WebViewTypeNames.cpp
 )
 
 
@@ -187,8 +262,8 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefWEB" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefVFS )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefVFS )
+add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefIMAGE gucefMT gucefVFS )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefIMAGE gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_WEB_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefWEB;MODULE_NAME=gucefWEB;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
@@ -201,7 +276,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE winhttp.lib )
 endif( WIN64 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include ../gucefVFS/include include )
+include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefMT/include ../gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

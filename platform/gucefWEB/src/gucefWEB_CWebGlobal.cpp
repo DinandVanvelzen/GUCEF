@@ -146,6 +146,11 @@
 #define GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H
 #endif /* GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H ? */
 
+#ifndef GUCEF_WEB_CWEBVIEWGLOBAL_H
+#include "gucefWEB_CWebViewGlobal.h"
+#define GUCEF_WEB_CWEBVIEWGLOBAL_H
+#endif /* GUCEF_WEB_CWEBVIEWGLOBAL_H ? */
+
 #include "gucefWEB_CWebGlobal.h"  /* definition of the class implemented here */
 
 /*-------------------------------------------------------------------------//
@@ -195,6 +200,7 @@ CWebGlobal::CWebGlobal( void )
     : m_globalHttpCodecLinks( GUCEF_NULL )
     , m_httpClientBackendFactory( GUCEF_NULL )
     , m_mcpHttpAuthenticatorFactory( GUCEF_NULL )
+    , m_webViewGlobal( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -243,6 +249,10 @@ CWebGlobal::Initialize( void )
     m_mcpHttpAuthenticatorFactory->RegisterConcreteFactory( CIMcpHttpAuthenticator::NoAuthenticatorName, &g_mcpNoHttpAuthenticatorFactory );
     COM::CComGlobal::Instance()->GetMcpTransportFactory().RegisterConcreteFactory( COM::CIMcpTransport::StreamableHttpTransportName, &g_mcpStreamableHttpTransportFactory );
 
+    // the web views, whose engines come from plugins
+    m_webViewGlobal = GUCEF_NEW CWebViewGlobal();
+    m_webViewGlobal->Initialize();
+
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefWEB" );
 }
 
@@ -252,7 +262,13 @@ CWebGlobal::~CWebGlobal()
 {GUCEF_TRACE;
   
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB Global systems shutting down" );
+
+    // the web views and engine threads stop first: they may still use what is released below. The engine plugins
+    // unload with the link back below and take their engines out of the registry, which is released after that
+    m_webViewGlobal->Shutdown();
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefWEB" );
+    GUCEF_DELETE m_webViewGlobal;
+    m_webViewGlobal = GUCEF_NULL;
 
     COM::CComGlobal::Instance()->GetIrcTransportFactory().UnregisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName );
     COM::CComGlobal::Instance()->GetMcpTransportFactory().UnregisterConcreteFactory( COM::CIMcpTransport::StreamableHttpTransportName );
@@ -329,6 +345,15 @@ CWebGlobal::GetMcpHttpAuthenticatorFactory( void ) const
 {GUCEF_TRACE;
 
     return *m_mcpHttpAuthenticatorFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWebViewGlobal*
+CWebGlobal::GetWebViewGlobal( void ) const
+{GUCEF_TRACE;
+
+    return m_webViewGlobal;
 }
 
 /*-------------------------------------------------------------------------*/

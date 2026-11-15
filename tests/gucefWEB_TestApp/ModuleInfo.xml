@@ -8,6 +8,7 @@
 			<Dependency Name="gucefCOMCORE" />
 			<Dependency Name="gucefCORE" />
 			<Dependency Name="gucefMT" />
+			<Dependency Name="gucefIMAGE" />
 		</Dependencies>
 		<Linker>
 			<Dependency Name="gucefWEB" />
@@ -15,6 +16,7 @@
 			<Dependency Name="gucefCOMCORE" />
 			<Dependency Name="gucefCORE" />
 			<Dependency Name="gucefMT" />
+			<Dependency Name="gucefIMAGE" />
 		</Linker>
             <Define String="GUCEF_WEB_TESTAPP_BUILD_MODULE" />
         <Preprocessor>
@@ -26,6 +28,7 @@
 			<RuntimeDependency Name="codecspluginZLIB" />
 			<RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
 			<RuntimeDependency Name="httpclientpluginCURL" />
+			<RuntimeDependency Name="webviewpluginNULL" />
 		</RuntimeDependencies>
     </Module>
 	<Module Platform="mswin" >

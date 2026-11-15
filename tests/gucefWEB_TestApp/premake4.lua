@@ -35,10 +35,10 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefWEB" } )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefIMAGE", "gucefMT", "gucefWEB" } )
 
 
 configuration( {} )
@@ -51,6 +51,9 @@ files( {
   "include/TestChromeDevTools.h",
   "include/TestCode_CHTTPClient.h",
   "include/TestCode_CHTTPServer.h",
+  "include/TestFakeWebSite.h",
+  "include/TestFakeWebView.h",
+  "include/TestFakeWebViewEngine.h",
   "include/TestHttpClient.h",
   "include/TestHttpHeaderParsing.h",
   "include/TestHttpLogRedaction.h",
@@ -64,7 +67,11 @@ files( {
   "include/TestMcpStreamableHttp.h",
   "include/TestServiceHealthHttpEndpoints.h",
   "include/TestWebSocket.h",
-  "include/TestWebSocketCodec.h"
+  "include/TestWebSocketCodec.h",
+  "include/TestWebViewEventLog.h",
+  "include/TestWebViewSuites.h",
+  "include/TestWebViewSupport.h",
+  "include/TestWorkerThread.h"
  } )
 
 
@@ -75,6 +82,9 @@ files( {
   "src/TestChromeDevTools.cpp",
   "src/TestCode_CHTTPClient.cpp",
   "src/TestCode_CHTTPServer.cpp",
+  "src/TestFakeWebSite.cpp",
+  "src/TestFakeWebView.cpp",
+  "src/TestFakeWebViewEngine.cpp",
   "src/TestHttpClient.cpp",
   "src/TestHttpHeaderParsing.cpp",
   "src/TestHttpLogRedaction.cpp",
@@ -87,12 +97,16 @@ files( {
   "src/TestServiceHealthHttpEndpoints.cpp",
   "src/TestWebSocket.cpp",
   "src/TestWebSocketCodec.cpp",
+  "src/TestWebViewConformance.cpp",
+  "src/TestWebViewEngineHost.cpp",
+  "src/TestWebViewFrameExchange.cpp",
+  "src/TestWebViewTypes.cpp",
   "src/gucefWEB_TestApp_main.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

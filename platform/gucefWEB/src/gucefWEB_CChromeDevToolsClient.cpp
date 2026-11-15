@@ -182,6 +182,7 @@ CChromeDevToolsClient::CChromeDevToolsClient( void )
     , m_discoveryDone( false )
     , m_discoverySucceeded( false )
     , m_waitingForDiscovery( false )
+    , m_commandTimeoutInMs( 30000 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -210,6 +211,7 @@ CChromeDevToolsClient::CChromeDevToolsClient( const CORE::PulseGeneratorPtr& pul
     , m_discoveryDone( false )
     , m_discoverySucceeded( false )
     , m_waitingForDiscovery( false )
+    , m_commandTimeoutInMs( 30000 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -555,7 +557,7 @@ CChromeDevToolsClient::NetworkEnable( void )
 {GUCEF_TRACE;
 
     CORE::CDataNode result;
-    return SendCommandAndWait( "Network.enable", GUCEF_NULL, result );
+    return SendCommandAndWait( "Network.enable", GUCEF_NULL, result, GUCEF_NULL, m_commandTimeoutInMs );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -566,7 +568,7 @@ CChromeDevToolsClient::GetAllCookies( std::vector< SChromeCookie >& cookies )
 
     cookies.clear();
     CORE::CDataNode result;
-    if ( !SendCommandAndWait( "Network.getAllCookies", GUCEF_NULL, result ) )
+    if ( !SendCommandAndWait( "Network.getAllCookies", GUCEF_NULL, result, GUCEF_NULL, m_commandTimeoutInMs ) )
         return false;
 
     const CORE::CDataNode* list = result.Find( "cookies" );
@@ -574,21 +576,41 @@ CChromeDevToolsClient::GetAllCookies( std::vector< SChromeCookie >& cookies )
         return true;
 
     for ( CORE::CDataNode::const_iterator i = list->ConstBegin(); i != list->ConstEnd(); ++i )
-    {
-        const CORE::CDataNode& node = *(*i);
-        SChromeCookie cookie;
-        cookie.name = GetText( node, "name" );
-        cookie.value = GetText( node, "value" );
-        cookie.domain = GetText( node, "domain" );
-        cookie.path = GetText( node, "path" );
-        cookie.expires = node.GetAttributeValue( "expires" ).AsFloat64( -1.0 );
-        cookie.httpOnly = node.GetAttributeValue( "httpOnly" ).AsBool( false );
-        cookie.secure = node.GetAttributeValue( "secure" ).AsBool( false );
-        cookie.session = node.GetAttributeValue( "session" ).AsBool( cookie.expires < 0.0 );
-        cookie.sameSite = GetText( node, "sameSite" );
-        cookies.push_back( cookie );
-    }
+        cookies.push_back( ParseCookie( *(*i) ) );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+SChromeCookie
+CChromeDevToolsClient::ParseCookie( const CORE::CDataNode& node )
+{GUCEF_TRACE;
+
+    SChromeCookie cookie;
+    cookie.name = GetText( node, "name" );
+    cookie.value = GetText( node, "value" );
+    cookie.domain = GetText( node, "domain" );
+    cookie.path = GetText( node, "path" );
+    cookie.expires = node.GetAttributeValue( "expires" ).AsFloat64( -1.0 );
+    cookie.httpOnly = node.GetAttributeValue( "httpOnly" ).AsBool( false );
+    cookie.secure = node.GetAttributeValue( "secure" ).AsBool( false );
+    cookie.session = node.GetAttributeValue( "session" ).AsBool( cookie.expires < 0.0 );
+    cookie.sameSite = GetText( node, "sameSite" );
+    return cookie;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChromeDevToolsClient::ParseCookies( const CORE::CDataNode& result, TChromeCookieVector& cookies )
+{GUCEF_TRACE;
+
+    cookies.clear();
+    const CORE::CDataNode* list = result.Find( "cookies" );
+    if ( GUCEF_NULL == list )
+        return;
+    for ( CORE::CDataNode::const_iterator i = list->ConstBegin(); i != list->ConstEnd(); ++i )
+        cookies.push_back( ParseCookie( *(*i) ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -600,7 +622,7 @@ CChromeDevToolsClient::GetResponseBody( const CORE::CString& requestId, CORE::CS
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "requestId", requestId );
     CORE::CDataNode result;
-    if ( !SendCommandAndWait( "Network.getResponseBody", &params, result ) )
+    if ( !SendCommandAndWait( "Network.getResponseBody", &params, result, GUCEF_NULL, m_commandTimeoutInMs ) )
         return false;
 
     body = GetText( result, "body" );
@@ -623,7 +645,7 @@ CChromeDevToolsClient::RuntimeEvaluate( const CORE::CString& expression ,
     params.SetAttribute( "awaitPromise", awaitPromise );
 
     CORE::CDataNode response;
-    if ( !SendCommandAndWait( "Runtime.evaluate", &params, response ) )
+    if ( !SendCommandAndWait( "Runtime.evaluate", &params, response, GUCEF_NULL, m_commandTimeoutInMs ) )
         return false;
 
     // A script that throws is not a protocol failure: the exception is described next to the result
@@ -669,7 +691,7 @@ CChromeDevToolsClient::PageNavigate( const CORE::CString& url, CORE::CString* fr
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "url", url );
     CORE::CDataNode result;
-    if ( !SendCommandAndWait( "Page.navigate", &params, result ) )
+    if ( !SendCommandAndWait( "Page.navigate", &params, result, GUCEF_NULL, m_commandTimeoutInMs ) )
         return false;
 
     // a navigation can fail without the command failing, the result then says why
@@ -692,7 +714,7 @@ CChromeDevToolsClient::TargetCreate( const CORE::CString& url, CORE::CString& ta
     CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
     params.SetAttribute( "url", url );
     CORE::CDataNode result;
-    if ( !SendCommandAndWait( "Target.createTarget", &params, result ) )
+    if ( !SendCommandAndWait( "Target.createTarget", &params, result, GUCEF_NULL, m_commandTimeoutInMs ) )
         return false;
     targetId = GetText( result, "targetId" );
     return !targetId.IsNULLOrEmpty();
@@ -708,10 +730,121 @@ CChromeDevToolsClient::AttachToTarget( const CORE::CString& targetId, CORE::CStr
     params.SetAttribute( "targetId", targetId );
     params.SetAttribute( "flatten", true );
     CORE::CDataNode result;
-    if ( !SendCommandAndWait( "Target.attachToTarget", &params, result ) )
+    if ( !SendCommandAndWait( "Target.attachToTarget", &params, result, GUCEF_NULL, m_commandTimeoutInMs ) )
         return false;
     sessionId = GetText( result, "sessionId" );
     return !sessionId.IsNULLOrEmpty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::TargetGetTargets( TChromeTargetVector& targets )
+{GUCEF_TRACE;
+
+    targets.clear();
+    CORE::CDataNode result;
+    if ( !SendCommandAndWait( "Target.getTargets", GUCEF_NULL, result, GUCEF_NULL, m_commandTimeoutInMs ) )
+        return false;
+
+    const CORE::CDataNode* list = result.Find( "targetInfos" );
+    if ( GUCEF_NULL == list )
+        return true;
+    for ( CORE::CDataNode::const_iterator i = list->ConstBegin(); i != list->ConstEnd(); ++i )
+    {
+        SChromeTargetInfo target;
+        target.id = GetText( *(*i), "targetId" );
+        target.type = GetText( *(*i), "type" );
+        target.title = GetText( *(*i), "title" );
+        target.url = GetText( *(*i), "url" );
+        targets.push_back( target );
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::GetCookies( const CORE::CString::StringVector& urls, TChromeCookieVector& cookies )
+{GUCEF_TRACE;
+
+    cookies.clear();
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    if ( !urls.empty() )
+        params.SetValuesOfChildByName( "urls", urls );
+    CORE::CDataNode result;
+    if ( !SendCommandAndWait( "Network.getCookies", urls.empty() ? GUCEF_NULL : &params, result, GUCEF_NULL, m_commandTimeoutInMs ) )
+        return false;
+    ParseCookies( result, cookies );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::StorageGetCookies( TChromeCookieVector& cookies )
+{GUCEF_TRACE;
+
+    cookies.clear();
+    CORE::CDataNode result;
+    if ( !SendCommandAndWait( "Storage.getCookies", GUCEF_NULL, result, GUCEF_NULL, m_commandTimeoutInMs ) )
+        return false;
+    ParseCookies( result, cookies );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::StorageClearCookies( void )
+{GUCEF_TRACE;
+
+    CORE::CDataNode result;
+    return SendCommandAndWait( "Storage.clearCookies", GUCEF_NULL, result, GUCEF_NULL, m_commandTimeoutInMs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::InputInsertText( const CORE::CString& text )
+{GUCEF_TRACE;
+
+    CORE::CDataNode params( GUCEF_DATATYPE_OBJECT );
+    params.SetAttribute( "text", text );
+    CORE::CDataNode result;
+    return SendCommandAndWait( "Input.insertText", &params, result, GUCEF_NULL, m_commandTimeoutInMs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::BrowserClose( void )
+{GUCEF_TRACE;
+
+    CORE::CDataNode result;
+    if ( SendCommandAndWait( "Browser.close", GUCEF_NULL, result, GUCEF_NULL, m_commandTimeoutInMs ) )
+        return true;
+
+    // the browser may end the connection before its answer arrives
+    return !IsConnected();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChromeDevToolsClient::SetCommandTimeout( UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    m_commandTimeoutInMs = timeoutInMs > 0 ? timeoutInMs : 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CChromeDevToolsClient::GetCommandTimeout( void ) const
+{GUCEF_TRACE;
+
+    return m_commandTimeoutInMs;
 }
 
 /*-------------------------------------------------------------------------//

@@ -15,6 +15,9 @@ set( HEADER_FILES
   include/TestChromeDevTools.h
   include/TestCode_CHTTPClient.h
   include/TestCode_CHTTPServer.h
+  include/TestFakeWebSite.h
+  include/TestFakeWebView.h
+  include/TestFakeWebViewEngine.h
   include/TestHttpClient.h
   include/TestHttpHeaderParsing.h
   include/TestHttpLogRedaction.h
@@ -29,12 +32,19 @@ set( HEADER_FILES
   include/TestServiceHealthHttpEndpoints.h
   include/TestWebSocket.h
   include/TestWebSocketCodec.h
+  include/TestWebViewEventLog.h
+  include/TestWebViewSuites.h
+  include/TestWebViewSupport.h
+  include/TestWorkerThread.h
 )
 
 set( SOURCE_FILES 
   src/TestChromeDevTools.cpp
   src/TestCode_CHTTPClient.cpp
   src/TestCode_CHTTPServer.cpp
+  src/TestFakeWebSite.cpp
+  src/TestFakeWebView.cpp
+  src/TestFakeWebViewEngine.cpp
   src/TestHttpClient.cpp
   src/TestHttpHeaderParsing.cpp
   src/TestHttpLogRedaction.cpp
@@ -47,6 +57,10 @@ set( SOURCE_FILES
   src/TestServiceHealthHttpEndpoints.cpp
   src/TestWebSocket.cpp
   src/TestWebSocketCodec.cpp
+  src/TestWebViewConformance.cpp
+  src/TestWebViewEngineHost.cpp
+  src/TestWebViewFrameExchange.cpp
+  src/TestWebViewTypes.cpp
   src/gucefWEB_TestApp_main.cpp
 )
 
@@ -65,11 +79,11 @@ if ( WIN32 )
 else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefWEB )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefWEB )
+add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefIMAGE gucefMT gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefIMAGE gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefWEB_TestApp;MODULE_NAME=gucefWEB_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

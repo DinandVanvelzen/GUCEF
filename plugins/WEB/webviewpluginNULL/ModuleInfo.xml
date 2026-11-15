@@ -1,0 +1,31 @@
+<ModuleInfoEntry>
+    <Module Name="webviewpluginNULL" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefWEB plugin with the web view engine "Null"</DescriptionHeadline>
+            <DescriptionDetails>Views that exist, render a blank frame of their size, take input, answer scripts with an error and cookies with none, and load nothing but about:blank. Makes forms, presenters and the choice of engines testable everywhere, and is what a build without real engines has</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefWEB" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefWEB" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_WEBVIEWPLUGIN_NULL_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

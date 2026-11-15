@@ -190,6 +190,12 @@ class CFakeChromeCommands : public COM::CIJsonRpcRequestHandler
 {
     public:
 
+    CFakeChromeCommands( void ) : COM::CIJsonRpcRequestHandler(), m_cookiesCleared( false ), m_insertedText(), m_closeRequests( 0 ) {}
+
+    bool m_cookiesCleared;
+    CORE::CString m_insertedText;
+    UInt32 m_closeRequests;
+
     virtual COM::EJsonRpcRequestResult OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
                                                          const COM::SJsonRpcRequest& request ,
                                                          COM::SJsonRpcResponse& response     ) GUCEF_VIRTUAL_OVERRIDE
@@ -305,6 +311,67 @@ class CFakeChromeCommands : public COM::CIJsonRpcRequestHandler
             response.isError = true;
             response.error.code = -32000;
             response.error.message = "No resource with given identifier found";
+            return COM::JSONRPC_REQUEST_HANDLED;
+        }
+        if ( method == "Target.getTargets" )
+        {
+            CORE::CDataNode* infos = result.AddChild( "targetInfos", GUCEF_DATATYPE_ARRAY );
+            CORE::CDataNode* page = infos->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+            page->SetAttribute( "targetId", "P1" );
+            page->SetAttribute( "type", "page" );
+            page->SetAttribute( "title", "First page" );
+            page->SetAttribute( "url", "http://example.org/" );
+            page->SetAttribute( "attached", false );
+            CORE::CDataNode* worker = infos->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+            worker->SetAttribute( "targetId", "W2" );
+            worker->SetAttribute( "type", "service_worker" );
+            worker->SetAttribute( "title", "Worker" );
+            worker->SetAttribute( "url", "http://example.org/sw.js" );
+            return COM::JSONRPC_REQUEST_HANDLED;
+        }
+        if ( method == "Network.getCookies" || method == "Storage.getCookies" )
+        {
+            // Network.getCookies with addresses gives those the addresses would get, Storage.getCookies all of the browser
+            CORE::CString::StringVector urls;
+            request.params.GetValuesOfChildByName( "urls", urls );
+            bool exampleOnly = method == "Network.getCookies" && 1 == urls.size() && urls[ 0 ] == "http://example.org/";
+            CORE::CDataNode* cookies = result.AddChild( "cookies", GUCEF_DATATYPE_ARRAY );
+            if ( m_cookiesCleared )
+                return COM::JSONRPC_REQUEST_HANDLED;
+            CORE::CDataNode* first = cookies->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+            first->SetAttribute( "name", "sessionid" );
+            first->SetAttribute( "value", "abc123" );
+            first->SetAttribute( "domain", "example.org" );
+            first->SetAttribute( "path", "/" );
+            first->SetAttribute( "expires", (Float32) -1.0f );
+            first->SetAttribute( "httpOnly", true );
+            first->SetAttribute( "secure", false );
+            first->SetAttribute( "session", true );
+            if ( !exampleOnly )
+            {
+                CORE::CDataNode* second = cookies->AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
+                second->SetAttribute( "name", "other" );
+                second->SetAttribute( "value", "zz" );
+                second->SetAttribute( "domain", ".other.test" );
+                second->SetAttribute( "path", "/" );
+                second->SetAttribute( "expires", (Float32) 1900000000.0f );
+                second->SetAttribute( "session", false );
+            }
+            return COM::JSONRPC_REQUEST_HANDLED;
+        }
+        if ( method == "Storage.clearCookies" )
+        {
+            m_cookiesCleared = true;
+            return COM::JSONRPC_REQUEST_HANDLED;
+        }
+        if ( method == "Input.insertText" )
+        {
+            m_insertedText += request.params.GetAttributeValue( "text" ).AsString();
+            return COM::JSONRPC_REQUEST_HANDLED;
+        }
+        if ( method == "Browser.close" )
+        {
+            ++m_closeRequests;
             return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Debug.sessionOf" )
@@ -494,7 +561,8 @@ PerformChromeDevToolsTests( void )
     rpcServer.SetDialect( COM::JSONRPC_DIALECT_LENIENT );
     CFakeChromeCommands commands;
     const char* commandNames[] = { "Network.enable", "Network.getAllCookies", "Page.navigate", "Runtime.evaluate", "Target.createTarget",
-                                   "Target.attachToTarget", "Network.getResponseBody", "Debug.sessionOf" };
+                                   "Target.attachToTarget", "Network.getResponseBody", "Debug.sessionOf", "Target.getTargets",
+                                   "Network.getCookies", "Storage.getCookies", "Storage.clearCookies", "Input.insertText", "Browser.close" };
     for ( UInt32 i=0; i<sizeof( commandNames ) / sizeof( commandNames[ 0 ] ); ++i )
         rpcServer.RegisterMethod( commandNames[ i ], &commands );
 
@@ -653,6 +721,63 @@ PerformChromeDevToolsTests( void )
             ASSERT_FALSE( client.IsConnected() );
             ASSERT_TRUE( 1 == recorder.disconnected );
             ASSERT_FALSE( client.SendCommandAndWait( "Network.enable", GUCEF_NULL, unusedResult, &error ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Targets, cookies by address and of the browser, typing and closing" )
+        try
+        {
+            WEB::CChromeDevToolsClient client;
+            client.SetCommandTimeout( 5000 );
+            ASSERT_TRUE( 5000 == client.GetCommandTimeout() );
+
+            WEB::SChromeDiscoveryResult discovery;
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", g_fakeChromePort, discovery ) );
+            ASSERT_TRUE( client.ConnectAndWait( discovery.browser.webSocketDebuggerUrl ) );
+
+            WEB::TChromeTargetVector targets;
+            ASSERT_TRUE( client.TargetGetTargets( targets ) );
+            ASSERT_TRUE( 2 == targets.size() );
+            if ( 2 == targets.size() )
+            {
+                ASSERT_TRUE( targets[ 0 ].id == "P1" && targets[ 0 ].type == "page" && targets[ 0 ].url == "http://example.org/" );
+                ASSERT_TRUE( targets[ 1 ].id == "W2" && targets[ 1 ].type == "service_worker" );
+            }
+
+            // the cookies an address would get, and those of the whole browser
+            WEB::TChromeCookieVector cookies;
+            CORE::CString::StringVector urls;
+            urls.push_back( "http://example.org/" );
+            ASSERT_TRUE( client.GetCookies( urls, cookies ) );
+            ASSERT_TRUE( 1 == cookies.size() && cookies[ 0 ].name == "sessionid" && cookies[ 0 ].httpOnly && cookies[ 0 ].session );
+            ASSERT_TRUE( client.GetCookies( CORE::CString::StringVector(), cookies ) );
+            ASSERT_TRUE( 2 == cookies.size() );
+            ASSERT_TRUE( client.StorageGetCookies( cookies ) );
+            ASSERT_TRUE( 2 == cookies.size() );
+            if ( 2 == cookies.size() )
+                ASSERT_TRUE( cookies[ 1 ].domain == ".other.test" && !cookies[ 1 ].session && cookies[ 1 ].expires > 1000000000.0 );
+            ASSERT_TRUE( client.StorageClearCookies() );
+            ASSERT_TRUE( commands.m_cookiesCleared );
+            ASSERT_TRUE( client.StorageGetCookies( cookies ) );
+            ASSERT_TRUE( cookies.empty() );
+            commands.m_cookiesCleared = false;
+
+            // typed text arrives as it was given, quotes and all
+            ASSERT_TRUE( client.InputInsertText( "p\"a'ss\\word" ) );
+            ASSERT_TRUE( commands.m_insertedText == "p\"a'ss\\word" );
+
+            ASSERT_TRUE( client.BrowserClose() );
+            ASSERT_TRUE( 1 == commands.m_closeRequests );
+
+            // without a connection the commands fail
+            client.Disconnect();
+            ASSERT_FALSE( client.StorageGetCookies( cookies ) );
+            ASSERT_FALSE( client.InputInsertText( "x" ) );
+            ASSERT_TRUE( client.BrowserClose() );       // closed already: nothing to close
         }
         catch( ... )
         {

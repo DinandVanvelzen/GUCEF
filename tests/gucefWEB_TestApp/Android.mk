@@ -24,6 +24,9 @@ LOCAL_SRC_FILES := \
   src/TestChromeDevTools.cpp \
   src/TestCode_CHTTPClient.cpp \
   src/TestCode_CHTTPServer.cpp \
+  src/TestFakeWebSite.cpp \
+  src/TestFakeWebView.cpp \
+  src/TestFakeWebViewEngine.cpp \
   src/TestHttpClient.cpp \
   src/TestHttpHeaderParsing.cpp \
   src/TestHttpLogRedaction.cpp \
@@ -36,6 +39,10 @@ LOCAL_SRC_FILES := \
   src/TestServiceHealthHttpEndpoints.cpp \
   src/TestWebSocket.cpp \
   src/TestWebSocketCodec.cpp \
+  src/TestWebViewConformance.cpp \
+  src/TestWebViewEngineHost.cpp \
+  src/TestWebViewFrameExchange.cpp \
+  src/TestWebViewTypes.cpp \
   src/gucefWEB_TestApp_main.cpp
 
 LOCAL_C_INCLUDES := \
@@ -46,6 +53,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../platform/gucefWEB/include
@@ -57,6 +65,7 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
+  gucefIMAGE \
   gucefMT \
   gucefWEB
 

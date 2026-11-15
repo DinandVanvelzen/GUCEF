@@ -58,6 +58,8 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CIHttpClientBackend.cpp \
   src/gucefWEB_CIHttpServerRequestHandler.cpp \
   src/gucefWEB_CIMcpHttpAuthenticator.cpp \
+  src/gucefWEB_CIWebViewEngineLoop.cpp \
+  src/gucefWEB_CIWebViewPresenter.cpp \
   src/gucefWEB_CIrcWebSocketTransport.cpp \
   src/gucefWEB_CJsonRpcClient.cpp \
   src/gucefWEB_CJsonRpcServer.cpp \
@@ -82,7 +84,41 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CWebSocketFrameCodec.cpp \
   src/gucefWEB_CWebSocketHandshake.cpp \
   src/gucefWEB_CWebSocketMessageParser.cpp \
-  src/gucefWEB_CWebSocketServer.cpp
+  src/gucefWEB_CWebSocketServer.cpp \
+  src/gucefWEB_CWebViewBase.cpp \
+  src/gucefWEB_CWebViewCapabilities.cpp \
+  src/gucefWEB_CWebViewCertificateError.cpp \
+  src/gucefWEB_CWebViewCommand.cpp \
+  src/gucefWEB_CWebViewCommandResult.cpp \
+  src/gucefWEB_CWebViewConsoleMessage.cpp \
+  src/gucefWEB_CWebViewCookie.cpp \
+  src/gucefWEB_CWebViewDownloadRequest.cpp \
+  src/gucefWEB_CWebViewEngineBase.cpp \
+  src/gucefWEB_CWebViewEngineHost.cpp \
+  src/gucefWEB_CWebViewEngineRegistry.cpp \
+  src/gucefWEB_CWebViewEngineSelection.cpp \
+  src/gucefWEB_CWebViewEventRelay.cpp \
+  src/gucefWEB_CWebViewFrameExchange.cpp \
+  src/gucefWEB_CWebViewFrameInfo.cpp \
+  src/gucefWEB_CWebViewGlobal.cpp \
+  src/gucefWEB_CWebViewGlobalSettings.cpp \
+  src/gucefWEB_CWebViewHostAllowList.cpp \
+  src/gucefWEB_CWebViewInputEvent.cpp \
+  src/gucefWEB_CWebViewKeyCodes.cpp \
+  src/gucefWEB_CWebViewLoadError.cpp \
+  src/gucefWEB_CWebViewNavigationRequest.cpp \
+  src/gucefWEB_CWebViewPermissionRequest.cpp \
+  src/gucefWEB_CWebViewPolicy.cpp \
+  src/gucefWEB_CWebViewPopupRequest.cpp \
+  src/gucefWEB_CWebViewPresentation.cpp \
+  src/gucefWEB_CWebViewProfileSettings.cpp \
+  src/gucefWEB_CWebViewRect.cpp \
+  src/gucefWEB_CWebViewScriptDialog.cpp \
+  src/gucefWEB_CWebViewSemaphoreEngineLoop.cpp \
+  src/gucefWEB_CWebViewSettings.cpp \
+  src/gucefWEB_IWebView.cpp \
+  src/gucefWEB_IWebViewEngine.cpp \
+  src/gucefWEB_WebViewTypeNames.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
@@ -91,6 +127,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../gucefIMAGE/include \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include
 
@@ -101,6 +138,7 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
+  gucefIMAGE \
   gucefMT \
   gucefVFS
 

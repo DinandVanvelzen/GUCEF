@@ -120,6 +120,8 @@ struct SChromeProtocolEvent
 
 typedef CORE::CTCloneableObj< SChromeDiscoveryResult >      TChromeDiscoveryCompletedEventData;
 typedef CORE::CTCloneableObj< SChromeProtocolEvent >        TChromeProtocolEventData;
+typedef GUCEF::vector< SChromeCookie >                      TChromeCookieVector;
+typedef GUCEF::vector< SChromeTargetInfo >                  TChromeTargetVector;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -244,6 +246,40 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     /** Attaches to a target over the connection to the browser so its commands can be sent with SetSessionId() */
     bool AttachToTarget( const CORE::CString& targetId, CORE::CString& sessionId );
 
+    /**
+     *  The targets of the browser (Target.getTargets): id, type, title and url of each; the web socket fields stay
+     *  empty since the protocol does not give them here. Over the connection to the browser
+     */
+    bool TargetGetTargets( TChromeTargetVector& targets );
+
+    /**
+     *  The cookies the page would send to the given addresses (Network.getCookies), HttpOnly ones included; with no
+     *  addresses those of the page that is shown. Over a connection to a page or with SetSessionId() of a page
+     */
+    bool GetCookies( const CORE::CString::StringVector& urls, TChromeCookieVector& cookies );
+
+    /** All cookies of the browser (Storage.getCookies), the successor of Network.getAllCookies. Over the connection to the browser */
+    bool StorageGetCookies( TChromeCookieVector& cookies );
+
+    /** Removes all cookies of the browser (Storage.clearCookies). Over the connection to the browser */
+    bool StorageClearCookies( void );
+
+    /**
+     *  Types the text into the element that has the focus, as a keyboard would (Input.insertText): the page sees the
+     *  input events of a person typing. The text is never logged, so it may be a secret the caller holds
+     */
+    bool InputInsertText( const CORE::CString& text );
+
+    /**
+     *  Asks the browser to close (Browser.close). Over the connection to the browser. True also when the browser
+     *  closed the connection before it answered
+     */
+    bool BrowserClose( void );
+
+    /** How long the commands of this class wait for their answer (all but SendCommandAndWait()); 30 s by default */
+    void SetCommandTimeout( UInt32 timeoutInMs );
+    UInt32 GetCommandTimeout( void ) const;
+
     private:
 
     CChromeDevToolsClient( const CChromeDevToolsClient& src );
@@ -283,6 +319,8 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     void FinishDiscovery( bool success, const CORE::CString& failureReason );
     bool IsCallingThreadDriving( const char* operation ) const;
     void PumpPulses( UInt32 milliseconds );
+    static SChromeCookie ParseCookie( const CORE::CDataNode& node );
+    static void ParseCookies( const CORE::CDataNode& result, TChromeCookieVector& cookies );
 
     enum EDiscoveryPhase
     {
@@ -306,6 +344,7 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     bool m_discoveryDone;
     bool m_discoverySucceeded;
     bool m_waitingForDiscovery;
+    UInt32 m_commandTimeoutInMs;
 };
 
 /*-------------------------------------------------------------------------//
