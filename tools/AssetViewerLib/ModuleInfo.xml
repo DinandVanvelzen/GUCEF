@@ -1,0 +1,47 @@
+<ModuleInfoEntry>
+    <Module Name="AssetViewerLib" Type="SharedLibrary" Platform="mswin;linux">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Views and controllers of the asset viewer: models, textures, materials and scenes on Ogre, composed from the asset tool forms of gucefGUI</DescriptionHeadline>
+            <DescriptionDetails>The orbit controller, the stage that renders an asset into a render texture (also for headless contact sheets and thumbnails), the model, texture, material and scene views with their statistics, the mounting of folders and archives in the VFS, the thumbnail provider with its cache keyed by the SHA-256 of the content, and the shell that composes the content browser, viewport, property inspector, image view, time line and report forms. A library so that test applications and later tools reuse the views. Needs the C++ standard of the Ogre glue.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="guidriverImGuiOgre" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="guidriverOgre" />
+            <Dependency Name="guidriverImGuiOgre" />
+            <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
+        </Linker>
+        <Preprocessor>
+            <Define String="ASSETVIEWERLIB_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,37 @@
+<ModuleInfoEntry>
+    <Module Name="OgreTools_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="pluginglueOGRECOMMON" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre.CommonInclude" />
+            <Dependency Name="Ogre" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="pluginglueOGRE" />
+            <Dependency Name="Ogre" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_OGRETOOLS_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <Compiler MinCppStandard="14" />
+        <!-- the Ogre plugins are loaded by name through GUCEF plugin control and the tools are started as
+             processes, so they are built along but not linked -->
+        <RuntimeDependencies>
+            <RuntimeDependency Name="OgrePlugin_GucefVFS" />
+            <RuntimeDependency Name="OgreCodec_Assimp" />
+            <RuntimeDependency Name="OgrePlugin_DotScene" />
+            <RuntimeDependency Name="OgreAssimpConverter" />
+            <RuntimeDependency Name="OgreXMLConverter" />
+            <RuntimeDependency Name="OgreMeshUpgrader" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
