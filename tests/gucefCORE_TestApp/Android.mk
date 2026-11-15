@@ -98,6 +98,7 @@ LOCAL_SRC_FILES := \
   src/TestNotifierObserver.cpp \
   src/TestOsWrapProcessAndCpu.cpp \
   src/TestPbkdf2HmacSha256.cpp \
+  src/TestPluginLoadOrder.cpp \
   src/TestPluginUnload.cpp \
   src/TestProcess.cpp \
   src/TestPumpedObserverLockOrder.cpp \

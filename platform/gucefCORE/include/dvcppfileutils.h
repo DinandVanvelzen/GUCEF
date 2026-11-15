@@ -298,6 +298,10 @@ DeleteDir( const CString& path          ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Creates the directories of the path of a file: everything before the last directory separator.
+ *  The last part of the path is taken for a file name and not created; use CreateDirs() for a directory.
+ */
 GUCEF_CORE_PUBLIC_CPP bool
 CreatePathDirectories( const CString& path );
 

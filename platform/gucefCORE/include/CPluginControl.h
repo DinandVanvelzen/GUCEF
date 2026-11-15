@@ -249,14 +249,27 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
     virtual bool SaveConfig( CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Attempts to load data from the given file to the
-     *  root node given. The root data will be replaced
-     *  and any children the node may already have will be deleted.
+     *  Takes the plugin groups ("PluginGroup" nodes) and their plugins ("PluginMetaData" nodes) of the config, and
+     *  loads and registers the plugins that are to be loaded at once.
+     *
+     *  Load order: the groups load in the order of the config, from top to bottom, and the plugins of a group in the
+     *  order of the group, from top to bottom; unregistering and unloading go in the reverse order. A group with
+     *  "GroupPriority" and a plugin with "PriorityInGroup" (1 and up) take that place instead: lower places load first,
+     *  the place implied by the config is the position of the group in the config (1 for the first) and the position
+     *  of the plugin in its group (after what the group had already, when the group was there before). Groups with the
+     *  same place load by name, plugins with the same place in the order they were added.
      *
      *  @param treeroot pointer to the node that is to act as root of the data tree
      *  @return whether building the tree from the given file was successfull.
      */
     virtual bool LoadConfig( const CDataNode& treeroot ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The names of the plugin groups in the order they load */
+    void GetPluginGroupsInLoadOrder( TStringVector& groupNames ) const;
+
+    /** The module file names of the plugins of a group, registered or not, in the order they load */
+    void GetPluginsInLoadOrder( const CString& groupName      ,
+                                TStringVector& moduleFilenames ) const;
 
     bool AdjustGroupPriority( const CString& groupName , UInt32 newPriority );
 
@@ -332,10 +345,12 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
 
     TPluginGroupPtr GetOrCreatePluginGroup( const CString& groupName, UInt32 priorityIfNotExist = GUCEF_UINT32MAX );
 
+    /** priorityInGroup 0 places the plugin after what the group has (see LoadConfig()) */
     bool AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData ,
                                 const CString& groupName                 ,
                                 bool loadImmediately                     ,
-                                bool registerImmediately = true          );
+                                bool registerImmediately = true          ,
+                                UInt32 priorityInGroup = 0               );
 
     bool LoadPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
                      CPluginGroup& pluginGroup                 ,

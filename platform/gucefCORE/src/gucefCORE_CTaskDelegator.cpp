@@ -108,6 +108,7 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_taskRequestedCycleDelayInMs( 0 )
+    , m_otherThreadPulseRequests( 0 )
     , m_requestedPulseDeltaInMs( 0 )
     , m_driverThreadId( 0 )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
@@ -146,6 +147,7 @@ CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool ,
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
     , m_taskRequestedCycleDelayInMs( 0 )
+    , m_otherThreadPulseRequests( 0 )
     , m_requestedPulseDeltaInMs( 0 )
     , m_driverThreadId( 0 )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
@@ -223,6 +225,10 @@ CTaskDelegator::RequestImmediatePulse( CPulseGenerator& pulseGenerator )
 
     if ( &pulseGenerator == m_pulseGenerator.GetPointerAlways() )
     {
+        // counted before the ticket is handed out: a delegator thread that finds no ticket left after a cycle still sees
+        // that a request of another thread came while the cycle ran (see ProcessTask())
+        if ( MT::GetCurrentThreadID() != m_driverThreadId.Load() )
+            ++m_otherThreadPulseRequests;
         m_immediatePulseTickets.Store( m_immediatePulseTicketMax.Load() );
         WakeUp();
     }
@@ -564,6 +570,10 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
             {
                 try
                 {
+                    // the requests of other threads so far: one made from now on may come after the cycle looked at
+                    // what it was asked to do, the cycle delay the task asks for then does not apply (see below)
+                    UInt32 otherThreadRequestsBeforeCycle = m_otherThreadPulseRequests.Load();
+
                     // Perform a cycle directly and ask the task if we are done
                     if ( taskConsumer->OnTaskCycle( task ) )
                     {
@@ -593,6 +603,17 @@ CTaskDelegator::ProcessTask( CTaskPtr task )
                         // Per cycle we allow external deferment of the next cycle which is distinct from the minimum cycle delta
                         // this allows others or the task logic itself to throttle and 'back off' on a per cycle basis as needed
                         UInt32 taskRequestedCycleDelayInMs = m_taskRequestedCycleDelayInMs.Load();
+
+                        // An immediate pulse request of another thread made while the cycle ran overrides the delay, as one
+                        // made during the delay does: the task may have looked at its input before the request was made
+                        // (work queued, then the request). Its ticket was taken by the pulse above and its wake-up post ends
+                        // only the first wait, so without this the request waited for the whole delay. The wait before the
+                        // next cycle is then that of a cycle without a requested delay (the post of the request ends it)
+                        if ( taskRequestedCycleDelayInMs > 0 && otherThreadRequestsBeforeCycle != m_otherThreadPulseRequests.Load() )
+                        {
+                            m_taskRequestedCycleDelayInMs.Store( 0 );
+                            taskRequestedCycleDelayInMs = 0;
+                        }
                         if ( taskRequestedCycleDelayInMs > 0 && taskRequestedCycleDelayInMs > m_minimalCycleDeltaInMilliSecs )
                         {
                             UInt32 timeLeftToWait = taskRequestedCycleDelayInMs;

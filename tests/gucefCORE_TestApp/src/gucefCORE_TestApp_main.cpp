@@ -295,6 +295,7 @@
 #include "TestFileSystemAccess.h"
 #include "TestVariantMapAdapter.h"
 #include "TestPluginUnload.h"
+#include "TestPluginLoadOrder.h"
 #include "TestSfinaeUtils.h"
 #include "TestExternalThreads.h"
 #include "TestDedicatedTasks.h"
@@ -678,6 +679,7 @@ GUCEF_OSMAIN_BEGIN
         PerformBrowserLauncherTests();
         PerformUserNameTests();
         PerformPluginUnloadTests();
+        PerformPluginLoadOrderTests();
         PerformSfinaeUtilsTests();
         PerformRandomTests();
         PerformRateLimitingTests();

@@ -314,6 +314,7 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     MT::CTAtomic< Int32 > m_immediatePulseTickets;
     MT::CTAtomic< Int32 > m_immediatePulseTicketMax;
     MT::CTAtomic< UInt32 > m_taskRequestedCycleDelayInMs;
+    MT::CTAtomic< UInt32 > m_otherThreadPulseRequests;     /**< immediate pulse requests made on threads other than the delegator thread, counted (wraps); the delegator thread compares it before and after a task cycle */
     MT::CTAtomic< UInt32 > m_requestedPulseDeltaInMs;       /**< the cycle delay asked for, applied on the delegator thread, 0 = none */
     MT::CTAtomic< TThreadId > m_driverThreadId;    /**< MT::GetCurrentThreadID() of the delegator thread, 0 before it runs and once it ended */
     GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_driverSystemThreadId; )   /**< display only, written with m_driverThreadId */

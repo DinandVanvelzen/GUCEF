@@ -253,9 +253,9 @@ CPluginControl::LoadAllPluginsOfType( const CString& pluginTypeToLoad )
             TPluginGroupPtr& pluginGroup = (*n).second;
 
             // Pull a copy of the plugin group info, it will get altered as we load invalidating the collection
-            CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+            CPluginGroup::TPluginMetaDataList pluginMetaDataSet = pluginGroup->GetPluginMetaData();
 
-            CPluginGroup::TPluginMetaDataSet::iterator m = pluginMetaDataSet.begin();
+            CPluginGroup::TPluginMetaDataList::iterator m = pluginMetaDataSet.begin();
             while ( m != pluginMetaDataSet.end() )
             {
                 TPluginMetaDataStoragePtr pluginMetaData = (*m);
@@ -298,9 +298,9 @@ CPluginControl::LoadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
         TPluginGroupPtr& pluginGroup = (*i).second;
 
         // Pull a copy of the plugin group info, it will get altered as we load invalidating the collection
-        CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+        CPluginGroup::TPluginMetaDataList pluginMetaDataSet = pluginGroup->GetPluginMetaData();
 
-        CPluginGroup::TPluginMetaDataSet::iterator n = pluginMetaDataSet.begin();
+        CPluginGroup::TPluginMetaDataList::iterator n = pluginMetaDataSet.begin();
         while ( n != pluginMetaDataSet.end() )
         {
             TPluginMetaDataStoragePtr pluginMetaData = (*n);
@@ -339,9 +339,9 @@ CPluginControl::LoadPluginGroup( const CString& groupName )
         // Pull a copy of the plugin group info, it will get altered as we load invalidating the collection
         // hence we have to copy it here
         TPluginGroupPtr& pluginGroup = (*i).second;
-        CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+        CPluginGroup::TPluginMetaDataList pluginMetaDataSet = pluginGroup->GetPluginMetaData();
 
-        CPluginGroup::TPluginMetaDataSet::iterator n = pluginMetaDataSet.begin();
+        CPluginGroup::TPluginMetaDataList::iterator n = pluginMetaDataSet.begin();
         while ( n != pluginMetaDataSet.end() )
         {
             TPluginMetaDataStoragePtr pluginMetaData = (*n);
@@ -382,9 +382,9 @@ CPluginControl::LoadAll( bool registerAll                  ,
         while ( n != pluginGroups.end() )
         {
             TPluginGroupPtr& pluginGroup = (*n).second;
-            CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+            CPluginGroup::TPluginMetaDataList pluginMetaDataSet = pluginGroup->GetPluginMetaData();
 
-            CPluginGroup::TPluginMetaDataSet::iterator m = pluginMetaDataSet.begin();
+            CPluginGroup::TPluginMetaDataList::iterator m = pluginMetaDataSet.begin();
             while ( m != pluginMetaDataSet.end() )
             {
                 TPluginMetaDataStoragePtr pluginMetaData = (*m);
@@ -439,8 +439,8 @@ CPluginControl::RegisterAll( bool registerOnlyIfLoadImmediatelySet )
             TPluginGroupPtr& pluginGroup = (*n).second;
             
             // note that we need to pull a copy of the plugin group info, it will get altered as we register invalidating the collection
-            CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
-            CPluginGroup::TPluginMetaDataSet::iterator m = pluginMetaDataSet.begin();
+            CPluginGroup::TPluginMetaDataList pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+            CPluginGroup::TPluginMetaDataList::iterator m = pluginMetaDataSet.begin();
             while ( m != pluginMetaDataSet.end() )
             {
                 TPluginMetaDataStoragePtr pluginMetaData = (*m);
@@ -674,8 +674,7 @@ CPluginControl::RegisterPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
             TPluginPtr pluginPtr = (*w)->RegisterPlugin( pluginMetaData->GetModulePointer(), pluginMetaData );
             if ( pluginPtr )
             {
-                pluginGroup.GetPluginMetaData().erase( pluginMetaData );
-                pluginGroup.GetPlugins().insert( pluginPtr );
+                pluginGroup.ReplacePluginMetaDataWithPlugin( pluginMetaData, pluginPtr );
                 GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Registered module with name \"" +
                                         pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
                                         VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + (*w)->GetPluginType() + "\"" );
@@ -699,8 +698,7 @@ CPluginControl::RegisterPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
         TPluginPtr pluginPtr = pluginManager->RegisterPlugin( pluginMetaData->GetModulePointer(), pluginMetaData );
         if ( pluginPtr )
         {
-            pluginGroup.GetPluginMetaData().erase( pluginMetaData );
-            pluginGroup.GetPlugins().insert( pluginPtr );
+            pluginGroup.ReplacePluginMetaDataWithPlugin( pluginMetaData, pluginPtr );
             GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Registered module with name \"" +
                                     pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
                                     VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + pluginType + "\"" );
@@ -834,7 +832,7 @@ CPluginControl::UnregisterPlugin( TPluginPtr& pluginPtr     ,
 
     // Note that we make a copy of the meta data since the interface we have might be pointing to a implementation which needs
     // the module to be loaded which is the plugin managers right to do so.
-    TPluginMetaDataPtr metaDataCopyPtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );
+    TPluginMetaDataStoragePtr metaDataCopyPtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );
 
     // First we unregister the plugin with its plugin manager
     CString pluginType = metaDataCopyPtr->GetPluginType();
@@ -868,9 +866,8 @@ CPluginControl::UnregisterPlugin( TPluginPtr& pluginPtr     ,
         return false;
     }
 
-    // Remove the plugin entry and instead add a metadata plugin entry
-    pluginGroup.GetPlugins().erase( pluginPtr );
-    pluginGroup.GetPluginMetaData().insert( metaDataCopyPtr );
+    // Remove the plugin entry and instead add a metadata plugin entry, in the place of the plugin in the load order
+    pluginGroup.ReplacePluginWithPluginMetaData( pluginPtr, metaDataCopyPtr );
 
     return true;
 }
@@ -912,7 +909,7 @@ CPluginControl::UnloadPlugin( TPluginPtr& pluginPtr     ,
                 moduleFilename + "\" in group \"" + groupName + "\". Forcing DLL unload." );
 
         // UnregisterPlugin normally removes the entry from m_plugins; do it manually here
-        pluginGroup.GetPlugins().erase( pluginPtr );
+        pluginGroup.RemovePlugin( pluginPtr );
     }
     else
     {
@@ -945,8 +942,8 @@ CPluginControl::UnloadPlugin( TPluginPtr& pluginPtr     ,
         m_deferredModuleUnloads.push_back( deferred );
 
         // The module is not a loaded module of the group any more: loading the group again loads it again
-        CPluginGroup::TPluginMetaDataSet& groupMetaData = pluginGroup.GetPluginMetaData();
-        for ( CPluginGroup::TPluginMetaDataSet::iterator n = groupMetaData.begin(); n != groupMetaData.end(); ++n )
+        CPluginGroup::TPluginMetaDataList groupMetaData = pluginGroup.GetPluginMetaData();
+        for ( CPluginGroup::TPluginMetaDataList::iterator n = groupMetaData.begin(); n != groupMetaData.end(); ++n )
         {
             TPluginMetaDataStoragePtr metaData = (*n);
             if ( !metaData.IsNULL() && modulePtr == metaData->GetModulePointer() )
@@ -987,8 +984,8 @@ CPluginControl::UnloadModule( void* modulePtr                    ,
         // Clear it, otherwise loading the group again treats the module as loaded and registers a dangling handle
         if ( GUCEF_NULL != pluginGroup )
         {
-            CPluginGroup::TPluginMetaDataSet& groupMetaData = pluginGroup->GetPluginMetaData();
-            for ( CPluginGroup::TPluginMetaDataSet::iterator n = groupMetaData.begin(); n != groupMetaData.end(); ++n )
+            CPluginGroup::TPluginMetaDataList groupMetaData = pluginGroup->GetPluginMetaData();
+            for ( CPluginGroup::TPluginMetaDataList::iterator n = groupMetaData.begin(); n != groupMetaData.end(); ++n )
             {
                 TPluginMetaDataStoragePtr metaData = (*n);     // set entries are const, the meta data they point at is not
                 if ( !metaData.IsNULL() && modulePtr == metaData->GetModulePointer() )
@@ -1081,11 +1078,12 @@ CPluginControl::UnloadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
         TPluginGroupPtr& pluginGroup = (*i).second;
 
         // must make a copy as unloading alters the collection
-        CPluginGroup::TPluginSet pluginSet = pluginGroup->GetPlugins();
+        CPluginGroup::TPluginList pluginSet = pluginGroup->GetPlugins();
 
         // Look for a plugin of the given type
-        CPluginGroup::TPluginSet::iterator n = pluginSet.begin();
-        while ( n != pluginSet.end() )
+        // in the reverse of the load order
+        CPluginGroup::TPluginList::reverse_iterator n = pluginSet.rbegin();
+        while ( n != pluginSet.rend() )
         {
             TPluginPtr plugin = (*n);
             TPluginMetaDataPtr pluginMetaData = plugin->GetMetaData();
@@ -1131,10 +1129,11 @@ CPluginControl::UnloadAllPluginsOfType( const CString& pluginTypeToUnload )
             TPluginGroupPtr& pluginGroup = (*n).second;
 
             // must make a copy as unloading alters the collection
-            CPluginGroup::TPluginSet pluginSet = pluginGroup->GetPlugins();
+            CPluginGroup::TPluginList pluginSet = pluginGroup->GetPlugins();
 
-            CPluginGroup::TPluginSet::iterator m = pluginSet.begin();
-            while ( m != pluginSet.end() )
+            // in the reverse of the load order
+            CPluginGroup::TPluginList::reverse_iterator m = pluginSet.rbegin();
+            while ( m != pluginSet.rend() )
             {
                 TPluginPtr plugin = (*m);
                 TPluginMetaDataPtr pluginMetaData = plugin->GetMetaData();
@@ -1174,15 +1173,16 @@ CPluginControl::UnloadPluginGroup( const CString& groupName )
     {
         // must make a copy as unregister can mess with the iterators
         TPluginGroupPtr pluginGroup = (*i).second;
-        CPluginGroup::TPluginSet pluginSet = pluginGroup->GetPlugins();
+        CPluginGroup::TPluginList pluginSet = pluginGroup->GetPlugins();
 
         if ( pluginSet.empty() )
         {
             GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Group \"" + groupName + "\" has no loaded modules. Intent to unload is satisfied." );
         }
 
-        CPluginGroup::TPluginSet::iterator n = pluginSet.begin();
-        while ( n != pluginSet.end() )
+        // in the reverse of the load order
+        CPluginGroup::TPluginList::reverse_iterator n = pluginSet.rbegin();
+        while ( n != pluginSet.rend() )
         {
             TPluginPtr plugin = (*n);
             TPluginMetaDataPtr pluginMetaData = plugin->GetMetaData();
@@ -1232,8 +1232,8 @@ CPluginControl::GetAvailablePluginsForGroup( const CString& groupName ,
         const TPluginGroupPtr& pluginGroup = (*i).second;
 
         // Get modules not loaded yet
-        const CPluginGroup::TPluginMetaDataSet& metaData = pluginGroup->GetPluginMetaData();
-        CPluginGroup::TPluginMetaDataSet::const_iterator n = metaData.begin();
+        const CPluginGroup::TPluginMetaDataList metaData = pluginGroup->GetPluginMetaData();
+        CPluginGroup::TPluginMetaDataList::const_iterator n = metaData.begin();
         while ( n != metaData.end() )
         {
             modules.insert( (*n)->GetModuleFilename() );
@@ -1241,14 +1241,48 @@ CPluginControl::GetAvailablePluginsForGroup( const CString& groupName ,
         }
 
         // Get modules already loaded
-        const CPluginGroup::TPluginSet& plugins = pluginGroup->GetPlugins();
-        CPluginGroup::TPluginSet::const_iterator p = plugins.begin();
+        const CPluginGroup::TPluginList plugins = pluginGroup->GetPlugins();
+        CPluginGroup::TPluginList::const_iterator p = plugins.begin();
         while ( p != plugins.end() )
         {
             modules.insert( (*p)->GetMetaData()->GetModuleFilename() );
             ++p;
         }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginControl::GetPluginGroupsInLoadOrder( TStringVector& groupNames ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    TPluginGroupMap::const_iterator i = m_pluginGroupsByPriority.begin();
+    while ( i != m_pluginGroupsByPriority.end() )
+    {
+        const TStringToPluginGroupMap& pluginGroups = (*i).second;
+        TStringToPluginGroupMap::const_iterator n = pluginGroups.begin();
+        while ( n != pluginGroups.end() )
+        {
+            groupNames.push_back( (*n).first );
+            ++n;
+        }
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginControl::GetPluginsInLoadOrder( const CString& groupName      ,
+                                       TStringVector& moduleFilenames ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    TStringToPluginGroupMap::const_iterator i = m_pluginGroupsByName.find( groupName );
+    if ( i != m_pluginGroupsByName.end() )
+        (*i).second->GetModuleFilenamesInLoadOrder( moduleFilenames );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1269,17 +1303,18 @@ CPluginControl::UnregisterAll( void )
     // the modules directly. That administration might get invalided as we
     // start unloading
 
-    TStringSet groupNames;
-    GetAvailablePluginGroups( groupNames );
+    // in the reverse of the load order: the groups from the last to load to the first, the plugins of a group as well
+    TStringVector groupNames;
+    GetPluginGroupsInLoadOrder( groupNames );
 
-    TStringSet::iterator i = groupNames.begin();
-    while ( i != groupNames.end() )
+    TStringVector::reverse_iterator i = groupNames.rbegin();
+    while ( i != groupNames.rend() )
     {
-        TStringSet modules;
-        GetAvailablePluginsForGroup( (*i), modules );
+        TStringVector modules;
+        GetPluginsInLoadOrder( (*i), modules );
 
-        TStringSet::iterator n = modules.begin();
-        while ( n != modules.end() )
+        TStringVector::reverse_iterator n = modules.rbegin();
+        while ( n != modules.rend() )
         {
             TPluginMetaDataPtr pluginMetaData = GetMetaDataOfModule( (*i), (*n) );
             bool unregisterSuccess = UnregisterPlugin( (*i), (*n) );
@@ -1318,17 +1353,18 @@ CPluginControl::UnloadAll( void )
     // the modules directly. That administration might get invalided as we
     // start unloading
 
-    TStringSet groupNames;
-    GetAvailablePluginGroups( groupNames );
+    // in the reverse of the load order: the groups from the last to load to the first, the plugins of a group as well
+    TStringVector groupNames;
+    GetPluginGroupsInLoadOrder( groupNames );
 
-    TStringSet::iterator i = groupNames.begin();
-    while ( i != groupNames.end() )
+    TStringVector::reverse_iterator i = groupNames.rbegin();
+    while ( i != groupNames.rend() )
     {
-        TStringSet modules;
-        GetAvailablePluginsForGroup( (*i), modules );
+        TStringVector modules;
+        GetPluginsInLoadOrder( (*i), modules );
 
-        TStringSet::iterator n = modules.begin();
-        while ( n != modules.end() )
+        TStringVector::reverse_iterator n = modules.rbegin();
+        while ( n != modules.rend() )
         {
             TPluginMetaDataPtr pluginMetaData = GetMetaDataOfModule( (*i), (*n) );
             bool unloadSuccess = UnloadPlugin( (*i), (*n) );
@@ -1355,10 +1391,10 @@ CPluginControl::ClearMetaDataFromGroup( const CString& groupName )
     if ( i != m_pluginGroupsByName.end() )
     {
         TPluginGroupPtr& pluginGroup = (*i).second;
-        pluginGroup->GetPluginMetaData().clear();
+        pluginGroup->ClearPluginMetaData();
 
         // If no plugins are loaded & we have no metadata then get rid of the group alltogether
-        if ( pluginGroup->GetPlugins().empty() )
+        if ( !pluginGroup->HasPlugins() )
         {
             m_pluginGroupsByPriority[ pluginGroup->GetGroupPriority() ].erase( groupName );
             m_pluginGroupsByName.erase( i );
@@ -1617,7 +1653,8 @@ bool
 CPluginControl::AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData ,
                                        const CString& groupName                 ,
                                        bool loadImmediately                     ,
-                                       bool registerImmediately                 )
+                                       bool registerImmediately                 ,
+                                       UInt32 priorityInGroup                   )
 {GUCEF_TRACE;
 
     bool success = true;
@@ -1640,8 +1677,8 @@ CPluginControl::AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData 
             TStringToPluginGroupMap::iterator gi = m_pluginGroupsByName.begin();
             while ( gi != m_pluginGroupsByName.end() )
             {
-                CPluginGroup::TPluginSet& loadedPlugins = (*gi).second->GetPlugins();
-                CPluginGroup::TPluginSet::iterator pi = loadedPlugins.begin();
+                CPluginGroup::TPluginList loadedPlugins = (*gi).second->GetPlugins();
+                CPluginGroup::TPluginList::iterator pi = loadedPlugins.begin();
                 while ( pi != loadedPlugins.end() )
                 {
                     TPluginMetaDataPtr piMeta = (*pi)->GetMetaData();
@@ -1659,8 +1696,8 @@ CPluginControl::AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData 
         }
     }
 
-    // Add the metadata
-    pluginGroup->GetPluginMetaData().insert( pluginMetaData );
+    // Add the metadata, in its place in the load order of the group
+    pluginGroup->AddPluginMetaData( pluginMetaData, priorityInGroup );
 
     // If an immediate load is desired we invoke the load function as well
     if ( loadImmediately )
@@ -1673,7 +1710,7 @@ CPluginControl::AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData 
         // A module that could not be loaded is not kept: loading all plugins later would try it again and fail.
         // Callers commonly try one file name and then another. A plugin that may fail stays, as configured
         if ( !success && GUCEF_NULL == pluginMetaData->GetModulePointer() && !pluginMetaData->GetLoadFailAllowed() )
-            pluginGroup->GetPluginMetaData().erase( pluginMetaData );
+            pluginGroup->RemovePluginMetaData( pluginMetaData );
     }
 
     return success;
@@ -1747,9 +1784,41 @@ CPluginControl::SaveConfig( CDataNode& tree ) const
 
 /*-------------------------------------------------------------------------*/
 
-typedef GUCEF::vector< TPluginMetaDataStoragePtr, gucef_allocator< TPluginMetaDataStoragePtr > >  TPluginLoadEntryVector;
+/** A plugin of a group of the config: its meta data, its PriorityInGroup (0 when it has none) and its position in the group */
+struct SPluginLoadEntry
+{
+    TPluginMetaDataStoragePtr metaData;
+    UInt32 priorityInGroup;
+    UInt32 positionInGroup;
+};
+
+typedef GUCEF::vector< SPluginLoadEntry, gucef_allocator< SPluginLoadEntry > >                   TPluginLoadEntryVector;
 typedef GUCEF::map< CString, TPluginLoadEntryVector >                                             TStringToPluginLoadEntryVectorMap;
 typedef GUCEF::map< UInt32, TStringToPluginLoadEntryVectorMap >                                   TPluginLoadEntryMap;
+typedef GUCEF::vector< const CDataNode* >                                                         TConstDataNodeVector;
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The nodes with the given name below the node, in the order of the document (depth first). The node sets of
+ *  CDataNode::FindChildrenOfType() are ordered by address, which is not the order of the config
+ */
+static void
+FindChildrenOfTypeInDocumentOrder( const CDataNode& node        ,
+                                   const CString& typeName      ,
+                                   TConstDataNodeVector& found  )
+{GUCEF_TRACE;
+
+    CDataNode::const_iterator i = node.ConstBegin();
+    while ( i != node.ConstEnd() )
+    {
+        const CDataNode* child = (*i);
+        if ( typeName == child->GetName() )
+            found.push_back( child );
+        FindChildrenOfTypeInDocumentOrder( *child, typeName, found );
+        ++i;
+    }
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -1761,21 +1830,27 @@ CPluginControl::LoadConfig( const CDataNode& treeroot )
     bool errorOccured = false;
 
     // first parse relevant information from the config
-    // Note that group loading priority is determined by order of appearance in the config unless otherwise specified in the config
+    // The groups load in the order of the config unless a group has a GroupPriority, and the plugins of a group in the
+    // order of the group unless a plugin has a PriorityInGroup (see the header)
 
     UInt32 groupPriorityPerConfigOrder = 1;
-    CDataNode::TConstDataNodeSet pluginGroupNodes( treeroot.FindChildrenOfType( "PluginGroup", true ) );
-    CDataNode::TConstDataNodeSet::iterator i = pluginGroupNodes.begin();
+    TConstDataNodeVector pluginGroupNodes;
+    FindChildrenOfTypeInDocumentOrder( treeroot, "PluginGroup", pluginGroupNodes );
+    TConstDataNodeVector::iterator i = pluginGroupNodes.begin();
     while ( i != pluginGroupNodes.end() )
     {
         const CDataNode* groupNode = (*i);
 
         bool loadPlugins = groupNode->GetAttributeValueOrChildValueByName( "LoadImmediately" ).AsBool( false, true );
         CString groupName = groupNode->GetAttributeValueOrChildValueByName( "GroupName" ).AsString( CString::Empty, true );
-        UInt32 groupPriority = groupNode->GetAttributeValueOrChildValueByName( "GroupPriority" ).AsUInt32( groupPriorityPerConfigOrder, true );
+        UInt32 groupPriority = groupNode->GetAttributeValueOrChildValueByName( "GroupPriority" ).AsUInt32( 0, true );
+        if ( 0 == groupPriority )
+            groupPriority = groupPriorityPerConfigOrder;
 
-        CDataNode::TConstDataNodeSet pluginMetaDataNodes( groupNode->FindChildrenOfType( "PluginMetaData", true ) );
-        CDataNode::TConstDataNodeSet::iterator n = pluginMetaDataNodes.begin();
+        UInt32 positionInGroup = 0;
+        TConstDataNodeVector pluginMetaDataNodes;
+        FindChildrenOfTypeInDocumentOrder( *groupNode, "PluginMetaData", pluginMetaDataNodes );
+        TConstDataNodeVector::iterator n = pluginMetaDataNodes.begin();
         while ( n != pluginMetaDataNodes.end() )
         {
             // Check for per-plugin override of load settings, overriding group default
@@ -1793,8 +1868,12 @@ CPluginControl::LoadConfig( const CDataNode& treeroot )
 
                 metaData->SetLoadImmediately( loadImmediately );
                 metaData->SetLoadFailAllowed( loadFailAllowed );
-                
-                entriesOfGroup.push_back( metaData );
+
+                SPluginLoadEntry entry;
+                entry.metaData = metaData;
+                entry.priorityInGroup = (*n )->GetAttributeValueOrChildValueByName( "PriorityInGroup" ).AsUInt32( 0, true );
+                entry.positionInGroup = ++positionInGroup;
+                entriesOfGroup.push_back( entry );
             }
             else
             {
@@ -1837,13 +1916,17 @@ CPluginControl::LoadConfig( const CDataNode& treeroot )
                     if ( !AdjustGroupPriority( groupName, priorityLevel ) )
                         errorOccured = true;
 
+                // a plugin without a PriorityInGroup is placed by its position, after what the group had already
+                const UInt32 placeOfFirstPosition = pluginGroup->GetHighestPriorityInGroup();
+
                 TPluginLoadEntryVector& entriesOfGroup = (*g).second;
                 TPluginLoadEntryVector::iterator e = entriesOfGroup.begin();
                 while ( e != entriesOfGroup.end() )
                 {
-                    TPluginMetaDataStoragePtr& metaData = (*e);
+                    TPluginMetaDataStoragePtr& metaData = (*e).metaData;
+                    const UInt32 priorityInGroup = (*e).priorityInGroup > 0 ? (*e).priorityInGroup : placeOfFirstPosition + (*e).positionInGroup;
 
-                    if ( AddPluginMetaDataImpl( metaData, groupName, false, false ) )
+                    if ( AddPluginMetaDataImpl( metaData, groupName, false, false, priorityInGroup ) )
                     {
                         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PluginControl: Loaded meta-data for plugin in group \"" + groupName + "\" with filename: " + metaData->GetModuleFilename() );
                     }
@@ -1917,8 +2000,8 @@ CPluginControl::UnlistModuleForLinkBack( const CString& moduleName )
     while ( gi != m_pluginGroupsByName.end() )
     {
         const CString& groupName = (*gi).first;
-        CPluginGroup::TPluginSet& plugins = (*gi).second->GetPlugins();
-        CPluginGroup::TPluginSet::iterator pi = plugins.begin();
+        CPluginGroup::TPluginList plugins = (*gi).second->GetPlugins();
+        CPluginGroup::TPluginList::iterator pi = plugins.begin();
         while ( pi != plugins.end() )
         {
             TPluginMetaDataPtr meta = (*pi)->GetMetaData();

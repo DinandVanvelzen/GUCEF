@@ -242,6 +242,83 @@ typedef CTSharedPtr< CLongDelayTask, MT::CMutex > CLongDelayTaskPtr;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  A dedicated task like CLongDelayTask (cycles 60 s apart, no periodic pulses) whose cycle can be held at a gate: the test
+ *  makes a request from another thread at a known point inside the cycle, after the cycle took its input, as a work queue
+ *  that is fed from other threads and woken with an immediate pulse request is
+ */
+class CGatedCycleTask : public CTaskConsumer
+{
+    public:
+
+    CGatedCycleTask( void ) : CTaskConsumer(), m_cycles( 0 ), m_gateArmed( 0 ), m_inGate( 0 ), m_gateOpen( 0 ) {}
+    virtual ~CGatedCycleTask() {}
+
+    virtual CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return "GUCEF::CORE::TestTaskDelegatorWakeUp::GatedCycleTask"; }
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CString typeName = "CGatedCycleTask";
+        return typeName;
+    }
+    virtual bool OnTaskStart( CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( !CTaskConsumer::OnTaskStart( task ) )
+            return false;
+        RequestTaskCycleDelayInMs( 60000 );
+        GetPulseGenerator()->ForceStopOfPeriodicPulses();
+        return true;
+    }
+    virtual bool OnTaskCycle( CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        ++m_cycles;
+        UInt32 armed = 1;
+        if ( m_gateArmed.CompareExchangeStrong( armed, 0 ) )
+        {
+            // the input of this cycle is taken: wait at the gate until the test opened it (at most 5 s)
+            m_inGate.Store( 1 );
+            for ( UInt32 waited=0; waited<5000 && 0 == m_gateOpen.Load(); ++waited )
+                MT::ThreadDelay( 1 );
+            m_gateOpen.Store( 0 );
+            m_inGate.Store( 0 );
+        }
+        RequestTaskCycleDelayInMs( 60000 );
+        return false;
+    }
+    virtual void OnTaskEnding( CTaskPtr task, bool willBeForced ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        GetPulseGenerator()->AllowPeriodicPulses();
+        CTaskConsumer::OnTaskEnding( task, willBeForced );
+    }
+    virtual void OnTaskEnded( CTaskPtr task, bool wasForced ) GUCEF_VIRTUAL_OVERRIDE { CTaskConsumer::OnTaskEnded( task, wasForced ); }
+
+    UInt32 GetCycles( void ) const { return m_cycles.Load(); }
+    void ArmGate( void ) { m_gateArmed.Store( 1 ); }
+    bool IsInGate( void ) const { return 0 != m_inGate.Load(); }
+    void OpenGate( void ) { m_gateOpen.Store( 1 ); }
+
+    private:
+
+    MT::CTAtomic< UInt32 > m_cycles;
+    MT::CTAtomic< UInt32 > m_gateArmed;
+    MT::CTAtomic< UInt32 > m_inGate;
+    MT::CTAtomic< UInt32 > m_gateOpen;
+};
+
+typedef CTSharedPtr< CGatedCycleTask, MT::CMutex > CGatedCycleTaskPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/** Waits until the task cycled more than the given count, at most timeoutInMs; @return whether it did */
+bool
+WaitForCycleAfter( const CGatedCycleTask& task, UInt32 cycles, UInt32 timeoutInMs )
+{
+    for ( UInt32 waited=0; waited<timeoutInMs && task.GetCycles() <= cycles; ++waited )
+        MT::ThreadDelay( 1 );
+    return task.GetCycles() > cycles;
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** How many of the given threads of this process still run, -1 where that cannot be read */
 Int32
 CountLiveThreads( const CThreadPool::TThreadIdVector& threadIds )
@@ -948,6 +1025,55 @@ PerformTaskDelegatorWakeUpTests( void )
             GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: the task during a long delay stopped in " << stopMs << " ms" );
             ASSERT_TRUE( stopMs < 1000.0 );
             CCoreGlobal::Instance()->GetTaskManager().UnregisterThreadPool( delayPoolName );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "An immediate pulse request made on another thread while a task's cycle runs, after the cycle took its input, ends the cycle delay the task asked for: the next cycle follows at once, as for a request made during the delay; without a request the task sleeps its delay" )
+        try
+        {
+            const char* gatedPoolName = "gucefCORE_TestApp.TaskDelegatorWakeUp.GatedCycle";
+            ThreadPoolPtr gatedPool = CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( gatedPoolName );
+            REQUIRE_TRUE( !gatedPool.IsNULL() );
+            CGatedCycleTaskPtr gatedTask( GUCEF_NEW CGatedCycleTask() );
+            REQUIRE_TRUE( gatedPool->SetupSingularTask( gatedTask ).HasAFuture() && gatedPool->StartTaskWithConsumer( gatedTask ).HasAFuture() );
+            for ( UInt32 i=0; i<400 && 0 == gatedTask->GetCycles(); ++i )
+                MT::ThreadDelay( 5 );
+            REQUIRE_TRUE( 1 <= gatedTask->GetCycles() );
+            PulseGeneratorPtr gatedPulseGenerator = gatedTask->GetPulseGenerator();
+            REQUIRE_TRUE( !gatedPulseGenerator.IsNULL() );
+
+            // the losing order, forced: the request comes while the cycle is held at its gate, after it took its input
+            const UInt32 rounds = 20;
+            UInt32 lost = 0;
+            for ( UInt32 r=0; r<rounds; ++r )
+            {
+                gatedTask->ArmGate();
+                UInt32 before = gatedTask->GetCycles();
+                gatedPulseGenerator->RequestImmediatePulse();    // ends the delay: the next cycle stops at the gate
+                for ( UInt32 waited=0; waited<2000 && !gatedTask->IsInGate(); ++waited )
+                    MT::ThreadDelay( 1 );
+                REQUIRE_TRUE( gatedTask->IsInGate() && gatedTask->GetCycles() == before + 1 );
+                const UInt32 inCycle = gatedTask->GetCycles();
+                gatedPulseGenerator->RequestImmediatePulse();    // new input for the task, from another thread, during its cycle
+                gatedTask->OpenGate();
+                if ( !WaitForCycleAfter( *gatedTask, inCycle, 1000 ) )
+                    ++lost;
+            }
+            GUCEF_LOG( LOGLEVEL_IMPORTANT, "TaskDelegatorWakeUp: requests made during a cycle that asks for a 60 s delay, without a cycle within 1000 ms after them: " << lost << " of " << rounds );
+            ASSERT_TRUE( 0 == lost );
+
+            // without a request during its cycle the task still sleeps the delay it asked for: no cycle follows
+            MT::ThreadDelay( 50 );
+            const UInt32 settled = gatedTask->GetCycles();
+            MT::ThreadDelay( 500 );
+            ASSERT_TRUE( settled == gatedTask->GetCycles() );
+
+            ASSERT_TRUE( gatedTask->RequestTaskToStop( true ) );
+            CCoreGlobal::Instance()->GetTaskManager().UnregisterThreadPool( gatedPoolName );
         }
         catch ( ... )
         {

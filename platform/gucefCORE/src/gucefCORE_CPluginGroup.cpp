@@ -49,6 +49,7 @@ CPluginGroup::CPluginGroup( void )
     : CTSharedObjCreator< CPluginGroup, MT::CMutex >( this )
     , m_plugins()        
     , m_pluginMetaData()
+    , m_nextSequence( 0 )
     , m_priority( 0 )
 {GUCEF_TRACE;
 
@@ -60,6 +61,7 @@ CPluginGroup::CPluginGroup( const CPluginGroup& src )
     : CTSharedObjCreator< CPluginGroup, MT::CMutex >( this )
     , m_plugins( src.m_plugins )                
     , m_pluginMetaData( src.m_pluginMetaData )
+    , m_nextSequence( src.m_nextSequence )
     , m_priority( src.m_priority )
 {GUCEF_TRACE;
 
@@ -85,6 +87,7 @@ CPluginGroup::operator=( const CPluginGroup& src )
     {
         m_plugins = src.m_plugins;
         m_pluginMetaData = src.m_pluginMetaData;
+        m_nextSequence = src.m_nextSequence;
         m_priority = src.m_priority;
     }
     return *this;
@@ -92,38 +95,211 @@ CPluginGroup::operator=( const CPluginGroup& src )
 
 /*-------------------------------------------------------------------------*/
 
-CPluginGroup::TPluginSet&
-CPluginGroup::GetPlugins( void )
+bool
+CPluginGroup::IsBefore( const SEntry& a, const SEntry& b )
 {GUCEF_TRACE;
 
-    return m_plugins;
+    if ( a.priorityInGroup != b.priorityInGroup )
+        return a.priorityInGroup < b.priorityInGroup;
+    return a.sequence < b.sequence;
 }
 
 /*-------------------------------------------------------------------------*/
 
-const CPluginGroup::TPluginSet&
+void
+CPluginGroup::InsertInLoadOrder( TEntryList& entries, const SEntry& entry )
+{GUCEF_TRACE;
+
+    TEntryList::iterator i = entries.begin();
+    while ( i != entries.end() && IsBefore( (*i), entry ) )
+        ++i;
+    entries.insert( i, entry );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPluginGroup::TPluginList
 CPluginGroup::GetPlugins( void ) const
 {GUCEF_TRACE;
 
-    return m_plugins;
+    TPluginList plugins;
+    plugins.reserve( m_plugins.size() );
+    for ( TEntryList::const_iterator i = m_plugins.begin(); i != m_plugins.end(); ++i )
+        plugins.push_back( (*i).plugin );
+    return plugins;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CPluginGroup::TPluginMetaDataSet&
-CPluginGroup::GetPluginMetaData( void )
+bool
+CPluginGroup::HasPlugins( void ) const
 {GUCEF_TRACE;
 
-    return m_pluginMetaData;
+    return !m_plugins.empty();
 }
 
 /*-------------------------------------------------------------------------*/
 
-const CPluginGroup::TPluginMetaDataSet&
+CPluginGroup::TPluginMetaDataList
 CPluginGroup::GetPluginMetaData( void ) const
 {GUCEF_TRACE;
 
-    return m_pluginMetaData;
+    TPluginMetaDataList metaData;
+    metaData.reserve( m_pluginMetaData.size() );
+    for ( TEntryList::const_iterator i = m_pluginMetaData.begin(); i != m_pluginMetaData.end(); ++i )
+        metaData.push_back( (*i).metaData );
+    return metaData;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginGroup::GetModuleFilenamesInLoadOrder( TStringVector& moduleFilenames ) const
+{GUCEF_TRACE;
+
+    // both lists are in load order: merge them
+    TEntryList::const_iterator p = m_plugins.begin();
+    TEntryList::const_iterator m = m_pluginMetaData.begin();
+    while ( p != m_plugins.end() || m != m_pluginMetaData.end() )
+    {
+        const bool takePlugin = m == m_pluginMetaData.end() || ( p != m_plugins.end() && IsBefore( (*p), (*m) ) );
+        if ( takePlugin )
+        {
+            TPluginMetaDataPtr metaData = (*p).plugin->GetMetaData();
+            moduleFilenames.push_back( metaData.IsNULL() ? CString::Empty : metaData->GetModuleFilename() );
+            ++p;
+        }
+        else
+        {
+            moduleFilenames.push_back( (*m).metaData->GetModuleFilename() );
+            ++m;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CPluginGroup::GetHighestPriorityInGroup( void ) const
+{GUCEF_TRACE;
+
+    UInt32 highest = 0;
+    if ( !m_plugins.empty() && m_plugins.back().priorityInGroup > highest )
+        highest = m_plugins.back().priorityInGroup;
+    if ( !m_pluginMetaData.empty() && m_pluginMetaData.back().priorityInGroup > highest )
+        highest = m_pluginMetaData.back().priorityInGroup;
+    return highest;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CPluginGroup::AddPluginMetaData( const TPluginMetaDataStoragePtr& metaData, UInt32 priorityInGroup )
+{GUCEF_TRACE;
+
+    for ( TEntryList::const_iterator i = m_pluginMetaData.begin(); i != m_pluginMetaData.end(); ++i )
+        if ( (*i).metaData == metaData )
+            return (*i).priorityInGroup;
+
+    SEntry entry;
+    entry.metaData = metaData;
+    entry.priorityInGroup = priorityInGroup > 0 ? priorityInGroup : GetHighestPriorityInGroup() + 1;
+    entry.sequence = m_nextSequence++;
+    InsertInLoadOrder( m_pluginMetaData, entry );
+    return entry.priorityInGroup;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPluginGroup::RemovePluginMetaData( const TPluginMetaDataStoragePtr& metaData )
+{GUCEF_TRACE;
+
+    for ( TEntryList::iterator i = m_pluginMetaData.begin(); i != m_pluginMetaData.end(); ++i )
+    {
+        if ( (*i).metaData == metaData )
+        {
+            m_pluginMetaData.erase( i );
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginGroup::ClearPluginMetaData( void )
+{GUCEF_TRACE;
+
+    m_pluginMetaData.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPluginGroup::ReplacePluginMetaDataWithPlugin( const TPluginMetaDataStoragePtr& metaData, const TPluginPtr& plugin )
+{GUCEF_TRACE;
+
+    for ( TEntryList::iterator i = m_pluginMetaData.begin(); i != m_pluginMetaData.end(); ++i )
+    {
+        if ( (*i).metaData == metaData )
+        {
+            SEntry entry = (*i);
+            m_pluginMetaData.erase( i );
+            entry.metaData.Unlink();
+            entry.plugin = plugin;
+            InsertInLoadOrder( m_plugins, entry );
+            return true;
+        }
+    }
+
+    // meta data that the group did not have: the plugin comes after what the group has
+    SEntry entry;
+    entry.plugin = plugin;
+    entry.priorityInGroup = GetHighestPriorityInGroup() + 1;
+    entry.sequence = m_nextSequence++;
+    InsertInLoadOrder( m_plugins, entry );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPluginGroup::ReplacePluginWithPluginMetaData( const TPluginPtr& plugin, const TPluginMetaDataStoragePtr& metaData )
+{GUCEF_TRACE;
+
+    for ( TEntryList::iterator i = m_plugins.begin(); i != m_plugins.end(); ++i )
+    {
+        if ( (*i).plugin == plugin )
+        {
+            SEntry entry = (*i);
+            m_plugins.erase( i );
+            entry.plugin.Unlink();
+            entry.metaData = metaData;
+            InsertInLoadOrder( m_pluginMetaData, entry );
+            return true;
+        }
+    }
+    AddPluginMetaData( metaData );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPluginGroup::RemovePlugin( const TPluginPtr& plugin )
+{GUCEF_TRACE;
+
+    for ( TEntryList::iterator i = m_plugins.begin(); i != m_plugins.end(); ++i )
+    {
+        if ( (*i).plugin == plugin )
+        {
+            m_plugins.erase( i );
+            return true;
+        }
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -132,31 +308,7 @@ bool
 CPluginGroup::HasPluginWithFileName( const CString& moduleFileName ) const
 {GUCEF_TRACE;
 
-    TPluginSet::const_iterator i = m_plugins.begin();
-    while ( i != m_plugins.end() )
-    {
-        TConstPluginMetaDataPtr metadata = (*i)->GetMetaData();
-        if ( metadata )
-        {
-            if ( moduleFileName == metadata->GetModuleFilename() )
-            {
-                return true;
-            }
-        }
-        ++i;
-    }
-
-    TPluginMetaDataSet::const_iterator n = m_pluginMetaData.begin();
-    while ( n != m_pluginMetaData.end() )
-    {
-        if ( moduleFileName == (*n)->GetModuleFilename() )
-        {
-            return true;
-        }
-        ++n;
-    }
-
-    return false;
+    return !FindPluginWithModuleName( moduleFileName ).IsNULL() || !FindPluginMetaDataWithModuleName( moduleFileName ).IsNULL();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -165,18 +317,11 @@ TPluginPtr
 CPluginGroup::FindPluginWithModuleName( const CString& moduleName ) const
 {GUCEF_TRACE;
 
-    TPluginSet::const_iterator i = m_plugins.begin();
-    while ( i != m_plugins.end() )
+    for ( TEntryList::const_iterator i = m_plugins.begin(); i != m_plugins.end(); ++i )
     {
-        TPluginMetaDataPtr metadata = (*i)->GetMetaData();
-        if ( !metadata.IsNULL() )
-        {
-            if ( moduleName == metadata->GetModuleFilename() )
-            {
-                return (*i);
-            }
-        }
-        ++i;
+        TPluginMetaDataPtr metadata = (*i).plugin->GetMetaData();
+        if ( !metadata.IsNULL() && moduleName == metadata->GetModuleFilename() )
+            return (*i).plugin;
     }
     return TPluginPtr();
 }
@@ -187,18 +332,10 @@ TPluginMetaDataPtr
 CPluginGroup::FindPluginMetaDataWithModuleName( const CString& moduleName ) const
 {GUCEF_TRACE;
 
-    TPluginMetaDataSet::const_iterator i = m_pluginMetaData.begin();
-    while ( i != m_pluginMetaData.end() )
+    for ( TEntryList::const_iterator i = m_pluginMetaData.begin(); i != m_pluginMetaData.end(); ++i )
     {
-        TPluginMetaDataPtr metadata = (*i);
-        if ( !metadata.IsNULL() )
-        {
-            if ( moduleName == metadata->GetModuleFilename() )
-            {
-                return (*i);
-            }
-        }
-        ++i;
+        if ( !(*i).metaData.IsNULL() && moduleName == (*i).metaData->GetModuleFilename() )
+            return (*i).metaData;
     }
     return TPluginMetaDataPtr();
 }

@@ -93,6 +93,7 @@ set( HEADER_FILES
   include/TestNotifierObserver.h
   include/TestOsWrapProcessAndCpu.h
   include/TestPbkdf2HmacSha256.h
+  include/TestPluginLoadOrder.h
   include/TestPluginUnload.h
   include/TestProcess.h
   include/TestPumpedObserverLockOrder.h
@@ -218,6 +219,7 @@ set( SOURCE_FILES
   src/TestNotifierObserver.cpp
   src/TestOsWrapProcessAndCpu.cpp
   src/TestPbkdf2HmacSha256.cpp
+  src/TestPluginLoadOrder.cpp
   src/TestPluginUnload.cpp
   src/TestProcess.cpp
   src/TestPumpedObserverLockOrder.cpp

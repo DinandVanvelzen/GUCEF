@@ -26,7 +26,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <set>
 
 #ifndef GUCEF_CORE_CPLUGINMETADATA_H
 #include "gucefCORE_CPluginMetaData.h"
@@ -56,13 +55,19 @@ namespace CORE {
 /**
  *  Logical grouping class for plugins which allows plugins to be managed as groups
  *  This is just a data container class, PluginControl houses all the logic
+ *
+ *  The plugins of a group are kept in their load order: by their priority in the group, lowest first, and plugins with
+ *  the same priority in the order they were added. The plugin control loads and registers them in that order and
+ *  unregisters and unloads them in the reverse order. A plugin keeps its place when it moves from meta data to a
+ *  registered plugin and back.
  */
 class GUCEF_CORE_PRIVATE_CPP CPluginGroup : public CTSharedObjCreator< CPluginGroup, MT::CMutex >  
 {
     public:
 
-    typedef GUCEF::set< TPluginPtr > TPluginSet;
-    typedef GUCEF::set< TPluginMetaDataStoragePtr > TPluginMetaDataSet;
+    typedef GUCEF::vector< TPluginPtr > TPluginList;
+    typedef GUCEF::vector< TPluginMetaDataStoragePtr > TPluginMetaDataList;
+    typedef GUCEF::vector< CString > TStringVector;
     typedef typename CTSharedObjCreator< CPluginGroup, MT::CMutex >::TSharedPtrType TPluginGroupPtr;
     
     CPluginGroup( void );
@@ -73,17 +78,41 @@ class GUCEF_CORE_PRIVATE_CPP CPluginGroup : public CTSharedObjCreator< CPluginGr
 
     CPluginGroup& operator=( const CPluginGroup& src );
 
-    TPluginSet& GetPlugins( void );
+    /** The registered plugins, in load order */
+    TPluginList GetPlugins( void ) const;
 
-    const TPluginSet& GetPlugins( void ) const;
+    bool HasPlugins( void ) const;
+
+    /** The meta data of the plugins that are not registered, in load order */
+    TPluginMetaDataList GetPluginMetaData( void ) const;
+
+    /** The module file names of all plugins of the group, registered or not, in load order */
+    void GetModuleFilenamesInLoadOrder( TStringVector& moduleFilenames ) const;
+
+    /**
+     *  Adds the meta data of a plugin with its priority in the group. 0 places it after everything the group has.
+     *  Meta data that is in the group already keeps its place. Returns the priority it has
+     */
+    UInt32 AddPluginMetaData( const TPluginMetaDataStoragePtr& metaData, UInt32 priorityInGroup = 0 );
+
+    bool RemovePluginMetaData( const TPluginMetaDataStoragePtr& metaData );
+
+    void ClearPluginMetaData( void );
+
+    /** The meta data was registered as the plugin: the plugin takes its place in the load order */
+    bool ReplacePluginMetaDataWithPlugin( const TPluginMetaDataStoragePtr& metaData, const TPluginPtr& plugin );
+
+    /** The plugin was unregistered: the meta data takes its place in the load order */
+    bool ReplacePluginWithPluginMetaData( const TPluginPtr& plugin, const TPluginMetaDataStoragePtr& metaData );
+
+    bool RemovePlugin( const TPluginPtr& plugin );
+
+    /** The highest priority of the plugins of the group, 0 when it has none */
+    UInt32 GetHighestPriorityInGroup( void ) const;
 
     TPluginPtr FindPluginWithModuleName( const CString& moduleName ) const;
 
     TPluginMetaDataPtr FindPluginMetaDataWithModuleName( const CString& moduleName ) const;
-
-    TPluginMetaDataSet& GetPluginMetaData( void );
-
-    const TPluginMetaDataSet& GetPluginMetaData( void ) const;
 
     bool HasPluginWithFileName( const CString& moduleFileName ) const;
     
@@ -93,8 +122,22 @@ class GUCEF_CORE_PRIVATE_CPP CPluginGroup : public CTSharedObjCreator< CPluginGr
 
     private:
 
-    TPluginSet m_plugins;
-    TPluginMetaDataSet m_pluginMetaData;
+    /** A plugin of the group, registered (plugin) or not (metaData), with its place in the load order */
+    struct SEntry
+    {
+        TPluginPtr plugin;
+        TPluginMetaDataStoragePtr metaData;
+        UInt32 priorityInGroup;
+        UInt64 sequence;
+    };
+    typedef GUCEF::vector< SEntry > TEntryList;
+
+    static void InsertInLoadOrder( TEntryList& entries, const SEntry& entry );
+    static bool IsBefore( const SEntry& a, const SEntry& b );
+
+    TEntryList m_plugins;
+    TEntryList m_pluginMetaData;
+    UInt64 m_nextSequence;
     UInt32 m_priority;
 };
 
