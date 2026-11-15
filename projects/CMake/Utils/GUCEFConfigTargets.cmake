@@ -310,16 +310,24 @@ function(GUCEF_deploy_config_files TARGETNAME)
   endif ()
 endfunction(GUCEF_deploy_config_files)
 
-# The data files of a module, <module dir>/data, are copied to <build dir>/data/<target> after each build. Next to
-# the bin dir is where the module finds them at run time: $MODULEDIR$/../data/<target>
+# The data files of a module, <module dir>/data, are copied to <build dir>/data/<target>. Next to the bin dir is where
+# the module finds them at run time: $MODULEDIR$/../data/<target>. The copy is a target of its own, <target>_DataFiles,
+# that the module depends on and that depends on every data file: a change to a data file alone copies them again,
+# without a rebuild of the module (a data file added or removed is found at build time, CONFIGURE_DEPENDS)
 function(GUCEF_deploy_data_files TARGETNAME)
   if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data")
     set_target_properties(${TARGETNAME} PROPERTIES GUCEF_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
-    add_custom_command(TARGET ${TARGETNAME} POST_BUILD
+    file(GLOB_RECURSE _dataFiles LIST_DIRECTORIES false CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/data/*")
+    set(_stamp "${CMAKE_CURRENT_BINARY_DIR}/${TARGETNAME}_DataFiles.stamp")
+    add_custom_command(OUTPUT "${_stamp}"
       COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/data" "${GUCEF_BINARY_DIR}/data/${TARGETNAME}"
+      COMMAND ${CMAKE_COMMAND} -E touch "${_stamp}"
+      DEPENDS ${_dataFiles}
       COMMENT "Copying the data files of ${TARGETNAME} to the data dir"
       VERBATIM
       )
+    add_custom_target(${TARGETNAME}_DataFiles DEPENDS "${_stamp}")
+    add_dependencies(${TARGETNAME} ${TARGETNAME}_DataFiles)
   endif ()
 endfunction(GUCEF_deploy_data_files)
 
