@@ -100,9 +100,9 @@ set( HEADER_FILES
   include/gucefCOMCORE_CRpcPrincipal.h
   include/gucefCOMCORE_CRpcProtocolTask.h
   include/gucefCOMCORE_CRpcReflectionService.h
-  include/gucefCOMCORE_CRpcRequestId.h
   include/gucefCOMCORE_CRpcReleaseCourier.h
   include/gucefCOMCORE_CRpcReleaseCourierRegistry.h
+  include/gucefCOMCORE_CRpcRequestId.h
   include/gucefCOMCORE_CRpcRequestStatus.h
   include/gucefCOMCORE_CRpcRoleAccessPolicy.h
   include/gucefCOMCORE_CRpcServerCall.h
@@ -221,9 +221,9 @@ set( SOURCE_FILES
   src/gucefCOMCORE_CRpcPrincipal.cpp
   src/gucefCOMCORE_CRpcProtocolTask.cpp
   src/gucefCOMCORE_CRpcReflectionService.cpp
-  src/gucefCOMCORE_CRpcRequestId.cpp
   src/gucefCOMCORE_CRpcReleaseCourier.cpp
   src/gucefCOMCORE_CRpcReleaseCourierRegistry.cpp
+  src/gucefCOMCORE_CRpcRequestId.cpp
   src/gucefCOMCORE_CRpcRequestStatus.cpp
   src/gucefCOMCORE_CRpcRoleAccessPolicy.cpp
   src/gucefCOMCORE_CRpcServerCall.cpp

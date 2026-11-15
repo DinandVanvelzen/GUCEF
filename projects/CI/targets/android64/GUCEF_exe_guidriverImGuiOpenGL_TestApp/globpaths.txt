@@ -1,0 +1,16 @@
+common/include/*
+common/test/include/*
+dependencies/freetype/*
+dependencies/imgui/*
+platform/gucefAUDIO/*
+platform/gucefCORE/*
+platform/gucefGUI/*
+platform/gucefIMAGE/*
+platform/gucefINPUT/*
+platform/gucefMATH/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefVIDEO/*
+plugins/GUI/fontpluginFREETYPE/*
+plugins/GUI/guidriverImGui/*
+tests/guidriverImGuiOpenGL_TestApp/*

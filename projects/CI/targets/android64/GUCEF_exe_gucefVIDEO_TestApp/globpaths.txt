@@ -1,0 +1,12 @@
+common/include/*
+dependencies/libvpx/*
+dependencies/libwebm/*
+dependencies/opus/*
+platform/gucefAUDIO/include/*
+platform/gucefCORE/include/*
+platform/gucefIMAGE/include/*
+platform/gucefMATH/include/*
+platform/gucefMATH/src/*
+platform/gucefMT/include/*
+platform/gucefVIDEO/include/*
+plugins/VIDEO/videocodecpluginWEBM/*

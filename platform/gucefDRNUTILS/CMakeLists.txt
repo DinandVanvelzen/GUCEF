@@ -11,7 +11,7 @@
 
 # Configuration for module: gucefDRNUTILS
 
-set( HEADER_FILES
+set( HEADER_FILES 
   include/gucefDRNUTILS.h
   include/gucefDRNUTILS_CCommandIdempotencyCache.h
   include/gucefDRNUTILS_CControlRateLimiter.h
@@ -74,7 +74,7 @@ set( HEADER_FILES
   include/gucefDRNUTILS_macros.h
 )
 
-set( SOURCE_FILES
+set( SOURCE_FILES 
   src/gucefDRNUTILS.cpp
   src/gucefDRNUTILS_CCommandIdempotencyCache.cpp
   src/gucefDRNUTILS_CControlRateLimiter.cpp

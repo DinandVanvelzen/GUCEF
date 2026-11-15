@@ -183,6 +183,7 @@ files( {
   "include/gucefCORE_CASync.h",
   "include/gucefCORE_CAbstractFactoryBase.h",
   "include/gucefCORE_CAbstractFactoryEntryTracker.h",
+  "include/gucefCORE_CAes.h",
   "include/gucefCORE_CAsciiString.h",
   "include/gucefCORE_CAsciiStringView.h",
   "include/gucefCORE_CAsyncFileSystemAccessOperation.h",
@@ -519,7 +520,6 @@ files( {
   "src/gucefCORE_CCsvTableReader.h",
   "src/gucefCORE_CCsvTableText.h",
   "src/gucefCORE_CCsvTableWriter.h",
-  "src/gucefCORE_CDailyBudgetPacingPolicy.cpp",
   "src/gucefCORE_CDataTableBufferPoolCore.h",
   "src/gucefCORE_CDataTableScanTask.h"
  } )
@@ -636,6 +636,7 @@ files( {
   "src/gucefCORE_CASync.cpp",
   "src/gucefCORE_CAbstractFactoryBase.cpp",
   "src/gucefCORE_CAbstractFactoryEntryTracker.cpp",
+  "src/gucefCORE_CAes.cpp",
   "src/gucefCORE_CAsciiString.cpp",
   "src/gucefCORE_CAsciiStringView.cpp",
   "src/gucefCORE_CAsyncFileSystemAccessOperation.cpp",
@@ -664,6 +665,7 @@ files( {
   "src/gucefCORE_CCsvTableText.cpp",
   "src/gucefCORE_CCsvTableWriter.cpp",
   "src/gucefCORE_CDStoreBinaryCodec.cpp",
+  "src/gucefCORE_CDailyBudgetPacingPolicy.cpp",
   "src/gucefCORE_CDataDrivenDStoreCodec.cpp",
   "src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp",
   "src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp",

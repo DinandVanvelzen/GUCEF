@@ -129,6 +129,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CASync.cpp \
   src/gucefCORE_CAbstractFactoryBase.cpp \
   src/gucefCORE_CAbstractFactoryEntryTracker.cpp \
+  src/gucefCORE_CAes.cpp \
   src/gucefCORE_CAsciiString.cpp \
   src/gucefCORE_CAsciiStringView.cpp \
   src/gucefCORE_CAsyncFileSystemAccessOperation.cpp \

@@ -21,6 +21,8 @@ tests/gucefCOMPUTE_TestApp/*
 tests/gucefCOM_TestApp/*
 tests/gucefCORE_TestApp/*
 tests/gucefCORE_TestPlugin/*
+tests/gucefDRNUTILSGUI_TestApp/*
+tests/gucefDRNUTILS_TestApp/*
 tests/gucefDRN_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGEOMETRY_TestApp/*

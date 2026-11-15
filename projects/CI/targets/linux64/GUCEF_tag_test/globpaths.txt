@@ -63,6 +63,7 @@ platform/gucefCOM/include/*
 platform/gucefCOMCORE/include/*
 platform/gucefCORE/include/*
 platform/gucefDRN/include/*
+platform/gucefDRNUTILS/*
 platform/gucefGAMEGUI/*
 platform/gucefGUI/*
 platform/gucefIMAGE/include/*
@@ -109,6 +110,8 @@ plugins/VIDEO/videocodecpluginWEBM/*
 tests/gucefAUTHGUI_TestApp/*
 tests/gucefCOMCORE_TestApp/include/*
 tests/gucefCOM_TestApp/include/*
+tests/gucefDRNUTILSGUI_TestApp/*
+tests/gucefDRNUTILS_TestApp/*
 tests/gucefDRN_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*

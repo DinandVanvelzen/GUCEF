@@ -15,6 +15,7 @@ set( HEADER_FILES
   include/TestASync.h
   include/TestAbstractFactory.h
   include/TestAbstractFactoryParity.h
+  include/TestAes.h
   include/TestAllocationCounter.h
   include/TestAppStopWithTasks.h
   include/TestAsyncUriResourceRetriever.h
@@ -92,7 +93,6 @@ set( HEADER_FILES
   include/TestNotifierObserver.h
   include/TestOsWrapProcessAndCpu.h
   include/TestPbkdf2HmacSha256.h
-  include/TestAes.h
   include/TestPluginUnload.h
   include/TestProcess.h
   include/TestPumpedObserverLockOrder.h
@@ -144,6 +144,7 @@ set( SOURCE_FILES
   src/TestASync.cpp
   src/TestAbstractFactory.cpp
   src/TestAbstractFactoryParity.cpp
+  src/TestAes.cpp
   src/TestAllocationCounter.cpp
   src/TestAppStopWithTasks.cpp
   src/TestAsyncUriResourceRetriever.cpp
@@ -217,7 +218,6 @@ set( SOURCE_FILES
   src/TestNotifierObserver.cpp
   src/TestOsWrapProcessAndCpu.cpp
   src/TestPbkdf2HmacSha256.cpp
-  src/TestAes.cpp
   src/TestPluginUnload.cpp
   src/TestProcess.cpp
   src/TestPumpedObserverLockOrder.cpp

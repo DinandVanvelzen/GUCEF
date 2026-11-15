@@ -1,0 +1,7 @@
+common/include/*
+platform/gucefAUDIO/include/*
+platform/gucefCORE/include/*
+platform/gucefMATH/include/*
+platform/gucefMATH/src/*
+platform/gucefMT/include/*
+plugins/AUDIO/audiodriverWEBAUDIO/*

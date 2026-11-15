@@ -62,6 +62,7 @@ platform/gucefAUTH/include/*
 platform/gucefCOMCORE/include/*
 platform/gucefCOM/include/*
 platform/gucefCORE/include/*
+platform/gucefDRNUTILS/*
 platform/gucefDRN/include/*
 platform/gucefGAMEGUI/*
 platform/gucefGUI/*
@@ -106,6 +107,8 @@ tests/MemoryLeakFinder_TestApp/*
 tests/gucefAUTHGUI_TestApp/*
 tests/gucefCOMCORE_TestApp/include/*
 tests/gucefCOM_TestApp/include/*
+tests/gucefDRNUTILSGUI_TestApp/*
+tests/gucefDRNUTILS_TestApp/*
 tests/gucefDRN_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*

@@ -108,9 +108,9 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CRpcPrincipal.cpp \
   src/gucefCOMCORE_CRpcProtocolTask.cpp \
   src/gucefCOMCORE_CRpcReflectionService.cpp \
-  src/gucefCOMCORE_CRpcRequestId.cpp \
   src/gucefCOMCORE_CRpcReleaseCourier.cpp \
   src/gucefCOMCORE_CRpcReleaseCourierRegistry.cpp \
+  src/gucefCOMCORE_CRpcRequestId.cpp \
   src/gucefCOMCORE_CRpcRequestStatus.cpp \
   src/gucefCOMCORE_CRpcRoleAccessPolicy.cpp \
   src/gucefCOMCORE_CRpcServerCall.cpp \

@@ -48,4 +48,4 @@ include( "${GUCEF_SOURCE_DIR}/projects/CMake/GUCEFBuildSetup.cmake" )
 ##################################################################
 
 # Find the dependencies, add the module and install its package
-include( gucefDRN_ModuleRoot.cmake )
+include( gucefDRNUTILS_ModuleRoot.cmake )

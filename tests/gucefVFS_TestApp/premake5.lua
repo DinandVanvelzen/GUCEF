@@ -58,6 +58,7 @@ files( {
   "include/TestMountFromResource.h",
   "include/TestVfsCodecs.h",
   "include/TestVfsConfig.h",
+  "include/TestVfsMountLocking.h",
   "include/TestZipArchiveWriter.h"
  } )
 
@@ -76,6 +77,7 @@ files( {
   "src/TestMountFromResource.cpp",
   "src/TestVfsCodecs.cpp",
   "src/TestVfsConfig.cpp",
+  "src/TestVfsMountLocking.cpp",
   "src/TestZipArchiveWriter.cpp",
   "src/gucefVFS_TestApp.cpp"
  } )

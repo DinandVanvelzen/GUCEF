@@ -71,12 +71,12 @@ configuration( { "EMSCRIPTEN32" } )
 
 
 configuration( { "EMSCRIPTEN32" } )
-kind( "SharedLib" )
+kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
 configuration( { "EMSCRIPTEN64" } )
-kind( "SharedLib" )
+kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
@@ -116,7 +116,7 @@ links( { "Ogre", "OgreGLSupport" } )
 
 
 configuration( { "EMSCRIPTEN32" } )
-defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_API_PREFIX=OgreRenderSystem_GLES2", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "EMSCRIPTEN64" } )
 links( { "Ogre", "OgreGLSupport" } )
@@ -126,7 +126,7 @@ links( { "Ogre", "OgreGLSupport" } )
 
 
 configuration( { "EMSCRIPTEN64" } )
-defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_API_PREFIX=OgreRenderSystem_GLES2", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "LINUX32" } )
 links( { "Ogre", "OgreGLSupport" } )

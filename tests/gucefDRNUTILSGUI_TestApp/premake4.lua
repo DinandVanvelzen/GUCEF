@@ -12,7 +12,17 @@
 -- Configuration for module: gucefDRNUTILSGUI_TestApp
 
 
-project( "gucefDRNUTILSGUI_TestApp" )
+configuration( { "LINUX32" } )
+  project( "gucefDRNUTILSGUI_TestApp" )
+
+configuration( { "LINUX64" } )
+  project( "gucefDRNUTILSGUI_TestApp" )
+
+configuration( { "WIN32" } )
+  project( "gucefDRNUTILSGUI_TestApp" )
+
+configuration( { "WIN64" } )
+  project( "gucefDRNUTILSGUI_TestApp" )
 
 configuration( {} )
   location( os.getenv( "PM4OUTPUTDIR" ) )
@@ -21,60 +31,184 @@ configuration( {} )
   targetdir( os.getenv( "PM4TARGETDIR" ) )
 
 configuration( {} )
+language( "C" )
+
+configuration( { "LINUX32" } )
+language( "C++" )
+
+configuration( { "LINUX64" } )
+language( "C++" )
+
+configuration( { "WIN32" } )
+language( "C++" )
+
+configuration( { "WIN64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
-kind( "ConsoleApp" )
 
-configuration( { "LINUX64" } )
-kind( "ConsoleApp" )
-
-configuration( { "WIN32" } )
-kind( "WindowedApp" )
-
-configuration( { "WIN64" } )
-kind( "WindowedApp" )
-
-configuration( {} )
-links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-
-configuration( {} )
-defines( { "GUCEF_DRNUTILSGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILSGUI_TestApp" } )
-
-configuration( {} )
-vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-files( {
-  "include/TestDrnUtilsGuiFixtures.h",
-  "include/TestDrnUtilsGuiSkeleton.h",
-  "include/gucefDRNUTILSGUI_TestCommon.h"
- } )
-
-configuration( {} )
-vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-files( {
-  "src/TestControlConfirmForm.cpp",
-  "src/TestDrnUtilsGuiCommon.cpp",
-  "src/TestDrnUtilsGuiEndToEnd.cpp",
-  "src/TestDrnUtilsGuiFixtures.cpp",
-  "src/TestDrnUtilsGuiSkeleton.cpp",
-  "src/TestSchedulerForm.cpp",
-  "src/TestTaskManagerForm.cpp",
-  "src/TestTimeDisplay.cpp",
-  "src/gucefDRNUTILSGUI_TestApp.cpp"
- } )
-
-configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefDRNUTILSGUI/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include", "../../tests/gucefCOMCORE_TestApp/include", "include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
+kind( "ConsoleApp" )
+configuration( { "LINUX64" } )
+
 
 configuration( { "LINUX64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
+kind( "ConsoleApp" )
+configuration( { "WIN32" } )
+
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
+kind( "WindowedApp" )
+configuration( { "WIN64" } )
+
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
+kind( "WindowedApp" )
 
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "GUCEF_DRNUTILSGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILSGUI_TestApp" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "GUCEF_DRNUTILSGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILSGUI_TestApp" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "WIN32" } )
+defines( { "GUCEF_DRNUTILSGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILSGUI_TestApp" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefDRNUTILSGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "WIN64" } )
+defines( { "GUCEF_DRNUTILSGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILSGUI_TestApp" } )
+
+
+configuration( { "LINUX32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestDrnUtilsGuiFixtures.h",
+      "include/TestDrnUtilsGuiSkeleton.h",
+      "include/gucefDRNUTILSGUI_TestCommon.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestControlConfirmForm.cpp",
+      "src/TestDrnUtilsGuiCommon.cpp",
+      "src/TestDrnUtilsGuiEndToEnd.cpp",
+      "src/TestDrnUtilsGuiFixtures.cpp",
+      "src/TestDrnUtilsGuiSkeleton.cpp",
+      "src/TestSchedulerForm.cpp",
+      "src/TestTaskManagerForm.cpp",
+      "src/TestTimeDisplay.cpp",
+      "src/gucefDRNUTILSGUI_TestApp.cpp"
+    } )
+
+
+
+configuration( { "LINUX64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestDrnUtilsGuiFixtures.h",
+      "include/TestDrnUtilsGuiSkeleton.h",
+      "include/gucefDRNUTILSGUI_TestCommon.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestControlConfirmForm.cpp",
+      "src/TestDrnUtilsGuiCommon.cpp",
+      "src/TestDrnUtilsGuiEndToEnd.cpp",
+      "src/TestDrnUtilsGuiFixtures.cpp",
+      "src/TestDrnUtilsGuiSkeleton.cpp",
+      "src/TestSchedulerForm.cpp",
+      "src/TestTaskManagerForm.cpp",
+      "src/TestTimeDisplay.cpp",
+      "src/gucefDRNUTILSGUI_TestApp.cpp"
+    } )
+
+
+
+configuration( { "WIN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestDrnUtilsGuiFixtures.h",
+      "include/TestDrnUtilsGuiSkeleton.h",
+      "include/gucefDRNUTILSGUI_TestCommon.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestControlConfirmForm.cpp",
+      "src/TestDrnUtilsGuiCommon.cpp",
+      "src/TestDrnUtilsGuiEndToEnd.cpp",
+      "src/TestDrnUtilsGuiFixtures.cpp",
+      "src/TestDrnUtilsGuiSkeleton.cpp",
+      "src/TestSchedulerForm.cpp",
+      "src/TestTaskManagerForm.cpp",
+      "src/TestTimeDisplay.cpp",
+      "src/gucefDRNUTILSGUI_TestApp.cpp"
+    } )
+
+
+
+configuration( { "WIN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestDrnUtilsGuiFixtures.h",
+      "include/TestDrnUtilsGuiSkeleton.h",
+      "include/gucefDRNUTILSGUI_TestCommon.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestControlConfirmForm.cpp",
+      "src/TestDrnUtilsGuiCommon.cpp",
+      "src/TestDrnUtilsGuiEndToEnd.cpp",
+      "src/TestDrnUtilsGuiFixtures.cpp",
+      "src/TestDrnUtilsGuiSkeleton.cpp",
+      "src/TestSchedulerForm.cpp",
+      "src/TestTaskManagerForm.cpp",
+      "src/TestTimeDisplay.cpp",
+      "src/gucefDRNUTILSGUI_TestApp.cpp"
+    } )
+
+
+configuration( {} )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefDRNUTILSGUI/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include" } )
+
+configuration( { "LINUX32" } )
+includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../tests/gucefCOMCORE_TestApp/include", "include" } )
+
+configuration( { "LINUX64" } )
+includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../tests/gucefCOMCORE_TestApp/include", "include" } )
+
+configuration( { "WIN32" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "../../tests/gucefCOMCORE_TestApp/include", "include" } )
+
+configuration( { "WIN64" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "../../tests/gucefCOMCORE_TestApp/include", "include" } )

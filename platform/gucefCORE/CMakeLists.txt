@@ -472,7 +472,6 @@ set( HEADER_FILES
   src/gucefCORE_CCsvTableReader.h
   src/gucefCORE_CCsvTableText.h
   src/gucefCORE_CCsvTableWriter.h
-  src/gucefCORE_CDailyBudgetPacingPolicy.cpp
   src/gucefCORE_CDataTableBufferPoolCore.h
   src/gucefCORE_CDataTableScanTask.h
 )
@@ -614,6 +613,7 @@ set( SOURCE_FILES
   src/gucefCORE_CCsvTableText.cpp
   src/gucefCORE_CCsvTableWriter.cpp
   src/gucefCORE_CDStoreBinaryCodec.cpp
+  src/gucefCORE_CDailyBudgetPacingPolicy.cpp
   src/gucefCORE_CDataDrivenDStoreCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp
   src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp

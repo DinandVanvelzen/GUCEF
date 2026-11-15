@@ -1,0 +1,6 @@
+common/include/*
+dependencies/zlib/*
+platform/gucefCORE/include/*
+platform/gucefIMAGE/include/*
+platform/gucefMT/include/*
+plugins/IMAGE/imgpluginFreeImage/*

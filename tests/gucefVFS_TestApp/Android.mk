@@ -31,6 +31,7 @@ LOCAL_SRC_FILES := \
   src/TestMountFromResource.cpp \
   src/TestVfsCodecs.cpp \
   src/TestVfsConfig.cpp \
+  src/TestVfsMountLocking.cpp \
   src/TestZipArchiveWriter.cpp \
   src/gucefVFS_TestApp.cpp
 

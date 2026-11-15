@@ -24,6 +24,7 @@ LOCAL_SRC_FILES := \
   src/TestASync.cpp \
   src/TestAbstractFactory.cpp \
   src/TestAbstractFactoryParity.cpp \
+  src/TestAes.cpp \
   src/TestAllocationCounter.cpp \
   src/TestAppStopWithTasks.cpp \
   src/TestAsyncUriResourceRetriever.cpp \

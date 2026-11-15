@@ -11,7 +11,7 @@
 
 # Configuration for module: gucefDRNUTILSGUI
 
-set( HEADER_FILES
+set( HEADER_FILES 
   include/gucefDRNUTILSGUI.h
   include/gucefDRNUTILSGUI_CControlConfirmForm.h
   include/gucefDRNUTILSGUI_CDrnUtilsGuiGlobal.h
@@ -27,7 +27,7 @@ set( HEADER_FILES
   include/gucefDRNUTILSGUI_macros.h
 )
 
-set( SOURCE_FILES
+set( SOURCE_FILES 
   src/gucefDRNUTILSGUI.cpp
   src/gucefDRNUTILSGUI_CControlConfirmForm.cpp
   src/gucefDRNUTILSGUI_CDrnUtilsGuiGlobal.cpp
