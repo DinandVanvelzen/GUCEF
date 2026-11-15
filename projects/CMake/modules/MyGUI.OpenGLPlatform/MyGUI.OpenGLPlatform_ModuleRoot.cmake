@@ -10,14 +10,42 @@
 #
 
 # Packages of the modules MyGUI.OpenGLPlatform depends on
-set( MODULE_DEPENDENCIES MyGUI.Engine gucefHeaders )
+set( MODULE_DEPENDENCIES gucefHeaders )
+if ( LINUX32 )
+  list( APPEND MODULE_DEPENDENCIES MyGUI.Common.FileSystemInfo MyGUI.Engine )
+endif( LINUX32 )
+if ( LINUX64 )
+  list( APPEND MODULE_DEPENDENCIES MyGUI.Common.FileSystemInfo MyGUI.Engine )
+endif( LINUX64 )
+if ( WIN32 )
+  list( APPEND MODULE_DEPENDENCIES MyGUI.Common.FileSystemInfo MyGUI.Engine glew )
+endif( WIN32 )
+if ( WIN64 )
+  list( APPEND MODULE_DEPENDENCIES MyGUI.Common.FileSystemInfo MyGUI.Engine glew )
+endif( WIN64 )
+
+# The minimum C++ standard of MyGUI.OpenGLPlatform and the modules it depends on
+if ( LINUX32 )
+  set( MODULE_MIN_CPP_STANDARD 17 )
+endif( LINUX32 )
+if ( LINUX64 )
+  set( MODULE_MIN_CPP_STANDARD 17 )
+endif( LINUX64 )
+if ( WIN32 )
+  set( MODULE_MIN_CPP_STANDARD 17 )
+endif( WIN32 )
+if ( WIN64 )
+  set( MODULE_MIN_CPP_STANDARD 17 )
+endif( WIN64 )
+GUCEF_check_min_cpp_standard( MyGUI.OpenGLPlatform "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )
 endforeach()
 
 # The module itself
-add_subdirectory( "${GUCEF_SOURCE_DIR}/dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform" "${CMAKE_BINARY_DIR}/MyGUI.OpenGLPlatform" )
+add_subdirectory( "${GUCEF_SOURCE_DIR}/dependencies/MyGui/Platforms/OpenGLPlatform" "${CMAKE_BINARY_DIR}/MyGUI.OpenGLPlatform" )
 if ( NOT TARGET MyGUI.OpenGLPlatform )
   message( FATAL_ERROR "Module MyGUI.OpenGLPlatform is not available for target platform ${GUCEF_TARGET_PLATFORM}" )
 endif()

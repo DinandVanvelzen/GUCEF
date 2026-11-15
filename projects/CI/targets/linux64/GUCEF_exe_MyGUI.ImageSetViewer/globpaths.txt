@@ -1,6 +1,0 @@
-dependencies/MyGui/Common/*
-dependencies/MyGui/MyGUIEngine/*
-dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/*
-dependencies/MyGui/Tools/ImageSetViewer/*
-dependencies/freetype/*
-dependencies/zlib/*

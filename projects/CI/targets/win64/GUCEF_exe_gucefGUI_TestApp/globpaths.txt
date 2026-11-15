@@ -4,9 +4,11 @@ dependencies/DVPACKSYS/*
 dependencies/DevIL/DevIL/*
 dependencies/FreeImage/*
 dependencies/Little-CMS/*
-dependencies/MyGui/Common/FileSystemInfo/*
 dependencies/MyGui/MyGUIEngine/*
-dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/*
+dependencies/MyGui/Platforms/OgrePlatform/*
+dependencies/MyGui/Platforms/OpenGL3Platform/*
+dependencies/MyGui/Platforms/OpenGLPlatform/*
+dependencies/MyGui/Platforms/Utils/*
 dependencies/OIS/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/include/*
@@ -21,6 +23,7 @@ dependencies/flic/*
 dependencies/freetype/*
 dependencies/glew/*
 dependencies/glm/*
+dependencies/imgui/*
 dependencies/jasper/src/libjasper/*
 dependencies/json-builder/*
 dependencies/json-parser/*
@@ -32,7 +35,9 @@ dependencies/libsquish/*
 dependencies/minizip/*
 dependencies/openexr/*
 dependencies/pcre/*
+dependencies/pugixml/*
 dependencies/tiff/libtiff/*
+dependencies/utfcpp/*
 dependencies/zlib/*
 dependencies/zziplib/*
 platform/gucefAUDIO/*
@@ -48,6 +53,7 @@ plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverCEGUI/*
+plugins/GUI/guidriverImGui/*
 plugins/GUI/guidriverMyGUI/*
 plugins/GUI/guidriverNull/*
 plugins/GUI/guidriverOgre/*
@@ -61,6 +67,7 @@ plugins/INPUT/inputdriverDIRECTINPUT8/*
 plugins/INPUT/inputdriverMSWINMSG/*
 plugins/INPUT/inputdriverOIS/*
 plugins/SHARED/pluginglueAWSSDK/*
+plugins/SHARED/pluginglueOGRE/*
 plugins/VFS/vfspluginAWSS3/*
 plugins/VFS/vfspluginDVP/*
 plugins/VFS/vfspluginITV/*

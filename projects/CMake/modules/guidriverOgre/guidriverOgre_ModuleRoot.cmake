@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules guidriverOgre depends on
-set( MODULE_DEPENDENCIES Ogre gucefCORE gucefGUI gucefHeaders gucefMT )
+set( MODULE_DEPENDENCIES Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefHeaders gucefIMAGE gucefMT gucefVFS pluginglueOGRE )
 
 # The minimum C++ standard of guidriverOgre and the modules it depends on
 set( MODULE_MIN_CPP_STANDARD 14 )

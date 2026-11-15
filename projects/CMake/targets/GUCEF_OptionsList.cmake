@@ -11,7 +11,6 @@
 
 
 option( TAGGED_BUILD_OPTION_obsolete "build option based on tag obsolete" ON)
-option( TAGGED_BUILD_OPTION_ogre "build option based on tag ogre" ON)
 option( TAGGED_BUILD_OPTION_platform "build option based on tag platform" ON)
 option( TAGGED_BUILD_OPTION_plugin "build option based on tag plugin" ON)
 option( TAGGED_BUILD_OPTION_services "build option based on tag services" ON)
@@ -20,7 +19,6 @@ option( TAGGED_BUILD_OPTION_tools "build option based on tag tools" ON)
 
 
 message( STATUS "TAGGED_BUILD_OPTION_obsolete: ${TAGGED_BUILD_OPTION_obsolete} )
-message( STATUS "TAGGED_BUILD_OPTION_ogre: ${TAGGED_BUILD_OPTION_ogre} )
 message( STATUS "TAGGED_BUILD_OPTION_platform: ${TAGGED_BUILD_OPTION_platform} )
 message( STATUS "TAGGED_BUILD_OPTION_plugin: ${TAGGED_BUILD_OPTION_plugin} )
 message( STATUS "TAGGED_BUILD_OPTION_services: ${TAGGED_BUILD_OPTION_services} )

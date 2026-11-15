@@ -44,5 +44,12 @@ tests/gucefPUBSUB_TestApp/*
 tests/gucefVFS_TestApp/*
 tests/gucefVIDEO_TestApp/*
 tests/gucefWEB_TestApp/*
+tests/guidriverImGuiOgre_TestApp/*
+tests/guidriverImGuiOpenGL_TestApp/*
+tests/guidriverImGui_TestApp/*
+tests/guidriverMyGUI_TestApp/*
+tests/guidriverOgre_TestApp/*
+tests/guidriverRmlUIOgre_TestApp/*
+tests/pluginglueOGRE_TestApp/*
 tests/tablecodecpluginPARQUET_TestApp/*
 tools/*

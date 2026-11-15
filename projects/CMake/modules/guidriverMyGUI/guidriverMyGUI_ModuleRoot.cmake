@@ -10,7 +10,12 @@
 #
 
 # Packages of the modules guidriverMyGUI depends on
-set( MODULE_DEPENDENCIES MyGUI.Engine freetype gucefCORE gucefGUI gucefHeaders gucefINPUT gucefMT gucefVFS )
+set( MODULE_DEPENDENCIES MyGUI.Engine gucefCORE gucefGUI gucefHeaders gucefIMAGE gucefMT gucefVFS )
+
+# The minimum C++ standard of guidriverMyGUI and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 17 )
+GUCEF_check_min_cpp_standard( guidriverMyGUI "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

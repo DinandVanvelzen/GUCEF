@@ -1,6 +1,0 @@
-dependencies/MyGui/Common/*
-dependencies/MyGui/MyGUIEngine/include/*
-dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/*
-dependencies/MyGui/Tools/SkinEditor/*
-dependencies/freetype/include/*
-dependencies/freetype/src/*

@@ -10,7 +10,12 @@
 #
 
 # Packages of the modules MyGUI.Engine depends on
-set( MODULE_DEPENDENCIES freetype gucefHeaders )
+set( MODULE_DEPENDENCIES freetype gucefHeaders pugixml utfcpp )
+
+# The minimum C++ standard of MyGUI.Engine and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 17 )
+GUCEF_check_min_cpp_standard( MyGUI.Engine "${MODULE_MIN_CPP_STANDARD}" )
+
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )
