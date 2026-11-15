@@ -60,6 +60,7 @@
 
 #include "gucefGUI_CWidgetTypeRegistry.h"
 #include "gucefGUI_CFontRasterizerRegistry.h"
+#include "gucefGUI_CKeyboardLayoutRegistry.h"
 #include "gucefGUI_StandardWidgetTypes.h"
 #include "gucefGUI_CSettingsForm.h"
 #include "gucefGUI_CVideoSettingsForm.h"
@@ -165,6 +166,7 @@ CGuiGlobal::Initialize( void )
     m_widgetTypeRegistry = new CWidgetTypeRegistry();
     RegisterStandardWidgetTypes( *m_widgetTypeRegistry );
     m_fontRasterizerRegistry = new CFontRasterizerRegistry();
+    m_keyboardLayoutRegistry = new CKeyboardLayoutRegistry();
     CSettingsForm::RegisterStandardPages();
 
     m_windowManager = new CWindowManager();
@@ -185,7 +187,8 @@ CGuiGlobal::CGuiGlobal( void )
     : m_windowManager( GUCEF_NULL ) ,
       m_guiManager( GUCEF_NULL )    ,
       m_widgetTypeRegistry( GUCEF_NULL ) ,
-      m_fontRasterizerRegistry( GUCEF_NULL )
+      m_fontRasterizerRegistry( GUCEF_NULL ) ,
+      m_keyboardLayoutRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -207,6 +210,8 @@ CGuiGlobal::~CGuiGlobal()
     delete m_windowManager;
     m_windowManager = GUCEF_NULL;
     CSettingsForm::UnregisterStandardPages();
+    delete m_keyboardLayoutRegistry;
+    m_keyboardLayoutRegistry = GUCEF_NULL;
     delete m_fontRasterizerRegistry;
     m_fontRasterizerRegistry = GUCEF_NULL;
     delete m_widgetTypeRegistry;
@@ -247,6 +252,15 @@ CGuiGlobal::GetFontRasterizerRegistry( void )
 {GUCEF_TRACE;
 
     return *m_fontRasterizerRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKeyboardLayoutRegistry&
+CGuiGlobal::GetKeyboardLayoutRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_keyboardLayoutRegistry;
 }
 
 /*-------------------------------------------------------------------------*/

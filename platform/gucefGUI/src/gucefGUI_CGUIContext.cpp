@@ -248,6 +248,9 @@ CGUIContext::CGUIContext( CGUIDriver* driver, TWindowContextPtr windowContext )
     , m_cursorHotspotX( 0 )
     , m_cursorHotspotY( 0 )
     , m_cursorVisible( true )
+    , m_systemCursorShape( CURSORSHAPE_ARROW )
+    , m_keyboardPassThrough( false )
+    , m_previewConsumedButtons( 0 )
     , m_pointerX( 0 )
     , m_pointerY( 0 )
     , m_buttonStates( 0 )
@@ -1414,6 +1417,30 @@ CGUIContext::GetCursorImage( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CGUIContext::SetSystemCursorShape( TCursorShape shape )
+{GUCEF_TRACE;
+
+    if ( shape == m_systemCursorShape )
+        return;
+    m_systemCursorShape = shape;
+
+    // the window decides whether it is this layer that has the pointer, and asks its own driver only when the shape of that layer changes
+    if ( !m_windowContext.IsNULL() )
+        m_windowContext->UpdateSystemCursor();
+}
+
+/*-------------------------------------------------------------------------*/
+
+TCursorShape
+CGUIContext::GetSystemCursorShape( void ) const
+{GUCEF_TRACE;
+
+    return m_systemCursorShape;
+}
+
+/*-------------------------------------------------------------------------*/
+
 Int32
 CGUIContext::GetCursorHotspotX( void ) const
 {GUCEF_TRACE;
@@ -1538,6 +1565,18 @@ void
 CGUIContext::InjectMouseMove( Int32 x, Int32 y )
 {GUCEF_TRACE;
 
+    if ( PreviewMouseMove( x, y ) && GUCEF_NULL == m_pressed )
+    {
+        // consumed: the widgets do not get it and none shows hover; the position is kept all the same
+        m_pointerX = x;
+        m_pointerY = y;
+        ++m_dispatchDepth;
+        SetHovered( GUCEF_NULL );
+        --m_dispatchDepth;
+        ProcessPendingDestroys();
+        return;
+    }
+
     FlushLayoutIfNeeded();
     m_pointerX = x;
     m_pointerY = y;
@@ -1561,8 +1600,32 @@ void
 CGUIContext::InjectMouseButton( TMouseButton button, bool down )
 {GUCEF_TRACE;
 
+    const UInt32 bit = 1u << (UInt32) button;
+    const bool consumed = PreviewMouseButton( button, down );
+    if ( down )
+    {
+        if ( consumed )
+        {
+            // the press belongs to the preview, and so does its release; the context only keeps the state of the buttons
+            m_previewConsumedButtons |= bit;
+            m_buttonStates |= bit;
+            return;
+        }
+        m_previewConsumedButtons &= ~bit;
+    }
+    else
+    {
+        // a press that is in progress always gets its release, so it never stays open
+        const bool endsPress = GUCEF_NULL != m_pressed && button == m_pressedButton;
+        if ( 0 != ( m_previewConsumedButtons & bit ) || ( consumed && !endsPress ) )
+        {
+            m_previewConsumedButtons &= ~bit;
+            m_buttonStates &= ~bit;
+            return;
+        }
+    }
+
     FlushLayoutIfNeeded();
-    UInt32 bit = 1u << (UInt32) button;
     ++m_dispatchDepth;
 
     if ( down )
@@ -1674,6 +1737,9 @@ void
 CGUIContext::InjectMouseWheel( Int32 delta )
 {GUCEF_TRACE;
 
+    if ( PreviewMouseWheel( delta ) )
+        return;
+
     // no wheel turns this far in one event; the widgets multiply the notches into distances and add them to positions
     const Int32 maxDelta = 65536;
     if ( delta > maxDelta )
@@ -1748,6 +1814,13 @@ void
 CGUIContext::InjectKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers )
 {GUCEF_TRACE;
 
+    if ( PreviewKey( keyCode, down, modifiers ) )
+    {
+        // consumed: the widgets do not get it, the modifiers held are kept all the same
+        m_modifiers = modifiers;
+        return;
+    }
+
     FlushLayoutIfNeeded();
     m_modifiers = modifiers;
     CWidget* target = GetKeyboardTarget();
@@ -1819,7 +1892,7 @@ void
 CGUIContext::InjectText( const CString& text )
 {GUCEF_TRACE;
 
-    if ( text.IsNULLOrEmpty() )
+    if ( text.IsNULLOrEmpty() || PreviewText( text ) )
         return;
     FlushLayoutIfNeeded();
     CWidget* target = GetKeyboardTarget();
@@ -1965,8 +2038,12 @@ CGUIContext::UpdatePointerTarget( void )
 {GUCEF_TRACE;
 
     // a press that can no longer be released into the widget (it was disabled or hidden, a layer above took the input)
-    if ( GUCEF_NULL != m_pressed && ( !AcceptsInput( m_pressed ) || HasHigherLayerTakingInput() ) )
-        CancelPointerCapture( HasHigherLayerTakingInput() ? "a layer above takes the input" : "the widget takes no input any more" );
+    if ( GUCEF_NULL != m_pressed )
+    {
+        const bool layerAbove = HasHigherLayerTakingPointerInput();
+        if ( layerAbove || !AcceptsInput( m_pressed ) )
+            CancelPointerCapture( layerAbove ? "a layer above takes the input" : "the widget takes no input any more" );
+    }
 
     CWidget* found = HitTest( m_pointerX, m_pointerY );
     CWidget* hit = found;
@@ -2751,7 +2828,43 @@ CGUIContext::HasVisibleRoots( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CGUIContext::HasHigherLayerTakingInput( void ) const
+CGUIContext::IsTakingPointerInput( void ) const
+{GUCEF_TRACE;
+
+    return HasVisibleRoots();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::IsTakingKeyboardInput( void ) const
+{GUCEF_TRACE;
+
+    return !m_keyboardPassThrough && HasVisibleRoots();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::SetKeyboardInputPassThrough( bool passThrough )
+{GUCEF_TRACE;
+
+    m_keyboardPassThrough = passThrough;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::IsKeyboardInputPassThrough( void ) const
+{GUCEF_TRACE;
+
+    return m_keyboardPassThrough;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::HasHigherLayerTaking( bool pointer, bool keyboard ) const
 {GUCEF_TRACE;
 
     if ( m_windowContext.IsNULL() )
@@ -2763,9 +2876,81 @@ CGUIContext::HasHigherLayerTakingInput( void ) const
         if ( (*i) == this )
             above = true;
         else
-        if ( above && (*i)->HasVisibleRoots() )
+        if ( above && ( ( pointer && (*i)->IsTakingPointerInput() ) || ( keyboard && (*i)->IsTakingKeyboardInput() ) ) )
             return true;
     }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::HasHigherLayerTakingPointerInput( void ) const
+{GUCEF_TRACE;
+
+    return HasHigherLayerTaking( true, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::HasHigherLayerTakingKeyboardInput( void ) const
+{GUCEF_TRACE;
+
+    return HasHigherLayerTaking( false, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::HasHigherLayerTakingInput( void ) const
+{GUCEF_TRACE;
+
+    return HasHigherLayerTaking( true, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::PreviewMouseMove( Int32 x, Int32 y )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::PreviewMouseButton( TMouseButton button, bool down )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::PreviewMouseWheel( Int32 delta )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::PreviewKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::PreviewText( const CString& text )
+{GUCEF_TRACE;
+
     return false;
 }
 

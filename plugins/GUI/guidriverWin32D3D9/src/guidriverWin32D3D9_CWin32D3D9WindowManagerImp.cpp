@@ -83,6 +83,9 @@ CWin32D3D9WindowManagerImp::CreateWindowContext( const GUI::CString& title      
                                                const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "Win32D3D9", params ) )
+        return GUI::TWindowContextPtr();
+
     TWin32GLWindowContextPtr windowContext = TWin32GLWindowContextPtr( new CWin32D3D9WindowContext() );
     if ( windowContext->Initialize( title    ,
                                     settings ) )
@@ -122,6 +125,15 @@ CWin32D3D9WindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& window
     {
         d3d9Context->Shutdown();
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWin32D3D9WindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

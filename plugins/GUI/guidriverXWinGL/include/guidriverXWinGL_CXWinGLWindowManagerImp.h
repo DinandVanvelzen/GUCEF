@@ -84,6 +84,9 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowManagerImp : public GUI::CWindowMa
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
                                      const GUI::CVideoSettings& settings   );
 
+    /** "GL" (an OpenGL context, the default) and "None" (a window without a graphics context) */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     CXWinGLWindowManagerImp( const CXWinGLWindowManagerImp& src );

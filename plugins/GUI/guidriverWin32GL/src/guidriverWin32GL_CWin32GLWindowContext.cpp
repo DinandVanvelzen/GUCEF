@@ -210,6 +210,42 @@ CWin32GLWindowContext::GetProperty( const GUI::CString& propertyName ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CWin32GLWindowContext::SetSystemCursorShape( GUI::TCursorShape shape )
+{GUCEF_TRACE;
+
+    HWND window = m_window.GetHwnd();
+    if ( GUCEF_NULL == window )
+        return false;
+
+    LPCTSTR resource = IDC_ARROW;
+    switch ( shape )
+    {
+        case GUI::CURSORSHAPE_ARROW: resource = IDC_ARROW; break;
+        case GUI::CURSORSHAPE_TEXT: resource = IDC_IBEAM; break;
+        case GUI::CURSORSHAPE_RESIZE_ALL: resource = IDC_SIZEALL; break;
+        case GUI::CURSORSHAPE_RESIZE_NS: resource = IDC_SIZENS; break;
+        case GUI::CURSORSHAPE_RESIZE_EW: resource = IDC_SIZEWE; break;
+        case GUI::CURSORSHAPE_RESIZE_NESW: resource = IDC_SIZENESW; break;
+        case GUI::CURSORSHAPE_RESIZE_NWSE: resource = IDC_SIZENWSE; break;
+        case GUI::CURSORSHAPE_HAND: resource = IDC_HAND; break;
+        case GUI::CURSORSHAPE_WAIT: resource = IDC_WAIT; break;
+        case GUI::CURSORSHAPE_PROGRESS: resource = IDC_APPSTARTING; break;
+        case GUI::CURSORSHAPE_NOT_ALLOWED: resource = IDC_NO; break;
+        default: break;
+    }
+
+    // the cursor of the window class is what Windows puts back whenever the pointer moves, so it is the class that is changed
+    HCURSOR cursor = ::LoadCursor( GUCEF_NULL, resource );
+    if ( GUCEF_NULL == cursor )
+        return false;
+    ::SetClassLongPtr( window, GCLP_HCURSOR, (LONG_PTR) cursor );
+    ::SetCursor( cursor );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CWin32GLWindowContext::Initialize( const GUI::CString& title                ,
                                    const GUI::CVideoSettings& videoSettings )
 {GUCEF_TRACE;

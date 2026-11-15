@@ -84,6 +84,9 @@ class GUIDRIVERWIN32_PUBLIC_CPP CWin32WindowManagerImp : public GUI::CWindowMana
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
                                      const GUI::CVideoSettings& settings   ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** "None": the windows are plain windows without a graphics context */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
     private:

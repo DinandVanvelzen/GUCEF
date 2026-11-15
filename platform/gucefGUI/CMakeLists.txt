@@ -61,11 +61,14 @@ set( HEADER_FILES
   include/gucefGUI_CIGUIContext.h
   include/gucefGUI_CITableViewModel.h
   include/gucefGUI_CImageFrame.h
+  include/gucefGUI_CKeyboardLayout.h
+  include/gucefGUI_CKeyboardLayoutRegistry.h
   include/gucefGUI_CLabel.h
   include/gucefGUI_CListBox.h
   include/gucefGUI_CMenuBar.h
   include/gucefGUI_CMessageBoxForm.h
   include/gucefGUI_CModule.h
+  include/gucefGUI_COnScreenKeyboardForm.h
   include/gucefGUI_CPanel.h
   include/gucefGUI_CPathFieldForm.h
   include/gucefGUI_CPopupMenu.h
@@ -168,11 +171,14 @@ set( SOURCE_FILES
   src/gucefGUI_CIGUIContext.cpp
   src/gucefGUI_CITableViewModel.cpp
   src/gucefGUI_CImageFrame.cpp
+  src/gucefGUI_CKeyboardLayout.cpp
+  src/gucefGUI_CKeyboardLayoutRegistry.cpp
   src/gucefGUI_CLabel.cpp
   src/gucefGUI_CListbox.cpp
   src/gucefGUI_CMenuBar.cpp
   src/gucefGUI_CMessageBoxForm.cpp
   src/gucefGUI_CModule.cpp
+  src/gucefGUI_COnScreenKeyboardForm.cpp
   src/gucefGUI_CPanel.cpp
   src/gucefGUI_CPathFieldForm.cpp
   src/gucefGUI_CPopupMenu.cpp

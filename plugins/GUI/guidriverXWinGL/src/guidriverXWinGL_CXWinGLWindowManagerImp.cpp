@@ -83,6 +83,9 @@ CXWinGLWindowManagerImp::CreateWindowContext( const GUI::CString& title         
                                               const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "XWinGL", params ) )
+        return GUI::TWindowContextPtr();
+
     TXWinGLWindowContextPtr windowContext( new CXWinGLWindowContext() );
     if ( windowContext->Initialize( title    ,
                                     settings ,
@@ -123,6 +126,15 @@ CXWinGLWindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowCon
     {
         glContext->Shutdown();
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CXWinGLWindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return GUI::CWindowManagerBackend::GraphicsApiGL == graphicsApi || GUI::CWindowManagerBackend::GraphicsApiNone == graphicsApi;
 }
 
 /*-------------------------------------------------------------------------*/

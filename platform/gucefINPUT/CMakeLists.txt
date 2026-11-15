@@ -36,6 +36,7 @@ set( HEADER_FILES
   include/gucefINPUT_CMouseMovedEventData.h
   include/gucefINPUT_CMouseVariableChangedEventData.h
   include/gucefINPUT_CTConcreteActionEventData.h
+  include/gucefINPUT_CVirtualInputDriver.h
   include/gucefINPUT_ETypes.h
   include/gucefINPUT_config.h
   include/gucefINPUT_keyboard.h
@@ -64,6 +65,7 @@ set( SOURCE_FILES
   src/gucefINPUT_CMouseButtonEventData.cpp
   src/gucefINPUT_CMouseMovedEventData.cpp
   src/gucefINPUT_CMouseVariableChangedEventData.cpp
+  src/gucefINPUT_CVirtualInputDriver.cpp
   src/gucefINPUT_keyboard.cpp
 )
 

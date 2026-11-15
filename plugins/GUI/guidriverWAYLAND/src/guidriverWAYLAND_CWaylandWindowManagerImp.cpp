@@ -238,6 +238,9 @@ CWaylandWindowManagerImp::CreateWindowContext( const GUI::CString& title        
                                                const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "Wayland", params ) )
+        return GUI::TWindowContextPtr();
+
     if ( !IsAvailable() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CWaylandWindowManagerImp: No Wayland window can be made: " << m_availability.reason );

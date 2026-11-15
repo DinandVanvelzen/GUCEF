@@ -71,11 +71,14 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CIGUIContext.cpp \
   src/gucefGUI_CITableViewModel.cpp \
   src/gucefGUI_CImageFrame.cpp \
+  src/gucefGUI_CKeyboardLayout.cpp \
+  src/gucefGUI_CKeyboardLayoutRegistry.cpp \
   src/gucefGUI_CLabel.cpp \
   src/gucefGUI_CListbox.cpp \
   src/gucefGUI_CMenuBar.cpp \
   src/gucefGUI_CMessageBoxForm.cpp \
   src/gucefGUI_CModule.cpp \
+  src/gucefGUI_COnScreenKeyboardForm.cpp \
   src/gucefGUI_CPanel.cpp \
   src/gucefGUI_CPathFieldForm.cpp \
   src/gucefGUI_CPopupMenu.cpp \

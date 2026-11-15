@@ -90,6 +90,9 @@ class GUIDRIVERWIN32_PUBLIC_CPP CWin32WindowContext : public GUI::CWindowContext
 
     virtual GUI::CString GetProperty( const GUI::CString& propertyName ) const;
 
+    /** A system cursor (LoadCursor) set as the cursor of the window class, so all windows of the class show it */
+    virtual bool SetSystemCursorShape( GUI::TCursorShape shape );
+
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings );
 

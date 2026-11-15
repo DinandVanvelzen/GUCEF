@@ -46,6 +46,7 @@
 			<RuntimeDependency Name="guidriverOgre" />
 			<RuntimeDependency Name="guidriverRmlUI" />
 			<RuntimeDependency Name="guidriverRmlUIOpenGL" />
+			<RuntimeDependency Name="guidriverImGuiOpenGL" />
 			<RuntimeDependency Name="guidriverNull" />
 			<RuntimeDependency Name="fontpluginFREETYPE" />
 			<RuntimeDependency Name="inputdriverOIS" />

@@ -185,13 +185,13 @@ CGUIInputAdapter::MapMouseButton( UInt32 buttonIndex )
 /*-------------------------------------------------------------------------*/
 
 bool
-CGUIInputAdapter::IsForUs( Int32 inputContextId ) const
+CGUIInputAdapter::IsForUs( Int32 inputContextId, bool pointerInput ) const
 {GUCEF_TRACE;
 
-    // input of our window, unless a GUI layer above ours in the window shows something and takes it
+    // input of our window, unless a GUI layer above ours in the window takes that kind of input
     if ( AnyInputContext != m_inputContextId && inputContextId != m_inputContextId )
         return false;
-    return !m_guiContext->HasHigherLayerTakingInput();
+    return pointerInput ? !m_guiContext->HasHigherLayerTakingPointerInput() : !m_guiContext->HasHigherLayerTakingKeyboardInput();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -208,7 +208,7 @@ CGUIInputAdapter::OnNotify( CORE::CNotifier* notifier    ,
     if ( INPUT::CMouse::MouseMovedEvent == eventId )
     {
         const INPUT::CMouseMovedEventData* data = static_cast< INPUT::CMouseMovedEventData* >( eventData );
-        if ( IsForUs( data->GetContextId() ) )
+        if ( IsForUs( data->GetContextId(), true ) )
             m_guiContext->ProcessWindowMouseMove( data->GetXPos(), data->GetYPos() );
     }
     else
@@ -216,7 +216,7 @@ CGUIInputAdapter::OnNotify( CORE::CNotifier* notifier    ,
     {
         const INPUT::CMouseButtonEventData* data = static_cast< INPUT::CMouseButtonEventData* >( eventData );
         TMouseButton button = MapMouseButton( data->GetButtonIndex() );
-        if ( IsForUs( data->GetContextId() ) && MOUSEBUTTON_NONE != button )
+        if ( IsForUs( data->GetContextId(), true ) && MOUSEBUTTON_NONE != button )
             m_guiContext->InjectMouseButton( button, data->GetPressedState() );
     }
     else
@@ -225,7 +225,7 @@ CGUIInputAdapter::OnNotify( CORE::CNotifier* notifier    ,
         const INPUT::CMouseVariableChangedEventData* data = static_cast< INPUT::CMouseVariableChangedEventData* >( eventData );
         if ( INPUT::CMouse::MOUSEVARIABLE_WHEEL == data->GetVariableIndex() && 0 != data->GetValueDelta() )
         {
-            if ( IsForUs( data->GetContextId() ) )
+            if ( IsForUs( data->GetContextId(), true ) )
                 m_guiContext->InjectMouseWheel( data->GetValueDelta() );
             else
             {
@@ -241,14 +241,14 @@ CGUIInputAdapter::OnNotify( CORE::CNotifier* notifier    ,
     if ( INPUT::CKeyboard::KeyStateChangedEvent == eventId )
     {
         const INPUT::CKeyStateChangedEventData* data = static_cast< INPUT::CKeyStateChangedEventData* >( eventData );
-        if ( IsForUs( data->GetContextId() ) )
+        if ( IsForUs( data->GetContextId(), false ) )
             m_guiContext->InjectKey( data->GetKeyCode(), data->GetKeyPressedState(), data->GetKeyModPressedStates() );
     }
     else
     if ( INPUT::CKeyboard::TextInputEvent == eventId )
     {
         const INPUT::CKeyboardTextEventData* data = static_cast< INPUT::CKeyboardTextEventData* >( eventData );
-        if ( IsForUs( data->GetContextId() ) )
+        if ( IsForUs( data->GetContextId(), false ) )
             m_guiContext->InjectText( data->GetText() );
     }
     else

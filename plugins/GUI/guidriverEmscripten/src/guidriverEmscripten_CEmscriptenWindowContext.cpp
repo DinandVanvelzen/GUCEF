@@ -71,6 +71,11 @@ EM_JS( void, guidriverEmscripten_SetCanvasCursor, ( const char* selector, int vi
     if ( canvas ) canvas.style.cursor = visible ? "" : "none";
 } );
 
+EM_JS( void, guidriverEmscripten_SetCanvasCursorShape, ( const char* selector, const char* cssCursor ), {
+    var canvas = document.querySelector( UTF8ToString( selector ) );
+    if ( canvas ) canvas.style.cursor = UTF8ToString( cssCursor );
+} );
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -221,6 +226,35 @@ CEmscriptenWindowContext::SetSystemCursorVisible( bool visible )
     if ( m_canvas.IsNULLOrEmpty() )
         return false;
     guidriverEmscripten_SetCanvasCursor( m_canvas.C_String(), visible ? 1 : 0 );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CEmscriptenWindowContext::SetSystemCursorShape( GUI::TCursorShape shape )
+{GUCEF_TRACE;
+
+    if ( m_canvas.IsNULLOrEmpty() )
+        return false;
+
+    const char* cssCursor = "default";
+    switch ( shape )
+    {
+        case GUI::CURSORSHAPE_ARROW: cssCursor = "default"; break;
+        case GUI::CURSORSHAPE_TEXT: cssCursor = "text"; break;
+        case GUI::CURSORSHAPE_RESIZE_ALL: cssCursor = "move"; break;
+        case GUI::CURSORSHAPE_RESIZE_NS: cssCursor = "ns-resize"; break;
+        case GUI::CURSORSHAPE_RESIZE_EW: cssCursor = "ew-resize"; break;
+        case GUI::CURSORSHAPE_RESIZE_NESW: cssCursor = "nesw-resize"; break;
+        case GUI::CURSORSHAPE_RESIZE_NWSE: cssCursor = "nwse-resize"; break;
+        case GUI::CURSORSHAPE_HAND: cssCursor = "pointer"; break;
+        case GUI::CURSORSHAPE_WAIT: cssCursor = "wait"; break;
+        case GUI::CURSORSHAPE_PROGRESS: cssCursor = "progress"; break;
+        case GUI::CURSORSHAPE_NOT_ALLOWED: cssCursor = "not-allowed"; break;
+        default: break;
+    }
+    guidriverEmscripten_SetCanvasCursorShape( m_canvas.C_String(), cssCursor );
     return true;
 }
 

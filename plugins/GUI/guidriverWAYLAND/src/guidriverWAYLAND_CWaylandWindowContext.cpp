@@ -450,6 +450,35 @@ CWaylandWindowContext::SetSystemCursorVisible( bool visible )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CWaylandWindowContext::SetSystemCursorShape( GUI::TCursorShape shape )
+{GUCEF_TRACE;
+
+    if ( !m_initialized )
+        return false;
+
+    CWaylandCursor::ECursorShape waylandShape = CWaylandCursor::CURSORSHAPE_DEFAULT;
+    switch ( shape )
+    {
+        case GUI::CURSORSHAPE_ARROW: waylandShape = CWaylandCursor::CURSORSHAPE_DEFAULT; break;
+        case GUI::CURSORSHAPE_TEXT: waylandShape = CWaylandCursor::CURSORSHAPE_TEXT; break;
+        case GUI::CURSORSHAPE_RESIZE_ALL: waylandShape = CWaylandCursor::CURSORSHAPE_MOVE; break;
+        case GUI::CURSORSHAPE_RESIZE_NS: waylandShape = CWaylandCursor::CURSORSHAPE_NS_RESIZE; break;
+        case GUI::CURSORSHAPE_RESIZE_EW: waylandShape = CWaylandCursor::CURSORSHAPE_EW_RESIZE; break;
+        case GUI::CURSORSHAPE_RESIZE_NESW: waylandShape = CWaylandCursor::CURSORSHAPE_NESW_RESIZE; break;
+        case GUI::CURSORSHAPE_RESIZE_NWSE: waylandShape = CWaylandCursor::CURSORSHAPE_NWSE_RESIZE; break;
+        case GUI::CURSORSHAPE_HAND: waylandShape = CWaylandCursor::CURSORSHAPE_POINTER; break;
+        case GUI::CURSORSHAPE_WAIT: waylandShape = CWaylandCursor::CURSORSHAPE_WAIT; break;
+        case GUI::CURSORSHAPE_PROGRESS: waylandShape = CWaylandCursor::CURSORSHAPE_PROGRESS; break;
+        case GUI::CURSORSHAPE_NOT_ALLOWED: waylandShape = CWaylandCursor::CURSORSHAPE_NOT_ALLOWED; break;
+        default: break;
+    }
+    m_connection.GetCursor().SetShape( waylandShape );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CWaylandWindowContext::SetCursorShape( CWaylandCursor::ECursorShape shape )
 {GUCEF_TRACE;

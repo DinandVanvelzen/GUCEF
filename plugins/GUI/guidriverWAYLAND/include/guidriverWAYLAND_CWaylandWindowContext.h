@@ -154,6 +154,9 @@ class GUIDRIVERWAYLAND_PUBLIC_CPP CWaylandWindowContext : public GUI::CWindowCon
 
     virtual bool SetSystemCursorVisible( bool visible ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The shape through the cursor shape protocol of the compositor, else the cursor theme (CWaylandCursor) */
+    virtual bool SetSystemCursorShape( GUI::TCursorShape shape ) GUCEF_VIRTUAL_OVERRIDE;
+
     void SetCursorShape( PLUGINGLUE::WAYLAND::CWaylandCursor::ECursorShape shape );
 
     bool Initialize( const GUI::CString& title                ,

@@ -83,6 +83,9 @@ CAndroidWindowManagerImp::CreateWindowContext( const GUI::CString& title        
                                                const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "AndroidGLES", params ) )
+        return GUI::TWindowContextPtr();
+
     TAndroidGLESWindowContextPtr windowContext( new CAndroidGLESWindowContext() );
     if ( windowContext->Initialize( title, settings, params ) )
     {

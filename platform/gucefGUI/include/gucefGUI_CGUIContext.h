@@ -327,6 +327,15 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
 
     const CString& GetCursorImage( void ) const;
 
+    /**
+     *  The shape of the pointer of the system while this context is the layer that takes the pointer (and draws no picture
+     *  of its own): the window is asked for it when the pointer changes layer or the shape changes, see
+     *  CWindowContext::SetSystemCursorShape(). An arrow by default
+     */
+    void SetSystemCursorShape( TCursorShape shape );
+
+    TCursorShape GetSystemCursorShape( void ) const;
+
     Int32 GetCursorHotspotX( void ) const;
 
     Int32 GetCursorHotspotY( void ) const;
@@ -419,7 +428,32 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     /** Whether a root is shown */
     bool HasVisibleRoots( void ) const;
 
-    /** Whether a higher layer of the window shows something and so takes the input */
+    /**
+     *  Whether this layer takes the pointer (moves, buttons, wheel) away from the layers below it, and the shape and picture of
+     *  the pointer are its. The layers below get no pointer input while a layer above takes it. A context shows something when
+     *  it has a visible root, which is what this answers unless a driver context overrides it (a layer of an immediate mode GUI
+     *  takes the pointer only where one of its windows is)
+     */
+    virtual bool IsTakingPointerInput( void ) const;
+
+    /** As IsTakingPointerInput() for the keyboard (keys and text); a context that is set to pass the keyboard on (SetKeyboardInputPassThrough()) takes none */
+    virtual bool IsTakingKeyboardInput( void ) const;
+
+    /**
+     *  A layer that passes the keyboard on takes none of it away from the layers below, also while it shows something: a
+     *  layer with an on screen keyboard has the keys go to the focus of the application below. False by default
+     */
+    void SetKeyboardInputPassThrough( bool passThrough );
+
+    bool IsKeyboardInputPassThrough( void ) const;
+
+    /** Whether a higher layer of the window takes the pointer */
+    bool HasHigherLayerTakingPointerInput( void ) const;
+
+    /** Whether a higher layer of the window takes the keyboard */
+    bool HasHigherLayerTakingKeyboardInput( void ) const;
+
+    /** Whether a higher layer of the window takes the pointer or the keyboard */
     bool HasHigherLayerTakingInput( void ) const;
 
     /** Draws a frame of every layer of the window from the bottom up, or of this context when it has no window */
@@ -429,6 +463,20 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
 
     /** The driver draws the context */
     virtual void OnRender( void );
+
+    /*
+     *  Previews: a driver context sees every input event before the widgets do (what comes from tests, scripts and
+     *  replays through the Inject*() calls as well as what the input adapter passes on). They are called at the start
+     *  of the Inject*() call; true says the event is consumed and the widgets do not get it. InjectNavigation() is not
+     *  previewed, the context makes it itself. The context keeps its own state of the pointer whatever a preview says: the
+     *  position and the buttons held are recorded, a consumed move takes the hover from the widgets, and a press of a widget
+     *  that is in progress still gets its moves and its release. By default nothing is consumed
+     */
+    virtual bool PreviewMouseMove( Int32 x, Int32 y );
+    virtual bool PreviewMouseButton( TMouseButton button, bool down );
+    virtual bool PreviewMouseWheel( Int32 delta );
+    virtual bool PreviewKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers );
+    virtual bool PreviewText( const CString& text );
 
     /** Destroys every form and widget; a driver context calls it in its destructor while its backend still exists */
     void DestroyAllWidgets( void );
@@ -497,6 +545,8 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
 
     CGUIContext( const CGUIContext& src );
     CGUIContext& operator=( const CGUIContext& src );
+
+    bool HasHigherLayerTaking( bool pointer, bool keyboard ) const;
 
     /** Keeps the widgets that observers run for alive while an event is dispatched, see the implementation */
     class CDispatchScope;
@@ -570,6 +620,9 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     Int32 m_cursorHotspotX;
     Int32 m_cursorHotspotY;
     bool m_cursorVisible;
+    TCursorShape m_systemCursorShape;
+    bool m_keyboardPassThrough;
+    UInt32 m_previewConsumedButtons;    /**< the buttons whose press a preview consumed: their release is not for the widgets either */
     Int32 m_pointerX;
     Int32 m_pointerY;
     UInt32 m_buttonStates;

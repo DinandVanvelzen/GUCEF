@@ -45,6 +45,9 @@ bool IsInBrowser( void );
 /** A context of the null driver at 640 x 480, NULL when the driver cannot be loaded */
 GUCEF::GUI::TGuiContextPtr CreateNullContext( void );
 
+/** A context of the ImGui driver (Dear ImGui drawing with OpenGL) in an offscreen EGL window of 640 x 480, with a logical resolution of 640 x 480; NULL when either is missing or the font plugin is */
+GUCEF::GUI::TGuiContextPtr CreateImGuiContext( void );
+
 /** A context of the RmlUi driver drawing with OpenGL in an offscreen EGL window of 640 x 480, NULL when either is missing */
 GUCEF::GUI::TGuiContextPtr CreateRmlUiContext( void );
 
@@ -70,8 +73,11 @@ void PerformGuiLayoutTests( void );
 void PerformGuiMediaTests( void );
 void PerformGuiRenderTests( void );
 void PerformGuiInputTests( void );
+void PerformGuiArbitrationTests( void );
+void PerformGuiOnScreenKeyboardTests( void );
 void PerformGuiSecretInputTests( void );
 void PerformGuiWindowTests( void );
+void PerformGuiGraphicsApiTests( void );
 void PerformGuiScrollPanelTests( void );
 void PerformGuiPropertyTests( void );
 

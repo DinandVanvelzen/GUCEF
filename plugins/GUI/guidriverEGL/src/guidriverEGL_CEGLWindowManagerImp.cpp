@@ -86,6 +86,9 @@ CEGLWindowManagerImp::CreateWindowContext( const GUI::CString& title           ,
                                            const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "EGL", params ) )
+        return GUI::TWindowContextPtr();
+
     TEGLWindowContextPtr windowContext( GUCEF_NEW CEGLWindowContext() );
     if ( windowContext->Initialize( title, settings ) )
         return windowContext;

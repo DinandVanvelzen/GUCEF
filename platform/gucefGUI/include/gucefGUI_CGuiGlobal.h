@@ -60,6 +60,7 @@ class CWindowManager;
 class CGUIManager;
 class CWidgetTypeRegistry;
 class CFontRasterizerRegistry;
+class CKeyboardLayoutRegistry;
 
 /*-------------------------------------------------------------------------*/
 
@@ -81,6 +82,9 @@ class GUCEF_GUI_PUBLIC_CPP CGuiGlobal
 
     /** The font rasterizers the loaded plugins provide */
     CFontRasterizerRegistry& GetFontRasterizerRegistry( void );
+
+    /** The keyboard layouts of the on screen keyboard, by name */
+    CKeyboardLayoutRegistry& GetKeyboardLayoutRegistry( void );
 
     /** Where MountData() mounts the data files gucefGUI comes with in the VFS */
     static const CString DataMountPoint;
@@ -118,6 +122,7 @@ class GUCEF_GUI_PUBLIC_CPP CGuiGlobal
     CGUIManager* m_guiManager;
     CWidgetTypeRegistry* m_widgetTypeRegistry;
     CFontRasterizerRegistry* m_fontRasterizerRegistry;
+    CKeyboardLayoutRegistry* m_keyboardLayoutRegistry;
 
     static CGuiGlobal* g_instance;
     static MT::CMutex g_datalock;

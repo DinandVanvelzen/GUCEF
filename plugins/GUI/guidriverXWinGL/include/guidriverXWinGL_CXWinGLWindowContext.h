@@ -102,6 +102,9 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
 
     virtual bool SetSystemCursorVisible( bool visible ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** A cursor of the X font of cursors: the diagonal resize shapes are the corner cursors, which the font has no double arrows for */
+    virtual bool SetSystemCursorShape( GUI::TCursorShape shape ) GUCEF_VIRTUAL_OVERRIDE;
+
     /** Full screen or a window of the size of the settings, waiting for the vertical blank or not */
     bool ApplyVideoSettings( const GUI::CVideoSettings& videoSettings );
 
@@ -110,7 +113,11 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
 
     /**
      *  As above; 'params' may hold "X" and "Y": where the window (its frame) is placed on the screen, honoured when the point
-     *  is on the screen. The property "POSITION" ("x,y") gives the place to restore a window at
+     *  is on the screen. The property "POSITION" ("x,y") gives the place to restore a window at.
+     *  'params' may hold "GraphicsApi" (GUI::CWindowManagerBackend::GraphicsApiParameterName): "GL", the default, makes
+     *  an OpenGL context; "None" makes the window without a GL context, for a renderer that makes its own surface from the
+     *  properties "WINDOW" and "DISPLAY". Such a window is neither cleared nor swapped, its redraw event only paces the
+     *  frames, and it has no GL_* properties; "GRAPHICS_API" says which of the two the window has
      */
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings ,
@@ -133,6 +140,13 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
     /** Draws a frame: the observers redraw the window, then the buffers are swapped */
     void Redraw( void );
 
+    /** Makes the X11 window with the visual (an XVisualInfo), or with the default visual of the screen when NULL (no GL context) */
+    bool InitializeWindow( const GUI::CString& title                ,
+                           const GUI::CVideoSettings& videoSettings ,
+                           const CORE::CValueList* params           ,
+                           ::Display* display                       ,
+                           void* visualInfo                         );
+
     CXWinGLWindowContext( const CXWinGLWindowContext& src );            /**< private because: must be unique */
     CXWinGLWindowContext& operator=( const CXWinGLWindowContext& src ); /**< private because: must be unique */
 
@@ -147,6 +161,7 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
     CORE::CX11Window m_window;
     void* m_renderContext;          /**< GLXContext */
     bool m_isCoreProfile;
+    bool m_graphicsApiNone;         /**< made without a GL context (GraphicsApi None) */
     bool m_shown;                   /**< mapped or exposed: before that a swap can wait for a window that is not shown (XWayland) */
     CORE::CX11ActivationTokenProvider* m_activation;    /**< gives the launcher of the browser the startup id of the last key or button press while this window exists; NULL when somebody else's provider is installed */
 };

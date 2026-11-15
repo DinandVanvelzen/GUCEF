@@ -59,7 +59,9 @@ class CGUIContext;
  *
  *  Mice and keyboards attached later are picked up as well. With an input context id only input of
  *  that gucefINPUT context (the window the GUI context draws in) is passed on. While a GUI context on a
- *  higher layer of the same window shows something, the input is not passed on: that layer takes it.
+ *  higher layer of the same window takes the pointer (CGUIContext::IsTakingPointerInput(), by default when it shows
+ *  something), the pointer input is not passed on, and while one takes the keyboard (IsTakingKeyboardInput()) the
+ *  keys and the text are not: that layer takes it. The two are decided apart.
  */
 class GUCEF_GUI_PUBLIC_CPP CGUIInputAdapter : public CORE::CObserver
 {
@@ -97,7 +99,8 @@ class GUCEF_GUI_PUBLIC_CPP CGUIInputAdapter : public CORE::CObserver
 
     private:
 
-    bool IsForUs( Int32 inputContextId ) const;
+    /** Whether input of the input context is for the GUI context: pointer input (moves, buttons, wheel) or keyboard input (keys, text) */
+    bool IsForUs( Int32 inputContextId, bool pointerInput ) const;
 
     CGUIInputAdapter( const CGUIInputAdapter& src );            /**< not implemented */
     CGUIInputAdapter& operator=( const CGUIInputAdapter& src ); /**< not implemented */

@@ -42,6 +42,7 @@ LOCAL_SRC_FILES := \
   src/gucefINPUT_CMouseButtonEventData.cpp \
   src/gucefINPUT_CMouseMovedEventData.cpp \
   src/gucefINPUT_CMouseVariableChangedEventData.cpp \
+  src/gucefINPUT_CVirtualInputDriver.cpp \
   src/gucefINPUT_keyboard.cpp
 
 LOCAL_C_INCLUDES := \

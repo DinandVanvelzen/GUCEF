@@ -84,6 +84,9 @@ class GUIDRIVERWIN32D3D9_PUBLIC_CPP CWin32D3D9WindowManagerImp : public GUI::CWi
     virtual bool ApplyVideoSettings( GUI::TWindowContextPtr& windowContext ,
                                      const GUI::CVideoSettings& settings   );
 
+    /** None of the values: the windows have a Direct3D 9 device, which the GraphicsApi values do not name */
+    virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     CWin32D3D9WindowManagerImp( const CWin32D3D9WindowManagerImp& src );

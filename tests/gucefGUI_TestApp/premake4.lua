@@ -196,18 +196,21 @@ configuration( { "ANDROID32" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -219,6 +222,7 @@ configuration( { "ANDROID32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -237,18 +241,21 @@ configuration( { "ANDROID64" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -260,6 +267,7 @@ configuration( { "ANDROID64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -278,18 +286,21 @@ configuration( { "EMSCRIPTEN32" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -301,6 +312,7 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -319,18 +331,21 @@ configuration( { "EMSCRIPTEN64" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -342,6 +357,7 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -360,18 +376,21 @@ configuration( { "LINUX32" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -383,6 +402,7 @@ configuration( { "LINUX32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -401,18 +421,21 @@ configuration( { "LINUX64" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -424,6 +447,7 @@ configuration( { "LINUX64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -442,18 +466,21 @@ configuration( { "WIN32" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -465,6 +492,7 @@ configuration( { "WIN32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
@@ -483,18 +511,21 @@ configuration( { "WIN64" } )
     files( {
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
-      "include/gucefGUI_TestGridSupport.h"
+      "include/gucefGUI_TestGridSupport.h",
+      "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestAudioSettingsForm.cpp",
+      "src/TestGuiArbitration.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
@@ -506,6 +537,7 @@ configuration( { "WIN64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",

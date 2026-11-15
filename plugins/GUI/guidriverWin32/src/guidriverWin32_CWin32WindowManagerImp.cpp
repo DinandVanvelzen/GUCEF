@@ -83,6 +83,9 @@ CWin32WindowManagerImp::CreateWindowContext( const GUI::CString& title          
                                              const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "Win32", params ) )
+        return GUI::TWindowContextPtr();
+
     TWin32WindowContextPtr windowContext = TWin32WindowContextPtr( new CWin32WindowContext() );
     if ( windowContext->Initialize( title    ,
                                     settings ) )
@@ -122,6 +125,15 @@ CWin32WindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowCont
     {
         context->Shutdown();
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWin32WindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return GUI::CWindowManagerBackend::GraphicsApiNone == graphicsApi;
 }
 
 /*-------------------------------------------------------------------------*/

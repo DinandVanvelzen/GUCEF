@@ -941,8 +941,8 @@ CWidgetPainter::PaintOverlay( CGUIContext& context, TCommandVector& commands )
         }
     }
 
-    // the cursor picture, not while a layer above takes the input (it has the pointer then)
-    if ( context.IsCursorVisible() && !context.GetCursorImage().IsNULLOrEmpty() && !context.HasHigherLayerTakingInput() )
+    // the cursor picture, not while a layer above takes the pointer (it has the pointer then)
+    if ( context.IsCursorVisible() && !context.GetCursorImage().IsNULLOrEmpty() && !context.HasHigherLayerTakingPointerInput() )
     {
         Int32 cursorWidth = 0, cursorHeight = 0;
         if ( context.GetImageLogicalSize( context.GetCursorImage(), cursorWidth, cursorHeight ) )

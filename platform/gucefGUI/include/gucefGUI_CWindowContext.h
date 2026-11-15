@@ -109,8 +109,17 @@ class GUCEF_GUI_PUBLIC_CPP CWindowContext : public CORE::CObservingNotifier
     virtual bool SetSystemCursorVisible( bool visible );
 
     /**
-     *  Shows the pointer of the system unless the GUI layer that takes the input (the highest that shows something, else
-     *  the lowest) draws a picture of its own (CGUIContext::SetCursor()). The window is asked only when that changes
+     *  Gives the pointer of the system the given shape, while it is shown; false when the window cannot (the default: no
+     *  window driver is forced to have shapes). A window shows the nearest shape it has. The window is told only when the
+     *  shape of the layer that has the pointer changes, and not again when it answered false for that shape, so a window
+     *  driver without shapes costs one call per change
+     */
+    virtual bool SetSystemCursorShape( TCursorShape shape );
+
+    /**
+     *  Shows the pointer of the system, with the shape (CGUIContext::SetSystemCursorShape()) of the GUI layer that takes the
+     *  pointer (the highest that takes it, CGUIContext::IsTakingPointerInput(), else the lowest), unless that layer draws a
+     *  picture of its own (CGUIContext::SetCursor()). The window is asked only when that changes
      */
     void UpdateSystemCursor( void );
 
@@ -130,6 +139,7 @@ class GUCEF_GUI_PUBLIC_CPP CWindowContext : public CORE::CObservingNotifier
 
     TGuiContextLayers m_guiLayers;
     Int32 m_systemCursorShown;      /**< -1 when not known yet */
+    Int32 m_systemCursorShape;      /**< the TCursorShape the window was told, -1 when not known yet (also after the pointer was hidden) */
     
     CWindowContext( const CWindowContext& src );            /**< private because: must be unique */ 
     CWindowContext& operator=( const CWindowContext& src ); /**< private because: must be unique */

@@ -83,6 +83,9 @@ CWin32GLWindowManagerImp::CreateWindowContext( const GUI::CString& title        
                                                const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "Win32GL", params ) )
+        return GUI::TWindowContextPtr();
+
     TWin32GLWindowContextPtr windowContext( new CWin32GLWindowContext() );
     if ( windowContext->Initialize( title    ,
                                     settings ) )

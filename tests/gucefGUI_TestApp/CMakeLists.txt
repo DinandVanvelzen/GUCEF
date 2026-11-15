@@ -18,6 +18,7 @@ if (ANDROID32)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "ANDROID32" )
@@ -25,12 +26,14 @@ if (ANDROID32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -42,6 +45,7 @@ if (ANDROID32)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -61,6 +65,7 @@ elseif (ANDROID64)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "ANDROID64" )
@@ -68,12 +73,14 @@ elseif (ANDROID64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -85,6 +92,7 @@ elseif (ANDROID64)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -104,6 +112,7 @@ elseif (EMSCRIPTEN32)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
@@ -111,12 +120,14 @@ elseif (EMSCRIPTEN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -128,6 +139,7 @@ elseif (EMSCRIPTEN32)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -147,6 +159,7 @@ elseif (EMSCRIPTEN64)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
@@ -154,12 +167,14 @@ elseif (EMSCRIPTEN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -171,6 +186,7 @@ elseif (EMSCRIPTEN64)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -190,6 +206,7 @@ elseif (LINUX32)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
@@ -197,12 +214,14 @@ elseif (LINUX32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -214,6 +233,7 @@ elseif (LINUX32)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -233,6 +253,7 @@ elseif (LINUX64)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
@@ -240,12 +261,14 @@ elseif (LINUX64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -257,6 +280,7 @@ elseif (LINUX64)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -276,6 +300,7 @@ elseif (WIN32)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
@@ -283,12 +308,14 @@ elseif (WIN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -300,6 +327,7 @@ elseif (WIN32)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
@@ -319,6 +347,7 @@ elseif (WIN64)
     include/gucefGUI_TestCommon.h
     include/gucefGUI_TestGridEditSupport.h
     include/gucefGUI_TestGridSupport.h
+    include/gucefGUI_TestInputSupport.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
@@ -326,12 +355,14 @@ elseif (WIN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestAudioSettingsForm.cpp
+    src/TestGuiArbitration.cpp
     src/TestGuiBrowser.cpp
     src/TestGuiChart.cpp
     src/TestGuiChartMarkers.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
+    src/TestGuiGraphicsApi.cpp
     src/TestGuiGridClipboard.cpp
     src/TestGuiGridEditRender.cpp
     src/TestGuiGridEditing.cpp
@@ -343,6 +374,7 @@ elseif (WIN64)
     src/TestGuiInput.cpp
     src/TestGuiLayout.cpp
     src/TestGuiMedia.cpp
+    src/TestGuiOnScreenKeyboard.cpp
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp

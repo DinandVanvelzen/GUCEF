@@ -127,8 +127,9 @@ bool
 CKeyboard::IsKeyDown( const KeyCode key ) const
 {GUCEF_TRACE;
 
+    // a key that never reported is up
     TKeyStates::const_iterator i = m_keyState.find( key );
-    return (*i).second;
+    return i != m_keyState.end() && (*i).second;
 }
 
 /*-------------------------------------------------------------------------*/

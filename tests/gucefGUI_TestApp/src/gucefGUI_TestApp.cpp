@@ -82,8 +82,11 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiMediaTests();
         PerformGuiRenderTests();
         PerformGuiInputTests();
+        PerformGuiArbitrationTests();
+        PerformGuiOnScreenKeyboardTests();
         PerformGuiSecretInputTests();
         PerformGuiWindowTests();
+        PerformGuiGraphicsApiTests();
         PerformGuiScrollPanelTests();
         PerformGuiPropertyTests();
         PerformGuiBrowserTests();

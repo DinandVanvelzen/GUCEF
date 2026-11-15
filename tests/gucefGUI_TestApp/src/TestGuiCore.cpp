@@ -122,6 +122,41 @@ CreateNullContext( void )
 /*-------------------------------------------------------------------------*/
 
 GUI::TGuiContextPtr
+CreateImGuiContext( void )
+{
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // the driver is not part of the web build of this test
+    return GUI::TGuiContextPtr();
+
+    #else
+
+    GUI::CGUIManager& manager = GUI::CGuiGlobal::Instance()->GetGuiManager();
+    GUI::CWindowManager& windows = GUI::CGuiGlobal::Instance()->GetWindowManager();
+
+    // an offscreen window, and the GUI driver and the font rasterizer that Dear ImGui needs, as plugins
+    if ( windows.GetBackend( "EGL" ).IsNULL() )
+        LoadTestPlugin( "guidriverEGL", "guidriver" );
+    if ( GUCEF_NULL == manager.GetGuiDriver( "ImGui" ) )
+        LoadTestPlugin( "guidriverImGuiOpenGL", "guidriver" );
+    GUI::TWindowManagerBackendPtr backend = windows.GetBackend( "EGL" );
+    if ( backend.IsNULL() || GUCEF_NULL == manager.GetGuiDriver( "ImGui" ) || !LoadFreeTypeFontPlugin() )
+        return GUI::TGuiContextPtr();
+    GUI::TWindowContextPtr window = backend->CreateWindowContext( "Test", 640, 480, false );
+    if ( window.IsNULL() )
+        return GUI::TGuiContextPtr();
+    GUI::TGuiContextPtr context = manager.CreateGUIContext( "ImGui", window );
+    GUI::CGUIContext* guiContext = ( context.IsNULL() ? GUCEF_NULL : context->AsGUIContext() );
+    if ( GUCEF_NULL != guiContext )
+        guiContext->SetLogicalResolution( 640, 480 );
+    return context;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::TGuiContextPtr
 CreateRmlUiContext( void )
 {
     return CreateRmlUiContextInWindow( 640, 480 );

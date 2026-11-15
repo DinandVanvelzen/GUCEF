@@ -86,6 +86,9 @@ CEmscriptenWindowManagerImp::CreateWindowContext( const GUI::CString& title     
                                                   const CORE::CValueList* params      )
 {GUCEF_TRACE;
 
+    if ( !IsRequestedGraphicsApiSupported( "Emscripten", params ) )
+        return GUI::TWindowContextPtr();
+
     TEmscriptenWindowContextPtr windowContext( GUCEF_NEW CEmscriptenWindowContext() );
     if ( windowContext->Initialize( title, settings, params ) )
         return windowContext;

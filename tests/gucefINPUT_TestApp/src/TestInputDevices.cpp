@@ -356,6 +356,103 @@ PerformInputDeviceTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Keyboard: A key that never reported is up, also when a modifier key of the other side is asked for" )
+    try
+    {
+        CTestInputDriver driver;
+        driver.Keyboard( keyboardId );
+        INPUT::CKeyboard& keyboard = controller.GetKeyboard( keyboardId );
+        ASSERT_FALSE( keyboard.IsKeyDown( INPUT::KEYCODE_A ) );
+        ASSERT_FALSE( keyboard.IsKeyDown( INPUT::KEYCODE_RSHIFT ) );
+
+        // a left shift that goes down and up without the right one ever reporting
+        CInputRecorder recorder;
+        recorder.SubscribeTo( &keyboard );
+        driver.Key( keyboardId, INPUT::KEYCODE_LSHIFT, true );
+        ASSERT_TRUE( keyboard.IsKeyModifierActive( INPUT::KEYMOD_SHIFT ) && keyboard.IsKeyDown( INPUT::KEYCODE_LSHIFT ) );
+        driver.Key( keyboardId, INPUT::KEYCODE_LSHIFT, false );
+        ASSERT_FALSE( keyboard.IsKeyModifierActive( INPUT::KEYMOD_SHIFT ) || keyboard.IsKeyDown( INPUT::KEYCODE_LSHIFT ) );
+        driver.NoKeyboard( keyboardId );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Virtual driver: A keyboard made by it is an ordinary keyboard of the controller with ids above the real ones, and what it sends is what a driver of the hardware sends" )
+    try
+    {
+        const UInt32 keyboardsBefore = controller.GetKeyboardCount();
+        CTestInputDriver hardware;
+        hardware.Keyboard( keyboardId );
+        INPUT::CVirtualInputDriver virtualDriver;
+        ASSERT_TRUE( "Virtual" == virtualDriver.GetName() && 0 == virtualDriver.GetKeyboardCount() );
+
+        const Int32 first = virtualDriver.CreateKeyboard();
+        const Int32 second = virtualDriver.CreateKeyboard();
+        ASSERT_TRUE( first >= INPUT::CVirtualInputDriver::FirstVirtualDeviceId && second > first );
+        ASSERT_TRUE( keyboardsBefore + 3 == controller.GetKeyboardCount() && 2 == virtualDriver.GetKeyboardCount() );
+        ASSERT_TRUE( virtualDriver.IsKeyboardOfThisDriver( first ) && !virtualDriver.IsKeyboardOfThisDriver( keyboardId ) );
+        ASSERT_TRUE( &virtualDriver == controller.GetKeyboard( first ).GetInputDriver() );
+        ASSERT_TRUE( controller.GetKeyboard( first ).IsDeviceType( INPUT::CKeyboard::DeviceType ) );
+
+        // the same sequence from the virtual device and from a device of a driver of the hardware
+        CInputRecorder fromVirtual;
+        CInputRecorder fromHardware;
+        fromVirtual.SubscribeTo( &controller.GetKeyboard( first ) );
+        fromHardware.SubscribeTo( &controller.GetKeyboard( keyboardId ) );
+        ASSERT_TRUE( virtualDriver.SendKey( 4, first, INPUT::KEYCODE_LSHIFT, true ) );
+        ASSERT_TRUE( virtualDriver.SendKey( 4, first, INPUT::KEYCODE_A, true ) );
+        ASSERT_TRUE( virtualDriver.SendText( 4, first, "A" ) );
+        ASSERT_TRUE( virtualDriver.SendKey( 4, first, INPUT::KEYCODE_A, false ) );
+        ASSERT_TRUE( virtualDriver.SendKey( 4, first, INPUT::KEYCODE_LSHIFT, false ) );
+        hardware.Key( keyboardId, INPUT::KEYCODE_LSHIFT, true );
+        hardware.Key( keyboardId, INPUT::KEYCODE_A, true );
+        hardware.Text( keyboardId, "A" );
+        hardware.Key( keyboardId, INPUT::KEYCODE_A, false );
+        hardware.Key( keyboardId, INPUT::KEYCODE_LSHIFT, false );
+        ASSERT_TRUE( 4 == fromVirtual.keyEvents && 4 == fromHardware.keyEvents );
+        ASSERT_TRUE( 1 == fromVirtual.textEvents && "A" == fromVirtual.text );
+        ASSERT_TRUE( 2 == fromVirtual.modifierEvents && 2 == fromHardware.modifierEvents );
+        ASSERT_FALSE( controller.GetKeyboard( first ).IsKeyModifierActive( INPUT::KEYMOD_SHIFT ) );
+
+        // nothing goes to a keyboard that is none of this driver's
+        ASSERT_FALSE( virtualDriver.SendKey( 4, keyboardId, INPUT::KEYCODE_B, true ) );
+        ASSERT_FALSE( virtualDriver.SendText( 4, 12345, "x" ) );
+
+        ASSERT_TRUE( virtualDriver.DestroyKeyboard( second ) && !virtualDriver.DestroyKeyboard( second ) );
+        ASSERT_TRUE( keyboardsBefore + 2 == controller.GetKeyboardCount() );
+        fromVirtual.UnsubscribeAllFromObserver();
+        fromHardware.UnsubscribeAllFromObserver();
+        hardware.NoKeyboard( keyboardId );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Virtual driver: The keyboards go with the driver, and ids freed are made again" )
+    try
+    {
+        const UInt32 keyboardsBefore = controller.GetKeyboardCount();
+        Int32 firstId = -1;
+        {
+            INPUT::CVirtualInputDriver virtualDriver;
+            firstId = virtualDriver.CreateKeyboard();
+            ASSERT_TRUE( keyboardsBefore + 1 == controller.GetKeyboardCount() );
+        }
+        ASSERT_TRUE( keyboardsBefore == controller.GetKeyboardCount() );
+        INPUT::CVirtualInputDriver another;
+        ASSERT_TRUE( firstId == another.CreateKeyboard() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

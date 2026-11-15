@@ -99,6 +99,9 @@ class GUIDRIVEREMSCRIPTEN_PUBLIC_CPP CEmscriptenWindowContext : public GUI::CWin
     /** Shows or hides the pointer of the system over the canvas */
     virtual bool SetSystemCursorVisible( bool visible ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The CSS cursor of the canvas */
+    virtual bool SetSystemCursorShape( GUI::TCursorShape shape ) GUCEF_VIRTUAL_OVERRIDE;
+
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings ,
                      const CORE::CValueList* params           );

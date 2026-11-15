@@ -62,6 +62,7 @@ CWindowContext::CWindowContext( void )
     : CORE::CObservingNotifier()
     , m_guiLayers()
     , m_systemCursorShown( -1 )
+    , m_systemCursorShape( -1 )
 {GUCEF_TRACE;
                        
     RegisterEvents();
@@ -97,6 +98,15 @@ CWindowContext::SetSystemCursorVisible( bool visible )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CWindowContext::SetSystemCursorShape( TCursorShape shape )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CWindowContext::UpdateSystemCursor( void )
 {GUCEF_TRACE;
@@ -106,15 +116,35 @@ CWindowContext::UpdateSystemCursor( void )
     CGUIContext* inputLayer = m_guiLayers.front();
     for ( TGuiContextLayers::const_reverse_iterator i=m_guiLayers.rbegin(); i!=m_guiLayers.rend(); ++i )
     {
-        if ( (*i)->HasVisibleRoots() )
+        if ( (*i)->IsTakingPointerInput() )
         {
             inputLayer = (*i);
             break;
         }
     }
     const bool visible = inputLayer->GetCursorImage().IsNULLOrEmpty();
-    if ( m_systemCursorShown != ( visible ? 1 : 0 ) && SetSystemCursorVisible( visible ) )
-        m_systemCursorShown = visible ? 1 : 0;
+    if ( m_systemCursorShown != ( visible ? 1 : 0 ) )
+    {
+        if ( SetSystemCursorVisible( visible ) )
+        {
+            m_systemCursorShown = visible ? 1 : 0;
+
+            // a pointer that came back has the shape of the system until it is given one
+            m_systemCursorShape = -1;
+        }
+    }
+
+    // the shape only matters while the pointer of the system is shown
+    if ( 1 == m_systemCursorShown || ( m_systemCursorShown < 0 && visible ) )
+    {
+        const Int32 shape = (Int32) inputLayer->GetSystemCursorShape();
+        if ( m_systemCursorShape != shape )
+        {
+            // remembered also when the window cannot show it: it is not asked again for the same shape
+            m_systemCursorShape = shape;
+            SetSystemCursorShape( inputLayer->GetSystemCursorShape() );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/

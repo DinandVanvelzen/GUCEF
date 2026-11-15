@@ -28,6 +28,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 #ifndef GUCEF_GUI_CVIDEOSETTINGS_H
 #include "gucefGUI_CVideoSettings.h"
 #define GUCEF_GUI_CVIDEOSETTINGS_H
@@ -54,6 +59,10 @@ const CORE::CEvent CWindowManagerBackend::PrimaryWindowContextCreatedEvent = "GU
 const CORE::CEvent CWindowManagerBackend::PrimaryWindowContextDestroyedEvent = "GUCEF::GUI::CWindowManager::PrimaryWindowContextDestroyedEvent";
 const CORE::CEvent CWindowManagerBackend::WindowContextCreatedEvent = "GUCEF::GUI::CWindowManager::WindowContextCreatedEvent";
 const CORE::CEvent CWindowManagerBackend::WindowContextDestroyedEvent = "GUCEF::GUI::CWindowManager::WindowContextDestroyedEvent";
+
+const CString CWindowManagerBackend::GraphicsApiParameterName = "GraphicsApi";
+const CString CWindowManagerBackend::GraphicsApiGL = "GL";
+const CString CWindowManagerBackend::GraphicsApiNone = "None";
          
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -103,6 +112,46 @@ CWindowManagerBackend::GetAvailabilityDescription( void ) const
 {GUCEF_TRACE;
 
     return CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CWindowManagerBackend::GetRequestedGraphicsApi( const CORE::CValueList* params )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == params || !params->HasKey( GraphicsApiParameterName ) )
+        return CString::Empty;
+    CString graphicsApi = params->GetValueAlways( GraphicsApiParameterName ).AsString( CString::Empty, true ).Trim( true ).Trim( false );
+    if ( graphicsApi.Equals( GraphicsApiGL, false ) )
+        return GraphicsApiGL;
+    if ( graphicsApi.Equals( GraphicsApiNone, false ) )
+        return GraphicsApiNone;
+    return graphicsApi;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWindowManagerBackend::IsGraphicsApiSupported( const CString& graphicsApi ) const
+{GUCEF_TRACE;
+
+    return GraphicsApiGL == graphicsApi;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWindowManagerBackend::IsRequestedGraphicsApiSupported( const CString& backendName      ,
+                                                        const CORE::CValueList* params ) const
+{GUCEF_TRACE;
+
+    const CString graphicsApi = GetRequestedGraphicsApi( params );
+    if ( graphicsApi.IsNULLOrEmpty() || IsGraphicsApiSupported( graphicsApi ) )
+        return true;
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WindowManagerBackend: The window backend \"" << backendName << "\" cannot make windows for the graphics API \""
+        << graphicsApi << "\" (window parameter " << GraphicsApiParameterName << "), no window is made" );
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

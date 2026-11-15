@@ -683,6 +683,84 @@ PerformGuiRenderTests( void )
     // the null driver draws with the reference software renderer
     RunRenderTests( "Null", &CreateNullContext );
 
+    // Dear ImGui drawing with OpenGL in an offscreen window: the same tests, then the same pixels as the reference
+    bool haveImGui = false;
+    GUCEF_TESTFW_TESTCASE( "Render (ImGui): The ImGui driver makes a context in an offscreen EGL window" )
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    GUCEF_TESTFW_SKIP( "the ImGui driver is not part of the web build of this test" );
+    #endif
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateImGuiContext();
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
+        if ( GUCEF_NULL == context )
+            GUCEF_TESTFW_SKIP( "there is no ImGui driver (guidriverImGuiOpenGL), no FreeType font plugin or no offscreen window" );
+        ASSERT_TRUE( "ImGui" == context->GetDriver()->GetDriverName() );
+        ASSERT_TRUE( context->GetDriver()->HasCapability( "CaptureFrame" ) && context->GetDriver()->HasCapability( "ImmediateMode" ) );
+        haveImGui = true;
+    }
+    catch ( const TESTFW::STestSkipRequest& )
+    {
+        throw;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    if ( haveImGui )
+    {
+        RunRenderTests( "ImGui", &CreateImGuiContext );
+
+        GUCEF_TESTFW_TESTCASE( "Render (ImGui): A scene of every kind of drawing has the same pixels as the software reference" )
+        try
+        {
+            GUI::TGuiContextPtr referencePtr = CreateNullContext();
+            GUI::TGuiContextPtr imguiPtr = CreateImGuiContext();
+            GUI::CGUIContext* reference = static_cast< GUI::CGUIContext* >( referencePtr.GetPointerAlways() );
+            GUI::CGUIContext* imgui = static_cast< GUI::CGUIContext* >( imguiPtr.GetPointerAlways() );
+            ASSERT_TRUE( GUCEF_NULL != reference && GUCEF_NULL != imgui );
+            if ( GUCEF_NULL == reference || GUCEF_NULL == imgui )
+                GUCEF_TESTFW_SKIP( "a context is missing" );
+            BuildMixedScene( reference );
+            BuildMixedScene( imgui );
+
+            IMAGE::TPixelMapPtr expected, actual;
+            ASSERT_TRUE( Capture( reference, expected ) );
+            ASSERT_TRUE( Capture( imgui, actual ) );
+            UInt32 different = 0;
+            Int32 firstX = -1, firstY = -1;
+            for ( Int32 y=0; y<480; ++y )
+            {
+                for ( Int32 x=0; x<640; ++x )
+                {
+                    if ( !Near( PixelAt( expected, x, y ), PixelAt( actual, x, y ) ) )
+                    {
+                        if ( 0 == different )
+                        {
+                            firstX = x;
+                            firstY = y;
+                        }
+                        ++different;
+                    }
+                }
+            }
+            if ( 0 != different )
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ImGui differs from the reference in " << different << " pixels, the first at " << firstX << "," << firstY );
+            ASSERT_TRUE( 0 == different );
+        }
+        catch ( const TESTFW::STestSkipRequest& )
+        {
+            throw;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+        GUCEF_TESTFW_TESTCASE_END
+    }
+
     // RmlUi drawing with OpenGL in an offscreen window (WebGL in a canvas in a browser): the same tests, then the
     // same pixels as the reference
     bool haveRmlUi = false;

@@ -130,6 +130,28 @@ typedef enum ENavigation TNavigation;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The shape of the pointer of the system over a window, see CGUIContext::SetSystemCursorShape(). A window driver shows
+ *  the nearest shape it has
+ */
+enum ECursorShape
+{
+    CURSORSHAPE_ARROW           = 0  ,  /**< the normal pointer */
+    CURSORSHAPE_TEXT            = 1  ,  /**< over text that can be edited (I-beam) */
+    CURSORSHAPE_RESIZE_ALL      = 2  ,  /**< move in any direction */
+    CURSORSHAPE_RESIZE_NS       = 3  ,  /**< resize north-south */
+    CURSORSHAPE_RESIZE_EW       = 4  ,  /**< resize east-west */
+    CURSORSHAPE_RESIZE_NESW     = 5  ,  /**< resize north-east / south-west */
+    CURSORSHAPE_RESIZE_NWSE     = 6  ,  /**< resize north-west / south-east */
+    CURSORSHAPE_HAND            = 7  ,  /**< over something that can be clicked */
+    CURSORSHAPE_WAIT            = 8  ,  /**< busy, nothing can be done meanwhile */
+    CURSORSHAPE_PROGRESS        = 9  ,  /**< busy, but the program can still be used */
+    CURSORSHAPE_NOT_ALLOWED     = 10    /**< what is under the pointer cannot be used for this */
+};
+typedef enum ECursorShape TCursorShape;
+
+/*-------------------------------------------------------------------------*/
+
 /** The phase in which a routed event reaches an observer */
 enum EEventPhase
 {
