@@ -351,13 +351,13 @@ BuildMeshBvhAsyncImpl( const CTTriangleMesh< T >& mesh, CTMeshBvh< T >& bvh, COR
     if ( !mesh.IsValid() )
     {
         bvh.Clear();
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
     CORE::ThreadPoolPtr pool = threadPool;
     if ( pool.IsNULL() )
         pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool();
     if ( pool.IsNULL() )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return CORE::CFutureResult( CORE::TASKSTATUS_SETUP_FAILED );
     CORE::CTSharedPtr< CTMeshBvhBuildTask< T >, MT::CMutex > task( GUCEF_NEW CTMeshBvhBuildTask< T >( mesh, bvh ) );
     return pool->StartTaskWithConsumer( task );
 }

@@ -881,7 +881,7 @@ PerformAudioSpatialVoiceTests( void )
             engine.SetSpatialParams( world );
             AUDIO::TAudioVoicePtr refused = engine.CreateVoice( MakeConstant( 4800, 0.25f ) );
             ASSERT_TRUE( refused->SetEmitter( engine.CreateEmitter() ) );
-            ASSERT_TRUE( IsFailedWith( engine.Start( refused ), CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED ) );
+            ASSERT_TRUE( IsFailedWith( engine.Start( refused ), CORE::TASKSTATUS_SETUP_FAILED ) );
 
             // a voice without an emitter needs no spatializer
             AUDIO::TAudioVoicePtr plain = engine.CreateVoice( MakeConstant( 4800, 0.25f ) );
