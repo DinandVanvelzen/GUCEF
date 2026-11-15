@@ -17,9 +17,6 @@ ENV CASC_JENKINS_CONFIG=/var/jenkins_home/casc_configs/jenkins_config.yaml
 # Security and global config come from Configuration-as-Code, not the setup wizard
 ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false"
 
-# Plugins baked into this image replace older versions persisted in JENKINS_HOME
-ENV PLUGINS_FORCE_UPGRADE=true
-
 # Stage the jenkins client cli, used via kubectl cp / exec
 COPY ["extract_jenkins_client_cli.sh", "/usr/local/bin/"]
 RUN bash /usr/local/bin/extract_jenkins_client_cli.sh
@@ -27,3 +24,8 @@ RUN bash /usr/local/bin/extract_jenkins_client_cli.sh
 # Pre-install plugins into /usr/share/jenkins/ref/plugins
 COPY ["jenkins_preinstalled_plugins.txt", "/usr/share/jenkins/plugins.txt"]
 RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/plugins.txt
+
+# The plugins of this image replace the ones persisted in JENKINS_HOME on every start, whatever their version:
+# the entrypoint's version comparison misorders some plugin versions (0.3.0-4 above 0.3.0.1-29),
+# which leaves stale plugins that newer dependents fail to load with
+RUN for f in /usr/share/jenkins/ref/plugins/*.jpi; do mv "$f" "$f.override"; done
