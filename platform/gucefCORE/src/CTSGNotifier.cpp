@@ -250,6 +250,15 @@ CTSGNotifier::IsHoldingNotifications( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CTSGNotifier::HasMail( void ) const
+{GUCEF_TRACE;
+
+    return m_tsgObserver.HasMail();
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CString&
 CTSGNotifier::GetClassTypeName( void ) const
 {GUCEF_TRACE;

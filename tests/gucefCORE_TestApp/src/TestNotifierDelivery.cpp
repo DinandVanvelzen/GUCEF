@@ -67,6 +67,7 @@
 
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 using namespace GUCEF;
 using namespace GUCEF::CORE;
@@ -246,6 +247,41 @@ class CPulseGatewayNotifier : public CTSGNotifier
     {
         static const CString typeName = "CPulseGatewayNotifier";
         return typeName;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** A gateway notifier that mails an event to its own thread, as thread safe notifiers do for other threads */
+class CMailingGatewayNotifier : public CPulseGatewayNotifier
+{
+    public:
+
+    CMailingGatewayNotifier( const PulseGeneratorPtr& pulseGenerator ) : CPulseGatewayNotifier( pulseGenerator ) {}
+
+    void Mail( void ) { NotifyObserversFromThread( DeliveryTestEvent() ); }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Notes whether the gateway reports mail while its own mail is delivered */
+class CMailDuringDeliveryObserver : public CObserver
+{
+    public:
+
+    CMailingGatewayNotifier* gateway;
+    UInt32 received;
+    bool hadMailInDelivery;
+
+    CMailDuringDeliveryObserver( void ) : CObserver(), gateway( GUCEF_NULL ), received( 0 ), hadMailInDelivery( false ) {}
+    virtual ~CMailDuringDeliveryObserver() { UnsubscribeAllFromObserver(); }
+
+    virtual void OnNotify( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( DeliveryTestEvent() != eventId )
+            return;
+        ++received;
+        hadMailInDelivery = gateway->HasMail();
     }
 };
 
@@ -493,6 +529,32 @@ PerformNotifierDeliveryTests( void )
             }
             ASSERT_TRUE( 0 == pulseGenerator->GetNrOfPeriodicPulseRequestors() );
             destroyer.UnsubscribeAllFromObserver();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "A gateway notifier has mail while events mailed to its thread wait or are being delivered, and none once they were delivered" )
+        try
+        {
+            // the owner of a reference that may be the last one lets go of it once HasMail() is false, on the
+            // notifier's thread: the notifier then never goes inside the delivery of its own mail
+            PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+            CMailingGatewayNotifier gateway( pulseGenerator );
+            CMailDuringDeliveryObserver observer;
+            observer.gateway = &gateway;
+            observer.SubscribeTo( &gateway, DeliveryTestEvent() );
+            ASSERT_FALSE( gateway.HasMail() );
+            gateway.Mail();
+            gateway.Mail();
+            ASSERT_TRUE( gateway.HasMail() );
+            pulseGenerator->ForceDirectPulse();
+            ASSERT_TRUE( 2 == observer.received );
+            ASSERT_TRUE( observer.hadMailInDelivery );
+            ASSERT_FALSE( gateway.HasMail() );
+            observer.UnsubscribeAllFromObserver();
         }
         catch ( ... )
         {

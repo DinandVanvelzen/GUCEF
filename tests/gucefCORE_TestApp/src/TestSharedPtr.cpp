@@ -401,6 +401,16 @@ ReleaseWhenToldThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
     return 0;
 }
 
+GUCEF::UInt32 GUCEF_CALLSPEC_PREFIX
+UnlinkUnlessLastWhenToldThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SReleasingThread* threadData = static_cast< SReleasingThread* >( data );
+    while ( !threadData->go->Load( GUCEF::MT::MEMORDER_ACQUIRE ) )
+        GUCEF::MT::ThreadDelay( 1 );
+    threadData->ptr.UnlinkUnlessLast();
+    return 0;
+}
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -505,6 +515,103 @@ PerformSharedPtrReleaseTests( void )
                     GUCEF::MT::ThreadDataCleanup( threads[ i ] );
                 }
             }
+            TESTASSERT( round+1 == (GUCEF::UInt32) CReleaseCounted::destroyed.Load() );
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: UnlinkUnlessLast lets go of a reference others share and keeps the last one" )
+    try
+    {
+        CReleaseCounted::destroyed.Store( 0 );
+        {
+            TReleaseCountedPtr first( GUCEF_NEW CReleaseCounted() );
+            TReleaseCountedPtr second( first );
+            TESTASSERT( second.UnlinkUnlessLast() );
+            TESTASSERT( second.IsNULL() && 1 == first.GetReferenceCount() );
+            TESTASSERT( !first.UnlinkUnlessLast() );
+            TESTASSERT( !first.IsNULL() && 1 == first.GetReferenceCount() );
+            TESTASSERT( 0 == CReleaseCounted::destroyed.Load() );
+            TESTASSERT( second.UnlinkUnlessLast() );
+        }
+        TESTASSERT( 1 == CReleaseCounted::destroyed.Load() );
+
+        // shared data embedded in the object
+        CEmbeddedReleaseCounted::destroyed.Store( 0 );
+        {
+            TEmbeddedReleaseCountedPtr first = CEmbeddedReleaseCounted::CreateSharedObj();
+            TEmbeddedReleaseCountedPtr second( first );
+            TESTASSERT( first.UnlinkUnlessLast() && first.IsNULL() );
+            TESTASSERT( !second.UnlinkUnlessLast() && !second.IsNULL() );
+            TESTASSERT( 0 == CEmbeddedReleaseCounted::destroyed.Load() );
+        }
+        TESTASSERT( 1 == CEmbeddedReleaseCounted::destroyed.Load() );
+
+        // a weak pointer is no reference that keeps the object
+        CReleaseCounted::destroyed.Store( 0 );
+        TReleaseCountedWeakPtr weak;
+        {
+            TReleaseCountedPtr shared( GUCEF_NEW CReleaseCounted() );
+            weak = shared;
+            TESTASSERT( !shared.UnlinkUnlessLast() );
+        }
+        TESTASSERT( 1 == CReleaseCounted::destroyed.Load() && weak.IsExpired() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: UnlinkUnlessLast on several threads at the same time: exactly one of them keeps the last reference" )
+    try
+    {
+        static const GUCEF::UInt32 threadCount = 4;
+        static const GUCEF::UInt32 rounds = 25;
+
+        CReleaseCounted::destroyed.Store( 0 );
+        for ( GUCEF::UInt32 round=0; round<rounds; ++round )
+        {
+            GUCEF::MT::CTAtomic< bool > go( false );
+            SReleasingThread threadData[ threadCount ];
+            GUCEF::MT::SThreadData* threads[ threadCount ];
+
+            {
+                TReleaseCountedPtr shared( GUCEF_NEW CReleaseCounted() );
+                for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+                {
+                    threadData[ i ].ptr = shared;
+                    threadData[ i ].go = &go;
+                    threads[ i ] = GUCEF::MT::ThreadDataReserve();
+                    TESTASSERT( GUCEF_NULL != threads[ i ] );
+                    if ( GUCEF_NULL != threads[ i ] )
+                        TESTASSERT( 0 != GUCEF::MT::ThreadCreate( threads[ i ], &UnlinkUnlessLastWhenToldThreadMain, &threadData[ i ] ) );
+                }
+                go.Store( true, GUCEF::MT::MEMORDER_RELEASE );
+                TESTASSERT( shared.UnlinkUnlessLast() || 1 == shared.GetReferenceCount() );
+            }
+
+            GUCEF::UInt32 kept = 0;
+            for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+            {
+                if ( GUCEF_NULL != threads[ i ] )
+                {
+                    GUCEF::MT::ThreadWait( threads[ i ], 60000 );
+                    GUCEF::MT::ThreadDataCleanup( threads[ i ] );
+                }
+                if ( !threadData[ i ].ptr.IsNULL() )
+                    ++kept;
+            }
+
+            // the test thread's reference went with its scope: it was the last one or one of the threads kept it
+            TESTASSERT( kept <= 1 );
+            TESTASSERT( (GUCEF::UInt32) CReleaseCounted::destroyed.Load() == round + ( 0 == kept ? 1 : 0 ) );
+            for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+                threadData[ i ].ptr.Unlink();
             TESTASSERT( round+1 == (GUCEF::UInt32) CReleaseCounted::destroyed.Load() );
         }
     }

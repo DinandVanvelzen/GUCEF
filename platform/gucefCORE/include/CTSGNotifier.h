@@ -154,6 +154,14 @@ class GUCEF_CORE_PUBLIC_CPP CTSGNotifier : public CNotifier  ,
     virtual PulseGeneratorPtr GetPulseGenerator( void ) const;
 
     /**
+     *  True while events mailed to this notifier's thread (NotifyObserversFromThread()) wait or are being delivered.
+     *  A snapshot: other threads may mail more right after. The owner of a reference that may be the last one
+     *  lets go of it while this is false, on the notifier's thread, so the notifier never goes inside the delivery
+     *  of its own mail
+     */
+    bool HasMail( void ) const;
+
+    /**
      *  A pumped observer uses pulse generator events to allow for async
      *  OnNotify processing via OnPumpedNotify()
      *

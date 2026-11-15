@@ -122,6 +122,12 @@ class GUCEF_CORE_PUBLIC_CPP CPumpedObserver : public CObserver
      */
     void DiscardMailOf( CNotifier* notifier );
 
+    /**
+     *  True while mail waits in the mailbox or is being delivered (the mail being delivered stays in the mailbox
+     *  until it was delivered). A snapshot: other threads may add mail right after
+     */
+    bool HasMail( void ) const;
+
     bool AddEventToMailbox( CNotifier* notifier                 , 
                             const CEvent& eventId               ,
                             CICloneable* eventData = GUCEF_NULL );

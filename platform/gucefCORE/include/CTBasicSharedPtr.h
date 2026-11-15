@@ -345,6 +345,14 @@ class CTBasicSharedPtr : public MT::CILockable ,
 
     void Unlink( void );
 
+    /**
+     *  Lets go of this reference as Unlink() does when other references remain, and returns true. The last reference
+     *  is kept and false is returned: the caller decides where the object goes, for example on the thread it belongs
+     *  to. The test and the release are one step under the shared lock, so another reference that goes at the same
+     *  time cannot leave this one the last after the test. A NULL pointer returns true.
+     */
+    bool UnlinkUnlessLast( void );
+
     UInt32 GetReferenceCount( void ) const;
 
     CIDynamicVoidDestructor* GetDestructor( void ) const;
@@ -929,6 +937,34 @@ CTBasicSharedPtr< T, LockType >::IsNULL( void ) const
 {GUCEF_TRACE;
 
     return GUCEF_NULL == m_ptr;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+bool
+CTBasicSharedPtr< T, LockType >::UnlinkUnlessLast( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_shared || GUCEF_NULL == m_ptr )
+    {
+        // no object this reference could be the last one of
+        Unlink();
+        return true;
+    }
+
+    TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
+    localSharedRef->m_lock.Lock();
+    if ( localSharedRef->m_refCounter <= 1 )
+    {
+        localSharedRef->m_lock.Unlock();
+        return false;
+    }
+    --localSharedRef->m_refCounter;
+    m_shared = GUCEF_NULL;
+    m_ptr = GUCEF_NULL;
+    localSharedRef->m_lock.Unlock();
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

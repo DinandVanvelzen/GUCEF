@@ -836,6 +836,16 @@ CPumpedObserver::IsHoldingNotifications( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CPumpedObserver::HasMail( void ) const
+{GUCEF_TRACE;
+
+    // the mail being delivered stays first in the mailbox until it was delivered (OnPulse())
+    return m_mailbox.HasMail();
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CString&
 CPumpedObserver::GetClassTypeName( void ) const
 {GUCEF_TRACE;
