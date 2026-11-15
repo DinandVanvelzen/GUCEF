@@ -21,7 +21,55 @@ LOCAL_MODULE := gucefGEOMETRY_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestAudioOcclusion.cpp \
+  src/TestClosestPoints.cpp \
+  src/TestContainment.cpp \
+  src/TestConvexDecomposition.cpp \
+  src/TestConvexHull.cpp \
+  src/TestDelaunay.cpp \
+  src/TestDynamicAabbTree.cpp \
+  src/TestEpa.cpp \
+  src/TestExactKindShapes.cpp \
+  src/TestFitting.cpp \
+  src/TestFrustum.cpp \
+  src/TestGeoObjects.cpp \
+  src/TestGeoPlane.cpp \
+  src/TestGeoPolygonQueries.cpp \
+  src/TestGeoSnapshots.cpp \
+  src/TestGeoSpace.cpp \
+  src/TestGeoSpaceConversions.cpp \
+  src/TestGeometryAllocationCounter.cpp \
+  src/TestGeometryBatchKernels.cpp \
   src/TestGeometryModule.cpp \
+  src/TestGjk.cpp \
+  src/TestGridTraversal.cpp \
+  src/TestHeightField.cpp \
+  src/TestImageSources.cpp \
+  src/TestIntegerRanges.cpp \
+  src/TestKdTree.cpp \
+  src/TestMeshBvh.cpp \
+  src/TestOverlaps.cpp \
+  src/TestPlaneBoundedVolume.cpp \
+  src/TestPointInPolygon.cpp \
+  src/TestPolygonBooleans.cpp \
+  src/TestPolygonOffset.cpp \
+  src/TestPredicates.cpp \
+  src/TestQueries2D.cpp \
+  src/TestQueryFpContraction.cpp \
+  src/TestRayCasts.cpp \
+  src/TestRayCaster.cpp \
+  src/TestSatManifold.cpp \
+  src/TestShapeFpContraction.cpp \
+  src/TestShapeSerialization.cpp \
+  src/TestShapes2D.cpp \
+  src/TestShapes3D.cpp \
+  src/TestSimplification.cpp \
+  src/TestSpatialStructures.cpp \
+  src/TestSweeps.cpp \
+  src/TestTimeOfImpact.cpp \
+  src/TestTriangleMesh.cpp \
+  src/TestTriangulation.cpp \
+  src/TestVolumeShapes.cpp \
   src/gucefGEOMETRY_TestApp.cpp
 
 LOCAL_C_INCLUDES := \

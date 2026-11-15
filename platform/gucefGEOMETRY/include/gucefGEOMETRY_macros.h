@@ -140,6 +140,9 @@
 #undef GUCEF_GEOMETRY_STATIC_ASSERT
 #if defined( __cplusplus ) && ( __cplusplus >= 201103L )
   #define GUCEF_GEOMETRY_STATIC_ASSERT( condition, name )  static_assert( ( condition ), #name )
+#elif defined( __GNUC__ ) || defined( __clang__ )
+  /* the attribute keeps -Wunused-local-typedefs quiet for the C++98 form inside functions */
+  #define GUCEF_GEOMETRY_STATIC_ASSERT( condition, name )  typedef char name[ ( condition ) ? 1 : -1 ] __attribute__(( unused ))
 #else
   #define GUCEF_GEOMETRY_STATIC_ASSERT( condition, name )  typedef char name[ ( condition ) ? 1 : -1 ]
 #endif
@@ -155,6 +158,85 @@
 #else
   #define GUCEF_GEOMETRY_ASSERT( condition )
 #endif /* GUCEF_GEOMETRY_DEBUG_MODE ? */
+
+/*-------------------------------------------------------------------------*/
+
+/*
+ *      Exported instantiations of the predefined numeric kinds
+ *
+ *      gucefGEOMETRY explicitly instantiates its shape class templates for the predefined kinds (Float32, Float64, Int32
+ *      for the integer ranges) inside the module, which is compiled with floating-point contraction disabled
+ *      (-ffp-contract=off, /fp:precise). Users of those kinds link to the exported code instead of instantiating their own
+ *      copy, so precision-sensitive functions give identical results in every build. The semantics of these macros are
+ *      those of their GUCEF_MATH_* counterparts (see gucefMATH_macros.h).
+ *
+ *      GUCEF_GEOMETRY_PRECISE_INLINE marks the out-of-class definitions of precision-sensitive member functions. By
+ *      default it is empty: the function is not inline, so for a predefined kind only the module's copy runs.
+ *      Defining GUCEF_GEOMETRY_INLINE_ALL in a build makes these functions inline and drops the extern template
+ *      declarations. GUCEF_GEOMETRY_INLINE_ALL is implied by GUCEF_MATH_INLINE_ALL, so one define switches both modules;
+ *      defining only GUCEF_GEOMETRY_INLINE_ALL leaves gucefMATH untouched.
+ *
+ *      GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( declaration ) declares an exported instantiation, for example
+ *      GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( CTSphere< Float32 > ). The declaration must not contain a comma. The matching
+ *      definition in a module source file is GUCEF_GEOMETRY_INSTANTIATE_TEMPLATE_CLASS( declaration ).
+ */
+#if defined( GUCEF_MATH_INLINE_ALL ) && !defined( GUCEF_GEOMETRY_INLINE_ALL )
+  #define GUCEF_GEOMETRY_INLINE_ALL
+#endif
+
+#undef GUCEF_GEOMETRY_PRECISE_INLINE
+#ifdef GUCEF_GEOMETRY_INLINE_ALL
+  #define GUCEF_GEOMETRY_PRECISE_INLINE inline
+#else
+  #define GUCEF_GEOMETRY_PRECISE_INLINE
+#endif /* GUCEF_GEOMETRY_INLINE_ALL ? */
+
+/*
+ *      Symbol export of class template instantiations: see GUCEF_MATH_TEMPLATE_PUBLIC in gucefMATH_macros.h.
+ */
+#undef GUCEF_GEOMETRY_TEMPLATE_PUBLIC
+#undef GUCEF_GEOMETRY_INSTANTIATION_SPEC
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+  #define GUCEF_GEOMETRY_TEMPLATE_PUBLIC
+  #define GUCEF_GEOMETRY_INSTANTIATION_SPEC  GUCEF_GEOMETRY_PUBLIC_CPP
+#elif defined( __GNUC__ ) || defined( __clang__ )
+  #define GUCEF_GEOMETRY_TEMPLATE_PUBLIC  __attribute__(( visibility( "default" ) ))
+  #define GUCEF_GEOMETRY_INSTANTIATION_SPEC
+#else
+  #define GUCEF_GEOMETRY_TEMPLATE_PUBLIC
+  #define GUCEF_GEOMETRY_INSTANTIATION_SPEC
+#endif
+
+#undef GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS
+#if defined( GUCEF_GEOMETRY_INLINE_ALL )
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( declaration )
+#elif ( defined( __cplusplus ) && ( __cplusplus >= 201103L ) ) || defined( _MSC_VER )
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( declaration )  extern template class GUCEF_GEOMETRY_INSTANTIATION_SPEC declaration;
+#elif defined( __GNUC__ ) || defined( __clang__ )
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( declaration )  __extension__ extern template class GUCEF_GEOMETRY_INSTANTIATION_SPEC declaration;
+#else
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATE_CLASS( declaration )
+#endif
+
+/*
+ *      Prefix form for declarations that contain commas (member-wise instantiation), inside
+ *      #ifdef GUCEF_GEOMETRY_EXTERN_TEMPLATES_ENABLED, with GUCEF_GEOMETRY_INSTANTIATE_TEMPLATE for the definition.
+ */
+#undef GUCEF_GEOMETRY_EXTERN_TEMPLATES_ENABLED
+#undef GUCEF_GEOMETRY_EXTERN_TEMPLATE
+#if !defined( GUCEF_GEOMETRY_INLINE_ALL ) && ( ( defined( __cplusplus ) && ( __cplusplus >= 201103L ) ) || defined( _MSC_VER ) )
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATES_ENABLED
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATE  extern template GUCEF_GEOMETRY_PUBLIC_CPP
+#elif !defined( GUCEF_GEOMETRY_INLINE_ALL ) && ( defined( __GNUC__ ) || defined( __clang__ ) )
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATES_ENABLED
+  #define GUCEF_GEOMETRY_EXTERN_TEMPLATE  __extension__ extern template GUCEF_GEOMETRY_PUBLIC_CPP
+#endif
+
+#undef GUCEF_GEOMETRY_INSTANTIATE_TEMPLATE
+#define GUCEF_GEOMETRY_INSTANTIATE_TEMPLATE  template GUCEF_GEOMETRY_PUBLIC_CPP
+
+#undef GUCEF_GEOMETRY_INSTANTIATE_TEMPLATE_CLASS
+#define GUCEF_GEOMETRY_INSTANTIATE_TEMPLATE_CLASS( declaration )  template class GUCEF_GEOMETRY_INSTANTIATION_SPEC declaration;
 
 /*-------------------------------------------------------------------------*/
 

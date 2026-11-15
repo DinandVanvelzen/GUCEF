@@ -83,8 +83,14 @@ enum EGeoShapeType
     GEOSHAPE_POLYGON_WITH_HOLES  ,
     GEOSHAPE_POLYLINE_2D         ,
     GEOSHAPE_POLYLINE_3D         ,
+    GEOSHAPE_ORIENTED_BOX        ,
+    GEOSHAPE_CYLINDER            ,
+    GEOSHAPE_CONE                ,
+    GEOSHAPE_FRUSTUM             ,
+    GEOSHAPE_PLANE_BOUNDED_VOLUME,
+    GEOSHAPE_CONVEX_HULL         ,
 
-    GEOSHAPE_COUNT                  /**< the number of shapes, not a shape */
+    GEOSHAPE_COUNT                 /**< the number of shapes, not a shape */
 };
 typedef enum EGeoShapeType TGeoShapeType;
 

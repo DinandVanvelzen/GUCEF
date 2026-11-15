@@ -44,7 +44,54 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
+#include "TestClosestPoints.h"
+#include "TestContainment.h"
+#include "TestConvexDecomposition.h"
+#include "TestDelaunay.h"
+#include "TestEpa.h"
+#include "TestExactKindShapes.h"
+#include "TestFitting.h"
+#include "TestFrustum.h"
+#include "TestGeoObjects.h"
+#include "TestGeoPlane.h"
+#include "TestGeoPolygonQueries.h"
+#include "TestGeoSnapshots.h"
+#include "TestGeoSpace.h"
+#include "TestGeoSpaceConversions.h"
 #include "TestGeometryModule.h"
+#include "TestGjk.h"
+#include "TestGridTraversal.h"
+#include "TestSpatialStructures.h"
+#include "TestSimplification.h"
+#include "TestPointInPolygon.h"
+#include "TestPolygonBooleans.h"
+#include "TestPolygonOffset.h"
+#include "TestKdTree.h"
+#include "TestHeightField.h"
+#include "TestGeometryBatchKernels.h"
+#include "TestConvexHull.h"
+#include "TestIntegerRanges.h"
+#include "TestOverlaps.h"
+#include "TestPlaneBoundedVolume.h"
+#include "TestPredicates.h"
+#include "TestQueries2D.h"
+#include "TestQueryFpContraction.h"
+#include "TestRayCasts.h"
+#include "TestSatManifold.h"
+#include "TestShapeFpContraction.h"
+#include "TestShapeSerialization.h"
+#include "TestShapes2D.h"
+#include "TestShapes3D.h"
+#include "TestSweeps.h"
+#include "TestTimeOfImpact.h"
+#include "TestTriangulation.h"
+#include "TestVolumeShapes.h"
+#include "TestTriangleMesh.h"
+#include "TestMeshBvh.h"
+#include "TestDynamicAabbTree.h"
+#include "TestRayCaster.h"
+#include "TestAudioOcclusion.h"
+#include "TestImageSources.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -77,6 +124,53 @@ GUCEF_OSMAIN_BEGIN
         GUCEF::CORE::AppendToPath( xmlPath, "gucefGEOMETRY_TestApp_Results.xml" );
 
         PerformGeometryModuleTests();
+        PerformShapes3DTests();
+        PerformShapes2DTests();
+        PerformIntegerRangesTests();
+        PerformExactKindShapesTests();
+        PerformShapeSerializationTests();
+        PerformShapeFpContractionTests();
+        PerformRayCastsTests();
+        PerformOverlapsTests();
+        PerformClosestPointsTests();
+        PerformVolumeShapesTests();
+        PerformFrustumTests();
+        PerformPlaneBoundedVolumeTests();
+        PerformContainmentTests();
+        PerformQueries2DTests();
+        PerformQueryFpContractionTests();
+        PerformPredicatesTests();
+        PerformGjkTests();
+        PerformEpaTests();
+        PerformSatManifoldTests();
+        PerformSweepsTests();
+        PerformTimeOfImpactTests();
+        PerformFittingTests();
+        PerformGeoSpaceTests();
+        PerformGeoSpaceConversionsTests();
+        PerformGeoObjectsTests();
+        PerformGeoPlaneTests();
+        PerformGeoPolygonQueriesTests();
+        PerformGeoSnapshotsTests();
+        PerformGridTraversalTests();
+        PerformSpatialStructuresTests();
+        PerformSimplificationTests();
+        PerformPointInPolygonTests();
+        PerformKdTreeTests();
+        PerformHeightFieldTests();
+        PerformGeometryBatchKernelsTests();
+        PerformConvexHullTests();
+        PerformTriangulationTests();
+        PerformConvexDecompositionTests();
+        PerformDelaunayTests();
+        PerformPolygonBooleansTests();
+        PerformPolygonOffsetTests();
+        PerformTriangleMeshTests();
+        PerformMeshBvhTests();
+        PerformDynamicAabbTreeTests();
+        PerformRayCasterTests();
+        PerformAudioOcclusionTests();
+        PerformImageSourcesTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

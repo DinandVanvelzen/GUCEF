@@ -23,8 +23,25 @@ LOCAL_MODULE_FILENAME := libgucefGEOMETRY
 
 LOCAL_SRC_FILES := \
   src/gucefGEOMETRY.cpp \
+  src/gucefGEOMETRY_AudioGeometryInstantiations.cpp \
+  src/gucefGEOMETRY_BatchKernels.cpp \
   src/gucefGEOMETRY_CGeometryGlobal.cpp \
-  src/gucefGEOMETRY_CModule.cpp
+  src/gucefGEOMETRY_CModule.cpp \
+  src/gucefGEOMETRY_CTConstrainedDelaunay2D.cpp \
+  src/gucefGEOMETRY_CTMeshBvh.cpp \
+  src/gucefGEOMETRY_CTPolygonClipper.cpp \
+  src/gucefGEOMETRY_CTPolygonOffsetter.cpp \
+  src/gucefGEOMETRY_CTPredicates.cpp \
+  src/gucefGEOMETRY_CTQuickHull3D.cpp \
+  src/gucefGEOMETRY_ConvexQueryInstantiations.cpp \
+  src/gucefGEOMETRY_GeoSpaceInstantiations.cpp \
+  src/gucefGEOMETRY_IntegerRangeInstantiations.cpp \
+  src/gucefGEOMETRY_PolygonTriangulation.cpp \
+  src/gucefGEOMETRY_QueryInstantiations.cpp \
+  src/gucefGEOMETRY_Shapes2DInstantiations.cpp \
+  src/gucefGEOMETRY_Shapes3DInstantiations.cpp \
+  src/gucefGEOMETRY_SpatialTreeInstantiations.cpp \
+  src/gucefGEOMETRY_VolumeShapesInstantiations.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

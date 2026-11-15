@@ -13,17 +13,145 @@
 
 set( HEADER_FILES 
   include/gucefGEOMETRY.h
+  include/gucefGEOMETRY_AxisAlignedBoxQueries.h
+  include/gucefGEOMETRY_BatchFunctions.h
+  include/gucefGEOMETRY_BoundingVolumeFitting.h
   include/gucefGEOMETRY_CGeometryGlobal.h
   include/gucefGEOMETRY_CModule.h
+  include/gucefGEOMETRY_ConvexDecomposition2D.h
+  include/gucefGEOMETRY_CQuickHull3DCore.h
+  include/gucefGEOMETRY_CTAudioOcclusionEstimator.h
+  include/gucefGEOMETRY_CTAxisAlignedBox3D.h
+  include/gucefGEOMETRY_CTBresenhamLine2D.h
+  include/gucefGEOMETRY_CTBresenhamLine3D.h
+  include/gucefGEOMETRY_CTCapsule.h
+  include/gucefGEOMETRY_CTCellGrid.h
+  include/gucefGEOMETRY_CTCircle.h
+  include/gucefGEOMETRY_CTCone.h
+  include/gucefGEOMETRY_CTConstrainedDelaunay2D.h
+  include/gucefGEOMETRY_CTContactManifold.h
+  include/gucefGEOMETRY_CTConvexHull3D.h
+  include/gucefGEOMETRY_CTCylinder.h
+  include/gucefGEOMETRY_CTDynamicAabbTree.h
+  include/gucefGEOMETRY_CTEpa.h
+  include/gucefGEOMETRY_CTFrustum.h
+  include/gucefGEOMETRY_CTGeometry2D.h
+  include/gucefGEOMETRY_CTGeometry3D.h
+  include/gucefGEOMETRY_CTGeoObject.h
+  include/gucefGEOMETRY_CTGeoObject2D.h
+  include/gucefGEOMETRY_CTGeoObjectBase.h
+  include/gucefGEOMETRY_CTGeoObjectStructure.h
+  include/gucefGEOMETRY_CTGeoPlane.h
+  include/gucefGEOMETRY_CTGeoRayFilter.h
+  include/gucefGEOMETRY_CTGeoSpace.h
+  include/gucefGEOMETRY_CTGeoSpaceSnapshot.h
+  include/gucefGEOMETRY_CTGeoSpaceSnapshotSet.h
+  include/gucefGEOMETRY_CTGeoTriangleMesh.h
+  include/gucefGEOMETRY_CTGeometryTolerance.h
+  include/gucefGEOMETRY_CTGjk.h
+  include/gucefGEOMETRY_CTGridTraversal2D.h
+  include/gucefGEOMETRY_CTGridTraversal3D.h
+  include/gucefGEOMETRY_CTGridTraversalCore.h
+  include/gucefGEOMETRY_CTHeightField.h
+  include/gucefGEOMETRY_CTImageSourceModel.h
+  include/gucefGEOMETRY_CTIntegerBox3D.h
+  include/gucefGEOMETRY_CTIntegerRect.h
+  include/gucefGEOMETRY_CTKdTree.h
+  include/gucefGEOMETRY_CTLine2D.h
+  include/gucefGEOMETRY_CTLine3D.h
+  include/gucefGEOMETRY_CTLooseTree.h
+  include/gucefGEOMETRY_CTMeshBvh.h
+  include/gucefGEOMETRY_CTMotion3D.h
+  include/gucefGEOMETRY_CTOctree.h
+  include/gucefGEOMETRY_CTOrientedBox3D.h
+  include/gucefGEOMETRY_CTOrientedRectangle.h
+  include/gucefGEOMETRY_CTPlane.h
+  include/gucefGEOMETRY_CTPlaneBoundedVolume.h
+  include/gucefGEOMETRY_CTPolygon2D.h
+  include/gucefGEOMETRY_CTPolygonClipper.h
+  include/gucefGEOMETRY_CTPolygonOffsetter.h
+  include/gucefGEOMETRY_CTPolygonWithHoles2D.h
+  include/gucefGEOMETRY_CTPolyline2D.h
+  include/gucefGEOMETRY_CTPolyline3D.h
+  include/gucefGEOMETRY_CTPredicates.h
+  include/gucefGEOMETRY_CTQuadtree.h
+  include/gucefGEOMETRY_CTQuickHull3D.h
+  include/gucefGEOMETRY_CTRay2D.h
+  include/gucefGEOMETRY_CTRay3D.h
+  include/gucefGEOMETRY_CTRayCaster.h
+  include/gucefGEOMETRY_CTRectangle.h
+  include/gucefGEOMETRY_CTSatBoxes.h
+  include/gucefGEOMETRY_CTSegment2D.h
+  include/gucefGEOMETRY_CTSegment3D.h
+  include/gucefGEOMETRY_CTShapeTraits.h
+  include/gucefGEOMETRY_CTSpatialHash.h
+  include/gucefGEOMETRY_CTSpatialItemStore.h
+  include/gucefGEOMETRY_CTSphere.h
+  include/gucefGEOMETRY_CTTriangle2D.h
+  include/gucefGEOMETRY_CTTriangle3D.h
+  include/gucefGEOMETRY_CTTriangleMesh.h
+  include/gucefGEOMETRY_CTUniformGrid2D.h
+  include/gucefGEOMETRY_CTUniformGrid3D.h
+  include/gucefGEOMETRY_CapsuleQueries.h
+  include/gucefGEOMETRY_ConvexHull2D.h
+  include/gucefGEOMETRY_ConvexQueries.h
+  include/gucefGEOMETRY_CoreStructInterop.h
   include/gucefGEOMETRY_ETypes.h
+  include/gucefGEOMETRY_FrustumCulling.h
+  include/gucefGEOMETRY_GeoObjectQueries.h
+  include/gucefGEOMETRY_MeshQueries.h
+  include/gucefGEOMETRY_OrientedBoxQueries.h
+  include/gucefGEOMETRY_PlaneQueries.h
+  include/gucefGEOMETRY_PlaneSetFunctions.h
+  include/gucefGEOMETRY_PointInPolygon.h
+  include/gucefGEOMETRY_PointQueries.h
+  include/gucefGEOMETRY_PolygonTriangulation.h
+  include/gucefGEOMETRY_PolylineSimplification.h
+  include/gucefGEOMETRY_Queries2D.h
+  include/gucefGEOMETRY_RayQueries.h
+  include/gucefGEOMETRY_SGeoRayHit.h
+  include/gucefGEOMETRY_SRayCastResult.h
+  include/gucefGEOMETRY_SShapeTextReader.h
+  include/gucefGEOMETRY_SegmentQueries.h
+  include/gucefGEOMETRY_SpatialQueryRegions.h
+  include/gucefGEOMETRY_SphereQueries.h
+  include/gucefGEOMETRY_SupportMappings.h
+  include/gucefGEOMETRY_SweepQueries.h
+  include/gucefGEOMETRY_TimeOfImpact.h
+  include/gucefGEOMETRY_TransformFunctions.h
+  include/gucefGEOMETRY_TriangleQueries.h
+  include/gucefGEOMETRY_VolumeQueries.h
   include/gucefGEOMETRY_config.h
+  include/gucefGEOMETRY_fractionshapes.h
+  include/gucefGEOMETRY_geospaces.h
   include/gucefGEOMETRY_macros.h
+  include/gucefGEOMETRY_queries.h
+  include/gucefGEOMETRY_shapes.h
+  include/gucefGEOMETRY_volumeshapes.h
+  include/gucefGEOMETRY_SupportFunctions.h
 )
 
 set( SOURCE_FILES 
   src/gucefGEOMETRY.cpp
+  src/gucefGEOMETRY_AudioGeometryInstantiations.cpp
+  src/gucefGEOMETRY_BatchKernels.cpp
   src/gucefGEOMETRY_CGeometryGlobal.cpp
   src/gucefGEOMETRY_CModule.cpp
+  src/gucefGEOMETRY_CTConstrainedDelaunay2D.cpp
+  src/gucefGEOMETRY_CTMeshBvh.cpp
+  src/gucefGEOMETRY_CTPolygonClipper.cpp
+  src/gucefGEOMETRY_CTPolygonOffsetter.cpp
+  src/gucefGEOMETRY_CTPredicates.cpp
+  src/gucefGEOMETRY_CTQuickHull3D.cpp
+  src/gucefGEOMETRY_ConvexQueryInstantiations.cpp
+  src/gucefGEOMETRY_GeoSpaceInstantiations.cpp
+  src/gucefGEOMETRY_IntegerRangeInstantiations.cpp
+  src/gucefGEOMETRY_PolygonTriangulation.cpp
+  src/gucefGEOMETRY_QueryInstantiations.cpp
+  src/gucefGEOMETRY_Shapes2DInstantiations.cpp
+  src/gucefGEOMETRY_Shapes3DInstantiations.cpp
+  src/gucefGEOMETRY_SpatialTreeInstantiations.cpp
+  src/gucefGEOMETRY_VolumeShapesInstantiations.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

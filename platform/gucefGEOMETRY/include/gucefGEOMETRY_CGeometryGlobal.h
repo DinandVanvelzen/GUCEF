@@ -37,6 +37,9 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
+namespace MATH {
+class CMathBatchDispatcher;
+}
 namespace GEOMETRY {
 
 /*-------------------------------------------------------------------------//
@@ -57,13 +60,26 @@ class GUCEF_GEOMETRY_PUBLIC_CPP CGeometryGlobal
 {
     public:
 
+    /**
+     *  The instance, created on first use after the global classes of gucefCORE and gucefMATH. Thread-safe: when
+     *  several threads make the first call together, one creates and initialises the instance and the others wait until
+     *  it is complete. After that a call is one acquire load (lock-free, realtime-safe).
+     */
     static CGeometryGlobal* Instance( void );
 
+    /**
+     *  True when the batch kernels of this module (BatchFunctions.h) were registered with the dispatcher of gucefMATH by
+     *  Initialize(); they are registered under this object as owner and removed again when it is destroyed.
+     */
+    bool AreBatchKernelsRegistered( void ) const;
 
     private:
     friend class CModule;
 
     static void Deinstance( void );
+
+    /** The slow path of Instance(): one thread creates, the others wait for the publication */
+    static CGeometryGlobal* CreateInstance( void );
 
     private:
 
@@ -76,6 +92,10 @@ class GUCEF_GEOMETRY_PUBLIC_CPP CGeometryGlobal
 
     CGeometryGlobal( const CGeometryGlobal& src );            /**< not implemented */
     CGeometryGlobal& operator=( const CGeometryGlobal& src ); /**< not implemented */
+
+    private:
+
+    MATH::CMathBatchDispatcher* m_batchDispatcher;      /**< the dispatcher the batch kernels are registered with, NULL when not registered */
 };
 
 /*-------------------------------------------------------------------------//
