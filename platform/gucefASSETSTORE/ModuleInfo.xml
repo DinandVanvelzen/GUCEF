@@ -1,0 +1,40 @@
+<ModuleInfoEntry>
+    <Module Name="gucefASSETSTORE" Type="SharedLibrary" Platform="All" Tags="platform">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF module for online asset stores and the primary asset store</DescriptionHeadline>
+            <DescriptionDetails>Online asset store providers with their registry and a download manager, and the primary asset store: a catalogue in a database, normalisation of the metadata, content analysis, the ingest pipeline and search</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefVFS" Scope="public" />
+            <Dependency Name="gucefIMAGE" Scope="public" />
+            <Dependency Name="gucefCOMCORE" Scope="public" />
+            <Dependency Name="gucefCOM" Scope="public" />
+            <Dependency Name="gucefWEB" Scope="public" />
+            <Dependency Name="gucefAUTH" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETSTORE_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

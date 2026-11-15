@@ -1,0 +1,30 @@
+{
+    "version": 1,
+    "searches": [
+        { "id": "characters-rigged", "name": "Characters, rigged", "query": { "categories": [ "characters" ], "rigged": 1 } },
+        { "id": "characters-animated", "name": "Characters with animations", "query": { "categories": [ "characters" ], "animated": 1 } },
+        { "id": "creatures-rigged", "name": "Creatures & Animals, rigged", "query": { "categories": [ "creatures" ], "rigged": 1 } },
+        { "id": "weapons", "name": "Weapons", "query": { "categories": [ "weapons" ] } },
+        { "id": "weapons-animated", "name": "Weapons with animations", "query": { "categories": [ "weapons" ], "animated": 1 } },
+        { "id": "modular-buildings", "name": "Modular building kits", "query": { "categories": [ "buildings/modular" ] } },
+        { "id": "props-low-poly", "name": "Props, low poly", "query": { "categories": [ "props-decor" ], "maxTriangles": 5000 } },
+        { "id": "hero-assets", "name": "Hero assets", "query": { "minTriangles": 50000 } },
+        { "id": "mobile-ready", "name": "Mobile ready", "query": { "maxTriangles": 2000, "maxTextureResolution": 1024 } },
+        { "id": "game-ready", "name": "Game ready", "query": { "hasLods": 1, "hasCollision": 1 } },
+        { "id": "pbr-4k", "name": "PBR materials, 4K and up", "query": { "kinds": [ "texture", "material" ], "pbrRoles": [ "normal", "roughness" ], "minTextureResolution": 4096 } },
+        { "id": "trees-foliage", "name": "Trees and foliage", "query": { "categories": [ "nature/trees", "nature/bushes", "nature/grass", "nature/flowers" ] } },
+        { "id": "music", "name": "Music", "query": { "kinds": [ "music" ] } },
+        { "id": "sound-effects", "name": "Sound effects", "query": { "kinds": [ "sound-effect" ] } },
+        { "id": "ambient-loops", "name": "Ambient loops", "query": { "kinds": [ "ambient-sound" ] } },
+        { "id": "vfx", "name": "VFX", "query": { "kinds": [ "vfx" ] } },
+        { "id": "ui-icons-fonts", "name": "UI icons and fonts", "query": { "kinds": [ "icon", "font" ] } },
+        { "id": "gltf-or-fbx", "name": "Has a glTF or FBX (convertible now)", "query": { "formats": [ "gltf", "fbx" ], "resultKind": "packs" } },
+        { "id": "unreal-only", "name": "Unreal Engine only (needs the editor export)", "query": { "packFormatsOnly": [ "unreal" ], "resultKind": "packs" } },
+        { "id": "conversion-pending", "name": "Conversion pending", "query": { "packStates": [ "conversionPending" ], "resultKind": "packs" } },
+        { "id": "unclassified", "name": "Unclassified (to map)", "query": { "unclassified": true, "resultKind": "packs" } },
+        { "id": "licence-attribution", "name": "Licence: attribution required", "query": { "requireLicenceRestrictions": [ "attributionRequired" ], "resultKind": "packs" } },
+        { "id": "licence-unknown", "name": "Licence: unknown", "query": { "licenceClasses": [ "unknown" ], "resultKind": "packs" } },
+        { "id": "licence-no-machine-learning", "name": "Licence: no machine learning use", "query": { "requireLicenceRestrictions": [ "noMachineLearning" ], "resultKind": "packs" } },
+        { "id": "large-packs", "name": "Large packs", "query": { "minPackBytes": 1073741824, "resultKind": "packs" } }
+    ]
+}

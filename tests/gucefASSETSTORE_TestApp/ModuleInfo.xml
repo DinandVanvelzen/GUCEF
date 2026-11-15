@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<ModuleInfoEntry>
+    <Module Name="gucefASSETSTORE_TestApp" Platform="linux;mswin" Type="Executable" Tags="test" >
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="dbpluginPOSTGRESQL" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefASSETSTORE" />
+            <Dependency Name="dbpluginPOSTGRESQL" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_ASSETSTORE_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="tablecodecpluginPARQUET" />
+            <RuntimeDependency Name="dbpluginVFSTABLES" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="mswin" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="MemoryLeakFinder" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

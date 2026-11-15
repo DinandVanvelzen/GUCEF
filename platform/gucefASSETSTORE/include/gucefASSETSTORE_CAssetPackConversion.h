@@ -1,0 +1,132 @@
+/*
+ *  gucefASSETSTORE: GUCEF module for online asset stores and the primary asset store
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+#ifndef GUCEF_ASSETSTORE_CASSETPACKCONVERSION_H
+#define GUCEF_ASSETSTORE_CASSETPACKCONVERSION_H
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      INCLUDES                                                           //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifndef GUCEF_CORE_CFUTURERESULTSOURCE_H
+#include "gucefCORE_CFutureResultSource.h"
+#define GUCEF_CORE_CFUTURERESULTSOURCE_H
+#endif /* GUCEF_CORE_CFUTURERESULTSOURCE_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETPACKRECORD_H
+#include "gucefASSETSTORE_CAssetPackRecord.h"
+#define GUCEF_ASSETSTORE_CASSETPACKRECORD_H
+#endif /* GUCEF_ASSETSTORE_CASSETPACKRECORD_H ? */
+
+#ifndef GUCEF_ASSETSTORE_CASSETCONVERSIONOUTCOME_H
+#include "gucefASSETSTORE_CAssetConversionOutcome.h"
+#define GUCEF_ASSETSTORE_CASSETCONVERSIONOUTCOME_H
+#endif /* GUCEF_ASSETSTORE_CASSETCONVERSIONOUTCOME_H ? */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace GUCEF {
+namespace ASSETSTORE {
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CLASSES                                                            //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+class CPrimaryAssetStore;
+
+/**
+ *  The conversion of a pack that is in the store already (section 7.4: "conversion can also run later for packs marked
+ *  conversion pending"), run on the calling thread, and the rules that it shares with the convert step of the ingest:
+ *  what a hook's outcome does to the state of the pack.
+ *
+ *  Convert() takes the pack as it is placed, "<pack root>/original", has the converter hook convert it into
+ *  "<pack root>/converted/<profile>" and then, in one transaction where the backend has them, writes the converted
+ *  paths and formats of the assets, the format facets, the conversion record, the state of the pack and an entry of
+ *  the ingest history. A keep policy of "converted" removes the originals of the converted assets after that (and their
+ *  file rows), and only when the conversion ended without errors. A pack that was converted before and now fails or is
+ *  refused keeps its earlier conversion and state; the outcome and the history say what happened.
+ *
+ *  A cancel request on the future that the job belongs to ends the conversion with CANCELLED; nothing of the pack
+ *  changes then.
+ */
+class GUCEF_ASSETSTORE_PRIVATE_CPP CAssetPackConversion
+{
+    public:
+
+    explicit CAssetPackConversion( CPrimaryAssetStore& store, const CORE::CFutureResultSource* cancel = GUCEF_NULL );
+
+    /** Converts a pack of the store; the outcome says how it went, the status is the one of the outcome */
+    TAssetStoreStatus Convert( const CORE::CString& packId, CAssetConversionOutcome& outcome );
+
+    /** Converts the packs that are "conversion pending", one after the other; the outcome holds the counts */
+    TAssetStoreStatus ConvertPending( CAssetConversionOutcome& outcome );
+
+    /**
+     *  What the outcome of a hook does to a pack that is being converted: OK takes the converted assets over and records
+     *  the conversion, REFUSED and FAILED leave the assets and put the pack in the state "conversion refused" or
+     *  "conversion pending" with a reason, and say so in the problems. Returns OK when the outcome is taken in (the
+     *  ingest goes on with the pack as original), and the status of the hook when the step has to fail (CANCELLED, or a
+     *  conversion that could not run).
+     */
+    static TAssetStoreStatus ApplyOutcome( TAssetStoreStatus hookStatus, const CAssetConversionOutcome& hookOutcome ,
+                                           const TAssetRecordVector& converted, CAssetPackRecord& pack              ,
+                                           TAssetRecordVector& assets, CORE::CString::StringVector& problems         ,
+                                           CORE::CString& message                                                    );
+
+    /** The converted formats of the assets */
+    static void CollectConvertedFormats( const TAssetRecordVector& assets, CORE::CString::StringSet& formats );
+
+    /** Makes an id for a conversion job: "cv" and 19 hexadecimal characters */
+    static CORE::CString MakeJobId( void );
+
+    private:
+
+    TAssetStoreStatus Persist( const CAssetPackRecord& pack, const TAssetRecordVector& assets, bool assetsChanged   ,
+                               const CORE::CString::StringSet& removedOriginals, const CAssetConversionOutcome& outcome ,
+                               Int64 startedAtMs, CORE::CString& message                                              );
+    bool IsCancelRequested( void ) const;
+
+    CAssetPackConversion( const CAssetPackConversion& src );              /**< not implemented */
+    CAssetPackConversion& operator=( const CAssetPackConversion& src );   /**< not implemented */
+
+    private:
+
+    CPrimaryAssetStore& m_store;
+    const CORE::CFutureResultSource* m_cancel;
+};
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+}; /* namespace ASSETSTORE */
+}; /* namespace GUCEF */
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_ASSETSTORE_CASSETPACKCONVERSION_H ? */

@@ -1,0 +1,582 @@
+{
+    "version": 1,
+    "mappings": [
+        {
+            "source": "fab",
+            "category": "3d"
+        },
+        {
+            "source": "fab",
+            "category": "material & textures",
+            "kind": "material"
+        },
+        {
+            "source": "fab",
+            "category": "decals",
+            "kind": "decal"
+        },
+        {
+            "source": "fab",
+            "category": "animations",
+            "kind": "animation"
+        },
+        {
+            "source": "fab",
+            "category": "audio"
+        },
+        {
+            "source": "fab",
+            "category": "vfx",
+            "kind": "vfx"
+        },
+        {
+            "source": "fab",
+            "category": "ui",
+            "kind": "ui-kit"
+        },
+        {
+            "source": "fab",
+            "category": "sprites & flipbooks",
+            "kind": "sprite"
+        },
+        {
+            "source": "fab",
+            "category": "hdri",
+            "kind": "hdri"
+        },
+        {
+            "source": "fab",
+            "category": "brushes"
+        },
+        {
+            "source": "fab",
+            "category": "tools & plugins",
+            "kind": "code"
+        },
+        {
+            "source": "fab",
+            "category": "game systems",
+            "kind": "code"
+        },
+        {
+            "source": "fab",
+            "category": "game templates",
+            "kind": "template"
+        },
+        {
+            "source": "fab",
+            "category": "tutorials",
+            "kind": "document"
+        },
+        {
+            "source": "fab",
+            "category": "3d/buildings & architecture",
+            "to": "buildings"
+        },
+        {
+            "source": "fab",
+            "category": "3d/characters & creatures",
+            "to": "characters"
+        },
+        {
+            "source": "fab",
+            "category": "3d/clothing & accessories",
+            "to": "armour-clothing/clothing"
+        },
+        {
+            "source": "fab",
+            "category": "3d/electronics & technology",
+            "to": "electronics"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments",
+            "to": "terrain-environments"
+        },
+        {
+            "source": "fab",
+            "category": "3d/food & drink",
+            "to": "food"
+        },
+        {
+            "source": "fab",
+            "category": "3d/furniture & fixtures",
+            "to": "furniture-containers/furniture"
+        },
+        {
+            "source": "fab",
+            "category": "3d/nature & plants",
+            "to": "nature"
+        },
+        {
+            "source": "fab",
+            "category": "3d/tools",
+            "to": "tools-equipment"
+        },
+        {
+            "source": "fab",
+            "category": "3d/objects & decor",
+            "to": "props-decor"
+        },
+        {
+            "source": "fab",
+            "category": "3d/vehicles & transportation",
+            "to": "vehicles"
+        },
+        {
+            "source": "fab",
+            "category": "3d/weapons & combat",
+            "to": "weapons"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments/fantasy",
+            "to": "terrain-environments",
+            "theme": "fantasy"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments/sci-fi",
+            "to": "terrain-environments",
+            "theme": "sci-fi"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments/medieval",
+            "to": "terrain-environments",
+            "theme": "medieval"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments/cyberpunk",
+            "to": "terrain-environments",
+            "theme": "cyberpunk"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments/post-apocalyptic",
+            "to": "terrain-environments",
+            "theme": "post-apocalyptic"
+        },
+        {
+            "source": "fab",
+            "category": "3d/environments/horror",
+            "to": "terrain-environments",
+            "theme": "horror"
+        },
+        {
+            "source": "fab",
+            "category": "material & textures/building & human-made",
+            "to": "surfaces/building",
+            "kind": "material"
+        },
+        {
+            "source": "fab",
+            "category": "material & textures/damage & grunge",
+            "to": "surfaces/damage-grunge",
+            "kind": "material"
+        },
+        {
+            "source": "fab",
+            "category": "material & textures/fabric & clothing",
+            "to": "surfaces/fabric",
+            "kind": "material"
+        },
+        {
+            "source": "fab",
+            "category": "material & textures/nature & terrain",
+            "to": "surfaces/nature-terrain",
+            "kind": "material"
+        },
+        {
+            "source": "fab",
+            "category": "material & textures/organic",
+            "to": "surfaces/organic",
+            "kind": "material"
+        },
+        {
+            "source": "fab",
+            "category": "audio/ambient sounds",
+            "to": "audio/ambient",
+            "kind": "ambient-sound"
+        },
+        {
+            "source": "fab",
+            "category": "audio/music",
+            "to": "audio/music",
+            "kind": "music"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects",
+            "to": "audio/sfx",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects/animals",
+            "to": "audio/sfx/animals",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects/combat",
+            "to": "audio/sfx/combat",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects/foley / character",
+            "to": "audio/sfx/foley",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects/transportation",
+            "to": "audio/sfx/transportation",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects/ui",
+            "to": "audio/sfx/ui",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "fab",
+            "category": "audio/sound effects/voices",
+            "to": "audio/sfx/voices",
+            "kind": "voice"
+        },
+        {
+            "source": "unity",
+            "category": "3d/animations",
+            "kind": "animation"
+        },
+        {
+            "source": "unity",
+            "category": "3d/characters",
+            "to": "characters"
+        },
+        {
+            "source": "unity",
+            "category": "3d/characters/animals",
+            "to": "creatures/animals"
+        },
+        {
+            "source": "unity",
+            "category": "3d/characters/creatures",
+            "to": "creatures"
+        },
+        {
+            "source": "unity",
+            "category": "3d/characters/humanoids",
+            "to": "characters/humans"
+        },
+        {
+            "source": "unity",
+            "category": "3d/characters/robots",
+            "to": "robots-machines"
+        },
+        {
+            "source": "unity",
+            "category": "3d/environments",
+            "to": "terrain-environments"
+        },
+        {
+            "source": "unity",
+            "category": "3d/gui",
+            "to": "interface",
+            "kind": "ui-kit"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props",
+            "to": "props-decor"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/clothing",
+            "to": "armour-clothing/clothing"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/armor",
+            "to": "armour-clothing/armour"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/electronics",
+            "to": "electronics"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/food",
+            "to": "food"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/furniture",
+            "to": "furniture-containers/furniture"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/guns",
+            "to": "weapons/ranged"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/tools",
+            "to": "tools-equipment"
+        },
+        {
+            "source": "unity",
+            "category": "3d/props/weapons",
+            "to": "weapons"
+        },
+        {
+            "source": "unity",
+            "category": "3d/vegetation",
+            "to": "nature"
+        },
+        {
+            "source": "unity",
+            "category": "3d/vehicles",
+            "to": "vehicles"
+        },
+        {
+            "source": "unity",
+            "category": "3d/vehicles/air",
+            "to": "vehicles/air"
+        },
+        {
+            "source": "unity",
+            "category": "3d/vehicles/land",
+            "to": "vehicles/land"
+        },
+        {
+            "source": "unity",
+            "category": "3d/vehicles/sea",
+            "to": "vehicles/sea"
+        },
+        {
+            "source": "unity",
+            "category": "3d/vehicles/space",
+            "to": "vehicles/space"
+        },
+        {
+            "source": "unity",
+            "category": "2d/characters",
+            "to": "characters",
+            "kind": "sprite"
+        },
+        {
+            "source": "unity",
+            "category": "2d/environments",
+            "to": "terrain-environments",
+            "kind": "sprite"
+        },
+        {
+            "source": "unity",
+            "category": "2d/fonts",
+            "to": "interface/fonts",
+            "kind": "font"
+        },
+        {
+            "source": "unity",
+            "category": "2d/gui",
+            "to": "interface",
+            "kind": "ui-kit"
+        },
+        {
+            "source": "unity",
+            "category": "2d/textures & materials",
+            "to": "surfaces",
+            "kind": "texture"
+        },
+        {
+            "source": "unity",
+            "category": "vfx/particles",
+            "to": "effects",
+            "kind": "vfx"
+        },
+        {
+            "source": "unity",
+            "category": "vfx/shaders",
+            "to": "effects",
+            "kind": "code"
+        },
+        {
+            "source": "unity",
+            "category": "audio/ambient",
+            "to": "audio/ambient",
+            "kind": "ambient-sound"
+        },
+        {
+            "source": "unity",
+            "category": "audio/music",
+            "to": "audio/music",
+            "kind": "music"
+        },
+        {
+            "source": "unity",
+            "category": "audio/sound fx",
+            "to": "audio/sfx",
+            "kind": "sound-effect"
+        },
+        {
+            "source": "unity",
+            "category": "templates",
+            "kind": "template"
+        },
+        {
+            "source": "unity",
+            "category": "tools",
+            "kind": "code"
+        },
+        {
+            "source": "sketchfab",
+            "category": "animals & pets",
+            "to": "creatures/animals"
+        },
+        {
+            "source": "sketchfab",
+            "category": "architecture",
+            "to": "buildings"
+        },
+        {
+            "source": "sketchfab",
+            "category": "cars & vehicles",
+            "to": "vehicles"
+        },
+        {
+            "source": "sketchfab",
+            "category": "characters & creatures",
+            "to": "characters"
+        },
+        {
+            "source": "sketchfab",
+            "category": "cultural heritage & history",
+            "to": "props-decor"
+        },
+        {
+            "source": "sketchfab",
+            "category": "electronics & gadgets",
+            "to": "electronics"
+        },
+        {
+            "source": "sketchfab",
+            "category": "fashion & style",
+            "to": "armour-clothing/clothing"
+        },
+        {
+            "source": "sketchfab",
+            "category": "food & drink",
+            "to": "food"
+        },
+        {
+            "source": "sketchfab",
+            "category": "furniture & home",
+            "to": "furniture-containers/furniture"
+        },
+        {
+            "source": "sketchfab",
+            "category": "nature & plants",
+            "to": "nature"
+        },
+        {
+            "source": "sketchfab",
+            "category": "people",
+            "to": "characters/humans"
+        },
+        {
+            "source": "sketchfab",
+            "category": "places & travel",
+            "to": "terrain-environments"
+        },
+        {
+            "source": "sketchfab",
+            "category": "science & technology",
+            "to": "electronics"
+        },
+        {
+            "source": "sketchfab",
+            "category": "weapons & military",
+            "to": "weapons"
+        },
+        {
+            "source": "godot",
+            "category": "2d tools",
+            "kind": "code"
+        },
+        {
+            "source": "godot",
+            "category": "3d tools",
+            "kind": "code"
+        },
+        {
+            "source": "godot",
+            "category": "shaders",
+            "kind": "code"
+        },
+        {
+            "source": "godot",
+            "category": "materials",
+            "kind": "material"
+        },
+        {
+            "source": "godot",
+            "category": "tools",
+            "kind": "code"
+        },
+        {
+            "source": "godot",
+            "category": "scripts",
+            "kind": "code"
+        },
+        {
+            "source": "godot",
+            "category": "misc"
+        },
+        {
+            "source": "cgtrader",
+            "category": "vehicles",
+            "to": "vehicles"
+        },
+        {
+            "source": "cgtrader",
+            "category": "characters",
+            "to": "characters"
+        },
+        {
+            "source": "cgtrader",
+            "category": "architecture",
+            "to": "buildings"
+        },
+        {
+            "source": "cgtrader",
+            "category": "weapons",
+            "to": "weapons"
+        },
+        {
+            "source": "cgtrader",
+            "category": "furniture",
+            "to": "furniture-containers/furniture"
+        },
+        {
+            "source": "cgtrader",
+            "category": "nature",
+            "to": "nature"
+        },
+        {
+            "source": "cgtrader",
+            "category": "sci-fi",
+            "theme": "sci-fi"
+        },
+        {
+            "source": "cgtrader",
+            "category": "fantasy",
+            "theme": "fantasy"
+        }
+    ]
+}
