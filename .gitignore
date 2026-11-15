@@ -56,3 +56,4 @@ projects/k3s/gucef_dev/pod_volume/*
 .claude/settings.local.json
 
 projects/k3s/immich/sealed-secret.yaml
+projects/k3s/config.env

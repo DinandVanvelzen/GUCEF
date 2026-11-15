@@ -1,0 +1,65 @@
+## Forgejo chart values (oci://code.forgejo.org/forgejo-helm/forgejo).
+## Chart 17.x bundles no PostgreSQL or Valkey subcharts; the database is the
+## external my-postgres instance and cache/session/queue use built-in backends.
+## Secrets come from the forgejo-credentials secret (sealed-secret.yaml).
+## DOMAIN, ROOT_URL, SSH_DOMAIN, the admin email and the chart version are set
+## by setup.sh from config.env.
+
+replicaCount: 1
+
+image:
+  rootless: true
+
+persistence:
+  enabled: true
+  create: false
+  claimName: forgejo-data-pvc
+
+service:
+  http:
+    type: LoadBalancer
+    port: 32001
+  ssh:
+    type: LoadBalancer
+    port: 32002
+
+gitea:
+  admin:
+    existingSecret: forgejo-credentials
+    passwordMode: keepUpdated
+
+  # Maps to FORGEJO__database__PASSWD inside the init container.
+  additionalConfigFromEnvs:
+    - name: FORGEJO__database__PASSWD
+      valueFrom:
+        secretKeyRef:
+          name: forgejo-credentials
+          key: DB_PASSWORD
+
+  config:
+    server:
+      SSH_PORT: 32002         # port advertised in clone URLs
+      SSH_LISTEN_PORT: 2222   # non-privileged port the rootless container listens on
+    database:
+      DB_TYPE: postgres
+      HOST: my-postgres.postgresql.svc.cluster.local:5432
+      NAME: forgejo
+      USER: forgejo
+      SSL_MODE: disable
+    cache:
+      ADAPTER: memory
+    session:
+      PROVIDER: memory
+    queue:
+      TYPE: level
+    repository:
+      DEFAULT_PRIVATE: private
+      ENABLE_PUSH_CREATE_ORG: true
+      ENABLE_PUSH_CREATE_USER: true
+    actions:
+      ENABLED: true
+    mirror:
+      DEFAULT_INTERVAL: 8h
+      MIN_INTERVAL: 10m
+    service:
+      DISABLE_REGISTRATION: true

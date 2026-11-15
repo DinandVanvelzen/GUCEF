@@ -23,6 +23,25 @@ for arg in "$@"; do
     esac
 done
 
+# Optional local settings in ./config.env (gitignored, see config.env.example):
+#   GIT_SERVER=forgejo|none              git server to install (default forgejo)
+#   CI_ENGINE=jenkins|forgejo|all|none   CI to install (default jenkins)
+if [ -f ./config.env ]; then
+    set -a
+    source <(sed 's/\r//' ./config.env)
+    set +a
+fi
+GIT_SERVER="${GIT_SERVER:-forgejo}"
+CI_ENGINE="${CI_ENGINE:-jenkins}"
+case "${CI_ENGINE}" in
+    jenkins|forgejo|all|none) ;;
+    *) echo "Unknown CI_ENGINE: ${CI_ENGINE} (use jenkins, forgejo, all or none)"; exit 1 ;;
+esac
+if { [ "${CI_ENGINE}" = "forgejo" ] || [ "${CI_ENGINE}" = "all" ]; } && [ "${GIT_SERVER}" != "forgejo" ]; then
+    echo "CI_ENGINE=${CI_ENGINE} needs GIT_SERVER=forgejo"
+    exit 1
+fi
+
 K3S_INSTALLED=false
 if [ -x /usr/local/bin/k3s ] && [ -f /etc/systemd/system/k3s.service ]; then
     K3S_INSTALLED=true
@@ -170,10 +189,14 @@ cd ./nexus
 ./setup.sh
 cd ..
 
-# setup Jenkins for CICD
-cd ./jenkins
-./setup.sh
-cd ..
+# setup Jenkins for CICD (CI_ENGINE=jenkins or all)
+if [ "${CI_ENGINE}" = "jenkins" ] || [ "${CI_ENGINE}" = "all" ]; then
+    cd ./jenkins
+    ./setup.sh
+    cd ..
+else
+    echo "Skipping Jenkins (CI_ENGINE=${CI_ENGINE})"
+fi
 
 # setup metrics support
 cd ./metrics
@@ -186,6 +209,20 @@ cd ..
 cd ./immich
 ./setup.sh
 cd ..
+
+# setup the git server (Forgejo): private repositories, mirroring from GitHub
+# Requires: sealed-secrets, postgresql and storage (above)
+if [ "${GIT_SERVER}" = "forgejo" ]; then
+    cd ./forgejo
+    ./setup.sh
+    # Forgejo Actions runner (CI_ENGINE=forgejo or all)
+    if [ "${CI_ENGINE}" = "forgejo" ] || [ "${CI_ENGINE}" = "all" ]; then
+        ./runner/setup.sh
+    fi
+    cd ..
+else
+    echo "Skipping Forgejo (GIT_SERVER=${GIT_SERVER})"
+fi
 
 # Make the kubeconfig available without needing sudo for every kubectl/helm call
 mkdir -p ~/.kube

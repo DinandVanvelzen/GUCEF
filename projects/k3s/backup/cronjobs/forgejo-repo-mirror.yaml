@@ -1,0 +1,53 @@
+# Keeps plain bare mirrors of every Forgejo repository on the NAS (<mount>/forgejo/repos/<owner>/<repo>.git).
+# Reads the repositories from the Forgejo data volume (same node as the Forgejo pod, RWO shared by node).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: forgejo-repo-mirror
+  namespace: forgejo
+spec:
+  schedule: "@FORGEJO_CRON@"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: "@NODE@"
+          containers:
+            - name: mirror
+              image: code.forgejo.org/forgejo/forgejo:15.0.11-rootless
+              securityContext: {runAsUser: 0}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -u
+                  export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0='*'
+                  SRC=/data/git/gitea-repositories
+                  DST=/backup/repos
+                  ok=0; fail=0
+                  for repo in "$SRC"/*/*.git; do
+                    [ -d "$repo" ] || continue
+                    rel=${repo#$SRC/}
+                    mkdir -p "$DST/$(dirname "$rel")"
+                    if [ -d "$DST/$rel" ]; then
+                      git --git-dir="$DST/$rel" fetch --prune "$repo" '+refs/*:refs/*' >/dev/null 2>&1
+                    else
+                      git clone --mirror "$repo" "$DST/$rel" >/dev/null 2>&1
+                    fi
+                    if [ $? -eq 0 ]; then ok=$((ok+1)); else fail=$((fail+1)); echo "FAILED: $rel"; fi
+                  done
+                  echo "mirrored=$ok failed=$fail"
+                  [ "$fail" -eq 0 ]
+              volumeMounts:
+                - {name: data, mountPath: /data, readOnly: true}
+                - {name: backup, mountPath: /backup}
+          volumes:
+            - name: data
+              persistentVolumeClaim: {claimName: forgejo-data-pvc, readOnly: true}
+            - name: backup
+              hostPath: {path: "@MOUNT@/forgejo", type: Directory}

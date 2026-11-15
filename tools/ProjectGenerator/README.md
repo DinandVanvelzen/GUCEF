@@ -302,6 +302,10 @@ Parameters given on the command line override the `[Bootstrap\Main\AppArgs]` val
 #### CI Helper Generator  
 - `cihelpergen:GenerateGithubActionsWorkflowTargetsYml` - Generate GitHub workflows
 - `cihelpergen:GithubActionsWorkflowsUseSelfHostedRunners` - Use self-hosted runners
+- `cihelpergen:GenerateForgejoActionsWorkflowTargetsYml` - Generate Forgejo Actions workflows (default `false`). Written to `.forgejo/workflows`, `workflow_dispatch` only
+- `cihelpergen:ForgejoActionsWorkflowsDir` - Output dir relative to the project root (default `.forgejo/workflows`)
+- `cihelpergen:ForgejoActionsLinuxRunnerLabel` / `cihelpergen:ForgejoActionsWindowsRunnerLabel` - `runs-on` labels, must match the labels the Forgejo runner is registered with (defaults `gucef-linux` / `windows-msvc`)
+- `cihelpergen:ForgejoActionsCheckoutAction` / `cihelpergen:ForgejoActionsUploadArtifactAction` - Action references (defaults `actions/checkout@v4` / `actions/upload-artifact@v3`; Forgejo does not support upload-artifact v4)
 - `cihelpergen:GenerateGlobPatternPathListPerTarget` - Generate glob patterns
 
 #### Premake Generators
