@@ -298,14 +298,30 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     class CLockScope;
     friend class CLockScope;
 
-    CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGenerator, const CRpcEndpointSettings& settings );
+    CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGenerator, const CRpcEndpointSettings& settings, bool linkNotificationThread );
     CRpcEndpoint( const CRpcEndpoint& src );                    /**< not implemented */
     CRpcEndpoint& operator=( const CRpcEndpoint& src );         /**< not implemented */
+
+    /*
+     *  Used by CRpcHost: an endpoint made on a protocol thread, which may hold a lock that the thread of the
+     *  notification pulse generator waits for while it pulses (the node lock of a drn transport). Linking to that pulse
+     *  generator subscribes to it, which waits for its pulse: the endpoint is linked later on that thread
+     *  (LinkNotificationThread()); its events wait in its mailbox until then
+     */
+    static CRpcEndpointPtr CreateUnlinked( const CORE::PulseGeneratorPtr& notificationPulseGenerator, const CRpcEndpointSettings& settings );
+    void LinkNotificationThread( void );
 
     /* used by CRpcHost: a transport whose first frame (a HELLO) the host read */
     bool StartAccepted( const CIRpcTransportPtr& transport, const UInt8* helloFrame, UInt32 size, bool sessionUnknown );
     bool AcceptResume( const CIRpcTransportPtr& transport, const UInt8* helloFrame, UInt32 size );
     void SetHost( CRpcHost* host );
+
+    /*
+     *  Used by CRpcServerCall, on a thread that is not the notification thread: the call is linked to the notification
+     *  pulse generator on that pulse generator's own thread, through the endpoint's mail. False when the call's event
+     *  pulse generator is not the endpoint's notification pulse generator
+     */
+    bool LinkOnNotificationThread( const CRpcServerCallPtr& call );
 
     /* used by CRpcServerCall */
     bool ServerAnswer( CRpcServerCall& call, UInt8 frameType, const CRpcStatus& status, const CRpcMessage* response );
@@ -328,6 +344,8 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     void OnTransportWritable( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnProtocolPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnDispatchToNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLinkOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnReleaseOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     /* the session sink */
     bool SessionTransmit( const UInt8* frame, UInt32 size, TRpcProtectionClass protection );
@@ -441,6 +459,9 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     void StreamWritable( const CIRpcStreamPtr& stream );
     void RunDispatch( const CRpcServerCallPtr& call, TRpcExecutionMode mode );
     void RunPulseRequest( const SDeferredEvent& request );
+    bool IsNotificationThread( void ) const;
+    void ReleaseClientCall( SClientCall* call );
+    void ReleaseDeferredReferences( GUCEF::vector< SDeferredEvent* >& batch );
     TRpcProtectionClass ProtectionForFrame( UInt8 type, const CRpcMethodDescriptor* method, bool responder ) const;
     bool CheckProtection( const CRpcMethodDescriptor* method, bool providerFrame, TRpcProtectionClass arrivedWith );
 
@@ -448,7 +469,8 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     static UInt64 WallClockMs( void );
 
     static const CORE::CEvent DispatchToNotificationThreadEvent;
-    static const CORE::CEvent ReleaseOnNotificationThreadEvent;    /**< its data holds a reference: the last one goes on that thread */
+    static const CORE::CEvent ReleaseOnNotificationThreadEvent;    /**< its data holds references: the last ones go on that thread */
+    static const CORE::CEvent LinkOnNotificationThreadEvent;       /**< CRpcCallTaskData: the call is linked to its event thread there */
 
     typedef GUCEF::map< UInt64, SClientCall* > TClientCallMap;
     typedef GUCEF::map< UInt64, CRpcServerCallPtr > TServerCallMap;
@@ -463,6 +485,7 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     typedef GUCEF::vector< SDeferredEvent* > TDeferredEventVector;
     typedef GUCEF::vector< SPendingHandler > TPendingHandlerVector;
 
+    CORE::PulseGeneratorPtr m_notificationPulseGenerator;   /**< given at construction; this notifier may be linked to it later (CreateUnlinked()) */
     mutable MT::CMutex m_lock;
     mutable UInt32 m_lockDepth;                         /**< nesting of the holds of m_lock by the thread that has it */
     mutable TDeferredEventVector m_deferredEvents;      /**< events raised under the lock, raised when it is released */
@@ -476,6 +499,8 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcEndpoint : public CORE::CTSGNotifier ,
     CORE::PulseGeneratorPtr m_protocolPulseGenerator;
     CRpcProtocolTaskPtr m_protocolTask;
     CORE::CObserver m_transportObserver;
+    MT::CMutex m_pulseSubscriptionLock;                         /**< a leaf: guards m_pulseSubscriptions only */
+    GUCEF::vector< CORE::PulseGeneratorPtr > m_pulseSubscriptions;  /**< the pulse generators m_transportObserver gets OnProtocolPulse() of */
     GUCEF::vector< CIRpcTransportPtr > m_staleTransports;      /**< detached, unsubscribed at the next pulse outside the lock */
     CORE::CObserver m_selfObserver;
     CRpcHost* m_host;

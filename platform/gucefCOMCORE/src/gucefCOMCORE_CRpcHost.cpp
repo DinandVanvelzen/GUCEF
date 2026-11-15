@@ -29,6 +29,11 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -93,6 +98,8 @@ CRpcHost::CRpcHost( const CORE::PulseGeneratorPtr& notificationPulseGenerator, c
     , m_pending()
     , m_released()
     , m_releasePulseGenerators()
+    , m_unlinkedEndpoints()
+    , m_releasedEndpoints()
     , m_listenerObserver()
     , m_pendingObserver()
     , m_endpointObserver()
@@ -349,7 +356,27 @@ CRpcEndpointPtr
 CRpcHost::NewEndpoint( void )
 {GUCEF_TRACE;
 
-    CRpcEndpointPtr endpoint = CRpcEndpoint::Create( GetPulseGenerator(), m_settings.endpointSettings );
+    // A new endpoint is a thread safe notifier of the host's notification pulse generator, and linking to it subscribes
+    // to it, which waits for a pulse of it under way. The HELLO of a new session arrives on the transport's protocol
+    // thread, which may hold a lock the notification thread waits for in that pulse (the node lock of a drn transport,
+    // gucefDRN design 9.1): there the endpoint is made without the link, which the host's next pulse makes on the
+    // notification thread (OnPulse()). Its events wait in its mailbox until then
+    CRpcEndpointPtr endpoint;
+    CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+    const TThreadId driver = pulseGenerator.IsNULL() ? 0 : pulseGenerator->GetPulseDriverThreadId();
+    if ( 0 != driver && driver != MT::GetCurrentThreadID() )
+    {
+        endpoint = CRpcEndpoint::CreateUnlinked( pulseGenerator, m_settings.endpointSettings );
+        {
+            MT::CScopeMutex lock( m_lock );
+            m_unlinkedEndpoints.push_back( endpoint );
+        }
+        pulseGenerator->RequestImmediatePulseThroughDriver();
+    }
+    else
+    {
+        endpoint = CRpcEndpoint::Create( pulseGenerator, m_settings.endpointSettings );
+    }
     endpoint->SetServiceSet( m_services );
     endpoint->SetDurableRequestTable( m_durable );
     if ( !m_accessPolicy.IsNULL() )
@@ -431,6 +458,22 @@ CRpcHost::HandleFirstFrame( const CIRpcTransportPtr& transportRef, const CRpcFra
         if ( !existing.IsNULL() )
         {
             existing->AcceptResume( transport, frame->GetFrame(), frame->GetSize() );
+
+            // the notification thread may have let go of the session meanwhile: a last reference goes there
+            if ( !existing.UnlinkUnlessLast() )
+            {
+                CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+                const TThreadId driver = pulseGenerator.IsNULL() ? 0 : pulseGenerator->GetPulseDriverThreadId();
+                if ( 0 != driver && driver != MT::GetCurrentThreadID() )
+                {
+                    {
+                        MT::CScopeMutex lock( m_lock );
+                        m_releasedEndpoints.push_back( existing );
+                    }
+                    existing.Unlink();
+                    pulseGenerator->RequestImmediatePulseThroughDriver();
+                }
+            }
             return;
         }
     }
@@ -480,6 +523,20 @@ CRpcHost::OnEndpointClosed( CORE::CNotifier* notifier, const CORE::CEvent& event
 void
 CRpcHost::OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
+
+    // endpoints made on a protocol thread are linked to this thread (NewEndpoint()), and the endpoints let go of
+    // there go here (HandleFirstFrame())
+    GUCEF::vector< CRpcEndpointPtr > unlinked;
+    GUCEF::vector< CRpcEndpointPtr > released;
+    {
+        MT::CScopeMutex lock( m_lock );
+        unlinked.swap( m_unlinkedEndpoints );
+        released.swap( m_releasedEndpoints );
+    }
+    for ( UInt32 i=0; i<unlinked.size(); ++i )
+        unlinked[ i ]->LinkNotificationThread();
+    unlinked.clear();
+    released.clear();
 
     // accepted transports that send no HELLO in time are closed
     UInt64 now = CRpcDurableRequestTable::NowMs();

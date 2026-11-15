@@ -29,6 +29,16 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_CPULSEGENERATOR_H
+#include "gucefCORE_CPulseGenerator.h"
+#define GUCEF_CORE_CPULSEGENERATOR_H
+#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -237,12 +247,15 @@ bool
 CRpcServerCall::Subscribe( CORE::CObserver* observer )
 {GUCEF_TRACE;
 
-    if ( observer != &m_selfObserver )
+    if ( observer == &m_selfObserver )
+        return CORE::CTSGNotifier::Subscribe( observer );
     {
         MT::CScopeMutex lock( m_lock );
         m_observed = true;
     }
-    return CORE::CTSGNotifier::Subscribe( observer );
+    const bool subscribed = CORE::CTSGNotifier::Subscribe( observer );
+    AttachEventThreadIfOnIt();
+    return subscribed;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -251,12 +264,15 @@ bool
 CRpcServerCall::Subscribe( CORE::CObserver* observer, const CORE::CEvent& eventid, CORE::CIEventHandlerFunctorBase* callback )
 {GUCEF_TRACE;
 
-    if ( observer != &m_selfObserver )
+    if ( observer == &m_selfObserver )
+        return CORE::CTSGNotifier::Subscribe( observer, eventid, callback );
     {
         MT::CScopeMutex lock( m_lock );
         m_observed = true;
     }
-    return CORE::CTSGNotifier::Subscribe( observer, eventid, callback );
+    const bool subscribed = CORE::CTSGNotifier::Subscribe( observer, eventid, callback );
+    AttachEventThreadIfOnIt();
+    return subscribed;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -297,10 +313,8 @@ CRpcServerCall::PostCallEvent( const CORE::CEvent& eventId, CORE::CICloneable* e
     }
 
     // linked to its event thread at its first event: a call without events (most unary calls) never subscribes to a
-    // pulse generator
+    // pulse generator. Mail posted before the link is made waits in the mailbox for it
     AttachEventThread();
-    if ( InternalMessageEvent == eventId )
-        EnsureInternalSubscription();
     NotifyObserversFromThread( eventId, eventData );
 }
 
@@ -310,14 +324,55 @@ void
 CRpcServerCall::AttachEventThread( void )
 {GUCEF_TRACE;
 
-    // once: mail posted before the link is made waits in the mailbox for it
+    // once
     {
         MT::CScopeMutex lock( m_lock );
         if ( m_eventThreadAttached )
             return;
         m_eventThreadAttached = true;
     }
+
+    // Linking subscribes to the event thread's pulse generator, which waits for a pulse of it under way (its lock).
+    // On another thread that is a wait for the event thread under whatever this thread holds: the protocol thread of a
+    // drn transport holds the node lock, which the event thread's pulse handlers take when they call into the node
+    // (gucefDRN design 9.1). There the endpoint's mail has the event thread link the call (LinkEventThreadNow())
+    if ( !m_eventPulseGenerator.IsNULL() )
+    {
+        const TThreadId driver = m_eventPulseGenerator->GetPulseDriverThreadId();
+        if ( 0 != driver && driver != MT::GetCurrentThreadID() )
+        {
+            CRpcEndpointLink::CScope scope( m_link );
+            if ( GUCEF_NULL != scope.GetEndpoint() && scope.GetEndpoint()->LinkOnNotificationThread( GetSharedPtr() ) )
+                return;
+        }
+    }
+    LinkEventThreadNow();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcServerCall::LinkEventThreadNow( void )
+{GUCEF_TRACE;
+
+    // the subscription for client stream messages first: their mail is delivered only once the call is linked
+    EnsureInternalSubscription();
     SetPulseGenerator( m_eventPulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcServerCall::AttachEventThreadIfOnIt( void )
+{GUCEF_TRACE;
+
+    // on the event thread (or a pulse generator nobody drives yet) the link is made now; elsewhere at the first event,
+    // which has the event thread make it (AttachEventThread())
+    if ( m_eventPulseGenerator.IsNULL() )
+        return;
+    const TThreadId driver = m_eventPulseGenerator->GetPulseDriverThreadId();
+    if ( 0 == driver || driver == MT::GetCurrentThreadID() )
+        AttachEventThread();
 }
 
 /*-------------------------------------------------------------------------*/

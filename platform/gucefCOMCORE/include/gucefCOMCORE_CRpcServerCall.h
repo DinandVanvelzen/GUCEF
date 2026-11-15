@@ -202,10 +202,18 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcServerCall : public CORE::CTSGNotifier ,
     /**
      *  The call is made under the endpoint lock: it is linked to the pulse generator of its event thread later, by
      *  AttachEventThread() at its first event, outside that lock, as linking subscribes to the pulse generator, whose
-     *  thread may be in a handler that waits for the endpoint lock. A call without events is never linked
+     *  thread may be in a handler that waits for the endpoint lock. A call without events is never linked.
+     *  An observer that subscribes on the event thread itself links it there and then (AttachEventThreadIfOnIt()): the
+     *  first event is raised on the thread of the transport, which may hold a lock (the node lock of a DRN transport,
+     *  whose node pulses under it) that the event thread waits for while it holds the lock of its pulse generator.
+     *  For the same reason a first event raised on another thread does not link the call there: the endpoint's mail has
+     *  the event thread link it (CRpcEndpoint::LinkOnNotificationThread(), LinkEventThreadNow()), and the events wait
+     *  in the call's mailbox until then
      */
     CRpcServerCall( const CORE::PulseGeneratorPtr& eventPulseGenerator );
     void AttachEventThread( void );
+    void AttachEventThreadIfOnIt( void );
+    void LinkEventThreadNow( void );
     CORE::PulseGeneratorPtr GetEventPulseGenerator( void ) const { return m_eventPulseGenerator; }
     CRpcServerCall( const CRpcServerCall& src );                /**< not implemented */
     CRpcServerCall& operator=( const CRpcServerCall& src );     /**< not implemented */

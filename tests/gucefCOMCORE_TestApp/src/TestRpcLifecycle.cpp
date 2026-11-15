@@ -252,6 +252,146 @@ MakeHelloFrame( const COMCORE::SRpcHello& hello, CORE::CDynamicBuffer& frame )
 
 }
 
+namespace {
+
+/**
+ *  A decorator whose last reference does not free it: the release is noted (CReleaseWatchDestructor), so a call that
+ *  reaches it afterwards, which would have reached freed memory, is counted instead. An unsubscription on the hold
+ *  thread waits until the gate is opened and then 300 ms more: the protocol thread holds there inside its pulse
+ */
+class CReleaseWatchTransport : public CRpcLossyTransport
+{
+    public:
+
+    MT::CTAtomic< UInt32 > released;
+    MT::CTAtomic< UInt32 > callsAfterRelease;
+    MT::CTAtomic< TThreadId > holdThread;
+    MT::CTAtomic< UInt32 > holding;
+    MT::CTAtomic< UInt32 > gate;
+
+    explicit CReleaseWatchTransport( const COMCORE::CIRpcTransportPtr& inner )
+        : CRpcLossyTransport( inner ), released( 0 ), callsAfterRelease( 0 ), holdThread( 0 ), holding( 0 ), gate( 0 )
+    {}
+
+    virtual void Unsubscribe( CORE::CObserver* observer ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( 0 != released.Load() )
+        {
+            callsAfterRelease.FetchAdd( 1 );
+            return;
+        }
+        if ( 0 != holdThread.Load() && holdThread.Load() == MT::GetCurrentThreadID() && 0 == holding.Load() )
+        {
+            holding.Store( 1 );
+            UInt32 waited = 0;
+            while ( 0 == gate.Load() && waited++ < 5000 )
+                MT::PrecisionDelay( 1 );
+            MT::PrecisionDelay( 300 );
+        }
+        CRpcLossyTransport::Unsubscribe( observer );
+    }
+};
+
+/** Notes the release of the last reference of a CReleaseWatchTransport instead of destroying it */
+class CReleaseWatchDestructor : public CORE::CTDynamicDestructorBase< CReleaseWatchTransport >
+{
+    public:
+
+    virtual void DestroyObject( CReleaseWatchTransport* objectToBeDestroyed ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        objectToBeDestroyed->released.Store( 1 );
+    }
+};
+
+/**
+ *  Import (a client stream) of the sample contract: the handler keeps the call and subscribes to its CancelledEvent.
+ *  The cancellation handler lets go of the kept reference, as handlers do;
+ *  when that would be the last one (the call would go inside the delivery of its own mail) it is noted, and the
+ *  reference is kept elsewhere instead, so the call does not go there
+ */
+class CCancelWatchService : public COMCORE::CRpcServiceImpl ,
+                            public CORE::CObserver
+{
+    public:
+
+    MT::CTAtomic< UInt32 > handled;
+    MT::CTAtomic< UInt32 > cancelled;
+    MT::CTAtomic< UInt32 > lastReferenceInOwnEvent;
+    GUCEF::vector< COMCORE::CRpcServerCallPtr > kept;
+    GUCEF::vector< COMCORE::CRpcServerCallPtr > graveyard;
+    MT::CMutex lock;
+
+    CCancelWatchService( void ) : COMCORE::CRpcServiceImpl(), CORE::CObserver(), handled( 0 ), cancelled( 0 ), lastReferenceInOwnEvent( 0 ), kept(), graveyard(), lock()
+    {
+        BindMethod( "Import", GUCEF_NEW COMCORE::CTRpcMethodHandler< CCancelWatchService >( this, &CCancelWatchService::OnImport ) );
+    }
+
+    virtual ~CCancelWatchService() { UnsubscribeAllFromObserver(); }
+
+    COMCORE::TRpcHandlerResult OnImport( COMCORE::CRpcServerCall& call )
+    {
+        {
+            MT::CScopeMutex scope( lock );
+            kept.push_back( call.GetSharedPtr() );
+        }
+        typedef CORE::CTEventHandlerFunctor< CCancelWatchService > TEventCallback;
+        TEventCallback onCancelled( this, &CCancelWatchService::OnCancelled );
+        SubscribeTo( &call, COMCORE::CRpcServerCall::CancelledEvent, onCancelled );
+        handled.Store( 1 );
+        return COMCORE::RPC_HANDLER_DEFERRED;
+    }
+
+    void OnCancelled( CORE::CNotifier* notifier, const CORE::CEvent&, CORE::CICloneable* )
+    {
+        MT::CScopeMutex scope( lock );
+        for ( UInt32 i=0; i<kept.size(); ++i )
+        {
+            if ( static_cast< CORE::CNotifier* >( kept[ i ].GetPointerAlways() ) != notifier )
+                continue;
+            COMCORE::CRpcServerCallPtr call( kept[ i ] );
+            kept.erase( kept.begin() + i );
+            if ( 1 == call.GetReferenceCount() )
+            {
+                // this copy is all that is left: the kept reference was the last one
+                lastReferenceInOwnEvent.Store( 1 );
+                graveyard.push_back( call );
+            }
+            break;
+        }
+        cancelled.Store( 1 );
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Pulses a pulse generator as its driver thread until told to stop */
+struct SProtocolPulser
+{
+    CORE::PulseGeneratorPtr pulseGenerator;
+    MT::CTAtomic< TThreadId > threadId;
+    MT::CTAtomic< UInt32 > stop;
+
+    SProtocolPulser( void ) : pulseGenerator(), threadId( 0 ), stop( 0 ) {}
+};
+
+UInt32 GUCEF_CALLSPEC_PREFIX
+ProtocolPulserMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SProtocolPulser* pulser = static_cast< SProtocolPulser* >( data );
+    pulser->pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
+    pulser->threadId.Store( MT::GetCurrentThreadID() );
+    while ( 0 == pulser->stop.Load() )
+    {
+        pulser->pulseGenerator->ForceDirectPulse();
+        MT::PrecisionDelay( 1 );
+    }
+    return 0;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
 #define ASSERT_OK( s )      { COMCORE::CRpcStatus assertStatus_( s ); if ( !assertStatus_.IsOk() ) { GUCEF_TESTFW_ERRORHERE; GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "RpcLifecycle test: line " << __LINE__ << ": " << assertStatus_.ToString() ); } }
 #define REQUIRE_TRUE( t )   { if ( !( t ) ) { GUCEF_TESTFW_ERRORHERE; GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "RpcLifecycle test: requirement failed: " #t ); return; } }
 
@@ -571,6 +711,178 @@ TestLossyDecoratorPassesDowngradeOn( void )
 
 /*-------------------------------------------------------------------------*/
 
+static void
+TestEndpointDestroyedWhileItsPulseReleasesATransport( void )
+{
+    // An endpoint lets go of a detached transport in its protocol pulse, after it unsubscribed from it there. When
+    // another thread destroys the endpoint at that moment, the destructor walks a copy of the endpoint's
+    // subscriptions, which still names the transport, and calls it after the pulse let go of it: freed memory (a
+    // drn pairing client let go of its endpoint while the node's thread pulsed it, investSERVICE_TestApp, SIGSEGV
+    // in CObserver::UnsubscribeAllFromObserver() under ~CRpcEndpoint()). Here the transport's last reference does not
+    // free it, so such a call is counted; the protocol thread holds in the pulse, after the copy was made
+    COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( !notes.IsNULL() );
+    CRpcEndpointFixture f;
+
+    // the protocol thread's pulse generator sorts before the transport in the subscription list (a set ordered by
+    // address): the destructor then waits for the pulse before it reaches the transport
+    GUCEF::vector< CORE::PulseGeneratorPtr > candidates;
+    for ( UInt32 i=0; i<8; ++i )
+        candidates.push_back( CORE::CPulseGenerator::CreateSharedObj() );
+    SProtocolPulser pulser;
+    pulser.pulseGenerator = candidates[ 0 ];
+    for ( UInt32 i=1; i<candidates.size(); ++i )
+        if ( static_cast< CORE::CNotifier* >( candidates[ i ].GetPointerAlways() ) < static_cast< CORE::CNotifier* >( pulser.pulseGenerator.GetPointerAlways() ) )
+            pulser.pulseGenerator = candidates[ i ];
+
+    COMCORE::CIRpcTransportPtr a;
+    COMCORE::CIRpcTransportPtr b;
+    REQUIRE_TRUE( COMCORE::CRpcLoopbackTransport::CreatePair( pulser.pulseGenerator, pulser.pulseGenerator, a, b ) );
+    CReleaseWatchDestructor watchDestructor;
+    CReleaseWatchTransport* watched = GUCEF_NEW CReleaseWatchTransport( a );
+    if ( static_cast< CORE::CNotifier* >( pulser.pulseGenerator.GetPointerAlways() ) > static_cast< CORE::CNotifier* >( watched ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "RpcLifecycle test: the transport sorts before the pulse generator, the case cannot fail without the change it pins" );
+    {
+        CORE::CTSharedPtr< CReleaseWatchTransport, MT::CMutex > watchedPtr( watched, &watchDestructor );
+        f.clientTransport = watchedPtr;
+    }
+    f.serverTransport = CRpcLossyTransport::Wrap( b, GUCEF_NULL );
+    a.Unlink();
+
+    MT::SThreadData* thread = MT::ThreadDataReserve();
+    REQUIRE_TRUE( GUCEF_NULL != thread );
+    REQUIRE_TRUE( 0 != MT::ThreadCreate( thread, &ProtocolPulserMain, &pulser ) );
+    UInt32 waited = 0;
+    while ( 0 == pulser.threadId.Load() && waited++ < 5000 )
+        MT::PrecisionDelay( 1 );
+
+    bool bound = f.Connect( notes, notes );
+    ASSERT_TRUE( bound );
+    if ( bound )
+    {
+        // the client endpoint holds the only reference: the transport is detached when the session closes, and let
+        // go of in the client's next protocol pulse, which holds in the unsubscription (as a drn pairing client closes
+        // its session and lets go of its endpoint)
+        watched->holdThread.Store( pulser.threadId.Load() );
+        f.clientTransport.Unlink();
+        f.client->Close( true );
+        waited = 0;
+        while ( 0 == watched->holding.Load() && waited++ < 5000 )
+        {
+            f.pulseGenerator->ForceDirectPulse();
+            MT::PrecisionDelay( 1 );
+        }
+        ASSERT_TRUE( 1 == watched->holding.Load() );
+
+        // this thread destroys the endpoint while the pulse holds; the pulse goes on 300 ms later
+        watched->gate.Store( 1 );
+        f.client.Unlink();
+        ASSERT_TRUE( 1 == watched->released.Load() );
+        ASSERT_TRUE( 0 == watched->callsAfterRelease.Load() );
+    }
+
+    pulser.stop.Store( 1 );
+    MT::ThreadWait( thread, 10000 );
+    MT::ThreadDataCleanup( thread );
+    if ( !f.server.IsNULL() )
+        f.server->Close( false );
+    f.server.Unlink();
+    f.serverTransport.Unlink();
+    b.Unlink();
+    f.clientTransport.Unlink();
+    f.client.Unlink();
+    if ( 1 == watched->released.Load() )
+        GUCEF_DELETE watched;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+TestEndedCallReleasedAfterItsOwnMail( void )
+{
+    // The endpoint lets go of an ended server call of the notification thread there (ReleaseOnNotificationThreadEvent).
+    // When that mail is delivered before the call's own mail, the handler of the call's event holds the last reference
+    // and lets go of it inside the delivery of the call's own mail: the call goes in the middle of its notification
+    // (SIGSEGV in ~CNotifierScopeLock(), gucefDRN_TestApp rpcthreads). Here the session ends on the protocol thread
+    // before the notification thread, which this thread drives, ran the call's handler: the cancellation is held
+    // until the handler returned and then mailed to the call, behind the release the endpoint mailed already. The
+    // handler notes a last reference instead of letting go of it
+    COMCORE::CRpcContractPtr notes = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( !notes.IsNULL() );
+    CRpcEndpointFixture f;
+    SProtocolPulser pulser;
+    pulser.pulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
+    COMCORE::CIRpcTransportPtr a;
+    COMCORE::CIRpcTransportPtr b;
+    REQUIRE_TRUE( COMCORE::CRpcLoopbackTransport::CreatePair( pulser.pulseGenerator, pulser.pulseGenerator, a, b ) );
+    f.clientTransport = a;
+    f.serverTransport = b;
+    MT::SThreadData* thread = MT::ThreadDataReserve();
+    REQUIRE_TRUE( GUCEF_NULL != thread );
+    REQUIRE_TRUE( 0 != MT::ThreadCreate( thread, &ProtocolPulserMain, &pulser ) );
+    UInt32 waited = 0;
+    while ( 0 == pulser.threadId.Load() && waited++ < 5000 )
+        MT::PrecisionDelay( 1 );
+
+    CCancelWatchService service;
+    f.clientRegistry.Register( notes, COMCORE::CRpcContractRegistry::CONTRACTSOURCE_FILE );
+    f.server = COMCORE::CRpcEndpoint::Create( f.pulseGenerator, f.serverSettings );
+    f.client = COMCORE::CRpcEndpoint::Create( f.pulseGenerator, f.clientSettings );
+    bool started = f.server->RegisterService( notes, "Notes", &service, COMCORE::RPC_EXECUTION_NOTIFICATION_THREAD );
+    f.client->AddWantedContract( "gucef.sample.notes", 1 );
+    started = started && f.server->Start( f.serverTransport, false ) && f.client->Start( f.clientTransport, true );
+    bool bound = started && f.PumpUntilBound( "gucef.sample.notes", 1, 5000 );
+    ASSERT_TRUE( bound );
+    if ( bound )
+    {
+        COMCORE::CRpcMethodRef ref;
+        COMCORE::CRpcStatus status;
+        REQUIRE_TRUE( f.client->ResolveMethod( "gucef.sample.notes.Notes/Import", ref, status ) );
+        COMCORE::CRpcMessage chunk = f.client->NewRequest( ref );
+        COMCORE::CIRpcStreamPtr stream = f.client->OpenStream( ref, &chunk );
+        REQUIRE_TRUE( !stream.IsNULL() );
+
+        // without pulses of this thread: the call reaches the server and is mailed to this thread for its handler,
+        // then the session ends (an abort), which cancels the call and retires it, and the endpoint mails its release
+        MT::PrecisionDelay( 300 );
+        ASSERT_TRUE( 0 == service.handled.Load() );
+        f.client->Close( false );
+        MT::PrecisionDelay( 300 );
+        ASSERT_TRUE( 0 == service.handled.Load() );
+
+        waited = 0;
+        while ( 0 == service.cancelled.Load() && waited++ < 5000 )
+        {
+            f.pulseGenerator->ForceDirectPulse();
+            MT::PrecisionDelay( 1 );
+        }
+        ASSERT_TRUE( 1 == service.handled.Load() && 1 == service.cancelled.Load() );
+        RpcTestPump( 50 );
+        ASSERT_TRUE( 0 == service.lastReferenceInOwnEvent.Load() );
+        stream.Unlink();
+    }
+
+    f.client->Close( false );
+    f.server->Close( false );
+    RpcTestPump( 20 );
+    f.client.Unlink();
+    f.server.Unlink();
+    pulser.stop.Store( 1 );
+    MT::ThreadWait( thread, 10000 );
+    MT::ThreadDataCleanup( thread );
+    {
+        MT::CScopeMutex scope( service.lock );
+        service.graveyard.clear();
+        service.kept.clear();
+    }
+    f.clientTransport.Unlink();
+    f.serverTransport.Unlink();
+    a.Unlink();
+    b.Unlink();
+}
+
+/*-------------------------------------------------------------------------*/
+
 #define RUN_RPC_CASE( name, call )                                  \
     GUCEF_TESTFW_TESTCASE( "rpc_lifecycle: " name )                 \
     try                                                             \
@@ -594,6 +906,8 @@ PerformRpcLifecycleTests( void )
     RUN_RPC_CASE( "subscriptions on another thread while the protocol thread raises transport and listener events", TestSubscriptionsWhileTheProtocolThreadRaisesEvents() );
     RUN_RPC_CASE( "the lossy test decorator passes a protection downgrade refusal on", TestLossyDecoratorPassesDowngradeOn() );
     RUN_RPC_CASE( "a server call nobody observes is not linked to its event thread for its events", TestUnobservedServerCallsStayUnlinked() );
+    RUN_RPC_CASE( "an endpoint destroyed on another thread while its protocol pulse lets go of a detached transport calls nothing of that transport afterwards", TestEndpointDestroyedWhileItsPulseReleasesATransport() );
+    RUN_RPC_CASE( "an ended server call is let go of by the endpoint after its own mail was delivered, never so that a handler of its events holds the last reference", TestEndedCallReleasedAfterItsOwnMail() );
 }
 
 /*-------------------------------------------------------------------------*/

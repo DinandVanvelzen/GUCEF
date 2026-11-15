@@ -309,7 +309,8 @@ struct CRpcEndpoint::SDeferredEvent
         KIND_DISPATCH,
         KIND_PULSES_START,          /**< periodic pulses of the protocol pulse generator for the endpoint's timers */
         KIND_PULSES_STOP,
-        KIND_DOWNGRADE_REFUSED      /**< CIRpcTransport::OnProtectionDowngradeRefused() */
+        KIND_DOWNGRADE_REFUSED,     /**< CIRpcTransport::OnProtectionDowngradeRefused() */
+        KIND_RELEASE                /**< nothing to raise: a reference the endpoint lets go of (ReleaseDeferredReferences()) */
     };
 
     EKind kind;
@@ -351,6 +352,37 @@ struct CRpcEndpoint::SPendingHandler
     SPendingHandler( void ) : call(), threadId( 0 ) {}
     SPendingHandler( const CRpcServerCallPtr& c, TThreadId t ) : call( c ), threadId( t ) {}
 };
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/**
+ *  The last references of streams and server calls of the notification thread, mailed there: they go when the mail
+ *  is delivered (ReleaseOnNotificationThreadEvent), on the thread whose pulse generator they are linked to, once the
+ *  object has no mail of its own waiting or in delivery (OnReleaseOnNotificationThread())
+ */
+class CRpcReleasedReferences : public CORE::CICloneable
+{
+    public:
+
+    GUCEF::vector< CIRpcStreamPtr > streams;
+    GUCEF::vector< CRpcServerCallPtr > calls;
+    UInt32 rounds;          /**< the pulses the release waited for mail of the objects */
+
+    CRpcReleasedReferences( void ) : CORE::CICloneable(), streams(), calls(), rounds( 0 ) {}
+    CRpcReleasedReferences( const CRpcReleasedReferences& src ) : CORE::CICloneable( src ), streams( src.streams ), calls( src.calls ), rounds( src.rounds ) {}
+    virtual ~CRpcReleasedReferences() {}
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW CRpcReleasedReferences( *this ); }
+
+    bool IsEmpty( void ) const { return streams.empty() && calls.empty(); }
+
+    private:
+    CRpcReleasedReferences& operator=( const CRpcReleasedReferences& src );
+};
+
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -401,6 +433,7 @@ const CORE::CEvent CRpcEndpoint::AcceptedEvent = "GUCEF::COMCORE::CRpcEndpoint::
 const CORE::CEvent CRpcEndpoint::GapDetectedEvent = "GUCEF::COMCORE::CRpcEndpoint::GapDetectedEvent";
 const CORE::CEvent CRpcEndpoint::DispatchToNotificationThreadEvent = "GUCEF::COMCORE::CRpcEndpoint::DispatchToNotificationThreadEvent";
 const CORE::CEvent CRpcEndpoint::ReleaseOnNotificationThreadEvent = "GUCEF::COMCORE::CRpcEndpoint::ReleaseOnNotificationThreadEvent";
+const CORE::CEvent CRpcEndpoint::LinkOnNotificationThreadEvent = "GUCEF::COMCORE::CRpcEndpoint::LinkOnNotificationThreadEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -444,6 +477,7 @@ CRpcEndpoint::RegisterEvents( void )
     GapDetectedEvent.Initialize();
     DispatchToNotificationThreadEvent.Initialize();
     ReleaseOnNotificationThreadEvent.Initialize();
+    LinkOnNotificationThreadEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -475,15 +509,39 @@ CRpcEndpoint::Create( const CORE::PulseGeneratorPtr& notificationPulseGenerator,
     // endpoint before anything else of gucefCOMCORE
     CComCoreGlobal::Instance();
 
-    CRpcEndpoint* endpoint = GUCEF_NEW CRpcEndpoint( notificationPulseGenerator, settings );
+    CRpcEndpoint* endpoint = GUCEF_NEW CRpcEndpoint( notificationPulseGenerator, settings, true );
     return endpoint->CreateSharedPtr();
 }
 
 /*-------------------------------------------------------------------------*/
 
-CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGenerator, const CRpcEndpointSettings& settings )
-    : CORE::CTSGNotifier( notificationPulseGenerator, true, false )
+CRpcEndpointPtr
+CRpcEndpoint::CreateUnlinked( const CORE::PulseGeneratorPtr& notificationPulseGenerator, const CRpcEndpointSettings& settings )
+{GUCEF_TRACE;
+
+    CComCoreGlobal::Instance();
+
+    CRpcEndpoint* endpoint = GUCEF_NEW CRpcEndpoint( notificationPulseGenerator, settings, false );
+    return endpoint->CreateSharedPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::LinkNotificationThread( void )
+{GUCEF_TRACE;
+
+    // on the thread of the notification pulse generator: the mail that waited for the link is delivered from now on
+    if ( GetPulseGenerator().IsNULL() && !m_notificationPulseGenerator.IsNULL() )
+        SetPulseGenerator( m_notificationPulseGenerator );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGenerator, const CRpcEndpointSettings& settings, bool linkNotificationThread )
+    : CORE::CTSGNotifier( linkNotificationThread ? notificationPulseGenerator : CORE::PulseGeneratorPtr(), true, false )
     , CORE::CTSharedObjCreator< CRpcEndpoint, MT::CMutex >( this )
+    , m_notificationPulseGenerator( notificationPulseGenerator )
     , m_lock()
     , m_lockDepth( 0 )
     , m_deferredEvents()
@@ -496,6 +554,8 @@ CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGene
     , m_transport()
     , m_protocolPulseGenerator()
     , m_transportObserver()
+    , m_pulseSubscriptionLock()
+    , m_pulseSubscriptions()
     , m_staleTransports()
     , m_selfObserver()
     , m_host( GUCEF_NULL )
@@ -576,6 +636,10 @@ CRpcEndpoint::CRpcEndpoint( const CORE::PulseGeneratorPtr& notificationPulseGene
     typedef CORE::CTEventHandlerFunctor< CRpcEndpoint > TEventCallback;
     TEventCallback dispatchCallback( this, &CRpcEndpoint::OnDispatchToNotificationThread );
     m_selfObserver.SubscribeTo( this, DispatchToNotificationThreadEvent, dispatchCallback );
+    TEventCallback linkCallback( this, &CRpcEndpoint::OnLinkOnNotificationThread );
+    m_selfObserver.SubscribeTo( this, LinkOnNotificationThreadEvent, linkCallback );
+    TEventCallback releaseCallback( this, &CRpcEndpoint::OnReleaseOnNotificationThread );
+    m_selfObserver.SubscribeTo( this, ReleaseOnNotificationThreadEvent, releaseCallback );
 
     // gucef.rpc is bound at index 0 in every session, in both directions
     SInBinding* rpc = GUCEF_NEW SInBinding();
@@ -602,6 +666,21 @@ CRpcEndpoint::~CRpcEndpoint()
 
     m_link->Detach();
     m_selfObserver.UnsubscribeAllFromObserver();
+
+    // The protocol pulses go first. A pulse under way on the protocol thread may let go of the last reference of a
+    // detached transport (OnProtocolPulse()) right after it unsubscribed from it, while a walk of the subscriptions
+    // goes over a copy made before that, and would call the transport after it went (a drn pairing client that
+    // closed its session and let go of its endpoint while the node's thread pulsed it). Unsubscribing from a pulse
+    // generator waits for its pulse under way, and no later pulse reaches this endpoint: from then on every transport
+    // this endpoint is subscribed to is held by it (m_transport, m_staleTransports)
+    GUCEF::vector< CORE::PulseGeneratorPtr > pulseSubscriptions;
+    {
+        MT::CScopeMutex lock( m_pulseSubscriptionLock );
+        pulseSubscriptions.swap( m_pulseSubscriptions );
+    }
+    for ( UInt32 i=0; i<pulseSubscriptions.size(); ++i )
+        m_transportObserver.UnsubscribeFrom( *pulseSubscriptions[ i ].GetPointerAlways() );
+    pulseSubscriptions.clear();
     m_transportObserver.UnsubscribeAllFromObserver();
 
     CLockScope lock( *this );
@@ -794,14 +873,16 @@ CRpcEndpoint::RaiseDeferredEvents( void )
                     case SDeferredEvent::KIND_DOWNGRADE_REFUSED:
                         deferred->transport->OnProtectionDowngradeRefused( deferred->required, deferred->arrivedWith );
                         break;
+                    case SDeferredEvent::KIND_RELEASE:
+                        break;
                 }
             }
             catch ( const timeout_exception& )
             {
                 GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_NORMAL, "RpcEndpoint: a lock wait timed out while an event was raised" );
             }
-            GUCEF_DELETE deferred;
         }
+        ReleaseDeferredReferences( batch );
         if ( MT::LOCKSTATUS_WAIT_TIMEOUT == m_lock.Lock() )
         {
             m_raisingDeferredEvents = false;
@@ -830,6 +911,142 @@ CRpcEndpoint::RunPulseRequest( const SDeferredEvent& request )
     }
     else
         pulseGenerator->RequestStopOfPeriodicUpdates( this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRpcEndpoint::IsNotificationThread( void ) const
+{GUCEF_TRACE;
+
+    return m_notificationPulseGenerator.IsNULL() || m_notificationPulseGenerator->GetPulseDriverThreadId() == MT::GetCurrentThreadID();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::ReleaseDeferredReferences( TDeferredEventVector& batch )
+{GUCEF_TRACE;
+
+    // Outside the endpoint lock, after the batch went out. A stream or a server call of the notification thread is
+    // linked to its pulse generator, and the destruction of a linked object waits for a pulse of that pulse generator
+    // under way (its lock). Off that thread the thread that runs this may hold a lock the notification thread waits
+    // for in that pulse: the node lock of a drn transport, held by the node thread while it delivers frames, which the
+    // application's pulse handlers take when they call into the node (gucefDRN design 9.1, RPC design 10.9). So a
+    // reference that others still share goes here; a last one is mailed to the notification thread and goes there
+    // On the notification thread itself a last reference goes here only when the object has no mail of its own
+    // waiting or in delivery: a thread safe notifier may not go inside the delivery of its own mail
+    CRpcReleasedReferences released;
+    bool notificationThread = IsNotificationThread();
+    for ( UInt32 i=0; i<batch.size(); ++i )
+    {
+        SDeferredEvent* deferred = batch[ i ];
+        if ( !deferred->stream.IsNULL() && deferred->stream->GetPulseGenerator() == m_notificationPulseGenerator &&
+             !deferred->stream.UnlinkUnlessLast() && ( !notificationThread || deferred->stream->HasMail() ) )
+        {
+            released.streams.push_back( deferred->stream );
+            deferred->stream.Unlink();
+        }
+        if ( !deferred->call.IsNULL() && deferred->call->GetEventPulseGenerator() == m_notificationPulseGenerator &&
+             !deferred->call.UnlinkUnlessLast() && !deferred->call->GetPulseGenerator().IsNULL() &&
+             ( !notificationThread || deferred->call->HasMail() ) )
+        {
+            // the last reference of a call that is linked (one that is not takes no lock of that pulse generator and
+            // has no delivery of its own)
+            released.calls.push_back( deferred->call );
+            deferred->call.Unlink();
+        }
+        GUCEF_DELETE deferred;
+    }
+    batch.clear();
+    if ( !released.IsEmpty() )
+        NotifyObserversFromThread( ReleaseOnNotificationThreadEvent, &released );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::ReleaseClientCall( SClientCall* call )
+{GUCEF_TRACE;
+
+    // under the endpoint lock: the call's reference of its stream may be the last one, which goes with the deferred
+    // events (ReleaseDeferredReferences()), never here
+    if ( GUCEF_NULL == call )
+        return;
+    if ( !call->stream.IsNULL() )
+    {
+        SDeferredEvent* deferred = GUCEF_NEW SDeferredEvent( SDeferredEvent::KIND_RELEASE );
+        deferred->stream = call->stream;
+        call->stream.Unlink();
+        DeferEvent( deferred );
+    }
+    GUCEF_DELETE call;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRpcEndpoint::LinkOnNotificationThread( const CRpcServerCallPtr& call )
+{GUCEF_TRACE;
+
+    // the endpoint is linked to the notification pulse generator (or waits for that in its mailbox): its mail
+    // reaches that thread, which links the call there
+    if ( call.IsNULL() || m_notificationPulseGenerator.IsNULL() || call->GetEventPulseGenerator() != m_notificationPulseGenerator )
+        return false;
+    CRpcCallTaskData data( call );
+    NotifyObserversFromThread( LinkOnNotificationThreadEvent, &data );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::OnLinkOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    CRpcServerCallPtr call = static_cast< CRpcCallTaskData* >( eventData )->call;
+    if ( !call.IsNULL() )
+        call->LinkEventThreadNow();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CRpcEndpoint::OnReleaseOnNotificationThread( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // On the notification thread, in the delivery of the endpoint's own mail. The references in the mail go when it
+    // is let go of, right after this. One whose object still has mail of its own, waiting or in delivery, waits for
+    // the next pulse: its handlers may let go of their references of it (the last one would then be theirs, inside
+    // the delivery of the object's own mail). A bounded number of pulses, as other threads may keep mailing it
+    if ( GUCEF_NULL == eventData )
+        return;
+    static const UInt32 maxRounds = 1000;
+    CRpcReleasedReferences* released = static_cast< CRpcReleasedReferences* >( eventData );
+    if ( released->rounds >= maxRounds )
+        return;
+    CRpcReleasedReferences later;
+    later.rounds = released->rounds + 1;
+    for ( UInt32 i=0; i<released->streams.size(); ++i )
+    {
+        if ( !released->streams[ i ].IsNULL() && released->streams[ i ]->HasMail() )
+        {
+            later.streams.push_back( released->streams[ i ] );
+            released->streams[ i ].Unlink();
+        }
+    }
+    for ( UInt32 i=0; i<released->calls.size(); ++i )
+    {
+        if ( !released->calls[ i ].IsNULL() && released->calls[ i ]->HasMail() )
+        {
+            later.calls.push_back( released->calls[ i ] );
+            released->calls[ i ].Unlink();
+        }
+    }
+    if ( !later.IsEmpty() )
+        NotifyObserversFromThread( ReleaseOnNotificationThreadEvent, &later );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1094,6 +1311,14 @@ CRpcEndpoint::SubscribeTransport( const CIRpcTransportPtr& transportRef )
     {
         TEventCallback pulse( this, &CRpcEndpoint::OnProtocolPulse );
         m_transportObserver.SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, pulse );
+
+        // the destructor ends these first (~CRpcEndpoint())
+        MT::CScopeMutex lock( m_pulseSubscriptionLock );
+        bool known = false;
+        for ( UInt32 i=0; i<m_pulseSubscriptions.size() && !known; ++i )
+            known = m_pulseSubscriptions[ i ] == pulseGenerator;
+        if ( !known )
+            m_pulseSubscriptions.push_back( pulseGenerator );
     }
 }
 
@@ -1379,19 +1604,22 @@ CRpcEndpoint::OnProtocolPulse( CORE::CNotifier* notifier, const CORE::CEvent& ev
             reconnectUri = m_remoteUri;
 
         // a call whose events go to another thread may be in the delivery of one of them there right now: its last
-        // reference is handed to that thread, which delivers the mail holding it after it is done with the call
+        // reference is handed to that thread, which lets go of it once the call has no mail of its own left
+        // (OnReleaseOnNotificationThread())
+        CRpcReleasedReferences released;
         for ( UInt32 i=0; i<retired.size(); )
         {
             CORE::PulseGeneratorPtr eventPulseGenerator = retired[ i ]->GetEventPulseGenerator();
             if ( !eventPulseGenerator.IsNULL() && eventPulseGenerator != m_protocolPulseGenerator )
             {
-                CRpcCallTaskData data( retired[ i ] );
-                RaiseEvent( ReleaseOnNotificationThreadEvent, &data );
+                released.calls.push_back( retired[ i ] );
                 retired.erase( retired.begin() + i );
             }
             else
                 ++i;
         }
+        if ( !released.IsEmpty() )
+            RaiseEvent( ReleaseOnNotificationThreadEvent, &released );
     }
     // outside the endpoint lock: the last references of ended server calls (not inside their own events) and the
     // subscriptions to detached transports (unless one of them is current again)
@@ -3424,7 +3652,7 @@ CRpcEndpoint::CompleteClientCall( UInt64 callRef, const CRpcStatus& status, cons
         StreamEnd( call->stream, result.status, call->ref.method->HasServerStream() ? GUCEF_NULL : &result.response );
     else if ( call->hasFuture )
         call->future.Complete( result.Clone(), true );
-    GUCEF_DELETE call;
+    ReleaseClientCall( call );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3444,7 +3672,7 @@ CRpcEndpoint::CompleteAllClientCalls( const CRpcStatus& status )
             StreamEnd( call->stream, status, GUCEF_NULL );
         else if ( call->hasFuture )
             call->future.Complete( result.Clone(), true );
-        GUCEF_DELETE call;
+        ReleaseClientCall( call );
     }
     m_waitingCalls.clear();
     m_acceptedIds.clear();
@@ -3613,7 +3841,7 @@ CRpcEndpoint::OpenStream( const CRpcMethodRef& ref, const CRpcMessage* firstRequ
 {GUCEF_TRACE;
 
     // made before the lock is taken: the stream subscribes to itself, which takes the lock its mail is delivered under
-    CRpcClientStream* stream = GUCEF_NEW CRpcClientStream( GetPulseGenerator(), m_link, ref );
+    CRpcClientStream* stream = GUCEF_NEW CRpcClientStream( m_notificationPulseGenerator, m_link, ref );
     CIRpcStreamPtr streamPtr( stream );
     CLockScope lock( *this );
 
@@ -4048,7 +4276,7 @@ CRpcEndpoint::ProcessRequest( const SRequestInfo& info, const UInt8* payload, UI
     if ( impl->GetMethodExecutionMode( *method, methodMode ) )
         mode = methodMode;
 
-    CRpcServerCall* call = GUCEF_NEW CRpcServerCall( RPC_EXECUTION_CALLING_THREAD == mode ? m_protocolPulseGenerator : GetPulseGenerator() );
+    CRpcServerCall* call = GUCEF_NEW CRpcServerCall( RPC_EXECUTION_CALLING_THREAD == mode ? m_protocolPulseGenerator : m_notificationPulseGenerator );
     CRpcServerCallPtr callPtr = call->CreateSharedPtr();
     call->m_link = m_link;
     call->m_sessionGeneration = m_sessionGeneration;
@@ -4129,7 +4357,18 @@ CRpcEndpoint::RunDispatch( const CRpcServerCallPtr& callRef, TRpcExecutionMode m
     }
     CORE::ThreadPoolPtr pool = m_settings.threadPool;
     if ( pool.IsNULL() )
-        pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_settings.threadPoolName );
+    {
+        // a pool that does not exist yet is made on the notification thread: a new pool subscribes to its pulse
+        // generator, whose thread may wait in a pulse for a lock this thread holds (the node lock of a drn transport).
+        // The call goes to the pool from there (OnDispatchToNotificationThread())
+        pool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_settings.threadPoolName, IsNotificationThread() );
+        if ( pool.IsNULL() && !IsNotificationThread() )
+        {
+            CRpcCallTaskData data( call );
+            NotifyObserversFromThread( DispatchToNotificationThreadEvent, &data );
+            return;
+        }
+    }
     CRpcCallTaskData data( call );
     if ( pool.IsNULL() || pool->StartTask( CRpcCallTaskConsumer::TaskType, &data, false ).HasNoFuture() )
         ServerAnswer( *call, GUCEF_RPC_FRAME_RESPONSE, CRpcStatus( RPC_STATUS_RESOURCE_EXHAUSTED, "the thread pool refused the call" ), GUCEF_NULL );
@@ -4144,7 +4383,11 @@ CRpcEndpoint::OnDispatchToNotificationThread( CORE::CNotifier* notifier, const C
     if ( GUCEF_NULL == eventData )
         return;
     CRpcServerCallPtr call = static_cast< CRpcCallTaskData* >( eventData )->call;
-    if ( !call.IsNULL() )
+    if ( call.IsNULL() )
+        return;
+    if ( RPC_EXECUTION_THREAD_POOL == call->m_mode )
+        RunDispatch( call, RPC_EXECUTION_THREAD_POOL );     // its pool is made here, on the notification thread
+    else
         call->RunHandler();
 }
 
@@ -5061,7 +5304,7 @@ CRpcEndpoint::Tick( UInt64 nowMs )
                     call->future.Complete( result.Clone(), true );
                 else if ( GUCEF_NULL != call->streamImpl )
                     StreamEnd( call->stream, result.status, GUCEF_NULL );
-                GUCEF_DELETE call;
+                ReleaseClientCall( call );
                 m_waitingCalls.erase( m_waitingCalls.begin() + w );
             }
             else

@@ -1139,6 +1139,12 @@ TestEventsToAnotherThreadWhileItCallsIn( void )
         if ( !collector.ended )
             return;
     }
+
+    // the handler subscribed to its call on this thread, the call's event thread: the call was linked to this thread's pulse
+    // generator there and then, never later on the protocol thread, which holds its transport's lock while it raises an event
+    // (a DRN transport: the node lock) and would then wait for the lock of this pulse generator that a handler here may hold
+    // while it waits for that transport's lock
+    ASSERT_TRUE( f.service.watchSubscriptions > 0 && f.service.watchSubscriptions == f.service.watchLinkedOnSubscribe );
 }
 
 /*-------------------------------------------------------------------------*/

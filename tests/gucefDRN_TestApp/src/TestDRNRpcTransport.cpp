@@ -2049,6 +2049,239 @@ RunThreadingCase( COMCORE::TRpcExecutionMode mode, bool withStream )
 
 /*-------------------------------------------------------------------------*/
 
+/** Counts the messages of a notifier it watches and notes the thread that destroyed it (a catch-all observer) */
+class CDestructionWatch : public CORE::CObserver
+{
+    public:
+
+    MT::CTAtomic< UInt32 > messages;
+    MT::CTAtomic< UInt32 > destroyed;
+    MT::CTAtomic< TThreadId > destroyedOn;
+
+    CDestructionWatch( void ) : CORE::CObserver(), messages( 0 ), destroyed( 0 ), destroyedOn( 0 ) {}
+    virtual ~CDestructionWatch() { UnsubscribeAllFromObserver(); }
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( CORE::CNotifier::DestructionEvent == eventId )
+        {
+            destroyedOn.Store( MT::GetCurrentThreadID() );
+            destroyed.Store( destroyed.Load() + 1 );
+        }
+        else
+        if ( COMCORE::CIRpcStream::MessageEvent == eventId )
+        {
+            messages.Store( messages.Load() + 1 );
+        }
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  True when the node lock is free at some moment within the time. A node thread that works holds it for a cycle of
+ *  about a millisecond and waits between cycles without it; one that waits under it for a lock this thread holds
+ *  keeps it until this thread lets go of that lock. Polled, as a lock wait with a timeout is not bounded everywhere
+ *  (pthreads), and the test may not hang
+ */
+static bool
+NodeLockTakenWithin( DRN::CDRNNode& node, UInt32 timeoutMs )
+{
+    UInt64 start = MT::PrecisionTickCount();
+    while ( ElapsedMicros( start ) < (UInt64) timeoutMs * 1000 )
+    {
+        if ( !node.GetLock().IsLocked() )
+            return true;
+        MT::PrecisionDelay( 1 );
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Pumps the global pulse generator until the counter reaches the value or the time is up */
+static bool
+PumpUntilCount( const MT::CTAtomic< UInt32 >& counter, UInt32 value, UInt32 timeoutMs )
+{
+    UInt64 start = MT::PrecisionTickCount();
+    while ( counter.Load() < value && ElapsedMicros( start ) < (UInt64) timeoutMs * 1000 )
+        PumpFor( 1 );
+    return counter.Load() >= value;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The lock order of the node lock and the notification pulse generator's notification lock (gucefDRN design 9.1,
+ *  RPC design 10.9): the thread of the notification pulse generator holds that lock while it pulses, and the handlers
+ *  of the application call into the node there (the remote desk looks up the grids of its pages in a timer handler).
+ *  This thread takes that lock as such a pulse does while the node thread raises an RPC event that lets go of the last
+ *  reference of a client stream. The node thread may not wait for that lock under the node lock: the node lock is
+ *  taken within the time, and the stream goes on the notification thread
+ */
+static void
+RunStreamReleaseLockOrderCase( void )
+{
+    CRpcDrnWorld w( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "rpc-stream-release" );
+    w.group.nodeSettings.ownThread = true;
+    w.f.service.holdWatch = true;
+    REQUIRE_TRUE( w.Start( 2 ) );
+    REQUIRE_TRUE( w.Connect() );
+    DRN::CDRNNode& clientNode = *w.group.nodes[ 1 ];
+    TThreadId testThread = MT::GetCurrentThreadID();
+    REQUIRE_TRUE( testThread == w.f.pulseGenerator->GetPulseDriverThreadId() );
+    REQUIRE_TRUE( testThread != clientNode.GetPulseGenerator()->GetPulseDriverThreadId() );
+
+    // a server stream the service holds open after its messages, let go of by the application: the endpoint's call
+    // holds the last reference
+    CDestructionWatch watch;
+    {
+        COMCORE::CRpcMethodRef ref;
+        COMCORE::CRpcStatus status;
+        REQUIRE_TRUE( w.f.client->ResolveMethod( g_watchPath, ref, status ) );
+        COMCORE::CRpcMessage request = w.f.client->NewRequest( ref );
+        COMCORE::CIRpcStreamPtr stream = w.f.client->OpenStream( ref, &request );
+        REQUIRE_TRUE( !stream.IsNULL() );
+        watch.SubscribeTo( stream.GetPointerAlways() );
+    }
+    REQUIRE_TRUE( PumpUntilCount( watch.messages, w.f.service.watchCount, 5000 ) );
+    REQUIRE_TRUE( 1 == w.f.service.GetHeldCount() && 1 == w.f.client->GetOpenCallCount() );
+
+    bool ended = false;
+    bool nodeLockTaken = false;
+    {
+        // as the notification thread does while it pulses: the end of the stream arrives on the client's node thread
+        CORE::CNotifierScopeLock pulseLock( w.f.pulseGenerator.GetPointerAlways() );
+        w.f.service.FinishHeldStreams( COMCORE::CRpcStatus() );
+        UInt64 start = MT::PrecisionTickCount();
+        while ( 0 != w.f.client->GetOpenCallCount() && ElapsedMicros( start ) < 5000000 )
+            MT::PrecisionDelay( 1 );
+        ended = 0 == w.f.client->GetOpenCallCount();
+        nodeLockTaken = NodeLockTakenWithin( clientNode, 2000 );
+    }
+    ASSERT_TRUE( ended );
+    ASSERT_TRUE( nodeLockTaken );
+    ASSERT_TRUE( PumpUntilCount( watch.destroyed, 1, 5000 ) );
+    ASSERT_TRUE( testThread == watch.destroyedOn.Load() );
+    w.CloseEndpoints();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  As RunStreamReleaseLockOrderCase(), for the link of a server call to its event thread: a handler on a pool thread
+ *  subscribes to its call there, so the call is linked at its first event, a client stream message that arrives on
+ *  the server's node thread. Linking subscribes to the notification pulse generator: that happens on its own thread
+ */
+static void
+RunServerCallLinkLockOrderCase( void )
+{
+    CRpcDrnWorld w( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "rpc-call-link" );
+    w.group.nodeSettings.ownThread = true;
+    w.mode = COMCORE::RPC_EXECUTION_THREAD_POOL;
+    REQUIRE_TRUE( w.Start( 2 ) );
+    REQUIRE_TRUE( w.Connect() );
+    DRN::CDRNNode& serverNode = *w.group.nodes[ 0 ];
+
+    // the pool of the handlers exists from the first call on
+    COMCORE::CRpcCallResult result = w.Call( g_getPath, 3 );
+    REQUIRE_TRUE( result.status.IsOk() );
+
+    COMCORE::CRpcMethodRef ref;
+    COMCORE::CRpcStatus status;
+    REQUIRE_TRUE( w.f.client->ResolveMethod( g_importPath, ref, status ) );
+    COMCORE::CRpcMessage chunk = w.f.client->NewRequest( ref );
+    CORE::CDynamicBuffer bytes( 64, true );
+    bytes.SetDataSize( 64 );
+    chunk.SetBytes( 1, bytes );
+    COMCORE::CIRpcStreamPtr stream = w.f.client->OpenStream( ref, &chunk );
+    REQUIRE_TRUE( !stream.IsNULL() );
+
+    // the handler ran on a pool thread and subscribed to its call there (it counts the first chunk after that)
+    UInt64 start = MT::PrecisionTickCount();
+    while ( 1 > w.f.service.importedChunks && ElapsedMicros( start ) < 5000000 )
+        PumpFor( 1 );
+    REQUIRE_TRUE( 1 == w.f.service.importedChunks );
+    PumpFor( 50 );
+
+    bool delivered = false;
+    bool nodeLockTaken = false;
+    {
+        CORE::CNotifierScopeLock pulseLock( w.f.pulseGenerator.GetPointerAlways() );
+        UInt64 deliveredSeq = w.f.server->GetDeliveredSeq();
+        REQUIRE_TRUE( stream->Write( chunk ) );
+        start = MT::PrecisionTickCount();
+        while ( w.f.server->GetDeliveredSeq() == deliveredSeq && ElapsedMicros( start ) < 5000000 )
+            MT::PrecisionDelay( 1 );
+        delivered = w.f.server->GetDeliveredSeq() != deliveredSeq;
+        nodeLockTaken = NodeLockTakenWithin( serverNode, 2000 );
+    }
+    ASSERT_TRUE( delivered );
+    ASSERT_TRUE( nodeLockTaken );
+
+    // the message reaches the handler's subscription on the notification thread
+    start = MT::PrecisionTickCount();
+    while ( 2 > w.f.service.importedChunks && ElapsedMicros( start ) < 5000000 )
+        PumpFor( 1 );
+    ASSERT_TRUE( 2 == w.f.service.importedChunks );
+    stream->Cancel( COMCORE::CRpcStatus( COMCORE::RPC_STATUS_CANCELLED, "done" ) );
+    stream.Unlink();
+    PumpFor( 20 );
+    w.CloseEndpoints();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  As RunStreamReleaseLockOrderCase(), for the endpoint the RPC host makes for a new session: the HELLO arrives on the
+ *  server's node thread, and the endpoint is a thread safe notifier of the notification pulse generator. It is linked
+ *  to that pulse generator on its own thread
+ */
+static void
+RunHostEndpointLockOrderCase( void )
+{
+    CRpcDrnWorld w( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "rpc-host-endpoint" );
+    w.group.nodeSettings.ownThread = true;
+    REQUIRE_TRUE( w.Start( 2 ) );
+    DRN::CDRNNode& serverNode = *w.group.nodes[ 0 ];
+    w.contract = LoadSampleNotesContract( 1, 2 );
+    REQUIRE_TRUE( !w.contract.IsNULL() );
+    w.f.clientRegistry.Register( w.contract, COMCORE::CRpcContractRegistry::CONTRACTSOURCE_FILE );
+    COMCORE::CRpcHostSettings hostSettings;
+    hostSettings.endpointSettings = w.f.serverSettings;
+    COMCORE::CRpcHost host( w.f.pulseGenerator, hostSettings );
+    REQUIRE_TRUE( host.RegisterService( w.contract, "Notes", &w.f.service ) );
+    w.listener = CDRNRpcTransportListenerPtr( GUCEF_NEW DRN::CDRNRpcTransportListener( w.group[ 0 ] ) );
+    COMCORE::CIRpcTransportListenerPtr listenerPtr;
+    listenerPtr = w.listener;
+    REQUIRE_TRUE( host.AddListener( listenerPtr ) );
+    REQUIRE_TRUE( w.listener->Listen( CORE::CUri() ) );
+
+    bool made = false;
+    bool nodeLockTaken = true;
+    {
+        CORE::CNotifierScopeLock pulseLock( w.f.pulseGenerator.GetPointerAlways() );
+        REQUIRE_TRUE( w.ConnectClient( 1, 0 ) );
+        UInt64 start = MT::PrecisionTickCount();
+        while ( !made && nodeLockTaken && ElapsedMicros( start ) < 5000000 )
+        {
+            nodeLockTaken = NodeLockTakenWithin( serverNode, 1000 );
+            made = 1 == host.GetEndpointCount();
+            MT::PrecisionDelay( 1 );
+        }
+    }
+    ASSERT_TRUE( nodeLockTaken );
+    ASSERT_TRUE( made );
+    ASSERT_TRUE( w.f.PumpUntilBound( "gucef.sample.notes", 1, 5000 ) );
+    COMCORE::CRpcCallResult result = w.Call( g_getPath, 4 );
+    ASSERT_TRUE( result.status.IsOk() && 4 == result.response.GetUInt64( 1 ) );
+    if ( !w.f.client.IsNULL() )
+        w.f.client->Close( false );
+    PumpFor( 20 );
+}
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  Nodes on threads of their own with calls in flight from another thread: the application's thread destroys the
  *  session of the server while a third thread stops the RPC listener of that session. The RPC component of the
@@ -2126,6 +2359,39 @@ PerformDRNRpcTransportThreadingTests( void )
     try
     {
         RunThreadingCase( COMCORE::RPC_EXECUTION_NOTIFICATION_THREAD, true );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Lock order: a client stream whose last reference goes with an event raised on the node thread is let go of on the notification thread; the node thread never waits for the notification lock under the node lock" )
+    try
+    {
+        RunStreamReleaseLockOrderCase();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Lock order: a server call subscribed to on a pool thread is linked to its event thread on that thread, not on the node thread at its first client message" )
+    try
+    {
+        RunServerCallLinkLockOrderCase();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END;
+
+    GUCEF_TESTFW_TESTCASE( "Lock order: the RPC host makes the endpoint of a session whose HELLO arrives on the node thread without waiting for the notification lock under the node lock" )
+    try
+    {
+        RunHostEndpointLockOrderCase();
     }
     catch ( ... )
     {

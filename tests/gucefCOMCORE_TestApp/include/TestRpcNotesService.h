@@ -106,12 +106,14 @@ class CRpcNotesTestService : public GUCEF::COMCORE::CRpcServiceImpl ,
     GUCEF::UInt32 savedAttachmentBytes;
     GUCEF::UInt8 lastSessionId[ GUCEF_RPC_SESSIONID_SIZE ];   /**< of the session of the last call, CRpcServerCall::GetSessionId() */
     bool lastHadSessionId;
+    GUCEF::UInt32 watchSubscriptions;                       /**< Watch handlers that subscribed to their call (out of credit) */
+    GUCEF::UInt32 watchLinkedOnSubscribe;                   /**< of those, the calls linked to the event thread as the handler subscribed */
 
     CRpcNotesTestService( void )
         : GUCEF::COMCORE::CRpcServiceImpl()
         , GUCEF::CORE::CObserver()
         , watchCount( 3 ), holdWatch( false ), calls( 0 ), saves( 0 ), lastHandlerThread( 0 ), lastMetadata(), cancelledCalls( 0 )
-        , importedChunks( 0 ), importedBytes( 0 ), reindexAccepted( 0 ), attachmentBytes( 0 ), savedAttachmentBytes( 0 ), lastHadSessionId( false ), m_lock(), m_held(), m_reindex(), m_watching(), m_nextJob( 1 )
+        , importedChunks( 0 ), importedBytes( 0 ), reindexAccepted( 0 ), attachmentBytes( 0 ), savedAttachmentBytes( 0 ), lastHadSessionId( false ), watchSubscriptions( 0 ), watchLinkedOnSubscribe( 0 ), m_lock(), m_held(), m_reindex(), m_watching(), m_nextJob( 1 )
     {
         memset( lastSessionId, 0, sizeof( lastSessionId ) );
         BindMethod( "Get", GUCEF_NEW THandler( this, &CRpcNotesTestService::OnGet ) );
@@ -247,6 +249,12 @@ class CRpcNotesTestService : public GUCEF::COMCORE::CRpcServiceImpl ,
             TEventCallback cancelled( this, &CRpcNotesTestService::OnCancelled );
             SubscribeTo( &call, GUCEF::COMCORE::CRpcServerCall::WritableEvent, writable );
             SubscribeTo( &call, GUCEF::COMCORE::CRpcServerCall::CancelledEvent, cancelled );
+            {
+                GUCEF::MT::CScopeMutex lock( m_lock );
+                ++watchSubscriptions;
+                if ( !call.GetPulseGenerator().IsNULL() )
+                    ++watchLinkedOnSubscribe;
+            }
             return GUCEF::COMCORE::RPC_HANDLER_DEFERRED;
         }
         if ( holdWatch )

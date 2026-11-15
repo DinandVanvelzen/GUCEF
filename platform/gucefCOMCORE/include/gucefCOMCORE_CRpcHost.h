@@ -161,6 +161,8 @@ class GUCEF_COMCORE_EXPORT_CPP CRpcHost : public CORE::CTSGNotifier
     TPendingVector m_pending;
     TReleasedVector m_released;                 /**< accepted transports let go of at the next pulse of their own thread */
     TPulseGeneratorSet m_releasePulseGenerators;    /**< the pulse generators m_releaseObserver is subscribed to */
+    GUCEF::vector< CRpcEndpointPtr > m_unlinkedEndpoints;   /**< made on a protocol thread, linked to the notification thread at its next pulse */
+    GUCEF::vector< CRpcEndpointPtr > m_releasedEndpoints;   /**< last references from a protocol thread, let go of at the next pulse */
     CORE::CObserver m_listenerObserver;
     CORE::CObserver m_pendingObserver;
     CORE::CObserver m_endpointObserver;
