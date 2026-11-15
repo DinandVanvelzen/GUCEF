@@ -303,11 +303,20 @@ ConvertToPSF( const FREE_IMAGE_TYPE imageType       ,
             {
                 case FIC_RGB :
                 {
+                    /* FreeImage keeps the channels in the order of the platform */
+                    #if ( FREEIMAGE_COLORORDER == FREEIMAGE_COLORORDER_BGR )
+                    return PSF_BGR;
+                    #else
                     return PSF_RGB;
+                    #endif
                 }
                 case FIC_RGBALPHA :
                 {
+                    #if ( FREEIMAGE_COLORORDER == FREEIMAGE_COLORORDER_BGR )
+                    return PSF_BGRA;
+                    #else
                     return PSF_RGBA;
+                    #endif
                 }
                 default :
                 {
@@ -903,6 +912,9 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData      ,
                    This screws up usage, correct here */
                 colourType = FIC_RGBALPHA;
             }
+
+            /* FreeImage keeps the bottom row first, a pixel map has the top row first */
+            FreeImage_FlipVertical( dib );
 
             image = (TImage*) malloc( sizeof( TImage ) );
 
