@@ -1032,6 +1032,33 @@ PerformDRNDataTableTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Items: a host that publishes and destroys grids for as long as it runs keeps publishing them, past a million items made" )
+    try
+    {
+        CGroup group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "dt-many", "mem" );
+        REQUIRE_TRUE( group.Start( 1 ) );
+        DRN::CDRNReplicator& host = group[ 0 ].GetReplicator();
+        const UInt32 rounds = 0x100000 + 16;
+        UInt32 refusedAt = 0;
+        for ( UInt32 round=0; round<rounds && 0 == refusedAt; ++round )
+        {
+            DRN::CDRNDataGrid* grid = group[ 0 ].CreateGrid( TypedGrid( "page", DRN::DRN_AUTHORITY_HOST, CORE::DATATABLE_TYPE_UINT32, CORE::DATATABLE_TYPE_UINT32 ) );
+            if ( GUCEF_NULL == grid )
+            {
+                refusedAt = round + 1;
+                break;
+            }
+            host.DestroyItem( grid );
+        }
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Items: " << rounds << " grids published and destroyed, the first refused: " << refusedAt );
+        ASSERT_TRUE( 0 == refusedAt );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Tables: A table ends when the item is removed and when the session ends; its async writes end with it" )
     try
     {

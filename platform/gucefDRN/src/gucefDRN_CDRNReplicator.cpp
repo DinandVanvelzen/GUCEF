@@ -276,10 +276,9 @@ CDRNReplicator::GetItem( UInt32 ownerPeerId, UInt32 itemId ) const
 {GUCEF_TRACE;
     if ( ownerPeerId >= m_items.size() )
         return GUCEF_NULL;
-    const TItemVector& ownerItems = m_items[ ownerPeerId ];
-    if ( itemId >= ownerItems.size() )
-        return GUCEF_NULL;
-    return ownerItems[ itemId ];
+    const TOwnerItemMap& ownerItems = m_items[ ownerPeerId ];
+    TOwnerItemMap::const_iterator i = ownerItems.find( itemId );
+    return i != ownerItems.end() ? (*i).second : GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -290,14 +289,15 @@ CDRNReplicator::AddItem( CDRNDataItem* item )
 
     UInt32 owner = item->m_ownerPeerId;
     UInt32 itemId = item->m_itemId;
-    if ( 0 == owner || 0 == itemId || owner > 0xFFFFF || itemId > 0xFFFFF )
+    // the owners index a table (peer ids are small), the item ids of an owner a sparse map: a service that publishes and
+    // destroys items for as long as it runs gives out ids past any table size, and an id destroyed leaves nothing behind
+    if ( 0 == owner || 0 == itemId || owner > 0xFFFFF )
         return false;
     if ( owner >= m_items.size() )
         m_items.resize( owner + 1 );
-    TItemVector& ownerItems = m_items[ owner ];
-    if ( itemId >= ownerItems.size() )
-        ownerItems.resize( itemId + 1, GUCEF_NULL );
-    if ( GUCEF_NULL != ownerItems[ itemId ] )
+    TOwnerItemMap& ownerItems = m_items[ owner ];
+    TOwnerItemMap::iterator existing = ownerItems.find( itemId );
+    if ( existing != ownerItems.end() && GUCEF_NULL != (*existing).second )
         return false;
     ownerItems[ itemId ] = item;
     m_itemList.push_back( item );
@@ -493,6 +493,8 @@ CDRNReplicator::CreateGrid( const CDRNDataGridSettings& settings )
     CDRNDataGrid* grid = GUCEF_NEW CDRNDataGrid( *this, settings );
     grid->m_ownerPeerId = localPeerId;
     grid->m_itemId = m_nextItemId++;
+    if ( 0 == m_nextItemId )
+        m_nextItemId = 1;       // 0 is no item id
     grid->m_isOrigin = true;
     grid->m_snapshotComplete = true;
     grid->SetProtectionClass( settings.protection );
@@ -540,6 +542,8 @@ CDRNReplicator::CreateStream( const CDRNDataStreamSettings& settings )
     CDRNDataStream* stream = GUCEF_NEW CDRNDataStream( *this, settings );
     stream->m_ownerPeerId = localPeerId;
     stream->m_itemId = m_nextItemId++;
+    if ( 0 == m_nextItemId )
+        m_nextItemId = 1;       // 0 is no item id
     stream->m_isOrigin = true;
     stream->m_snapshotComplete = true;
     stream->m_ringStarted = true;
@@ -598,12 +602,12 @@ CDRNReplicator::DestroyItem( CDRNDataItem* item )
     if ( GUCEF_NULL == item || !item->m_isOrigin || GetItem( item->m_ownerPeerId, item->m_itemId ) != item )
         return false;
 
-    // the members are told as by RemoveItem(); then nothing of the replicator refers to the item any more: its slot is
-    // emptied (the id is not given out again, a late message for it finds no item), it leaves the list of the ticks
+    // the members are told as by RemoveItem(); then nothing of the replicator refers to the item any more: its entry
+    // goes (the id is not given out again, a late message for it finds no item), it leaves the list of the ticks
     // and the items due this tick, and its mail to the application goes with it (CDRNApplicationNotifier)
     if ( !item->m_removed )
         RemoveItem( item );
-    m_items[ item->m_ownerPeerId ][ item->m_itemId ] = GUCEF_NULL;
+    m_items[ item->m_ownerPeerId ].erase( item->m_itemId );
     for ( UInt32 i=0; i<m_itemList.size(); ++i )
     {
         if ( m_itemList[ i ] == item )

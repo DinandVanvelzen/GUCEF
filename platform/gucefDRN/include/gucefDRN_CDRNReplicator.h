@@ -104,7 +104,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
      *  this returns, and the application lets go of what refers to it first (a table publisher, a data grid table, its
      *  observers). For a session that lives as long as its process (a service publishing an item per page a terminal
      *  opens): the items that RemoveItem() keeps until the session goes, and their data, would grow without bound.
-     *  Item ids are not reused. False for an item that is not an item of the local member here
+     *  Item ids are not reused (32 bit, the table of the items is sparse: an id destroyed costs nothing and the ids do
+     *  not run out). False for an item that is not an item of the local member here
      */
     bool DestroyItem( CDRNDataItem* item );
 
@@ -200,7 +201,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
     };
 
     typedef GUCEF::vector< CDRNDataItem* > TItemVector;
-    typedef GUCEF::vector< TItemVector > TItemTable;
+    typedef GUCEF::map< UInt32, CDRNDataItem* > TOwnerItemMap;     /**< item id -> item: sparse, ids are never given out twice */
+    typedef GUCEF::vector< TOwnerItemMap > TItemTable;
     typedef GUCEF::vector< CAppSubscription > TAppSubscriptionVector;
     typedef GUCEF::vector< UInt32 > TUInt32Vector;
 
@@ -233,7 +235,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
 
     CDRNSession* m_session;
     CStreamComponent m_streamComponent;
-    TItemTable m_items;                         /**< [owner peer id][item id] */
+    TItemTable m_items;                         /**< [owner peer id] -> item id -> item; an item destroyed leaves no entry */
     TItemVector m_itemList;                     /**< every item, for the ticks */
     TItemVector m_retired;                      /**< items of earlier runs of the session, deleted with the replicator */
     TItemVector m_dueItems;
