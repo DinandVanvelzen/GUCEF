@@ -21,6 +21,7 @@
             <Dependency Name="gucefINPUT" />
             <Dependency Name="gucefAUDIO" />
             <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefWEB" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" Scope="public" />
@@ -30,6 +31,7 @@
             <Dependency Name="gucefINPUT" Scope="public" />
             <Dependency Name="gucefAUDIO" Scope="public" />
             <Dependency Name="gucefVIDEO" Scope="public" />
+            <Dependency Name="gucefWEB" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_GUI_BUILD_MODULE" />

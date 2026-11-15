@@ -282,6 +282,8 @@ CPathFieldForm::MakeDialog( void )
         m_dialog->AddRoot( m_roots[ i ].name, m_roots[ i ].access, m_roots[ i ].initialDirectory );
     for ( UInt32 i=0; i<(UInt32)m_fileTypes.size(); ++i )
         m_dialog->AddFileType( m_fileTypes[ i ].description, m_fileTypes[ i ].patterns );
+    if ( PATHKIND_DIRECTORY == m_kind && !m_fileTypes.empty() )
+        m_dialog->GetOptions().showFilesForContext = true;      // the files of those kinds in the folders, to see what a folder holds
 
     if ( !m_dialog->Build() )
     {

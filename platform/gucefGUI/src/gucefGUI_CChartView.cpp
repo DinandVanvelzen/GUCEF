@@ -194,6 +194,7 @@ CChartView::CChartView( void )
     , m_selectedMarker( -1 )
     , m_hoveredMarker( -1 )
     , m_focused( false )
+    , m_showingEmpty( false )
     , m_rangePressed( false )
     , m_rangeDragging( false )
     , m_rangeSwallowClick( false )
@@ -454,6 +455,7 @@ CChartView::LookChanged( void ) const
            GetPropertyRef( EWidgetProperty_ValueSuffix ) != m_look.valueSuffix ||
            GetPropertyRef( EWidgetProperty_XAxisType ) != m_look.xAxisType ||
            GetPropertyRef( EWidgetProperty_LegendPosition ) != m_look.legendPosition ||
+           GetPropertyRef( EWidgetProperty_EmptyText ) != m_look.emptyText ||
            GetIntProperty( EWidgetProperty_Decimals ) != m_look.decimals ||
            GetBoolProperty( EWidgetProperty_LogScale ) != m_look.logScale ||
            GetBoolProperty( EWidgetProperty_IncludeZero ) != m_look.includeZero ||
@@ -490,6 +492,8 @@ CChartView::CaptureLook( void )
         m_look.xAxisType = GetPropertyRef( EWidgetProperty_XAxisType );
     if ( GetPropertyRef( EWidgetProperty_LegendPosition ) != m_look.legendPosition )
         m_look.legendPosition = GetPropertyRef( EWidgetProperty_LegendPosition );
+    if ( GetPropertyRef( EWidgetProperty_EmptyText ) != m_look.emptyText )
+        m_look.emptyText = GetPropertyRef( EWidgetProperty_EmptyText );
     m_look.decimals = GetIntProperty( EWidgetProperty_Decimals );
     m_look.logScale = GetBoolProperty( EWidgetProperty_LogScale );
     m_look.includeZero = GetBoolProperty( EWidgetProperty_IncludeZero );
@@ -504,6 +508,7 @@ CChartView::ApplyProperties( void )
 {GUCEF_TRACE;
 
     m_xAxis.SetKind( GetPropertyRef( EWidgetProperty_XAxisType ) == "Numeric" ? CChartAxis::AXISKIND_NUMERIC : CChartAxis::AXISKIND_TIME );
+    m_xAxis.SetMinimumTimeUnit( GetPropertyRef( EWidgetProperty_XAxisType ) == "Date" ? CChartAxis::TIMEUNIT_DAY : CChartAxis::TIMEUNIT_SECOND );
     m_xAxis.SetScale( CChartAxis::SCALE_LINEAR );
     m_valueAxis.SetKind( CChartAxis::AXISKIND_NUMERIC );
     m_valueAxis.SetScale( GetBoolProperty( EWidgetProperty_LogScale ) ? CChartAxis::SCALE_LOG : CChartAxis::SCALE_LINEAR );
@@ -875,6 +880,15 @@ CChartView::GetPlotRect( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CChartView::IsShowingEmptyState( void ) const
+{GUCEF_TRACE;
+
+    return m_showingEmpty;
+}
+
+/*-------------------------------------------------------------------------*/
+
 Int32
 CChartView::XToPixel( Int64 x ) const
 {GUCEF_TRACE;
@@ -1108,6 +1122,7 @@ CChartView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue
         case EWidgetProperty_LegendVisible:
         case EWidgetProperty_LegendPosition:
         case EWidgetProperty_XAxisType:
+        case EWidgetProperty_EmptyText:
         case EWidgetProperty_LogScale:
         case EWidgetProperty_IncludeZero:
         case EWidgetProperty_ValuePrefix:
@@ -1677,7 +1692,8 @@ CChartView::Rebuild( Int32 width, Int32 height )
     // the x range first: the value range depends on the points in it
     Float64 minX = 0.0, maxX = 1.0;
     Float64 barSlot = 0.0;
-    if ( !GetDataXRange( minX, maxX, barSlot ) )
+    const bool hasData = GetDataXRange( minX, maxX, barSlot );
+    if ( !hasData )
     {
         minX = 0.0;
         maxX = CChartAxis::AXISKIND_TIME == m_xAxis.GetKind() ? (Float64) MsPerDay : 1.0;
@@ -1741,6 +1757,34 @@ CChartView::Rebuild( Int32 width, Int32 height )
         if ( widest <= xLabelWidth || ticks.size() <= 2 )
             break;
         xLabelWidth = widest;
+    }
+
+    // nothing to show: the text of the empty state in the middle of the plot, no axes and no ticks that would mean nothing
+    m_showingEmpty = !hasData && m_markers.empty();
+    if ( m_showingEmpty )
+    {
+        m_markerRects.assign( m_markers.size(), CRect() );
+        m_markerOrder.clear();
+        m_crosshairPoints.clear();
+        const CString& emptyText = GetPropertyRef( EWidgetProperty_EmptyText );
+        if ( !emptyText.IsNULLOrEmpty() )
+        {
+            const Int32 textWidth = TextWidth( emptyText );
+            Int32 textLeft = m_plotRect.left + ( m_plotRect.width - textWidth ) / 2;
+            if ( textLeft < Padding )
+                textLeft = Padding;
+            DrawString( font, emptyText, textLeft, m_plotRect.top + ( m_plotRect.height - lineHeight ) / 2, axisTextColour );
+        }
+        if ( legendHeight > 0 )
+            DrawLegend( legendTop, width );
+        if ( !title.IsNULLOrEmpty() )
+            DrawString( font, title, Padding, titleTop, textColour );
+        m_focused = HasFocus();
+        if ( m_focused )
+            StrokeRect( CRect( m_plotRect.left - 1, m_plotRect.top - 1, m_plotRect.width + 2, m_plotRect.height + 2 ), GetColourProperty( EWidgetProperty_SelectionColour ), 1 );
+        Commit();
+        DropHiddenSelection();
+        return;
     }
 
     // grid lines at the value ticks

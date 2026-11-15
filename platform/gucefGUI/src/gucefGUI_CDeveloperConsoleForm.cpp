@@ -42,6 +42,11 @@
 #define GUCEF_INPUT_CKEYSTATECHANGEDEVENTDATA_H
 #endif /* GUCEF_INPUT_CKEYSTATECHANGEDEVENTDATA_H ? */
 
+#ifndef GUCEF_GUI_CLAYOUTDEBUGOVERLAY_H
+#include "gucefGUI_CLayoutDebugOverlay.h"
+#define GUCEF_GUI_CLAYOUTDEBUGOVERLAY_H
+#endif /* GUCEF_GUI_CLAYOUTDEBUGOVERLAY_H ? */
+
 #ifndef GUCEF_GUI_CGUICONTEXT_H
 #include "gucefGUI_CGUIContext.h"
 #define GUCEF_GUI_CGUICONTEXT_H
@@ -503,8 +508,56 @@ CDeveloperConsoleForm::OnCommandEntered( void )
         return;
     commandLine->SetText( CString::Empty );
     AppendLine( "> " + command );
+    HandleLayoutLintCommand( command );
     TCommandEnteredEventData eventData( command );
     NotifyObservers( CommandEnteredEvent, &eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDeveloperConsoleForm::HandleLayoutLintCommand( const CString& command )
+{GUCEF_TRACE;
+
+    const CString trimmed = command.Trim( true ).Trim( false );
+    if ( 0 != trimmed.HasSubstr( "gui.lint" ) || ( trimmed.Length() > 8 && ' ' != trimmed[ 8 ] ) )
+        return false;
+    const CString argument = trimmed.SubstrFromRange( 8, trimmed.Length() ).Trim( true ).Trim( false );
+
+    // the layers of the window of the console: the application below it is what is checked
+    GUCEF::vector< CGUIContext* > contexts;
+    CGUIContext* own = GetGUIContext();
+    if ( GUCEF_NULL != own && !own->GetWindowContext().IsNULL() )
+    {
+        const CWindowContext::TGuiContextLayers& layers = own->GetWindowContext()->GetGuiLayers();
+        contexts.assign( layers.begin(), layers.end() );
+    }
+    else
+    if ( GUCEF_NULL != own )
+        contexts.push_back( own );
+
+    if ( "report" == argument )
+    {
+        for ( UInt32 i=0; i<(UInt32) contexts.size(); ++i )
+        {
+            CLayoutDebugOverlay& overlay = contexts[ i ]->GetLayoutDebugOverlay();
+            if ( !overlay.IsOn() )
+                AppendLine( "Layer " + CORE::Int32ToString( contexts[ i ]->GetLayer() ) + ": the layout lint is off (gui.lint on)" );
+            else
+                AppendLine( "Layer " + CORE::Int32ToString( contexts[ i ]->GetLayer() ) + ": " + CLayoutLint::Report( overlay.GetFindings(), 30 ) );
+        }
+        return true;
+    }
+    UInt32 mode = CLayoutDebugOverlay::MODE_OFF;
+    if ( !CLayoutDebugOverlay::ParseMode( argument.IsNULLOrEmpty() ? CString( "on" ) : argument, mode ) )
+    {
+        AppendLine( "Usage: gui.lint on|off|overlay|log|overlay,log|report" );
+        return true;
+    }
+    for ( UInt32 i=0; i<(UInt32) contexts.size(); ++i )
+        contexts[ i ]->GetLayoutDebugOverlay().SetMode( mode );
+    AppendLine( CORE::CString( "Layout lint " ) + ( CLayoutDebugOverlay::MODE_OFF == mode ? "off" : "on" ) + " for " + CORE::UInt32ToString( (UInt32) contexts.size() ) + " layers" );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

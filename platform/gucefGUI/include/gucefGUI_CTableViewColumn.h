@@ -35,6 +35,11 @@
 #define GUCEF_GUI_TYPES_H
 #endif /* GUCEF_GUI_TYPES_H ? */
 
+#ifndef GUCEF_GUI_CGRIDCOLUMNFIT_H
+#include "gucefGUI_CGridColumnFit.h"
+#define GUCEF_GUI_CGRIDCOLUMNFIT_H
+#endif /* GUCEF_GUI_CGRIDCOLUMNFIT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -81,6 +86,11 @@ class GUCEF_GUI_PUBLIC_CPP CTableViewColumn
     EBooleanDisplay booleanDisplay;
     CString nullText;                   /**< shown in the distinct empty cell of a null; default empty */
     GUCEF::vector< CString > choices;   /**< the values a user may pick from when the cell is edited (as text, read by the type of the column); empty for a free value */
+    bool hiddenByDefault;               /**< offered (the column chooser lists it) but not shown until the user asks for it; default false. Applies while HiddenColumns is not set on the grid */
+    bool required;                      /**< always shown: the grid and its column chooser do not hide it; default false */
+    CString helpTopic;                  /**< the help topic of the column (an id of the help source of the application): its brief is the tooltip of the title; default empty */
+    CGridColumnFit fit;                 /**< how the grid sizes the column when its FitMode is Fill or Content; default MODE_AUTO without bounds */
+    Int32 markerSlot;                   /**< pixels at the right end of every cell for the trailing marker of the cell (SCellContent::marker), so the values stay aligned whether a cell has a marker or not; 0: a marker follows the value */
 
     CTableViewColumn( void );
 

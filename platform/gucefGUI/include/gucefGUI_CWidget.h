@@ -375,6 +375,13 @@ class GUCEF_GUI_PUBLIC_CPP CWidget : public CORE::CObservingNotifier
      */
     virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const;
 
+    /**
+     *  The help topic at a point of the widget (relative to its top left): the HelpTopic property here; a widget whose parts
+     *  have topics of their own (the columns and cells of a grid) answers for the part under the point. CTooltipService shows
+     *  the brief of the topic when the part has no tooltip text, and an application opens the topic on its help key
+     */
+    virtual CString GetHelpTopicAt( Int32 localX, Int32 localY ) const;
+
     /** Puts the widget on top of its siblings */
     bool BringToFront( void );
 

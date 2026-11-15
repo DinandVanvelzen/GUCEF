@@ -360,6 +360,95 @@ CTableCellFormatter::FormatText( const CORE::CVariant& value, const CTableViewCo
     return content.text;
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool
+CTableCellFormatter::FormatCompact( const CORE::CVariant& value, const CTableViewColumn& column, CString& text )
+{GUCEF_TRACE;
+
+    text.Clear();
+    if ( value.IsNULL() || value.IsNIL() || value.IsBoolean() || IsDateVariant( value ) )
+        return false;
+    CORE::TDataTableTimeUnit unit = CORE::DATATABLE_TIMEUNIT_MILLISECONDS;
+    if ( IsTimestampVariant( value, unit ) )
+        return false;
+
+    Float64 number = 0.0;
+    if ( value.IsDecimal() )
+        number = value.AsDecimal().ToFloat64();
+    else
+    if ( value.IsFloat() )
+        number = value.AsFloat64();
+    else
+    if ( value.IsUnsignedInteger() )
+        number = (Float64) value.AsUInt64();
+    else
+    if ( value.IsInteger() )
+        number = (Float64) value.AsInt64();
+    else
+        return false;
+    if ( number != number || number > 1.0e300 || number < -1.0e300 )
+        return false;
+
+    static const char* const units[] = { "", "K", "M", "B", "T" };
+    const UInt32 lastUnit = 4;
+    const bool negative = number < 0.0;
+    Float64 magnitude = negative ? -number : number;
+    UInt32 unitIndex = 0;
+    while ( magnitude >= 1000.0 && unitIndex < lastUnit )
+    {
+        magnitude /= 1000.0;
+        ++unitIndex;
+    }
+
+    // three significant digits, rounded half up; a rounding that reaches the next power of ten or the next unit goes there
+    Int64 scaled = 0;
+    UInt32 decimals = 0;
+    for ( UInt32 attempt=0; attempt<4; ++attempt )
+    {
+        UInt32 integerDigits = 1;
+        for ( Float64 bound = 10.0; magnitude >= bound && integerDigits < 18; bound *= 10.0 )
+            ++integerDigits;
+        decimals = integerDigits >= 3 ? 0 : 3 - integerDigits;
+        Float64 power = 1.0;
+        for ( UInt32 i=0; i<decimals; ++i )
+            power *= 10.0;
+        scaled = (Int64) floor( magnitude * power + 0.5 );
+        if ( scaled >= 1000 && decimals > 0 )
+        {
+            magnitude = (Float64) scaled / power;
+            continue;
+        }
+        if ( scaled >= 1000 && 3 == integerDigits && unitIndex < lastUnit )
+        {
+            magnitude = (Float64) scaled / 1000.0;
+            ++unitIndex;
+            continue;
+        }
+        break;
+    }
+
+    Int64 divisor = 1;
+    for ( UInt32 i=0; i<decimals; ++i )
+        divisor *= 10;
+    CString digits = CORE::Int64ToString( scaled / divisor );
+    if ( decimals > 0 )
+    {
+        CString fraction;
+        AppendNumber( fraction, scaled % divisor, decimals );
+        // trailing zeros of the fraction are dropped, and the point with them when nothing is left
+        UInt32 end = fraction.Length();
+        while ( end > 0 && '0' == fraction.C_String()[ end - 1 ] )
+            --end;
+        if ( end > 0 )
+            digits += "." + fraction.SubstrToIndex( end, true );
+    }
+    if ( negative && 0 != scaled )
+        text = "-";
+    text += column.prefix + digits + units[ unitIndex ] + column.suffix;
+    return true;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

@@ -72,7 +72,9 @@ namespace GUI {
  *  so it covers the application and takes the input while it is open.
  *
  *  A command entered is put in the output and notified with CommandEnteredEvent. What the commands do is
- *  up to the application, for example passing them to the system console (CSysConsole).
+ *  up to the application, for example passing them to the system console (CSysConsole). One command the console
+ *  knows itself: "gui.lint on|off|overlay|log|overlay,log|report" switches the layout debug overlay
+ *  (CLayoutDebugOverlay) of every GUI layer of its window, or writes what the layout lint found into the output.
  */
 class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
 {
@@ -186,6 +188,9 @@ class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
     void ApplySlidePosition( void );
 
     void OnCommandEntered( void );
+
+    /** "gui.lint ...": the layout debug overlay of the GUI layers of the window; false for another command */
+    bool HandleLayoutLintCommand( const CString& command );
 
     CDeveloperConsoleForm( const CDeveloperConsoleForm& src );
     CDeveloperConsoleForm& operator=( const CDeveloperConsoleForm& src );

@@ -208,6 +208,51 @@ CITableViewModel::IsRowEmphasized( UInt32 row ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CITableViewModel::HasRowHierarchy( void ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CITableViewModel::GetRowLevel( UInt32 row ) const
+{GUCEF_TRACE;
+
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CITableViewModel::IsRowExpandable( UInt32 row ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CITableViewModel::IsRowExpanded( UInt32 row ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CITableViewModel::SetRowExpanded( UInt32 row, bool expanded )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CITableViewModel::HasFooter( void ) const
 {GUCEF_TRACE;
 

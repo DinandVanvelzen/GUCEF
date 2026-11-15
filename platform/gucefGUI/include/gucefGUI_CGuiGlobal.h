@@ -41,6 +41,11 @@
 #define GUCEF_GUI_TYPES_H
 #endif /* GUCEF_GUI_TYPES_H ? */
 
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -123,6 +128,7 @@ class GUCEF_GUI_PUBLIC_CPP CGuiGlobal
     CWidgetTypeRegistry* m_widgetTypeRegistry;
     CFontRasterizerRegistry* m_fontRasterizerRegistry;
     CKeyboardLayoutRegistry* m_keyboardLayoutRegistry;
+    CORE::CTaskManager::TTaskConsumerFactory* m_gridCsvExportTaskFactory;   /**< makes the tasks of CGridCsvExporter::ExportAsync() */
 
     static CGuiGlobal* g_instance;
     static MT::CMutex g_datalock;

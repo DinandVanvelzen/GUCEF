@@ -379,6 +379,16 @@ CFileSystemDialogForm::IsFileMode( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CFileSystemDialogForm::ShowsFileTypes( void ) const
+{GUCEF_TRACE;
+
+    // file dialogs always; directory dialogs when they list files for context and the app gave the types of those files
+    return IsFileMode() || ( m_options.showFilesForContext && !m_fileTypes.empty() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CFileSystemDialogForm::IsSaveMode( void ) const
 {GUCEF_TRACE;
 
@@ -425,6 +435,16 @@ CFileSystemDialogForm::AddPlace( const CString& displayName, const CString& root
         }
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::ClearPlaces( void )
+{GUCEF_TRACE;
+
+    m_appPlaces.clear();
+    UpdatePanes();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -588,6 +608,7 @@ CFileSystemDialogForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
     const bool fileMode = IsFileMode();
+    const bool fileTypes = ShowsFileTypes();
     CORE::CDataNode* window = CFormLayout::AddWidgetNode( layout, "Window", "FileSystemDialog", "0.05,0 0.05,0", "0.9,0 0.9,0" );
     CFormLayout::SetWidgetNodeProperty( *window, EWidgetProperty_Title, m_options.title );
 
@@ -627,8 +648,13 @@ CFileSystemDialogForm::BuildLayout( CORE::CDataNode& layout )
     // the name of what is chosen, and the file types
     CORE::CDataNode* nameLabel = CFormLayout::AddWidgetNode( *window, "Label", "NameLabel", "0,16 1,-140", "0,120 0,28" );
     CFormLayout::SetWidgetNodeProperty( *nameLabel, EWidgetProperty_Text, fileMode ? "File name:" : "Folder:" );
-    CFormLayout::AddWidgetNode( *window, "Editbox", "Name", "0,140 1,-144", fileMode ? "1,-480 0,34" : "1,-156 0,34" );
-    if ( fileMode )
+    CORE::CDataNode* nameField = CFormLayout::AddWidgetNode( *window, "Editbox", "Name", "0,140 1,-144", fileTypes ? "1,-480 0,34" : "1,-156 0,34" );
+    if ( IsSaveMode() )
+    {
+        // the suggested name is selected when the field gets the focus, so a typed name or path replaces it
+        CFormLayout::SetWidgetNodeProperty( *nameField, EWidgetProperty_SelectAllOnFocus, "true" );
+    }
+    if ( fileTypes )
     {
         CORE::CDataNode* types = CFormLayout::AddWidgetNode( *window, "Combobox", "FileTypes", "1,-328 1,-144", "0,312 0,34" );
         CFormLayout::SetWidgetNodeProperty( *types, EWidgetProperty_DropDownRows, "8" );
@@ -1113,7 +1139,7 @@ bool
 CFileSystemDialogForm::FitsFileType( const CString& name ) const
 {GUCEF_TRACE;
 
-    if ( !IsFileMode() || m_selectedFileType >= (UInt32) m_fileTypes.size() )
+    if ( !ShowsFileTypes() || m_selectedFileType >= (UInt32) m_fileTypes.size() )
         return true;   // no types, or "All files"
     const TFileType& fileType = m_fileTypes[ m_selectedFileType ];
     if ( fileType.patterns.empty() )
@@ -1136,7 +1162,7 @@ CFileSystemDialogForm::IsShown( const SEntry& entry ) const
     {
         if ( !IsFileMode() && !m_options.showFilesForContext )
             return false;
-        if ( IsFileMode() && !FitsFileType( NameOf( entry.name ) ) )
+        if ( !FitsFileType( NameOf( entry.name ) ) )
             return false;
     }
     if ( m_searchSubfolders && !m_search.GetPattern().IsNULLOrEmpty() )
@@ -2100,9 +2126,22 @@ CFileSystemDialogForm::CollectSelection( TSelectionVector& selection, CString& p
             problem = "The name must fit " + patterns + ".";
             return false;
         }
-        if ( m_options.readOnly || !access->IsWriteable( ParentOf( path ).IsNULLOrEmpty() ? m_currentDirectory : ParentOf( path ) ) )
+        // the message names the folder and says what is wrong with it: not there (a typed path into another folder), or not to be written to
+        const CString typedFolder = ParentOf( path );
+        const CString folder = typedFolder.IsNULLOrEmpty() ? m_currentDirectory : typedFolder;
+        if ( !typedFolder.IsNULLOrEmpty() && !( typedFolder == m_currentDirectory ) )
         {
-            problem = DescribeResult( CORE::FILESYSTEMACCESS_READ_ONLY );
+            CORE::TFileSystemEntryType folderType = CORE::FILESYSTEMENTRYTYPE_NONE;
+            access->TryGetEntryType( folder, folderType );
+            if ( CORE::FILESYSTEMENTRYTYPE_DIRECTORY != folderType )
+            {
+                problem = "There is no folder \"" + folder + "\".";
+                return false;
+            }
+        }
+        if ( m_options.readOnly || !access->IsWriteable( folder ) )
+        {
+            problem = "The folder \"" + folder + "\" cannot be written to.";
             return false;
         }
         askOverwrite = CORE::FILESYSTEMENTRYTYPE_FILE == type && m_options.confirmOverwrite;

@@ -146,9 +146,9 @@ class GUCEF_GUI_PUBLIC_CPP CFileSystemDialogForm : public CFormEx
         bool mustExist;                         /**< open dialogs: what is chosen must be there */
         bool confirmOverwrite;                  /**< save dialogs: ask before an existing file is replaced */
         bool strictFileTypes;                   /**< save file: only the extensions of the file types */
-        bool includeAllFilesType;               /**< file dialogs: "All files (*)" after the app's types */
+        bool includeAllFilesType;               /**< dialogs with file types: "All files (*)" after the app's types */
         bool acceptDirectoriesToo;              /**< open file: an "Open folder" button accepts a folder too */
-        bool showFilesForContext;               /**< directory dialogs: list files as well (they cannot be chosen) */
+        bool showFilesForContext;               /**< directory dialogs: list files as well (they cannot be chosen); with file types they are filtered by them */
         bool showHidden;
         bool allowCreateDirectory;
         bool allowRename;
@@ -177,12 +177,19 @@ class GUCEF_GUI_PUBLIC_CPP CFileSystemDialogForm : public CFormEx
     /** A bookmark of the app in the places pane */
     bool AddPlace( const CString& displayName, const CString& rootName, const CString& directory );
 
+    /** Takes the bookmarks of the app out of the places pane again (the special directories stay), as an app does to bring a list of recent places up to date */
+    void ClearPlaces( void );
+
     /** A label for a special directory in the places pane, instead of the standard one */
     void SetSpecialDirLabel( CORE::TSpecialDirs specialDir, const CString& label );
 
     static CString GetStandardSpecialDirLabel( CORE::TSpecialDirs specialDir );
 
-    /** File dialogs: the kinds of files offered, in order */
+    /**
+     *  The kinds of files offered, in order. File dialogs always have them (with the file type choice next to the name); a
+     *  directory dialog has them when it lists files for context (GetOptions().showFilesForContext), so the user sees
+     *  only the files of the kinds that matter for the folder to choose. Add them before Build().
+     */
     void AddFileType( const CString& description, const CString::StringVector& patterns, const CString& defaultExtension = CString::Empty );
 
     void SetSelectedFileType( UInt32 index );
@@ -327,6 +334,7 @@ class GUCEF_GUI_PUBLIC_CPP CFileSystemDialogForm : public CFormEx
 
     void BuildLayout( CORE::CDataNode& layout );
     bool IsFileMode( void ) const;
+    bool ShowsFileTypes( void ) const;
     bool IsSaveMode( void ) const;
     CString ResolvePath( const CString& nameOrPath ) const;
     CORE::IFileSystemAccess* GetCurrentAccess( void ) const;

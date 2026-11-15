@@ -97,15 +97,23 @@ void PerformGuiGridFixTests( void );
 void PerformGuiGridEditingTests( void );
 void PerformGuiGridClipboardTests( void );
 void PerformGuiGridEditRenderTests( void );
+void PerformGuiGridColumnsAndExportTests( void );
 
 void PerformGuiFileDialogTests( void );
 
 void PerformGuiTimelineFormTests( void );
 void PerformGuiReportViewFormTests( void );
+void PerformGuiTransferQueueFormTests( void );
+void PerformGuiAssetSearchFormTests( void );
 void PerformGuiViewportFormTests( void );
 void PerformGuiPropertyInspectorFormTests( void );
 void PerformGuiContentBrowserFormTests( void );
 void PerformGuiImageViewFormTests( void );
+void PerformGuiTooltipAndHelpTests( void );
+void PerformGuiGridUxTests( void );
+void PerformGuiNavigationUxTests( void );
+void PerformGuiWebViewTests( void );
+void PerformGuiLayoutLintTests( void );
 
 /*-------------------------------------------------------------------------*/
 

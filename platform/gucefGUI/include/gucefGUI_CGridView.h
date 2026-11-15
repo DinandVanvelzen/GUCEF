@@ -66,6 +66,31 @@
 #define GUCEF_GUI_CGRIDEDITREPORT_H
 #endif /* GUCEF_GUI_CGRIDEDITREPORT_H ? */
 
+#ifndef GUCEF_GUI_CIGRIDPREFERENCESTORE_H
+#include "gucefGUI_CIGridPreferenceStore.h"
+#define GUCEF_GUI_CIGRIDPREFERENCESTORE_H
+#endif /* GUCEF_GUI_CIGRIDPREFERENCESTORE_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCSVEXPORTREPORT_H
+#include "gucefGUI_CGridCsvExportReport.h"
+#define GUCEF_GUI_CGRIDCSVEXPORTREPORT_H
+#endif /* GUCEF_GUI_CGRIDCSVEXPORTREPORT_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCOLUMNFIT_H
+#include "gucefGUI_CGridColumnFit.h"
+#define GUCEF_GUI_CGRIDCOLUMNFIT_H
+#endif /* GUCEF_GUI_CGRIDCOLUMNFIT_H ? */
+
+#ifndef GUCEF_GUI_CCELLSTATUSCOLOURS_H
+#include "gucefGUI_CCellStatusColours.h"
+#define GUCEF_GUI_CCELLSTATUSCOLOURS_H
+#endif /* GUCEF_GUI_CCELLSTATUSCOLOURS_H ? */
+
+#ifndef GUCEF_GUI_CIGRIDCONTEXTMENUPROVIDER_H
+#include "gucefGUI_CIGridContextMenuProvider.h"
+#define GUCEF_GUI_CIGRIDCONTEXTMENUPROVIDER_H
+#endif /* GUCEF_GUI_CIGRIDCONTEXTMENUPROVIDER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -84,6 +109,11 @@ namespace GUI {
 class CGridCellEditor;
 class CGridEditController;
 class CGridClipboard;
+class CGridColumnChooserForm;
+class CGridCsvExportController;
+class CGridCsvOptions;
+class CIGridHelpProvider;
+class CPopupMenu;
 
 /**
  *  A table: a header row (Columns) above rows of cells. Rows holds one entry per row with the cells
@@ -132,6 +162,26 @@ class CGridClipboard;
  *  Ctrl+Insert, Shift+Delete, Shift+Insert), Ctrl+D (fill down) and Ctrl+R (fill right) work on the selected cells as
  *  tab separated text, through the clipboard of CSecretInput, and report what they did with RangeEditResultEvent.
  *
+ *  Columns and export (ShowColumnChooser, ShowCsvExport): buttons at the top right of the grid, in a strip at its
+ *  right edge that the columns leave free. The column chooser lists every column the grid has (also the hidden ones, and
+ *  the columns of the model that are hidden by default) to show, hide and order them and to reset them to the default;
+ *  required columns cannot be hidden. The CSV export saves the table as it is shown (the shown columns in their order,
+ *  the rows after filter and sort, the text of the cells) to a file chosen in the file save dialog. With a preference
+ *  store (SetPreferenceStore) the choices of the user are kept per grid id and applied again the next time.
+ *
+ *  Fit policy (FitMode Fill or Content): every column gets its nominal or content width within the bounds of its
+ *  CGridColumnFit, numbers never below their content; Fill shares the room left among the growing columns, Content
+ *  leaves it free; when the columns do not fit they shrink by priority and the grid scrolls sideways. In every mode a
+ *  number that does not fit its cell is drawn compact or as "###", never cut, and text is never cut on the left.
+ *
+ *  Cell statuses and markers (SCellContent::status, marker): the text of a cell in the colour of its status
+ *  (StatusColours), with a marker in a fixed slot (CTableViewColumn::markerSlot) or before the value. EmphasisStyle Bar
+ *  marks a row that stands out with the bar only; SelectionOutline outlines the selected rows.
+ *
+ *  Context menu (SetContextMenuProvider): a right click, the menu key or Shift+F10 opens the items of the provider
+ *  for the cell. Rows that fold open: a model with a row hierarchy gets an indent and a fold control in the first
+ *  column; a click on it, Right / Left (row selection) and numpad + / - open and close the row through the model.
+ *
  *  These features are drawn by the own painter of gucefGUI (CWidgetPainter), which is what the drivers that draw
  *  widgets themselves use; GetCapabilities() names them for the drivers that do.
  */
@@ -158,6 +208,12 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     static const CORE::CEvent CellEditCancelledEvent;           /**< TGridEditReportEventData: the editor closed without a change */
     static const CORE::CEvent CellEditRefusedEvent;             /**< TGridEditReportEventData: the cell is read only or the model refused the value; the message says why. The editor stays open */
     static const CORE::CEvent RangeEditResultEvent;             /**< TGridEditReportEventData: what a copy, cut, paste, fill or clear did: counts of the cells taken, refused, read only and left out, and the first reason */
+    static const CORE::CEvent ColumnsResetEvent;                /**< no data: the order, the shown columns and the widths went back to the defaults (ResetColumnsToDefault) */
+    static const CORE::CEvent PreferencesSaveFailedEvent;       /**< no data: the preference store did not keep the choices of the user (the log says why); the grid works on */
+    static const CORE::CEvent CsvExportFinishedEvent;           /**< TGridCsvExportReportEventData: a CSV export that was started ended, written or not */
+    static const CORE::CEvent CsvExportCancelledEvent;          /**< no data: the user cancelled the file save dialog of a CSV export; nothing was written */
+    static const CORE::CEvent ContextMenuItemChosenEvent;       /**< TContextMenuChoiceEventData: the user chose an item of the context menu (after the provider was told) */
+    static const CORE::CEvent RowExpansionChangedEvent;         /**< TCloneableGridIndex (the row, column 0): the model opened or closed a row that folds open */
 
     struct SGridIndex
     {
@@ -177,6 +233,7 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     typedef TCloneableGridIndex TColumnClickedEventData;
     typedef TCloneableGridIndex TCellCursorChangedEventData;
     typedef CORE::CTCloneableObj< CGridEditReport > TGridEditReportEventData;
+    typedef CORE::CTCloneableObj< CGridCsvExportReport > TGridCsvExportReportEventData;
 
     /** A change of a column: which column of the data, and a width, a place or a flag by the event */
     struct SColumnChange
@@ -186,6 +243,16 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     };
     typedef struct SColumnChange TColumnChange;
     typedef CORE::CTCloneableObj< TColumnChange > TColumnChangedEventData;
+
+    /** A choice in the context menu: the cell the menu was opened for (-1 outside a cell) and the id of the item */
+    struct SContextMenuChoice
+    {
+        Int32 row;
+        Int32 column;
+        CString itemId;
+    };
+    typedef struct SContextMenuChoice TContextMenuChoice;
+    typedef CORE::CTCloneableObj< TContextMenuChoice > TContextMenuChoiceEventData;
 
     static void RegisterEvents( void );
 
@@ -205,7 +272,17 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
         HIT_COLUMN_BORDER   ,   /**< the right edge of a column title, where ResizableColumns grabs it; column is the column at the left of it */
         HIT_ROW_HEADER      ,
         HIT_CELL            ,
-        HIT_FOOTER
+        HIT_FOOTER          ,
+        HIT_COLUMN_CHOOSER_BUTTON   ,   /**< the column chooser button of the header strip */
+        HIT_CSV_EXPORT_BUTTON       ,   /**< the CSV export button of the header strip */
+        HIT_FOLD_BUTTON                 /**< the fold control of a row that folds open (a model with a row hierarchy) */
+    };
+
+    /** The buttons of the header strip */
+    enum EHeaderButton
+    {
+        HEADERBUTTON_COLUMN_CHOOSER = 0 ,
+        HEADERBUTTON_CSV_EXPORT
     };
 
     struct SHit
@@ -227,6 +304,19 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
         MIN_COLUMN_WIDTH = 24,
         DEFAULT_COLUMN_WIDTH = 100,
         BORDER_GRAB_ROOM = 3
+    };
+
+    /** The indent per level of a row of a hierarchy, and the room of the fold control in front of the text of its first column */
+    enum EFoldLayout
+    {
+        FOLD_INDENT = 16,
+        FOLD_BUTTON_ROOM = 16
+    };
+
+    /** The rows from the top whose cells the content width of a column is measured over, besides the rows in view */
+    enum EContentSample
+    {
+        CONTENT_SAMPLE_ROWS = 100
     };
 
     CGridView( void );
@@ -328,8 +418,29 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     /** Whether the text of a cell is wider than its room: with TextOverflow Ellipsis it is drawn cut with "..." and its tooltip is the whole text */
     bool IsCellTextCut( UInt32 column, UInt32 row ) const;
 
-    /** Over the cell of an editor that holds a refused value: the reason; over a cell whose text is cut: the whole text; else the Tooltip property */
+    /**
+     *  Over the cell of an editor that holds a refused value: the reason; over a cell whose text is cut: the whole text; over a column
+     *  title or a cell with a help topic: nothing (the tooltip service shows the brief of the topic); else the Tooltip property
+     */
     virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /*
+     *  Help topics of the parts of the grid
+     */
+
+    /** Where the topics of the columns and cells come from, asked when needed; not owned, it must outlive the grid or be set to NULL first */
+    void SetHelpProvider( CIGridHelpProvider* provider );
+
+    CIGridHelpProvider* GetHelpProvider( void ) const;
+
+    /** The topic of the title of a column of the data: of the provider, else the helpTopic of the model column; empty for none */
+    CString GetColumnHelpTopic( UInt32 column ) const;
+
+    /** The topic of a cell (row in the order of the grid, column of the data): of the provider; empty for none */
+    CString GetCellHelpTopic( UInt32 row, UInt32 column ) const;
+
+    /** Over a column title: the topic of the column; over a cell: the topic of the cell; when the part has none, the HelpTopic property */
+    virtual CString GetHelpTopicAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -483,9 +594,134 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     /** Puts a column at a place among the shown columns. Raises ColumnMovedEvent */
     void MoveColumn( UInt32 column, UInt32 position );
 
-    void SetColumnHidden( UInt32 column, bool hidden );
+    /**
+     *  Hides or shows a column (HiddenColumns). A required column is not hidden and neither is the last column that is
+     *  shown: false then. True when the column is as asked afterwards. Raises ColumnVisibilityChangedEvent when it changed
+     */
+    bool SetColumnHidden( UInt32 column, bool hidden );
 
     bool IsColumnHidden( UInt32 column ) const;
+
+    /*
+     *  Columns: keys, defaults, required columns, the order of all columns
+     */
+
+    /**
+     *  The key of a column, which the preferences name it by: the name of the column of the model, else its title (the
+     *  title of Columns without a model), else "#" and its number from 1; a key that an earlier column has already gets
+     *  "#2", "#3" ... appended
+     */
+    CString GetColumnKey( UInt32 column ) const;
+
+    /** The keys of all columns, by column of the data */
+    TStringVector GetColumnKeys( void ) const;
+
+    /** The column with the key, -1 when none has it */
+    Int32 FindColumnByKey( const CString& key ) const;
+
+    /** Whether the column is always shown: required by the model's column definition, or named by SetRequiredColumns() */
+    bool IsColumnRequired( UInt32 column ) const;
+
+    /** Columns of the data that are always shown, besides the ones the model says are required (for a grid without a model) */
+    void SetRequiredColumns( const TInt32Vector& columns );
+
+    /** Whether the column is not shown by default: the defaults recorded by CaptureColumnDefaults(), else hiddenByDefault of the model's column */
+    bool IsColumnHiddenByDefault( UInt32 column ) const;
+
+    /** Whether the column may be hidden: it is not required and is not the last column shown (a hidden column: true) */
+    bool CanHideColumn( UInt32 column ) const;
+
+    /** Every column of the data in the order they stand, hidden columns at their place */
+    TInt32Vector GetColumnOrder( void ) const;
+
+    /** Puts a column at a place in the order of all columns (GetColumnOrder()), hidden or not. Raises ColumnMovedEvent with its place among the shown columns (-1 for a hidden one). False when nothing changed */
+    bool MoveColumnInOrder( UInt32 column, UInt32 index );
+
+    /**
+     *  Records what the application set up as the default of the columns (ColumnOrder, HiddenColumns, ColumnWidths,
+     *  each with whether it was set). Done by SetPreferenceStore() and at the first opening of the column chooser when
+     *  not done before, so an application sets its columns up before either
+     */
+    void CaptureColumnDefaults( void );
+
+    bool HasColumnDefaults( void ) const;
+
+    /** Back to the recorded defaults (the defaults of the model for what was not set): order, shown columns, widths; the sort stays. Raises ColumnsResetEvent */
+    void ResetColumnsToDefault( void );
+
+    /*
+     *  Preferences
+     */
+
+    /**
+     *  Keeps the choices of the user for the columns in the store under the id (stable across runs, unique per grid with
+     *  columns of its own): records the defaults, loads the record of the id and applies it (now, and again when the
+     *  model or its columns change), and from then on saves every change of the order, the shown columns, the widths and
+     *  the sort made through the members of the grid, the mouse or the column chooser (a resize by dragging once, when
+     *  it ends). A NULL store stops it
+     */
+    void SetPreferenceStore( const TGridPreferenceStorePtr& store, const CString& gridId );
+
+    const TGridPreferenceStorePtr& GetPreferenceStore( void ) const;
+
+    const CString& GetPreferenceId( void ) const;
+
+    /**
+     *  The revision of the default columns the application gives the grid, written into every record the grid saves
+     *  (CGridPreferences::defaultsRevision): an application that changes its defaults tells the records made against
+     *  the earlier ones from those made against the current ones. Empty by default
+     */
+    void SetDefaultsRevision( const CString& revision );
+
+    const CString& GetDefaultsRevision( void ) const;
+
+    /** Loads the record of the id again and applies it; false when the store has none */
+    bool LoadPreferences( void );
+
+    /** Saves the state of the columns now; false without a store or when the store refused it (PreferencesSaveFailedEvent) */
+    bool SavePreferences( void );
+
+    /** The state of the columns as a record (the export location of the record last loaded or saved is kept) */
+    void CapturePreferences( CGridPreferences& preferences ) const;
+
+    /** Applies a record: keys the grid does not have are ignored, columns the record does not name keep their defaults, required columns stay shown; false when the grid has no columns yet */
+    bool ApplyPreferences( const CGridPreferences& preferences );
+
+    /** The record last loaded, saved or applied */
+    const CGridPreferences& GetPreferences( void ) const;
+
+    /** Where the last CSV export of this grid went; kept in the record, saved with a store */
+    void SetExportLocation( const CString& rootName, const CString& directory );
+
+    /*
+     *  Header strip (ShowColumnChooser, ShowCsvExport)
+     */
+
+    /** The width of the strip at the right edge that the buttons stand in: a header row height per button shown, 0 without buttons */
+    Int32 GetHeaderStripWidth( void ) const;
+
+    /** The rectangle of a button in the grid, false when it is not shown */
+    bool GetHeaderButtonRect( EHeaderButton button, CRect& rect ) const;
+
+    /** The button below the pointer, -1 for none */
+    Int32 GetHoveredHeaderButton( void ) const;
+
+    /** Opens the column chooser of the grid (what its button does); false without a context */
+    bool OpenColumnChooser( void );
+
+    /** The column chooser, NULL until it was opened once */
+    CGridColumnChooserForm* GetColumnChooser( void );
+
+    bool IsColumnChooserOpen( void ) const;
+
+    /** Starts a CSV export (what its button does): the file save dialog, then the file; false when it cannot start */
+    bool OpenCsvExport( void );
+
+    /** The CSV export of the grid: options, targets, state */
+    CGridCsvExportController& GetCsvExportController( void );
+
+    /** The options of the CSV export of the grid */
+    CGridCsvOptions& GetCsvExportOptions( void );
 
     /** The place the column being dragged would be dropped at, -1 when no column is being dragged */
     Int32 GetColumnDropPosition( void ) const;
@@ -516,6 +752,98 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
 
     THit HitTest( Int32 localX, Int32 localY ) const;
 
+    /*
+     *  Fit policy (FitMode Fill and Content), overflow of cells
+     */
+
+    /** The fit policy of a column of the data for this grid, over the one of the model column (for a grid without a model) */
+    void SetColumnFit( UInt32 column, const CGridColumnFit& fit );
+
+    void ClearColumnFit( UInt32 column );
+
+    /** The fit policy of a column: set on the grid, else the fit of the model column, else the default */
+    CGridColumnFit GetColumnFit( UInt32 column ) const;
+
+    /** The width the content of a column needs, padding included: the widest of its title, its footer and the cells measured (the first CONTENT_SAMPLE_ROWS rows and the rows in view); 0 without a context */
+    Int32 GetColumnContentWidth( UInt32 column ) const;
+
+    /** Measures the content of the columns afresh at the next layout (the measured widths otherwise only grow while the data change) */
+    void ResetContentWidths( void );
+
+    /** Whether the columns scroll sideways when they are wider than the grid: HorizontalScroll, or a FitMode of Fill or Content */
+    bool IsHorizontallyScrollable( void ) const;
+
+    /** The pixels of a column kept for the trailing markers of its cells (CTableViewColumn::markerSlot); 0 without a model */
+    Int32 GetColumnMarkerSlot( UInt32 column ) const;
+
+    /**
+     *  The text drawn for a content in a room of 'room' pixels, and whether it is not the whole text: the text when it
+     *  fits; a number: its compact form (the compactText of the content, else CTableCellFormatter::FormatCompact() of
+     *  the value of the cell, row -1 for the footer) when that fits, else '#' characters; other text: cut with "..." when
+     *  TextOverflow is Ellipsis or for a footer cell, else the whole text (it is clipped at the end of its cell)
+     */
+    CString FitContentText( const SCellContent& content, Int32 room, Int32 row, Int32 column, bool footer, bool& cut ) const;
+
+    /** Whether the text of the footer cell of a column is wider than its room (the tooltip then shows the whole text) */
+    bool IsFooterTextCut( UInt32 column ) const;
+
+    /*
+     *  Cell statuses
+     */
+
+    /** The colours of the statuses of cells: the defaults with the StatusColours property over them */
+    const CCellStatusColours& GetStatusColours( void ) const;
+
+    /*
+     *  Context menu
+     */
+
+    /** Where the items of the context menu come from; not owned, it must outlive the grid or be set to NULL first. NULL: no menu, a right click does what it did */
+    void SetContextMenuProvider( CIGridContextMenuProvider* provider );
+
+    CIGridContextMenuProvider* GetContextMenuProvider( void ) const;
+
+    /** Opens the context menu of a cell (row and column of the data, -1 outside a cell) at a point of the context; false without a provider, a context or items */
+    bool OpenContextMenu( Int32 row, Int32 column, Int32 x, Int32 y );
+
+    bool IsContextMenuOpen( void ) const;
+
+    void CloseContextMenu( void );
+
+    /** Chooses the item with the id in the menu that is open, as a click on it does; false when no menu is open or the item cannot be chosen */
+    bool ChooseContextMenuItem( const CString& itemId );
+
+    /** The items of the menu that was opened last */
+    const TContextMenuItemVector& GetContextMenuItems( void ) const;
+
+    /** The cell the menu that was opened last is for */
+    Int32 GetContextMenuRow( void ) const;
+
+    Int32 GetContextMenuColumn( void ) const;
+
+    /*
+     *  Rows that fold open (a model with a row hierarchy)
+     */
+
+    bool HasRowHierarchy( void ) const;
+
+    UInt32 GetRowLevel( Int32 row ) const;
+
+    bool IsRowExpandable( Int32 row ) const;
+
+    bool IsRowExpanded( Int32 row ) const;
+
+    /** Asks the model to open or close the row; raises RowExpansionChangedEvent when the model took it */
+    bool SetRowExpanded( Int32 row, bool expanded );
+
+    bool ToggleRowExpanded( Int32 row );
+
+    /** The rectangle of the fold control of a row in the grid; false when the row has none or is out of view */
+    bool GetFoldControlRect( Int32 row, CRect& rect ) const;
+
+    /** The pixels in front of the text of a cell for the indent and the fold control: for the first shown column of a grid with a row hierarchy, else 0 */
+    Int32 GetFoldRoom( Int32 row, UInt32 column ) const;
+
     /**
      *  Names the optional features of this grid that the own painter draws: GridModel, GridTypedCells, GridCellSelection, GridLayout,
      *  GridModelContent (the model gives the content of cells and footer cells and which rows stand out), GridBatchUpdate (updates and batches
@@ -533,8 +861,12 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
 
     friend class CGridEditController;
     friend class CGridClipboard;
+    friend class CGridCsvExportController;      /**< raises the export events of the grid */
 
     typedef CORE::CTEventHandlerFunctor< CGridView > TEventCallback;
+
+    /** The help topic of the column title or the cell at the point, empty elsewhere and for a part without one */
+    CString GetPartHelpTopicAt( Int32 localX, Int32 localY ) const;
 
     /** What a mouse press that is held started */
     enum EDragMode
@@ -588,7 +920,8 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     void EnsureLayout( void ) const;
     void InvalidateLayout( void );
 
-    TInt32Vector ComputeBaseWidths( Int32 available, UInt32& columnCount ) const;
+    /** The widths of all columns; the shown ones share the room ('hidden' are not shown: they keep a width but take no room) */
+    TInt32Vector ComputeBaseWidths( Int32 available, UInt32& columnCount, const TInt32Vector& hidden ) const;
     Int32 MeasureRowHeaderWidth( void ) const;
     CString GetRowText( Int32 row ) const;
 
@@ -620,6 +953,42 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     void FinishColumnChange( UInt32 column, const CORE::CEvent& eventId, Int32 value );
     void WriteColumnOrder( const TInt32Vector& order );
 
+    /** The hidden columns the layout uses: HiddenColumns when set, else the defaults of the model; never a required column */
+    TInt32Vector GetEffectiveHiddenColumns( void ) const;
+
+    /** A block selection is of places: after a change of the shown columns it collapses to the cursor */
+    void CollapseSelectionToCursor( void );
+
+    /** Saves the preferences when a change is pending and no resize drag is in progress */
+    void FlushPreferences( void );
+
+    /** The header strip: which button an x of the header row is on, -1 for none */
+    Int32 HeaderButtonAt( Int32 localX ) const;
+
+    /** The fit policy is used: FitMode Fill or Content */
+    bool IsFitByPolicy( void ) const;
+
+    /** The widths of the columns by the fit policy, see CGridColumnFitter */
+    TInt32Vector ComputePolicyWidths( Int32 available, UInt32 columns, const TInt32Vector& hidden ) const;
+
+    /** Measures the content of every column when it changed since the last time, the widths only growing unless reset; uses no layout, so the layout can call it */
+    void EnsureContentWidths( UInt32 columns ) const;
+
+    /** The data changed: the content widths are measured again (and, with 'reset', may shrink) at the next layout of a grid that fits by policy */
+    void OnContentChanged( bool reset );
+
+    /** The first shown column, -1 when none is shown */
+    Int32 GetFirstShownColumn( void ) const;
+
+    /** Opens the context menu at the cell under a pointer or of the cursor, selecting the row first */
+    bool OnContextMenuRequest( Int32 row, Int32 column, Int32 x, Int32 y );
+
+    bool OnContextMenuKey( void );
+
+    void OnContextMenuItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+
+    bool OnFoldKey( CKeyEventData& key );
+
     CGridView( const CGridView& src );
     CGridView& operator=( const CGridView& src );
 
@@ -637,6 +1006,7 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     mutable Int32 m_layoutWidth;
     mutable Int32 m_layoutHeight;
     mutable CString m_layoutFont;
+    mutable bool m_layoutHiddenSet;                 /**< HiddenColumns was set when the layout was made */
     mutable Int32 m_layoutRowCount;
     mutable CGridColumnLayout m_layout;
     mutable TInt32Vector m_baseWidths;
@@ -673,6 +1043,51 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
     CGridEditController* m_editing;
     CGridClipboard* m_clipboard;
     CGridEditReport m_lastReport;
+
+    /** What the application set up for the columns, for ResetColumnsToDefault() */
+    struct SColumnDefaults
+    {
+        bool captured;
+        bool orderSet;
+        TInt32Vector order;
+        bool hiddenSet;
+        TInt32Vector hidden;
+        bool widthsSet;
+        TInt32Vector widths;
+
+        SColumnDefaults( void ) : captured( false ), orderSet( false ), order(), hiddenSet( false ), hidden(), widthsSet( false ), widths() {}
+    };
+
+    // columns, preferences and the header strip
+    GUCEF::set< Int32 > m_requiredColumns;
+    SColumnDefaults m_columnDefaults;
+    TGridPreferenceStorePtr m_preferenceStore;
+    CString m_preferenceId;
+    CString m_defaultsRevision;
+    CGridPreferences m_preferences;
+    bool m_hasPreferences;                          /**< m_preferences holds a record that was loaded, applied or saved */
+    bool m_applyingPreferences;                     /**< the grid sets the properties of the columns itself: no save */
+    bool m_preferencesDirty;                        /**< a change of the columns is not saved yet */
+    bool m_preferencesPending;                      /**< a record was loaded but the grid had no columns to apply it to: no save until it is applied */
+    Int32 m_hoverButton;
+    CGridColumnChooserForm* m_columnChooser;        /**< made when first opened, owned */
+    CGridCsvExportController* m_csvExport;          /**< made when first needed, owned */
+    CIGridHelpProvider* m_helpProvider;             /**< the topics of the columns and cells, not owned */
+
+    // fit policy and statuses
+    GUCEF::map< UInt32, CGridColumnFit > m_columnFits;  /**< fit policies set on the grid, by column of the data */
+    mutable TInt32Vector m_contentWidths;           /**< measured content widths, by column of the data */
+    mutable bool m_contentDirty;                    /**< the data changed since the content was measured */
+    mutable CCellStatusColours m_statusColours;
+    mutable CString m_statusColoursText;            /**< the StatusColours value m_statusColours was parsed from */
+    mutable bool m_statusColoursParsed;
+
+    // context menu
+    CIGridContextMenuProvider* m_contextMenuProvider;   /**< not owned */
+    CPopupMenu* m_contextMenu;                      /**< made in the context when first opened; destroyed with the grid */
+    TContextMenuItemVector m_contextMenuItems;
+    Int32 m_contextMenuRow;
+    Int32 m_contextMenuColumn;
 };
 
 /*-------------------------------------------------------------------------//

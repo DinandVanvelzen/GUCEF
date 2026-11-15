@@ -54,6 +54,11 @@ CTableViewColumn::CTableViewColumn( void )
     , booleanDisplay( BOOLEAN_CHECK )
     , nullText()
     , choices()
+    , hiddenByDefault( false )
+    , required( false )
+    , helpTopic()
+    , fit()
+    , markerSlot( 0 )
 {GUCEF_TRACE;
 
 }
@@ -75,6 +80,11 @@ CTableViewColumn::CTableViewColumn( const CString& columnTitle, CORE::TDataTable
     , booleanDisplay( BOOLEAN_CHECK )
     , nullText()
     , choices()
+    , hiddenByDefault( false )
+    , required( false )
+    , helpTopic()
+    , fit()
+    , markerSlot( 0 )
 {GUCEF_TRACE;
 
 }

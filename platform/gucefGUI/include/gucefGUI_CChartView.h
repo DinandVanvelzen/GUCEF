@@ -89,7 +89,10 @@ namespace GUI {
  *  AxisColour, GridColour, CrosshairColour, TooltipColour, SeriesColours, CrosshairVisible, LegendVisible,
  *  LegendPosition, XAxisType, LogScale, IncludeZero, ValuePrefix, ValueSuffix, Decimals, EmphasisColour
  *  (markers without a colour), SelectionColour (the selected marker, the frame of the focus, the band of a range),
- *  RangeSelectable.
+ *  RangeSelectable, EmptyText.
+ *
+ *  A chart with no point in any visible series and no marker shows the EmptyText in the middle of the plot instead of
+ *  axes, grid lines and ticks that would mean nothing. XAxisType Date is a time axis whose ticks are never finer than a day.
  */
 class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 {
@@ -180,6 +183,9 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 
     /** The plot area of the last rebuild, relative to the widget */
     const CRect& GetPlotRect( void ) const;
+
+    /** Whether the last rebuild drew the empty state: no visible series has a point and there is no marker, so the EmptyText is shown instead of axes and ticks */
+    bool IsShowingEmptyState( void ) const;
 
     /** The pixel column of x in the last rebuild, relative to the widget */
     Int32 XToPixel( Int64 x ) const;
@@ -334,6 +340,7 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
         CString valueSuffix;
         CString xAxisType;
         CString legendPosition;
+        CString emptyText;
         Int32 decimals;
         bool logScale;
         bool includeZero;
@@ -458,7 +465,8 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     Int32 m_selectedMarker;
     Int32 m_hoveredMarker;
     bool m_focused;
-    bool m_rangePressed;                    /**< the left button went down on the plot, RangeSelectable set */
+    bool m_showingEmpty;                    /**< the last rebuild drew the empty state */
+    bool m_rangePressed;                   /**< the left button went down on the plot, RangeSelectable set */
     bool m_rangeDragging;                   /**< that press moved RangeDragThreshold pixels or more: a drag that chooses a range */
     bool m_rangeSwallowClick;               /**< the click after the release of a drag (or of an Escape) activates no marker */
     Int32 m_rangeAnchorPixel;               /**< the pixel column of the press, inside the plot */

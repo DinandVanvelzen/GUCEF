@@ -719,6 +719,7 @@ PerformGuiContentBrowserFormTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     RunFormRenderTests( "content browser", &BuildContentScene );
+    RunFormLintBaseline( "ContentBrowser", &BuildContentScene );
 }
 
 /*-------------------------------------------------------------------------*/

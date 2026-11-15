@@ -30,6 +30,11 @@
 #define GUCEF_GUI_CDRAWSURFACE_H
 #endif /* GUCEF_GUI_CDRAWSURFACE_H ? */
 
+#ifndef GUCEF_GUI_ETEXTOVERFLOW_H
+#include "gucefGUI_ETextOverflow.h"
+#define GUCEF_GUI_ETEXTOVERFLOW_H
+#endif /* GUCEF_GUI_ETEXTOVERFLOW_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -70,7 +75,10 @@ class GUCEF_GUI_PUBLIC_CPP CWidgetPainter
      */
     static void PaintOverlay( CGUIContext& context, TCommandVector& commands );
 
-    /** Adds the commands for one block of text: broken into lines and aligned in 'area' */
+    /**
+     *  Adds the commands for one block of text: broken into lines and aligned in 'area'. The text is shown as the display
+     *  text transform of the context makes it (CGUIContext::GetDisplayText()); lines wider than the area are cut at its edge
+     */
     static void PaintText( CGUIContext& context                ,
                            const CString& font                 ,
                            const CString& text                 ,
@@ -82,10 +90,46 @@ class GUCEF_GUI_PUBLIC_CPP CWidgetPainter
                            TCommandVector& commands            );
 
     /**
+     *  As PaintText() with an overflow mode: a line wider than the area is shortened with "..." where the mode says (Clip:
+     *  cut at the edge); with 'wordWrap' a word wider than the area is shortened and lines that do not fit in the height
+     *  end with "..." on the last line that fits. The text commands get 'textFlags' (CDrawSurface::TEXTFLAG_*), plus
+     *  TEXTFLAG_ELIDED where a line was shortened, and the area as their textArea. 'displayText' false says the text is
+     *  already the display text (the transform of the context is not applied again). Returns whether a line was shortened
+     */
+    static bool PaintText( CGUIContext& context                ,
+                           const CString& font                 ,
+                           const CString& text                 ,
+                           const CRect& area                   ,
+                           const CString& hAlign               ,
+                           const CString& vAlign               ,
+                           bool wordWrap                       ,
+                           const CColour& colour               ,
+                           TCommandVector& commands            ,
+                           ETextOverflow overflow              ,
+                           UInt32 textFlags = CDrawSurface::TEXTFLAG_NONE ,
+                           bool displayText = true             );
+
+    /**
      *  The text as it fits in 'maxWidth' pixels of the font: the whole text when it fits, else the longest start of it
      *  followed by "..." that fits ('cut' true). A room too small even for "..." gives an empty text (also cut)
      */
     static CString FitText( CGUIContext& context, const CString& font, const CString& text, Int32 maxWidth, bool& cut );
+
+    /**
+     *  As FitText() with the "..." where the mode says: at the end (EllipsisEnd), at the start (EllipsisStart: the end of
+     *  the text is kept) or in the middle (EllipsisMiddle: about 60 % of the room for the start; the last dot part of a
+     *  file name, up to 8 characters, is kept whole at the end). Clip gives the text unchanged ('cut' false)
+     */
+    static CString FitText( CGUIContext& context, const CString& font, const CString& text, Int32 maxWidth, ETextOverflow mode, bool& cut );
+
+    /**
+     *  Whether the widget shows its own text shortened (a label, a button, a check box, a combo box, a group box caption,
+     *  a window title, drawn with TEXTFLAG_ELIDED); 'fullText' is then the whole text, for its tooltip (CTooltipService)
+     */
+    static bool IsOwnTextElided( const CWidget& widget, CGUIContext& context, CString& fullText );
+
+    /** Pixels between the edges of a button and its text, left and right */
+    enum { ButtonTextPadding = 4 };
 
     /** The left of a text of 'textWidth' pixels in a cell from 'left' with 'width' pixels for an alignment (Left, Center, Right) and padding */
     static Int32 AlignText( Int32 left, Int32 width, Int32 textWidth, const CString& hAlign, Int32 padLeft, Int32 padRight );

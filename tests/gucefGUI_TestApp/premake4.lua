@@ -45,10 +45,19 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "ANDROID" } )
+language( "C++" )
+
 configuration( { "ANDROID32" } )
 language( "C++" )
 
 configuration( { "ANDROID64" } )
+language( "C++" )
+
+configuration( { "ARDUINO" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN" } )
 language( "C++" )
 
 configuration( { "EMSCRIPTEN32" } )
@@ -57,16 +66,67 @@ language( "C++" )
 configuration( { "EMSCRIPTEN64" } )
 language( "C++" )
 
+configuration( { "GLX" } )
+language( "C++" )
+
+configuration( { "GTK" } )
+language( "C++" )
+
+configuration( { "IOS" } )
+language( "C++" )
+
+configuration( { "IPHONE" } )
+language( "C++" )
+
+configuration( { "IPHONEOS" } )
+language( "C++" )
+
+configuration( { "LINUX" } )
+language( "C++" )
+
 configuration( { "LINUX32" } )
 language( "C++" )
 
 configuration( { "LINUX64" } )
 language( "C++" )
 
+configuration( { "MAC" } )
+language( "C++" )
+
+configuration( { "MACOS" } )
+language( "C++" )
+
+configuration( { "MACOSX" } )
+language( "C++" )
+
+configuration( { "MSWIN" } )
+language( "C++" )
+
+configuration( { "NACL" } )
+language( "C++" )
+
+configuration( { "OSX" } )
+language( "C++" )
+
+configuration( { "POSIX" } )
+language( "C++" )
+
+configuration( { "SDL" } )
+language( "C++" )
+
+configuration( { "SYMBIAN" } )
+language( "C++" )
+
+configuration( { "UNIX" } )
+language( "C++" )
+
 configuration( { "WIN32" } )
 language( "C++" )
 
 configuration( { "WIN64" } )
+language( "C++" )
+
+configuration( { "WINDOWS" } )
 language( "C++" )
 
 configuration( { "ANDROID32" } )
@@ -111,101 +171,120 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "ANDROID32" } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
 
 configuration( { "ANDROID32" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-
-configuration( { "ANDROID32" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "ANDROID64" } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-configuration( { "ANDROID64" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-
-configuration( { "ANDROID64" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "EMSCRIPTEN32" } )
-links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-
-configuration( { "EMSCRIPTEN32" } )
-links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-
-
-configuration( { "EMSCRIPTEN32" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "EMSCRIPTEN64" } )
-links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-
-configuration( { "EMSCRIPTEN64" } )
-links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
-
-
-configuration( { "EMSCRIPTEN64" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "LINUX32" } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-configuration( { "LINUX32" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-
-configuration( { "LINUX32" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "LINUX64" } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-configuration( { "LINUX64" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-
-configuration( { "LINUX64" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "WIN32" } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-configuration( { "WIN32" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-
-configuration( { "WIN32" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
-
-configuration( { "WIN64" } )
-links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-configuration( { "WIN64" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "guidriverNull", "guidriverRmlUI" } )
-
-
-configuration( { "WIN64" } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
 
 
 configuration( { "ANDROID32" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "ANDROID64" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
+
+configuration( { "EMSCRIPTEN32" } )
+links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
+
+configuration( { "EMSCRIPTEN64" } )
+links( { "RmlUI_Core", "fontpluginFREETYPE", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverEmscripten", "guidriverNull", "guidriverRmlUI", "guidriverRmlUIOpenGL", "inputdriverEMSCRIPTEN" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "LINUX32" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "LINUX64" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "WIN32" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "WIN32" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+configuration( { "WIN64" } )
+links( { "RmlUI_Core", "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "gucefVIDEO", "gucefWEB", "guidriverNull", "guidriverRmlUI" } )
+
+
+configuration( { "WIN64" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+
+
+configuration( { "ANDROID" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -215,6 +294,7 @@ configuration( { "ANDROID32" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -222,10 +302,13 @@ configuration( { "ANDROID32" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -235,8 +318,11 @@ configuration( { "ANDROID32" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -247,18 +333,27 @@ configuration( { "ANDROID32" } )
 configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -268,6 +363,7 @@ configuration( { "ANDROID64" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -275,10 +371,13 @@ configuration( { "ANDROID64" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -288,8 +387,11 @@ configuration( { "ANDROID64" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -297,21 +399,50 @@ configuration( { "ANDROID64" } )
 
 
 
+configuration( { "ARDUINO" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
 configuration( { "EMSCRIPTEN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -321,6 +452,7 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -328,10 +460,13 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -341,8 +476,11 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -353,18 +491,27 @@ configuration( { "EMSCRIPTEN32" } )
 configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -374,6 +521,7 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -381,10 +529,13 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -394,8 +545,11 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -403,21 +557,90 @@ configuration( { "EMSCRIPTEN64" } )
 
 
 
+configuration( { "GLX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "GTK" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "IOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "IPHONE" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "IPHONEOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "LINUX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -427,6 +650,7 @@ configuration( { "LINUX32" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -434,10 +658,13 @@ configuration( { "LINUX32" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -447,8 +674,11 @@ configuration( { "LINUX32" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -459,18 +689,27 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -480,6 +719,7 @@ configuration( { "LINUX64" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -487,10 +727,13 @@ configuration( { "LINUX64" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -500,8 +743,11 @@ configuration( { "LINUX64" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -509,21 +755,130 @@ configuration( { "LINUX64" } )
 
 
 
+configuration( { "MAC" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "MACOS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "MACOSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "MSWIN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "NACL" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "OSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "POSIX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "SDL" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "SYMBIAN" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
+configuration( { "UNIX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
+    } )
+
+
+
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -533,6 +888,7 @@ configuration( { "WIN32" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -540,10 +896,13 @@ configuration( { "WIN32" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -553,8 +912,11 @@ configuration( { "WIN32" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -565,18 +927,27 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestFakeWebSite.h",
+      "include/TestFakeWebView.h",
+      "include/TestFakeWebViewEngine.h",
+      "include/TestWebViewSupport.h",
       "include/gucefGUI_TestAssetFormSupport.h",
       "include/gucefGUI_TestCommon.h",
       "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridExportSupport.h",
       "include/gucefGUI_TestGridSupport.h",
       "include/gucefGUI_TestInputSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp",
       "src/TestAudioSettingsForm.cpp",
       "src/TestGuiArbitration.cpp",
       "src/TestGuiAssetFormRender.cpp",
+      "src/TestGuiAssetSearchForm.cpp",
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
       "src/TestGuiChartMarkers.cpp",
@@ -586,6 +957,7 @@ configuration( { "WIN64" } )
       "src/TestGuiFonts.cpp",
       "src/TestGuiGraphicsApi.cpp",
       "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridColumnsAndExport.cpp",
       "src/TestGuiGridEditRender.cpp",
       "src/TestGuiGridEditing.cpp",
       "src/TestGuiGridFix.cpp",
@@ -593,10 +965,13 @@ configuration( { "WIN64" } )
       "src/TestGuiGridModel.cpp",
       "src/TestGuiGridRender.cpp",
       "src/TestGuiGridSelection.cpp",
+      "src/TestGuiGridUx.cpp",
       "src/TestGuiImageViewForm.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
+      "src/TestGuiLayoutLint.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiNavigationUx.cpp",
       "src/TestGuiOnScreenKeyboard.cpp",
       "src/TestGuiProperties.cpp",
       "src/TestGuiPropertyInspectorForm.cpp",
@@ -606,16 +981,29 @@ configuration( { "WIN64" } )
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiTimelineForm.cpp",
+      "src/TestGuiTooltipAndHelp.cpp",
+      "src/TestGuiTransferQueueForm.cpp",
       "src/TestGuiUserActionLog.cpp",
       "src/TestGuiViewportForm.cpp",
+      "src/TestGuiWebView.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
+    } )
+
+
+
+configuration( { "WINDOWS" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefWEB_TestApp/src/TestFakeWebSite.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebView.cpp",
+      "../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/RmlUi/Include", "../../dependencies/RmlUi/Include/RmlUi", "../../dependencies/RmlUi/Include/RmlUi/Config", "../../dependencies/RmlUi/Include/RmlUi/Core", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../dependencies/RmlUi/Include/RmlUi/Lua", "../../dependencies/RmlUi/Include/RmlUi/SVG", "../../dependencies/RmlUi/Source/Core", "../../dependencies/RmlUi/Source/Core/Elements", "../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../dependencies/RmlUi/Source/Core/Layout", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/fontpluginFREETYPE/include", "../../plugins/GUI/guidriverNull/include", "../../plugins/GUI/guidriverRmlUI/include", "../../plugins/GUI/guidriverRmlUIOpenGL/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/RmlUi/Include", "../../dependencies/RmlUi/Include/RmlUi", "../../dependencies/RmlUi/Include/RmlUi/Config", "../../dependencies/RmlUi/Include/RmlUi/Core", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../dependencies/RmlUi/Include/RmlUi/Lua", "../../dependencies/RmlUi/Include/RmlUi/SVG", "../../dependencies/RmlUi/Source/Core", "../../dependencies/RmlUi/Source/Core/Elements", "../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../dependencies/RmlUi/Source/Core/Layout", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include", "../../plugins/GUI/fontpluginFREETYPE/include", "../../plugins/GUI/guidriverNull/include", "../../plugins/GUI/guidriverRmlUI/include", "../../plugins/GUI/guidriverRmlUIOpenGL/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android", "include" } )
@@ -636,7 +1024,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCORE/include/linux", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "include" } )

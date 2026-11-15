@@ -160,6 +160,7 @@ CChartAxis::CChartAxis( void )
     , m_prefix()
     , m_suffix()
     , m_decimals( -1 )
+    , m_minimumTimeUnit( TIMEUNIT_SECOND )
     , m_min( 0.0 )
     , m_max( 1.0 )
     , m_ticks()
@@ -340,6 +341,24 @@ CChartAxis::GetDecimals( void ) const
 {GUCEF_TRACE;
 
     return m_decimals;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartAxis::SetMinimumTimeUnit( ETimeUnit unit )
+{GUCEF_TRACE;
+
+    m_minimumTimeUnit = unit;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CChartAxis::ETimeUnit
+CChartAxis::GetMinimumTimeUnit( void ) const
+{GUCEF_TRACE;
+
+    return m_minimumTimeUnit;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -620,10 +639,12 @@ CChartAxis::ComputeTime( Float64 low, Float64 high, UInt32 maxTicks )
     const Int64 highMs = (Int64) floor( high );
     const Float64 span = high - low;
 
-    // the finest step whose ticks fit
+    // the finest step whose ticks fit, not finer than the minimum unit
     UInt32 choice = TimeStepCount - 1;
     for ( UInt32 i=0; i<TimeStepCount; ++i )
     {
+        if ( (Int32) TimeSteps[ i ].unit < (Int32) m_minimumTimeUnit )
+            continue;
         if ( floor( span / (Float64) TimeSteps[ i ].approximateMs ) + 1.0 <= (Float64) maxTicks )
         {
             choice = i;

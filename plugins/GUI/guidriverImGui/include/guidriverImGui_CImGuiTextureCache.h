@@ -78,6 +78,12 @@ class GUIDRIVERIMGUI_PUBLIC_CPP CImGuiTextureCache
     /** An image of the context was registered, changed or unregistered */
     void OnImageChanged( const CString& alias );
 
+    /** A part of an image changed (GUI::CGUIContext::UpdateImageRegion()): its texture gets that part at its next use, not all of it */
+    void OnImageRegionChanged( const CString& alias, const GUI::CRect& region );
+
+    /** The pixels copied into image textures for updates of a part, for tests of what an update costs */
+    UInt64 GetRegionUploadPixelCount( void ) const;
+
     /** Before a new frame: deletes the textures Dear ImGui has destroyed on request */
     void Update( void );
 
@@ -97,6 +103,8 @@ class GUIDRIVERIMGUI_PUBLIC_CPP CImGuiTextureCache
         UInt32 revision;
         const void* source;     /**< the font or atlas a font texture was made from */
         bool stale;
+        bool hasRegion;         /**< only region changed since the texture was brought up to date */
+        GUI::CRect region;
 
         SEntry( void );
     };
@@ -108,6 +116,7 @@ class GUIDRIVERIMGUI_PUBLIC_CPP CImGuiTextureCache
 
     ::ImTextureData* MakeTexture( const IMAGE::CPixelMap& pixels );
     void CopyPixels( ::ImTextureData& texture, const IMAGE::CPixelMap& pixels );
+    void CopyRegion( ::ImTextureData& texture, const IMAGE::CPixelMap& pixels, const GUI::CRect& region );
     void ScheduleDestroy( ::ImTextureData* texture );
     static bool FitsTexture( const ::ImTextureData& texture, const IMAGE::CPixelMap& pixels );
 
@@ -117,6 +126,7 @@ class GUIDRIVERIMGUI_PUBLIC_CPP CImGuiTextureCache
     TEntryMap m_images;
     TEntryMap m_fonts;
     TTextureVector m_dying;
+    UInt64 m_regionUploadPixels;
 };
 
 /*-------------------------------------------------------------------------//

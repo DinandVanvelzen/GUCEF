@@ -58,6 +58,8 @@ CDrawSurface::SCommand::SCommand( void )
     , font()
     , text()
     , points()
+    , textFlags( TEXTFLAG_NONE )
+    , textArea()
 {GUCEF_TRACE;
 
 

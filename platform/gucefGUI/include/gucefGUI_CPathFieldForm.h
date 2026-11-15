@@ -100,7 +100,7 @@ class GUCEF_GUI_PUBLIC_CPP CPathFieldForm : public CFormEx
     /** A file system the dialog browses (see CFileSystemDialogForm::AddRoot()); none: this computer */
     bool AddRoot( const CString& displayName, CORE::TFileSystemAccessPtr access, const CString& initialDirectory = CString::Empty );
 
-    /** File fields: a kind of file the dialog offers (see CFileSystemDialogForm::AddFileType()) */
+    /** A kind of file the dialog offers (see CFileSystemDialogForm::AddFileType()). Folder fields: the dialog also lists the files of the kinds, to see what a folder holds; they cannot be chosen */
     void AddFileType( const CString& description, const CString::StringVector& patterns );
 
     /** Opens the dialog as the button does, in the folder of the path when it is there */

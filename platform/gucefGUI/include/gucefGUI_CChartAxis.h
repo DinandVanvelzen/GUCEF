@@ -132,6 +132,11 @@ class GUCEF_GUI_PUBLIC_CPP CChartAxis
 
     Int32 GetDecimals( void ) const;
 
+    /** The finest unit of the ticks of a time axis (TIMEUNIT_SECOND by default); TIMEUNIT_DAY for an axis of dates, which never shows hours */
+    void SetMinimumTimeUnit( ETimeUnit unit );
+
+    ETimeUnit GetMinimumTimeUnit( void ) const;
+
     /**
      *  Chooses the range and the ticks for the data range and the space available ('maxTicks' ticks at most, at
      *  least 2). A linear numeric axis extends its auto range to whole ticks (1, 2, 2.5 or 5 times a power of 10),
@@ -209,6 +214,7 @@ class GUCEF_GUI_PUBLIC_CPP CChartAxis
     CString m_prefix;
     CString m_suffix;
     Int32 m_decimals;
+    ETimeUnit m_minimumTimeUnit;
 
     Float64 m_min;
     Float64 m_max;

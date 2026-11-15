@@ -50,7 +50,12 @@ namespace GUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** What a cell shows: text, the distinct empty cell of a null, or a check box that is ticked or not */
+/**
+ *  What a cell shows: text, the distinct empty cell of a null, or a check box that is ticked or not. Optionally a status
+ *  (drawn in the colour the grid has for it, see CCellStatusColours), a marker that carries the status in words or a sign
+ *  (never colour alone), and a compact form of a number for a cell that is too narrow for the whole number. The optional
+ *  members have defaults that draw the cell as it always was; CTableCellFormatter::Format() does not change them
+ */
 struct SCellContent
 {
     enum EKind
@@ -61,11 +66,30 @@ struct SCellContent
         KIND_CHECK_OFF
     };
 
-    EKind kind;
-    CString text;       /**< KIND_TEXT: the text; KIND_NULL: the null text of the column; a check: "true" or "false" */
-    bool isNumber;      /**< the value is a number: it is aligned and measured as one */
+    /** The meaning of a cell, which the grid shows by a colour token; the marker says it in words */
+    enum EStatus
+    {
+        STATUS_NORMAL = 0   ,   /**< the text colour of the grid */
+        STATUS_MUTED        ,   /**< of less interest: a value that does not apply, a default */
+        STATUS_ATTENTION    ,   /**< needs action */
+        STATUS_NEGATIVE     ,   /**< a loss, a decrease */
+        STATUS_POSITIVE     ,   /**< a gain, an increase */
+        STATUS_ESTIMATE     ,   /**< estimated, projected, assumed or partial */
+        STATUS_UNKNOWN      ,   /**< not known; the marker or the tooltip says why */
+        STATUS_LINK         ,   /**< opens something: drawn underlined */
 
-    SCellContent( void ) : kind( KIND_TEXT ), text(), isNumber( false ) {}
+        STATUS_COUNT            /**< the number of statuses, not a status */
+    };
+
+    EKind kind;
+    CString text;           /**< KIND_TEXT: the text; KIND_NULL: the null text of the column; a check: "true" or "false" */
+    bool isNumber;          /**< the value is a number: it is aligned and measured as one, and it is never cut (see CGridViewPainter) */
+    EStatus status;         /**< default STATUS_NORMAL */
+    CString marker;         /**< a short text or sign drawn with the value in the colour of the status ("est.", "!"); empty for none */
+    bool markerLeading;     /**< the marker before the value, at the start of the cell; default false: after the value, in the marker slot of the column when it has one */
+    CString compactText;    /**< a shorter form of a number ("$1.24M"), used when the whole text does not fit; empty: the grid makes one from the value */
+
+    SCellContent( void ) : kind( KIND_TEXT ), text(), isNumber( false ), status( STATUS_NORMAL ), marker(), markerLeading( false ), compactText() {}
 };
 
 /**
@@ -92,6 +116,15 @@ class GUCEF_GUI_PUBLIC_CPP CTableCellFormatter
 
     /** Groups the digits before the decimal point of a number written as text in threes, with a comma: 1234567.5 gives 1,234,567.5 */
     static CString GroupDigits( const CString& number );
+
+    /**
+     *  The compact form of a number for a cell that is too narrow for the whole number: three significant digits, rounded
+     *  half up, trailing zeros after the point dropped; a magnitude of a thousand or more scaled with K, M, B or T; a minus
+     *  sign before the prefix of the column (a currency sign), the suffix after the number. With the prefix "$": 1234567.0
+     *  gives "$1.23M", -45210.0 gives "-$45.2K", 155.78 gives "$156", 999999.0 gives "$1M". False for a value that is not
+     *  a number (also a null)
+     */
+    static bool FormatCompact( const CORE::CVariant& value, const CTableViewColumn& column, CString& text );
 
     private:
 

@@ -718,10 +718,11 @@ PerformGuiGridModelTests( void )
         ASSERT_TRUE( driver->HasCapability( "GridModel" ) && driver->HasCapability( "GridTypedCells" ) && driver->HasCapability( "GridCellSelection" ) && driver->HasCapability( "GridLayout" ) );
         GUCEF::set< CORE::CString > capabilities;
         GUI::CGridView::GetCapabilities( capabilities );
-        ASSERT_TRUE( 8 == capabilities.size() );
+        ASSERT_TRUE( 10 == capabilities.size() );
         for ( GUCEF::set< CORE::CString >::const_iterator i = capabilities.begin(); i != capabilities.end(); ++i )
             ASSERT_TRUE( driver->HasCapability( *i ) );
         ASSERT_TRUE( driver->HasCapability( "GridModelContent" ) && driver->HasCapability( "GridBatchUpdate" ) && driver->HasCapability( "GridCellEditing" ) && driver->HasCapability( "GridClipboard" ) );
+        ASSERT_TRUE( driver->HasCapability( "GridColumnChooser" ) && driver->HasCapability( "GridCsvExport" ) );
     }
     catch ( ... )
     {

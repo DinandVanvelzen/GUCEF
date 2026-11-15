@@ -94,6 +94,16 @@
 #define GUCEF_GUI_CSCROLLPANEL_H
 #endif /* GUCEF_GUI_CSCROLLPANEL_H ? */
 
+#ifndef GUCEF_GUI_CIDISPLAYTEXTTRANSFORM_H
+#include "gucefGUI_CIDisplayTextTransform.h"
+#define GUCEF_GUI_CIDISPLAYTEXTTRANSFORM_H
+#endif /* GUCEF_GUI_CIDISPLAYTEXTTRANSFORM_H ? */
+
+#ifndef GUCEF_GUI_CLAYOUTDEBUGOVERLAY_H
+#include "gucefGUI_CLayoutDebugOverlay.h"
+#define GUCEF_GUI_CLAYOUTDEBUGOVERLAY_H
+#endif /* GUCEF_GUI_CLAYOUTDEBUGOVERLAY_H ? */
+
 #include "gucefGUI_CGUIContext.h"
 
 /*-------------------------------------------------------------------------//
@@ -275,7 +285,14 @@ CGUIContext::CGUIContext( CGUIDriver* driver, TWindowContextPtr windowContext )
     , m_inFlush( false )
     , m_dispatchDepth( 0 )
     , m_pendingDestroy()
+    , m_tooltips()
+    , m_displayTextTransform( GUCEF_NULL )
+    , m_layoutRevision( 0 )
+    , m_layoutDebugOverlay( GUCEF_NULL )
 {GUCEF_TRACE;
+
+    m_layoutDebugOverlay = GUCEF_NEW CLayoutDebugOverlay();
+    m_layoutDebugOverlay->ApplyEnvironment();
 
     RegisterEvents();
     if ( !m_windowContext.IsNULL() )
@@ -299,6 +316,8 @@ CGUIContext::~CGUIContext()
         m_windowContext->UnregisterGuiLayer( this );
     UnsubscribeAllFromNotifier();
     DestroyAllWidgets();
+    GUCEF_DELETE m_layoutDebugOverlay;
+    m_layoutDebugOverlay = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -501,6 +520,27 @@ CGUIContext::DestroyForm( CForm* form )
         return;
     m_forms.erase( form );
     delete form;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::AdoptForm( CForm* form )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == form || ( GUCEF_NULL != form->GetContext() && this != form->GetContext() ) )
+        return false;
+    m_forms.insert( form );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::OwnsForm( const CForm* form ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != form && m_forms.find( const_cast< CForm* >( form ) ) != m_forms.end();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -807,6 +847,24 @@ CGUIContext::UpdateImage( const CString& alias )
 /*-------------------------------------------------------------------------*/
 
 bool
+CGUIContext::UpdateImageRegion( const CString& alias, const CRect& region )
+{GUCEF_TRACE;
+
+    TImageMap::iterator i = m_images.find( alias );
+    if ( i == m_images.end() || (*i).second.pixels.IsNULL() )
+        return false;
+    const IMAGE::CPixelMap& pixels = *(*i).second.pixels;
+    const CRect clipped = region.Intersection( CRect( 0, 0, (Int32) pixels.GetWidthInPixels(), (Int32) pixels.GetHeightInPixels() ) );
+    if ( clipped.IsEmpty() )
+        return false;
+    ++(*i).second.revision;
+    OnImageRegionChanged( alias, clipped );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CGUIContext::UnregisterImage( const CString& alias )
 {GUCEF_TRACE;
 
@@ -929,13 +987,69 @@ Int32
 CGUIContext::GetLineHeight( const CString& fontName )
 {GUCEF_TRACE;
 
+    Int32 lineHeight = 16;
     TBitmapFontPtr font = GetBitmapFont( fontName );
-    if ( !font.IsNULL() && font->GetLineHeight() > 0 )
-        return font->GetLineHeight();
     Int32 width = 0, height = 0;
+    if ( !font.IsNULL() && font->GetLineHeight() > 0 )
+        lineHeight = font->GetLineHeight();
+    else
     if ( MeasureText( fontName, "Mg", 0, width, height ) && height > 0 )
-        return height;
-    return 16;
+        lineHeight = height;
+
+    // the line spacing stress of the display text transform (pseudo-localisation) makes every line taller
+    if ( GUCEF_NULL != m_displayTextTransform )
+    {
+        const Float32 spacing = m_displayTextTransform->GetLineSpacing();
+        if ( spacing > 1.0f )
+            lineHeight = (Int32) ( (Float32) lineHeight * spacing + 0.5f );
+    }
+    return lineHeight;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGUIContext::GetMinimumLineHeight( const CString& fontName )
+{GUCEF_TRACE;
+
+    const Int32 lineHeight = GetLineHeight( fontName );
+    return lineHeight - lineHeight / 8;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::SetDisplayTextTransform( CIDisplayTextTransform* transform )
+{GUCEF_TRACE;
+
+    if ( m_displayTextTransform == transform )
+        return;
+    m_displayTextTransform = transform;
+
+    // what is shown changes everywhere: every widget is drawn again and laid out again (line heights may change)
+    for ( TWidgetSet::iterator i=m_widgets.begin(); i!=m_widgets.end(); ++i )
+        OnWidgetDirty( *i );
+    InvalidateLayout();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIDisplayTextTransform*
+CGUIContext::GetDisplayTextTransform( void ) const
+{GUCEF_TRACE;
+
+    return m_displayTextTransform;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGUIContext::GetDisplayText( const CString& text )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_displayTextTransform || text.IsNULLOrEmpty() )
+        return text;
+    return m_displayTextTransform->TransformText( text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1565,6 +1679,10 @@ void
 CGUIContext::InjectMouseMove( Int32 x, Int32 y )
 {GUCEF_TRACE;
 
+    // a pointer that moves is not at rest: the tooltip waits again (a move to the same place is no move)
+    if ( x != m_pointerX || y != m_pointerY )
+        m_tooltips.OnPointerMoved( m_timeInMs );
+
     if ( PreviewMouseMove( x, y ) && GUCEF_NULL == m_pressed )
     {
         // consumed: the widgets do not get it and none shows hover; the position is kept all the same
@@ -1599,6 +1717,10 @@ CGUIContext::InjectMouseMove( Int32 x, Int32 y )
 void
 CGUIContext::InjectMouseButton( TMouseButton button, bool down )
 {GUCEF_TRACE;
+
+    // a press hides the tooltip until the pointer moves again
+    if ( down )
+        m_tooltips.OnInputPressed();
 
     const UInt32 bit = 1u << (UInt32) button;
     const bool consumed = PreviewMouseButton( button, down );
@@ -1737,6 +1859,10 @@ void
 CGUIContext::InjectMouseWheel( Int32 delta )
 {GUCEF_TRACE;
 
+    // the wheel hides the tooltip until the pointer moves again
+    if ( 0 != delta )
+        m_tooltips.OnInputPressed();
+
     if ( PreviewMouseWheel( delta ) )
         return;
 
@@ -1813,6 +1939,10 @@ CGUIContext::GetKeyboardTarget( void ) const
 void
 CGUIContext::InjectKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers )
 {GUCEF_TRACE;
+
+    // a key hides the tooltip until the pointer moves again
+    if ( down )
+        m_tooltips.OnInputPressed();
 
     if ( PreviewKey( keyCode, down, modifiers ) )
     {
@@ -2067,6 +2197,7 @@ CGUIContext::SetHovered( CWidget* widget )
     CWidget* old = m_hovered;
     m_hovered = widget;
     m_hoverStartTime = m_timeInMs;
+    m_tooltips.OnHoverChanged( m_timeInMs );
     if ( GUCEF_NULL != old )
     {
         old->SetStateFlag( CWidget::STATE_HOVERED, false );
@@ -2112,6 +2243,24 @@ CGUIContext::GetHoverDurationInMs( void ) const
 {GUCEF_TRACE;
 
     return m_timeInMs - m_hoverStartTime;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTooltipService&
+CGUIContext::GetTooltipService( void )
+{GUCEF_TRACE;
+
+    return m_tooltips;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CTooltipService&
+CGUIContext::GetTooltipService( void ) const
+{GUCEF_TRACE;
+
+    return m_tooltips;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2467,11 +2616,30 @@ CGUIContext::InvalidateLayout( void )
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CGUIContext::GetLayoutRevision( void ) const
+{GUCEF_TRACE;
+
+    return m_layoutRevision;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLayoutDebugOverlay&
+CGUIContext::GetLayoutDebugOverlay( void )
+{GUCEF_TRACE;
+
+    return *m_layoutDebugOverlay;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CGUIContext::UpdateLayout( void )
 {GUCEF_TRACE;
 
     m_layoutDirty = false;
+    ++m_layoutRevision;
     CRect screen( 0, 0, (Int32) GetLogicalWidth(), (Int32) GetLogicalHeight() );
     for ( TWidgetSet::iterator i=m_widgets.begin(); i!=m_widgets.end(); ++i )
     {
@@ -2508,7 +2676,33 @@ CGUIContext::ResolveSize( const CWidget& widget, const CRect& area, Int32& width
     // a widget that sizes its height to its content (a group box) keeps the width of its Size
     if ( widget.GetBoolProperty( EWidgetProperty_AutoHeight ) && widget.GetNaturalSize( naturalWidth, naturalHeight ) )
         height = naturalHeight;
+
+    // a single line of text is never given less than the height of its line (GetMinimumLineHeight(); a height with a pixel part; a purely
+    // relative height follows its parent): its top stays for VAlign Top, its centre or bottom for Center and Bottom
+    if ( 0 != size.GetY().GetPixelValue() && IsSingleLineTextWidget( widget ) )
+    {
+        const Int32 lineHeight = const_cast< CGUIContext* >( this )->GetMinimumLineHeight( widget.GetPropertyRef( EWidgetProperty_Font ) );
+        if ( height < lineHeight )
+            height = lineHeight;
+    }
     widget.AdjustSize( width, height, area );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::IsSingleLineTextWidget( const CWidget& widget )
+{GUCEF_TRACE;
+
+    // the inputs always have a line of text; labels, buttons and check boxes when they have a text (an empty label can be a rule
+    // or a spacer); a button that is a picture is the size of its picture
+    if ( widget.IsRegisteredAs( "Editbox" ) || widget.IsRegisteredAs( "Combobox" ) || widget.IsRegisteredAs( "Spinner" ) )
+        return true;
+    if ( widget.IsRegisteredAs( "Label" ) )
+        return !widget.GetBoolProperty( EWidgetProperty_WordWrap ) && !widget.GetPropertyRef( EWidgetProperty_Text ).IsNULLOrEmpty();
+    if ( widget.IsRegisteredAs( "Button" ) )
+        return !widget.GetPropertyRef( EWidgetProperty_Text ).IsNULLOrEmpty() && widget.GetPropertyRef( EWidgetProperty_NormalImage ).IsNULLOrEmpty();
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3001,6 +3195,15 @@ void
 CGUIContext::OnImageChanged( const CString& alias )
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::OnImageRegionChanged( const CString& alias, const CRect& region )
+{GUCEF_TRACE;
+
+    OnImageChanged( alias );
 }
 
 /*-------------------------------------------------------------------------*/

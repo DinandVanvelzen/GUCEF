@@ -65,7 +65,18 @@
 #include "gucefGUI_CSettingsForm.h"
 #include "gucefGUI_CVideoSettingsForm.h"
 #include "gucefGUI_CDeveloperConsoleForm.h"
+#include "gucefGUI_CWebPageView.h"
+#include "gucefGUI_CWebViewImageBinding.h"
+#include "gucefGUI_CWebViewForm.h"
+#include "gucefWEB_CWebViewGlobal.h"
 #include "gucefGUI_CFileSystemDialogForm.h"
+#include "gucefGUI_CGridColumnChooserForm.h"
+#include "gucefGUI_CKeyboardShortcutMap.h"
+#include "gucefGUI_CTabAreaNavigator.h"
+#include "gucefGUI_CNavigationHistory.h"
+#include "gucefGUI_CBreadcrumbBar.h"
+#include "gucefGUI_CAsyncGridCsvExport.h"
+#include "gucefCORE_CTaskManager.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -132,6 +143,9 @@ CGuiGlobal::Initialize( void )
     // Ensure the Vfs systems are initialzed first since this module depends on Vfs
     VFS::CVfsGlobal::Instance();
 
+    // the web view page widget and form build on the web views of gucefWEB
+    WEB::CWebViewGlobal::Instance();
+
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Initializing gucefGUI Global systems" );
 
     /*
@@ -148,6 +162,11 @@ CGuiGlobal::Initialize( void )
     CPathFieldForm::RegisterEvents();
     CFileSystemDialogForm::RegisterEvents();
     CGridView::RegisterEvents();
+    CGridColumnChooserForm::RegisterEvents();
+    CKeyboardShortcutMap::RegisterEvents();
+    CTabAreaNavigator::RegisterEvents();
+    CNavigationHistory::RegisterEvents();
+    CBreadcrumbBar::RegisterEvents();
     CLabel::RegisterEvents();
     CListbox::RegisterEvents();
     CPushButton::RegisterEvents();
@@ -158,6 +177,9 @@ CGuiGlobal::Initialize( void )
     CSettingsForm::RegisterEvents();
     CVideoSettingsForm::RegisterEvents();
     CDeveloperConsoleForm::RegisterEvents();
+    CWebPageView::RegisterEvents();
+    CWebViewImageBinding::RegisterEvents();
+    CWebViewForm::RegisterEvents();
     CGUIManager::RegisterEvents();
 
     /*
@@ -168,6 +190,8 @@ CGuiGlobal::Initialize( void )
     m_fontRasterizerRegistry = new CFontRasterizerRegistry();
     m_keyboardLayoutRegistry = new CKeyboardLayoutRegistry();
     CSettingsForm::RegisterStandardPages();
+    m_gridCsvExportTaskFactory = GUCEF_NEW TAsyncGridCsvExportTaskFactory();
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncGridCsvExport::TaskType, m_gridCsvExportTaskFactory );
 
     m_windowManager = new CWindowManager();
     m_guiManager = new CGUIManager();
@@ -188,7 +212,8 @@ CGuiGlobal::CGuiGlobal( void )
       m_guiManager( GUCEF_NULL )    ,
       m_widgetTypeRegistry( GUCEF_NULL ) ,
       m_fontRasterizerRegistry( GUCEF_NULL ) ,
-      m_keyboardLayoutRegistry( GUCEF_NULL )
+      m_keyboardLayoutRegistry( GUCEF_NULL ) ,
+      m_gridCsvExportTaskFactory( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -210,6 +235,9 @@ CGuiGlobal::~CGuiGlobal()
     delete m_windowManager;
     m_windowManager = GUCEF_NULL;
     CSettingsForm::UnregisterStandardPages();
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncGridCsvExport::TaskType );
+    GUCEF_DELETE m_gridCsvExportTaskFactory;
+    m_gridCsvExportTaskFactory = GUCEF_NULL;
     delete m_keyboardLayoutRegistry;
     m_keyboardLayoutRegistry = GUCEF_NULL;
     delete m_fontRasterizerRegistry;

@@ -54,6 +54,8 @@ CImGuiTextureCache::SEntry::SEntry( void )
     , revision( 0 )
     , source( GUCEF_NULL )
     , stale( false )
+    , hasRegion( false )
+    , region()
 {
 }
 
@@ -64,6 +66,7 @@ CImGuiTextureCache::CImGuiTextureCache( GUI::CGUIContext& context )
     , m_images()
     , m_fonts()
     , m_dying()
+    , m_regionUploadPixels( 0 )
 {GUCEF_TRACE;
 
 }
@@ -155,6 +158,18 @@ CImGuiTextureCache::GetImageTexture( const CString& reference )
     if ( GUCEF_NULL != entry.texture && !entry.stale && entry.revision == revision )
         return entry.texture;
 
+    // only a part changed (UpdateImageRegion()): that part is copied and uploaded, the rest of the texture stays
+    if ( GUCEF_NULL != entry.texture && !entry.stale && entry.hasRegion && FitsTexture( *entry.texture, *pixels ) &&
+         IMAGE::PSF_RGBA == pixels->GetPixelStorageFormat() && GUCEF::DATATYPE_UINT8 == pixels->GetPixelComponentDataType() &&
+         ( ImTextureStatus_OK == entry.texture->Status || ImTextureStatus_WantUpdates == entry.texture->Status ) )
+    {
+        CopyRegion( *entry.texture, *pixels, entry.region );
+        entry.hasRegion = false;
+        entry.revision = revision;
+        return entry.texture;
+    }
+    entry.hasRegion = false;
+
     if ( GUCEF_NULL != entry.texture && FitsTexture( *entry.texture, *pixels ) )
     {
         // the whole texture changes
@@ -223,6 +238,78 @@ CImGuiTextureCache::OnImageChanged( const CString& alias )
         return;
     }
     (*i).second.stale = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CImGuiTextureCache::OnImageRegionChanged( const CString& alias, const GUI::CRect& region )
+{GUCEF_TRACE;
+
+    TEntryMap::iterator i = m_images.find( alias );
+    if ( i == m_images.end() || (*i).second.stale )
+        return;
+    SEntry& entry = (*i).second;
+    if ( !entry.hasRegion )
+    {
+        entry.region = region;
+        entry.hasRegion = true;
+        return;
+    }
+    // the parts that changed before the next use, as one rectangle around them
+    const Int32 left = entry.region.left < region.left ? entry.region.left : region.left;
+    const Int32 top = entry.region.top < region.top ? entry.region.top : region.top;
+    const Int32 right = entry.region.Right() > region.Right() ? entry.region.Right() : region.Right();
+    const Int32 bottom = entry.region.Bottom() > region.Bottom() ? entry.region.Bottom() : region.Bottom();
+    entry.region = GUI::CRect( left, top, right - left, bottom - top );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CImGuiTextureCache::CopyRegion( ::ImTextureData& texture, const IMAGE::CPixelMap& pixels, const GUI::CRect& region )
+{GUCEF_TRACE;
+
+    const GUI::CRect r = region.Intersection( GUI::CRect( 0, 0, texture.Width, texture.Height ) );
+    if ( r.IsEmpty() )
+        return;
+    const UInt8* source = static_cast< const UInt8* >( pixels.GetDataPtr() );
+    const size_t rowBytes = (size_t) r.width * 4;
+    for ( Int32 y=r.top; y<r.Bottom(); ++y )
+        memcpy( texture.GetPixelsAt( r.left, y ), source + ( (size_t) y * pixels.GetWidthInPixels() + r.left ) * 4, rowBytes );
+    m_regionUploadPixels += (UInt64) r.width * r.height;
+
+    ImTextureRect update;
+    update.x = (unsigned short) r.left;
+    update.y = (unsigned short) r.top;
+    update.w = (unsigned short) r.width;
+    update.h = (unsigned short) r.height;
+    if ( ImTextureStatus_WantUpdates == texture.Status )
+    {
+        // queued with updates that were not uploaded yet: the bounding box grows
+        const int right = ( texture.UpdateRect.x + texture.UpdateRect.w ) > ( update.x + update.w ) ? ( texture.UpdateRect.x + texture.UpdateRect.w ) : ( update.x + update.w );
+        const int bottom = ( texture.UpdateRect.y + texture.UpdateRect.h ) > ( update.y + update.h ) ? ( texture.UpdateRect.y + texture.UpdateRect.h ) : ( update.y + update.h );
+        texture.UpdateRect.x = texture.UpdateRect.x < update.x ? texture.UpdateRect.x : update.x;
+        texture.UpdateRect.y = texture.UpdateRect.y < update.y ? texture.UpdateRect.y : update.y;
+        texture.UpdateRect.w = (unsigned short) ( right - texture.UpdateRect.x );
+        texture.UpdateRect.h = (unsigned short) ( bottom - texture.UpdateRect.y );
+    }
+    else
+    {
+        texture.Updates.resize( 0 );
+        texture.UpdateRect = update;
+    }
+    texture.Updates.push_back( update );
+    texture.SetStatus( ImTextureStatus_WantUpdates );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CImGuiTextureCache::GetRegionUploadPixelCount( void ) const
+{GUCEF_TRACE;
+
+    return m_regionUploadPixels;
 }
 
 /*-------------------------------------------------------------------------*/

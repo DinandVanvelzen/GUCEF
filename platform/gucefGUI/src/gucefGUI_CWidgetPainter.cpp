@@ -62,6 +62,7 @@
 #include "gucefGUI_CProgressBar.h"
 #include "gucefGUI_CDrawSurface.h"
 #include "gucefGUI_CTabControl.h"
+#include "gucefGUI_CTabControlPainter.h"
 #include "gucefGUI_CTreeview.h"
 #include "gucefGUI_CMenuBar.h"
 #include "gucefGUI_CPopupMenu.h"
@@ -70,6 +71,9 @@
 #include "gucefGUI_CAudioPlayer.h"
 #include "gucefGUI_CWindow.h"
 #include "gucefGUI_CScrollPanel.h"
+#include "gucefGUI_CTooltipLayout.h"
+#include "gucefGUI_CTooltipPainter.h"
+#include "gucefGUI_CLayoutDebugOverlay.h"
 
 #include "gucefGUI_CWidgetPainter.h"
 
@@ -100,9 +104,6 @@ const CColour DisabledTextColour( 128, 128, 128, 255 );
 const CColour FocusColour( 200, 200, 90, 255 );
 const CColour AccentColour( 74, 136, 232, 255 );          /* the accent of the standard theme: focus, selection, and the rows that need the player */
 const CColour AccentTint( 74, 136, 232, 56 );
-
-/** How long the pointer rests on a widget before its tooltip shows */
-const UInt64 TooltipDelayInMs = 600;
 
 bool
 IsA( const CWidget& widget, const char* type )
@@ -182,7 +183,8 @@ Line( CWidgetPainter::TCommandVector& commands, Int32 x0, Int32 y0, Int32 x1, In
 }
 
 void
-Text( CWidgetPainter::TCommandVector& commands, const CString& font, const CString& text, Int32 x, Int32 y, const CColour& colour )
+Text( CWidgetPainter::TCommandVector& commands, const CString& font, const CString& text, Int32 x, Int32 y, const CColour& colour,
+      UInt32 textFlags = CDrawSurface::TEXTFLAG_NONE, const CRect& textArea = CRect() )
 {
     if ( text.IsNULLOrEmpty() || 0 == colour.a )
         return;
@@ -193,7 +195,65 @@ Text( CWidgetPainter::TCommandVector& commands, const CString& font, const CStri
     command.x0 = x;
     command.y0 = y;
     command.colour = colour;
+    command.textFlags = textFlags;
+    command.textArea = textArea;
     commands.push_back( command );
+}
+
+/** The TextOverflow of a widget whose type has the property, 'fallback' when it has none (an older layout, a type without it) */
+ETextOverflow
+OverflowOf( const CWidget& widget, ETextOverflow fallback )
+{
+    return StringToTextOverflow( widget.GetPropertyRef( EWidgetProperty_TextOverflow ), fallback );
+}
+
+/** Whether the byte starts a code point (it is not a continuation byte of UTF-8) */
+bool
+StartsCodePoint( const CString& text, UInt32 index )
+{
+    return index >= text.Length() || 0x80 != ( (UInt32)(unsigned char) text[ index ] & 0xC0 );
+}
+
+/** The longest start of the text (in bytes, on a code point boundary) that is at most 'room' pixels wide */
+UInt32
+LongestStart( CGUIContext& context, const CString& font, const CString& text, Int32 room )
+{
+    UInt32 low = 0;
+    UInt32 high = text.Length();
+    Int32 width = 0, height = 0;
+    while ( low < high )
+    {
+        UInt32 middle = ( low + high + 1 ) / 2;
+        context.MeasureText( font, text.SubstrFromRange( 0, middle ), 0, width, height );
+        if ( width <= room )
+            low = middle;
+        else
+            high = middle - 1;
+    }
+    while ( low > 0 && !StartsCodePoint( text, low ) )
+        --low;
+    return low;
+}
+
+/** Where the longest end of the text starts (in bytes, on a code point boundary) that is at most 'room' pixels wide */
+UInt32
+LongestEnd( CGUIContext& context, const CString& font, const CString& text, Int32 room )
+{
+    UInt32 low = 0;
+    UInt32 high = text.Length();
+    Int32 width = 0, height = 0;
+    while ( low < high )
+    {
+        UInt32 middle = ( low + high ) / 2;
+        context.MeasureText( font, text.SubstrFromRange( middle, text.Length() ), 0, width, height );
+        if ( width <= room )
+            high = middle;
+        else
+            low = middle + 1;
+    }
+    while ( low < text.Length() && !StartsCodePoint( text, low ) )
+        ++low;
+    return low;
 }
 
 void
@@ -379,20 +439,86 @@ CWidgetPainter::FitText( CGUIContext& context, const CString& font, const CStrin
 
 /*-------------------------------------------------------------------------*/
 
-void
+CString
+CWidgetPainter::FitText( CGUIContext& context, const CString& font, const CString& text, Int32 maxWidth, ETextOverflow mode, bool& cut )
+{GUCEF_TRACE;
+
+    cut = false;
+    if ( TEXTOVERFLOW_CLIP == mode || text.IsNULLOrEmpty() )
+        return text;
+    if ( TEXTOVERFLOW_ELLIPSISEND == mode )
+        return FitText( context, font, text, maxWidth, cut );
+
+    Int32 width = 0, height = 0;
+    context.MeasureText( font, text, 0, width, height );
+    if ( width <= maxWidth )
+        return text;
+    cut = true;
+    static const CString ellipsis( "..." );
+    Int32 ellipsisWidth = 0;
+    context.MeasureText( font, ellipsis, 0, ellipsisWidth, height );
+    if ( ellipsisWidth > maxWidth )
+        return CString::Empty;
+    const Int32 room = maxWidth - ellipsisWidth;
+
+    if ( TEXTOVERFLOW_ELLIPSISSTART == mode )
+    {
+        // the end of the text is kept: "...rest of the text"
+        UInt32 start = LongestEnd( context, font, text, room );
+        while ( start < text.Length() && ' ' == text[ start ] )
+            ++start;
+        return ellipsis + text.SubstrFromRange( start, text.Length() );
+    }
+
+    // the middle: the extension of a file name stays whole at the end, the start gets about 60 % of the room
+    CString extension;
+    const Int32 dot = text.HasChar( '.', false );
+    const Int32 slash = text.HasChar( '/', false ) > text.HasChar( '\\', false ) ? text.HasChar( '/', false ) : text.HasChar( '\\', false );
+    if ( dot > 0 && dot > slash + 1 && text.Length() - (UInt32) dot <= 9 )
+        extension = text.SubstrFromRange( (UInt32) dot, text.Length() );
+    Int32 extensionWidth = 0;
+    if ( !extension.IsNULLOrEmpty() )
+        context.MeasureText( font, extension, 0, extensionWidth, height );
+    if ( extensionWidth > room )
+    {
+        extension = CString::Empty;
+        extensionWidth = 0;
+    }
+    Int32 tailRoom = room - room * 6 / 10;
+    if ( tailRoom < extensionWidth )
+        tailRoom = extensionWidth;
+    UInt32 tailStart = LongestEnd( context, font, text, tailRoom );
+    if ( !extension.IsNULLOrEmpty() && tailStart > (UInt32) dot )
+        tailStart = (UInt32) dot;
+    const CString tail = text.SubstrFromRange( tailStart, text.Length() );
+    Int32 tailWidth = 0;
+    context.MeasureText( font, tail, 0, tailWidth, height );
+    UInt32 headEnd = LongestStart( context, font, text.SubstrFromRange( 0, tailStart ), room - tailWidth );
+    while ( headEnd > 0 && ' ' == text[ headEnd - 1 ] )
+        --headEnd;
+    return text.SubstrFromRange( 0, headEnd ) + ellipsis + tail;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CWidgetPainter::PaintText( CGUIContext& context     ,
                            const CString& font      ,
-                           const CString& text      ,
+                           const CString& sourceText,
                            const CRect& area        ,
                            const CString& hAlign    ,
                            const CString& vAlign    ,
                            bool wordWrap            ,
                            const CColour& colour    ,
-                           TCommandVector& commands )
+                           TCommandVector& commands ,
+                           ETextOverflow overflow   ,
+                           UInt32 textFlags         ,
+                           bool displayText         )
 {GUCEF_TRACE;
 
-    if ( text.IsNULLOrEmpty() )
-        return;
+    if ( sourceText.IsNULLOrEmpty() )
+        return false;
+    const CString text = displayText ? context.GetDisplayText( sourceText ) : sourceText;
 
     TStringVector lines;
     TBitmapFontPtr bitmapFont = context.GetBitmapFont( font );
@@ -407,6 +533,28 @@ CWidgetPainter::PaintText( CGUIContext& context     ,
     }
 
     Int32 lineHeight = context.GetLineHeight( font );
+    bool elided = false;
+    if ( TEXTOVERFLOW_CLIP != overflow )
+    {
+        // wrapped text that is higher than the area: the last line that fits ends with "..."
+        if ( wordWrap && lineHeight > 0 && (Int32) lines.size() * lineHeight > area.height )
+        {
+            UInt32 fitting = (UInt32) ( area.height / lineHeight );
+            if ( fitting < 1 )
+                fitting = 1;
+            if ( fitting < (UInt32) lines.size() )
+            {
+                lines.resize( fitting );
+                bool cut = false;
+                CString last = FitText( context, font, lines.back() + "...", area.width, TEXTOVERFLOW_ELLIPSISEND, cut );
+                if ( !cut )
+                    last = lines.back() + "...";
+                lines.back() = last;
+                elided = true;
+            }
+        }
+    }
+
     Int32 totalHeight = lineHeight * (Int32) lines.size();
     Int32 y = area.top;
     if ( vAlign == "Center" )
@@ -416,15 +564,43 @@ CWidgetPainter::PaintText( CGUIContext& context     ,
 
     for ( UInt32 i=0; i<(UInt32)lines.size(); ++i, y += lineHeight )
     {
+        CString line = lines[ i ];
+        UInt32 flags = textFlags;
+        bool cut = false;
+        if ( TEXTOVERFLOW_CLIP != overflow )
+            line = FitText( context, font, line, area.width, overflow, cut );
+        if ( cut || ( elided && i + 1 == (UInt32) lines.size() ) )
+        {
+            flags |= CDrawSurface::TEXTFLAG_ELIDED;
+            elided = true;
+        }
         Int32 width = 0, height = 0;
-        context.MeasureText( font, lines[ i ], 0, width, height );
+        context.MeasureText( font, line, 0, width, height );
         Int32 x = area.left;
         if ( hAlign == "Center" )
             x = area.left + ( area.width - width ) / 2;
         else if ( hAlign == "Right" )
             x = area.Right() - width;
-        Text( commands, font, lines[ i ], x, y, colour );
+        Text( commands, font, line, x, y, colour, flags, area );
     }
+    return elided;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidgetPainter::PaintText( CGUIContext& context     ,
+                           const CString& font      ,
+                           const CString& text      ,
+                           const CRect& area        ,
+                           const CString& hAlign    ,
+                           const CString& vAlign    ,
+                           bool wordWrap            ,
+                           const CColour& colour    ,
+                           TCommandVector& commands )
+{GUCEF_TRACE;
+
+    PaintText( context, font, text, area, hAlign, vAlign, wordWrap, colour, commands, TEXTOVERFLOW_CLIP, CDrawSurface::TEXTFLAG_NONE, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -486,7 +662,7 @@ CWidgetPainter::PaintButton( const CWidget& widget, CGUIContext& context, const 
         if ( 0 != ( state & CWidget::STATE_CHECKED ) )
             Fill( commands, CRect( box.left + 3, box.top + 3, size - 6, size - 6 ), TextColourOf( widget ) );
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), CRect( area.left + size + 4, area.top, area.width - size - 4, area.height ),
-                   "Left", "Center", false, TextColourOf( widget ), commands );
+                   "Left", "Center", false, TextColourOf( widget ), commands, OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
         return;
     }
     else
@@ -512,7 +688,10 @@ CWidgetPainter::PaintButton( const CWidget& widget, CGUIContext& context, const 
     if ( 0 != ( state & CWidget::STATE_FOCUSED ) && image.IsNULLOrEmpty() )
         Stroke( commands, CRect( area.left + 1, area.top + 1, area.width - 2, area.height - 2 ), FocusColour, 1 );
 
-    PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), area, "Center", "Center", false, TextColourOf( widget ), commands );
+    // the text inside the padding of the button, shortened with "..." when it does not fit (its tooltip is then the whole text)
+    const CRect textArea( area.left + ButtonTextPadding, area.top, area.width - 2 * ButtonTextPadding > 0 ? area.width - 2 * ButtonTextPadding : 0, area.height );
+    PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), textArea, "Center", "Center", false, TextColourOf( widget ), commands,
+               OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -543,7 +722,7 @@ CWidgetPainter::PaintEditbox( const CWidget& widget, CGUIContext& context, const
     PushClip( commands, area );
     if ( widget.GetBoolProperty( EWidgetProperty_Selected ) && width > 0 )
         Fill( commands, CRect( x, y, width, lineHeight ), ColourOr( widget, EWidgetProperty_SelectionColour, CColour( 60, 90, 160, 255 ) ) );
-    Text( commands, font, text, x, y, TextColourOf( widget ) );
+    Text( commands, font, text, x, y, TextColourOf( widget ), CDrawSurface::TEXTFLAG_SCROLLABLE_X, area );
     if ( widget.GetBoolProperty( EWidgetProperty_CaretVisible ) )
         Fill( commands, CRect( x + width, y, 1, lineHeight ), TextColourOf( widget ) );
     PopClip( commands );
@@ -591,8 +770,10 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
                 rowColour = itemColour;
             }
             bool cut = false;
-            const CString text = ellipsis ? FitText( context, font, items[ row ], room, cut ) : items[ row ];
-            Text( commands, font, text, textLeft, y + ( rowHeight - lineHeight ) / 2, list->IsItemDisabled( row ) ? disabledColour : rowColour );
+            const CString shown = context.GetDisplayText( items[ row ] );
+            const CString text = ellipsis ? FitText( context, font, shown, room, cut ) : shown;
+            Text( commands, font, text, textLeft, y + ( rowHeight - lineHeight ) / 2, list->IsItemDisabled( row ) ? disabledColour : rowColour,
+                  CDrawSurface::TEXTFLAG_SCROLLABLE_Y | ( cut ? CDrawSurface::TEXTFLAG_ELIDED : 0 ), rowRect );
             if ( row == hoverIndex && !list->IsItemDisabled( row ) )
                 Stroke( commands, rowRect, hoverColour, 1 );
         }
@@ -604,6 +785,7 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
         Int32 indent = widget.GetIntProperty( EWidgetProperty_Indent );
         CTreeview::TRowVector rows = tree->GetVisibleRows();
         CString selected = tree->GetSelectedItem();
+        const CTreeview::TStringVector badges = widget.GetStringListProperty( EWidgetProperty_ItemBadges );
         for ( Int32 row = scroll, y = area.top; row < (Int32) rows.size() && y < area.Bottom(); ++row, y += rowHeight )
         {
             const CTreeview::TRow& entry = rows[ row ];
@@ -620,7 +802,32 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
                 if ( !entry.expanded )
                     Line( commands, cx, cy - 3, cx, cy + 3, textColour );
             }
-            Text( commands, font, entry.label, x + indent, y, textColour );
+            // a badge (ItemBadges) at the right end of the row: a dot or a pill; the label is cut off before it
+            const CString badge = badges.empty() ? CString::Empty : CTreeview::FindItemBadge( badges, entry.path );
+            const UInt32 rowFlags = CDrawSurface::TEXTFLAG_SCROLLABLE_Y;
+            if ( badge.IsNULLOrEmpty() )
+                Text( commands, font, context.GetDisplayText( entry.label ), x + indent, y, textColour, rowFlags, rowRect );
+            else
+            {
+                CRect badgeRect;
+                if ( "*" == badge )
+                    badgeRect = CRect( area.Right() - 4 - 8, y + ( rowHeight - 8 ) / 2, 8, 8 );
+                else
+                {
+                    Int32 badgeWidth = 0, badgeHeight = 0;
+                    context.MeasureText( font, badge, 0, badgeWidth, badgeHeight );
+                    Int32 pillHeight = context.GetLineHeight( font ) + 2;
+                    if ( pillHeight > rowHeight - 2 )
+                        pillHeight = rowHeight - 2;
+                    badgeRect = CRect( area.Right() - 4 - ( badgeWidth + 8 ), y + ( rowHeight - pillHeight ) / 2, badgeWidth + 8, pillHeight );
+                }
+                PushClip( commands, CRect( area.left, y, badgeRect.left - 4 - area.left > 0 ? badgeRect.left - 4 - area.left : 0, rowHeight ) );
+                Text( commands, font, context.GetDisplayText( entry.label ), x + indent, y, textColour, rowFlags, rowRect );
+                PopClip( commands );
+                Fill( commands, badgeRect, AccentColour );
+                if ( !( "*" == badge ) )
+                    PaintText( context, font, badge, badgeRect, "Center", "Center", false, CColour( 255, 255, 255, 255 ), commands );
+            }
             if ( row == hoverIndex )
                 Stroke( commands, rowRect, hoverColour, 1 );
         }
@@ -633,12 +840,19 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
             rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
         CTextbox::TStringVector lines = textbox->GetDisplayLines();
         for ( Int32 line = scroll, y = area.top; line < (Int32) lines.size() && y < area.Bottom(); ++line, y += rowHeight )
-            Text( commands, font, lines[ line ], area.left, y, textColour );
+            Text( commands, font, context.GetDisplayText( lines[ line ] ), area.left, y, textColour, CDrawSurface::TEXTFLAG_SCROLLABLE_Y, CRect( area.left, y, area.width, rowHeight ) );
     }
     else
     if ( const CGridView* grid = AsType< CGridView >( widget ) )
     {
+        const size_t first = commands.size();
         CGridViewPainter::Paint( *grid, context, area, commands );
+
+        // the rows scroll, and the columns when the grid scrolls sideways: a cell cut at the edge of the view is scrolled to
+        const UInt32 flags = CDrawSurface::TEXTFLAG_SCROLLABLE_Y | ( grid->IsHorizontallyScrollable() ? CDrawSurface::TEXTFLAG_SCROLLABLE_X : 0 );
+        for ( size_t i=first; i<commands.size(); ++i )
+            if ( CDrawSurface::COMMAND_TEXT == commands[ i ].type )
+                commands[ i ].textFlags |= flags;
     }
     else
     if ( const CPopupMenu* menu = AsType< CPopupMenu >( widget ) )
@@ -655,7 +869,8 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
             }
             if ( row == hoverIndex )
                 Fill( commands, rowRect, hoverColour );
-            Text( commands, font, items[ row ], area.left + 8, y, menu->IsItemSelectable( row ) ? textColour : disabledColour );
+            Text( commands, font, context.GetDisplayText( items[ row ] ), area.left + 8, y, menu->IsItemSelectable( row ) ? textColour : disabledColour,
+                  CDrawSurface::TEXTFLAG_NONE, rowRect );
         }
     }
 
@@ -687,7 +902,8 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     {
         PaintBox( widget, area, commands );
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), area, widget.GetPropertyRef( EWidgetProperty_HTextAlign ),
-                   widget.GetPropertyRef( EWidgetProperty_VTextAlign ), widget.GetBoolProperty( EWidgetProperty_WordWrap ), TextColourOf( widget ), commands );
+                   widget.GetPropertyRef( EWidgetProperty_VTextAlign ), widget.GetBoolProperty( EWidgetProperty_WordWrap ), TextColourOf( widget ), commands,
+                   OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
         return;
     }
     if ( IsA( widget, "Editbox" ) )
@@ -723,8 +939,8 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
         CRect arrow( area.Right() - area.height, area.top, area.height, area.height );
         DownArrow( commands, arrow, TextColourOf( widget ) );
         PushClip( commands, CRect( area.left, area.top, area.width - area.height, area.height ) );
-        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), CRect( area.left + 2, area.top, area.width - 2, area.height ),
-                   "Left", "Center", false, TextColourOf( widget ), commands );
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), CRect( area.left + 2, area.top, area.width - area.height - 2, area.height ),
+                   "Left", "Center", false, TextColourOf( widget ), commands, OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
         PopClip( commands );
         return;
     }
@@ -736,7 +952,8 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
         CColour colour = TextColourOf( widget );
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), "-", CRect( 0, 0, part, area.height ), "Center", "Center", false, colour, commands );
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), "+", CRect( area.width - part, 0, part, area.height ), "Center", "Center", false, colour, commands );
-        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), spinner->GetValueText(), area, "Center", "Center", false, colour, commands );
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), spinner->GetValueText(), area, "Center", "Center", false, colour, commands,
+                   TEXTOVERFLOW_CLIP, CDrawSurface::TEXTFLAG_NUMERIC, false );
         return;
     }
     if ( const CSlider* slider = AsType< CSlider >( widget ) )
@@ -769,20 +986,8 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     }
     if ( const CTabControl* tabs = AsType< CTabControl >( widget ) )
     {
-        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
-        CTabControl::TStringVector titles = widget.GetStringListProperty( EWidgetProperty_Tabs );
-        const bool ellipsis = "Ellipsis" == widget.GetPropertyRef( EWidgetProperty_TextOverflow );
-        for ( UInt32 i=0; i<(UInt32)titles.size(); ++i )
-        {
-            CRect header = tabs->GetTabRect( i );
-            bool active = (Int32) i == tabs->GetActiveTab();
-            Fill( commands, header, ColourOr( widget, active ? EWidgetProperty_ActiveTabColour : EWidgetProperty_TabColour, BoxColour ) );
-            Stroke( commands, header, BoxBorderColour, 1 );
-            // a title wider than its tab: cut with "..." within the padding of the tab (the tooltip has the whole title)
-            bool cut = false;
-            const CString title = ellipsis ? FitText( context, widget.GetPropertyRef( EWidgetProperty_Font ), titles[ i ], tabs->GetTabTextRoom( i ), cut ) : titles[ i ];
-            PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), title, header, "Center", "Center", false, TextColourOf( widget ), commands );
-        }
+        // the tabs, their badges and the overflow button of TabSizing Content
+        CTabControlPainter::Paint( *tabs, context, area, commands );
         return;
     }
     if ( const CMenuBar* bar = AsType< CMenuBar >( widget ) )
@@ -827,41 +1032,46 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
         char time[ 32 ];
         snprintf( time, sizeof( time ), "%d:%02d", seconds / 60, seconds % 60 );
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), time, CRect( symbol.Right() + 4, 0, area.width - symbol.Right() - 4, area.height ),
-                   "Left", "Center", false, TextColourOf( widget ), commands );
+                   "Left", "Center", false, TextColourOf( widget ), commands, TEXTOVERFLOW_CLIP, CDrawSurface::TEXTFLAG_NUMERIC, false );
         return;
     }
 
-    // panels, forms, the containers, windows and plain widgets
-    PaintBox( widget, area, commands );
-    if ( IsA( widget, "GroupBox" ) )
-    {
-        // the frame; its top line goes through the middle of the caption, with a gap where the caption is
-        CString caption = widget.GetPropertyRef( EWidgetProperty_Caption );
-        CString font = widget.GetPropertyRef( EWidgetProperty_Font );
-        Int32 captionHeight = caption.IsNULLOrEmpty() ? 0 : context.GetLineHeight( font );
-        Int32 lineY = captionHeight / 2;
-        Int32 right = area.width - 1;
-        Int32 bottom = area.height - 1;
-        CColour frame = ColourOr( widget, EWidgetProperty_FrameColour, CColour( 120, 120, 130, 255 ) );
-        Line( commands, 0, lineY, 0, bottom, frame );
-        Line( commands, right, lineY, right, bottom, frame );
-        Line( commands, 0, bottom, right, bottom, frame );
-        if ( captionHeight > 0 )
-        {
-            Int32 textWidth = 0, textHeight = 0;
-            context.MeasureText( font, caption, 0, textWidth, textHeight );
-            const Int32 gapLeft = 8;
-            const Int32 gapRight = gapLeft + 4 + textWidth + 4;
-            Line( commands, 0, lineY, gapLeft, lineY, frame );
-            if ( gapRight < right )
-                Line( commands, gapRight, lineY, right, lineY, frame );
-            PaintText( context, font, caption, CRect( gapLeft + 4, 0, textWidth + 1, captionHeight ), "Left", "Center", false, TextColourOf( widget ), commands );
-        }
-        else
-        {
-            Line( commands, 0, 0, right, 0, frame );
-        }
-    }
+    // panels, forms, the containers, windows and plain widgets
+    PaintBox( widget, area, commands );
+    if ( IsA( widget, "GroupBox" ) )
+    {
+        // the frame; its top line goes through the middle of the caption, with a gap where the caption is
+        CString caption = widget.GetPropertyRef( EWidgetProperty_Caption );
+        CString font = widget.GetPropertyRef( EWidgetProperty_Font );
+        Int32 captionHeight = caption.IsNULLOrEmpty() ? 0 : context.GetLineHeight( font );
+        Int32 lineY = captionHeight / 2;
+        Int32 right = area.width - 1;
+        Int32 bottom = area.height - 1;
+        CColour frame = ColourOr( widget, EWidgetProperty_FrameColour, CColour( 120, 120, 130, 255 ) );
+        Line( commands, 0, lineY, 0, bottom, frame );
+        Line( commands, right, lineY, right, bottom, frame );
+        Line( commands, 0, bottom, right, bottom, frame );
+        if ( captionHeight > 0 )
+        {
+            // the caption as shown, shortened with "..." when it is wider than the frame
+            const Int32 captionRoom = area.width - 2 * ( 8 + 4 ) > 0 ? area.width - 2 * ( 8 + 4 ) : 0;
+            bool captionCut = false;
+            caption = FitText( context, font, context.GetDisplayText( caption ), captionRoom, OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ), captionCut );
+            Int32 textWidth = 0, textHeight = 0;
+            context.MeasureText( font, caption, 0, textWidth, textHeight );
+            const Int32 gapLeft = 8;
+            const Int32 gapRight = gapLeft + 4 + textWidth + 4;
+            Line( commands, 0, lineY, gapLeft, lineY, frame );
+            if ( gapRight < right )
+                Line( commands, gapRight, lineY, right, lineY, frame );
+            PaintText( context, font, caption, CRect( gapLeft + 4, 0, textWidth + 1, captionHeight ), "Left", "Center", false, TextColourOf( widget ), commands,
+                       TEXTOVERFLOW_CLIP, captionCut ? CDrawSurface::TEXTFLAG_ELIDED : CDrawSurface::TEXTFLAG_NONE, false );
+        }
+        else
+        {
+            Line( commands, 0, 0, right, 0, frame );
+        }
+    }
     if ( IsA( widget, "Window" ) && widget.GetBoolProperty( EWidgetProperty_TitleVisible ) )
     {
         Int32 titleHeight = widget.GetIntProperty( EWidgetProperty_TitleHeight );
@@ -884,7 +1094,7 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
             FoldChevron( commands, fold, window->IsCollapsed(), titleColour );
         }
         PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Title ), CRect( 10, 0, textRight - 10 > 0 ? textRight - 10 : 0, titleHeight ),
-                   "Left", "Center", false, titleColour, commands );
+                   "Left", "Center", false, titleColour, commands, OverflowOf( widget, TEXTOVERFLOW_ELLIPSISEND ) );
     }
     if ( const CScrollPanel* scrollPanel = CWidget::ToScrollPanel( &widget ) )
     {
@@ -910,36 +1120,67 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CWidgetPainter::IsOwnTextElided( const CWidget& widget, CGUIContext& context, CString& fullText )
+{GUCEF_TRACE;
+
+    // the widgets that show one text of their own; lists, grids and tabs answer for their parts themselves (GetTooltipAt())
+    const bool label = IsA( widget, "Label" );
+    const bool button = IsA( widget, "Button" );
+    const bool combo = IsA( widget, "Combobox" );
+    const bool group = IsA( widget, "GroupBox" );
+    const bool window = IsA( widget, "Window" );
+    if ( !label && !button && !combo && !group && !window )
+        return false;
+    const CString& text = widget.GetPropertyRef( group ? EWidgetProperty_Caption : ( window ? EWidgetProperty_Title : EWidgetProperty_Text ) );
+    if ( text.IsNULLOrEmpty() )
+        return false;
+
+    // painted as the painter paints it, so the answer is what the user sees
+    TCommandVector commands;
+    Paint( widget, context, commands );
+    for ( UInt32 i=0; i<(UInt32) commands.size(); ++i )
+    {
+        if ( CDrawSurface::COMMAND_TEXT == commands[ i ].type && 0 != ( commands[ i ].textFlags & CDrawSurface::TEXTFLAG_ELIDED ) )
+        {
+            fullText = text;
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CWidgetPainter::PaintOverlay( CGUIContext& context, TCommandVector& commands )
 {GUCEF_TRACE;
 
-    // the tooltip of the widget the pointer rests on
+    // the tooltip of the part of the widget the pointer rests on, when it rested for the delay of the tooltip service
+    CTooltipService& tooltips = context.GetTooltipService();
+    bool showing = false;
     CWidget* hovered = context.GetHovered();
-    if ( GUCEF_NULL != hovered && context.GetHoverDurationInMs() >= TooltipDelayInMs )
+    if ( GUCEF_NULL != hovered && tooltips.IsDue( context.GetTimeInMs() ) )
     {
         const CRect& hoveredRect = hovered->GetRect();
-        CString tooltip = hovered->GetTooltipAt( context.GetPointerX() - hoveredRect.left, context.GetPointerY() - hoveredRect.top );
+        const CString tooltip = tooltips.GetTooltipText( *hovered, context.GetPointerX() - hoveredRect.left, context.GetPointerY() - hoveredRect.top );
         if ( !tooltip.IsNULLOrEmpty() )
         {
-            CString font = hovered->GetPropertyRef( EWidgetProperty_Font );
-            Int32 width = 0, height = 0;
-            context.MeasureText( font, tooltip, 0, width, height );
-            if ( 0 == height )
-                height = context.GetLineHeight( font );
-            Int32 x = context.GetPointerX() + 12;
-            Int32 y = context.GetPointerY() + 16;
-            CRect box( x, y, width + 8, height + 4 );
-            // kept inside the picture
-            if ( box.Right() > (Int32) context.GetLogicalWidth() )
-                box.left = (Int32) context.GetLogicalWidth() - box.width;
-            if ( box.Bottom() > (Int32) context.GetLogicalHeight() )
-                box.top = context.GetPointerY() - box.height - 4;
-            Fill( commands, box, CColour( 250, 250, 210, 255 ) );
-            Stroke( commands, box, CColour( 60, 60, 60, 255 ), 1 );
-            Text( commands, font, tooltip, box.left + 4, box.top + 2, CColour( 0, 0, 0, 255 ) );
+            const CString font = hovered->GetPropertyRef( EWidgetProperty_Font );
+            CTooltipLayout layout;
+            if ( layout.Compute( context, font, tooltip, context.GetPointerX(), context.GetPointerY(), tooltips ) )
+            {
+                CTooltipPainter::Paint( layout, font, tooltips, commands );
+                showing = true;
+            }
         }
     }
+    tooltips.SetShowing( showing );
+
+    // the findings of the layout lint over everything, when its debug overlay is switched on
+    CLayoutDebugOverlay& lintOverlay = context.GetLayoutDebugOverlay();
+    if ( lintOverlay.IsOn() )
+        lintOverlay.Paint( context, commands );
 
     // the cursor picture, not while a layer above takes the pointer (it has the pointer then)
     if ( context.IsCursorVisible() && !context.GetCursorImage().IsNULLOrEmpty() && !context.HasHigherLayerTakingPointerInput() )

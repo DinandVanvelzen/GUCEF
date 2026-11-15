@@ -612,6 +612,24 @@ CContentBrowserForm::AddRoot( const CString& displayName, CORE::TFileSystemAcces
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CContentBrowserForm::GetRootCount( void ) const
+{GUCEF_TRACE;
+
+    return (UInt32) m_roots.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CContentBrowserForm::GetRootName( UInt32 index ) const
+{GUCEF_TRACE;
+
+    return index < (UInt32) m_roots.size() ? m_roots[ index ].name : CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CContentBrowserForm::SetThumbnailProvider( CIThumbnailProvider* provider )
 {GUCEF_TRACE;
@@ -1834,6 +1852,16 @@ CContentBrowserForm::RevealInTree( UInt32 root, const CString& directory )
         for ( UInt32 i=0; i+1<(UInt32)expanded.size(); ++i )
             tree->SetExpanded( expanded[ i ], true );
         tree->SetSelectedItem( m_tree[ node ].treePath );
+
+        // with several roots the tree is long: the roots that are not the one that is open are folded, so the open folder is in view
+        for ( UInt32 r=0; r<(UInt32)m_roots.size(); ++r )
+        {
+            if ( r == root )
+                continue;
+            const Int32 otherRoot = FindTreeNode( TreeLabel( m_roots[ r ].name ) );
+            if ( otherRoot >= 0 )
+                tree->SetExpanded( m_tree[ otherRoot ].treePath, false );
+        }
         m_updatingWidgets = false;
     }
 }

@@ -25,9 +25,9 @@
 #include "gucefGUI_CWidgetTypeRegistry.h"
 #include "gucefGUI_CWidget.h"
 #include "gucefGUI_CPanel.h"
-#include "gucefGUI_CWindow.h"
+#include "gucefGUI_CWindow.h"
 #include "gucefGUI_CGroupBox.h"
-#include "gucefGUI_CScrollPanel.h"
+#include "gucefGUI_CScrollPanel.h"
 #include "gucefGUI_CLabel.h"
 #include "gucefGUI_CButton.h"
 #include "gucefGUI_CPushButton.h"
@@ -44,6 +44,7 @@
 #include "gucefGUI_CDrawSurface.h"
 #include "gucefGUI_CRenderContext.h"
 #include "gucefGUI_CVideoView.h"
+#include "gucefGUI_CWebPageView.h"
 #include "gucefGUI_CAudioPlayer.h"
 #include "gucefGUI_CTabControl.h"
 #include "gucefGUI_CTabContentPane.h"
@@ -53,6 +54,7 @@
 #include "gucefGUI_CGridView.h"
 #include "gucefGUI_CChartView.h"
 #include "gucefGUI_CChartPalette.h"
+#include "gucefGUI_CBreadcrumbBar.h"
 
 #include "gucefGUI_StandardWidgetTypes.h"
 
@@ -139,8 +141,8 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
 
     CWidgetTypeInfo widget = Type( "Widget", "", "Base", GUCEF_NULL, "What every widget has" );
     widget.AddProperty( Prop( EWidgetProperty_Visible, PD::VALUETYPE_BOOL, "true", LAYOUTFLAGS, "Common", "Whether the widget and its children are shown" ) );
-    widget.AddProperty( Prop( EWidgetProperty_Enabled, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Common", "Whether the widget reacts to input" ) );
-    widget.AddProperty( Prop( EWidgetProperty_EnabledBy, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Common", "The name of a check box in the same tree: the widget is enabled while it is checked, as an option that depends on another" ) );
+    widget.AddProperty( Prop( EWidgetProperty_Enabled, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Common", "Whether the widget reacts to input" ) );
+    widget.AddProperty( Prop( EWidgetProperty_EnabledBy, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Common", "The name of a check box in the same tree: the widget is enabled while it is checked, as an option that depends on another" ) );
     widget.AddProperty( Prop( EWidgetProperty_Position, PD::VALUETYPE_UVECTOR, "0,0 0,0", LAYOUTFLAGS, "Layout", "Position in the parent: per axis a part of the parent's size plus pixels" ) );
     widget.AddProperty( Prop( EWidgetProperty_Size, PD::VALUETYPE_UVECTOR, "", LAYOUTFLAGS, "Layout", "Size: per axis a part of the parent's size plus pixels; empty for the natural size" ) );
     widget.AddProperty( EnumProp( EWidgetProperty_HAlign, "Left", "Left,Center,Right", LAYOUTFLAGS, "Layout", "Which part of the widget is at the horizontal position" ) );
@@ -154,9 +156,11 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     widget.AddProperty( Prop( EWidgetProperty_NavRight, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Input", "The widget the focus moves to on Right" ) );
     widget.AddProperty( Prop( EWidgetProperty_InputTransparent, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Input", "Pointer input goes to what is below the widget" ) );
     widget.AddProperty( Prop( EWidgetProperty_Tooltip, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Common", "Text shown when the pointer rests on the widget" ) );
+    widget.AddProperty( Prop( EWidgetProperty_HelpTopic, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Common", "The id of the help topic of the widget and of what is in it: the tooltip is the brief of the topic when the widget has no tooltip of its own, and a help key opens the topic (the help source of the tooltip service of the context)" ) );
     widget.AddProperty( Prop( EWidgetProperty_StyleClass, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Common", "Theme classes, separated by spaces" ) );
     widget.AddProperty( Prop( EWidgetProperty_Opacity, PD::VALUETYPE_FLOAT, "1", DEFAULTFLAGS, "Common", "1 opaque, 0 invisible" ) );
     widget.AddProperty( Prop( EWidgetProperty_BackgroundColour, PD::VALUETYPE_COLOUR, "", DEFAULTFLAGS, "Look", "Fills the widget; empty for none" ) );
+    widget.AddProperty( Prop( EWidgetProperty_LintIgnore, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Layout", "Layout lint rules (ids such as L01 or names such as Overlap) not reported for the widget and what is in it: an intended case, with its reason where it is set" ) );
     registry.RegisterType( widget );
 
     CWidgetTypeInfo panel = Type( "Panel", "Widget", "Containers", &CPanel::Create, "A rectangle holding other widgets" );
@@ -189,21 +193,23 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     margin.description = "Gives every child its area less the padding";
     registry.RegisterType( margin );
 
-    CWidgetTypeInfo groupBox = Type( "GroupBox", "VBox", "Containers", &CGroupBox::Create, "A frame around related widgets, its caption in a gap of the top line; the children are placed below each other in it" );
-    groupBox.AddProperty( Prop( EWidgetProperty_Caption, PD::VALUETYPE_STRING, "", LAYOUTFLAGS, "Text", "What the group is about, in a gap of the top line" ) );
-    AddTextProperties( groupBox, "255,255,255,255" );
-    groupBox.AddProperty( Prop( EWidgetProperty_FrameColour, PD::VALUETYPE_COLOUR, "120,120,130,255", DEFAULTFLAGS, "Look", "The colour of the frame" ) );
-    groupBox.AddProperty( Prop( EWidgetProperty_AutoHeight, PD::VALUETYPE_BOOL, "true", LAYOUTFLAGS, "Layout", "The height is what the caption and the children need, the width comes from Size" ) );
-    groupBox.AddProperty( Prop( EWidgetProperty_Padding, PD::VALUETYPE_INT, "10", LAYOUTFLAGS, "Layout", "Pixels between the frame and the children (the caption adds its height at the top)" ) );
-    groupBox.AddProperty( Prop( EWidgetProperty_Spacing, PD::VALUETYPE_INT, "4", LAYOUTFLAGS, "Layout", "Pixels between two children" ) );
-    registry.RegisterType( groupBox );
-
-    CWidgetTypeInfo window = Type( "Window", "Panel", "Containers", &CWindow::Create, "A panel with a title bar" );
+    CWidgetTypeInfo groupBox = Type( "GroupBox", "VBox", "Containers", &CGroupBox::Create, "A frame around related widgets, its caption in a gap of the top line; the children are placed below each other in it" );
+    groupBox.AddProperty( Prop( EWidgetProperty_Caption, PD::VALUETYPE_STRING, "", LAYOUTFLAGS, "Text", "What the group is about, in a gap of the top line" ) );
+    groupBox.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "EllipsisEnd", "Clip,Ellipsis,EllipsisEnd,EllipsisStart,EllipsisMiddle", DEFAULTFLAGS, "Text", "A caption wider than the frame: cut at the frame, or shortened with \"...\" at its end, start or middle (the tooltip then shows the whole caption)" ) );
+    AddTextProperties( groupBox, "255,255,255,255" );
+    groupBox.AddProperty( Prop( EWidgetProperty_FrameColour, PD::VALUETYPE_COLOUR, "120,120,130,255", DEFAULTFLAGS, "Look", "The colour of the frame" ) );
+    groupBox.AddProperty( Prop( EWidgetProperty_AutoHeight, PD::VALUETYPE_BOOL, "true", LAYOUTFLAGS, "Layout", "The height is what the caption and the children need, the width comes from Size" ) );
+    groupBox.AddProperty( Prop( EWidgetProperty_Padding, PD::VALUETYPE_INT, "10", LAYOUTFLAGS, "Layout", "Pixels between the frame and the children (the caption adds its height at the top)" ) );
+    groupBox.AddProperty( Prop( EWidgetProperty_Spacing, PD::VALUETYPE_INT, "4", LAYOUTFLAGS, "Layout", "Pixels between two children" ) );
+    registry.RegisterType( groupBox );
+
+    CWidgetTypeInfo window = Type( "Window", "Panel", "Containers", &CWindow::Create, "A panel with a title bar" );
     window.AddProperty( Prop( EWidgetProperty_Title, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Window", "The text in the title bar" ) );
     window.AddProperty( Prop( EWidgetProperty_TitleVisible, PD::VALUETYPE_BOOL, "true", LAYOUTFLAGS, "Window", "Whether the title bar is shown" ) );
     window.AddProperty( Prop( EWidgetProperty_TitleHeight, PD::VALUETYPE_INT, "20", LAYOUTFLAGS, "Window", "Height of the title bar" ) );
     window.AddProperty( Prop( EWidgetProperty_TitleBarColour, PD::VALUETYPE_COLOUR, "40,60,110,255", DEFAULTFLAGS, "Window", "Colour of the title bar" ) );
     window.AddProperty( Prop( EWidgetProperty_TitleColour, PD::VALUETYPE_COLOUR, "255,255,255,255", DEFAULTFLAGS, "Window", "Colour of the title" ) );
+    window.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "EllipsisEnd", "Clip,Ellipsis,EllipsisEnd,EllipsisStart,EllipsisMiddle", DEFAULTFLAGS, "Text", "A title wider than the title bar: cut, or shortened with \"...\" at its end, start or middle (the tooltip then shows the whole title)" ) );
     window.AddProperty( Prop( EWidgetProperty_Movable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Window", "Whether the user can move the window by its title bar" ) );
     window.AddProperty( Prop( EWidgetProperty_Collapsible, PD::VALUETYPE_BOOL, "true", LAYOUTFLAGS, "Window", "Whether the user can fold the window into its title bar (the fold button, a double click on the title bar)" ) );
     window.AddProperty( Prop( EWidgetProperty_Collapsed, PD::VALUETYPE_BOOL, "false", LAYOUTFLAGS, "Window", "Whether the window is folded into its title bar: its children are not shown and take no input" ) );
@@ -236,6 +242,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     label.AddProperty( EnumProp( EWidgetProperty_HTextAlign, "Left", "Left,Center,Right", DEFAULTFLAGS, "Text", "Horizontal place of the text in the label" ) );
     label.AddProperty( EnumProp( EWidgetProperty_VTextAlign, "Top", "Top,Center,Bottom", DEFAULTFLAGS, "Text", "Vertical place of the text in the label" ) );
     label.AddProperty( Prop( EWidgetProperty_WordWrap, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Text", "Lines too wide for the label are broken between words" ) );
+    label.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "EllipsisEnd", "Clip,Ellipsis,EllipsisEnd,EllipsisStart,EllipsisMiddle", DEFAULTFLAGS, "Text", "A line wider than the label: cut at the edge, or shortened with \"...\" at its end, start or middle (EllipsisMiddle for paths); wrapped text that is too high ends with \"...\". The tooltip then shows the whole text" ) );
     registry.RegisterType( label );
 
     CWidgetTypeInfo button = Type( "Button", "Widget", "Common", &CButton::Create, "A button with text, pictures or both" );
@@ -247,6 +254,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     button.AddProperty( Prop( EWidgetProperty_DisabledImage, PD::VALUETYPE_IMAGE, "", DEFAULTFLAGS, "Look", "The picture while the button is disabled" ) );
     button.AddProperty( Prop( EWidgetProperty_ClickSound, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Common", "A sound id for the application to play when the button is activated" ) );
     button.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
+    button.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "EllipsisEnd", "Clip,Ellipsis,EllipsisEnd,EllipsisStart,EllipsisMiddle", DEFAULTFLAGS, "Text", "A text wider than the button (inside its padding): cut, or shortened with \"...\" at its end, start or middle (the tooltip then shows the whole text)" ) );
     registry.RegisterType( button );
 
     registry.RegisterType( Type( "PushButton", "Button", "Common", &CPushButton::Create, "A button (the same as Button)" ) );
@@ -297,6 +305,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     combobox.AddProperty( Prop( EWidgetProperty_Items, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "The choices" ) );
     combobox.AddProperty( Prop( EWidgetProperty_SelectedIndex, PD::VALUETYPE_INT, "-1", DEFAULTFLAGS, "Items", "The choice, -1 for none" ) );
     combobox.AddProperty( Prop( EWidgetProperty_Text, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Text", "The text shown, the chosen item" ) );
+    combobox.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "EllipsisEnd", "Clip,Ellipsis,EllipsisEnd,EllipsisStart,EllipsisMiddle", DEFAULTFLAGS, "Text", "A chosen item wider than the box: cut at the arrow, or shortened with \"...\" at its end, start or middle (the tooltip then shows the whole text)" ) );
     combobox.AddProperty( Prop( EWidgetProperty_DropDownRows, PD::VALUETYPE_INT, "8", DEFAULTFLAGS, "Items", "Most rows the open list shows" ) );
     AddTextProperties( combobox, "255,255,255,255" );
     combobox.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
@@ -357,6 +366,11 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     video.AddProperty( EnumProp( EWidgetProperty_ScaleMode, "Fit", "Stretch,None,Fit,Integer,Center", DEFAULTFLAGS, "Look", "How the picture fills the frame" ) );
     registry.RegisterType( video );
 
+    CWidgetTypeInfo webPage = Type( "WebPageView", "ImageFrame", "Media", &CWebPageView::Create, "Shows a page of a web view and passes the pointer, wheel, keys and text to it" );
+    webPage.AddProperty( EnumProp( EWidgetProperty_ScaleMode, "Stretch", "Stretch,None,Fit,Integer,Center", DEFAULTFLAGS, "Look", "How the page fills the widget while a frame of another size is shown" ) );
+    webPage.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the page can get the keyboard focus" ) );
+    registry.RegisterType( webPage );
+
     CWidgetTypeInfo audio = Type( "AudioPlayer", "Widget", "Media", &CAudioPlayer::Create, "Plays a sound file, with a play / pause control" );
     audio.AddProperty( Prop( EWidgetProperty_Source, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Media", "The sound file, a VFS path" ) );
     audio.AddProperty( Prop( EWidgetProperty_Volume, PD::VALUETYPE_FLOAT, "1", DEFAULTFLAGS, "Media", "0 silent to 1 full" ) );
@@ -384,6 +398,8 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     tabs.AddProperty( Prop( EWidgetProperty_ActiveTabColour, PD::VALUETYPE_COLOUR, "90,90,90,255", DEFAULTFLAGS, "Look", "Colour of the active tab" ) );
     AddTextProperties( tabs, "255,255,255,255" );
     tabs.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "Clip", "Clip,Ellipsis", DEFAULTFLAGS, "Text", "A title wider than its tab: cut at the tab, or cut with \"...\" (the tooltip then shows the whole title)" ) );
+    tabs.AddProperty( EnumProp( EWidgetProperty_TabSizing, "Equal", "Equal,Content", LAYOUTFLAGS, "Look", "Equal: the tabs share the width; Content: every tab as wide as its title and badge, with an overflow button that lists every tab when they do not fit (titles are never cut)" ) );
+    tabs.AddProperty( PD( EWidgetProperty_TabBadges, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "Per tab a badge at its right end: empty for none, \"*\" for a dot, any other text (a count) in a pill" ) );
     tabs.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
     registry.RegisterType( tabs );
 
@@ -394,6 +410,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     tree.AddProperty( Prop( EWidgetProperty_ExpandedItems, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "The paths that are open" ) );
     tree.AddProperty( Prop( EWidgetProperty_SelectedItem, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Items", "The path of the selected item" ) );
     tree.AddProperty( Prop( EWidgetProperty_Indent, PD::VALUETYPE_INT, "12", DEFAULTFLAGS, "Look", "Pixels per level" ) );
+    tree.AddProperty( PD( EWidgetProperty_ItemBadges, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "Badges of items, one \"path=badge\" per entry: \"*\" for a dot, any other text (a count) in a pill at the right end of the row" ) );
     AddTextProperties( tree, "255,255,255,255" );
     tree.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
     AddRowProperties( tree );
@@ -453,6 +470,12 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     gridview.AddProperty( Prop( EWidgetProperty_ScrollBars, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Layout", "Thin indicators at the right and bottom edge that show where the rows and columns shown are in all of them" ) );
     gridview.AddProperty( Prop( EWidgetProperty_CellEditing, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Editing", "Cells of a model that are not read only can be edited in place (SelectionMode Cell): F2, Enter, a double click or typing opens an editor for the type of the column, a check box is toggled by a click or Space; Enter, Tab and Escape commit, move and cancel; the model validates and applies the value" ) );
     gridview.AddProperty( Prop( EWidgetProperty_CellClipboard, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Editing", "Ctrl+C, Ctrl+X and Ctrl+V copy, cut and paste the selected cells as tab separated text, Ctrl+D and Ctrl+R fill down and right (SelectionMode Cell); pasting goes through the validation of the model cell by cell" ) );
+    gridview.AddProperty( Prop( EWidgetProperty_ShowColumnChooser, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Columns", "A button at the top right of the grid that opens the column chooser: show, hide and reorder the columns out of all the columns the grid has, and reset them to the default; the choice is applied at once and kept by the preference store of the grid" ) );
+    gridview.AddProperty( Prop( EWidgetProperty_ShowCsvExport, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Columns", "A button at the top right of the grid that saves the table as the user sees it (the shown columns in their order, the rows after filter and sort) as a CSV file, at a place chosen in the file save dialog" ) );
+    gridview.AddProperty( EnumProp( EWidgetProperty_FitMode, "Proportional", "Proportional,Fill,Content", DEFAULTFLAGS, "Layout", "How the widths of the columns are chosen: Proportional (FitColumns and HorizontalScroll decide); Fill (every column at least its nominal or content width, the room left to the growing columns up to their maximum, shrinking by priority to the minimum and scrolling sideways beyond); Content (as Fill, the room left stays free)" ) );
+    gridview.AddProperty( PD( EWidgetProperty_StatusColours, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Look", "The colours of the statuses of cells, one \"name=r,g,b,a\" per entry (muted, attention, negative, positive, estimate, unknown, link); a status without an entry has its default colour" ) );
+    gridview.AddProperty( EnumProp( EWidgetProperty_EmphasisStyle, "Row", "Row,Bar", DEFAULTFLAGS, "Rows", "How a row that stands out is drawn: Row (a tint over the row, a bar at its left and its text in EmphasisColour) or Bar (only the bar; the cells keep their own colours)" ) );
+    gridview.AddProperty( Prop( EWidgetProperty_SelectionOutline, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Rows", "The selected rows get an outline in the text colour besides the selection colour, so the selection stays visible on rows that stand out or have coloured cells" ) );
     gridview.AddProperty( Prop( EWidgetProperty_ZebraColour, PD::VALUETYPE_COLOUR, "", DEFAULTFLAGS, "Look", "Background of every second row; empty for none" ) );
     gridview.AddProperty( EnumProp( EWidgetProperty_GridLines, "None", "None,Horizontal,Vertical,Both", DEFAULTFLAGS, "Look", "The lines between the rows and the columns" ) );
     gridview.AddProperty( Prop( EWidgetProperty_GridColour, PD::VALUETYPE_COLOUR, "70,70,76,255", DEFAULTFLAGS, "Look", "The colour of the grid lines" ) );
@@ -485,7 +508,8 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     chart.AddProperty( Prop( EWidgetProperty_RangeSelectable, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Chart", "A drag with the left button over the plot chooses a range of x (RangeSelectedEvent); a click still activates a marker" ) );
     chart.AddProperty( Prop( EWidgetProperty_LegendVisible, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The legend, shown when two or more series are visible" ) );
     chart.AddProperty( EnumProp( EWidgetProperty_LegendPosition, "Top", "Top,Bottom", DEFAULTFLAGS, "Chart", "Where the legend is" ) );
-    chart.AddProperty( EnumProp( EWidgetProperty_XAxisType, "Time", "Time,Numeric", DEFAULTFLAGS, "Chart", "Time: x values are milliseconds since the Unix epoch in UTC; Numeric: plain integers" ) );
+    chart.AddProperty( EnumProp( EWidgetProperty_XAxisType, "Time", "Time,Numeric,Date", DEFAULTFLAGS, "Chart", "Time: x values are milliseconds since the Unix epoch in UTC; Numeric: plain integers; Date: as Time, with no ticks finer than a day" ) );
+    chart.AddProperty( Prop( EWidgetProperty_EmptyText, PD::VALUETYPE_STRING, "No data", DEFAULTFLAGS, "Chart", "Shown in the middle of the plot when no visible series has a point, instead of axes and ticks; empty for nothing" ) );
     chart.AddProperty( Prop( EWidgetProperty_LogScale, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Chart", "A logarithmic value axis (values at or below 0 are not drawn)" ) );
     chart.AddProperty( Prop( EWidgetProperty_IncludeZero, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The automatic value range includes 0" ) );
     chart.AddProperty( Prop( EWidgetProperty_ValuePrefix, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Chart", "Text before value labels, for example $" ) );
@@ -494,6 +518,14 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     chart.AddProperty( Prop( EWidgetProperty_EmphasisColour, PD::VALUETYPE_COLOUR, "232,170,50,255", DEFAULTFLAGS, "Look", "The markers without a colour of their own or of their style class" ) );
     chart.AddProperty( Prop( EWidgetProperty_SelectionColour, PD::VALUETYPE_COLOUR, "240,239,236,255", DEFAULTFLAGS, "Look", "The ring around the selected marker and the frame of the plot while the chart has the keyboard focus" ) );
     registry.RegisterType( chart );
+
+    CWidgetTypeInfo breadcrumbs = Type( CBreadcrumbBar::GetRegisteredTypeName(), "DrawSurface", "Menus", &CBreadcrumbBar::Create, "A path of clickable items (a breadcrumb trail); leading items collapse into a menu when it is narrow" );
+    AddTextProperties( breadcrumbs, "240,239,236,255" );
+    breadcrumbs.AddProperty( Prop( EWidgetProperty_SelectionColour, PD::VALUETYPE_COLOUR, "120,170,255,255", DEFAULTFLAGS, "Look", "The colour of the items that can be clicked" ) );
+    breadcrumbs.AddProperty( Prop( EWidgetProperty_HoverColour, PD::VALUETYPE_COLOUR, "255,255,255,30", DEFAULTFLAGS, "Look", "Behind the item under the pointer" ) );
+    breadcrumbs.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
+    breadcrumbs.AddProperty( Prop( EWidgetProperty_HoverIndex, PD::VALUETYPE_INT, "-1", RUNTIMEFLAGS, "State", "The item under the pointer" ) );
+    registry.RegisterType( breadcrumbs );
 }
 
 /*-------------------------------------------------------------------------//

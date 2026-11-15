@@ -60,6 +60,11 @@
 #define GUCEF_GUI_CWINDOWCONTEXT_H
 #endif /* GUCEF_GUI_CWINDOWCONTEXT_H ? */
 
+#ifndef GUCEF_GUI_CTOOLTIPSERVICE_H
+#include "gucefGUI_CTooltipService.h"
+#define GUCEF_GUI_CTOOLTIPSERVICE_H
+#endif /* GUCEF_GUI_CTOOLTIPSERVICE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -78,6 +83,8 @@ namespace GUI {
 class CGUIDriver;
 class CForm;
 class CScrollPanel;
+class CIDisplayTextTransform;
+class CLayoutDebugOverlay;
 
 /**
  *  The part of a GUI context that is the same for every backend. A driver derives its context from
@@ -157,6 +164,17 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
 
     virtual TFormSet GetOwnedForms( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  The context takes a form made elsewhere (GUCEF_NEW, for this context) as one of its own: DestroyForm() deletes it,
+     *  and when the context goes it deletes it with its other forms, before any widget. For a form owned by a widget,
+     *  which cannot know in which order the context destroys its widgets: the widget destroys the form with
+     *  DestroyForm() only while OwnsForm() says so. False for a form of another context
+     */
+    bool AdoptForm( CForm* form );
+
+    /** Whether the form is one of the forms the context deletes (CreateForm(), AdoptForm()); compares the pointer only */
+    bool OwnsForm( const CForm* form ) const;
+
     TWindowContextPtr GetWindowContext( void ) const;
 
     /** Every root widget (the roots of the forms), in drawing order: the last is on top */
@@ -205,6 +223,14 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     /** Tells the context and the driver that the pixels of a registered image changed */
     bool UpdateImage( const CString& alias );
 
+    /**
+     *  As UpdateImage() for a part of the image only, in pixels of the image: drivers that can upload a rectangle of a
+     *  texture upload that part (OnImageRegionChanged()), others treat it as a change of the whole image. A web page that
+     *  moves its caret changes a few hundred bytes of a frame of megabytes. False for an alias that is not registered
+     *  or a region outside the image
+     */
+    bool UpdateImageRegion( const CString& alias, const CRect& region );
+
     bool UnregisterImage( const CString& alias );
 
     bool HasImage( const CString& alias ) const;
@@ -230,11 +256,31 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
 
     TBitmapFontPtr GetBitmapFont( const CString& name ) const;
 
-    /** The height of a line of text in a font: the bitmap font's line height, else what MeasureText() says, else 16 */
+    /**
+     *  The height of a line of text in a font: the bitmap font's line height, else what MeasureText() says, else 16; times the
+     *  line spacing of the display text transform when there is one
+     */
     Int32 GetLineHeight( const CString& fontName );
+
+    /**
+     *  The least height a single line of text in the font is laid out with and checked against: the line height less an eighth
+     *  of it, the leading above the ascenders that a line may lose without losing a glyph (a 25 px line in 22 px)
+     */
+    Int32 GetMinimumLineHeight( const CString& fontName );
 
     /** The size of text in a font; the default handles the registered bitmap fonts, a driver adds its own fonts */
     virtual bool MeasureText( const CString& fontName, const CString& text, Int32 maxWidth, Int32& width, Int32& height );
+
+    /**
+     *  A transform of the text the painters draw (pseudo-localisation, CPseudoLocalizer): what the widgets hold, the models
+     *  and the events are not changed, only what is shown. Not owned: the caller keeps it alive while it is set, NULL removes it
+     */
+    void SetDisplayTextTransform( CIDisplayTextTransform* transform );
+
+    CIDisplayTextTransform* GetDisplayTextTransform( void ) const;
+
+    /** The text as the painters show it: the display text transform applied, the text itself without one */
+    CString GetDisplayText( const CString& text );
 
     /*
      *  Theme
@@ -383,6 +429,14 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     /** How long the pointer has been on the widget it is on now, in context time */
     UInt64 GetHoverDurationInMs( void ) const;
 
+    /**
+     *  The tooltips of this context: on or off, the delay before one shows (1000 ms by default), the maximum width, the colours,
+     *  the help source of the briefs of help topics. The context tells it about the pointer, the buttons, the wheel and the keys;
+     *  CWidgetPainter::PaintOverlay() draws what it says
+     */
+    CTooltipService& GetTooltipService( void );
+    const CTooltipService& GetTooltipService( void ) const;
+
     /** Moves the focus like the navigation keys do; false when there is nowhere to go */
     bool Navigate( TNavigation direction );
 
@@ -401,6 +455,16 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
 
     /** Asks for a new layout pass at the next flush */
     void InvalidateLayout( void );
+
+    /** Goes up with every layout pass, so a checker of the layout (the layout debug overlay) knows when to look again */
+    UInt32 GetLayoutRevision( void ) const;
+
+    /**
+     *  The layout debug overlay of the context (CLayoutDebugOverlay): off unless switched on with its SetMode(), a developer
+     *  console command or the environment variable GUCEF_GUI_LAYOUT_LINT ("overlay", "log" or "overlay,log") when the
+     *  context is made. CWidgetPainter::PaintOverlay() draws it
+     */
+    CLayoutDebugOverlay& GetLayoutDebugOverlay( void );
 
     /** The last frame as RGBA pixels at the render size (the logical resolution times the render scale); false when the driver cannot */
     virtual bool CaptureFrame( IMAGE::TPixelMapPtr& pixels );
@@ -487,6 +551,9 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     /** A registered image was added or changed or removed */
     virtual void OnImageChanged( const CString& alias );
 
+    /** A part of a registered image changed (UpdateImageRegion()), in pixels of the image; by default OnImageChanged() */
+    virtual void OnImageRegionChanged( const CString& alias, const CRect& region );
+
     /** The driver's handler for a widget type, the type chain is searched by the context */
     virtual CWidgetHandler* GetWidgetHandler( const CString& widgetType );
 
@@ -520,6 +587,7 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     void UpdateLayout( void );
     void FlushLayoutIfNeeded( void );
     void ResolveSize( const CWidget& widget, const CRect& area, Int32& width, Int32& height ) const;
+    static bool IsSingleLineTextWidget( const CWidget& widget );
     void LayoutChildren( CWidget& widget );
     void LayoutScrollPanel( CScrollPanel& panel );
     bool ScrollPanelByKey( INPUT::KeyCode keyCode, UInt32 modifiers );
@@ -647,6 +715,10 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     bool m_inFlush;
     UInt32 m_dispatchDepth;
     TWidgetVector m_pendingDestroy;
+    CTooltipService m_tooltips;
+    CIDisplayTextTransform* m_displayTextTransform;
+    UInt32 m_layoutRevision;
+    CLayoutDebugOverlay* m_layoutDebugOverlay;
 };
 
 /*-------------------------------------------------------------------------//

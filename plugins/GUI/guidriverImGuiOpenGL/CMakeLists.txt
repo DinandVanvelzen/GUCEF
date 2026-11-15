@@ -93,7 +93,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32.lib )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../dependencies/imgui ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../guidriverImGui/include include )
+include_directories( ../../../common/include ../../../dependencies/imgui ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../../../platform/gucefWEB/include ../guidriverImGui/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )

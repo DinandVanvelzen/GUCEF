@@ -249,6 +249,8 @@ class GUIDRIVERIMGUI_PUBLIC_CPP CImGuiContext : public GUI::CGUIContext
 
     virtual void OnImageChanged( const CString& alias ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual void OnImageRegionChanged( const CString& alias, const GUI::CRect& region ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool PreviewMouseMove( Int32 x, Int32 y ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool PreviewMouseButton( GUI::TMouseButton button, bool down ) GUCEF_VIRTUAL_OVERRIDE;
     virtual bool PreviewMouseWheel( Int32 delta ) GUCEF_VIRTUAL_OVERRIDE;

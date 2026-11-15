@@ -755,10 +755,10 @@ PerformGridViewPresentationTests( void )
         ASSERT_TRUE( longFlags == grid->GetTooltipAt( 250, 45 ) );
         ASSERT_TRUE( "The grid" == grid->GetTooltipAt( 250, 25 ) && "The grid" == grid->GetTooltipAt( 50, 45 ) && "The grid" == grid->GetTooltipAt( 250, 5 ) );
 
-        // the tooltip shows when the pointer rests on the cut cell
+        // the tooltip shows when the pointer rests on the cut cell for the delay of the tooltip service
         const GUI::CRect& rect = grid->GetRect();
         context->InjectMouseMove( rect.left + 250, rect.top + 45 );
-        context->RenderFrame( 800 );
+        context->RenderFrame( context->GetTooltipService().GetShowDelayInMs() );
         GUI::CDrawSurface::TCommandVector overlay;
         GUI::CWidgetPainter::PaintOverlay( *context, overlay );
         ASSERT_TRUE( GUCEF_NULL != FindTextCommand( overlay, longFlags ) );
@@ -1300,9 +1300,29 @@ PerformSaveDialogTests( void )
         dialog.SetName( "x" );
         ASSERT_FALSE( dialog.Accept() );
         ASSERT_TRUE( dialog.GetMessageBox().IsOpen() );
+        ASSERT_TRUE( "The folder \"/home\" cannot be written to." == dialog.GetMessageBox().GetWidget( "Text" )->GetProperty( "Text" ) );
         dialog.GetMessageBox().Choose( GUI::CMessageBoxForm::MESSAGEBOXRESULT_OK );
         dialog.Cancel();
         memory->writeable = true;
+
+        // a typed path into a folder that is not there is refused with a message that names the folder
+        ASSERT_TRUE( dialog.Open() );
+        dialog.SetName( "/nowhere/x.gam" );
+        ASSERT_FALSE( dialog.Accept() );
+        ASSERT_TRUE( dialog.GetMessageBox().IsOpen() );
+        ASSERT_TRUE( "There is no folder \"/nowhere\"." == dialog.GetMessageBox().GetWidget( "Text" )->GetProperty( "Text" ) );
+        dialog.GetMessageBox().Choose( GUI::CMessageBoxForm::MESSAGEBOXRESULT_OK );
+
+        // the suggested name is selected when the field gets the focus, so a typed path replaces it instead of being added to it
+        GUI::CWidget* nameField = dialog.GetWidget( "Name" );
+        ASSERT_TRUE( GUCEF_NULL != nameField && nameField->GetBoolProperty( GUI::EWidgetProperty_SelectAllOnFocus ) );
+        dialog.SetName( "suggested.gam" );
+        context->FlushChanges();
+        context->SetFocus( GUCEF_NULL );
+        context->SetFocus( nameField );
+        context->InjectText( "/home/typed.gam" );
+        ASSERT_TRUE( "/home/typed.gam" == dialog.GetName() );
+        dialog.Cancel();
     }
     catch ( ... )
     {
@@ -1362,6 +1382,86 @@ PerformDirectoryDialogTests( void )
         ASSERT_TRUE( save.Open() );
         save.SetName( "exports/today" );
         ASSERT_TRUE( save.Accept() && memory->IsDir( "/home/dl/exports/today" ) && "/home/dl/exports/today" == save.GetSelection()[ 0 ].path );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformDirectoryFileTypeTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: A folder dialog that lists files for context has the file type choice and filters the files by it, folders always stay" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateDialogContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+        CORE::TFileSystemAccessPtr fs = MakeMemoryFileSystem( GUCEF_NULL );
+
+        // no files shown: no types to choose from, even when the app gave them
+        CORE::CString::StringVector text;
+        text.push_back( "*.txt" );
+        CORE::CString::StringVector discs;
+        discs.push_back( "*.CUE" );
+        discs.push_back( "*.BIN" );
+        {
+            GUI::CDirectoryOpenDialogForm plain( context );
+            plain.AddRoot( "Computer", fs, "/home/dl" );
+            plain.AddFileType( "Text", text );
+            ASSERT_TRUE( plain.Open() && GUCEF_NULL == plain.GetWidget( "FileTypes" ) && 1 == plain.GetListedNames().size() );
+            plain.Cancel();
+        }
+
+        // files shown without types: all of them, no choice
+        {
+            GUI::CDirectoryOpenDialogForm untyped( context );
+            untyped.GetOptions().showFilesForContext = true;
+            untyped.AddRoot( "Computer", fs, "/home/dl" );
+            ASSERT_TRUE( untyped.Open() && GUCEF_NULL == untyped.GetWidget( "FileTypes" ) && 4 == untyped.GetListedNames().size() );
+            untyped.Cancel();
+        }
+
+        // files shown with types: the choice is there and filters the files, not the folders
+        GUI::CDirectoryOpenDialogForm open( context );
+        open.GetOptions().showFilesForContext = true;
+        open.AddRoot( "Computer", fs, "/home/dl" );
+        open.AddFileType( "Text", text );
+        open.AddFileType( "Disc images", discs );
+        ASSERT_TRUE( open.Open() && GUCEF_NULL != open.GetWidget( "FileTypes" ) );
+        CORE::CString::StringVector listed = open.GetListedNames();
+        ASSERT_TRUE( 2 == listed.size() && Contains( listed, "games/" ) && Contains( listed, "notes.txt" ) );
+        ASSERT_TRUE( 0 == open.GetSelectedFileType() );
+        open.SetSelectedFileType( 1 );
+        listed = open.GetListedNames();
+        ASSERT_TRUE( 3 == listed.size() && Contains( listed, "games/" ) && Contains( listed, "ITVGOLD.CUE" ) && Contains( listed, "ITVGOLD.BIN" ) );
+        open.SetSelectedFileType( 2 );     // "All files"
+        ASSERT_TRUE( 4 == open.GetListedNames().size() );
+
+        // files are context only: a folder is still what is chosen
+        ASSERT_TRUE( open.Accept() && 1 == open.GetSelection().size() && open.GetSelection()[ 0 ].isDirectory );
+
+        // a folder field with file types asks for that
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( "Size", "1,0 1,0" );
+        context->ShowRoot( screen, false );
+        GUI::CWidget* placeholder = context->CreateWidget( "Panel", "Location", screen );
+        placeholder->SetProperty( "Size", "0,400 0,30" );
+        GUI::CPathFieldForm field( GUI::CPathFieldForm::PATHKIND_DIRECTORY );
+        ASSERT_TRUE( field.AddRoot( "Computer", fs, "/home/dl" ) );
+        field.AddFileType( "Text", text );
+        ASSERT_TRUE( field.Build( placeholder ) );
+        context->FlushChanges();
+        ASSERT_TRUE( field.OpenDialog() );
+        ASSERT_TRUE( GUCEF_NULL != field.GetDialog() && GUCEF_NULL != field.GetDialog()->GetWidget( "FileTypes" ) );
+        ASSERT_TRUE( 2 == field.GetDialog()->GetListedNames().size() );
+        field.GetDialog()->Cancel();
     }
     catch ( ... )
     {
@@ -1549,6 +1649,189 @@ PerformPathFieldTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** Takes the data of events of a notifier: the strings of CORE::TCloneableString events */
+class CStringEventRecorder : public CORE::CObserver
+{
+    public:
+
+    CORE::CEvent eventId;
+    CORE::CString::StringVector strings;
+
+    CStringEventRecorder( CORE::CNotifier* notifier, const CORE::CEvent& id )
+        : CORE::CObserver(), eventId( id ), strings()
+    {
+        SubscribeTo( notifier, id );
+    }
+
+    virtual ~CStringEventRecorder() { UnsubscribeAllFromObserver(); }
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& id, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        const CORE::TCloneableString* text = static_cast< const CORE::TCloneableString* >( eventData );
+        if ( id == eventId && GUCEF_NULL != text )
+            strings.push_back( text->GetData() );
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformRecentLocationsTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: The recent places keep the newest first without duplicates up to a maximum, say when they change, drop places that are gone and are kept in the settings" )
+    try
+    {
+        const CORE::CString base = CORE::CombinePath( CORE::TempDir(), "gucefGUI_TestApp_Recent" ).ReplaceChar( '\\', '/' );
+        CORE::DeleteDir( base, true );
+        ASSERT_TRUE( CORE::CreateDirs( base + "/a" ) && CORE::CreateDirs( base + "/b" ) && CORE::CreateDirs( base + "/c" ) );
+
+        GUI::CRecentLocations recent( 3 );
+        CEventCount changed( &recent, GUI::CRecentLocations::ChangedEvent );
+        ASSERT_TRUE( 3 == recent.GetMaxCount() && 0 == recent.GetCount() && GUI::CRecentLocations::DEFAULT_MAX_COUNT == GUI::CRecentLocations().GetMaxCount() );
+        ASSERT_FALSE( recent.Add( CORE::CString::Empty ) );
+        ASSERT_TRUE( recent.Add( base + "/a" ) && recent.Add( base + "/b" ) && recent.Add( base + "/c" ) );
+        ASSERT_TRUE( 3 == changed.count && 3 == recent.GetCount() && base + "/c" == recent.Get( 0 ) && base + "/a" == recent.Get( 2 ) );
+
+        // the same place in another spelling moves to the front and is not kept twice
+        recent.Clear();
+        ASSERT_TRUE( recent.Add( base + "/a" ) && recent.Add( base + "/b" ) && recent.Add( base + "/c" ) );
+        const UInt32 before = changed.count;
+        ASSERT_TRUE( recent.Add( base + "/a/" ) );
+        ASSERT_TRUE( 3 == recent.GetCount() && base + "/a" == recent.Get( 0 ) && base + "/c" == recent.Get( 1 ) && before + 1 == changed.count );
+        ASSERT_TRUE( recent.Add( base + "/a" ) && before + 1 == changed.count );      // already first: nothing changes
+        ASSERT_TRUE( recent.Contains( base + "/b/" ) && !recent.Contains( base + "/nothing" ) );
+
+        // the oldest go at the maximum
+        ASSERT_TRUE( CORE::CreateDirs( base + "/d" ) && recent.Add( base + "/d" ) );
+        ASSERT_TRUE( 3 == recent.GetCount() && !recent.Contains( base + "/b" ) && base + "/d" == recent.Get( 0 ) );
+        recent.SetMaxCount( 2 );
+        ASSERT_TRUE( 2 == recent.GetCount() && base + "/a" == recent.Get( 1 ) );
+        recent.SetMaxCount( 3 );
+
+        // the short name, and the spelling
+        ASSERT_TRUE( "Shops Pack" == GUI::CRecentLocations::GetShortName( "/home/x/Shops Pack/" ) && "/" == GUI::CRecentLocations::Normalize( "/" ) );
+        ASSERT_TRUE( "C:/x/y" == GUI::CRecentLocations::Normalize( "C:\\x\\y\\" ) );
+
+        // kept in the settings and read back; a place that is gone is not read back, and the list says so
+        ASSERT_TRUE( recent.Add( base + "/b" ) );
+        CORE::CDataNode section;
+        ASSERT_TRUE( recent.Save( section ) );
+        GUI::CRecentLocations restored( 3 );
+        CEventCount restoredChanged( &restored, GUI::CRecentLocations::ChangedEvent );
+        ASSERT_TRUE( restored.Load( section ) && 3 == restored.GetCount() && restored.Get( 0 ) == recent.Get( 0 ) && restored.Get( 2 ) == recent.Get( 2 ) && restoredChanged.count >= 1 );
+        ASSERT_TRUE( CORE::DeleteDir( base + "/a", true ) && !CORE::DirExists( base + "/a" ) );
+        const UInt32 changesBeforePrune = restoredChanged.count;
+        ASSERT_TRUE( 1 == restored.Prune() && 2 == restored.GetCount() && !restored.Contains( base + "/a" ) && changesBeforePrune + 1 == restoredChanged.count );
+        ASSERT_TRUE( 0 == restored.Prune() );
+        GUI::CRecentLocations pruned( 3 );
+        ASSERT_TRUE( pruned.Load( section ) && 2 == pruned.GetCount() && !pruned.Contains( base + "/a" ) );
+
+        // a settings section without the list is no error for the application, the list is empty
+        GUI::CRecentLocations none;
+        ASSERT_FALSE( none.Load( CORE::CDataNode() ) );
+        ASSERT_TRUE( 0 == none.GetCount() );
+        ASSERT_TRUE( recent.Remove( base + "/b" ) && !recent.Remove( base + "/b" ) );
+
+        CORE::DeleteDir( base, true );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformOpenActionStripTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: The open strip has a button per way to open and a list of recent places; both say what the user asked for, and the dialog places and the content browser roots can be set up from them" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateDialogContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( "Size", "1,0 1,0" );
+        context->ShowRoot( screen, false );
+        GUI::CWidget* placeholder = context->CreateWidget( "Panel", "Strip", screen );
+        placeholder->SetProperty( "Position", "0,20 0,40" );
+        placeholder->SetProperty( "Size", "0,420 0," + CORE::UInt32ToString( GUI::COpenActionStripForm::GetPreferredHeight() ) );
+
+        GUI::CRecentLocations recent;
+        GUI::COpenActionStripForm strip( context );
+        ASSERT_FALSE( strip.Build( placeholder ) );         // no ways to open: no strip
+        strip.AddAction( "folder", "Open folder...", "a folder" );
+        strip.AddAction( "archive", "Open archive or pack...", "an archive" );
+        strip.AddAction( "file", "Open file...", "a file" );
+        ASSERT_TRUE( strip.Build( placeholder ) );
+        strip.SetRecentLocations( &recent );
+        context->FlushChanges();
+
+        // the buttons share the first row of the strip inside of it, side by side
+        const GUI::CRect& area = placeholder->GetRect();
+        GUI::CWidget* folder = strip.GetActionWidget( "folder" );
+        GUI::CWidget* archive = strip.GetActionWidget( "archive" );
+        GUI::CWidget* file = strip.GetActionWidget( "file" );
+        ASSERT_TRUE( GUCEF_NULL != folder && GUCEF_NULL != archive && GUCEF_NULL != file && GUCEF_NULL == strip.GetActionWidget( "nothing" ) );
+        ASSERT_TRUE( folder->GetRect().left >= area.left && file->GetRect().Right() <= area.Right() );
+        ASSERT_TRUE( folder->GetRect().Right() <= archive->GetRect().left && archive->GetRect().Right() <= file->GetRect().left );
+        ASSERT_TRUE( folder->GetRect().width > 60 && archive->GetRect().width > 60 && file->GetRect().width > 60 );
+        GUI::CWidget* list = strip.GetWidget( "Recent" );
+        ASSERT_TRUE( GUCEF_NULL != list && list->GetRect().top >= folder->GetRect().Bottom() && list->GetRect().Bottom() <= area.Bottom() );
+
+        // a click asks for the way to open; so does RequestAction()
+        CStringEventRecorder actions( &strip, GUI::COpenActionStripForm::ActionRequestedEvent );
+        ClickWidget( context, archive );
+        ASSERT_TRUE( 1 == actions.strings.size() && "archive" == actions.strings[ 0 ] );
+        ASSERT_TRUE( strip.RequestAction( "file" ) && !strip.RequestAction( "nothing" ) );
+        ASSERT_TRUE( 2 == actions.strings.size() && "file" == actions.strings[ 1 ] );
+
+        // the list: the first row only, then a row for each place, which follows the list of the places
+        ASSERT_TRUE( 1 == strip.GetRecentRowCount() && strip.GetRecentLocations() == &recent );
+        recent.Add( "/home/x/Shops Pack" );
+        recent.Add( "/home/x/Godot.zip" );
+        ASSERT_TRUE( 3 == strip.GetRecentRowCount() );
+        CStringEventRecorder chosen( &strip, GUI::COpenActionStripForm::RecentChosenEvent );
+        ASSERT_TRUE( strip.ChooseRecent( 1 ) && !strip.ChooseRecent( 2 ) );
+        ASSERT_TRUE( 1 == chosen.strings.size() && "/home/x/Shops Pack" == chosen.strings[ 0 ] );
+        GUI::CCombobox* recentList = strip.GetWidgetAs< GUI::CCombobox >( "Recent" );
+        ASSERT_TRUE( GUCEF_NULL != recentList && 0 == recentList->GetSelectedIndex() );
+        recent.Remove( "/home/x/Godot.zip" );
+        ASSERT_TRUE( 2 == strip.GetRecentRowCount() );
+
+        // the file system dialogs: the places of the app can be set again between two uses
+        CORE::TFileSystemAccessPtr fs = MakeMemoryFileSystem( GUCEF_NULL );
+        GUI::CFileOpenDialogForm dialog( context );
+        dialog.GetOptions().showSpecialDirs = false;
+        dialog.AddRoot( "Computer", fs, "/" );
+        ASSERT_TRUE( dialog.AddPlace( "Recent: dl", "Computer", "/home/dl" ) && dialog.Open() );
+        GUI::CListbox* places = dialog.GetWidgetAs< GUI::CListbox >( "Places" );
+        ASSERT_TRUE( GUCEF_NULL != places && 1 == places->GetItems().size() );
+        dialog.Cancel();
+        dialog.ClearPlaces();
+        ASSERT_TRUE( dialog.AddPlace( "Recent: home", "Computer", "/home" ) && dialog.AddPlace( "Mounted", "Computer", "/" ) && dialog.Open() );
+        ASSERT_TRUE( 2 == places->GetItems().size() && "Recent: home" == places->GetItems()[ 0 ] );
+        dialog.Cancel();
+
+        // the content browser tells its roots, in the order they were added
+        GUI::CContentBrowserForm browser( context );
+        ASSERT_TRUE( 0 == browser.GetRootCount() && browser.GetRootName( 0 ).IsNULLOrEmpty() );
+        ASSERT_TRUE( browser.AddRoot( "Local files", fs, "/home" ) && browser.AddRoot( "VFS", MakeMemoryFileSystem( GUCEF_NULL ) ) );
+        ASSERT_TRUE( 2 == browser.GetRootCount() && "Local files" == browser.GetRootName( 0 ) && "VFS" == browser.GetRootName( 1 ) && browser.GetRootName( 2 ).IsNULLOrEmpty() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformGuiFileDialogTests( void )
 {GUCEF_TRACE;
@@ -1562,9 +1845,12 @@ PerformGuiFileDialogTests( void )
     PerformSearchTests();
     PerformSaveDialogTests();
     PerformDirectoryDialogTests();
+    PerformDirectoryFileTypeTests();
     PerformPlacesAndChoicesTests();
     PerformNativeDialogTests();
     PerformPathFieldTests();
+    PerformRecentLocationsTests();
+    PerformOpenActionStripTests();
 }
 
 /*-------------------------------------------------------------------------*/

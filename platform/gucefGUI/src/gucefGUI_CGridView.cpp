@@ -30,6 +30,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_CTSCOPEDVALUE_H
+#include "gucefCORE_CTScopedValue.h"
+#define GUCEF_CORE_CTSCOPEDVALUE_H
+#endif /* GUCEF_CORE_CTSCOPEDVALUE_H ? */
+
 #ifndef GUCEF_GUI_CGUICONTEXT_H
 #include "gucefGUI_CGUIContext.h"
 #define GUCEF_GUI_CGUICONTEXT_H
@@ -49,6 +54,36 @@
 #include "gucefGUI_CGridClipboard.h"
 #define GUCEF_GUI_CGRIDCLIPBOARD_H
 #endif /* GUCEF_GUI_CGRIDCLIPBOARD_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCOLUMNCHOOSERFORM_H
+#include "gucefGUI_CGridColumnChooserForm.h"
+#define GUCEF_GUI_CGRIDCOLUMNCHOOSERFORM_H
+#endif /* GUCEF_GUI_CGRIDCOLUMNCHOOSERFORM_H ? */
+
+#ifndef GUCEF_GUI_CIGRIDHELPPROVIDER_H
+#include "gucefGUI_CIGridHelpProvider.h"
+#define GUCEF_GUI_CIGRIDHELPPROVIDER_H
+#endif /* GUCEF_GUI_CIGRIDHELPPROVIDER_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCSVEXPORTCONTROLLER_H
+#include "gucefGUI_CGridCsvExportController.h"
+#define GUCEF_GUI_CGRIDCSVEXPORTCONTROLLER_H
+#endif /* GUCEF_GUI_CGRIDCSVEXPORTCONTROLLER_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCOLUMNFITTER_H
+#include "gucefGUI_CGridColumnFitter.h"
+#define GUCEF_GUI_CGRIDCOLUMNFITTER_H
+#endif /* GUCEF_GUI_CGRIDCOLUMNFITTER_H ? */
+
+#ifndef GUCEF_GUI_CPOPUPMENU_H
+#include "gucefGUI_CPopupMenu.h"
+#define GUCEF_GUI_CPOPUPMENU_H
+#endif /* GUCEF_GUI_CPOPUPMENU_H ? */
+
+#ifndef GUCEF_GUI_CWIDGETPAINTER_H
+#include "gucefGUI_CWidgetPainter.h"
+#define GUCEF_GUI_CWIDGETPAINTER_H
+#endif /* GUCEF_GUI_CWIDGETPAINTER_H ? */
 
 #include "gucefGUI_CGridView.h"
 
@@ -86,6 +121,12 @@ const CORE::CEvent CGridView::CellEditCommittedEvent = "GUCEF::GUI::CGridView::C
 const CORE::CEvent CGridView::CellEditCancelledEvent = "GUCEF::GUI::CGridView::CellEditCancelledEvent";
 const CORE::CEvent CGridView::CellEditRefusedEvent = "GUCEF::GUI::CGridView::CellEditRefusedEvent";
 const CORE::CEvent CGridView::RangeEditResultEvent = "GUCEF::GUI::CGridView::RangeEditResultEvent";
+const CORE::CEvent CGridView::ColumnsResetEvent = "GUCEF::GUI::CGridView::ColumnsResetEvent";
+const CORE::CEvent CGridView::PreferencesSaveFailedEvent = "GUCEF::GUI::CGridView::PreferencesSaveFailedEvent";
+const CORE::CEvent CGridView::CsvExportFinishedEvent = "GUCEF::GUI::CGridView::CsvExportFinishedEvent";
+const CORE::CEvent CGridView::CsvExportCancelledEvent = "GUCEF::GUI::CGridView::CsvExportCancelledEvent";
+const CORE::CEvent CGridView::ContextMenuItemChosenEvent = "GUCEF::GUI::CGridView::ContextMenuItemChosenEvent";
+const CORE::CEvent CGridView::RowExpansionChangedEvent = "GUCEF::GUI::CGridView::RowExpansionChangedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -230,6 +271,12 @@ CGridView::RegisterEvents( void )
     CellEditCancelledEvent.Initialize();
     CellEditRefusedEvent.Initialize();
     RangeEditResultEvent.Initialize();
+    ColumnsResetEvent.Initialize();
+    PreferencesSaveFailedEvent.Initialize();
+    CsvExportFinishedEvent.Initialize();
+    CsvExportCancelledEvent.Initialize();
+    ContextMenuItemChosenEvent.Initialize();
+    RowExpansionChangedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -244,6 +291,7 @@ CGridView::CGridView( void )
     , m_layoutWidth( -1 )
     , m_layoutHeight( -1 )
     , m_layoutFont()
+    , m_layoutHiddenSet( false )
     , m_layoutRowCount( -1 )
     , m_layout()
     , m_baseWidths()
@@ -272,6 +320,31 @@ CGridView::CGridView( void )
     , m_editing( GUCEF_NULL )
     , m_clipboard( GUCEF_NULL )
     , m_lastReport()
+    , m_requiredColumns()
+    , m_columnDefaults()
+    , m_preferenceStore()
+    , m_preferenceId()
+    , m_defaultsRevision()
+    , m_preferences()
+    , m_hasPreferences( false )
+    , m_applyingPreferences( false )
+    , m_preferencesDirty( false )
+    , m_preferencesPending( false )
+    , m_hoverButton( -1 )
+    , m_columnChooser( GUCEF_NULL )
+    , m_csvExport( GUCEF_NULL )
+    , m_helpProvider( GUCEF_NULL )
+    , m_columnFits()
+    , m_contentWidths()
+    , m_contentDirty( true )
+    , m_statusColours()
+    , m_statusColoursText()
+    , m_statusColoursParsed( false )
+    , m_contextMenuProvider( GUCEF_NULL )
+    , m_contextMenu( GUCEF_NULL )
+    , m_contextMenuItems()
+    , m_contextMenuRow( -1 )
+    , m_contextMenuColumn( -1 )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -282,7 +355,25 @@ CGridView::CGridView( void )
 CGridView::~CGridView()
 {GUCEF_TRACE;
 
+    // the export first: it may hold the model and observe the context; then the chooser, which observes the grid. The
+    // context owns the forms: when it goes it deletes them before any widget, and then they are no longer its own here
+    GUCEF_DELETE m_csvExport;
+    m_csvExport = GUCEF_NULL;
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL != m_columnChooser && GUCEF_NULL != context && context->OwnsForm( m_columnChooser ) )
+        context->DestroyForm( m_columnChooser );
+    m_columnChooser = GUCEF_NULL;
     UnsubscribeAllFromObserver();
+
+    // the context menu is a root widget of the context; when the context goes first it has deleted it already, and
+    // DestroyWidget() ignores a widget it does not have
+    if ( GUCEF_NULL != m_contextMenu && GUCEF_NULL != context )
+    {
+        if ( context->GetPopup() == m_contextMenu )
+            context->ClosePopup();
+        context->DestroyWidget( m_contextMenu );
+    }
+    m_contextMenu = GUCEF_NULL;
     GUCEF_DELETE m_editing;
     m_editing = GUCEF_NULL;
     GUCEF_DELETE m_clipboard;
@@ -312,6 +403,8 @@ CGridView::GetCapabilities( GUCEF::set< CString >& capabilities )
     capabilities.insert( "GridBatchUpdate" );
     capabilities.insert( "GridCellEditing" );
     capabilities.insert( "GridClipboard" );
+    capabilities.insert( "GridColumnChooser" );
+    capabilities.insert( "GridCsvExport" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -831,6 +924,8 @@ CGridView::GetCellTextRoom( UInt32 column, Int32 row ) const
     CColour rowColour;
     if ( 0 == column && row >= 0 && ( IsRowEmphasized( row ) || GetRowColour( row, rowColour ) ) )
         room -= EMPHASIS_INDENT;
+    room -= GetColumnMarkerSlot( column );
+    room -= GetFoldRoom( row, column );
     return room > 0 ? room : 0;
 }
 
@@ -843,12 +938,42 @@ CGridView::IsCellTextCut( UInt32 column, UInt32 row ) const
     CGUIContext* context = GetContext();
     if ( GUCEF_NULL == context )
         return false;
-    const CString text = GetText( column, row );
-    if ( text.IsNULLOrEmpty() )
+    SCellContent content;
+    if ( !GetCellContent( (Int32) row, (Int32) column, content ) || SCellContent::KIND_CHECK_ON == content.kind || SCellContent::KIND_CHECK_OFF == content.kind || content.text.IsNULLOrEmpty() )
         return false;
+    const CString& font = GetPropertyRef( EWidgetProperty_Font );
+    Int32 room = GetCellTextRoom( column, (Int32) row );
     Int32 width = 0, height = 0;
-    context->MeasureText( GetPropertyRef( EWidgetProperty_Font ), text, 0, width, height );
-    return width > GetCellTextRoom( column, (Int32) row );
+    if ( !content.marker.IsNULLOrEmpty() && ( content.markerLeading || 0 == GetColumnMarkerSlot( column ) ) )
+    {
+        // a marker without a slot of its own takes room from the value
+        context->MeasureText( font, content.markerLeading ? content.marker : " " + content.marker, 0, width, height );
+        room -= width + ( content.markerLeading ? (Int32) CELL_PADDING_LEFT : 0 );
+    }
+    context->MeasureText( font, content.text, 0, width, height );
+    return width > room;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsFooterTextCut( UInt32 column ) const
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    SCellContent content;
+    if ( GUCEF_NULL == context || !GetFooterContent( column, content ) || content.text.IsNULLOrEmpty() )
+        return false;
+    const CString& font = GetPropertyRef( EWidgetProperty_Font );
+    Int32 room = GetColumnWidth( column ) - CELL_PADDING_LEFT - CELL_PADDING_RIGHT - GetColumnMarkerSlot( column );
+    Int32 width = 0, height = 0;
+    if ( !content.marker.IsNULLOrEmpty() && ( content.markerLeading || 0 == GetColumnMarkerSlot( column ) ) )
+    {
+        context->MeasureText( font, content.markerLeading ? content.marker : " " + content.marker, 0, width, height );
+        room -= width + ( content.markerLeading ? (Int32) CELL_PADDING_LEFT : 0 );
+    }
+    context->MeasureText( font, content.text, 0, width, height );
+    return width > room;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -870,7 +995,102 @@ CGridView::GetTooltipAt( Int32 localX, Int32 localY ) const
         if ( row >= 0 && column >= 0 && IsCellTextCut( (UInt32) column, (UInt32) row ) )
             return GetText( (UInt32) column, (UInt32) row );
     }
+    else
+    if ( HasModel() )
+    {
+        // a number is never cut: when it does not fit it is drawn compact or as '#', and the tooltip has it whole
+        const Int32 row = GetRowAt( localY );
+        const Int32 column = GetColumnAt( localX );
+        SCellContent content;
+        if ( row >= 0 && column >= 0 && GetCellContent( row, column, content ) && content.isNumber && IsCellTextCut( (UInt32) column, (UInt32) row ) )
+            return GetText( (UInt32) column, (UInt32) row );
+    }
+    if ( IsFooterShown() )
+    {
+        // a footer cell that is cut or drawn compact: its whole text
+        const THit hit = HitTest( localX, localY );
+        if ( HIT_FOOTER == hit.kind && hit.column >= 0 && IsFooterTextCut( (UInt32) hit.column ) )
+            return GetFooterText( (UInt32) hit.column );
+    }
+    // a title or a cell with a help topic: the tooltip service shows the brief of the topic
+    if ( GUCEF_NULL != m_helpProvider || HasModel() )
+    {
+        if ( !GetPartHelpTopicAt( localX, localY ).IsNULLOrEmpty() )
+            return CString::Empty;
+    }
     return CWidget::GetTooltipAt( localX, localY );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetHelpProvider( CIGridHelpProvider* provider )
+{GUCEF_TRACE;
+
+    m_helpProvider = provider;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIGridHelpProvider*
+CGridView::GetHelpProvider( void ) const
+{GUCEF_TRACE;
+
+    return m_helpProvider;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetColumnHelpTopic( UInt32 column ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_helpProvider )
+    {
+        const CString topic = m_helpProvider->GetColumnHelpTopic( *this, column );
+        if ( !topic.IsNULLOrEmpty() )
+            return topic;
+    }
+    if ( HasModel() && column < m_model->GetColumnCount() )
+        return m_model->GetColumn( column ).helpTopic;
+    return CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetCellHelpTopic( UInt32 row, UInt32 column ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_helpProvider )
+        return CString::Empty;
+    return m_helpProvider->GetCellHelpTopic( *this, row, column );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetPartHelpTopicAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    const THit hit = HitTest( localX, localY );
+    if ( ( HIT_COLUMN_HEADER == hit.kind || HIT_COLUMN_BORDER == hit.kind ) && hit.column >= 0 )
+        return GetColumnHelpTopic( (UInt32) hit.column );
+    if ( HIT_CELL == hit.kind && hit.row >= 0 && hit.column >= 0 )
+        return GetCellHelpTopic( (UInt32) hit.row, (UInt32) hit.column );
+    return CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetHelpTopicAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    const CString topic = GetPartHelpTopicAt( localX, localY );
+    if ( !topic.IsNULLOrEmpty() )
+        return topic;
+    return CWidget::GetHelpTopicAt( localX, localY );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -888,6 +1108,7 @@ CGridView::SortRows( UInt32 column, bool ascending )
         }
         SetIntProperty( EWidgetProperty_SortColumn, (Int32) column );
         SetBoolProperty( EWidgetProperty_SortAscending, ascending );
+        FlushPreferences();
         return true;
     }
 
@@ -936,6 +1157,7 @@ CGridView::SortRows( UInt32 column, bool ascending )
     SetIntListProperty( EWidgetProperty_SelectedRows, SortedUnique( moved, (Int32) sorted.size() ) );
     Int32 anchor = GetIntProperty( EWidgetProperty_AnchorRow );
     SetIntProperty( EWidgetProperty_AnchorRow, anchor >= 0 && anchor < (Int32) newIndexOf.size() ? newIndexOf[ anchor ] : -1 );
+    FlushPreferences();
     return true;
 }
 
@@ -1017,14 +1239,51 @@ CGridView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue,
         {
             m_rowsDirty = true;
             m_layoutDirty = true;
+            OnContentChanged( false );
+            break;
+        }
+        case EWidgetProperty_FitMode:
+        {
+            m_layoutDirty = true;
+            m_contentDirty = true;
+            break;
+        }
+        case EWidgetProperty_StatusColours:
+        {
+            m_statusColoursParsed = false;
+            break;
+        }
+        case EWidgetProperty_ColumnWidths:
+        case EWidgetProperty_ColumnOrder:
+        case EWidgetProperty_HiddenColumns:
+        {
+            m_layoutDirty = true;
+            if ( !m_preferenceStore.IsNULL() && !m_applyingPreferences )
+                m_preferencesDirty = true;
+            break;
+        }
+        case EWidgetProperty_SortColumn:
+        case EWidgetProperty_SortAscending:
+        {
+            if ( !m_preferenceStore.IsNULL() && !m_applyingPreferences )
+                m_preferencesDirty = true;
+            if ( EWidgetProperty_SortColumn == property )
+                OnContentChanged( false );          // the title of the sorted column has the arrow
             break;
         }
         case EWidgetProperty_Columns:
-        case EWidgetProperty_ColumnWidths:
+        {
+            // other columns of the string list: the record of the user is applied to them again
+            m_layoutDirty = true;
+            OnContentChanged( true );
+            if ( m_model.IsNULL() && m_hasPreferences && !m_applyingPreferences )
+                ApplyPreferences( m_preferences );
+            break;
+        }
+        case EWidgetProperty_ShowColumnChooser:
+        case EWidgetProperty_ShowCsvExport:
         case EWidgetProperty_ColumnAlignments:
         case EWidgetProperty_FitColumns:
-        case EWidgetProperty_ColumnOrder:
-        case EWidgetProperty_HiddenColumns:
         case EWidgetProperty_FrozenColumns:
         case EWidgetProperty_ShowRowHeader:
         case EWidgetProperty_RowHeaderWidth:
@@ -1034,6 +1293,8 @@ CGridView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue,
         case EWidgetProperty_RowHeight:
         {
             m_layoutDirty = true;
+            if ( EWidgetProperty_Font == property )
+                OnContentChanged( true );
             break;
         }
         case EWidgetProperty_SelectionMode:
@@ -1115,12 +1376,36 @@ CGridView::GetSelectedItems( TGridIndexVector& gridIndexList )
 /*-------------------------------------------------------------------------*/
 
 CGridView::TInt32Vector
-CGridView::ComputeBaseWidths( Int32 available, UInt32& columns ) const
+CGridView::ComputeBaseWidths( Int32 available, UInt32& columns, const TInt32Vector& hidden ) const
 {GUCEF_TRACE;
+
+    if ( IsFitByPolicy() )
+        return ComputePolicyWidths( available, columns, hidden );
 
     TInt32Vector widths = GetIntListProperty( EWidgetProperty_ColumnWidths );
     const bool fit = GetBoolProperty( EWidgetProperty_FitColumns );
     const bool scrolls = GetBoolProperty( EWidgetProperty_HorizontalScroll );
+
+    // only the shown columns take room: a hidden column keeps a width of its own but is left out of the shares and the fit
+    GUCEF::vector< bool > shown( columns, true );
+    UInt32 shownCount = columns;
+    for ( UInt32 i=0; i<(UInt32)hidden.size(); ++i )
+    {
+        if ( hidden[ i ] >= 0 && hidden[ i ] < (Int32) columns && shown[ hidden[ i ] ] )
+        {
+            shown[ hidden[ i ] ] = false;
+            --shownCount;
+        }
+    }
+    if ( 0 == shownCount )
+    {
+        shown.assign( columns, true );
+        shownCount = columns;
+    }
+    Int32 lastShown = -1;
+    for ( UInt32 c=0; c<columns; ++c )
+        if ( shown[ c ] )
+            lastShown = (Int32) c;
 
     if ( scrolls || !m_model.IsNULL() )
     {
@@ -1134,6 +1419,8 @@ CGridView::ComputeBaseWidths( Int32 available, UInt32& columns ) const
             if ( 0 == width && !m_model.IsNULL() && m_model->GetColumn( c ).width > 0 )
                 width = m_model->GetColumn( c ).width;
             result[ c ] = width;
+            if ( !shown[ c ] )
+                continue;
             if ( width > 0 )
                 fixedTotal += width;
             else
@@ -1152,16 +1439,18 @@ CGridView::ComputeBaseWidths( Int32 available, UInt32& columns ) const
         {
             if ( 0 == result[ c ] )
                 result[ c ] = shared;
-            total += result[ c ];
+            if ( shown[ c ] )
+                total += result[ c ];
         }
         if ( !scrolls && fit && total > 0 && available > 0 )
         {
             Int32 used = 0;
             for ( UInt32 c=0; c<columns; ++c )
             {
-                Int32 width = c + 1 == columns ? available - used : (Int32) ( (Int64) result[ c ] * available / total );
+                Int32 width = (Int32) c == lastShown ? available - used : (Int32) ( (Int64) result[ c ] * available / total );
                 result[ c ] = width > 0 ? width : 0;
-                used += result[ c ];
+                if ( shown[ c ] )
+                    used += result[ c ];
             }
         }
         return result;
@@ -1174,15 +1463,17 @@ CGridView::ComputeBaseWidths( Int32 available, UInt32& columns ) const
         {
             Int64 total = 0;
             for ( UInt32 i=0; i<columns; ++i )
-                total += widths[ i ] > 0 ? widths[ i ] : 0;
+                if ( shown[ i ] )
+                    total += widths[ i ] > 0 ? widths[ i ] : 0;
             if ( total > 0 && available > 0 )
             {
                 Int32 used = 0;
                 for ( UInt32 i=0; i<columns; ++i )
                 {
-                    Int32 width = i + 1 == columns ? available - used : (Int32) ( (Int64) ( widths[ i ] > 0 ? widths[ i ] : 0 ) * available / total );
+                    Int32 width = (Int32) i == lastShown ? available - used : (Int32) ( (Int64) ( widths[ i ] > 0 ? widths[ i ] : 0 ) * available / total );
                     widths[ i ] = width > 0 ? width : 0;
-                    used += widths[ i ];
+                    if ( shown[ i ] )
+                        used += widths[ i ];
                 }
             }
         }
@@ -1191,7 +1482,7 @@ CGridView::ComputeBaseWidths( Int32 available, UInt32& columns ) const
     widths.clear();
     if ( 0 == columns )
         return widths;
-    Int32 width = available / (Int32) columns;
+    Int32 width = available / (Int32) shownCount;
     for ( UInt32 i=0; i<columns; ++i )
         widths.push_back( width );
     return widths;
@@ -1250,8 +1541,11 @@ CGridView::EnsureLayout( void ) const
     const CString& font = GetPropertyRef( EWidgetProperty_Font );
     const bool showRowHeader = GetBoolProperty( EWidgetProperty_ShowRowHeader );
     const Int32 rowCount = showRowHeader ? (Int32) GetRowCount() : 0;
-    if ( !m_layoutDirty && rect.width == m_layoutWidth && rect.height == m_layoutHeight && rowCount == m_layoutRowCount && font == m_layoutFont )
+    // whether HiddenColumns is set decides as much as its value (not set: the defaults of the model), and setting it to the text it had raises no change
+    const bool hiddenSet = IsPropertySet( EWidgetProperty_HiddenColumns );
+    if ( !m_layoutDirty && rect.width == m_layoutWidth && rect.height == m_layoutHeight && rowCount == m_layoutRowCount && font == m_layoutFont && hiddenSet == m_layoutHiddenSet )
         return;
+    m_layoutHiddenSet = hiddenSet;
 
     EnsureRows();
     m_titles = SplitStringList( GetPropertyRef( EWidgetProperty_Columns ) );
@@ -1266,10 +1560,14 @@ CGridView::EnsureLayout( void ) const
     }
     m_rowHeaderWidth = showRowHeader ? MeasureRowHeaderWidth() : 0;
     UInt32 columns = m_columnCount;
-    m_baseWidths = ComputeBaseWidths( rect.width - m_rowHeaderWidth, columns );
-    m_layout.Compute( m_baseWidths, GetIntListProperty( EWidgetProperty_ColumnOrder ), GetIntListProperty( EWidgetProperty_HiddenColumns ),
-                      GetIntProperty( EWidgetProperty_FrozenColumns ), m_rowHeaderWidth, rect.width,
-                      GetBoolProperty( EWidgetProperty_HorizontalScroll ) ? GetIntProperty( EWidgetProperty_ScrollPositionX ) : 0 );
+
+    // the strip of the header buttons is left free by the columns, over the whole height
+    const Int32 viewWidth = rect.width - GetHeaderStripWidth();
+    const TInt32Vector hidden = GetEffectiveHiddenColumns();
+    m_baseWidths = ComputeBaseWidths( viewWidth - m_rowHeaderWidth, columns, hidden );
+    m_layout.Compute( m_baseWidths, GetIntListProperty( EWidgetProperty_ColumnOrder ), hidden,
+                      GetIntProperty( EWidgetProperty_FrozenColumns ), m_rowHeaderWidth, viewWidth,
+                      IsHorizontallyScrollable() ? GetIntProperty( EWidgetProperty_ScrollPositionX ) : 0 );
     m_layoutDirty = false;
     m_layoutWidth = rect.width;
     m_layoutHeight = rect.height;
@@ -1379,6 +1677,12 @@ CGridView::HitTest( Int32 localX, Int32 localY ) const
 
     if ( localY < rowHeight )
     {
+        const Int32 button = HeaderButtonAt( localX );
+        if ( button >= 0 )
+        {
+            hit.kind = HEADERBUTTON_COLUMN_CHOOSER == button ? HIT_COLUMN_CHOOSER_BUTTON : HIT_CSV_EXPORT_BUTTON;
+            return hit;
+        }
         if ( localX < headerWidth )
         {
             hit.kind = HIT_CORNER;
@@ -1454,6 +1758,9 @@ CGridView::HitTest( Int32 localX, Int32 localY ) const
         hit.kind = HIT_CELL;
         hit.position = position;
         hit.column = m_layout.GetColumn( position );
+        CRect fold;
+        if ( 0 == position && GetFoldControlRect( hit.row, fold ) && fold.Contains( localX, localY ) )
+            hit.kind = HIT_FOLD_BUTTON;
     }
     else
         hit.row = -1;
@@ -1522,9 +1829,7 @@ bool
 CGridView::GetCellContent( Int32 row, Int32 column, SCellContent& content ) const
 {GUCEF_TRACE;
 
-    content.kind = SCellContent::KIND_TEXT;
-    content.text.Clear();
-    content.isNumber = false;
+    content = SCellContent();
     if ( row < 0 || column < 0 )
         return false;
     if ( !m_model.IsNULL() )
@@ -1585,9 +1890,7 @@ bool
 CGridView::GetFooterContent( UInt32 column, SCellContent& content ) const
 {GUCEF_TRACE;
 
-    content.kind = SCellContent::KIND_TEXT;
-    content.text.Clear();
-    content.isNumber = false;
+    content = SCellContent();
     if ( m_model.IsNULL() || !m_model->HasFooter() )
         return false;
     return m_model->GetFooterContent( column, content );
@@ -1670,7 +1973,12 @@ CGridView::SetModel( const TTableViewModelPtr& model )
     m_notifiedCursorColumn = -1;
     m_rowsDirty = true;
     m_layoutDirty = true;
+    OnContentChanged( true );
     Touch( EWidgetProperty_Rows );
+
+    // the choices of the user are of the columns: they are applied to the columns of the new model
+    if ( !m_model.IsNULL() && m_hasPreferences )
+        ApplyPreferences( m_preferences );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1697,6 +2005,7 @@ void
 CGridView::OnModelCellsChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    OnContentChanged( false );
     Touch( EWidgetProperty_Rows );
 }
 
@@ -1705,6 +2014,8 @@ CGridView::OnModelCellsChanged( CORE::CNotifier* notifier, const CORE::CEvent& e
 void
 CGridView::OnModelFooterChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
+
+    OnContentChanged( false );
 
     // the footer takes a row from the rows that scroll, so the scroll position may have to follow
     if ( 0 == m_updateDepth )
@@ -1817,6 +2128,7 @@ CGridView::OnModelRowsInserted( CORE::CNotifier* notifier, const CORE::CEvent& e
         return;
     const Int32 first = (Int32) range->GetData().firstRow;
     const Int32 count = (Int32) range->GetData().rowCount;
+    OnContentChanged( false );
 
     // rows before the first one in view push it down, so that the same rows stay in view
     const Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition );
@@ -1879,6 +2191,7 @@ CGridView::OnModelRowsRemoved( CORE::CNotifier* notifier, const CORE::CEvent& ev
     const Int32 first = (Int32) range->GetData().firstRow;
     const Int32 count = (Int32) range->GetData().rowCount;
     const Int32 end = first + count;
+    OnContentChanged( false );
 
     TInt32Vector emphasized = GetIntListProperty( EWidgetProperty_EmphasizedRows );
     if ( !emphasized.empty() )
@@ -1947,6 +2260,7 @@ void
 CGridView::OnModelColumnsChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    OnContentChanged( true );
     InvalidateLayout();
     if ( m_updateDepth > 0 )
         m_modelChangedInUpdate = true;
@@ -1957,6 +2271,8 @@ CGridView::OnModelColumnsChanged( CORE::CNotifier* notifier, const CORE::CEvent&
         m_editing->OnModelChanged();
     if ( GUCEF_NULL != m_clipboard )
         m_clipboard->OnModelChanged();
+    if ( m_hasPreferences && !m_applyingPreferences )
+        ApplyPreferences( m_preferences );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1965,6 +2281,7 @@ void
 CGridView::OnModelReset( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    OnContentChanged( false );
     InvalidateLayout();
     if ( m_updateDepth > 0 )
         m_modelChangedInUpdate = true;
@@ -2701,6 +3018,7 @@ CGridView::SetColumnWidth( UInt32 column, Int32 width )
     widths[ column ] = width;
     SetIntListProperty( EWidgetProperty_ColumnWidths, widths );
     FinishColumnChange( column, ColumnResizedEvent, width );
+    FlushPreferences();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2804,18 +3122,26 @@ CGridView::MoveColumn( UInt32 column, UInt32 position )
         SyncCellSelection( false );
     }
     FinishColumnChange( column, ColumnMovedEvent, target );
+    FlushPreferences();
 }
 
 /*-------------------------------------------------------------------------*/
 
-void
+bool
 CGridView::SetColumnHidden( UInt32 column, bool hidden )
 {GUCEF_TRACE;
 
     EnsureLayout();
-    if ( column >= m_columnCount || IsColumnHidden( column ) == hidden )
-        return;
-    TInt32Vector list = GetIntListProperty( EWidgetProperty_HiddenColumns );
+    if ( column >= m_columnCount )
+        return false;
+    if ( IsColumnHidden( column ) == hidden )
+        return true;
+    if ( hidden && !CanHideColumn( column ) )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CGridView: Column " << column << " of grid \"" << GetName() << "\" is not hidden: it is required or the last column shown" );
+        return false;
+    }
+    TInt32Vector list = GetEffectiveHiddenColumns();
     TInt32Vector result;
     for ( size_t i=0; i<list.size(); ++i )
         if ( list[ i ] != (Int32) column )
@@ -2838,6 +3164,8 @@ CGridView::SetColumnHidden( UInt32 column, bool hidden )
         SyncCellSelection( false );
     }
     FinishColumnChange( column, ColumnVisibilityChangedEvent, hidden ? 0 : 1 );
+    FlushPreferences();
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2871,6 +3199,8 @@ CGridView::OnMouseDown( CPointerEventData& pointer )
     const bool ctrl = 0 != ( pointer.modifiers & INPUT::KEYMOD_CTRL );
     const bool shift = 0 != ( pointer.modifiers & INPUT::KEYMOD_SHIFT );
 
+    if ( HIT_COLUMN_CHOOSER_BUTTON == hit.kind || HIT_CSV_EXPORT_BUTTON == hit.kind )
+        return true;            // the click does what the button is for
     if ( HIT_COLUMN_BORDER == hit.kind )
     {
         m_dragMode = DRAG_RESIZE;
@@ -3048,6 +3378,8 @@ CGridView::OnMouseReleased( bool completed )
         }
         return true;
     }
+    if ( DRAG_RESIZE == mode )
+        FlushPreferences();      // a resize is saved once, when it ends
     return DRAG_NONE != mode;
 }
 
@@ -3107,6 +3439,16 @@ CGridView::OnMouseClicked( CPointerEventData& pointer )
     // the header: the column was clicked, a sortable grid sorts by it
     if ( pointer.localY >= 0 && pointer.localY < GetRowHeight() )
     {
+        if ( HIT_COLUMN_CHOOSER_BUTTON == hit.kind )
+        {
+            OpenColumnChooser();
+            return true;
+        }
+        if ( HIT_CSV_EXPORT_BUTTON == hit.kind )
+        {
+            OpenCsvExport();
+            return true;
+        }
         if ( HIT_COLUMN_BORDER == hit.kind )
         {
             if ( 2 == pointer.clickCount && hit.column >= 0 )
@@ -3119,6 +3461,12 @@ CGridView::OnMouseClicked( CPointerEventData& pointer )
     }
     if ( HIT_FOOTER == hit.kind )
         return true;
+    if ( HIT_FOLD_BUTTON == hit.kind )
+    {
+        // the control opens or closes the row; a second click of a double click does it again, it does not activate the row
+        ToggleRowExpanded( hit.row );
+        return true;
+    }
 
     Int32 row = GetRowAt( pointer.localY );
     if ( row < 0 )
@@ -3208,7 +3556,7 @@ CGridView::OnWheel( CWheelEventData& wheel )
 {GUCEF_TRACE;
 
     EnsureLayout();
-    if ( 0 != ( wheel.modifiers & INPUT::KEYMOD_SHIFT ) && GetBoolProperty( EWidgetProperty_HorizontalScroll ) )
+    if ( 0 != ( wheel.modifiers & INPUT::KEYMOD_SHIFT ) && IsHorizontallyScrollable() )
     {
         const Int32 current = m_layout.GetScrollX();
         const Int32 scroll = Clamp( current - wheel.delta * WheelStepX, 0, m_layout.GetMaxScrollX() );
@@ -3241,11 +3589,22 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
         if ( DRAG_NONE != m_dragMode && OnMouseMoved( *pointer ) )
             return true;
         SetIntProperty( EWidgetProperty_HoverIndex, GetRowAt( pointer->localY ) );
+        const Int32 button = pointer->localY >= 0 && pointer->localY < GetRowHeight() ? HeaderButtonAt( pointer->localX ) : -1;
+        if ( button != m_hoverButton )
+        {
+            m_hoverButton = button;
+            Touch( EWidgetProperty_ShowColumnChooser );
+        }
         return true;
     }
     if ( MouseFocusLostEvent == eventId )
     {
         SetIntProperty( EWidgetProperty_HoverIndex, -1 );
+        if ( m_hoverButton >= 0 )
+        {
+            m_hoverButton = -1;
+            Touch( EWidgetProperty_ShowColumnChooser );
+        }
         return true;
     }
     if ( MouseDownEvent == eventId )
@@ -3263,8 +3622,26 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
         return OnMouseReleased( false );
     if ( MouseClickEvent == eventId && MOUSEBUTTON_LEFT == static_cast< CPointerEventData* >( &eventData )->button )
         return OnMouseClicked( *static_cast< CPointerEventData* >( &eventData ) );
+    if ( MouseClickEvent == eventId && MOUSEBUTTON_RIGHT == static_cast< CPointerEventData* >( &eventData )->button && GUCEF_NULL != m_contextMenuProvider )
+    {
+        // the context menu of the cell under the pointer; over the header or below the rows the menu is for no cell
+        const CPointerEventData* pointer = static_cast< CPointerEventData* >( &eventData );
+        const THit hit = HitTest( pointer->localX, pointer->localY );
+        const bool onRow = HIT_CELL == hit.kind || HIT_FOLD_BUTTON == hit.kind || HIT_ROW_HEADER == hit.kind;
+        const Int32 row = onRow ? hit.row : -1;
+        const Int32 column = HIT_CELL == hit.kind || HIT_FOLD_BUTTON == hit.kind ? hit.column : -1;
+        return OnContextMenuRequest( row, column, pointer->x, pointer->y );
+    }
     if ( KeyDownEvent == eventId )
-        return OnKeyPressed( *static_cast< CKeyEventData* >( &eventData ) );
+    {
+        CKeyEventData* key = static_cast< CKeyEventData* >( &eventData );
+        if ( GUCEF_NULL != m_contextMenuProvider &&
+             ( INPUT::KEYCODE_APPS == key->keyCode || ( INPUT::KEYCODE_F10 == key->keyCode && 0 != ( key->modifiers & INPUT::KEYMOD_SHIFT ) ) ) )
+            return OnContextMenuKey();
+        if ( OnFoldKey( *key ) )
+            return true;
+        return OnKeyPressed( *key );
+    }
     if ( KeyboardFocusLostEvent == eventId )
     {
         if ( GUCEF_NULL != m_editing )
@@ -3300,6 +3677,664 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
     if ( MouseWheelEvent == eventId )
         return OnWheel( *static_cast< CWheelEventData* >( &eventData ) );
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridView::TInt32Vector
+CGridView::GetEffectiveHiddenColumns( void ) const
+{GUCEF_TRACE;
+
+    TInt32Vector hidden;
+    if ( IsPropertySet( EWidgetProperty_HiddenColumns ) )
+        hidden = GetIntListProperty( EWidgetProperty_HiddenColumns );
+    else
+    if ( !m_model.IsNULL() )
+    {
+        const UInt32 count = m_model->GetColumnCount();
+        for ( UInt32 c=0; c<count; ++c )
+            if ( m_model->GetColumn( c ).hiddenByDefault )
+                hidden.push_back( (Int32) c );
+    }
+    if ( m_model.IsNULL() && m_requiredColumns.empty() )
+        return hidden;
+
+    // a required column is always shown, whatever the list says
+    TInt32Vector result;
+    for ( UInt32 i=0; i<(UInt32)hidden.size(); ++i )
+        if ( hidden[ i ] >= 0 && !IsColumnRequired( (UInt32) hidden[ i ] ) )
+            result.push_back( hidden[ i ] );
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::CollapseSelectionToCursor( void )
+{GUCEF_TRACE;
+
+    if ( !IsCellMode() )
+        return;
+    EnsureLayout();
+    const bool cursorHidden = m_cursorColumn >= 0 && m_layout.FindPosition( m_cursorColumn ) < 0;
+    if ( m_selection.IsEmpty() && !cursorHidden )
+        return;
+    if ( cursorHidden )
+        m_cursorColumn = m_layout.GetPositionCount() > 0 ? ColumnOfPosition( 0 ) : -1;
+    if ( m_cursorRow >= 0 && m_cursorColumn >= 0 )
+        m_selection.SelectCell( m_cursorRow, m_layout.FindPosition( m_cursorColumn ) );
+    else
+        m_selection.Clear();
+    SyncCellSelection( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridView::TStringVector
+CGridView::GetColumnKeys( void ) const
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    TStringVector bases;
+    bases.reserve( m_columnCount );
+    for ( UInt32 c=0; c<m_columnCount; ++c )
+    {
+        CString key;
+        if ( !m_model.IsNULL() )
+        {
+            const CTableViewColumn& definition = m_model->GetColumn( c );
+            key = definition.name.IsNULLOrEmpty() ? definition.GetDisplayTitle() : definition.name;
+        }
+        else
+        if ( c < (UInt32) m_titles.size() )
+            key = m_titles[ c ];
+        if ( key.IsNULLOrEmpty() )
+            key = "#" + CORE::UInt32ToString( c + 1 );
+        bases.push_back( key );
+    }
+
+    // a key an earlier column has already gets the number of its occurrence
+    TStringVector keys;
+    keys.reserve( m_columnCount );
+    GUCEF::map< CString, UInt32 > seen;
+    for ( UInt32 c=0; c<m_columnCount; ++c )
+    {
+        UInt32& occurrences = seen[ bases[ c ] ];
+        ++occurrences;
+        keys.push_back( 1 == occurrences ? bases[ c ] : bases[ c ] + "#" + CORE::UInt32ToString( occurrences ) );
+    }
+    return keys;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetColumnKey( UInt32 column ) const
+{GUCEF_TRACE;
+
+    const TStringVector keys = GetColumnKeys();
+    return column < (UInt32) keys.size() ? keys[ column ] : CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::FindColumnByKey( const CString& key ) const
+{GUCEF_TRACE;
+
+    const TStringVector keys = GetColumnKeys();
+    for ( UInt32 c=0; c<(UInt32)keys.size(); ++c )
+        if ( keys[ c ] == key )
+            return (Int32) c;
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsColumnRequired( UInt32 column ) const
+{GUCEF_TRACE;
+
+    if ( m_requiredColumns.find( (Int32) column ) != m_requiredColumns.end() )
+        return true;
+    return !m_model.IsNULL() && column < m_model->GetColumnCount() && m_model->GetColumn( column ).required;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetRequiredColumns( const TInt32Vector& columns )
+{GUCEF_TRACE;
+
+    m_requiredColumns.clear();
+    for ( UInt32 i=0; i<(UInt32)columns.size(); ++i )
+        if ( columns[ i ] >= 0 )
+            m_requiredColumns.insert( columns[ i ] );
+    InvalidateLayout();
+    Touch( EWidgetProperty_HiddenColumns );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsColumnHiddenByDefault( UInt32 column ) const
+{GUCEF_TRACE;
+
+    if ( IsColumnRequired( column ) )
+        return false;
+    if ( m_columnDefaults.captured && m_columnDefaults.hiddenSet )
+        return std::find( m_columnDefaults.hidden.begin(), m_columnDefaults.hidden.end(), (Int32) column ) != m_columnDefaults.hidden.end();
+    return !m_model.IsNULL() && column < m_model->GetColumnCount() && m_model->GetColumn( column ).hiddenByDefault;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::CanHideColumn( UInt32 column ) const
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    if ( column >= m_columnCount || IsColumnRequired( column ) )
+        return false;
+    if ( m_layout.FindPosition( (Int32) column ) < 0 )
+        return true;
+    return m_layout.GetPositionCount() > 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridView::TInt32Vector
+CGridView::GetColumnOrder( void ) const
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    const TInt32Vector sequence = GetIntListProperty( EWidgetProperty_ColumnOrder );
+    GUCEF::vector< bool > listed( m_columnCount, false );
+    TInt32Vector order;
+    order.reserve( m_columnCount );
+    for ( UInt32 i=0; i<(UInt32)sequence.size(); ++i )
+        if ( sequence[ i ] >= 0 && sequence[ i ] < (Int32) m_columnCount && !listed[ sequence[ i ] ] )
+        {
+            listed[ sequence[ i ] ] = true;
+            order.push_back( sequence[ i ] );
+        }
+    for ( UInt32 c=0; c<m_columnCount; ++c )
+        if ( !listed[ c ] )
+            order.push_back( (Int32) c );
+    return order;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::MoveColumnInOrder( UInt32 column, UInt32 index )
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    if ( column >= m_columnCount )
+        return false;
+    TInt32Vector order = GetColumnOrder();
+    UInt32 current = 0;
+    while ( current < (UInt32) order.size() && order[ current ] != (Int32) column )
+        ++current;
+    if ( current >= (UInt32) order.size() )
+        return false;
+    if ( index >= (UInt32) order.size() )
+        index = (UInt32) order.size() - 1;
+    if ( index == current )
+        return false;
+    order.erase( order.begin() + current );
+    order.insert( order.begin() + index, (Int32) column );
+    WriteColumnOrder( order );
+    EnsureLayout();
+    CollapseSelectionToCursor();
+    FinishColumnChange( column, ColumnMovedEvent, m_layout.FindPosition( (Int32) column ) );
+    FlushPreferences();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::CaptureColumnDefaults( void )
+{GUCEF_TRACE;
+
+    m_columnDefaults.captured = true;
+    m_columnDefaults.orderSet = IsPropertySet( EWidgetProperty_ColumnOrder );
+    m_columnDefaults.order = GetIntListProperty( EWidgetProperty_ColumnOrder );
+    m_columnDefaults.hiddenSet = IsPropertySet( EWidgetProperty_HiddenColumns );
+    m_columnDefaults.hidden = GetIntListProperty( EWidgetProperty_HiddenColumns );
+    m_columnDefaults.widthsSet = IsPropertySet( EWidgetProperty_ColumnWidths );
+    m_columnDefaults.widths = GetIntListProperty( EWidgetProperty_ColumnWidths );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::HasColumnDefaults( void ) const
+{GUCEF_TRACE;
+
+    return m_columnDefaults.captured;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::ResetColumnsToDefault( void )
+{GUCEF_TRACE;
+
+    {
+        CORE::CTScopedValue< bool > applying( m_applyingPreferences, true );
+        const SColumnDefaults& defaults = m_columnDefaults;
+        if ( defaults.captured && defaults.orderSet )
+            SetIntListProperty( EWidgetProperty_ColumnOrder, defaults.order );
+        else
+            ResetProperty( EWidgetProperty_ColumnOrder );
+        if ( defaults.captured && defaults.hiddenSet )
+            SetIntListProperty( EWidgetProperty_HiddenColumns, defaults.hidden );
+        else
+            ResetProperty( EWidgetProperty_HiddenColumns );
+        if ( defaults.captured && defaults.widthsSet )
+            SetIntListProperty( EWidgetProperty_ColumnWidths, defaults.widths );
+        else
+            ResetProperty( EWidgetProperty_ColumnWidths );
+    }
+    InvalidateLayout();
+    EnsureLayout();
+    CollapseSelectionToCursor();
+    NotifyObservers( ColumnsResetEvent );
+    if ( !m_preferenceStore.IsNULL() && !m_preferencesPending )
+        SavePreferences();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetPreferenceStore( const TGridPreferenceStorePtr& store, const CString& gridId )
+{GUCEF_TRACE;
+
+    m_preferenceStore = store;
+    m_preferenceId = gridId;
+    m_preferences.Clear();
+    m_hasPreferences = false;
+    m_preferencesDirty = false;
+    m_preferencesPending = false;
+    if ( m_preferenceStore.IsNULL() )
+        return;
+    if ( !m_columnDefaults.captured )
+        CaptureColumnDefaults();
+    LoadPreferences();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const TGridPreferenceStorePtr&
+CGridView::GetPreferenceStore( void ) const
+{GUCEF_TRACE;
+
+    return m_preferenceStore;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CGridView::GetPreferenceId( void ) const
+{GUCEF_TRACE;
+
+    return m_preferenceId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetDefaultsRevision( const CString& revision )
+{GUCEF_TRACE;
+
+    m_defaultsRevision = revision;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CGridView::GetDefaultsRevision( void ) const
+{GUCEF_TRACE;
+
+    return m_defaultsRevision;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::LoadPreferences( void )
+{GUCEF_TRACE;
+
+    if ( m_preferenceStore.IsNULL() )
+        return false;
+    CGridPreferences record;
+    if ( !m_preferenceStore->Load( m_preferenceId, record ) )
+        return false;
+    ApplyPreferences( record );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::SavePreferences( void )
+{GUCEF_TRACE;
+
+    if ( m_preferenceStore.IsNULL() )
+        return false;
+    EnsureLayout();
+    if ( 0 == m_columnCount )
+        return false;       // nothing to say yet; a record of no columns would replace the user's
+    CGridPreferences record;
+    CapturePreferences( record );
+    m_preferencesDirty = false;
+    if ( !m_preferenceStore->Save( m_preferenceId, record ) )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CGridView: The preference store did not keep the columns of grid \"" << m_preferenceId << "\"" );
+        NotifyObservers( PreferencesSaveFailedEvent );
+        return false;
+    }
+    m_preferences = record;
+    m_hasPreferences = true;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::FlushPreferences( void )
+{GUCEF_TRACE;
+
+    if ( !m_preferencesDirty || m_preferenceStore.IsNULL() || m_applyingPreferences || m_preferencesPending || DRAG_RESIZE == m_dragMode )
+        return;
+    SavePreferences();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::CapturePreferences( CGridPreferences& preferences ) const
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    preferences.Clear();
+    preferences.gridId = m_preferenceId;
+    preferences.exportRoot = m_preferences.exportRoot;
+    preferences.exportDirectory = m_preferences.exportDirectory;
+    preferences.defaultsRevision = m_defaultsRevision;
+
+    const TStringVector keys = GetColumnKeys();
+    const TInt32Vector order = GetColumnOrder();
+    preferences.hasWidths = IsPropertySet( EWidgetProperty_ColumnWidths );
+    const TInt32Vector widths = preferences.hasWidths ? GetIntListProperty( EWidgetProperty_ColumnWidths ) : TInt32Vector();
+    for ( UInt32 i=0; i<(UInt32)order.size(); ++i )
+    {
+        const Int32 c = order[ i ];
+        const Int32 width = c < (Int32) widths.size() && widths[ c ] > 0 ? widths[ c ] : 0;
+        preferences.columns.push_back( CGridPreferences::SColumn( keys[ c ], m_layout.FindPosition( c ) >= 0, width ) );
+    }
+    const Int32 sortColumn = IsPropertySet( EWidgetProperty_SortColumn ) ? GetIntProperty( EWidgetProperty_SortColumn ) : -1;
+    if ( sortColumn >= 0 && sortColumn < (Int32) keys.size() )
+    {
+        preferences.hasSort = true;
+        preferences.sortKey = keys[ sortColumn ];
+        preferences.sortAscending = GetBoolProperty( EWidgetProperty_SortAscending );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::ApplyPreferences( const CGridPreferences& preferences )
+{GUCEF_TRACE;
+
+    const CGridPreferences record( preferences );       // may be m_preferences itself
+    m_preferences = record;
+    m_hasPreferences = true;
+    EnsureLayout();
+    if ( 0 == m_columnCount )
+    {
+        // the columns come later (a model set after the store): applied then, and nothing is saved before
+        m_preferencesPending = true;
+        return false;
+    }
+
+    const TStringVector keys = GetColumnKeys();
+    const UInt32 count = m_columnCount;
+    GUCEF::map< CString, Int32 > recordIndexOfKey;
+    for ( UInt32 i=0; i<(UInt32)record.columns.size(); ++i )
+        recordIndexOfKey[ record.columns[ i ].key ] = (Int32) i;
+    GUCEF::map< CString, Int32 > columnOfKey;
+    for ( UInt32 c=0; c<count; ++c )
+        columnOfKey[ keys[ c ] ] = (Int32) c;
+
+    // the order of the record, then the columns it does not know in the order of the data
+    TInt32Vector order;
+    order.reserve( count );
+    GUCEF::vector< bool > placed( count, false );
+    for ( UInt32 i=0; i<(UInt32)record.columns.size(); ++i )
+    {
+        GUCEF::map< CString, Int32 >::const_iterator found = columnOfKey.find( record.columns[ i ].key );
+        if ( found != columnOfKey.end() && !placed[ (*found).second ] )
+        {
+            placed[ (*found).second ] = true;
+            order.push_back( (*found).second );
+        }
+    }
+    for ( UInt32 c=0; c<count; ++c )
+        if ( !placed[ c ] )
+            order.push_back( (Int32) c );
+
+    // shown as the record says, the defaults for what it does not know, required columns always
+    GUCEF::vector< bool > hide( count, false );
+    UInt32 shown = 0;
+    for ( UInt32 c=0; c<count; ++c )
+    {
+        GUCEF::map< CString, Int32 >::const_iterator found = recordIndexOfKey.find( keys[ c ] );
+        hide[ c ] = found != recordIndexOfKey.end() ? !record.columns[ (*found).second ].shown : IsColumnHiddenByDefault( c );
+        if ( IsColumnRequired( c ) )
+            hide[ c ] = false;
+        if ( !hide[ c ] )
+            ++shown;
+    }
+    if ( 0 == shown )
+        hide[ order[ 0 ] ] = false;     // never a grid without a column
+    TInt32Vector hidden;
+    for ( UInt32 i=0; i<(UInt32)order.size(); ++i )
+        if ( hide[ order[ i ] ] )
+            hidden.push_back( order[ i ] );
+
+    {
+        CORE::CTScopedValue< bool > applying( m_applyingPreferences, true );
+        if ( record.hasWidths )
+        {
+            TInt32Vector widths = m_baseWidths;
+            widths.resize( count, (Int32) DEFAULT_COLUMN_WIDTH );
+            for ( UInt32 c=0; c<count; ++c )
+            {
+                GUCEF::map< CString, Int32 >::const_iterator found = recordIndexOfKey.find( keys[ c ] );
+                if ( found != recordIndexOfKey.end() && record.columns[ (*found).second ].width > 0 )
+                    widths[ c ] = record.columns[ (*found).second ].width;
+            }
+            SetIntListProperty( EWidgetProperty_ColumnWidths, widths );
+        }
+        WriteColumnOrder( order );
+        SetIntListProperty( EWidgetProperty_HiddenColumns, hidden );
+    }
+    InvalidateLayout();
+    EnsureLayout();
+    CollapseSelectionToCursor();
+
+    // the sort, when the grid can sort; an arrow without the rows sorted would mislead
+    if ( record.hasSort )
+    {
+        GUCEF::map< CString, Int32 >::const_iterator found = columnOfKey.find( record.sortKey );
+        const bool canSort = m_model.IsNULL() ? GetBoolProperty( EWidgetProperty_Sortable ) : m_model->IsSortSupported();
+        if ( found != columnOfKey.end() && canSort )
+        {
+            const bool same = IsPropertySet( EWidgetProperty_SortColumn ) && GetIntProperty( EWidgetProperty_SortColumn ) == (*found).second &&
+                              GetBoolProperty( EWidgetProperty_SortAscending ) == record.sortAscending;
+            if ( !same )
+            {
+                CORE::CTScopedValue< bool > applying( m_applyingPreferences, true );
+                SortRows( (UInt32) (*found).second, record.sortAscending );
+            }
+        }
+    }
+    m_preferencesPending = false;
+    m_preferencesDirty = false;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CGridPreferences&
+CGridView::GetPreferences( void ) const
+{GUCEF_TRACE;
+
+    return m_preferences;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetExportLocation( const CString& rootName, const CString& directory )
+{GUCEF_TRACE;
+
+    if ( m_preferences.exportRoot == rootName && m_preferences.exportDirectory == directory )
+        return;
+    m_preferences.exportRoot = rootName;
+    m_preferences.exportDirectory = directory;
+    if ( !m_preferenceStore.IsNULL() && !m_preferencesPending )
+    {
+        m_preferencesDirty = true;
+        FlushPreferences();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetHeaderStripWidth( void ) const
+{GUCEF_TRACE;
+
+    const Int32 buttons = ( GetBoolProperty( EWidgetProperty_ShowColumnChooser ) ? 1 : 0 ) + ( GetBoolProperty( EWidgetProperty_ShowCsvExport ) ? 1 : 0 );
+    return 0 == buttons ? 0 : buttons * GetRowHeight();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::HeaderButtonAt( Int32 localX ) const
+{GUCEF_TRACE;
+
+    const Int32 strip = GetHeaderStripWidth();
+    if ( strip <= 0 )
+        return -1;
+    const Int32 width = GetRect().width;
+    const Int32 left = width - strip;
+    if ( localX < left || localX >= width )
+        return -1;
+    const Int32 rowHeight = GetRowHeight();
+    const Int32 slot = rowHeight > 0 ? ( localX - left ) / rowHeight : 0;
+    if ( GetBoolProperty( EWidgetProperty_ShowColumnChooser ) )
+        return 0 == slot ? (Int32) HEADERBUTTON_COLUMN_CHOOSER : (Int32) HEADERBUTTON_CSV_EXPORT;
+    return (Int32) HEADERBUTTON_CSV_EXPORT;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::GetHeaderButtonRect( EHeaderButton button, CRect& rect ) const
+{GUCEF_TRACE;
+
+    const bool chooser = GetBoolProperty( EWidgetProperty_ShowColumnChooser );
+    const bool exporter = GetBoolProperty( EWidgetProperty_ShowCsvExport );
+    if ( ( HEADERBUTTON_COLUMN_CHOOSER == button && !chooser ) || ( HEADERBUTTON_CSV_EXPORT == button && !exporter ) )
+        return false;
+    const Int32 rowHeight = GetRowHeight();
+    const Int32 left = GetRect().width - GetHeaderStripWidth();
+    const Int32 slot = HEADERBUTTON_CSV_EXPORT == button && chooser ? 1 : 0;
+    rect = CRect( left + slot * rowHeight, 0, rowHeight, rowHeight );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetHoveredHeaderButton( void ) const
+{GUCEF_TRACE;
+
+    return IsHovered() ? m_hoverButton : -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::OpenColumnChooser( void )
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL == context )
+        return false;
+    if ( !m_columnDefaults.captured )
+        CaptureColumnDefaults();
+    if ( GUCEF_NULL == m_columnChooser )
+    {
+        m_columnChooser = GUCEF_NEW CGridColumnChooserForm( context );
+        context->AdoptForm( m_columnChooser );
+    }
+    return m_columnChooser->Open( *this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridColumnChooserForm*
+CGridView::GetColumnChooser( void )
+{GUCEF_TRACE;
+
+    return m_columnChooser;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsColumnChooserOpen( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != m_columnChooser && m_columnChooser->IsOpen();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::OpenCsvExport( void )
+{GUCEF_TRACE;
+
+    return GetCsvExportController().Open();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridCsvExportController&
+CGridView::GetCsvExportController( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_csvExport )
+        m_csvExport = GUCEF_NEW CGridCsvExportController( *this );
+    return *m_csvExport;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridCsvOptions&
+CGridView::GetCsvExportOptions( void )
+{GUCEF_TRACE;
+
+    return GetCsvExportController().GetOptions();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3502,6 +4537,738 @@ CGridView::ClearCopyOutline( void )
 
     if ( GUCEF_NULL != m_clipboard )
         m_clipboard->ClearOutline();
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The room a content needs in a cell, padding included: the text (a check box for a boolean), the marker, the marker slot of the column */
+Int32
+MeasureCellContent( CGUIContext& context, const CString& font, const SCellContent& content, Int32 markerSlot )
+{
+    Int32 width = 0, height = 0;
+    if ( SCellContent::KIND_CHECK_ON == content.kind || SCellContent::KIND_CHECK_OFF == content.kind )
+        width = 10;
+    else
+    if ( !content.text.IsNULLOrEmpty() )
+        context.MeasureText( font, content.text, 0, width, height );
+    if ( !content.marker.IsNULLOrEmpty() )
+    {
+        Int32 markerWidth = 0;
+        if ( content.markerLeading )
+        {
+            context.MeasureText( font, content.marker, 0, markerWidth, height );
+            width += markerWidth + (Int32) CGridView::CELL_PADDING_LEFT;
+        }
+        else
+        if ( markerSlot <= 0 )
+        {
+            context.MeasureText( font, " " + content.marker, 0, markerWidth, height );
+            width += markerWidth;
+        }
+    }
+    return width + (Int32) CGridView::CELL_PADDING_LEFT + (Int32) CGridView::CELL_PADDING_RIGHT + ( markerSlot > 0 ? markerSlot : 0 );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsFitByPolicy( void ) const
+{GUCEF_TRACE;
+
+    const CString& mode = GetPropertyRef( EWidgetProperty_FitMode );
+    return "Fill" == mode || "Content" == mode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsHorizontallyScrollable( void ) const
+{GUCEF_TRACE;
+
+    return GetBoolProperty( EWidgetProperty_HorizontalScroll ) || IsFitByPolicy();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetColumnFit( UInt32 column, const CGridColumnFit& fit )
+{GUCEF_TRACE;
+
+    m_columnFits[ column ] = fit;
+    m_layoutDirty = true;
+    Touch( EWidgetProperty_Rows );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::ClearColumnFit( UInt32 column )
+{GUCEF_TRACE;
+
+    m_columnFits.erase( column );
+    m_layoutDirty = true;
+    Touch( EWidgetProperty_Rows );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridColumnFit
+CGridView::GetColumnFit( UInt32 column ) const
+{GUCEF_TRACE;
+
+    GUCEF::map< UInt32, CGridColumnFit >::const_iterator i = m_columnFits.find( column );
+    if ( i != m_columnFits.end() )
+        return (*i).second;
+    if ( !m_model.IsNULL() && column < m_model->GetColumnCount() )
+        return m_model->GetColumn( column ).fit;
+    return CGridColumnFit();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetColumnMarkerSlot( UInt32 column ) const
+{GUCEF_TRACE;
+
+    if ( m_model.IsNULL() || column >= m_model->GetColumnCount() )
+        return 0;
+    const Int32 slot = m_model->GetColumn( column ).markerSlot;
+    return slot > 0 ? slot : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::OnContentChanged( bool reset )
+{GUCEF_TRACE;
+
+    m_contentDirty = true;
+    if ( reset )
+        m_contentWidths.clear();
+    if ( IsFitByPolicy() )
+        m_layoutDirty = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::ResetContentWidths( void )
+{GUCEF_TRACE;
+
+    m_contentWidths.clear();
+    m_contentDirty = true;
+    m_layoutDirty = true;
+    Touch( EWidgetProperty_Rows );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetColumnContentWidth( UInt32 column ) const
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    EnsureContentWidths( m_columnCount );
+    return column < (UInt32) m_contentWidths.size() ? m_contentWidths[ column ] : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::EnsureContentWidths( UInt32 columns ) const
+{GUCEF_TRACE;
+
+    if ( !m_contentDirty && (UInt32) m_contentWidths.size() == columns )
+        return;
+    if ( (UInt32) m_contentWidths.size() != columns )
+        m_contentWidths.resize( columns, 0 );
+    m_contentDirty = false;
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL == context || 0 == columns )
+        return;
+
+    // what follows reads no layout: the layout asks for these widths while it is being made
+    const CString& font = GetPropertyRef( EWidgetProperty_Font );
+    const Int32 padding = (Int32) CELL_PADDING_LEFT + (Int32) CELL_PADDING_RIGHT;
+    const bool sortable = GetBoolProperty( EWidgetProperty_Sortable ) || ( !m_model.IsNULL() && m_model->IsSortSupported() );
+    const Int32 sortColumn = GetIntProperty( EWidgetProperty_SortColumn );
+
+    // the first shown column has the indent and the fold control of a row hierarchy
+    const TInt32Vector hidden = GetEffectiveHiddenColumns();
+    GUCEF::set< Int32 > hiddenSet( hidden.begin(), hidden.end() );
+    Int32 firstShown = -1;
+    const TInt32Vector order = GetIntListProperty( EWidgetProperty_ColumnOrder );
+    for ( UInt32 i=0; i<(UInt32)order.size() && firstShown < 0; ++i )
+        if ( order[ i ] >= 0 && order[ i ] < (Int32) columns && hiddenSet.find( order[ i ] ) == hiddenSet.end() )
+            firstShown = order[ i ];
+    for ( UInt32 c=0; c<columns && firstShown < 0; ++c )
+    {
+        bool listed = false;
+        for ( UInt32 i=0; i<(UInt32)order.size() && !listed; ++i )
+            listed = order[ i ] == (Int32) c;
+        if ( !listed && hiddenSet.find( (Int32) c ) == hiddenSet.end() )
+            firstShown = (Int32) c;
+    }
+    const bool hierarchy = HasRowHierarchy();
+
+    TInt32Vector measured( columns, 0 );
+    TInt32Vector slots( columns, 0 );
+    for ( UInt32 c=0; c<columns; ++c )
+    {
+        slots[ c ] = GetColumnMarkerSlot( c );
+        const CString title = !m_model.IsNULL() ? m_model->GetColumn( c ).GetDisplayTitle() : ( c < (UInt32) m_titles.size() ? m_titles[ c ] : CString::Empty );
+        Int32 width = 0, height = 0;
+        if ( !title.IsNULLOrEmpty() )
+            context->MeasureText( font, title, 0, width, height );
+        width += padding;
+        if ( sortable || sortColumn == (Int32) c )
+            width += (Int32) SORT_ARROW_ROOM;
+        measured[ c ] = width;
+    }
+
+    // the rows from the top and the rows in view
+    const Int32 rowCount = (Int32) GetRowCount();
+    const Int32 sampleEnd = rowCount < (Int32) CONTENT_SAMPLE_ROWS ? rowCount : (Int32) CONTENT_SAMPLE_ROWS;
+    const Int32 viewFirst = GetFirstScrolledRow();
+    Int32 viewEnd = viewFirst + GetVisibleRowCount() + 1;
+    if ( viewEnd > rowCount )
+        viewEnd = rowCount;
+    for ( Int32 pass=0; pass<2; ++pass )
+    {
+        const Int32 from = 0 == pass ? 0 : ( viewFirst > sampleEnd ? viewFirst : sampleEnd );
+        const Int32 to = 0 == pass ? sampleEnd : viewEnd;
+        for ( Int32 r=from; r<to; ++r )
+        {
+            Int32 rowIndent = 0;
+            if ( firstShown >= 0 )
+            {
+                CColour rowColour;
+                if ( IsRowEmphasized( r ) || GetRowColour( r, rowColour ) )
+                    rowIndent += (Int32) EMPHASIS_INDENT;
+                if ( hierarchy )
+                    rowIndent += (Int32) GetRowLevel( r ) * (Int32) FOLD_INDENT + (Int32) FOLD_BUTTON_ROOM;
+            }
+            for ( UInt32 c=0; c<columns; ++c )
+            {
+                SCellContent content;
+                if ( !GetCellContent( r, (Int32) c, content ) )
+                    continue;
+                Int32 width = MeasureCellContent( *context, font, content, slots[ c ] );
+                if ( (Int32) c == firstShown )
+                    width += rowIndent;
+                if ( width > measured[ c ] )
+                    measured[ c ] = width;
+            }
+        }
+    }
+
+    // the footer
+    if ( IsFooterShown() )
+    {
+        for ( UInt32 c=0; c<columns; ++c )
+        {
+            SCellContent content;
+            if ( !GetFooterContent( c, content ) )
+                continue;
+            const Int32 width = MeasureCellContent( *context, font, content, slots[ c ] );
+            if ( width > measured[ c ] )
+                measured[ c ] = width;
+        }
+    }
+
+    // the widths only grow while the data change, so columns do not jump while values update
+    for ( UInt32 c=0; c<columns; ++c )
+        if ( measured[ c ] > m_contentWidths[ c ] )
+            m_contentWidths[ c ] = measured[ c ];
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridView::TInt32Vector
+CGridView::ComputePolicyWidths( Int32 available, UInt32 columns, const TInt32Vector& hidden ) const
+{GUCEF_TRACE;
+
+    EnsureContentWidths( columns );
+    const TInt32Vector explicitWidths = GetIntListProperty( EWidgetProperty_ColumnWidths );
+    TInt32Vector result( columns, 0 );
+    if ( 0 == columns )
+        return result;
+
+    GUCEF::vector< bool > shown( columns, true );
+    UInt32 shownCount = columns;
+    for ( UInt32 i=0; i<(UInt32)hidden.size(); ++i )
+    {
+        if ( hidden[ i ] >= 0 && hidden[ i ] < (Int32) columns && shown[ hidden[ i ] ] )
+        {
+            shown[ hidden[ i ] ] = false;
+            --shownCount;
+        }
+    }
+    if ( 0 == shownCount )
+        shown.assign( columns, true );
+
+    CGridColumnFitter::TColumnVector input;
+    GUCEF::vector< UInt32 > dataColumns;
+    for ( UInt32 c=0; c<columns; ++c )
+    {
+        CGridColumnFitter::TColumn column;
+        if ( c < (UInt32) explicitWidths.size() && explicitWidths[ c ] > 0 )
+            column.nominal = explicitWidths[ c ];
+        else
+        if ( !m_model.IsNULL() && m_model->GetColumn( c ).width > 0 )
+            column.nominal = m_model->GetColumn( c ).width;
+        column.content = c < (UInt32) m_contentWidths.size() ? m_contentWidths[ c ] : 0;
+        if ( !m_model.IsNULL() )
+            column.numeric = m_model->GetColumn( c ).IsNumeric() || m_model->GetColumn( c ).IsTemporal();
+        else
+            column.numeric = c < (UInt32) m_alignments.size() && "Right" == m_alignments[ c ];
+        column.fit = GetColumnFit( c );
+        if ( !shown[ c ] )
+        {
+            // a hidden column keeps a width for when it is shown again, and takes no room
+            result[ c ] = CGridColumnFitter::GetNominalWidth( column );
+            continue;
+        }
+        input.push_back( column );
+        dataColumns.push_back( c );
+    }
+    CGridColumnFitter::TInt32Vector widths;
+    CGridColumnFitter::Fit( input, available, "Fill" == GetPropertyRef( EWidgetProperty_FitMode ), widths );
+    for ( UInt32 i=0; i<(UInt32)dataColumns.size() && i<(UInt32)widths.size(); ++i )
+        result[ dataColumns[ i ] ] = widths[ i ];
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::FitContentText( const SCellContent& content, Int32 room, Int32 row, Int32 column, bool footer, bool& cut ) const
+{GUCEF_TRACE;
+
+    cut = false;
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL == context || content.text.IsNULLOrEmpty() )
+        return content.text;
+    const CString& font = GetPropertyRef( EWidgetProperty_Font );
+    Int32 width = 0, height = 0;
+    context->MeasureText( font, content.text, 0, width, height );
+    if ( width <= room )
+        return content.text;
+    cut = true;
+
+    if ( content.isNumber )
+    {
+        // a number is drawn whole: its compact form when that fits, else the marks of a number that does not fit
+        CString compact = content.compactText;
+        if ( compact.IsNULLOrEmpty() && !m_model.IsNULL() && column >= 0 && (UInt32) column < m_model->GetColumnCount() )
+        {
+            CORE::CVariant value;
+            if ( footer )
+            {
+                if ( m_model->GetFooterValue( (UInt32) column, value ) )
+                    CTableCellFormatter::FormatCompact( value, m_model->GetColumn( (UInt32) column ), compact );
+            }
+            else
+            if ( row >= 0 && m_model->GetCellValue( (UInt32) row, (UInt32) column, value ) )
+                CTableCellFormatter::FormatCompact( value, m_model->GetCellColumn( (UInt32) row, (UInt32) column ), compact );
+        }
+        if ( !compact.IsNULLOrEmpty() )
+        {
+            context->MeasureText( font, compact, 0, width, height );
+            if ( width <= room )
+                return compact;
+        }
+        Int32 markWidth = 0;
+        context->MeasureText( font, "#", 0, markWidth, height );
+        Int32 count = markWidth > 0 ? room / markWidth : 1;
+        if ( count < 1 )
+            count = 1;
+        if ( count > 64 )
+            count = 64;
+        CString marks;
+        for ( Int32 i=0; i<count; ++i )
+            marks += '#';
+        return marks;
+    }
+
+    // text: cut at its end, with "..." when asked for and always in the footer, where neighbours must stay apart
+    if ( footer || "Ellipsis" == GetPropertyRef( EWidgetProperty_TextOverflow ) )
+    {
+        bool ellipsized = false;
+        return CWidgetPainter::FitText( *context, font, content.text, room, ellipsized );
+    }
+    return content.text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCellStatusColours&
+CGridView::GetStatusColours( void ) const
+{GUCEF_TRACE;
+
+    const CString& text = GetPropertyRef( EWidgetProperty_StatusColours );
+    if ( !m_statusColoursParsed || !( text == m_statusColoursText ) )
+    {
+        m_statusColours.Reset();
+        if ( !m_statusColours.Parse( text ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "GridView: The StatusColours of grid \"" << GetName() << "\" have entries that are not \"name=colour\" with a known status; those are left out" );
+        }
+        m_statusColoursText = text;
+        m_statusColoursParsed = true;
+    }
+    return m_statusColours;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::SetContextMenuProvider( CIGridContextMenuProvider* provider )
+{GUCEF_TRACE;
+
+    m_contextMenuProvider = provider;
+    if ( GUCEF_NULL == provider )
+        CloseContextMenu();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIGridContextMenuProvider*
+CGridView::GetContextMenuProvider( void ) const
+{GUCEF_TRACE;
+
+    return m_contextMenuProvider;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::OpenContextMenu( Int32 row, Int32 column, Int32 x, Int32 y )
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL == m_contextMenuProvider || GUCEF_NULL == context )
+        return false;
+    TContextMenuItemVector items;
+    if ( !m_contextMenuProvider->GetContextMenuItems( *this, row, column, items ) || items.empty() )
+        return false;
+    if ( GUCEF_NULL == m_contextMenu )
+    {
+        m_contextMenu = CWidget::As< CPopupMenu >( context->CreateWidget( CPopupMenu::GetRegisteredTypeName(), GetName() + "#ContextMenu", GUCEF_NULL ) );
+        if ( GUCEF_NULL == m_contextMenu )
+            return false;
+        m_contextMenu->SetProperty( EWidgetProperty_Font, GetPropertyRef( EWidgetProperty_Font ) );
+        TEventCallback callback( this, &CGridView::OnContextMenuItemActivated );
+        SubscribeTo( m_contextMenu, CWidget::ItemActivatedEvent, callback );
+    }
+    m_contextMenuItems = items;
+    m_contextMenuRow = row;
+    m_contextMenuColumn = column;
+    CPopupMenu::TStringVector texts;
+    TInt32Vector disabled;
+    for ( UInt32 i=0; i<(UInt32)items.size(); ++i )
+    {
+        texts.push_back( items[ i ].GetDisplayText() );
+        if ( !items[ i ].separator && !items[ i ].enabled )
+            disabled.push_back( (Int32) i );
+    }
+    m_contextMenu->SetItems( texts );
+    m_contextMenu->SetIntListProperty( EWidgetProperty_DisabledItems, disabled );
+    return m_contextMenu->ShowAt( x, y );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsContextMenuOpen( void ) const
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    return GUCEF_NULL != context && GUCEF_NULL != m_contextMenu && context->GetPopup() == m_contextMenu;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::CloseContextMenu( void )
+{GUCEF_TRACE;
+
+    if ( IsContextMenuOpen() )
+        GetContext()->ClosePopup();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::ChooseContextMenuItem( const CString& itemId )
+{GUCEF_TRACE;
+
+    if ( !IsContextMenuOpen() )
+        return false;
+    bool found = false;
+    for ( UInt32 i=0; i<(UInt32)m_contextMenuItems.size() && !found; ++i )
+        found = !m_contextMenuItems[ i ].separator && m_contextMenuItems[ i ].enabled && m_contextMenuItems[ i ].id == itemId;
+    if ( !found )
+        return false;
+    CloseContextMenu();
+
+    // copies: the provider may open the menu again
+    const Int32 row = m_contextMenuRow;
+    const Int32 column = m_contextMenuColumn;
+    const CString id = itemId;
+    if ( GUCEF_NULL != m_contextMenuProvider )
+        m_contextMenuProvider->OnContextMenuItem( *this, row, column, id );
+    TContextMenuChoiceEventData choice;
+    choice.GetData().row = row;
+    choice.GetData().column = column;
+    choice.GetData().itemId = id;
+    NotifyObservers( ContextMenuItemChosenEvent, &choice );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const TContextMenuItemVector&
+CGridView::GetContextMenuItems( void ) const
+{GUCEF_TRACE;
+
+    return m_contextMenuItems;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetContextMenuRow( void ) const
+{GUCEF_TRACE;
+
+    return m_contextMenuRow;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetContextMenuColumn( void ) const
+{GUCEF_TRACE;
+
+    return m_contextMenuColumn;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGridView::OnContextMenuItemActivated( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    CItemEventData* item = static_cast< CItemEventData* >( eventData );
+    if ( EVENTPHASE_TUNNEL == item->phase )
+        return;
+    if ( item->index < 0 || item->index >= (Int32) m_contextMenuItems.size() )
+        return;
+    const CString id = m_contextMenuItems[ (UInt32) item->index ].id;
+    ChooseContextMenuItem( id );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::OnContextMenuRequest( Int32 row, Int32 column, Int32 x, Int32 y )
+{GUCEF_TRACE;
+
+    // the menu is for what is selected: a row (or cell) that is not selected is selected first, as a left click would
+    if ( row >= 0 )
+    {
+        if ( IsCellMode() )
+        {
+            if ( column >= 0 && !IsCellSelected( row, column ) )
+            {
+                EnsureLayout();
+                const Int32 position = PositionOfColumn( column );
+                if ( position >= 0 )
+                    MoveSelectionTo( row, position, false, false );
+            }
+        }
+        else
+        if ( !IsRowSelected( row ) )
+            MoveCursorByUser( row, false );
+    }
+    return OpenContextMenu( row, column, x, y );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::OnContextMenuKey( void )
+{GUCEF_TRACE;
+
+    const Int32 row = IsCellMode() ? m_cursorRow : GetSelectedRow();
+    const Int32 column = IsCellMode() && m_cursorColumn >= 0 ? m_cursorColumn : GetFirstShownColumn();
+    const CRect& rect = GetRect();
+    Int32 x = rect.left;
+    Int32 y = rect.top + GetRowHeight();
+    CRect cell;
+    if ( row >= 0 && column >= 0 )
+    {
+        ScrollToCell( row, column );
+        if ( GetCellRect( row, column, cell ) )
+        {
+            x = rect.left + cell.left;
+            y = rect.top + cell.Bottom();
+        }
+    }
+    return OpenContextMenu( row, row >= 0 ? column : -1, x, y );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetFirstShownColumn( void ) const
+{GUCEF_TRACE;
+
+    EnsureLayout();
+    return m_layout.GetPositionCount() > 0 ? m_layout.GetColumn( 0 ) : -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::HasRowHierarchy( void ) const
+{GUCEF_TRACE;
+
+    return !m_model.IsNULL() && m_model->HasRowHierarchy();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CGridView::GetRowLevel( Int32 row ) const
+{GUCEF_TRACE;
+
+    if ( row < 0 || !HasRowHierarchy() || row >= (Int32) m_model->GetRowCount() )
+        return 0;
+    return m_model->GetRowLevel( (UInt32) row );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsRowExpandable( Int32 row ) const
+{GUCEF_TRACE;
+
+    if ( row < 0 || !HasRowHierarchy() || row >= (Int32) m_model->GetRowCount() )
+        return false;
+    return m_model->IsRowExpandable( (UInt32) row );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsRowExpanded( Int32 row ) const
+{GUCEF_TRACE;
+
+    if ( !IsRowExpandable( row ) )
+        return false;
+    return m_model->IsRowExpanded( (UInt32) row );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::SetRowExpanded( Int32 row, bool expanded )
+{GUCEF_TRACE;
+
+    if ( !IsRowExpandable( row ) )
+        return false;
+    if ( IsRowExpanded( row ) == expanded )
+        return true;
+    if ( !m_model->SetRowExpanded( (UInt32) row, expanded ) )
+        return false;
+    OnContentChanged( false );
+    Touch( EWidgetProperty_Rows );
+    TCloneableGridIndex changed;
+    changed.GetData().row = (UInt32) row;
+    changed.GetData().column = 0;
+    NotifyObservers( RowExpansionChangedEvent, &changed );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::ToggleRowExpanded( Int32 row )
+{GUCEF_TRACE;
+
+    return SetRowExpanded( row, !IsRowExpanded( row ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetFoldRoom( Int32 row, UInt32 column ) const
+{GUCEF_TRACE;
+
+    if ( !HasRowHierarchy() || (Int32) column != GetFirstShownColumn() )
+        return 0;
+    return (Int32) GetRowLevel( row ) * (Int32) FOLD_INDENT + (Int32) FOLD_BUTTON_ROOM;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::GetFoldControlRect( Int32 row, CRect& rect ) const
+{GUCEF_TRACE;
+
+    if ( !IsRowExpandable( row ) )
+        return false;
+    EnsureLayout();
+    const Int32 top = GetRowTop( row );
+    if ( top < 0 || 0 == m_layout.GetPositionCount() )
+        return false;
+    CColour rowColour;
+    const Int32 indent = IsRowEmphasized( row ) || GetRowColour( row, rowColour ) ? (Int32) EMPHASIS_INDENT : 0;
+    const Int32 left = m_layout.GetScreenLeft( 0 ) + (Int32) CELL_PADDING_LEFT + indent + (Int32) GetRowLevel( row ) * (Int32) FOLD_INDENT;
+    rect = CRect( left, top, (Int32) FOLD_BUTTON_ROOM, GetRowHeight() );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::OnFoldKey( CKeyEventData& key )
+{GUCEF_TRACE;
+
+    if ( !HasRowHierarchy() || IsEditing() )
+        return false;
+    const Int32 row = IsCellMode() ? m_cursorRow : GetSelectedRow();
+    if ( row < 0 || !IsRowExpandable( row ) )
+        return false;
+    switch ( key.keyCode )
+    {
+        case INPUT::KEYCODE_ADD:        return SetRowExpanded( row, true );
+        case INPUT::KEYCODE_SUBTRACT:   return SetRowExpanded( row, false );
+        case INPUT::KEYCODE_RIGHT:
+        {
+            // in a row selection the arrows open and close; in a cell selection they move the cursor
+            if ( IsCellMode() || IsRowExpanded( row ) )
+                return false;
+            return SetRowExpanded( row, true );
+        }
+        case INPUT::KEYCODE_LEFT:
+        {
+            if ( IsCellMode() || !IsRowExpanded( row ) )
+                return false;
+            return SetRowExpanded( row, false );
+        }
+        default:
+            return false;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

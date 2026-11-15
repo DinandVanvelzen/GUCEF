@@ -1729,6 +1729,15 @@ CWidget::GetTooltipAt( Int32 localX, Int32 localY ) const
 
 /*-------------------------------------------------------------------------*/
 
+CString
+CWidget::GetHelpTopicAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    return GetPropertyRef( EWidgetProperty_HelpTopic );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWidget::BringToFront( void )
 {GUCEF_TRACE;

@@ -104,13 +104,21 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiGridEditingTests();
         PerformGuiGridClipboardTests();
         PerformGuiGridEditRenderTests();
+        PerformGuiGridColumnsAndExportTests();
         PerformGuiFileDialogTests();
         PerformGuiTimelineFormTests();
         PerformGuiReportViewFormTests();
+        PerformGuiTransferQueueFormTests();
+        PerformGuiAssetSearchFormTests();
         PerformGuiViewportFormTests();
         PerformGuiPropertyInspectorFormTests();
         PerformGuiContentBrowserFormTests();
         PerformGuiImageViewFormTests();
+        PerformGuiTooltipAndHelpTests();
+        PerformGuiGridUxTests();
+        PerformGuiNavigationUxTests();
+        PerformGuiWebViewTests();
+        PerformGuiLayoutLintTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

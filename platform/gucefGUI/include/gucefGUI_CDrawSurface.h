@@ -76,6 +76,22 @@ class GUCEF_GUI_PUBLIC_CPP CDrawSurface : public CWidget
     };
     typedef GUCEF::vector< struct SPoint > TPointVector;
 
+    /**
+     *  What a painter says about a text command, for checkers such as CLayoutLint; drivers ignore them.
+     *  Elided: the text was shortened to its room with "..." (the cut is visible). Scrollable: the text is in a view
+     *  that scrolls on that axis, so a cut at the edge of the view is not silent. Numeric: the text is a number,
+     *  which must never be elided or clipped
+     */
+    enum ETextFlags
+    {
+        TEXTFLAG_NONE           = 0 ,
+        TEXTFLAG_ELIDED         = 1 ,
+        TEXTFLAG_SCROLLABLE_X   = 2 ,
+        TEXTFLAG_SCROLLABLE_Y   = 4 ,
+        TEXTFLAG_SCROLLABLE     = 6 ,   /**< both axes */
+        TEXTFLAG_NUMERIC        = 8
+    };
+
     struct SCommand
     {
         ECommandType type;
@@ -91,6 +107,8 @@ class GUCEF_GUI_PUBLIC_CPP CDrawSurface : public CWidget
         CString font;
         CString text;
         TPointVector points;
+        UInt32 textFlags;       /**< ETextFlags of a text command */
+        CRect textArea;         /**< the room a text was fitted to (the label, the cell, the row); empty when not said */
 
         SCommand( void );
     };

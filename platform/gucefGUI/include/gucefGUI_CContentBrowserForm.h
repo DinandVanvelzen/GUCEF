@@ -164,6 +164,11 @@ class GUCEF_GUI_PUBLIC_CPP CContentBrowserForm : public CFormEx
     /** A file system to browse, with the folder it opens in (empty: its own start); the first root added is where the form starts */
     bool AddRoot( const CString& displayName, CORE::TFileSystemAccessPtr access, const CString& initialDirectory = CString::Empty );
 
+    /** How many file systems the form browses and the display name of each, in the order they were added */
+    UInt32 GetRootCount( void ) const;
+
+    const CString& GetRootName( UInt32 index ) const;
+
     /** The maker of the thumbnails (not owned, NULL for none: the tiles show their type); it has to be there while the form has it */
     void SetThumbnailProvider( CIThumbnailProvider* provider );
 

@@ -534,7 +534,9 @@ RunRenderTests( const char* driverName, GUI::TGuiContextPtr ( *createContext )( 
         context->InjectMouseMove( 12, 12 );
         ASSERT_TRUE( Capture( context, pixels ) );
         ASSERT_TRUE( 0 == CountColour( pixels, GUI::CRect( 24, 28, 24, 14 ), GUI::CColour( 250, 250, 210, 255 ) ) );
-        context->RenderFrame( 700 );
+        // after the show delay of the tooltip service (1000 ms by default)
+        ASSERT_TRUE( 1000 == context->GetTooltipService().GetShowDelayInMs() );
+        context->RenderFrame( 1000 );
         ASSERT_TRUE( Capture( context, pixels ) );
         ASSERT_TRUE( CountColour( pixels, GUI::CRect( 24, 28, 24, 14 ), GUI::CColour( 250, 250, 210, 255 ) ) > 0 );
         context->DestroyWidget( top );

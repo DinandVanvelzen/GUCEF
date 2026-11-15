@@ -112,6 +112,21 @@ typedef CFormScene* ( *TFormSceneBuilder )( GUI::CGUIContext* context );
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The font of the layout lint tests: glyph cells of 9 x 22 pixels, close to the user interface font at 16 px, so that what
+ *  does not fit in an application does not fit in the tests either (the 6 x 9 font of the form tests hides that)
+ */
+const Int32 LayoutLintGlyphWidth = 9;
+const Int32 LayoutLintLineHeight = 22;
+
+inline GUI::TBitmapFontPtr
+MakeLayoutLintFont( void )
+{
+    return MakeTestFont( LayoutLintGlyphWidth, LayoutLintLineHeight );
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** The test font and the dark theme: what the forms are made for */
 inline void
 PrepareFormContext( GUI::CGUIContext* context )
@@ -464,6 +479,16 @@ class CTestTypeResolver : public GUI::CIContentTypeResolver
 
 /** Draws a scene with the reference renderer and with the RmlUi and ImGui drivers and compares the pixels (TestGuiAssetFormRender.cpp) */
 void RunFormRenderTests( const char* formName, GUCEF::GUITEST::TFormSceneBuilder builder );
+
+/** A context of the null driver at 640 x 480 with the layout lint font (9 x 22) as "Test" and the dark theme (TestGuiLayoutLint.cpp) */
+GUCEF::GUI::TGuiContextPtr CreateLayoutLintContext( void );
+
+/**
+ *  Runs the layout lint over the matrix of sizes, scales and pseudo-localised text on a scene built with the user interface font
+ *  (Noto Sans 16 px, or the 9 x 22 font without the FreeType plugin), prints the counts (the baseline, also appended to the file
+ *  GUCEF_TEST_LAYOUT_LINT_REPORT names) and checks them against the budget of the scope (TestGuiLayoutLint.cpp)
+ */
+void RunFormLintBaseline( const char* scope, GUCEF::GUITEST::TFormSceneBuilder builder );
 
 /*-------------------------------------------------------------------------*/
 

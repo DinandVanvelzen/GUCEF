@@ -242,6 +242,54 @@ CTreeview::GetRowAt( Int32 localY ) const
 
 /*-------------------------------------------------------------------------*/
 
+CString
+CTreeview::FindItemBadge( const TStringVector& entries, const CString& path )
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32)entries.size(); ++i )
+    {
+        const Int32 equals = entries[ i ].HasChar( '=', false );
+        if ( equals < 0 )
+            continue;
+        if ( entries[ i ].SubstrToIndex( (UInt32) equals, true ) == path )
+            return entries[ i ].CutChars( (UInt32) equals + 1, true );
+    }
+    return CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CTreeview::GetItemBadge( const CString& path ) const
+{GUCEF_TRACE;
+
+    return FindItemBadge( GetStringListProperty( EWidgetProperty_ItemBadges ), path );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTreeview::SetItemBadge( const CString& path, const CString& badge )
+{GUCEF_TRACE;
+
+    if ( path.IsNULLOrEmpty() )
+        return false;
+    const TStringVector entries = GetStringListProperty( EWidgetProperty_ItemBadges );
+    TStringVector kept;
+    for ( UInt32 i=0; i<(UInt32)entries.size(); ++i )
+    {
+        const Int32 equals = entries[ i ].HasChar( '=', false );
+        if ( equals >= 0 && entries[ i ].SubstrToIndex( (UInt32) equals, true ) == path )
+            continue;
+        kept.push_back( entries[ i ] );
+    }
+    if ( !badge.IsNULLOrEmpty() )
+        kept.push_back( path + "=" + badge );
+    return SetStringListProperty( EWidgetProperty_ItemBadges, kept );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CTreeview::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData )
 {GUCEF_TRACE;

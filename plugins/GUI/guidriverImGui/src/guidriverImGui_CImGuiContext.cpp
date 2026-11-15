@@ -862,6 +862,19 @@ CImGuiContext::OnImageChanged( const CString& alias )
 /*-------------------------------------------------------------------------*/
 
 void
+CImGuiContext::OnImageRegionChanged( const CString& alias, const GUI::CRect& region )
+{GUCEF_TRACE;
+
+    ++m_imageGeneration;
+    if ( !m_ready || GUCEF_NULL == m_textureCache || !CheckThread( "an image of an ImGui context" ) )
+        return;
+    CImGuiContextScope scope( m_imguiContext );
+    m_textureCache->OnImageRegionChanged( alias, region );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CImGuiContext::OnRender( void )
 {GUCEF_TRACE;
 

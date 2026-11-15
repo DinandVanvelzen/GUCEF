@@ -156,6 +156,16 @@ CEditbox::GetSelectedText( CString& text ) const
 /*-------------------------------------------------------------------------*/
 
 void
+CEditbox::SelectAll( void )
+{GUCEF_TRACE;
+
+    if ( !GetText().IsNULLOrEmpty() )
+        SetBoolProperty( EWidgetProperty_Selected, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CEditbox::Clear( void )
 {GUCEF_TRACE;
 
@@ -284,6 +294,12 @@ CEditbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
     if ( KeyDownEvent == eventId )
     {
         CKeyEventData* key = static_cast< CKeyEventData* >( &eventData );
+        if ( INPUT::KEYCODE_A == key->keyCode && 0 != ( key->modifiers & INPUT::KEYMOD_CTRL ) && 0 == ( key->modifiers & INPUT::KEYMOD_ALT ) )
+        {
+            // select all: the next key replaces the text
+            SelectAll();
+            return true;
+        }
         if ( INPUT::KEYCODE_BACK == key->keyCode )
         {
             if ( GetBoolProperty( EWidgetProperty_ReadOnly ) )

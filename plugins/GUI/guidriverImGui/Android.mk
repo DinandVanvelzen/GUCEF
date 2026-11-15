@@ -41,6 +41,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/imgui \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefCOM/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
@@ -51,7 +53,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
-  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api
+  $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefWEB/include
 
 LOCAL_CFLAGS := -DGUIDRIVERIMGUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverImGui -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverImGui -DMODULE_SEMVER=0_1_0_0
 

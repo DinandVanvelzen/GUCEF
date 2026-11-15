@@ -42,6 +42,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefCOM/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
@@ -53,6 +55,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefWEB/include \
   $(MY_MODULE_PATH)/../../SHARED/pluginglueOGRE/include \
   $(MY_MODULE_PATH)/../../SHARED/pluginglueOGRECOMMON \
   $(MY_MODULE_PATH)/../../SHARED/pluginglueOGRECOMMON/include

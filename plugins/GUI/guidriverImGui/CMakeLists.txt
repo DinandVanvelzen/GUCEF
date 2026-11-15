@@ -86,7 +86,7 @@ if ( EMSCRIPTEN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=guidriverImGui" )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../../common/include ../../../dependencies/imgui ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api include )
+include_directories( ../../../common/include ../../../dependencies/imgui ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )

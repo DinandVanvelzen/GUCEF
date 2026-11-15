@@ -10,6 +10,7 @@
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefAUDIO" />
             <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefWEB" />
             <Dependency Name="guidriverNull" />
             <Dependency Name="guidriverRmlUI" />
             <Dependency Name="RmlUI_Core" />
@@ -23,6 +24,7 @@
             <Dependency Name="gucefIMAGE" />
             <Dependency Name="gucefAUDIO" />
             <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefWEB" />
             <Dependency Name="guidriverNull" />
             <Dependency Name="guidriverRmlUI" />
         </Linker>

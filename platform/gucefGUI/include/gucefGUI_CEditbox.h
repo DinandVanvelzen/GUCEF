@@ -48,7 +48,7 @@ namespace GUI {
  *  One line of text the user types. Typing, Backspace and Enter are handled by gucefGUI, so they behave
  *  the same on every backend. Properties: Text, Font, TextColour, BackgroundColour, MaxLength (code
  *  points, 0 for no limit), ReadOnly, SelectAllOnFocus (the text is selected when the box gets the focus,
- *  so the first key replaces it). Runtime: CaretVisible (blinks while focused), Selected.
+ *  so the first key replaces it). Runtime: CaretVisible (blinks while focused), Selected. Ctrl+A selects all of the text.
  */
 class GUCEF_GUI_PUBLIC_CPP CEditbox : public CWidget
 {
@@ -75,6 +75,9 @@ class GUCEF_GUI_PUBLIC_CPP CEditbox : public CWidget
     virtual bool SetSelectedText( const CString& text );
 
     virtual bool GetSelectedText( CString& text ) const;
+
+    /** Selects all of the text, as Ctrl+A does, so the next key replaces it; nothing for an empty box */
+    void SelectAll( void );
 
     virtual void Clear( void );
 

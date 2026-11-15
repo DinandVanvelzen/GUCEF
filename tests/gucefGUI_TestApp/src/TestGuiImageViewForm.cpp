@@ -703,6 +703,7 @@ PerformGuiImageViewFormTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     RunFormRenderTests( "image view", &BuildImageViewScene );
+    RunFormLintBaseline( "ImageView", &BuildImageViewScene );
 }
 
 /*-------------------------------------------------------------------------*/

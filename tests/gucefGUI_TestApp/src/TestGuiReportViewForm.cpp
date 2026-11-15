@@ -362,7 +362,55 @@ PerformGuiReportViewFormTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "ReportView: In a low host the entries keep rows in view and the details take what is left below the status" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateLayoutLintContext();
+        GUI::CGUIContext* context = contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext();
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+        // the heights the report row of the asset viewer has at 900 and at 720 high
+        const Int32 heights[] = { 234, 187 };
+        const Int32 rows[] = { 3, 2 };
+        for ( UInt32 h=0; h<2; ++h )
+        {
+            context->SetLogicalResolution( 992, (UInt32) heights[ h ] );
+            GUI::CWidget* screen = MakeScreen( context );
+            GUI::CReportViewForm form( context );
+            ASSERT_TRUE( form.Build( screen ) );
+            for ( UInt32 i=0; i<25; ++i )
+                form.AddEntry( GUI::CReportViewForm::SEVERITY_WARNING, "asset" + CORE::UInt32ToString( i ), "a message", "details" );
+            form.Refresh();
+            context->FlushChanges();
+            GUI::CGridView* grid = form.GetWidgetAs< GUI::CGridView >( "Entries" );
+            GUI::CWidget* status = form.GetWidget( "Status" );
+            GUI::CWidget* details = form.GetWidget( "Details" );
+            ASSERT_TRUE( GUCEF_NULL != grid && GUCEF_NULL != status && GUCEF_NULL != details );
+            if ( GUCEF_NULL == grid || GUCEF_NULL == status || GUCEF_NULL == details )
+                return;
+            ASSERT_TRUE( grid->GetVisibleRowCount() >= rows[ h ] );
+            ASSERT_TRUE( status->GetRect().top >= grid->GetRect().Bottom() && details->GetRect().top >= status->GetRect().Bottom() );
+            ASSERT_TRUE( details->GetRect().Bottom() <= heights[ h ] && details->GetRect().height >= GUITEST::LayoutLintLineHeight );
+
+            GUI::TLayoutLintFindingVector findings;
+            GUI::CLayoutLint lint;
+            lint.Run( *context, GUI::CLayoutLintOptions(), findings );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ReportView at 992x" << heights[ h ] << ": " << GUI::CLayoutLint::Report( findings, 20 ) );
+            UInt32 counts[ GUI::LAYOUTLINTRULE_COUNT ] = { 0 };
+            GUI::CLayoutLint::CountByRule( findings, GUI::LAYOUTLINTSEVERITY_INFO, counts );
+            ASSERT_TRUE( 0 == counts[ GUI::LAYOUTLINTRULE_OVERLAP ] && ( 0 == counts[ GUI::LAYOUTLINTRULE_VIEWPORTTOOSMALL ] || 187 == heights[ h ] ) );
+            context->DestroyWidget( screen );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     RunFormRenderTests( "report view", &BuildReportScene );
+    RunFormLintBaseline( "ReportView", &BuildReportScene );
 }
 
 /*-------------------------------------------------------------------------*/

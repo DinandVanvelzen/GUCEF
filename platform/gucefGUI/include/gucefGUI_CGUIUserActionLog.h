@@ -90,6 +90,8 @@ class CWidget;
  *  what is typed into them: their text and their value changes are left out, and of their keys only Tab, Enter and
  *  Escape are logged, so neither the secret nor its length can be read from the log. The value changes of edit boxes
  *  and text boxes are left out as well, the typed text already says what changed.
+ *  Web page views (the widget type "WebPageView", CWebPageView) are treated the same: the fields of a page are not visible
+ *  to gucefGUI, so any of them may hold a secret.
  *
  *  Each line starts with the name the context was attached with ("GUI main: key Ctrl+R in Desk/Pages (TabControl)").
  *  Nothing is made while the user log is off. The class observes the routed events at the root widgets of the
@@ -125,6 +127,9 @@ class GUCEF_GUI_PUBLIC_CPP CGUIUserActionLog : public CORE::CObserver
 
     /** Whether the widget is a secret input or inside one: what is typed into it is never logged */
     static bool IsSecretInput( const CWidget* widget );
+
+    /** Whether what is typed into the widget stays out of the log: a secret input, a web page view, or a widget inside one */
+    static bool IsPrivateInput( const CWidget* widget );
 
     /** How the log names a widget: its path in the tree and its type, "Desk/Header/Refresh (Button)"; "nothing" for NULL */
     static CString DescribeWidget( const CWidget* widget );

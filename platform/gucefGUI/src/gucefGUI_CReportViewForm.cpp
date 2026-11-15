@@ -256,11 +256,13 @@ CReportViewForm::BuildLayout( CORE::CDataNode& layout, bool asWindow, const CStr
     CFormLayout::SetWidgetNodeProperty( *filterLabel, EWidgetProperty_Text, "Filter" );
     CFormLayout::AddWidgetNode( *content, "Editbox", "Filter", "0,368 0,4", "1,-374 0,28" );
 
-    CORE::CDataNode* entries = CFormLayout::AddWidgetNode( *content, "GridView", "Entries", "0,0 0,36", "1,0 1,-208" );
+    // the entries take 70 % of the height (less the filter row and the status line), the details the rest below the status: in a
+    // low host the grid keeps rows in view instead of only its header (a pixel-sized details box left the grid 26 px in 234)
+    CORE::CDataNode* entries = CFormLayout::AddWidgetNode( *content, "GridView", "Entries", "0,0 0,36", "1,0 0.7,-44" );
     CFormLayout::SetWidgetNodeProperty( *entries, EWidgetProperty_FitColumns, "true" );
     CFormLayout::SetWidgetNodeProperty( *entries, EWidgetProperty_TextOverflow, "Ellipsis" );
-    CFormLayout::AddWidgetNode( *content, "Label", "Status", "0,6 1,-168", "1,-12 0,24" );
-    CORE::CDataNode* details = CFormLayout::AddWidgetNode( *content, "Textbox", "Details", "0,0 1,-140", "1,0 0,140" );
+    CFormLayout::AddWidgetNode( *content, "Label", "Status", "0,6 0.7,-4", "1,-12 0,24" );
+    CORE::CDataNode* details = CFormLayout::AddWidgetNode( *content, "Textbox", "Details", "0,0 0.7,24", "1,0 0.3,-24" );
     CFormLayout::SetWidgetNodeProperty( *details, EWidgetProperty_ReadOnly, "true" );
     CFormLayout::SetWidgetNodeProperty( *details, EWidgetProperty_WordWrap, "true" );
 }

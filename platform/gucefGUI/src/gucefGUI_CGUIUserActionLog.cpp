@@ -281,6 +281,16 @@ CGUIUserActionLog::IsSecretInput( const CWidget* widget )
     return false;
 }
 
+bool
+CGUIUserActionLog::IsPrivateInput( const CWidget* widget )
+{GUCEF_TRACE;
+
+    for ( const CWidget* w=widget; GUCEF_NULL != w; w=w->GetParentWidget() )
+        if ( IsWidgetOfType( w, "SecretInput" ) || IsWidgetOfType( w, "WebPageView" ) )
+            return true;
+    return false;
+}
+
 /*-------------------------------------------------------------------------*/
 
 CString
@@ -471,7 +481,7 @@ CGUIUserActionLog::OnKeyDown( CORE::CNotifier* notifier, const CORE::CEvent& eve
         return;
 
     // of a secret only the keys that leave or end the input: neither what is typed nor how much
-    if ( IsSecretInput( routed->source ) )
+    if ( IsPrivateInput( routed->source ) )
     {
         const bool leaves = INPUT::KEYCODE_TAB == key->keyCode || INPUT::KEYCODE_RETURN == key->keyCode ||
                             INPUT::KEYCODE_NUMPADENTER == key->keyCode || INPUT::KEYCODE_ESCAPE == key->keyCode;
@@ -492,7 +502,7 @@ CGUIUserActionLog::OnTextInput( CORE::CNotifier* notifier, const CORE::CEvent& e
         return;
     CRoutedEventData* routed = AtFirstSight( eventData );
     CTextEventData* text = CORE::CICloneable::CloneableAs< CTextEventData >( eventData );
-    if ( GUCEF_NULL == routed || GUCEF_NULL == text || IsSecretInput( routed->source ) )
+    if ( GUCEF_NULL == routed || GUCEF_NULL == text || IsPrivateInput( routed->source ) )
         return;
     GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI " << GetContextName( notifier ) << ": typed \"" << text->text << "\" into " << DescribeWidget( routed->source ) );
 }
@@ -509,7 +519,7 @@ CGUIUserActionLog::OnActivated( CORE::CNotifier* notifier, const CORE::CEvent& e
     if ( GUCEF_NULL == routed )
         return;
     const CWidget* widget = routed->source;
-    const bool showText = !IsSecretInput( widget ) && IsWidgetOfType( widget, "Button" );
+    const bool showText = !IsPrivateInput( widget ) && IsWidgetOfType( widget, "Button" );
     const CString& caption = showText ? widget->GetPropertyRef( EWidgetProperty_Text ) : CString::Empty;
     GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI " << GetContextName( notifier ) << ": activated " << DescribeWidget( widget )
                     << ( caption.IsNULLOrEmpty() ? CString::Empty : " \"" + caption + "\"" ) );
@@ -530,7 +540,7 @@ CGUIUserActionLog::OnValueChanged( CORE::CNotifier* notifier, const CORE::CEvent
 
     // a secret never; what is typed into a text field is logged as it is typed
     const CWidget* widget = routed->source;
-    if ( IsSecretInput( widget ) || IsWidgetOfType( widget, "Editbox" ) || IsWidgetOfType( widget, "Textbox" ) )
+    if ( IsPrivateInput( widget ) || IsWidgetOfType( widget, "Editbox" ) || IsWidgetOfType( widget, "Textbox" ) )
         return;
     GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI " << GetContextName( notifier ) << ": changed " << DescribeWidget( widget )
                     << ", " << changed->GetPropertyName() << " \"" << changed->newValue << "\"" );
@@ -546,7 +556,7 @@ CGUIUserActionLog::OnItemActivated( CORE::CNotifier* notifier, const CORE::CEven
         return;
     CRoutedEventData* routed = AtFirstSight( eventData );
     CItemEventData* item = CORE::CICloneable::CloneableAs< CItemEventData >( eventData );
-    if ( GUCEF_NULL == routed || GUCEF_NULL == item || IsSecretInput( routed->source ) )
+    if ( GUCEF_NULL == routed || GUCEF_NULL == item || IsPrivateInput( routed->source ) )
         return;
     GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI " << GetContextName( notifier ) << ": chose item " << item->index << " \"" << item->item
                     << "\" of " << DescribeWidget( routed->source ) );

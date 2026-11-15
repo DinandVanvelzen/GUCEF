@@ -354,6 +354,8 @@ CImageViewForm::BuildLayout( CORE::CDataNode& layout, bool asWindow, const CStri
     CORE::CDataNode* imageA = CFormLayout::AddWidgetNode( *view, "ImageFrame", "ImageA", "0,0 0,0", "0,1 0,1" );
     CFormLayout::SetWidgetNodeProperty( *imageA, EWidgetProperty_InputTransparent, "true" );
     CFormLayout::SetWidgetNodeProperty( *imageA, EWidgetProperty_ScaleMode, "Stretch" );
+    // the pictures are panned and zoomed in their clipping panels: they pass them on purpose (layout lint)
+    CFormLayout::SetWidgetNodeProperty( *imageA, EWidgetProperty_LintIgnore, "OutsideParent,ContentUnreachable,OutsideScreen" );
     CORE::CDataNode* clip = CFormLayout::AddWidgetNode( *view, "Panel", "BClip", "0,0 0,0", "0,1 1,0" );
     CFormLayout::SetWidgetNodeProperty( *clip, EWidgetProperty_Clip, "true" );
     CFormLayout::SetWidgetNodeProperty( *clip, EWidgetProperty_InputTransparent, "true" );
@@ -363,6 +365,7 @@ CImageViewForm::BuildLayout( CORE::CDataNode& layout, bool asWindow, const CStri
     CORE::CDataNode* imageB = CFormLayout::AddWidgetNode( *clip, "ImageFrame", "ImageB", "0,0 0,0", "0,1 0,1" );
     CFormLayout::SetWidgetNodeProperty( *imageB, EWidgetProperty_InputTransparent, "true" );
     CFormLayout::SetWidgetNodeProperty( *imageB, EWidgetProperty_ScaleMode, "Stretch" );
+    CFormLayout::SetWidgetNodeProperty( *imageB, EWidgetProperty_LintIgnore, "OutsideParent,ContentUnreachable,OutsideScreen" );
     CORE::CDataNode* line = CFormLayout::AddWidgetNode( *view, "Panel", "SplitLine", "0,0 0,0", "0,2 1,0" );
     CFormLayout::SetWidgetNodeProperty( *line, EWidgetProperty_InputTransparent, "true" );
     CFormLayout::SetWidgetNodeProperty( *line, EWidgetProperty_Visible, "false" );

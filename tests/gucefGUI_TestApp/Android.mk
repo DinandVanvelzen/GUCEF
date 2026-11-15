@@ -21,6 +21,7 @@ LOCAL_MODULE := gucefGUI_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestGuiGridColumnsAndExport.cpp
   src/gucefGUI_TestApp.cpp
 
 LOCAL_C_INCLUDES := \

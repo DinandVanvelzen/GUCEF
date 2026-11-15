@@ -50,7 +50,8 @@ namespace GUI {
  *  levels in between exist without being listed themselves. ExpandedItems holds the paths that are open.
  *  A click on the indent area of an item with children opens or closes it, elsewhere it selects the item;
  *  a double click or Enter activates it. Properties: Items, ExpandedItems, SelectedItem, Font, TextColour,
- *  SelectionColour, HoverColour, BackgroundColour, RowHeight, Indent, ScrollPosition. Runtime: HoverIndex.
+ *  SelectionColour, HoverColour, BackgroundColour, RowHeight, Indent, ScrollPosition, ItemBadges (a dot or a count
+ *  at the right end of the row of an item). Runtime: HoverIndex.
  */
 class GUCEF_GUI_PUBLIC_CPP CTreeview : public CWidget
 {
@@ -89,6 +90,15 @@ class GUCEF_GUI_PUBLIC_CPP CTreeview : public CWidget
 
     /** The index into GetVisibleRows() at a position relative to the tree, -1 when none */
     Int32 GetRowAt( Int32 localY ) const;
+
+    /** Sets the badge of an item (ItemBadges): empty for none, "*" for a dot, any other text (a count) in a pill at the right end of its row */
+    bool SetItemBadge( const CString& path, const CString& badge );
+
+    /** The badge of an item, empty for none */
+    CString GetItemBadge( const CString& path ) const;
+
+    /** The badge of a path in entries of ItemBadges ("path=badge"; the last '=' separates), empty for none */
+    static CString FindItemBadge( const TStringVector& entries, const CString& path );
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

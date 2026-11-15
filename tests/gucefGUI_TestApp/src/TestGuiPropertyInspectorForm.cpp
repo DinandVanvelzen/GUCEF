@@ -649,6 +649,7 @@ PerformGuiPropertyInspectorFormTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     RunFormRenderTests( "property inspector", &BuildInspectorScene );
+    RunFormLintBaseline( "PropertyInspector", &BuildInspectorScene );
 }
 
 /*-------------------------------------------------------------------------*/

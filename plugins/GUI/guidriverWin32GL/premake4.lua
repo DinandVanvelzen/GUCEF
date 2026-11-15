@@ -86,7 +86,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../../../platform/gucefWEB/include", "include" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

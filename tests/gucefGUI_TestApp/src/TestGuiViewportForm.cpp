@@ -422,6 +422,7 @@ PerformGuiViewportFormTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     RunFormRenderTests( "viewport", &BuildViewportScene );
+    RunFormLintBaseline( "Viewport", &BuildViewportScene );
 }
 
 /*-------------------------------------------------------------------------*/

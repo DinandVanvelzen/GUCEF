@@ -40,6 +40,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../dependencies/freetype/src/winfonts \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefAUDIO/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefCOM/include \
+  $(MY_MODULE_PATH)/../../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../../platform/gucefGUI/include \
@@ -51,6 +53,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include \
   $(MY_MODULE_PATH)/../../../platform/gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../../../platform/gucefWEB/include \
   $(MY_MODULE_PATH)/../guidriverCEGUI/include
 
 LOCAL_CFLAGS := -DGUCEF_GUIDRIVERCEGUIGL_BUILD_MODULE -DMODULE_CONSENSUS_NAME=guidriverCEGUIOpenGL -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=guidriverCEGUIOpenGL

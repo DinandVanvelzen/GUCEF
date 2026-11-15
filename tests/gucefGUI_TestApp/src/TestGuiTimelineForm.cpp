@@ -399,6 +399,7 @@ PerformGuiTimelineFormTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     RunFormRenderTests( "time line", &BuildTimelineScene );
+    RunFormLintBaseline( "Timeline", &BuildTimelineScene );
 }
 
 /*-------------------------------------------------------------------------*/

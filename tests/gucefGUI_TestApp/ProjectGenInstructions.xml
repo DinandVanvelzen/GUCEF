@@ -1,0 +1,9 @@
+<PROJECTGENERATOR>
+    <!-- the fake web view engine and its site are shared from gucefWEB_TestApp: their sources here,
+         their headers through the files of the same name in include/ -->
+    <INCLUDES PLATFORM="All">
+        <ITEM NAME="../gucefWEB_TestApp/src/TestFakeWebSite.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefWEB_TestApp/src/TestFakeWebView.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefWEB_TestApp/src/TestFakeWebViewEngine.cpp" TYPE="FILE" />
+    </INCLUDES>
+</PROJECTGENERATOR>

@@ -195,6 +195,16 @@ DownArrow( TCommands& commands, const CRect& box, const CColour& colour )
         Line( commands, cx - 3 + i, cy - 1 + i, cx + 3 - i, cy - 1 + i, colour );
 }
 
+/** The fold control of a closed row: a triangle pointing right */
+void
+RightArrow( TCommands& commands, const CRect& box, const CColour& colour )
+{
+    Int32 cx = box.left + box.width / 2;
+    Int32 cy = box.top + box.height / 2;
+    for ( Int32 i=0; i<4; ++i )
+        Line( commands, cx - 1 + i, cy - 3 + i, cx - 1 + i, cy + 3 - i, colour );
+}
+
 /** The box of a boolean in the middle of a cell, with a tick when it is set */
 void
 CheckMark( TCommands& commands, const CRect& cell, bool on, const CColour& colour )
@@ -246,6 +256,11 @@ class CGridPaint
         , m_emphasizedRows( grid.GetEmphasizedRows() )
         , m_itemColours( grid.GetStringListProperty( EWidgetProperty_ItemColours ) )
         , m_selectedRows()
+        , m_statusColours( grid.GetStatusColours() )
+        , m_emphasisRowStyle( "Bar" != grid.GetPropertyRef( EWidgetProperty_EmphasisStyle ) )
+        , m_selectionOutline( grid.GetBoolProperty( EWidgetProperty_SelectionOutline ) )
+        , m_hierarchy( grid.HasRowHierarchy() )
+        , m_lineHeight( context.GetLineHeight( grid.GetPropertyRef( EWidgetProperty_Font ) ) )
     {
         const CString& lines = grid.GetPropertyRef( EWidgetProperty_GridLines );
         m_horizontalLines = "Horizontal" == lines || "Both" == lines;
@@ -272,7 +287,10 @@ class CGridPaint
                 m_positions.push_back( p );
         }
         for ( Int32 p=0; p<count; ++p )
+        {
             m_alignments.push_back( grid.GetColumnAlignment( (UInt32) m_layout.GetColumn( p ) ) );
+            m_slots.push_back( grid.GetColumnMarkerSlot( (UInt32) m_layout.GetColumn( p ) ) );
+        }
         m_scrolled = m_layout.GetFrozenCount() > 0 || m_layout.GetScrollX() > 0;
         m_rowsClipped = m_frozenRows > 0 || m_footerTop >= 0;
     }
@@ -287,6 +305,7 @@ class CGridPaint
         PaintDecorations();
         PaintCopyOutline();
         PaintEditor();
+        PaintHeaderStrip();
     }
 
     private:
@@ -378,6 +397,12 @@ class CGridPaint
                 titleX = CWidgetPainter::AlignText( x, width - ( sorted ? (Int32) CGridView::SORT_ARROW_ROOM : 0 ), titleWidth, "Center", padLeft, padRight );
             arrowX = titleX + titleWidth + 2;
         }
+        if ( "Left" != alignment && titleWidth > room )
+        {
+            // a title wider than its room starts at the left of its room: its start is read, its end is cut
+            titleX = x + padLeft;
+            arrowX = titleX + titleWidth + 2;
+        }
         Text( m_commands, m_font, title, titleX, m_area.top, m_textColour );
         if ( sorted )
         {
@@ -386,6 +411,67 @@ class CGridPaint
                 UpArrow( m_commands, arrowBox, m_textColour );
             else
                 DownArrow( m_commands, arrowBox, m_textColour );
+        }
+    }
+
+    /** The column chooser: three columns, the outline of a table */
+    void PaintColumnChooserIcon( const CRect& box )
+    {
+        const Int32 inset = box.width / 4;
+        const CRect icon( box.left + inset, box.top + inset, box.width - 2 * inset, box.height - 2 * inset );
+        if ( icon.width < 6 || icon.height < 6 )
+            return;
+        Stroke( m_commands, icon, m_textColour, 1 );
+        const Int32 third = icon.width / 3;
+        Line( m_commands, icon.left + third, icon.top, icon.left + third, icon.Bottom() - 1, m_textColour );
+        Line( m_commands, icon.left + 2 * third, icon.top, icon.left + 2 * third, icon.Bottom() - 1, m_textColour );
+    }
+
+    /** The export: an arrow down onto a line */
+    void PaintCsvExportIcon( const CRect& box )
+    {
+        const Int32 inset = box.width / 4;
+        const CRect icon( box.left + inset, box.top + inset, box.width - 2 * inset, box.height - 2 * inset );
+        if ( icon.width < 6 || icon.height < 6 )
+            return;
+        const Int32 middle = icon.left + icon.width / 2;
+        const Int32 tip = icon.Bottom() - 3;
+        const Int32 head = icon.width / 3;
+        Line( m_commands, middle, icon.top, middle, tip, m_textColour );
+        Line( m_commands, middle - head, tip - head, middle, tip, m_textColour );
+        Line( m_commands, middle + head, tip - head, middle, tip, m_textColour );
+        Line( m_commands, icon.left, icon.Bottom() - 1, icon.Right() - 1, icon.Bottom() - 1, m_textColour );
+    }
+
+    /** The buttons at the top right (ShowColumnChooser, ShowCsvExport), in the strip the columns leave free */
+    void PaintHeaderStrip( void )
+    {
+        const Int32 strip = m_grid.GetHeaderStripWidth();
+        if ( strip <= 0 )
+            return;
+        const CRect area( m_area.Right() - strip, m_area.top, strip, m_rowHeight );
+        Fill( m_commands, area, m_headerColour );
+        Line( m_commands, area.left, area.top, area.left, area.Bottom() - 1, BorderColour );
+        const Int32 hovered = m_grid.GetHoveredHeaderButton();
+        CRect button;
+        if ( m_grid.GetHeaderButtonRect( CGridView::HEADERBUTTON_COLUMN_CHOOSER, button ) )
+        {
+            button.left += m_area.left;
+            button.top += m_area.top;
+            if ( m_grid.IsColumnChooserOpen() )
+                Fill( m_commands, button, AccentTint );
+            else
+            if ( (Int32) CGridView::HEADERBUTTON_COLUMN_CHOOSER == hovered )
+                Fill( m_commands, button, m_hoverColour.a > 0 ? m_hoverColour : AccentTint );
+            PaintColumnChooserIcon( button );
+        }
+        if ( m_grid.GetHeaderButtonRect( CGridView::HEADERBUTTON_CSV_EXPORT, button ) )
+        {
+            button.left += m_area.left;
+            button.top += m_area.top;
+            if ( (Int32) CGridView::HEADERBUTTON_CSV_EXPORT == hovered )
+                Fill( m_commands, button, m_hoverColour.a > 0 ? m_hoverColour : AccentTint );
+            PaintCsvExportIcon( button );
         }
     }
 
@@ -425,6 +511,82 @@ class CGridPaint
         return row >= 0 && row < (Int32) m_itemColours.size() && !m_itemColours[ row ].IsNULLOrEmpty() && CColour::FromString( m_itemColours[ row ], colour );
     }
 
+    /** The colour of a content: the colour of its status when it has one, else the colour given */
+    CColour ContentColour( const SCellContent& content, const CColour& base ) const
+    {
+        CColour colour;
+        if ( SCellContent::STATUS_NORMAL != content.status && m_statusColours.GetColour( content.status, colour ) )
+            return colour;
+        return base;
+    }
+
+    /**
+     *  The text of a cell or a footer cell with its marker, cut off at 'clip'. 'indent' is the room at the start of the
+     *  cell taken by the emphasis and the fold control. The value is fitted by the rules of the grid (a number whole,
+     *  compact or as '#'; text cut at its end); text that is cut starts at the left of its room whatever its alignment.
+     *  A cell without a marker and with text that fits is drawn with the commands it always had
+     */
+    void PaintContentText( const SCellContent& content, const CRect& cell, const CRect& clip, Int32 position, Int32 row, Int32 column, Int32 indent, const CColour& colour, bool footer )
+    {
+        const Int32 padLeft = CGridView::CELL_PADDING_LEFT;
+        const Int32 padRight = CGridView::CELL_PADDING_RIGHT;
+        const CString& alignment = m_alignments[ position ];
+        const Int32 slot = m_slots[ position ];
+        const bool hasMarker = !content.marker.IsNULLOrEmpty();
+        const bool leading = hasMarker && content.markerLeading;
+        const bool inSlot = hasMarker && !content.markerLeading && slot > 0;
+        const bool following = hasMarker && !content.markerLeading && slot <= 0;
+
+        Int32 left = cell.left + indent;
+        Int32 roomWidth = cell.width - indent - ( slot > 0 ? slot : 0 );
+        Int32 markerWidth = 0, height = 0;
+        Int32 leadingX = 0;
+        CString followText;
+        if ( leading )
+        {
+            m_context.MeasureText( m_font, content.marker, 0, markerWidth, height );
+            leadingX = left + padLeft;
+            left += markerWidth + padLeft;
+            roomWidth -= markerWidth + padLeft;
+        }
+        else
+        if ( following )
+        {
+            followText = " " + content.marker;
+            m_context.MeasureText( m_font, followText, 0, markerWidth, height );
+        }
+        const Int32 room = roomWidth - padLeft - padRight - ( following ? markerWidth : 0 );
+        bool cut = false;
+        CString text;
+        if ( !hasMarker && !content.isNumber && !m_ellipsis && !footer && "Left" == alignment )
+            text = content.text;        // drawn whole and cut off at the end of the cell, without measuring it, as it always was
+        else
+            text = m_grid.FitContentText( content, room, footer ? -1 : row, column, footer, cut );
+        const bool link = SCellContent::STATUS_LINK == content.status;
+        Int32 textWidth = 0;
+        if ( "Left" != alignment || following || link )
+            m_context.MeasureText( m_font, text, 0, textWidth, height );
+
+        // text that is still wider than its room (it is clipped, TextOverflow Clip) starts at the left of the room, so its start is read
+        const bool alignLeft = "Left" == alignment || ( !content.isNumber && textWidth > room );
+        const Int32 textX = alignLeft ? left + padLeft : CWidgetPainter::AlignText( left, roomWidth - ( following ? markerWidth : 0 ), textWidth, alignment, padLeft, padRight );
+
+        CClipScope clipScope( m_commands, clip );
+        if ( leading )
+            Text( m_commands, m_font, content.marker, leadingX, cell.top, colour );
+        Text( m_commands, m_font, text, textX, cell.top, colour );
+        if ( following )
+            Text( m_commands, m_font, followText, textX + textWidth, cell.top, colour );
+        if ( inSlot )
+            Text( m_commands, m_font, content.marker, cell.Right() - slot + padLeft, cell.top, colour );
+        if ( link && textWidth > 0 )
+        {
+            // a figure that opens something is underlined
+            const Int32 underline = cell.top + ( m_lineHeight > 0 && m_lineHeight < m_rowHeight ? m_lineHeight : m_rowHeight - 2 );
+            Line( m_commands, textX, underline, textX + textWidth - 1, underline, colour );
+        }
+    }
+
     void PaintCell( Int32 row, Int32 position, Int32 y, bool emphasized, const CColour* rowColour, const CGridView::TStringVector& cells )
     {
         const Int32 column = m_layout.GetColumn( position );
@@ -439,35 +601,36 @@ class CGridPaint
             // a null is an empty cell of its own: tinted, with the null text of the column when it has one
             Fill( m_commands, CellClip( cell, position, row ), NullCellTint );
         }
+
+        // the colour of the row: its own colour, the emphasis (EmphasisStyle Row), or the text colour
+        const CColour rowTextColour = GUCEF_NULL != rowColour ? *rowColour : ( emphasized && m_emphasisRowStyle ? m_emphasisColour : m_textColour );
+        Int32 indent = ( emphasized || GUCEF_NULL != rowColour ) && 0 == position ? (Int32) CGridView::EMPHASIS_INDENT : 0;
+        if ( m_hierarchy && 0 == position )
+        {
+            // the indent of the level and the fold control of a row that has child rows
+            const Int32 level = (Int32) m_grid.GetRowLevel( row );
+            if ( m_grid.IsRowExpandable( row ) )
+            {
+                const CRect box( x + (Int32) CGridView::CELL_PADDING_LEFT + indent + level * (Int32) CGridView::FOLD_INDENT, y, (Int32) CGridView::FOLD_BUTTON_ROOM, m_rowHeight );
+                CClipScope clipScope( m_commands, CellClip( cell, position, row ) );
+                if ( m_grid.IsRowExpanded( row ) )
+                    DownArrow( m_commands, box, rowTextColour );
+                else
+                    RightArrow( m_commands, box, rowTextColour );
+            }
+            indent += level * (Int32) CGridView::FOLD_INDENT + (Int32) CGridView::FOLD_BUTTON_ROOM;
+        }
         if ( SCellContent::KIND_CHECK_ON == content.kind || SCellContent::KIND_CHECK_OFF == content.kind )
         {
             CClipScope clipScope( m_commands, CellClip( cell, position, row ) );
-            CheckMark( m_commands, cell, SCellContent::KIND_CHECK_ON == content.kind, GUCEF_NULL != rowColour ? *rowColour : ( emphasized ? m_emphasisColour : m_textColour ) );
+            CheckMark( m_commands, cell, SCellContent::KIND_CHECK_ON == content.kind, ContentColour( content, rowTextColour ) );
             return;
         }
-        if ( content.text.IsNULLOrEmpty() )
+        if ( content.text.IsNULLOrEmpty() && content.marker.IsNULLOrEmpty() )
             return;
 
-        const Int32 padLeft = CGridView::CELL_PADDING_LEFT;
-        const Int32 padRight = CGridView::CELL_PADDING_RIGHT;
-        const Int32 indent = ( emphasized || GUCEF_NULL != rowColour ) && 0 == position ? (Int32) CGridView::EMPHASIS_INDENT : 0;
-        CString text = content.text;
-        if ( m_ellipsis )
-        {
-            bool cut = false;
-            text = CWidgetPainter::FitText( m_context, m_font, text, width - padLeft - padRight - indent, cut );
-        }
-        Int32 textX = x + padLeft + indent;
-        const CString& alignment = m_alignments[ position ];
-        if ( "Left" != alignment )
-        {
-            Int32 textWidth = 0, textHeight = 0;
-            m_context.MeasureText( m_font, text, 0, textWidth, textHeight );
-            textX = CWidgetPainter::AlignText( x + indent, width - indent, textWidth, alignment, padLeft, padRight );
-        }
-        CClipScope clipScope( m_commands, CellClip( cell, position, row ) );
-        const CColour& colour = SCellContent::KIND_NULL == content.kind ? DisabledTextColour : ( GUCEF_NULL != rowColour ? *rowColour : ( emphasized ? m_emphasisColour : m_textColour ) );
-        Text( m_commands, m_font, text, textX, y, colour );
+        const CColour colour = ContentColour( content, SCellContent::KIND_NULL == content.kind ? DisabledTextColour : rowTextColour );
+        PaintContentText( content, cell, CellClip( cell, position, row ), position, row, column, indent, colour, false );
     }
 
     /** The cells of a row in a row that are selected, as runs of neighbours: one fill for each */
@@ -531,10 +694,12 @@ class CGridPaint
             Fill( m_commands, m_rowsClipped && row >= m_frozenRows ? rowRect.Intersection( RowRegion( row ) ) : rowRect, m_zebraColour );
 
         // a row that needs the player stands out: a tint of the accent over the whole row, a bar of the accent at its left edge and the text in the colour of the emphasis
+        // (EmphasisStyle Bar: the bar only, the cells keep their colours)
         const bool emphasized = std::binary_search( m_emphasizedRows.begin(), m_emphasizedRows.end(), row ) || m_grid.IsRowEmphasizedByModel( row );
         if ( emphasized )
         {
-            Fill( m_commands, rowRect, AccentTint );
+            if ( m_emphasisRowStyle )
+                Fill( m_commands, rowRect, AccentTint );
             Fill( m_commands, CRect( m_area.left, y, 4, m_rowHeight ), AccentColour );
         }
         if ( m_cellMode )
@@ -558,6 +723,10 @@ class CGridPaint
             PaintCell( row, m_positions[ i ], y, emphasized, coloured ? &rowColour : GUCEF_NULL, cells );
         if ( row == m_hoverIndex )
             Stroke( m_commands, rowRect, m_hoverColour, 1 );
+
+        // SelectionOutline: the selected row is outlined, so it is seen on rows that stand out and among coloured cells
+        if ( m_selectionOutline && !m_cellMode && IsSelectedRow( row ) )
+            Stroke( m_commands, m_rowsClipped && row >= m_frozenRows ? rowRect.Intersection( RowRegion( row ) ) : rowRect, m_textColour, 2 );
     }
 
     void PaintRows( void )
@@ -583,16 +752,17 @@ class CGridPaint
         Line( m_commands, strip.left, y, strip.Right(), y, BorderColour );
         for ( size_t i=0; i<m_positions.size(); ++i )
         {
+            // every footer cell is cut off at its own rectangle; a number is drawn whole (compact or '#'), text is cut at its end with "..."
             const Int32 position = m_positions[ i ];
+            const Int32 column = m_layout.GetColumn( position );
             SCellContent content;
-            if ( !m_grid.GetFooterContent( (UInt32) m_layout.GetColumn( position ), content ) || content.text.IsNULLOrEmpty() )
+            if ( !m_grid.GetFooterContent( (UInt32) column, content ) || ( content.text.IsNULLOrEmpty() && content.marker.IsNULLOrEmpty() ) )
                 continue;
             const Int32 x = m_area.left + m_layout.GetScreenLeft( position );
             const Int32 width = m_layout.GetWidth( position );
-            Int32 textWidth = 0, textHeight = 0;
-            m_context.MeasureText( m_font, content.text, 0, textWidth, textHeight );
-            CClipScope clipScope( m_commands, m_scrolled && !m_layout.IsFrozen( position ) ? CRect( x, y, width, m_rowHeight ).Intersection( ColumnRegion( position ) ) : CRect( x, y, width, m_rowHeight ) );
-            Text( m_commands, m_font, content.text, CWidgetPainter::AlignText( x, width, textWidth, m_alignments[ position ], CGridView::CELL_PADDING_LEFT, CGridView::CELL_PADDING_RIGHT ), y, m_textColour );
+            const CRect cell( x, y, width, m_rowHeight );
+            const CRect clip = m_scrolled && !m_layout.IsFrozen( position ) ? cell.Intersection( ColumnRegion( position ) ) : cell;
+            PaintContentText( content, cell, clip, position, -1, column, 0, ContentColour( content, m_textColour ), true );
         }
         if ( m_rowHeaderWidth > 0 )
             Line( m_commands, m_area.left + m_rowHeaderWidth - 1, y, m_area.left + m_rowHeaderWidth - 1, strip.Bottom(), BorderColour );
@@ -842,6 +1012,12 @@ class CGridPaint
     const CGridView::TInt32Vector m_emphasizedRows;
     const CGridView::TStringVector m_itemColours;      /**< ItemColours: a colour per row, empty for a plain row */
     CGridView::TInt32Vector m_selectedRows;
+    const CCellStatusColours& m_statusColours;
+    const bool m_emphasisRowStyle;                      /**< EmphasisStyle Row: a row that stands out is tinted and its text has the emphasis colour; Bar: only the bar */
+    const bool m_selectionOutline;
+    const bool m_hierarchy;                             /**< the model has a row hierarchy: indents and fold controls in the first column */
+    const Int32 m_lineHeight;
+    GUCEF::vector< Int32 > m_slots;                     /**< the marker slot per position */
     bool m_horizontalLines;
     bool m_verticalLines;
     bool m_scrolled;

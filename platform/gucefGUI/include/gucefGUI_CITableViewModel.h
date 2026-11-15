@@ -198,6 +198,28 @@ class GUCEF_GUI_PUBLIC_CPP CITableViewModel : public CORE::CObservingNotifier
     /** Whether the row stands out (the colour of EmphasisColour, a bar at its left): asked for the rows in view at every paint. Default false */
     virtual bool IsRowEmphasized( UInt32 row ) const;
 
+    /*
+     *  Rows that fold open: the model shows parent rows and, after an open parent, its child rows (a flat list of the rows
+     *  shown). Opening or closing a parent is asked with SetRowExpanded(); the model then inserts or removes the child
+     *  rows with RowsInsertedEvent and RowsRemovedEvent, at once or when it has fetched them. The defaults are a flat
+     *  table: no hierarchy, every row at level 0, nothing to open
+     */
+
+    /** Whether the rows have levels and fold controls; asked once per paint, so a flat model costs the grid nothing. Default false */
+    virtual bool HasRowHierarchy( void ) const;
+
+    /** The depth of a row: 0 for a top row, 1 for its children and so on. Default 0 */
+    virtual UInt32 GetRowLevel( UInt32 row ) const;
+
+    /** Whether the row has (or may have) child rows to show, so it gets a fold control. Default false */
+    virtual bool IsRowExpandable( UInt32 row ) const;
+
+    /** Whether the child rows of the row are shown. Default false */
+    virtual bool IsRowExpanded( UInt32 row ) const;
+
+    /** Asks the model to show or hide the child rows of the row; false when it does not (the default) */
+    virtual bool SetRowExpanded( UInt32 row, bool expanded );
+
     /**
      *  Whether the model has a footer row (totals). The grid shows it when ShowFooter is not set on the grid, or is
      *  true: a ShowFooter that is set explicitly (also to false) wins over the model. When this answer changes the

@@ -23,10 +23,14 @@ LOCAL_MODULE_FILENAME := libgucefGUI
 
 LOCAL_SRC_FILES := \
   src/gucefGUI.cpp \
+  src/gucefGUI_CAssetSearchForm.cpp \
+  src/gucefGUI_CAsyncGridCsvExport.cpp \
   src/gucefGUI_CAudioPlayer.cpp \
   src/gucefGUI_CAudioSettingsForm.cpp \
   src/gucefGUI_CBitmapFont.cpp \
+  src/gucefGUI_CBreadcrumbBar.cpp \
   src/gucefGUI_CButton.cpp \
+  src/gucefGUI_CCellStatusColours.cpp \
   src/gucefGUI_CChartAxis.cpp \
   src/gucefGUI_CChartDecimator.cpp \
   src/gucefGUI_CChartMarker.cpp \
@@ -36,6 +40,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CCheckbox.cpp \
   src/gucefGUI_CCombobox.cpp \
   src/gucefGUI_CContentBrowserForm.cpp \
+  src/gucefGUI_CContextMenuItem.cpp \
   src/gucefGUI_CDataTableViewModel.cpp \
   src/gucefGUI_CDeveloperConsoleForm.cpp \
   src/gucefGUI_CDirectoryOpenDialogForm.cpp \
@@ -61,40 +66,81 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CGeneralSettingsForm.cpp \
   src/gucefGUI_CGridCellEditor.cpp \
   src/gucefGUI_CGridClipboard.cpp \
+  src/gucefGUI_CGridColumnChooserForm.cpp \
+  src/gucefGUI_CGridColumnChooserModel.cpp \
+  src/gucefGUI_CGridColumnFit.cpp \
+  src/gucefGUI_CGridColumnFitter.cpp \
   src/gucefGUI_CGridColumnLayout.cpp \
+  src/gucefGUI_CGridCsvExportController.cpp \
+  src/gucefGUI_CGridCsvExportReport.cpp \
+  src/gucefGUI_CGridCsvExporter.cpp \
+  src/gucefGUI_CGridCsvOptions.cpp \
   src/gucefGUI_CGridEditController.cpp \
   src/gucefGUI_CGridEditReport.cpp \
+  src/gucefGUI_CGridExportSource.cpp \
+  src/gucefGUI_CGridPreferences.cpp \
   src/gucefGUI_CGridSelection.cpp \
   src/gucefGUI_CGridView.cpp \
   src/gucefGUI_CGridViewPainter.cpp \
   src/gucefGUI_CGroupBox.cpp \
   src/gucefGUI_CGuiGlobal.cpp \
+  src/gucefGUI_CHelpCatalogue.cpp \
+  src/gucefGUI_CHelpDocument.cpp \
+  src/gucefGUI_CHelpHistory.cpp \
+  src/gucefGUI_CHelpMarkupParser.cpp \
+  src/gucefGUI_CHelpViewerForm.cpp \
   src/gucefGUI_CIContentTypeResolver.cpp \
+  src/gucefGUI_CIDisplayTextTransform.cpp \
   src/gucefGUI_CIGUIContext.cpp \
+  src/gucefGUI_CIGridContextMenuProvider.cpp \
+  src/gucefGUI_CIGridExportTarget.cpp \
+  src/gucefGUI_CIGridHelpProvider.cpp \
+  src/gucefGUI_CIGridPreferenceStore.cpp \
+  src/gucefGUI_CIHelpSource.cpp \
+  src/gucefGUI_CISearchModel.cpp \
   src/gucefGUI_CITableViewModel.cpp \
   src/gucefGUI_CIThumbnailProvider.cpp \
+  src/gucefGUI_CITransferQueueModel.cpp \
   src/gucefGUI_CIViewportController.cpp \
   src/gucefGUI_CImageFrame.cpp \
   src/gucefGUI_CImageViewForm.cpp \
   src/gucefGUI_CKeyboardLayout.cpp \
   src/gucefGUI_CKeyboardLayoutRegistry.cpp \
+  src/gucefGUI_CKeyboardShortcutMap.cpp \
   src/gucefGUI_CLabel.cpp \
+  src/gucefGUI_CLayoutDebugOverlay.cpp \
+  src/gucefGUI_CLayoutLint.cpp \
+  src/gucefGUI_CLayoutLintBudget.cpp \
+  src/gucefGUI_CLayoutLintFinding.cpp \
+  src/gucefGUI_CLayoutLintMatrix.cpp \
+  src/gucefGUI_CLayoutLintOptions.cpp \
+  src/gucefGUI_CLayoutLintSweep.cpp \
   src/gucefGUI_CListbox.cpp \
+  src/gucefGUI_CLocalGridPreferenceStore.cpp \
   src/gucefGUI_CMenuBar.cpp \
   src/gucefGUI_CMessageBoxForm.cpp \
   src/gucefGUI_CModule.cpp \
+  src/gucefGUI_CNativeGridExportTarget.cpp \
+  src/gucefGUI_CNavigationHistory.cpp \
   src/gucefGUI_COnScreenKeyboardForm.cpp \
+  src/gucefGUI_COpenActionStripForm.cpp \
   src/gucefGUI_CPanel.cpp \
   src/gucefGUI_CPathFieldForm.cpp \
   src/gucefGUI_CPopupMenu.cpp \
   src/gucefGUI_CProgressBar.cpp \
   src/gucefGUI_CPropertyInspectorForm.cpp \
   src/gucefGUI_CPropertyRowDescriptor.cpp \
+  src/gucefGUI_CPseudoLocalizer.cpp \
   src/gucefGUI_CPushButton.cpp \
+  src/gucefGUI_CRecentLocations.cpp \
   src/gucefGUI_CRenderContext.cpp \
   src/gucefGUI_CReportViewForm.cpp \
   src/gucefGUI_CRoutedEventData.cpp \
+  src/gucefGUI_CSavedSearch.cpp \
   src/gucefGUI_CScrollPanel.cpp \
+  src/gucefGUI_CSearchFilterDescription.cpp \
+  src/gucefGUI_CSearchQuery.cpp \
+  src/gucefGUI_CSearchResultPage.cpp \
   src/gucefGUI_CSecretInput.cpp \
   src/gucefGUI_CSecretInputSettings.cpp \
   src/gucefGUI_CSettingsForm.cpp \
@@ -102,8 +148,10 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CSlider.cpp \
   src/gucefGUI_CSoftwareRenderer.cpp \
   src/gucefGUI_CSpinner.cpp \
+  src/gucefGUI_CTabAreaNavigator.cpp \
   src/gucefGUI_CTabContentPane.cpp \
   src/gucefGUI_CTabControl.cpp \
+  src/gucefGUI_CTabControlPainter.cpp \
   src/gucefGUI_CTableCellFormatter.cpp \
   src/gucefGUI_CTableCellParser.cpp \
   src/gucefGUI_CTableEditHistory.cpp \
@@ -113,14 +161,24 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CTabularText.cpp \
   src/gucefGUI_CTextbox.cpp \
   src/gucefGUI_CTimelineForm.cpp \
+  src/gucefGUI_CTooltipLayout.cpp \
+  src/gucefGUI_CTooltipPainter.cpp \
+  src/gucefGUI_CTooltipService.cpp \
+  src/gucefGUI_CTransferQueueForm.cpp \
   src/gucefGUI_CTreeview.cpp \
   src/gucefGUI_CUDim.cpp \
   src/gucefGUI_CUVector.cpp \
+  src/gucefGUI_CVfsGridExportTarget.cpp \
   src/gucefGUI_CVideoOptions.cpp \
   src/gucefGUI_CVideoSettings.cpp \
   src/gucefGUI_CVideoSettingsForm.cpp \
   src/gucefGUI_CVideoView.cpp \
   src/gucefGUI_CViewportForm.cpp \
+  src/gucefGUI_CWebPageView.cpp \
+  src/gucefGUI_CWebViewForm.cpp \
+  src/gucefGUI_CWebViewFormPresenter.cpp \
+  src/gucefGUI_CWebViewImageBinding.cpp \
+  src/gucefGUI_CWebViewInputTranslator.cpp \
   src/gucefGUI_CWidget.cpp \
   src/gucefGUI_CWidgetFactory.cpp \
   src/gucefGUI_CWidgetHandler.cpp \
@@ -131,6 +189,9 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CWindowContext.cpp \
   src/gucefGUI_CWindowManager.cpp \
   src/gucefGUI_CWindowManagerBackend.cpp \
+  src/gucefGUI_ELayoutLintRule.cpp \
+  src/gucefGUI_ELayoutLintSeverity.cpp \
+  src/gucefGUI_ETextOverflow.cpp \
   src/gucefGUI_EWidgetProperty.cpp \
   src/gucefGUI_StandardThemes.cpp \
   src/gucefGUI_StandardWidgetTypes.cpp \
@@ -142,6 +203,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefAUDIO/include \
   $(MY_MODULE_PATH)/../gucefAUDIO/include/c_api \
+  $(MY_MODULE_PATH)/../gucefCOM/include \
+  $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefIMAGE/include \
@@ -151,7 +214,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include \
   $(MY_MODULE_PATH)/../gucefVIDEO/include \
-  $(MY_MODULE_PATH)/../gucefVIDEO/include/c_api
+  $(MY_MODULE_PATH)/../gucefVIDEO/include/c_api \
+  $(MY_MODULE_PATH)/../gucefWEB/include
 
 LOCAL_CFLAGS := -DGUCEF_GUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefGUI -DMODULE_NAME=gucefGUI -DMODULE_SEMVER=0_1_0_0
 
@@ -163,7 +227,8 @@ LOCAL_SHARED_LIBRARIES := \
   gucefINPUT \
   gucefMT \
   gucefVFS \
-  gucefVIDEO
+  gucefVIDEO \
+  gucefWEB
 
 include $(BUILD_SHARED_LIBRARY)
 

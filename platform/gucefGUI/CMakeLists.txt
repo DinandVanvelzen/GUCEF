@@ -13,10 +13,14 @@
 
 set( HEADER_FILES 
   include/gucefGUI.h
+  include/gucefGUI_CAssetSearchForm.h
+  include/gucefGUI_CAsyncGridCsvExport.h
   include/gucefGUI_CAudioPlayer.h
   include/gucefGUI_CAudioSettingsForm.h
   include/gucefGUI_CBitmapFont.h
+  include/gucefGUI_CBreadcrumbBar.h
   include/gucefGUI_CButton.h
+  include/gucefGUI_CCellStatusColours.h
   include/gucefGUI_CChartAxis.h
   include/gucefGUI_CChartDecimator.h
   include/gucefGUI_CChartMarker.h
@@ -26,6 +30,7 @@ set( HEADER_FILES
   include/gucefGUI_CCheckbox.h
   include/gucefGUI_CCombobox.h
   include/gucefGUI_CContentBrowserForm.h
+  include/gucefGUI_CContextMenuItem.h
   include/gucefGUI_CDataTableViewModel.h
   include/gucefGUI_CDeveloperConsoleForm.h
   include/gucefGUI_CDirectoryOpenDialogForm.h
@@ -51,40 +56,81 @@ set( HEADER_FILES
   include/gucefGUI_CGeneralSettingsForm.h
   include/gucefGUI_CGridCellEditor.h
   include/gucefGUI_CGridClipboard.h
+  include/gucefGUI_CGridColumnChooserForm.h
+  include/gucefGUI_CGridColumnChooserModel.h
+  include/gucefGUI_CGridColumnFit.h
+  include/gucefGUI_CGridColumnFitter.h
   include/gucefGUI_CGridColumnLayout.h
+  include/gucefGUI_CGridCsvExportController.h
+  include/gucefGUI_CGridCsvExportReport.h
+  include/gucefGUI_CGridCsvExporter.h
+  include/gucefGUI_CGridCsvOptions.h
   include/gucefGUI_CGridEditController.h
   include/gucefGUI_CGridEditReport.h
+  include/gucefGUI_CGridExportSource.h
+  include/gucefGUI_CGridPreferences.h
   include/gucefGUI_CGridSelection.h
   include/gucefGUI_CGridView.h
   include/gucefGUI_CGridViewPainter.h
   include/gucefGUI_CGroupBox.h
   include/gucefGUI_CGuiGlobal.h
+  include/gucefGUI_CHelpCatalogue.h
+  include/gucefGUI_CHelpDocument.h
+  include/gucefGUI_CHelpHistory.h
+  include/gucefGUI_CHelpMarkupParser.h
+  include/gucefGUI_CHelpViewerForm.h
   include/gucefGUI_CIContentTypeResolver.h
+  include/gucefGUI_CIDisplayTextTransform.h
   include/gucefGUI_CIGUIContext.h
+  include/gucefGUI_CIGridContextMenuProvider.h
+  include/gucefGUI_CIGridExportTarget.h
+  include/gucefGUI_CIGridHelpProvider.h
+  include/gucefGUI_CIGridPreferenceStore.h
+  include/gucefGUI_CIHelpSource.h
+  include/gucefGUI_CISearchModel.h
   include/gucefGUI_CITableViewModel.h
   include/gucefGUI_CIThumbnailProvider.h
+  include/gucefGUI_CITransferQueueModel.h
   include/gucefGUI_CIViewportController.h
   include/gucefGUI_CImageFrame.h
   include/gucefGUI_CImageViewForm.h
   include/gucefGUI_CKeyboardLayout.h
   include/gucefGUI_CKeyboardLayoutRegistry.h
+  include/gucefGUI_CKeyboardShortcutMap.h
   include/gucefGUI_CLabel.h
+  include/gucefGUI_CLayoutDebugOverlay.h
+  include/gucefGUI_CLayoutLint.h
+  include/gucefGUI_CLayoutLintBudget.h
+  include/gucefGUI_CLayoutLintFinding.h
+  include/gucefGUI_CLayoutLintMatrix.h
+  include/gucefGUI_CLayoutLintOptions.h
+  include/gucefGUI_CLayoutLintSweep.h
   include/gucefGUI_CListBox.h
+  include/gucefGUI_CLocalGridPreferenceStore.h
   include/gucefGUI_CMenuBar.h
   include/gucefGUI_CMessageBoxForm.h
   include/gucefGUI_CModule.h
+  include/gucefGUI_CNativeGridExportTarget.h
+  include/gucefGUI_CNavigationHistory.h
   include/gucefGUI_COnScreenKeyboardForm.h
+  include/gucefGUI_COpenActionStripForm.h
   include/gucefGUI_CPanel.h
   include/gucefGUI_CPathFieldForm.h
   include/gucefGUI_CPopupMenu.h
   include/gucefGUI_CProgressBar.h
   include/gucefGUI_CPropertyInspectorForm.h
   include/gucefGUI_CPropertyRowDescriptor.h
+  include/gucefGUI_CPseudoLocalizer.h
   include/gucefGUI_CPushButton.h
+  include/gucefGUI_CRecentLocations.h
   include/gucefGUI_CRenderContext.h
   include/gucefGUI_CReportViewForm.h
   include/gucefGUI_CRoutedEventData.h
+  include/gucefGUI_CSavedSearch.h
   include/gucefGUI_CScrollPanel.h
+  include/gucefGUI_CSearchFilterDescription.h
+  include/gucefGUI_CSearchQuery.h
+  include/gucefGUI_CSearchResultPage.h
   include/gucefGUI_CSecretInput.h
   include/gucefGUI_CSecretInputSettings.h
   include/gucefGUI_CSettingsForm.h
@@ -92,8 +138,10 @@ set( HEADER_FILES
   include/gucefGUI_CSlider.h
   include/gucefGUI_CSoftwareRenderer.h
   include/gucefGUI_CSpinner.h
+  include/gucefGUI_CTabAreaNavigator.h
   include/gucefGUI_CTabContentPane.h
   include/gucefGUI_CTabControl.h
+  include/gucefGUI_CTabControlPainter.h
   include/gucefGUI_CTableCellFormatter.h
   include/gucefGUI_CTableCellParser.h
   include/gucefGUI_CTableEditHistory.h
@@ -103,14 +151,24 @@ set( HEADER_FILES
   include/gucefGUI_CTabularText.h
   include/gucefGUI_CTextbox.h
   include/gucefGUI_CTimelineForm.h
+  include/gucefGUI_CTooltipLayout.h
+  include/gucefGUI_CTooltipPainter.h
+  include/gucefGUI_CTooltipService.h
+  include/gucefGUI_CTransferQueueForm.h
   include/gucefGUI_CTreeview.h
   include/gucefGUI_CUDim.h
   include/gucefGUI_CUVector.h
+  include/gucefGUI_CVfsGridExportTarget.h
   include/gucefGUI_CVideoOptions.h
   include/gucefGUI_CVideoSettings.h
   include/gucefGUI_CVideoSettingsForm.h
   include/gucefGUI_CVideoView.h
   include/gucefGUI_CViewportForm.h
+  include/gucefGUI_CWebPageView.h
+  include/gucefGUI_CWebViewForm.h
+  include/gucefGUI_CWebViewFormPresenter.h
+  include/gucefGUI_CWebViewImageBinding.h
+  include/gucefGUI_CWebViewInputTranslator.h
   include/gucefGUI_CWidget.h
   include/gucefGUI_CWidgetFactory.h
   include/gucefGUI_CWidgetHandler.h
@@ -121,6 +179,9 @@ set( HEADER_FILES
   include/gucefGUI_CWindowContext.h
   include/gucefGUI_CWindowManager.h
   include/gucefGUI_CWindowManagerBackend.h
+  include/gucefGUI_ELayoutLintRule.h
+  include/gucefGUI_ELayoutLintSeverity.h
+  include/gucefGUI_ETextOverflow.h
   include/gucefGUI_ETypes.h
   include/gucefGUI_EWidgetProperty.h
   include/gucefGUI_StandardThemes.h
@@ -133,10 +194,14 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/gucefGUI.cpp
+  src/gucefGUI_CAssetSearchForm.cpp
+  src/gucefGUI_CAsyncGridCsvExport.cpp
   src/gucefGUI_CAudioPlayer.cpp
   src/gucefGUI_CAudioSettingsForm.cpp
   src/gucefGUI_CBitmapFont.cpp
+  src/gucefGUI_CBreadcrumbBar.cpp
   src/gucefGUI_CButton.cpp
+  src/gucefGUI_CCellStatusColours.cpp
   src/gucefGUI_CChartAxis.cpp
   src/gucefGUI_CChartDecimator.cpp
   src/gucefGUI_CChartMarker.cpp
@@ -146,6 +211,7 @@ set( SOURCE_FILES
   src/gucefGUI_CCheckbox.cpp
   src/gucefGUI_CCombobox.cpp
   src/gucefGUI_CContentBrowserForm.cpp
+  src/gucefGUI_CContextMenuItem.cpp
   src/gucefGUI_CDataTableViewModel.cpp
   src/gucefGUI_CDeveloperConsoleForm.cpp
   src/gucefGUI_CDirectoryOpenDialogForm.cpp
@@ -171,40 +237,81 @@ set( SOURCE_FILES
   src/gucefGUI_CGeneralSettingsForm.cpp
   src/gucefGUI_CGridCellEditor.cpp
   src/gucefGUI_CGridClipboard.cpp
+  src/gucefGUI_CGridColumnChooserForm.cpp
+  src/gucefGUI_CGridColumnChooserModel.cpp
+  src/gucefGUI_CGridColumnFit.cpp
+  src/gucefGUI_CGridColumnFitter.cpp
   src/gucefGUI_CGridColumnLayout.cpp
+  src/gucefGUI_CGridCsvExportController.cpp
+  src/gucefGUI_CGridCsvExportReport.cpp
+  src/gucefGUI_CGridCsvExporter.cpp
+  src/gucefGUI_CGridCsvOptions.cpp
   src/gucefGUI_CGridEditController.cpp
   src/gucefGUI_CGridEditReport.cpp
+  src/gucefGUI_CGridExportSource.cpp
+  src/gucefGUI_CGridPreferences.cpp
   src/gucefGUI_CGridSelection.cpp
   src/gucefGUI_CGridView.cpp
   src/gucefGUI_CGridViewPainter.cpp
   src/gucefGUI_CGroupBox.cpp
   src/gucefGUI_CGuiGlobal.cpp
+  src/gucefGUI_CHelpCatalogue.cpp
+  src/gucefGUI_CHelpDocument.cpp
+  src/gucefGUI_CHelpHistory.cpp
+  src/gucefGUI_CHelpMarkupParser.cpp
+  src/gucefGUI_CHelpViewerForm.cpp
   src/gucefGUI_CIContentTypeResolver.cpp
+  src/gucefGUI_CIDisplayTextTransform.cpp
   src/gucefGUI_CIGUIContext.cpp
+  src/gucefGUI_CIGridContextMenuProvider.cpp
+  src/gucefGUI_CIGridExportTarget.cpp
+  src/gucefGUI_CIGridHelpProvider.cpp
+  src/gucefGUI_CIGridPreferenceStore.cpp
+  src/gucefGUI_CIHelpSource.cpp
+  src/gucefGUI_CISearchModel.cpp
   src/gucefGUI_CITableViewModel.cpp
   src/gucefGUI_CIThumbnailProvider.cpp
+  src/gucefGUI_CITransferQueueModel.cpp
   src/gucefGUI_CIViewportController.cpp
   src/gucefGUI_CImageFrame.cpp
   src/gucefGUI_CImageViewForm.cpp
   src/gucefGUI_CKeyboardLayout.cpp
   src/gucefGUI_CKeyboardLayoutRegistry.cpp
+  src/gucefGUI_CKeyboardShortcutMap.cpp
   src/gucefGUI_CLabel.cpp
+  src/gucefGUI_CLayoutDebugOverlay.cpp
+  src/gucefGUI_CLayoutLint.cpp
+  src/gucefGUI_CLayoutLintBudget.cpp
+  src/gucefGUI_CLayoutLintFinding.cpp
+  src/gucefGUI_CLayoutLintMatrix.cpp
+  src/gucefGUI_CLayoutLintOptions.cpp
+  src/gucefGUI_CLayoutLintSweep.cpp
   src/gucefGUI_CListbox.cpp
+  src/gucefGUI_CLocalGridPreferenceStore.cpp
   src/gucefGUI_CMenuBar.cpp
   src/gucefGUI_CMessageBoxForm.cpp
   src/gucefGUI_CModule.cpp
+  src/gucefGUI_CNativeGridExportTarget.cpp
+  src/gucefGUI_CNavigationHistory.cpp
   src/gucefGUI_COnScreenKeyboardForm.cpp
+  src/gucefGUI_COpenActionStripForm.cpp
   src/gucefGUI_CPanel.cpp
   src/gucefGUI_CPathFieldForm.cpp
   src/gucefGUI_CPopupMenu.cpp
   src/gucefGUI_CProgressBar.cpp
   src/gucefGUI_CPropertyInspectorForm.cpp
   src/gucefGUI_CPropertyRowDescriptor.cpp
+  src/gucefGUI_CPseudoLocalizer.cpp
   src/gucefGUI_CPushButton.cpp
+  src/gucefGUI_CRecentLocations.cpp
   src/gucefGUI_CRenderContext.cpp
   src/gucefGUI_CReportViewForm.cpp
   src/gucefGUI_CRoutedEventData.cpp
+  src/gucefGUI_CSavedSearch.cpp
   src/gucefGUI_CScrollPanel.cpp
+  src/gucefGUI_CSearchFilterDescription.cpp
+  src/gucefGUI_CSearchQuery.cpp
+  src/gucefGUI_CSearchResultPage.cpp
   src/gucefGUI_CSecretInput.cpp
   src/gucefGUI_CSecretInputSettings.cpp
   src/gucefGUI_CSettingsForm.cpp
@@ -212,8 +319,10 @@ set( SOURCE_FILES
   src/gucefGUI_CSlider.cpp
   src/gucefGUI_CSoftwareRenderer.cpp
   src/gucefGUI_CSpinner.cpp
+  src/gucefGUI_CTabAreaNavigator.cpp
   src/gucefGUI_CTabContentPane.cpp
   src/gucefGUI_CTabControl.cpp
+  src/gucefGUI_CTabControlPainter.cpp
   src/gucefGUI_CTableCellFormatter.cpp
   src/gucefGUI_CTableCellParser.cpp
   src/gucefGUI_CTableEditHistory.cpp
@@ -223,14 +332,24 @@ set( SOURCE_FILES
   src/gucefGUI_CTabularText.cpp
   src/gucefGUI_CTextbox.cpp
   src/gucefGUI_CTimelineForm.cpp
+  src/gucefGUI_CTooltipLayout.cpp
+  src/gucefGUI_CTooltipPainter.cpp
+  src/gucefGUI_CTooltipService.cpp
+  src/gucefGUI_CTransferQueueForm.cpp
   src/gucefGUI_CTreeview.cpp
   src/gucefGUI_CUDim.cpp
   src/gucefGUI_CUVector.cpp
+  src/gucefGUI_CVfsGridExportTarget.cpp
   src/gucefGUI_CVideoOptions.cpp
   src/gucefGUI_CVideoSettings.cpp
   src/gucefGUI_CVideoSettingsForm.cpp
   src/gucefGUI_CVideoView.cpp
   src/gucefGUI_CViewportForm.cpp
+  src/gucefGUI_CWebPageView.cpp
+  src/gucefGUI_CWebViewForm.cpp
+  src/gucefGUI_CWebViewFormPresenter.cpp
+  src/gucefGUI_CWebViewImageBinding.cpp
+  src/gucefGUI_CWebViewInputTranslator.cpp
   src/gucefGUI_CWidget.cpp
   src/gucefGUI_CWidgetFactory.cpp
   src/gucefGUI_CWidgetHandler.cpp
@@ -241,6 +360,9 @@ set( SOURCE_FILES
   src/gucefGUI_CWindowContext.cpp
   src/gucefGUI_CWindowManager.cpp
   src/gucefGUI_CWindowManagerBackend.cpp
+  src/gucefGUI_ELayoutLintRule.cpp
+  src/gucefGUI_ELayoutLintSeverity.cpp
+  src/gucefGUI_ETextOverflow.cpp
   src/gucefGUI_EWidgetProperty.cpp
   src/gucefGUI_StandardThemes.cpp
   src/gucefGUI_StandardWidgetTypes.cpp
@@ -259,13 +381,13 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefGUI" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO )
+add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefGUI;MODULE_NAME=gucefGUI;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefINPUT/include ../gucefMATH/include ../gucefMATH/src ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api include )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefINPUT/include ../gucefMATH/include ../gucefMATH/src ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )
@@ -284,11 +406,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin )
+  include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin )
+  include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build
