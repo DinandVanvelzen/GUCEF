@@ -1,0 +1,73 @@
+# Copyright (C) 1998 - 2026.  Dinand Vanvelzen. Licensed under the Apache License, Version 2.0.
+#
+# Container image of a GUCEF service, rendered by scripts/build_image.sh from the service file: each placeholder (a key between two at signs) takes the value of that key.
+#
+# Two stages: the build stage is the GUCEF development image (projects/k3s/gucef_dev) and builds the targets of
+# IMAGE_TARGETS in release; the runtime stage is the minideb of the same Debian release and holds /opt/@SERVICE_NAME@
+# only. MINIDEB_RELEASE and RUNTIME_PACKAGES have no default on purpose: build_image.sh reads them from the development
+# image, so that the runtime has the release and the libssl package the build linked against.
+#
+# Build context (scripts/make_context.sh): src/GUCEF, src/<extra checkouts>, service/bootstrap.ini.
+
+ARG DEV_IMAGE=vanvelzen/github-gucef-dev-base:latest
+ARG MINIDEB_RELEASE
+
+# --------------------------------------------------------------------
+# build stage
+# --------------------------------------------------------------------
+FROM ${DEV_IMAGE} AS build
+ARG IMAGE_TARGETS
+ARG TARGETS_CHECKOUT=GUCEF
+RUN install_packages patchelf
+COPY src /src
+COPY service /service
+
+# every target of the image has generated build files (they come from the ModuleInfo.xml of the program)
+RUN test -n "${IMAGE_TARGETS}" || { echo "ERROR: IMAGE_TARGETS is empty" >&2; exit 1; }; \
+    for target in ${IMAGE_TARGETS}; do \
+        if [ ! -d "/src/${TARGETS_CHECKOUT}/projects/CMake/targets/${target}" ]; then \
+            echo "ERROR: the build target ${target} has no build files in /src/${TARGETS_CHECKOUT}/projects/CMake/targets" >&2; \
+            exit 1; \
+        fi; \
+    done
+
+# one build directory per target, built one after the other with all cores of the build machine
+RUN for target in ${IMAGE_TARGETS}; do \
+        cmake -G Ninja -S "/src/${TARGETS_CHECKOUT}/projects/CMake/targets/${target}" -B "/build/${target}" \
+              -DCMAKE_BUILD_TYPE=release -DBUILD_SHARED_LIBS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+        && ninja -C "/build/${target}" || exit 1; \
+    done
+
+RUN /src/GUCEF/projects/k3s/gucef_service/scripts/stage_install.sh /out/opt/@SERVICE_NAME@ \
+        --program @SERVICE_PROGRAM@ --bootstrap /service/bootstrap.ini \
+        $(for target in ${IMAGE_TARGETS}; do echo "/build/${target}"; done)
+
+# --------------------------------------------------------------------
+# runtime stage
+# --------------------------------------------------------------------
+FROM bitnami/minideb:${MINIDEB_RELEASE} AS runtime
+ARG RUNTIME_PACKAGES
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="@SERVICE_PROGRAM@" \
+      org.opencontainers.image.revision="${REVISION}"
+
+RUN install_packages ${RUNTIME_PACKAGES}
+
+COPY --from=build /out/opt/@SERVICE_NAME@ /opt/@SERVICE_NAME@
+
+# fails the build when a program, library or plugin does not resolve inside /opt/@SERVICE_NAME@ or the base image
+RUN /opt/@SERVICE_NAME@/bin/check_libs.sh /opt/@SERVICE_NAME@ --program @SERVICE_PROGRAM@ \
+ && mkdir -p /data /tmp \
+ && chown 10001:10001 /data \
+ && chmod 1777 /tmp
+
+# HOME and the cache directory are the writable /tmp (an emptyDir in the pod); logging to stderr, which k3s collects
+ENV GUCEF_CONSOLE_LOGGER=stderr \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp
+
+USER 10001:10001
+WORKDIR /tmp
+EXPOSE @SESSION_PORT@ @PAIRING_PORT@ @HEALTH_PORT@
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["/opt/@SERVICE_NAME@/bin/@SERVICE_PROGRAM@"]

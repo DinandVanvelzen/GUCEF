@@ -1,0 +1,100 @@
+# One replica with the Recreate strategy: the old pod drains and ends before the new one starts, so two writers never
+# run at once and no client is routed to two services. The image is imported into containerd (build_image.sh) and not
+# in a registry: imagePullPolicy Never, and the pod is bound to the node that has it (nodeSelector) and its claim.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: @SERVICE_NAME@
+  namespace: @NAMESPACE@
+  labels:
+    app.kubernetes.io/name: @SERVICE_NAME@
+    app.kubernetes.io/part-of: @PART_OF@
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: @SERVICE_NAME@
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: @SERVICE_NAME@
+        app.kubernetes.io/part-of: @PART_OF@
+    spec:
+      nodeSelector:
+        @NODE_SELECTOR_KEY@: "@NODE_SELECTOR_VALUE@"
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      # the drain (@DRAIN_SECONDS@ s) plus closing the stores and listeners; SIGTERM starts the drain
+      terminationGracePeriodSeconds: @TERMINATION_GRACE_SECONDS@
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: service
+          image: docker.io/@IMAGE_NAME@:@IMAGE_TAG@
+          imagePullPolicy: Never
+          args: @CONTAINER_ARGS_YAML@
+          env:
+            - name: GUCEF_CONSOLE_LOGGER
+              value: stderr
+          # The session and pairing listeners open only once the service is READY; the pairing listener only while a
+          # pairing window is open. The health port is for the kubelet (pod address); the admin endpoint listens on
+          # 127.0.0.1:@ADMIN_PORT@ inside the container only and is reached with kubectl exec.
+          ports:
+            - { name: session, containerPort: @SESSION_PORT@, protocol: TCP }
+            - { name: pairing, containerPort: @PAIRING_PORT@, protocol: TCP }
+            - { name: health, containerPort: @HEALTH_PORT@, protocol: TCP }
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ "ALL" ]
+          # startup covers a writer lock wait and migrations (period 10 s x @STARTUP_FAILURE_THRESHOLD@); liveness and
+          # readiness start after it. Liveness follows the service's own threads (a restart cures none of the
+          # conditions of readiness, such as an unreachable database); readiness fails at once when the drain begins, so
+          # the Service stops routing new connections to the pod.
+          startupProbe:
+            httpGet: { path: /health/started, port: health }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: @STARTUP_FAILURE_THRESHOLD@
+          livenessProbe:
+            httpGet: { path: /health/live, port: health }
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /health/ready, port: health }
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # No CPU limit: work may use the cores, idle use is near zero. With the kubelet in LimitedSwap mode a
+          # Burstable container (request below limit) may swap in proportion to its request.
+          resources:
+            requests:
+              cpu: @CPU_REQUEST@
+              memory: @MEMORY_REQUEST@
+            limits:
+              memory: @MEMORY_LIMIT@
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }
+            - { name: site-config, mountPath: /opt/@SERVICE_NAME@/config/site, readOnly: true }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: @SERVICE_NAME@-data
+        - name: tmp
+          emptyDir:
+            sizeLimit: @TMP_SIZE@
+        - name: site-config
+          configMap:
+            name: @SERVICE_NAME@-config

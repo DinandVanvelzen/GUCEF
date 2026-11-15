@@ -14,7 +14,18 @@
 set( HEADER_FILES 
   include/gucefDRNUTILS.h
   include/gucefDRNUTILS_CCommandIdempotencyCache.h
+  include/gucefDRNUTILS_CCommandJournal.h
+  include/gucefDRNUTILS_CCommandOutcomeCache.h
   include/gucefDRNUTILS_CControlRateLimiter.h
+  include/gucefDRNUTILS_CDeviceAccessRules.h
+  include/gucefDRNUTILS_CDeviceContracts.h
+  include/gucefDRNUTILS_CDeviceCredentials.h
+  include/gucefDRNUTILS_CDeviceDrnAccessPolicy.h
+  include/gucefDRNUTILS_CDevicePairingClient.h
+  include/gucefDRNUTILS_CDevicePairingCrypto.h
+  include/gucefDRNUTILS_CDevicePairingHost.h
+  include/gucefDRNUTILS_CDeviceRecord.h
+  include/gucefDRNUTILS_CDeviceRegistry.h
   include/gucefDRNUTILS_CDrnUtilsAccessRules.h
   include/gucefDRNUTILS_CDrnUtilsAuditRecord.h
   include/gucefDRNUTILS_CDrnUtilsCommandOutcome.h
@@ -28,6 +39,7 @@ set( HEADER_FILES
   include/gucefDRNUTILS_CDrnUtilsRoleMap.h
   include/gucefDRNUTILS_CDrnUtilsTableBinder.h
   include/gucefDRNUTILS_CIDrnUtilsAuditSink.h
+  include/gucefDRNUTILS_CIRemoteSessionExtension.h
   include/gucefDRNUTILS_CISchedulerCustomActionHandler.h
   include/gucefDRNUTILS_CISchedulerSource.h
   include/gucefDRNUTILS_CITaskManagerSource.h
@@ -36,7 +48,20 @@ set( HEADER_FILES
   include/gucefDRNUTILS_CJobsTableSchema.h
   include/gucefDRNUTILS_CLanesTableSchema.h
   include/gucefDRNUTILS_CModule.h
+  include/gucefDRNUTILS_CPairingWindowRequest.h
   include/gucefDRNUTILS_CPoolsTableSchema.h
+  include/gucefDRNUTILS_CReconnectBackoff.h
+  include/gucefDRNUTILS_CRemoteServiceChannel.h
+  include/gucefDRNUTILS_CRemoteServiceConnection.h
+  include/gucefDRNUTILS_CRemoteServiceConnectionSettings.h
+  include/gucefDRNUTILS_CRemoteServiceDetailCodes.h
+  include/gucefDRNUTILS_CRemoteServiceHost.h
+  include/gucefDRNUTILS_CRemoteServiceHostSettings.h
+  include/gucefDRNUTILS_CRemoteServicePrincipal.h
+  include/gucefDRNUTILS_CRemoteSession.h
+  include/gucefDRNUTILS_CRemoteSessionCache.h
+  include/gucefDRNUTILS_CRemoteSessionContracts.h
+  include/gucefDRNUTILS_CRemoteSessionEventRing.h
   include/gucefDRNUTILS_CRunsTableSchema.h
   include/gucefDRNUTILS_CScheduledJobsTableSchema.h
   include/gucefDRNUTILS_CSchedulerActionInfo.h
@@ -69,7 +94,10 @@ set( HEADER_FILES
   include/gucefDRNUTILS_CTaskManagerWatchStream.h
   include/gucefDRNUTILS_CTasksTableSchema.h
   include/gucefDRNUTILS_CThreadsTableSchema.h
+  include/gucefDRNUTILS_CUploadRangeSet.h
+  include/gucefDRNUTILS_CUploadStaging.h
   include/gucefDRNUTILS_DrnUtilsTypes.h
+  include/gucefDRNUTILS_RemoteServiceTypes.h
   include/gucefDRNUTILS_config.h
   include/gucefDRNUTILS_macros.h
 )
@@ -77,7 +105,18 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/gucefDRNUTILS.cpp
   src/gucefDRNUTILS_CCommandIdempotencyCache.cpp
+  src/gucefDRNUTILS_CCommandJournal.cpp
+  src/gucefDRNUTILS_CCommandOutcomeCache.cpp
   src/gucefDRNUTILS_CControlRateLimiter.cpp
+  src/gucefDRNUTILS_CDeviceAccessRules.cpp
+  src/gucefDRNUTILS_CDeviceContracts.cpp
+  src/gucefDRNUTILS_CDeviceCredentials.cpp
+  src/gucefDRNUTILS_CDeviceDrnAccessPolicy.cpp
+  src/gucefDRNUTILS_CDevicePairingClient.cpp
+  src/gucefDRNUTILS_CDevicePairingCrypto.cpp
+  src/gucefDRNUTILS_CDevicePairingHost.cpp
+  src/gucefDRNUTILS_CDeviceRecord.cpp
+  src/gucefDRNUTILS_CDeviceRegistry.cpp
   src/gucefDRNUTILS_CDrnUtilsAccessRules.cpp
   src/gucefDRNUTILS_CDrnUtilsAuditRecord.cpp
   src/gucefDRNUTILS_CDrnUtilsCommandOutcome.cpp
@@ -91,6 +130,7 @@ set( SOURCE_FILES
   src/gucefDRNUTILS_CDrnUtilsRoleMap.cpp
   src/gucefDRNUTILS_CDrnUtilsTableBinder.cpp
   src/gucefDRNUTILS_CIDrnUtilsAuditSink.cpp
+  src/gucefDRNUTILS_CIRemoteSessionExtension.cpp
   src/gucefDRNUTILS_CISchedulerCustomActionHandler.cpp
   src/gucefDRNUTILS_CISchedulerSource.cpp
   src/gucefDRNUTILS_CITaskManagerSource.cpp
@@ -100,6 +140,17 @@ set( SOURCE_FILES
   src/gucefDRNUTILS_CLanesTableSchema.cpp
   src/gucefDRNUTILS_CModule.cpp
   src/gucefDRNUTILS_CPoolsTableSchema.cpp
+  src/gucefDRNUTILS_CReconnectBackoff.cpp
+  src/gucefDRNUTILS_CRemoteServiceChannel.cpp
+  src/gucefDRNUTILS_CRemoteServiceConnection.cpp
+  src/gucefDRNUTILS_CRemoteServiceConnectionSettings.cpp
+  src/gucefDRNUTILS_CRemoteServiceDetailCodes.cpp
+  src/gucefDRNUTILS_CRemoteServiceHost.cpp
+  src/gucefDRNUTILS_CRemoteServiceHostSettings.cpp
+  src/gucefDRNUTILS_CRemoteSession.cpp
+  src/gucefDRNUTILS_CRemoteSessionCache.cpp
+  src/gucefDRNUTILS_CRemoteSessionContracts.cpp
+  src/gucefDRNUTILS_CRemoteSessionEventRing.cpp
   src/gucefDRNUTILS_CRunsTableSchema.cpp
   src/gucefDRNUTILS_CScheduledJobsTableSchema.cpp
   src/gucefDRNUTILS_CSchedulerActionInfo.cpp
@@ -132,7 +183,10 @@ set( SOURCE_FILES
   src/gucefDRNUTILS_CTaskManagerWatchStream.cpp
   src/gucefDRNUTILS_CTasksTableSchema.cpp
   src/gucefDRNUTILS_CThreadsTableSchema.cpp
+  src/gucefDRNUTILS_CUploadRangeSet.cpp
+  src/gucefDRNUTILS_CUploadStaging.cpp
   src/gucefDRNUTILS_DrnUtilsTypes.cpp
+  src/gucefDRNUTILS_RemoteServiceTypes.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -146,13 +200,13 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefDRNUTILS" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRNUTILS_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefDRNUTILS;MODULE_NAME=gucefDRNUTILS;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefIMAGE/include ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

@@ -22,11 +22,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CSCOPEMUTEX_H
-#include "gucefMT_CScopeMutex.h"
-#define GUCEF_MT_CSCOPEMUTEX_H
-#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
-
 #include "gucefDRNUTILS_CCommandIdempotencyCache.h"
 
 /*-------------------------------------------------------------------------//
@@ -44,26 +39,29 @@ namespace DRNUTILS {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static CORE::CString
-MakeKey( const CORE::CString& subject, const CORE::CString& commandId )
+CCommandIdempotencyCache::SOutcome::SOutcome( void )
+    : status( (TDrnUtilsCommandStatus) 0 )
+    , result()
 {GUCEF_TRACE;
 
-    return subject + "\n" + commandId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CCommandIdempotencyCache::SOutcome::SOutcome( TDrnUtilsCommandStatus commandStatus, const CORE::SJobControlResult& commandResult )
+    : status( commandStatus )
+    , result( commandResult )
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/
 
 CCommandIdempotencyCache::CCommandIdempotencyCache( void )
-    : m_lock()
-    , m_ttlMs( 86400000 )
-    , m_maxPerSubject( 256 )
-    , m_maxTotal( 4096 )
-    , m_nextSequence( 1 )
-    , m_entries()
-    , m_order()
-    , m_subjectCounts()
+    : m_cache()
 {GUCEF_TRACE;
 
+    m_cache.SetBounds( 86400000, 256, 4096 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -72,75 +70,7 @@ void
 CCommandIdempotencyCache::SetBounds( UInt64 ttlMs, UInt32 maxPerSubject, UInt32 maxTotal )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    m_ttlMs = ttlMs;
-    m_maxPerSubject = maxPerSubject;
-    m_maxTotal = maxTotal;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CCommandIdempotencyCache::Remove( const CORE::CString& key )
-{GUCEF_TRACE;
-
-    TEntryMap::iterator i = m_entries.find( key );
-    if ( i == m_entries.end() )
-        return;
-    m_order.erase( (*i).second.sequence );
-    TSubjectCountMap::iterator s = m_subjectCounts.find( (*i).second.subject );
-    if ( s != m_subjectCounts.end() )
-    {
-        if ( (*s).second <= 1 )
-            m_subjectCounts.erase( s );
-        else
-            --(*s).second;
-    }
-    m_entries.erase( i );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CCommandIdempotencyCache::Expire( UInt64 nowMs )
-{GUCEF_TRACE;
-
-    if ( 0 == m_ttlMs )
-        return;
-    // entries are stored in time order: the oldest are in front
-    while ( !m_order.empty() )
-    {
-        CORE::CString key = (*m_order.begin()).second;
-        TEntryMap::iterator i = m_entries.find( key );
-        if ( i == m_entries.end() )
-        {
-            m_order.erase( m_order.begin() );
-            continue;
-        }
-        if ( (*i).second.storedAtMs + m_ttlMs > nowMs )
-            break;
-        Remove( key );
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CCommandIdempotencyCache::RemoveOldestOfSubject( const CORE::CString& subject )
-{GUCEF_TRACE;
-
-    TOrderMap::iterator o = m_order.begin();
-    while ( o != m_order.end() )
-    {
-        TEntryMap::iterator i = m_entries.find( (*o).second );
-        if ( i != m_entries.end() && (*i).second.subject == subject )
-        {
-            CORE::CString key = (*o).second;
-            Remove( key );
-            return;
-        }
-        ++o;
-    }
+    m_cache.SetBounds( ttlMs, maxPerSubject, maxTotal );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -150,13 +80,11 @@ CCommandIdempotencyCache::Find( const CORE::CString& subject, const CORE::CStrin
                                 TDrnUtilsCommandStatus& status, CORE::SJobControlResult& result )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    Expire( nowMs );
-    TEntryMap::iterator i = m_entries.find( MakeKey( subject, commandId ) );
-    if ( i == m_entries.end() )
+    SOutcome outcome;
+    if ( !m_cache.Find( subject, commandId, nowMs, outcome ) )
         return false;
-    status = (*i).second.status;
-    result = (*i).second.result;
+    status = outcome.status;
+    result = outcome.result;
     return true;
 }
 
@@ -167,35 +95,7 @@ CCommandIdempotencyCache::Store( const CORE::CString& subject, const CORE::CStri
                                  TDrnUtilsCommandStatus status, const CORE::SJobControlResult& result )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    Expire( nowMs );
-    CORE::CString key = MakeKey( subject, commandId );
-    Remove( key );
-    if ( m_maxPerSubject > 0 )
-    {
-        TSubjectCountMap::iterator s = m_subjectCounts.find( subject );
-        while ( s != m_subjectCounts.end() && (*s).second >= m_maxPerSubject )
-        {
-            RemoveOldestOfSubject( subject );
-            s = m_subjectCounts.find( subject );
-        }
-    }
-    if ( m_maxTotal > 0 )
-    {
-        while ( m_entries.size() >= m_maxTotal && !m_order.empty() )
-        {
-            CORE::CString oldest = (*m_order.begin()).second;
-            Remove( oldest );
-        }
-    }
-    SEntry& entry = m_entries[ key ];
-    entry.storedAtMs = nowMs;
-    entry.sequence = m_nextSequence++;
-    entry.subject = subject;
-    entry.status = status;
-    entry.result = result;
-    m_order[ entry.sequence ] = key;
-    ++m_subjectCounts[ subject ];
+    m_cache.Store( subject, commandId, nowMs, SOutcome( status, result ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -204,8 +104,7 @@ UInt32
 CCommandIdempotencyCache::GetCount( void ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    return (UInt32) m_entries.size();
+    return m_cache.GetCount();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -214,10 +113,7 @@ void
 CCommandIdempotencyCache::Clear( void )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    m_entries.clear();
-    m_order.clear();
-    m_subjectCounts.clear();
+    m_cache.Clear();
 }
 
 /*-------------------------------------------------------------------------//

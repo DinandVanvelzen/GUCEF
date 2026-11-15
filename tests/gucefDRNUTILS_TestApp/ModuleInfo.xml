@@ -8,6 +8,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefDRNUTILS" />
         </Dependencies>
         <Linker>
@@ -17,6 +18,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefDRNUTILS" />
         </Linker>
         <Preprocessor>
@@ -28,6 +30,7 @@
         </Includes>
         <RuntimeDependencies>
             <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

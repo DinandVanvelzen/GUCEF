@@ -1,0 +1,38 @@
+# The credential store key of the service from the Secret @CREDENTIALS_SECRET_NAME@ (created in the cluster, see
+# ../../secret.example.yaml). Enable it by removing the comment marks of "components:" in ../../kustomization.yaml once
+# the Secret exists.
+#
+# The Secret is mounted read-only at /run/secrets/@SERVICE_NAME@ with mode 0440 and the group 10001 of the pod (fsGroup).
+# The program takes the path from @CREDENTIALS_KEY_FILE_ENV@ and the trust mode "mounted-secret" from
+# @CREDENTIALS_KEY_TRUST_ENV@: a root-owned, group-readable file behind the ..data links of a read-only mount, which the
+# owner-only default would refuse (gucefAUTH_CredentialStoreKeyFile.md).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      kind: Deployment
+      name: @SERVICE_NAME@
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: @CREDENTIALS_KEY_FILE_ENV@
+          value: /run/secrets/@SERVICE_NAME@/credentials.key
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: @CREDENTIALS_KEY_TRUST_ENV@
+          value: mounted-secret
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: credentials-key
+          mountPath: /run/secrets/@SERVICE_NAME@
+          readOnly: true
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: credentials-key
+          secret:
+            secretName: @CREDENTIALS_SECRET_NAME@
+            defaultMode: 0440

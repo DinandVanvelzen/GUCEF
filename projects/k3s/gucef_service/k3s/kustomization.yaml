@@ -1,0 +1,13 @@
+# kubectl apply -k <rendered directory>    (render_manifests.sh)
+# Not included on purpose: secret.example.yaml (an example; the Secret is created in the cluster). The credentials key
+# Secret mount is the component components/credentials-key.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+# components:
+#   - components/credentials-key

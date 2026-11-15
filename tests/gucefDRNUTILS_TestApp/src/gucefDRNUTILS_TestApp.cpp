@@ -82,6 +82,21 @@
 #define GUCEF_TESTDRNUTILSSKELETON_H
 #endif /* GUCEF_TESTDRNUTILSSKELETON_H ? */
 
+#ifndef GUCEF_TESTDRNUTILSREMOTEKIT_H
+#include "TestDrnUtilsRemoteKit.h"
+#define GUCEF_TESTDRNUTILSREMOTEKIT_H
+#endif /* GUCEF_TESTDRNUTILSREMOTEKIT_H ? */
+
+#ifndef GUCEF_TESTDRNUTILSREMOTESERVICE_H
+#include "TestDrnUtilsRemoteService.h"
+#define GUCEF_TESTDRNUTILSREMOTESERVICE_H
+#endif /* GUCEF_TESTDRNUTILSREMOTESERVICE_H ? */
+
+#ifndef GUCEF_TESTDRNUTILSLANDISCOVERY_H
+#include "TestDrnUtilsLanDiscovery.h"
+#define GUCEF_TESTDRNUTILSLANDISCOVERY_H
+#endif /* GUCEF_TESTDRNUTILSLANDISCOVERY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -102,6 +117,26 @@ DrnUtilsTestEventCallback( GUCEF::TESTFW::ETestEvent eventType ,
 
     GUCEF::TESTFW::TestFrameworkLogCallback( eventType, suiteName, caseName, message, file, line, failureCount, userData );
     GUCEF::CORE::CLogStreamScope::FlushLogs();
+}
+
+/**
+ *  Whether a suite runs: GUCEF_DRNUTILS_TEST_SUITES, a comma separated list of suite names (Skeleton, SchedulerHost,
+ *  TaskManagerHost, Tables, Drn, RemoteKit, RemoteService, Soak), selects suites; unset or empty runs every suite
+ */
+static bool
+IsSuiteSelected( const char* suiteName )
+{GUCEF_TRACE;
+
+    const char* selection = getenv( "GUCEF_DRNUTILS_TEST_SUITES" );
+    if ( GUCEF_NULL == selection || '\0' == *selection )
+        return true;
+    GUCEF::CORE::CString::StringVector names = GUCEF::CORE::CString( selection ).ParseElements( ',', false );
+    for ( GUCEF::UInt32 i=0; i<names.size(); ++i )
+    {
+        if ( names[ i ].Trim( true ).Trim( false ).Equals( suiteName, false ) )
+            return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -147,13 +182,25 @@ GUCEF_OSMAIN_BEGIN
         const char* soakOnly = getenv( "GUCEF_DRNUTILS_TEST_SOAK_ONLY" );
         if ( GUCEF_NULL == soakOnly || '\0' == *soakOnly )
         {
-            PerformDrnUtilsSkeletonTests();
-            PerformDrnUtilsSchedulerHostTests();
-            PerformDrnUtilsTaskManagerHostTests();
-            PerformDrnUtilsTablesTests();
-            PerformDrnUtilsDrnTests( argc > 0 && GUCEF_NULL != argv[ 0 ] && GUCEF_NULL != strchr( argv[ 0 ], '/' ) ? argv[ 0 ] : "" );
+            if ( IsSuiteSelected( "Skeleton" ) )
+                PerformDrnUtilsSkeletonTests();
+            if ( IsSuiteSelected( "SchedulerHost" ) )
+                PerformDrnUtilsSchedulerHostTests();
+            if ( IsSuiteSelected( "TaskManagerHost" ) )
+                PerformDrnUtilsTaskManagerHostTests();
+            if ( IsSuiteSelected( "Tables" ) )
+                PerformDrnUtilsTablesTests();
+            if ( IsSuiteSelected( "Drn" ) )
+                PerformDrnUtilsDrnTests( argc > 0 && GUCEF_NULL != argv[ 0 ] && GUCEF_NULL != strchr( argv[ 0 ], '/' ) ? argv[ 0 ] : "" );
+            if ( IsSuiteSelected( "RemoteKit" ) )
+                PerformDrnUtilsRemoteKitTests();
+            if ( IsSuiteSelected( "RemoteService" ) )
+                PerformDrnUtilsRemoteServiceTests();
+            if ( IsSuiteSelected( "LanDiscovery" ) )
+                PerformDrnUtilsLanDiscoveryTests();
         }
-        PerformDrnUtilsSoakTests();
+        if ( IsSuiteSelected( "Soak" ) )
+            PerformDrnUtilsSoakTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

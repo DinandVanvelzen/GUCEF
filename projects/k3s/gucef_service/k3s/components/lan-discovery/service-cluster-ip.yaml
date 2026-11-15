@@ -1,0 +1,10 @@
+# The Service only inside the cluster (component lan-discovery): the LAN reaches the listeners on the node
+# @DISCOVERY_NODE_NAME@ directly. externalTrafficPolicy applies to external Services only and is removed.
+apiVersion: v1
+kind: Service
+metadata:
+  name: @SERVICE_NAME@
+  namespace: @NAMESPACE@
+spec:
+  type: ClusterIP
+  externalTrafficPolicy: null

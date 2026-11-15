@@ -67,40 +67,40 @@ configuration( { "WIN64" } )
 kind( "WindowedApp" )
 
 configuration( { "LINUX32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 configuration( { "LINUX32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 
 configuration( { "LINUX32" } )
 defines( { "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILS_TestApp" } )
 
 configuration( { "LINUX64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 configuration( { "LINUX64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 
 configuration( { "LINUX64" } )
 defines( { "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILS_TestApp" } )
 
 configuration( { "WIN32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 configuration( { "WIN32" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 
 configuration( { "WIN32" } )
 defines( { "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRNUTILS_TestApp" } )
 
 configuration( { "WIN64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 configuration( { "WIN64" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefDRNUTILS", "gucefMT", "gucefWEB" } )
 
 
 configuration( { "WIN64" } )
@@ -114,18 +114,26 @@ configuration( { "LINUX32" } )
       "include/TestDrnUtilsDrnGroup.h",
       "include/TestDrnUtilsFakeSchedulerSource.h",
       "include/TestDrnUtilsFakeTaskManagerSource.h",
+      "include/TestDrnUtilsLanDiscovery.h",
+      "include/TestDrnUtilsRemoteKit.h",
+      "include/TestDrnUtilsRemoteService.h",
+      "include/TestDrnUtilsRemoteWorld.h",
       "include/TestDrnUtilsRpcWorld.h",
       "include/TestDrnUtilsSchedulerHost.h",
       "include/TestDrnUtilsSkeleton.h",
       "include/TestDrnUtilsSoak.h",
       "include/TestDrnUtilsTables.h",
-      "include/TestDrnUtilsTaskManagerHost.h"
+      "include/TestDrnUtilsTaskManagerHost.h",
+      "include/TestDrnUtilsTcpProxy.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDrnUtilsDrn.cpp",
       "src/TestDrnUtilsFakeSources.cpp",
+      "src/TestDrnUtilsLanDiscovery.cpp",
+      "src/TestDrnUtilsRemoteKit.cpp",
+      "src/TestDrnUtilsRemoteService.cpp",
       "src/TestDrnUtilsSchedulerHost.cpp",
       "src/TestDrnUtilsSkeleton.cpp",
       "src/TestDrnUtilsSoak.cpp",
@@ -143,18 +151,26 @@ configuration( { "LINUX64" } )
       "include/TestDrnUtilsDrnGroup.h",
       "include/TestDrnUtilsFakeSchedulerSource.h",
       "include/TestDrnUtilsFakeTaskManagerSource.h",
+      "include/TestDrnUtilsLanDiscovery.h",
+      "include/TestDrnUtilsRemoteKit.h",
+      "include/TestDrnUtilsRemoteService.h",
+      "include/TestDrnUtilsRemoteWorld.h",
       "include/TestDrnUtilsRpcWorld.h",
       "include/TestDrnUtilsSchedulerHost.h",
       "include/TestDrnUtilsSkeleton.h",
       "include/TestDrnUtilsSoak.h",
       "include/TestDrnUtilsTables.h",
-      "include/TestDrnUtilsTaskManagerHost.h"
+      "include/TestDrnUtilsTaskManagerHost.h",
+      "include/TestDrnUtilsTcpProxy.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDrnUtilsDrn.cpp",
       "src/TestDrnUtilsFakeSources.cpp",
+      "src/TestDrnUtilsLanDiscovery.cpp",
+      "src/TestDrnUtilsRemoteKit.cpp",
+      "src/TestDrnUtilsRemoteService.cpp",
       "src/TestDrnUtilsSchedulerHost.cpp",
       "src/TestDrnUtilsSkeleton.cpp",
       "src/TestDrnUtilsSoak.cpp",
@@ -172,18 +188,26 @@ configuration( { "WIN32" } )
       "include/TestDrnUtilsDrnGroup.h",
       "include/TestDrnUtilsFakeSchedulerSource.h",
       "include/TestDrnUtilsFakeTaskManagerSource.h",
+      "include/TestDrnUtilsLanDiscovery.h",
+      "include/TestDrnUtilsRemoteKit.h",
+      "include/TestDrnUtilsRemoteService.h",
+      "include/TestDrnUtilsRemoteWorld.h",
       "include/TestDrnUtilsRpcWorld.h",
       "include/TestDrnUtilsSchedulerHost.h",
       "include/TestDrnUtilsSkeleton.h",
       "include/TestDrnUtilsSoak.h",
       "include/TestDrnUtilsTables.h",
-      "include/TestDrnUtilsTaskManagerHost.h"
+      "include/TestDrnUtilsTaskManagerHost.h",
+      "include/TestDrnUtilsTcpProxy.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDrnUtilsDrn.cpp",
       "src/TestDrnUtilsFakeSources.cpp",
+      "src/TestDrnUtilsLanDiscovery.cpp",
+      "src/TestDrnUtilsRemoteKit.cpp",
+      "src/TestDrnUtilsRemoteService.cpp",
       "src/TestDrnUtilsSchedulerHost.cpp",
       "src/TestDrnUtilsSkeleton.cpp",
       "src/TestDrnUtilsSoak.cpp",
@@ -201,18 +225,26 @@ configuration( { "WIN64" } )
       "include/TestDrnUtilsDrnGroup.h",
       "include/TestDrnUtilsFakeSchedulerSource.h",
       "include/TestDrnUtilsFakeTaskManagerSource.h",
+      "include/TestDrnUtilsLanDiscovery.h",
+      "include/TestDrnUtilsRemoteKit.h",
+      "include/TestDrnUtilsRemoteService.h",
+      "include/TestDrnUtilsRemoteWorld.h",
       "include/TestDrnUtilsRpcWorld.h",
       "include/TestDrnUtilsSchedulerHost.h",
       "include/TestDrnUtilsSkeleton.h",
       "include/TestDrnUtilsSoak.h",
       "include/TestDrnUtilsTables.h",
-      "include/TestDrnUtilsTaskManagerHost.h"
+      "include/TestDrnUtilsTaskManagerHost.h",
+      "include/TestDrnUtilsTcpProxy.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDrnUtilsDrn.cpp",
       "src/TestDrnUtilsFakeSources.cpp",
+      "src/TestDrnUtilsLanDiscovery.cpp",
+      "src/TestDrnUtilsRemoteKit.cpp",
+      "src/TestDrnUtilsRemoteService.cpp",
       "src/TestDrnUtilsSchedulerHost.cpp",
       "src/TestDrnUtilsSkeleton.cpp",
       "src/TestDrnUtilsSoak.cpp",
@@ -223,7 +255,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefDRNUTILS/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "../../tests/gucefCOMCORE_TestApp/include", "include" } )

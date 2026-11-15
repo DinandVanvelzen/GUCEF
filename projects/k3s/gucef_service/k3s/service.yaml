@@ -1,0 +1,23 @@
+# The listeners of the service on the LAN through the k3s built-in servicelb (a LoadBalancer without a cloud: the ports
+# are answered on the node addresses). externalTrafficPolicy Local keeps the client's source address (no SNAT): the
+# per-address handshake limits and bans of DRN and the audit need it. The node ports @SESSION_PORT@ and @PAIRING_PORT@
+# must be free on the nodes. The service listens on the pairing port only while a pairing window is open; the port is
+# always declared here.
+# Not here on purpose: the health port @HEALTH_PORT@ (the kubelet probes the pod address; never exposed) and the admin
+# port @ADMIN_PORT@ (127.0.0.1 inside the container).
+apiVersion: v1
+kind: Service
+metadata:
+  name: @SERVICE_NAME@
+  namespace: @NAMESPACE@
+  labels:
+    app.kubernetes.io/name: @SERVICE_NAME@
+    app.kubernetes.io/part-of: @PART_OF@
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: @SERVICE_NAME@
+  ports:
+    - { name: session, port: @SESSION_PORT@, targetPort: session, protocol: TCP }
+    - { name: pairing, port: @PAIRING_PORT@, targetPort: pairing, protocol: TCP }

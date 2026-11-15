@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# A second service for the PostgreSQL server, reachable from the LAN on port
+# 30432 of every node, for tools and tests that run outside the cluster.
+# It selects the pod of the helm release my-postgres and leaves that release
+# (and its ClusterIP service) unchanged. Traffic is not encrypted.
+#
+# Apply:  kubectl apply -f lan-service.yaml
+# Remove: kubectl delete -f lan-service.yaml
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-postgres-lan
+  namespace: postgresql
+  labels:
+    app.kubernetes.io/instance: my-postgres
+    app.kubernetes.io/name: postgres
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/instance: my-postgres
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+      nodePort: 30432

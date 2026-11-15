@@ -1,0 +1,141 @@
+{
+    "contract": "gucef.drnutils.devices",
+    "version": "1.0",
+    "doc": "Pairing of devices with a remote service (on the pairing listener only, authenticated by the one-time code) and the administration of the paired devices and their client sessions (for admin devices). All times are UTC milliseconds",
+    "types": [
+        { "name": "Empty", "fields": [] },
+        {
+            "name": "BeginRequest",
+            "fields": [
+                { "number": 1, "name": "clientKind", "type": "string" }
+            ]
+        },
+        {
+            "name": "BeginResponse",
+            "fields": [
+                { "number": 1, "name": "serviceId", "type": "string" },
+                { "number": 2, "name": "serverStaticKey", "type": "bytes" },
+                { "number": 3, "name": "pairingNonce", "type": "bytes" },
+                { "number": 4, "name": "serverProof", "type": "bytes" },
+                { "number": 5, "name": "windowExpiresUtcMs", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "CompleteRequest",
+            "fields": [
+                { "number": 1, "name": "deviceName", "type": "string" },
+                { "number": 2, "name": "platform", "type": "string" },
+                { "number": 3, "name": "appVersion", "type": "string" },
+                { "number": 4, "name": "devicePublicKey", "type": "bytes" },
+                { "number": 5, "name": "keyProof", "type": "bytes" }
+            ]
+        },
+        {
+            "name": "CompleteResponse",
+            "fields": [
+                { "number": 1, "name": "deviceId", "type": "string" },
+                { "number": 2, "name": "token", "type": "string", "sensitive": true },
+                { "number": 3, "name": "tokenExpiresUtcMs", "type": "uint64" },
+                { "number": 4, "name": "roles", "type": "string", "cardinality": "repeated" },
+                { "number": 5, "name": "deviceKind", "type": "string" },
+                { "number": 6, "name": "sessionEndpoints", "type": "string", "cardinality": "repeated" },
+                { "number": 7, "name": "serverStaticKey", "type": "bytes" },
+                { "number": 8, "name": "issuerPublicKey", "type": "bytes" },
+                { "number": 9, "name": "securityPolicy", "type": "datanode" },
+                { "number": 10, "name": "serviceName", "type": "string" },
+                { "number": 11, "name": "drnSessionName", "type": "string" },
+                { "number": 12, "name": "serviceId", "type": "string" }
+            ]
+        },
+        {
+            "name": "DeviceList",
+            "fields": [
+                { "number": 1, "name": "devices", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "DeviceCommand",
+            "fields": [
+                { "number": 1, "name": "commandId", "type": "string" },
+                { "number": 2, "name": "deviceId", "type": "string" },
+                { "number": 3, "name": "reason", "type": "string" },
+                { "number": 4, "name": "roles", "type": "string", "cardinality": "repeated" },
+                { "number": 5, "name": "name", "type": "string" },
+                { "number": 6, "name": "fingerprint", "type": "string" },
+                { "number": 7, "name": "approve", "type": "bool" }
+            ]
+        },
+        {
+            "name": "CommandOutcome",
+            "fields": [
+                { "number": 1, "name": "applied", "type": "bool" },
+                { "number": 2, "name": "replayed", "type": "bool" },
+                { "number": 3, "name": "detail", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "OpenWindowRequest",
+            "fields": [
+                { "number": 1, "name": "deviceKind", "type": "string" },
+                { "number": 2, "name": "roles", "type": "string", "cardinality": "repeated" },
+                { "number": 3, "name": "seconds", "type": "uint32" },
+                { "number": 4, "name": "count", "type": "uint32" },
+                { "number": 5, "name": "requireConfirmation", "type": "string" }
+            ]
+        },
+        {
+            "name": "OpenWindowResponse",
+            "fields": [
+                { "number": 1, "name": "windowId", "type": "string" },
+                { "number": 2, "name": "code", "type": "string", "sensitive": true },
+                { "number": 3, "name": "expiresUtcMs", "type": "uint64" },
+                { "number": 4, "name": "pairingEndpoints", "type": "string", "cardinality": "repeated" }
+            ]
+        },
+        {
+            "name": "CloseWindowRequest",
+            "fields": [
+                { "number": 1, "name": "reason", "type": "string" }
+            ]
+        },
+        {
+            "name": "SessionList",
+            "fields": [
+                { "number": 1, "name": "sessions", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "CloseSessionRequest",
+            "fields": [
+                { "number": 1, "name": "commandId", "type": "string" },
+                { "number": 2, "name": "sessionId", "type": "string" }
+            ]
+        }
+    ],
+    "services": [
+        {
+            "name": "Pairing",
+            "number": 1,
+            "methods": [
+                { "number": 1, "name": "Begin", "kind": "unary", "request": "BeginRequest", "response": "BeginResponse", "deadlineMs": 15000 },
+                { "number": 2, "name": "Complete", "kind": "unary", "request": "CompleteRequest", "response": "CompleteResponse", "flags": [ "mayAnswerAsync", "sensitive" ], "deadlineMs": 300000 }
+            ]
+        },
+        {
+            "name": "Devices",
+            "number": 2,
+            "methods": [
+                { "number": 1, "name": "List", "kind": "unary", "request": "Empty", "response": "DeviceList", "flags": [ "idempotent" ], "deadlineMs": 15000 },
+                { "number": 2, "name": "Revoke", "kind": "unary", "request": "DeviceCommand", "response": "CommandOutcome", "deadlineMs": 30000 },
+                { "number": 3, "name": "SetRoles", "kind": "unary", "request": "DeviceCommand", "response": "CommandOutcome", "deadlineMs": 30000 },
+                { "number": 4, "name": "Rename", "kind": "unary", "request": "DeviceCommand", "response": "CommandOutcome", "deadlineMs": 30000 },
+                { "number": 5, "name": "OpenPairingWindow", "kind": "unary", "request": "OpenWindowRequest", "response": "OpenWindowResponse", "flags": [ "sensitive" ], "deadlineMs": 30000 },
+                { "number": 6, "name": "ClosePairingWindow", "kind": "unary", "request": "CloseWindowRequest", "response": "Empty", "flags": [ "idempotent" ], "deadlineMs": 15000 },
+                { "number": 7, "name": "ListPendingPairings", "kind": "unary", "request": "Empty", "response": "DeviceList", "flags": [ "idempotent" ], "deadlineMs": 15000 },
+                { "number": 8, "name": "ConfirmPairing", "kind": "unary", "request": "DeviceCommand", "response": "CommandOutcome", "deadlineMs": 30000 },
+                { "number": 9, "name": "ListSessions", "kind": "unary", "request": "Empty", "response": "SessionList", "flags": [ "idempotent" ], "deadlineMs": 15000 },
+                { "number": 10, "name": "CloseSession", "kind": "unary", "request": "CloseSessionRequest", "response": "CommandOutcome", "deadlineMs": 30000 }
+            ]
+        }
+    ]
+}

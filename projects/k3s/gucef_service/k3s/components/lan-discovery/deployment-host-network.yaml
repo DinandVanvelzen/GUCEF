@@ -1,0 +1,20 @@
+# The pod in the network namespace of the node @DISCOVERY_NODE_NAME@ (component lan-discovery). Recreate stays: the old
+# pod frees the ports of the node before the new one binds them.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: @SERVICE_NAME@
+  namespace: @NAMESPACE@
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: "@DISCOVERY_NODE_NAME@"
+      containers:
+        - name: service
+          ports:
+            - { name: discovery, containerPort: @DISCOVERY_PORT@, protocol: UDP }

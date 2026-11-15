@@ -89,6 +89,26 @@
 #define GUCEF_DRNUTILS_CTASKMANAGERSAMPLERTASK_H
 #endif /* GUCEF_DRNUTILS_CTASKMANAGERSAMPLERTASK_H ? */
 
+#ifndef GUCEF_DRNUTILS_CREMOTESESSIONCONTRACTS_H
+#include "gucefDRNUTILS_CRemoteSessionContracts.h"
+#define GUCEF_DRNUTILS_CREMOTESESSIONCONTRACTS_H
+#endif /* GUCEF_DRNUTILS_CREMOTESESSIONCONTRACTS_H ? */
+
+#ifndef GUCEF_DRNUTILS_CDEVICECONTRACTS_H
+#include "gucefDRNUTILS_CDeviceContracts.h"
+#define GUCEF_DRNUTILS_CDEVICECONTRACTS_H
+#endif /* GUCEF_DRNUTILS_CDEVICECONTRACTS_H ? */
+
+#ifndef GUCEF_DRNUTILS_CREMOTESERVICECONNECTION_H
+#include "gucefDRNUTILS_CRemoteServiceConnection.h"
+#define GUCEF_DRNUTILS_CREMOTESERVICECONNECTION_H
+#endif /* GUCEF_DRNUTILS_CREMOTESERVICECONNECTION_H ? */
+
+#ifndef GUCEF_DRNUTILS_CDEVICEPAIRINGCLIENT_H
+#include "gucefDRNUTILS_CDevicePairingClient.h"
+#define GUCEF_DRNUTILS_CDEVICEPAIRINGCLIENT_H
+#endif /* GUCEF_DRNUTILS_CDEVICEPAIRINGCLIENT_H ? */
+
 #include "gucefDRNUTILS_CDrnUtilsGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -137,6 +157,8 @@ CDrnUtilsGlobal::Initialize( void )
     CSchedulerClient::RegisterEvents();
     CTaskManagerClient::RegisterEvents();
     CTaskManagerSamplerTask::RegisterEvents();
+    CRemoteServiceConnection::RegisterEvents();
+    CDevicePairingClient::RegisterEvents();
 
     // the built-in contracts, so that endpoints can bind them without the JSON codec
     COMCORE::CRpcContractRegistry& registry = COMCORE::CComCoreGlobal::Instance()->GetRpcContractRegistry();
@@ -146,6 +168,9 @@ CDrnUtilsGlobal::Initialize( void )
     COMCORE::CRpcContractPtr tasks = CTaskManagerContracts::GetContract();
     if ( tasks.IsNULL() || !registry.Register( tasks, COMCORE::CRpcContractRegistry::CONTRACTSOURCE_BUILTIN ) )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefDRNUTILS: the contract " << CTaskManagerContracts::ContractName << " could not be registered" );
+    // the contracts of the remote service kit register themselves when they are first built
+    if ( CRemoteSessionContracts::GetContract().IsNULL() || CDeviceContracts::GetContract().IsNULL() )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "gucefDRNUTILS: the contracts of the remote service kit could not be built" );
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefDRNUTILS" );
 }

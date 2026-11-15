@@ -19,12 +19,17 @@ if (LINUX32)
     include/TestDrnUtilsDrnGroup.h
     include/TestDrnUtilsFakeSchedulerSource.h
     include/TestDrnUtilsFakeTaskManagerSource.h
+    include/TestDrnUtilsLanDiscovery.h
+    include/TestDrnUtilsRemoteKit.h
+    include/TestDrnUtilsRemoteService.h
+    include/TestDrnUtilsRemoteWorld.h
     include/TestDrnUtilsRpcWorld.h
     include/TestDrnUtilsSchedulerHost.h
     include/TestDrnUtilsSkeleton.h
     include/TestDrnUtilsSoak.h
     include/TestDrnUtilsTables.h
     include/TestDrnUtilsTaskManagerHost.h
+    include/TestDrnUtilsTcpProxy.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
@@ -33,6 +38,9 @@ if (LINUX32)
   set( PLATFORM_SOURCE_FILES 
     src/TestDrnUtilsDrn.cpp
     src/TestDrnUtilsFakeSources.cpp
+    src/TestDrnUtilsLanDiscovery.cpp
+    src/TestDrnUtilsRemoteKit.cpp
+    src/TestDrnUtilsRemoteService.cpp
     src/TestDrnUtilsSchedulerHost.cpp
     src/TestDrnUtilsSkeleton.cpp
     src/TestDrnUtilsSoak.cpp
@@ -50,12 +58,17 @@ elseif (LINUX64)
     include/TestDrnUtilsDrnGroup.h
     include/TestDrnUtilsFakeSchedulerSource.h
     include/TestDrnUtilsFakeTaskManagerSource.h
+    include/TestDrnUtilsLanDiscovery.h
+    include/TestDrnUtilsRemoteKit.h
+    include/TestDrnUtilsRemoteService.h
+    include/TestDrnUtilsRemoteWorld.h
     include/TestDrnUtilsRpcWorld.h
     include/TestDrnUtilsSchedulerHost.h
     include/TestDrnUtilsSkeleton.h
     include/TestDrnUtilsSoak.h
     include/TestDrnUtilsTables.h
     include/TestDrnUtilsTaskManagerHost.h
+    include/TestDrnUtilsTcpProxy.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
@@ -64,6 +77,9 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_FILES 
     src/TestDrnUtilsDrn.cpp
     src/TestDrnUtilsFakeSources.cpp
+    src/TestDrnUtilsLanDiscovery.cpp
+    src/TestDrnUtilsRemoteKit.cpp
+    src/TestDrnUtilsRemoteService.cpp
     src/TestDrnUtilsSchedulerHost.cpp
     src/TestDrnUtilsSkeleton.cpp
     src/TestDrnUtilsSoak.cpp
@@ -81,12 +97,17 @@ elseif (WIN32)
     include/TestDrnUtilsDrnGroup.h
     include/TestDrnUtilsFakeSchedulerSource.h
     include/TestDrnUtilsFakeTaskManagerSource.h
+    include/TestDrnUtilsLanDiscovery.h
+    include/TestDrnUtilsRemoteKit.h
+    include/TestDrnUtilsRemoteService.h
+    include/TestDrnUtilsRemoteWorld.h
     include/TestDrnUtilsRpcWorld.h
     include/TestDrnUtilsSchedulerHost.h
     include/TestDrnUtilsSkeleton.h
     include/TestDrnUtilsSoak.h
     include/TestDrnUtilsTables.h
     include/TestDrnUtilsTaskManagerHost.h
+    include/TestDrnUtilsTcpProxy.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
@@ -95,6 +116,9 @@ elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     src/TestDrnUtilsDrn.cpp
     src/TestDrnUtilsFakeSources.cpp
+    src/TestDrnUtilsLanDiscovery.cpp
+    src/TestDrnUtilsRemoteKit.cpp
+    src/TestDrnUtilsRemoteService.cpp
     src/TestDrnUtilsSchedulerHost.cpp
     src/TestDrnUtilsSkeleton.cpp
     src/TestDrnUtilsSoak.cpp
@@ -112,12 +136,17 @@ elseif (WIN64)
     include/TestDrnUtilsDrnGroup.h
     include/TestDrnUtilsFakeSchedulerSource.h
     include/TestDrnUtilsFakeTaskManagerSource.h
+    include/TestDrnUtilsLanDiscovery.h
+    include/TestDrnUtilsRemoteKit.h
+    include/TestDrnUtilsRemoteService.h
+    include/TestDrnUtilsRemoteWorld.h
     include/TestDrnUtilsRpcWorld.h
     include/TestDrnUtilsSchedulerHost.h
     include/TestDrnUtilsSkeleton.h
     include/TestDrnUtilsSoak.h
     include/TestDrnUtilsTables.h
     include/TestDrnUtilsTaskManagerHost.h
+    include/TestDrnUtilsTcpProxy.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
@@ -126,6 +155,9 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_FILES 
     src/TestDrnUtilsDrn.cpp
     src/TestDrnUtilsFakeSources.cpp
+    src/TestDrnUtilsLanDiscovery.cpp
+    src/TestDrnUtilsRemoteKit.cpp
+    src/TestDrnUtilsRemoteService.cpp
     src/TestDrnUtilsSchedulerHost.cpp
     src/TestDrnUtilsSkeleton.cpp
     src/TestDrnUtilsSoak.cpp
@@ -163,43 +195,43 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRNUTILS_TestApp" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRNUTILS_TestApp" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRNUTILS_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefDRNUTILS gucefMT gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefDRNUTILS_TestApp" )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tests/gucefCOMCORE_TestApp/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tests/gucefCOMCORE_TestApp/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tests/gucefCOMCORE_TestApp/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tests/gucefCOMCORE_TestApp/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../tests/gucefCOMCORE_TestApp/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../tests/gucefCOMCORE_TestApp/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../tests/gucefCOMCORE_TestApp/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefDRNUTILS/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin ../../tests/gucefCOMCORE_TestApp/include include )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

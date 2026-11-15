@@ -58,7 +58,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefDRNUTILS/include ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMATH/include ../gucefMATH/src ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefDRNUTILS/include ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMATH/include ../gucefMATH/src ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

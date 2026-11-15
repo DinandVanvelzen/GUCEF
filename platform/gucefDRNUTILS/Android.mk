@@ -24,7 +24,18 @@ LOCAL_MODULE_FILENAME := libgucefDRNUTILS
 LOCAL_SRC_FILES := \
   src/gucefDRNUTILS.cpp \
   src/gucefDRNUTILS_CCommandIdempotencyCache.cpp \
+  src/gucefDRNUTILS_CCommandJournal.cpp \
+  src/gucefDRNUTILS_CCommandOutcomeCache.cpp \
   src/gucefDRNUTILS_CControlRateLimiter.cpp \
+  src/gucefDRNUTILS_CDeviceAccessRules.cpp \
+  src/gucefDRNUTILS_CDeviceContracts.cpp \
+  src/gucefDRNUTILS_CDeviceCredentials.cpp \
+  src/gucefDRNUTILS_CDeviceDrnAccessPolicy.cpp \
+  src/gucefDRNUTILS_CDevicePairingClient.cpp \
+  src/gucefDRNUTILS_CDevicePairingCrypto.cpp \
+  src/gucefDRNUTILS_CDevicePairingHost.cpp \
+  src/gucefDRNUTILS_CDeviceRecord.cpp \
+  src/gucefDRNUTILS_CDeviceRegistry.cpp \
   src/gucefDRNUTILS_CDrnUtilsAccessRules.cpp \
   src/gucefDRNUTILS_CDrnUtilsAuditRecord.cpp \
   src/gucefDRNUTILS_CDrnUtilsCommandOutcome.cpp \
@@ -38,6 +49,7 @@ LOCAL_SRC_FILES := \
   src/gucefDRNUTILS_CDrnUtilsRoleMap.cpp \
   src/gucefDRNUTILS_CDrnUtilsTableBinder.cpp \
   src/gucefDRNUTILS_CIDrnUtilsAuditSink.cpp \
+  src/gucefDRNUTILS_CIRemoteSessionExtension.cpp \
   src/gucefDRNUTILS_CISchedulerCustomActionHandler.cpp \
   src/gucefDRNUTILS_CISchedulerSource.cpp \
   src/gucefDRNUTILS_CITaskManagerSource.cpp \
@@ -47,6 +59,17 @@ LOCAL_SRC_FILES := \
   src/gucefDRNUTILS_CLanesTableSchema.cpp \
   src/gucefDRNUTILS_CModule.cpp \
   src/gucefDRNUTILS_CPoolsTableSchema.cpp \
+  src/gucefDRNUTILS_CReconnectBackoff.cpp \
+  src/gucefDRNUTILS_CRemoteServiceChannel.cpp \
+  src/gucefDRNUTILS_CRemoteServiceConnection.cpp \
+  src/gucefDRNUTILS_CRemoteServiceConnectionSettings.cpp \
+  src/gucefDRNUTILS_CRemoteServiceDetailCodes.cpp \
+  src/gucefDRNUTILS_CRemoteServiceHost.cpp \
+  src/gucefDRNUTILS_CRemoteServiceHostSettings.cpp \
+  src/gucefDRNUTILS_CRemoteSession.cpp \
+  src/gucefDRNUTILS_CRemoteSessionCache.cpp \
+  src/gucefDRNUTILS_CRemoteSessionContracts.cpp \
+  src/gucefDRNUTILS_CRemoteSessionEventRing.cpp \
   src/gucefDRNUTILS_CRunsTableSchema.cpp \
   src/gucefDRNUTILS_CScheduledJobsTableSchema.cpp \
   src/gucefDRNUTILS_CSchedulerActionInfo.cpp \
@@ -79,16 +102,21 @@ LOCAL_SRC_FILES := \
   src/gucefDRNUTILS_CTaskManagerWatchStream.cpp \
   src/gucefDRNUTILS_CTasksTableSchema.cpp \
   src/gucefDRNUTILS_CThreadsTableSchema.cpp \
-  src/gucefDRNUTILS_DrnUtilsTypes.cpp
+  src/gucefDRNUTILS_CUploadRangeSet.cpp \
+  src/gucefDRNUTILS_CUploadStaging.cpp \
+  src/gucefDRNUTILS_DrnUtilsTypes.cpp \
+  src/gucefDRNUTILS_RemoteServiceTypes.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../gucefAUTH/include \
   $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefDRN/include \
+  $(MY_MODULE_PATH)/../gucefIMAGE/include \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include \
   $(MY_MODULE_PATH)/../gucefWEB/include
@@ -97,6 +125,7 @@ LOCAL_CFLAGS := -DGUCEF_DRNUTILS_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefDRNUT
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefAUTH \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \

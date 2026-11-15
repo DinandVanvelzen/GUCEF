@@ -1,0 +1,17 @@
+# The state of the service (/data): its credential store, device registry, journals, audit, logs and caches. The
+# StorageClass is one of the cluster (projects/k3s/host-node/storage-classes.yaml); local-path binds when the first pod
+# uses the claim (WaitForFirstConsumer) and does not enforce the size.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: @SERVICE_NAME@-data
+  namespace: @NAMESPACE@
+  labels:
+    app.kubernetes.io/name: @SERVICE_NAME@
+    app.kubernetes.io/part-of: @PART_OF@
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  storageClassName: @STORAGE_CLASS@
+  resources:
+    requests:
+      storage: @DATA_SIZE@

@@ -38,6 +38,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefDRN/include \
+  $(MY_MODULE_PATH)/../gucefIMAGE/include \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include \
   $(MY_MODULE_PATH)/../gucefWEB/include

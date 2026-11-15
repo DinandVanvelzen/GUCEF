@@ -821,6 +821,12 @@ PerformDrnUtilsDrnTests( const char* exePath )
                 recorder.Watch( stream );
                 CCounterAtLeast some( recorder.count, 1 );
                 REQUIRE_TRUE( PumpUntil( some, 10000 ) );
+                // The resumed stream sends what changed after the cursor, one row per key as it is now (latest wins), with
+                // its newest revision: when the ticker ran again between GetInfo and the Watch, its row carries a revision
+                // above revisionAtConnect. What the replay can carry is bounded by the revision once it arrived.
+                COMCORE::CRpcCallResult infoAfterReplay = client.Call( D_GETINFO, client.NewRequest( D_GETINFO ) );
+                REQUIRE_TRUE( infoAfterReplay.status.IsOk() );
+                const UInt64 revisionAfterReplay = infoAfterReplay.response.GetUInt64( 3 );
 
                 // run-now of j1 succeeds; j2 does not allow it remotely: PERMISSION_DENIED, told apart from success
                 COMCORE::CRpcCallResult run = client.Control( "child-run-" + CORE::ToString( round ), CORE::JOBCONTROLACTION_RUN_NOW, "j1", true );
@@ -846,7 +852,7 @@ PerformDrnUtilsDrnTests( const char* exePath )
                     {
                         reset = reset || 4 == recorder.messages[ m ].GetEnum( 1 );
                         UInt64 revision = recorder.messages[ m ].GetUInt64( 2 );
-                        whileAway = whileAway || ( revision > cursor && revision <= revisionAtConnect );
+                        whileAway = whileAway || ( revision > cursor && revision <= revisionAfterReplay );
                     }
                     ASSERT_FALSE( reset );
                     ASSERT_TRUE( revisionAtConnect > cursor );

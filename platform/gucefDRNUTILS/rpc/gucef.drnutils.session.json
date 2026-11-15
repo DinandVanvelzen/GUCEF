@@ -1,0 +1,127 @@
+{
+    "contract": "gucef.drnutils.session",
+    "version": "1.0",
+    "doc": "The client session layer of a remote service: a session of a paired device that outlives RPC sessions within its grace, its event stream with sequence numbers and gap recovery, additional channels attached to it, and device token renewal. All times are UTC milliseconds",
+    "types": [
+        { "name": "Empty", "fields": [] },
+        {
+            "name": "HelloRequest",
+            "fields": [
+                { "number": 1, "name": "clientKind", "type": "string" },
+                { "number": 2, "name": "clientVersion", "type": "string" },
+                { "number": 3, "name": "capabilities", "type": "string", "cardinality": "repeated" },
+                { "number": 4, "name": "clientTimeUtcMs", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "HelloResponse",
+            "fields": [
+                { "number": 1, "name": "sessionId", "type": "string" },
+                { "number": 2, "name": "resumeSecret", "type": "bytes", "sensitive": true },
+                { "number": 3, "name": "deviceId", "type": "string" },
+                { "number": 4, "name": "deviceKind", "type": "string" },
+                { "number": 5, "name": "roles", "type": "string", "cardinality": "repeated" },
+                { "number": 6, "name": "serviceName", "type": "string" },
+                { "number": 7, "name": "serviceVersion", "type": "string" },
+                { "number": 8, "name": "hostInstanceId", "type": "string" },
+                { "number": 9, "name": "serverTimeUtcMs", "type": "uint64" },
+                { "number": 10, "name": "resumeGraceSeconds", "type": "uint32" },
+                { "number": 11, "name": "eventSeq", "type": "uint64" },
+                { "number": 12, "name": "limits", "type": "datanode" },
+                { "number": 13, "name": "capabilities", "type": "string", "cardinality": "repeated" },
+                { "number": 14, "name": "sessionEndpoints", "type": "string", "cardinality": "repeated" },
+                { "number": 15, "name": "tokenExpiresUtcMs", "type": "uint64" },
+                { "number": 16, "name": "notices", "type": "datanode" },
+                { "number": 17, "name": "serviceInfo", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "ResumeRequest",
+            "fields": [
+                { "number": 1, "name": "sessionId", "type": "string" },
+                { "number": 2, "name": "resumeSecret", "type": "bytes", "sensitive": true },
+                { "number": 3, "name": "lastEventSeq", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "ResumeResponse",
+            "fields": [
+                { "number": 1, "name": "eventSeq", "type": "uint64" },
+                { "number": 2, "name": "eventsRetainedFrom", "type": "uint64" },
+                { "number": 3, "name": "hostInstanceId", "type": "string" },
+                { "number": 4, "name": "serverTimeUtcMs", "type": "uint64" },
+                { "number": 5, "name": "extensions", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "AttachRequest",
+            "fields": [
+                { "number": 1, "name": "sessionId", "type": "string" },
+                { "number": 2, "name": "resumeSecret", "type": "bytes", "sensitive": true },
+                { "number": 3, "name": "channel", "type": "string" }
+            ]
+        },
+        {
+            "name": "AttachResponse",
+            "fields": [
+                { "number": 1, "name": "channelIndex", "type": "uint32" },
+                { "number": 2, "name": "limits", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "EventsRequest",
+            "fields": [
+                { "number": 1, "name": "fromEventSeq", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "Event",
+            "fields": [
+                { "number": 1, "name": "eventSeq", "type": "uint64" },
+                { "number": 2, "name": "kind", "type": "string" },
+                { "number": 3, "name": "atUtcMs", "type": "uint64" },
+                { "number": 4, "name": "ids", "type": "string", "cardinality": "repeated" },
+                { "number": 5, "name": "revision", "type": "uint64" },
+                { "number": 6, "name": "data", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "ResyncResponse",
+            "fields": [
+                { "number": 1, "name": "eventSeq", "type": "uint64" },
+                { "number": 2, "name": "hostInstanceId", "type": "string" },
+                { "number": 3, "name": "serverTimeUtcMs", "type": "uint64" },
+                { "number": 4, "name": "notices", "type": "datanode" },
+                { "number": 5, "name": "extensions", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "GoodbyeRequest",
+            "fields": [
+                { "number": 1, "name": "reason", "type": "string" }
+            ]
+        },
+        {
+            "name": "RenewTokenResponse",
+            "fields": [
+                { "number": 1, "name": "token", "type": "string", "sensitive": true },
+                { "number": 2, "name": "expiresUtcMs", "type": "uint64" }
+            ]
+        }
+    ],
+    "services": [
+        {
+            "name": "Session",
+            "number": 1,
+            "methods": [
+                { "number": 1, "name": "Hello", "kind": "unary", "request": "HelloRequest", "response": "HelloResponse", "deadlineMs": 15000 },
+                { "number": 2, "name": "Resume", "kind": "unary", "request": "ResumeRequest", "response": "ResumeResponse", "flags": [ "sensitive" ], "deadlineMs": 15000 },
+                { "number": 3, "name": "Attach", "kind": "unary", "request": "AttachRequest", "response": "AttachResponse", "flags": [ "sensitive" ], "deadlineMs": 15000 },
+                { "number": 4, "name": "Events", "kind": "server_stream", "request": "EventsRequest", "response": "Event", "flags": [ "resumableStream" ], "initialCredit": 256 },
+                { "number": 5, "name": "Resync", "kind": "unary", "request": "Empty", "response": "ResyncResponse", "flags": [ "idempotent" ], "deadlineMs": 15000 },
+                { "number": 6, "name": "Goodbye", "kind": "unary", "request": "GoodbyeRequest", "response": "Empty", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 7, "name": "RenewToken", "kind": "unary", "request": "Empty", "response": "RenewTokenResponse", "flags": [ "sensitive" ], "deadlineMs": 15000 }
+            ]
+        }
+    ]
+}

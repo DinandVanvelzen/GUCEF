@@ -1,0 +1,16 @@
+# LAN discovery (DISCOVERY_MODE=lan, the default of the service file; render_manifests.sh enables this component). A pod network does
+# not receive the broadcasts and multicasts of the local network, so a service that answers "which services are there"
+# runs in the network namespace of its node:
+#   - hostNetwork: true, with dnsPolicy ClusterFirstWithHostNet so cluster names still resolve;
+#   - pinned to the node @DISCOVERY_NODE_NAME@ (kubernetes.io/hostname), whose addresses are then the service's addresses;
+#   - the listeners bound on that node directly; the Service becomes ClusterIP, because the servicelb of a LoadBalancer
+#     would claim the same ports on every node (and that node's port is taken by the pod itself);
+#   - the discovery port @DISCOVERY_PORT@/udp declared on the container.
+# The namespace is rendered with the "privileged" Pod Security level (host network is refused by "restricted" and by
+# "baseline" alike), with "restricted" kept as the warn and audit level. Everything else of the pod stays as restricted
+# as before: non-root, no capabilities, read-only root, seccomp RuntimeDefault. See README.md, "LAN discovery".
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - path: deployment-host-network.yaml
+  - path: service-cluster-ip.yaml

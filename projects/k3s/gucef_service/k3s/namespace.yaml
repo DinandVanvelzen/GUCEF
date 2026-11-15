@@ -1,0 +1,16 @@
+# The namespace of the service. The Pod Security standard enforced is @POD_SECURITY_ENFORCE@: "privileged" with
+# DISCOVERY_MODE=lan (the default), because a pod on the host network is refused by "restricted" and "baseline" alike;
+# "restricted" stays the warn and audit level, so anything else that is not restricted is still reported (README.md,
+# "LAN discovery"). With DISCOVERY_MODE=off it is "restricted": every pod runs as non-root, drops all capabilities, uses
+# the runtime default seccomp profile and has no host network, host ports or host paths.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: @NAMESPACE@
+  labels:
+    pod-security.kubernetes.io/enforce: @POD_SECURITY_ENFORCE@
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest

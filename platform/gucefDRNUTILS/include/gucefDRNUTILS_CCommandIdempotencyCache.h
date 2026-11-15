@@ -25,10 +25,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CMUTEX_H
-#include "gucefMT_CMutex.h"
-#define GUCEF_MT_CMUTEX_H
-#endif /* GUCEF_MT_CMUTEX_H ? */
+#ifndef GUCEF_CORE_CTCOMMANDIDEMPOTENCYCACHE_H
+#include "gucefCORE_CTCommandIdempotencyCache.h"
+#define GUCEF_CORE_CTCOMMANDIDEMPOTENCYCACHE_H
+#endif /* GUCEF_CORE_CTCOMMANDIDEMPOTENCYCACHE_H ? */
 
 #ifndef GUCEF_CORE_CJOBCONTROLRESULT_H
 #include "gucefCORE_CJobControlResult.h"
@@ -59,7 +59,8 @@ namespace DRNUTILS {
  *  Module-private: the outcomes of remote commands by (subject, command id), so that a repeated command returns the
  *  stored outcome instead of being applied twice (design 6.6). In memory only; bounded by a time to live, a maximum
  *  per subject and a maximum in total, oldest out first. Its lock is a leaf. Times are monotonic milliseconds given by
- *  the caller.
+ *  the caller. The bookkeeping is the public command idempotency cache of gucefCORE (CORE::CTCommandIdempotencyCache);
+ *  this class keeps the outcome type of the remote commands.
  */
 class CCommandIdempotencyCache
 {
@@ -83,30 +84,19 @@ class CCommandIdempotencyCache
 
     private:
 
-    struct SEntry
+    struct SOutcome
     {
-        UInt64 storedAtMs;
-        UInt64 sequence;
-        CORE::CString subject;
         TDrnUtilsCommandStatus status;
         CORE::SJobControlResult result;
+
+        SOutcome( void );
+        SOutcome( TDrnUtilsCommandStatus commandStatus, const CORE::SJobControlResult& commandResult );
     };
-    typedef GUCEF::map< CORE::CString, SEntry > TEntryMap;          /**< key: subject, line feed, command id */
-    typedef GUCEF::map< UInt64, CORE::CString > TOrderMap;          /**< sequence to key, oldest first */
-    typedef GUCEF::map< CORE::CString, UInt32 > TSubjectCountMap;
 
-    void Expire( UInt64 nowMs );
-    void Remove( const CORE::CString& key );
-    void RemoveOldestOfSubject( const CORE::CString& subject );
+    CCommandIdempotencyCache( const CCommandIdempotencyCache& src );                /**< not implemented */
+    CCommandIdempotencyCache& operator=( const CCommandIdempotencyCache& src );     /**< not implemented */
 
-    mutable MT::CMutex m_lock;
-    UInt64 m_ttlMs;
-    UInt32 m_maxPerSubject;
-    UInt32 m_maxTotal;
-    UInt64 m_nextSequence;
-    TEntryMap m_entries;
-    TOrderMap m_order;
-    TSubjectCountMap m_subjectCounts;
+    CORE::CTCommandIdempotencyCache< SOutcome > m_cache;
 };
 
 /*-------------------------------------------------------------------------//

@@ -1,0 +1,14 @@
+# The site settings of the service, mounted read-only at /opt/@SERVICE_NAME@/config/site/@SITE_CONFIG_NAME@ (the
+# program's --config). The content comes from SITE_CONFIG_SOURCE of the service file. Never a secret here: a ConfigMap
+# is readable by everyone who may read the namespace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: @SERVICE_NAME@-config
+  namespace: @NAMESPACE@
+  labels:
+    app.kubernetes.io/name: @SERVICE_NAME@
+    app.kubernetes.io/part-of: @PART_OF@
+data:
+  @SITE_CONFIG_NAME@: |
+    @FILE:SITE_CONFIG_SOURCE@

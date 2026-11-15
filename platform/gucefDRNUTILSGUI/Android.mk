@@ -39,6 +39,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefAUDIO/include \
   $(MY_MODULE_PATH)/../gucefAUDIO/include/c_api \
+  $(MY_MODULE_PATH)/../gucefAUTH/include \
   $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \

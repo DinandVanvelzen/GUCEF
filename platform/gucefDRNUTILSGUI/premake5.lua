@@ -77,7 +77,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefAUDIO/include", "../gucefAUDIO/include/c_api", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefDRNUTILS/include", "../gucefGUI/include", "../gucefIMAGE/include", "../gucefINPUT/include", "../gucefMATH/include", "../gucefMATH/src", "../gucefMT/include", "../gucefVFS/include", "../gucefVIDEO/include", "../gucefVIDEO/include/c_api", "../gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../gucefAUDIO/include", "../gucefAUDIO/include/c_api", "../gucefAUTH/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefDRNUTILS/include", "../gucefGUI/include", "../gucefIMAGE/include", "../gucefINPUT/include", "../gucefMATH/include", "../gucefMATH/src", "../gucefMT/include", "../gucefVFS/include", "../gucefVIDEO/include", "../gucefVIDEO/include/c_api", "../gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )

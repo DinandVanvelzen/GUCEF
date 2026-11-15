@@ -134,9 +134,10 @@ PerformDrnUtilsSkeletonTests( void )
         CORE::CString rpcDir = rpcDirEnv.c_str();
         GUCEF_TESTFW_SKIP_IF( !RpcTestJsonCodecAvailable(), "the JSON codec plugin is not available" );
 
-        const char* files[ 2 ] = { "gucef.drnutils.scheduler.json", "gucef.drnutils.tasks.json" };
-        const char* names[ 2 ] = { DRNUTILS::CSchedulerContracts::ContractName, DRNUTILS::CTaskManagerContracts::ContractName };
-        for ( UInt32 i=0; i<2; ++i )
+        const char* files[ 4 ] = { "gucef.drnutils.scheduler.json", "gucef.drnutils.tasks.json", "gucef.drnutils.session.json", "gucef.drnutils.devices.json" };
+        const char* names[ 4 ] = { DRNUTILS::CSchedulerContracts::ContractName, DRNUTILS::CTaskManagerContracts::ContractName,
+                                   DRNUTILS::CRemoteSessionContracts::ContractName, DRNUTILS::CDeviceContracts::ContractName };
+        for ( UInt32 i=0; i<4; ++i )
         {
             CORE::CString path = CORE::CombinePath( rpcDir, files[ i ] );
             CORE::CDataNode tree;
