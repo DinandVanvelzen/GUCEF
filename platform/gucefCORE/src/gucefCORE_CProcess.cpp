@@ -78,6 +78,7 @@
   #include <dirent.h>
   #include <sys/types.h>
   #include <sys/wait.h>
+  #include <sys/resource.h>
 
   #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS )
     #include <crt_externs.h>
@@ -113,6 +114,8 @@ CProcess::CProcess( void )
     , m_osHandle( GUCEF_NULL )
     , m_isDetached( false )
     , m_isolate( false )
+    , m_replaceEnvironment( false )
+    , m_limits()
     , m_hasExited( false )
     , m_exitCode( 0 )
 {GUCEF_TRACE;
@@ -247,6 +250,75 @@ CProcess::GetIsolateFromParent( void ) const
 {GUCEF_TRACE;
 
     return m_isolate;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProcess::SetReplaceEnvironment( bool replace )
+{GUCEF_TRACE;
+
+    m_replaceEnvironment = replace;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProcess::GetReplaceEnvironment( void ) const
+{GUCEF_TRACE;
+
+    return m_replaceEnvironment;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProcess::SProcessLimits::SProcessLimits( void )
+    : addressSpaceInBytes( 0 )
+    , cpuTimeInSecs( 0 )
+    , fileSizeInBytes( 0 )
+    , openFiles( 0 )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProcess::SProcessLimits::HasLimits( void ) const
+{GUCEF_TRACE;
+
+    return 0 != addressSpaceInBytes || 0 != cpuTimeInSecs || 0 != fileSizeInBytes || 0 != openFiles;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProcess::SetLimits( const SProcessLimits& limits )
+{GUCEF_TRACE;
+
+    m_limits = limits;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CProcess::SProcessLimits&
+CProcess::GetLimits( void ) const
+{GUCEF_TRACE;
+
+    return m_limits;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProcess::AreLimitsSupported( void )
+{GUCEF_TRACE;
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) )
+    return true;
+    #else
+    return false;
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/
@@ -477,26 +549,75 @@ SpawnChildProcess( const CString& exePath       ,
     return spawnResult;
 }
 
-#else /* GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN ? */
+#endif /* GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN ? */
+
+/*-------------------------------------------------------------------------*/
 
 /**
- *  Starts the child process with fork() and execve(), for C libraries without posix_spawn().
- *  Everything the child needs is prepared before the fork, after it only functions which are safe to
- *  call between fork() and execve() in a multi threaded process are used: setsid(), chdir(), execve(),
- *  write() and _exit(). Whether the exe could be executed is passed from the child to us through a pipe
- *  which is closed by a successful execve().
+ *  Resource limits prepared for the child before the fork: the child only calls setrlimit() with them
+ */
+struct SChildLimits
+{
+    int resources[ 4 ];
+    struct rlimit values[ 4 ];
+    size_t count;
+};
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PrepareChildLimits( const CProcess::SProcessLimits& limits, SChildLimits& childLimits )
+{GUCEF_TRACE;
+
+    // soft and hard limit alike, so that the child cannot raise them again
+    childLimits.count = 0;
+    if ( 0 != limits.addressSpaceInBytes )
+    {
+        childLimits.resources[ childLimits.count ] = RLIMIT_AS;
+        childLimits.values[ childLimits.count ].rlim_cur = childLimits.values[ childLimits.count ].rlim_max = (rlim_t) limits.addressSpaceInBytes;
+        ++childLimits.count;
+    }
+    if ( 0 != limits.cpuTimeInSecs )
+    {
+        childLimits.resources[ childLimits.count ] = RLIMIT_CPU;
+        childLimits.values[ childLimits.count ].rlim_cur = childLimits.values[ childLimits.count ].rlim_max = (rlim_t) limits.cpuTimeInSecs;
+        ++childLimits.count;
+    }
+    if ( 0 != limits.fileSizeInBytes )
+    {
+        childLimits.resources[ childLimits.count ] = RLIMIT_FSIZE;
+        childLimits.values[ childLimits.count ].rlim_cur = childLimits.values[ childLimits.count ].rlim_max = (rlim_t) limits.fileSizeInBytes;
+        ++childLimits.count;
+    }
+    if ( 0 != limits.openFiles )
+    {
+        childLimits.resources[ childLimits.count ] = RLIMIT_NOFILE;
+        childLimits.values[ childLimits.count ].rlim_cur = childLimits.values[ childLimits.count ].rlim_max = (rlim_t) limits.openFiles;
+        ++childLimits.count;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Starts the child process with fork() and execve(): for C libraries without posix_spawn(), and for every launch with
+ *  resource limits, which posix_spawn() cannot apply. Everything the child needs is prepared before the fork, after it
+ *  only functions which are safe to call between fork() and execve() in a multi threaded process are used: setsid(),
+ *  open(), dup2(), close(), chdir(), setrlimit() (a plain system call), execve(), write() and _exit(). Whether the exe
+ *  could be executed is passed from the child to us through a pipe which is closed by a successful execve().
  *  @return 0 if the process was started, otherwise the error code of why not
  */
 static int
-SpawnChildProcess( const CString& exePath       ,
-                   char* const* argv            ,
-                   char* const* envp            ,
-                   const CString& workingDir    ,
-                   bool detach                  ,
-                   bool isolate                 ,
-                   const GUCEF::vector< int >& descriptorsToClose ,
-                   const int* childFds          ,
-                   pid_t& pid                   )
+ForkExecChildProcess( const CString& exePath       ,
+                      char* const* argv            ,
+                      char* const* envp            ,
+                      const CString& workingDir    ,
+                      bool detach                  ,
+                      bool isolate                 ,
+                      const GUCEF::vector< int >& descriptorsToClose ,
+                      const int* childFds          ,
+                      const SChildLimits& limits   ,
+                      pid_t& pid                   )
 {GUCEF_TRACE;
 
     // The files to try executing: as given if it holds a directory, otherwise in every directory of the search path
@@ -585,6 +706,10 @@ SpawnChildProcess( const CString& exePath       ,
         }
         if ( 0 == childError && GUCEF_NULL != workingDirPath && 0 != chdir( workingDirPath ) )
             childError = errno;
+        // the limits come last before the program: nothing of the above is subject to them
+        for ( size_t i=0; 0 == childError && i<limits.count; ++i )
+            if ( 0 != setrlimit( limits.resources[ i ], &limits.values[ i ] ) )
+                childError = errno;
         if ( 0 == childError )
         {
             bool accessDenied = false;
@@ -629,8 +754,6 @@ SpawnChildProcess( const CString& exePath       ,
     return 0;
 }
 
-#endif /* GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN ? */
-
 /*-------------------------------------------------------------------------*/
 
 bool
@@ -661,8 +784,9 @@ CProcess::LaunchImpl( const CString& exePath          ,
         argv.push_back( const_cast< char* >( argStrings[ i ].c_str() ) );
     argv.push_back( GUCEF_NULL );
 
+    // our environment with the overrides on top, or the overrides alone when the environment is replaced
     std::map< std::string, std::string > env;
-    for ( char** e = environ; GUCEF_NULL != e && GUCEF_NULL != *e; ++e )
+    for ( char** e = environ; !m_replaceEnvironment && GUCEF_NULL != e && GUCEF_NULL != *e; ++e )
     {
         const char* eq = strchr( *e, '=' );
         if ( GUCEF_NULL != eq )
@@ -681,6 +805,9 @@ CProcess::LaunchImpl( const CString& exePath          ,
     GUCEF::vector< int > descriptorsToClose;
     if ( m_isolate )
         ListInheritableDescriptors( descriptorsToClose );
+
+    SChildLimits childLimits;
+    PrepareChildLimits( m_limits, childLimits );
 
     MT::CScopeMutex launchLock( g_launchLock );
 
@@ -709,7 +836,17 @@ CProcess::LaunchImpl( const CString& exePath          ,
         childFds[ 1 ] = childFds[ 2 ] >= 0 ? childFds[ 2 ] : STDERR_FILENO;
 
     pid_t pid = 0;
-    int spawnResult = 0 != pipeError ? pipeError : SpawnChildProcess( exePath, &argv[ 0 ], &envp[ 0 ], workingDir, detach, m_isolate, descriptorsToClose, childFds, pid );
+    // posix_spawn() cannot apply resource limits: a launch with limits forks
+    int spawnResult = pipeError;
+    if ( 0 == spawnResult )
+    {
+        #ifndef GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN
+        if ( 0 == childLimits.count )
+            spawnResult = SpawnChildProcess( exePath, &argv[ 0 ], &envp[ 0 ], workingDir, detach, m_isolate, descriptorsToClose, childFds, pid );
+        else
+        #endif
+            spawnResult = ForkExecChildProcess( exePath, &argv[ 0 ], &envp[ 0 ], workingDir, detach, m_isolate, descriptorsToClose, childFds, childLimits, pid );
+    }
     bool success = 0 == spawnResult;
 
     // our own standard streams are not ours to close, and stdout may share the descriptor of stderr
@@ -878,9 +1015,17 @@ CProcess::LaunchImpl( const CString& exePath          ,
     for ( size_t i=0; i<args.size(); ++i )
         commandLine += L" " + QuoteWindowsArg( ToWString( args[ i ] ) );
 
-    // Environment block: our environment plus overrides, sorted by upper cased name as Windows expects
+    // Resource limits would need a job object, which this class does not make yet: refused rather than run without them
+    if ( m_limits.HasLimits() )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Resource limits are not supported on this platform, not launching \"" << exePath << "\"" );
+        return false;
+    }
+
+    // Environment block: our environment plus overrides, or the overrides alone when the environment is replaced,
+    // sorted by upper cased name as Windows expects
     std::map< std::wstring, std::wstring > env;     // upper cased name -> full "Name=Value"
-    LPWCH currentEnv = ::GetEnvironmentStringsW();
+    LPWCH currentEnv = m_replaceEnvironment ? GUCEF_NULL : ::GetEnvironmentStringsW();
     if ( GUCEF_NULL != currentEnv )
     {
         for ( LPWCH e = currentEnv; 0 != *e; e += wcslen( e ) + 1 )

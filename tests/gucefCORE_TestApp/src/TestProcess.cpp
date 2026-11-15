@@ -86,6 +86,9 @@
   #include <signal.h>
   #include <unistd.h>
   #include <fcntl.h>
+  #include <stdlib.h>
+  #include <sys/resource.h>
+  #include <sys/stat.h>
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -174,6 +177,35 @@ ReadPipeToEnd( CORE::CProcessPipe& pipe, UInt32 timeoutInMs )
         all.Append( buffer, got );
     }
     return all;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Finds the soft and hard value of a limit in the text of /proc/<pid>/limits, for example the line
+ *  "Max open files            48                   48                   files"
+ *  @return true when the line was found and both values are numbers
+ */
+static bool
+FindProcLimit( const CORE::CString& limitsText, const CORE::CString& label, UInt64& softValue, UInt64& hardValue )
+{
+    CORE::CString::StringVector lines = limitsText.ParseElements( '\n', false );
+    for ( CORE::CString::StringVector::iterator i = lines.begin(); i != lines.end(); ++i )
+    {
+        const CORE::CString& line = (*i);
+        if ( 0 != line.HasSubstr( label ) )
+            continue;
+        CORE::CString rest = line.CutChars( label.Length(), true, 0 );
+        CORE::CString::StringVector words = rest.ParseElements( ' ', false );
+        if ( words.size() < 2 )
+            return false;
+        if ( words[ 0 ] == "unlimited" || words[ 1 ] == "unlimited" )
+            return false;
+        softValue = CORE::StringToUInt64( words[ 0 ] );
+        hardValue = CORE::StringToUInt64( words[ 1 ] );
+        return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -474,6 +506,211 @@ PerformProcessTests( void )
 
             // an unusable working dir is a launch failure
             ASSERT_FALSE( process.Launch( "sh", args, CORE::CombinePath( dir, "does/not/exist" ) ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess replaced environment: the child gets the given variables and nothing of ours" )
+        try
+        {
+            ::setenv( "GUCEF_TEST_PARENT_ONLY", "parent", 1 );
+
+            CORE::CProcess::TStringMap env;
+            env[ "GUCEF_TEST_ONLY" ] = "given";
+            env[ "PATH" ] = "/usr/bin:/bin";
+
+            // the exact environment as the child sees it, printed by env itself without a shell in between
+            CORE::CProcess process;
+            ASSERT_FALSE( process.GetReplaceEnvironment() );
+            process.SetReplaceEnvironment( true );
+            ASSERT_TRUE( process.GetReplaceEnvironment() );
+            CORE::CProcess::TStringVector noArgs;
+            ASSERT_TRUE( process.LaunchWithPipes( "/usr/bin/env", noArgs, false, true, false, CORE::CString(), env ) );
+            CORE::CString childEnv = ReadPipeToEnd( *process.GetStdoutPipe(), 10000 );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+            ASSERT_TRUE( childEnv == "GUCEF_TEST_ONLY=given\nPATH=/usr/bin:/bin\n" );
+
+            // a shell sees no variable of ours, also not HOME
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "[ -z \"${GUCEF_TEST_PARENT_ONLY+x}\" ] && [ -z \"${HOME+x}\" ] && [ \"$GUCEF_TEST_ONLY\" = \"given\" ] && exit 0; exit 4" );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args, CORE::CString(), env ) );
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+
+            // without the replacement the same check fails, which proves the check itself works
+            process.SetReplaceEnvironment( false );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args, CORE::CString(), env ) );
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 4 == exitCode );
+
+            ::unsetenv( "GUCEF_TEST_PARENT_ONLY" );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess limits are in effect in the child and not in this process" )
+        try
+        {
+            ASSERT_TRUE( CORE::CProcess::AreLimitsSupported() );
+
+            struct rlimit ownBefore;
+            ASSERT_TRUE( 0 == ::getrlimit( RLIMIT_NOFILE, &ownBefore ) );
+
+            CORE::CProcess::SProcessLimits limits;
+            ASSERT_FALSE( limits.HasLimits() );
+            limits.addressSpaceInBytes = 256 * 1024 * 1024;
+            limits.cpuTimeInSecs = 7;
+            limits.fileSizeInBytes = 1024 * 1024;
+            limits.openFiles = 48;
+            ASSERT_TRUE( limits.HasLimits() );
+
+            CORE::CProcess::TStringVector args;
+            args.push_back( "/proc/self/limits" );
+
+            // isolated and with pipes, as a tool runner uses it
+            CORE::CProcess process;
+            process.SetIsolateFromParent( true );
+            process.SetLimits( limits );
+            ASSERT_TRUE( process.GetLimits().openFiles == 48 );
+            ASSERT_TRUE( process.LaunchWithPipes( "/bin/cat", args, false, true, true ) );
+            CORE::CString childLimits = ReadPipeToEnd( *process.GetStdoutPipe(), 10000 );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+
+            UInt64 softValue = 0;
+            UInt64 hardValue = 0;
+            ASSERT_TRUE( FindProcLimit( childLimits, "Max cpu time", softValue, hardValue ) );
+            ASSERT_TRUE( 7 == softValue && 7 == hardValue );
+            ASSERT_TRUE( FindProcLimit( childLimits, "Max file size", softValue, hardValue ) );
+            ASSERT_TRUE( 1024 * 1024 == softValue && 1024 * 1024 == hardValue );
+            ASSERT_TRUE( FindProcLimit( childLimits, "Max open files", softValue, hardValue ) );
+            ASSERT_TRUE( 48 == softValue && 48 == hardValue );
+            ASSERT_TRUE( FindProcLimit( childLimits, "Max address space", softValue, hardValue ) );
+            ASSERT_TRUE( 256 * 1024 * 1024 == softValue && 256 * 1024 * 1024 == hardValue );
+
+            // this process keeps its own limits
+            struct rlimit ownAfter;
+            ASSERT_TRUE( 0 == ::getrlimit( RLIMIT_NOFILE, &ownAfter ) );
+            ASSERT_TRUE( ownBefore.rlim_cur == ownAfter.rlim_cur && ownBefore.rlim_max == ownAfter.rlim_max );
+
+            // without limits the child inherits ours
+            process.SetLimits( CORE::CProcess::SProcessLimits() );
+            ASSERT_TRUE( process.LaunchWithPipes( "/bin/cat", args, false, true, true ) );
+            childLimits = ReadPipeToEnd( *process.GetStdoutPipe(), 10000 );
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+            ASSERT_TRUE( FindProcLimit( childLimits, "Max open files", softValue, hardValue ) );
+            ASSERT_TRUE( (UInt64) ownBefore.rlim_cur == softValue );
+
+            // a missing executable is still a clean launch failure with limits set
+            process.SetLimits( limits );
+            CORE::CProcess::TStringVector noArgs;
+            ASSERT_FALSE( process.LaunchWithPipes( "gucef_this_executable_does_not_exist_anywhere", noArgs, true, true, true ) );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStdoutPipe() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess processor time limit ends a busy child" )
+        try
+        {
+            CORE::CProcess::SProcessLimits limits;
+            limits.cpuTimeInSecs = 1;
+
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "while :; do :; done" );
+
+            CORE::CProcess process;
+            process.SetLimits( limits );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args ) );
+            Int32 exitCode = -1;
+            const bool ended = process.WaitForExit( 20000, exitCode );
+            if ( !ended )
+                process.Terminate( false );
+            ASSERT_TRUE( ended );
+            ASSERT_TRUE( 128 + SIGXCPU == exitCode || 128 + SIGKILL == exitCode );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess file size limit stops a child that writes past it" )
+        try
+        {
+            TESTFW::CScopedTestDir scopedDir( "gucefCORE_TestApp_ProcessLimitDir" );
+            CORE::CString dir = scopedDir.GetPath();
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString outFile = CORE::CombinePath( dir, "out.bin" );
+
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "head -c 1000000 /dev/zero > '" + outFile + "'" );
+
+            CORE::CProcess::SProcessLimits limits;
+            limits.fileSizeInBytes = 65536;
+            CORE::CProcess process;
+            process.SetLimits( limits );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args ) );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 != exitCode );
+            struct stat info;
+            ASSERT_TRUE( 0 == ::stat( outFile.C_String(), &info ) );
+            ASSERT_TRUE( info.st_size <= 65536 );
+
+            // without the limit the same command writes all of it
+            process.SetLimits( CORE::CProcess::SProcessLimits() );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args ) );
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+            ASSERT_TRUE( 0 == ::stat( outFile.C_String(), &info ) );
+            ASSERT_TRUE( 1000000 == info.st_size );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess address space limit makes a large allocation of the child fail" )
+        try
+        {
+            // the shell builds a string of 100 MB in memory
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "x=$(head -c 100000000 /dev/zero | tr '\\000' a) && [ ${#x} -eq 100000000 ] && exit 0; exit 6" );
+
+            CORE::CProcess::SProcessLimits limits;
+            limits.addressSpaceInBytes = 48 * 1024 * 1024;
+            CORE::CProcess process;
+            process.SetIsolateFromParent( true );
+            process.SetLimits( limits );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args ) );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 30000, exitCode ) );
+            ASSERT_TRUE( 0 != exitCode );
+
+            // without the limit it succeeds, which proves the command itself works
+            process.SetLimits( CORE::CProcess::SProcessLimits() );
+            ASSERT_TRUE( process.Launch( "/bin/sh", args ) );
+            ASSERT_TRUE( process.WaitForExit( 30000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
         }
         catch( ... )
         {

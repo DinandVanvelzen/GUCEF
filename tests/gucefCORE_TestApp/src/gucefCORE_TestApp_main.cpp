@@ -442,6 +442,7 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H
 #include "TestPbkdf2HmacSha256.h"
+#include "TestAes.h"
 #define GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H
 #endif /* GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H ? */
 
@@ -691,6 +692,7 @@ GUCEF_OSMAIN_BEGIN
         PerformTimeZoneRulesTests();
         PerformBinaryWireTests();
         PerformPbkdf2HmacSha256Tests();
+        PerformAesTests();
         PerformServiceHostingTests();
         PerformServiceHealthRegistryTests();
         PerformCpuIsaFeaturesTests();

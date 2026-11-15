@@ -135,6 +135,7 @@ set( HEADER_FILES
   include/gucefCORE_CASync.h
   include/gucefCORE_CAbstractFactoryBase.h
   include/gucefCORE_CAbstractFactoryEntryTracker.h
+  include/gucefCORE_CAes.h
   include/gucefCORE_CAsciiString.h
   include/gucefCORE_CAsciiStringView.h
   include/gucefCORE_CAsyncFileSystemAccessOperation.h
@@ -584,6 +585,7 @@ set( SOURCE_FILES
   src/gucefCORE_CASync.cpp
   src/gucefCORE_CAbstractFactoryBase.cpp
   src/gucefCORE_CAbstractFactoryEntryTracker.cpp
+  src/gucefCORE_CAes.cpp
   src/gucefCORE_CAsciiString.cpp
   src/gucefCORE_CAsciiStringView.cpp
   src/gucefCORE_CAsyncFileSystemAccessOperation.cpp

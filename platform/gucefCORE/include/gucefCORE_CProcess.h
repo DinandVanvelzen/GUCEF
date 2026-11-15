@@ -129,6 +129,46 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
     bool GetIsolateFromParent( void ) const;
 
     /**
+     *  With this on a process that is launched afterwards gets exactly the environment passed to Launch() or LaunchWithPipes()
+     *  as 'envOverrides' and nothing of the environment of this process. Off by default: the overrides are applied on top of
+     *  our own environment. The executable is still looked up with the search path of this process when its path holds no
+     *  directory, so a caller that replaces the environment passes an absolute path or sets PATH itself.
+     */
+    void SetReplaceEnvironment( bool replace );
+
+    bool GetReplaceEnvironment( void ) const;
+
+    /**
+     *  Resource limits applied to a child process before it executes its program. A member that is 0 sets no limit of
+     *  that kind: the child inherits ours. The limits apply to the child and to what it starts in turn
+     */
+    struct GUCEF_CORE_PUBLIC_CPP SProcessLimits
+    {
+        UInt64 addressSpaceInBytes;     /**< virtual memory of the process (RLIMIT_AS) */
+        UInt32 cpuTimeInSecs;           /**< processor time used; the process is ended once over it (RLIMIT_CPU) */
+        UInt64 fileSizeInBytes;         /**< largest file the process may write (RLIMIT_FSIZE) */
+        UInt32 openFiles;               /**< highest number of open file descriptors plus one (RLIMIT_NOFILE) */
+
+        SProcessLimits( void );
+
+        /** true when at least one limit is set */
+        bool HasLimits( void ) const;
+    };
+
+    /**
+     *  Sets the resource limits of the processes that are launched afterwards. Supported on Linux, Android and macOS,
+     *  where they are applied in the child between fork() and the execution of the program (a launch with limits does not
+     *  use posix_spawn()). Where they are not supported (Windows) a launch with limits fails instead of running the child
+     *  without them. No limits by default
+     */
+    void SetLimits( const SProcessLimits& limits );
+
+    const SProcessLimits& GetLimits( void ) const;
+
+    /** Whether SetLimits() is supported on this platform */
+    static bool AreLimitsSupported( void );
+
+    /**
      *  Process id of the launched process, 0 if no process was launched
      */
     UInt32 GetProcessId( void ) const;
@@ -186,6 +226,8 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
     void* m_osHandle;       // Windows process handle, unused elsewhere
     bool m_isDetached;
     bool m_isolate;
+    bool m_replaceEnvironment;
+    SProcessLimits m_limits;
     bool m_hasExited;
     Int32 m_exitCode;
     CProcessPipe* m_pipes[ 3 ];     // standard input, output and error
