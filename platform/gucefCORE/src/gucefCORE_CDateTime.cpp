@@ -31,7 +31,6 @@
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
 #include "gucefCORE_CDateTime.h"
-#include "gucefCORE_CTimeZoneRules.h"
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -59,6 +58,40 @@
 
 namespace GUCEF {
 namespace CORE {
+
+namespace {
+
+/*
+ *  Calendar helpers of the proleptic Gregorian calendar, days counted from 1970-01-01. Kept in this file so that the
+ *  date and time class does not depend on the time zone rules (which not every module that builds this file includes).
+ */
+Int64
+SystemLocalDaysFromCivil( Int64 year, Int32 month, Int32 day )
+{
+    year -= month <= 2 ? 1 : 0;
+    const Int64 era = ( year >= 0 ? year : year - 399 ) / 400;
+    const Int64 yearOfEra = year - era * 400;
+    const Int64 dayOfYear = ( 153 * ( month + ( month > 2 ? -3 : 9 ) ) + 2 ) / 5 + day - 1;
+    const Int64 dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;
+    return era * 146097 + dayOfEra - 719468;
+}
+
+void
+SystemLocalCivilFromDays( Int64 days, Int64& year, Int32& month, Int32& day )
+{
+    days += 719468;
+    const Int64 era = ( days >= 0 ? days : days - 146096 ) / 146097;
+    const Int64 dayOfEra = days - era * 146097;
+    const Int64 yearOfEra = ( dayOfEra - dayOfEra / 1460 + dayOfEra / 36524 - dayOfEra / 146096 ) / 365;
+    const Int64 dayOfYear = dayOfEra - ( 365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100 );
+    const Int64 monthPart = ( 5 * dayOfYear + 2 ) / 153;
+    day = (Int32) ( dayOfYear - ( 153 * monthPart + 2 ) / 5 + 1 );
+    month = (Int32) ( monthPart < 10 ? monthPart + 3 : monthPart - 9 );
+    year = yearOfEra + era * 400 + ( month <= 2 ? 1 : 0 );
+}
+
+}
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -919,7 +952,7 @@ GetSystemZoneOffsetMinutesAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
     }
     Int64 year = 0;
     Int32 month = 0, day = 0;
-    CTimeZoneRules::CivilFromDays( days, year, month, day );
+    SystemLocalCivilFromDays( days, year, month, day );
     if ( year < 1602 || year > 30826 )
         return false;
 
@@ -937,7 +970,7 @@ GetSystemZoneOffsetMinutesAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
     if ( 0 == ::SystemTimeToTzSpecificLocalTime( GUCEF_NULL, &utcSystemTime, &localSystemTime ) )
         return false;
 
-    Int64 localSeconds = CTimeZoneRules::DaysFromCivil( localSystemTime.wYear, localSystemTime.wMonth, localSystemTime.wDay ) * 86400 +
+    Int64 localSeconds = SystemLocalDaysFromCivil( localSystemTime.wYear, localSystemTime.wMonth, localSystemTime.wDay ) * 86400 +
                          localSystemTime.wHour * 3600 + localSystemTime.wMinute * 60 + localSystemTime.wSecond;
     offsetMinutes = (Int32) ( ( localSeconds - utcSeconds ) / 60 );
     return true;
@@ -974,7 +1007,7 @@ CDateTime::ToSystemLocal( void ) const
 {GUCEF_TRACE;
 
     // The instant in whole seconds plus milliseconds, from the date and time and the offset this value carries
-    Int64 days = CTimeZoneRules::DaysFromCivil( GetYear(), GetMonth(), GetDay() );
+    Int64 days = SystemLocalDaysFromCivil( GetYear(), GetMonth(), GetDay() );
     Int64 utcSeconds = days * 86400 + (Int64) GetHours() * 3600 + (Int64) GetMinutes() * 60 + GetSeconds() - (Int64) m_timezoneOffsetInMins * 60;
     Int32 milliseconds = GetMilliseconds();
 
@@ -992,7 +1025,7 @@ CDateTime::ToSystemLocal( void ) const
     }
     Int64 year = 0;
     Int32 month = 0, day = 0;
-    CTimeZoneRules::CivilFromDays( localDays, year, month, day );
+    SystemLocalCivilFromDays( localDays, year, month, day );
 
     return CDateTime( (Int16) year, (UInt8) month, (UInt8) day                  ,
                       (Int8) ( secondOfDay / 3600 )                             ,
