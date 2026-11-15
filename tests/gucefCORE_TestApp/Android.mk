@@ -35,6 +35,7 @@ LOCAL_SRC_FILES := \
   src/TestBrowserLauncher.cpp \
   src/TestBusyWaitPulseGeneratorDriver.cpp \
   src/TestCodecPlugins.cpp \
+  src/TestCommandIdempotencyCache.cpp \
   src/TestConfigStore.cpp \
   src/TestCoreGlobalTeardown.cpp \
   src/TestCpuIsaFeatures.cpp \
@@ -52,6 +53,7 @@ LOCAL_SRC_FILES := \
   src/TestDataTableBatchBuilder.cpp \
   src/TestDataTableBufferPool.cpp \
   src/TestDataTableColumnBatch.cpp \
+  src/TestDataTableIndexHints.cpp \
   src/TestDataTablePredicate.cpp \
   src/TestDataTableScan.cpp \
   src/TestDataTableScanBenchmark.cpp \
@@ -83,6 +85,7 @@ LOCAL_SRC_FILES := \
   src/TestGlobalONRegistry.cpp \
   src/TestIniParser.cpp \
   src/TestInt128.cpp \
+  src/TestJobRunProgress.cpp \
   src/TestJobScheduler.cpp \
   src/TestJobSchedulerPolicies.cpp \
   src/TestJobSchedulerSupport.cpp \
@@ -112,7 +115,9 @@ LOCAL_SRC_FILES := \
   src/TestSecureBuffer.cpp \
   src/TestServiceHealthRegistry.cpp \
   src/TestServiceHosting.cpp \
+  src/TestServiceProcessKit.cpp \
   src/TestSfinaeUtils.cpp \
+  src/TestSha1.cpp \
   src/TestSharedPtr.cpp \
   src/TestStandardStreams.cpp \
   src/TestStopwatch.cpp \

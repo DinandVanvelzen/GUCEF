@@ -90,6 +90,30 @@ CJobSchedulerRunLink::OnRunTaskEnded( UInt64 runId                 ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CJobSchedulerRunLink::OnRunProgress( UInt64 runId, UInt64 done, UInt64 total, const CString& note )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( GUCEF_NULL == m_scheduler )
+        return false;
+    return m_scheduler->OnRunProgress( runId, done, total, note );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CJobSchedulerRunLink::OnRunResultDocument( UInt64 runId, const CString& documentPath )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( GUCEF_NULL == m_scheduler )
+        return false;
+    return m_scheduler->OnRunResultDocument( runId, documentPath );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CJobSchedulerRunLink::Detach( void )
 {GUCEF_TRACE;

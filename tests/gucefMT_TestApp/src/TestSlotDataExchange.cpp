@@ -674,6 +674,49 @@ PerformSlotDataExchangeTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "SlotDataExchange: Latest only, one reader: the writer's slot index is never the reader's or the waiting one, values stay in their slot" )
+    try
+    {
+        // the value is the slot index the writer had when it wrote: what a triple buffered resource needs
+        MT::CTSlotDataExchange< UInt32, MT::SSlotDeliveryLatestOnly, MT::SSlotFullFail, 1 > x;
+        UInt32 readerSlot = 99;
+        bool readerHasSlot = false;
+        UInt32 lastWritten = 99;
+        bool waiting = false;
+        for ( UInt32 step=0; step<300; ++step )
+        {
+            const UInt32 w = x.GetWriterSlotIndex();
+            ASSERT_TRUE( w < 3 );
+            ASSERT_FALSE( readerHasSlot && w == readerSlot );
+            ASSERT_FALSE( waiting && w == lastWritten );
+            // a pattern of writes and reads in which values are replaced unread and read again
+            if ( 0 != ( step % 3 ) || 0 == ( step % 7 ) )
+            {
+                x.Write( w );
+                lastWritten = w;
+                waiting = true;
+            }
+            if ( 0 == ( step % 2 ) || 0 == ( step % 5 ) )
+            {
+                UInt32 value = 99;
+                const bool isNew = x.Read( value );
+                ASSERT_TRUE( isNew == waiting );
+                if ( isNew )
+                {
+                    ASSERT_TRUE( value == lastWritten );        // the newest, in the slot it names
+                    readerSlot = value;
+                    readerHasSlot = true;
+                    waiting = false;
+                }
+            }
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "SlotDataExchange: Stress, in order, fail when full with retry: every value once and in order" )
     try
     {

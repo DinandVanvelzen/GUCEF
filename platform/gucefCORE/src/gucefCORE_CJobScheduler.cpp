@@ -257,6 +257,13 @@ SerializeRunRecord( const SJobRunRecord& run, CDataNode& node )
     node.SetAttribute( "note", run.note );
     node.SetAttribute( "outcomeMessage", run.outcomeMessage );
     node.SetAttribute( "requestedBy", run.requestedBy );
+    if ( 0 != run.progressDone || 0 != run.progressTotal )
+    {
+        node.SetAttribute( "progressDone", run.progressDone );
+        node.SetAttribute( "progressTotal", run.progressTotal );
+    }
+    if ( !run.resultDocument.IsNULLOrEmpty() )
+        node.SetAttribute( "resultDocument", run.resultDocument );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -283,6 +290,9 @@ DeserializeRunRecord( const CDataNode& node, SJobRunRecord& run )
     run.note = node.GetAttributeValueOrChildValueByName( "note" ).AsString( CString::Empty, true );
     run.outcomeMessage = node.GetAttributeValueOrChildValueByName( "outcomeMessage" ).AsString( CString::Empty, true );
     run.requestedBy = node.GetAttributeValueOrChildValueByName( "requestedBy" ).AsString( CString::Empty, true );
+    run.progressDone = node.GetAttributeValueOrChildValueByName( "progressDone" ).AsUInt64( 0, true );
+    run.progressTotal = node.GetAttributeValueOrChildValueByName( "progressTotal" ).AsUInt64( 0, true );
+    run.resultDocument = node.GetAttributeValueOrChildValueByName( "resultDocument" ).AsString( CString::Empty, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -437,6 +447,7 @@ CJobScheduler::SRunEntry::SRunEntry( void )
     , hasWorkItem( false )
     , workItem()
     , future( GUCEF_NULL )
+    , lastProgressEventMonotonicMs( 0 )
 {GUCEF_TRACE;
 
 }
@@ -1725,6 +1736,62 @@ CJobScheduler::OnRunTaskEnded( UInt64 runId, UInt32 taskId, TTaskStatus endStatu
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CJobScheduler::OnRunProgress( UInt64 runId, UInt64 done, UInt64 total, const CString& note )
+{GUCEF_TRACE;
+
+    // from the thread of the run's task: the record always gets the latest values, RunChangedEvent at most once per
+    // ProgressEventMinIntervalMs (the end of the run raises one anyway)
+    SDeferred deferred;
+    {
+        MT::CScopeMutex lock( m_lock );
+        TRunMap::iterator r = m_activeRuns.find( runId );
+        if ( r == m_activeRuns.end() )
+            return false;
+        SRunEntry& run = (*r).second;
+        if ( JOBRUNSTATE_RUNNING != run.record.state && JOBRUNSTATE_QUEUED != run.record.state && JOBRUNSTATE_WAITING != run.record.state )
+            return false;
+        TJobMap::iterator j = m_jobs.find( run.record.jobId );
+        bool sensitive = j != m_jobs.end() && 0 != ( (*j).second.definition.GetFlags() & JOBFLAG_SENSITIVE );
+        run.record.progressDone = done;
+        run.record.progressTotal = total;
+        run.record.note = TruncateText( sensitive ? CRedactor::ForDisplay().RedactText( note ) : note, SJobRunRecord::MaxNoteBytes );
+        const UInt64 nowMonotonicMs = m_monotonicClock->GetMonotonicTimeInMs();
+        const UInt64 minIntervalMs = m_settings.GetProgressEventMinIntervalMs();
+        if ( 0 == run.lastProgressEventMonotonicMs || nowMonotonicMs >= run.lastProgressEventMonotonicMs + minIntervalMs )
+        {
+            run.lastProgressEventMonotonicMs = nowMonotonicMs > 0 ? nowMonotonicMs : 1;
+            TouchRun( run.record, deferred );
+        }
+    }
+    CompleteDeferred( deferred );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CJobScheduler::OnRunResultDocument( UInt64 runId, const CString& documentPath )
+{GUCEF_TRACE;
+
+    if ( documentPath.Length() > SJobRunRecord::MaxResultDocumentBytes )
+        return false;
+    SDeferred deferred;
+    {
+        MT::CScopeMutex lock( m_lock );
+        TRunMap::iterator r = m_activeRuns.find( runId );
+        if ( r == m_activeRuns.end() )
+            return false;
+        SRunEntry& run = (*r).second;
+        run.record.resultDocument = documentPath;
+        TouchRun( run.record, deferred );
+    }
+    CompleteDeferred( deferred );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CJobScheduler::ApplyLoadedJobState( SJobEntry& job, const CDataNode& jobState )
 {GUCEF_TRACE;
@@ -2644,7 +2711,9 @@ CJobScheduler::EndRun( UInt64 runId, TJobRunState state, const CString& note, co
     bool sensitive = GUCEF_NULL != job && 0 != ( job->definition.GetFlags() & JOBFLAG_SENSITIVE );
     run.record.state = state;
     run.record.endedUtcMs = nowUtcMs;
-    run.record.note = TruncateText( sensitive ? CRedactor::ForDisplay().RedactText( note ) : note, SJobRunRecord::MaxNoteBytes );
+    // the task's status extra info is the note of the end; without one the note of the last progress report stays
+    if ( !note.IsNULLOrEmpty() || 0 == run.lastProgressEventMonotonicMs )
+        run.record.note = TruncateText( sensitive ? CRedactor::ForDisplay().RedactText( note ) : note, SJobRunRecord::MaxNoteBytes );
     run.record.outcomeMessage = TruncateText( sensitive ? CRedactor::ForDisplay().RedactText( message ) : message, SJobRunRecord::MaxOutcomeMessageBytes );
 
     // the lane and its throttle policy

@@ -117,27 +117,35 @@ class CTWeakPtr
 
         Unlink();
 
-        const TSharedData* otherShared = other.GetSharedData();
+        // A reference to what 'other' points at is held while the weak one is counted: safe while another thread assigns
+        // to 'other', and the shared data cannot go meanwhile. Letting go of it may destroy the object, the weak pointer
+        // then sees it is gone
+        RelatedClass* otherPtr = GUCEF_NULL;
+        TSharedData* otherShared = other.AcquireReference( otherPtr, true );
         if ( GUCEF_NULL == otherShared )
             return false;
 
-        MT::CObjectScopeLock lock( otherShared );
-
         // The static cast below is performed as a compile time validation of the type passed.
-        T* relatedClassAsT = static_cast< T* >( const_cast< RelatedClass* >( other.GetPointerAlways() ) );
-        if ( GUCEF_NULL == relatedClassAsT || otherShared->m_refCounter <= 0 )
-            return false;
-        if ( !otherShared->m_hasIndependentLifeCycle )
+        T* relatedClassAsT = static_cast< T* >( otherPtr );
+        bool linked = false;
+        MT::TLockStatus lockStatus = otherShared->Lock();
+        if ( otherShared->m_hasIndependentLifeCycle )
+        {
+            m_shared = otherShared;
+            m_ptr = relatedClassAsT;
+            ++(m_shared->m_weakCounter);
+            linked = true;
+        }
+        if ( MT::LOCKSTATUS_OPERATION_SUCCESS == lockStatus || MT::LOCKSTATUS_ABANDONED == lockStatus )
+            otherShared->Unlock();
+        CTBasicSharedPtr< RelatedClass, LockType >::ReleaseReference( otherShared, otherPtr );
+
+        if ( !linked )
         {
             // The shared data is part of the object and goes with it, nothing could tell a weak pointer the object is gone
             GUCEF_ASSERT_ALWAYS;
-            return false;
         }
-
-        m_shared = const_cast< TSharedData* >( otherShared );
-        m_ptr = relatedClassAsT;
-        ++(m_shared->m_weakCounter);
-        return true;
+        return linked;
     }
 
     /**

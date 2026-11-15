@@ -77,6 +77,16 @@
 #define GUCEF_CORE_CTASKMANAGER_H
 #endif /* GUCEF_CORE_CTASKMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CSERVICELIFECYCLE_H
+#include "gucefCORE_CServiceLifecycle.h"
+#define GUCEF_CORE_CSERVICELIFECYCLE_H
+#endif /* GUCEF_CORE_CSERVICELIFECYCLE_H ? */
+
+#ifndef GUCEF_CORE_CSERVICESTOPSIGNALS_H
+#include "gucefCORE_CServiceStopSignals.h"
+#define GUCEF_CORE_CSERVICESTOPSIGNALS_H
+#endif /* GUCEF_CORE_CSERVICESTOPSIGNALS_H ? */
+
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
 #define GUCEF_CORE_CTIMER_H
@@ -373,6 +383,8 @@ CCoreGlobal::Initialize( void )
     CTaskConsumer::RegisterEvents();
     CTaskManager::RegisterEvents();
     CTONRegistryEvents::RegisterEvents();
+    CServiceLifecycle::RegisterEvents();
+    CServiceStopSignals::RegisterEvents();
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 

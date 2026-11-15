@@ -193,7 +193,7 @@ class GUCEF_CORE_PUBLIC_CPP CJobScheduler : public CTSGNotifier ,
 
     static const CEvent JobChangedEvent;            /**< TJobSchedulerChangeEventData, kind JOB */
     static const CEvent LaneChangedEvent;           /**< TJobSchedulerChangeEventData, kind LANE */
-    static const CEvent RunChangedEvent;            /**< TJobSchedulerChangeEventData, kind RUN; progress at most once per ProgressEventMinIntervalMs per run */
+    static const CEvent RunChangedEvent;            /**< TJobSchedulerChangeEventData, kind RUN; progress at most once per ProgressEventMinIntervalMs per run (the record always has the latest progress, GetRun()) */
     static const CEvent HostStateChangedEvent;      /**< TJobSchedulerChangeEventData, kind HOST */
 
     static void RegisterEvents( void );
@@ -407,6 +407,7 @@ class GUCEF_CORE_PUBLIC_CPP CJobScheduler : public CTSGNotifier ,
         bool hasWorkItem;
         SJobWorkItem workItem;
         CFutureResultSource* future;            /**< RunNowAsync(): owned, handed on to a retry and completed when the run ends */
+        UInt64 lastProgressEventMonotonicMs;    /**< when a progress report last raised RunChangedEvent; 0 = never */
 
         SRunEntry( void );
     };
@@ -487,6 +488,10 @@ class GUCEF_CORE_PUBLIC_CPP CJobScheduler : public CTSGNotifier ,
     void DeliverPendingChanges( void );                 /**< main pulse generator's thread, no lock held */
 
     void OnRunTaskEnded( UInt64 runId, UInt32 taskId, TTaskStatus endStatus, const CString& statusExtra );
+    /** From the thread of the run's task (CTaskConsumer::ReportRunProgress()): bookkeeping under the lock only */
+    bool OnRunProgress( UInt64 runId, UInt64 done, UInt64 total, const CString& note );
+    /** From the thread of the run's task (CTaskConsumer::ReportRunResultDocument()): bookkeeping under the lock only */
+    bool OnRunResultDocument( UInt64 runId, const CString& documentPath );
     Int64 DispatchCycle( void );                        /**< dispatcher thread; ms until the next cycle, -1 = stop */
     void OnDispatcherStarted( const PulseGeneratorPtr& dispatcherPulse );
     void OnDispatcherEnded( void );

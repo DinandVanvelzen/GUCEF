@@ -140,6 +140,24 @@ class GUCEF_CORE_PUBLIC_CPP CTaskConsumer : public CTSGNotifier
      */
     UInt32 GetCurrentTaskId( void ) const;
 
+    /**
+     *  For a task that carries out a run of a job scheduler (CJobScheduler, the task was queued with
+     *  CThreadPool::QueueScheduledRunTask()): puts how far the run is into its run record (progressDone, progressTotal
+     *  and the note), from the task's own thread. The record always holds the latest values (CJobScheduler::GetRun());
+     *  the RunChangedEvent this raises is coalesced by the scheduler setting ProgressEventMinIntervalMs.
+     *  @param total    0 when unknown
+     *  @return false when the current task carries out no scheduled run, or the scheduler or the run is gone
+     */
+    bool ReportRunProgress( UInt64 done, UInt64 total, const CString& note = CString::Empty );
+
+    /**
+     *  For a task that carries out a run of a job scheduler: names the result document the task wrote (a VFS or file
+     *  path, at most SJobRunRecord::MaxResultDocumentBytes) in the run record, for results larger than its outcome
+     *  message. The scheduler keeps the reference only; whoever reads the document removes it when it expires.
+     *  @return false when the current task carries out no scheduled run, the path is too long, or the run is gone
+     */
+    bool ReportRunResultDocument( const CString& documentPath );
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     bool IsOwnedByThreadPool( void ) const;

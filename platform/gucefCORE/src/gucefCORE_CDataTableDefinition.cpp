@@ -160,6 +160,7 @@ CDataTableDefinition::CDataTableDefinition( void )
     , codecType( "parquet" )
     , storage()
     , backendOptions()
+    , indexes()
 {GUCEF_TRACE;
 
 }
@@ -174,6 +175,7 @@ CDataTableDefinition::CDataTableDefinition( const CDataTableDefinition& src )
     , codecType( src.codecType )
     , storage( src.storage )
     , backendOptions( src.backendOptions )
+    , indexes( src.indexes )
 {GUCEF_TRACE;
 
 }
@@ -200,6 +202,7 @@ CDataTableDefinition::operator=( const CDataTableDefinition& src )
         codecType = src.codecType;
         storage = src.storage;
         backendOptions = src.backendOptions;
+        indexes = src.indexes;
     }
     return *this;
 }
@@ -215,7 +218,8 @@ CDataTableDefinition::operator==( const CDataTableDefinition& other ) const
            partitioning == other.partitioning   &&
            codecType == other.codecType         &&
            storage == other.storage             &&
-           BackendOptionsAreEqual( backendOptions, other.backendOptions );
+           BackendOptionsAreEqual( backendOptions, other.backendOptions ) &&
+           indexes == other.indexes;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -272,7 +276,37 @@ CDataTableDefinition::Validate( CString& error ) const
         error = "Table \"" + name + "\": " + error;
         return false;
     }
+    for ( UInt32 i=0; i<(UInt32) indexes.size(); ++i )
+    {
+        if ( !indexes[ i ].Validate( schema, error ) )
+        {
+            error = "Table \"" + name + "\": " + error;
+            return false;
+        }
+        for ( UInt32 n=0; n<i; ++n )
+        {
+            if ( indexes[ n ].name.Equals( indexes[ i ].name, false ) )
+            {
+                error = "Table \"" + name + "\": the index name \"" + indexes[ i ].name + "\" is used twice (case is ignored)";
+                return false;
+            }
+        }
+    }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CDataTableIndexDef*
+CDataTableDefinition::FindIndex( const CString& indexName ) const
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32) indexes.size(); ++i )
+    {
+        if ( indexes[ i ].name == indexName )
+            return &indexes[ i ];
+    }
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -308,6 +342,20 @@ CDataTableDefinition::Serialize( CDataNode& domRootNode                        ,
     success = GUCEF_NULL != storageNode && storage.Serialize( *storageNode, settings ) && success;
 
     success = SaveValueList( domRootNode, "backendOptions", backendOptions ) && success;
+
+    if ( !indexes.empty() )
+    {
+        CDataNode* indexesNode = domRootNode.AddChild( "indexes", GUCEF_DATATYPE_ARRAY );
+        if ( GUCEF_NULL == indexesNode )
+            return false;
+        for ( UInt32 i=0; i<(UInt32) indexes.size(); ++i )
+        {
+            CDataNode* indexNode = indexesNode->AddChild( "index", GUCEF_DATATYPE_OBJECT );
+            if ( GUCEF_NULL == indexNode )
+                return false;
+            success = indexes[ i ].Serialize( *indexNode, settings ) && success;
+        }
+    }
     return success;
 }
 
@@ -334,6 +382,20 @@ CDataTableDefinition::Deserialize( const CDataNode& domRootNode                 
 
     if ( !LoadValueList( domRootNode, "backendOptions", definition.backendOptions ) )
         return false;
+
+    const CDataNode* indexesNode = domRootNode.FindChild( "indexes" );
+    if ( GUCEF_NULL != indexesNode )
+    {
+        CDataNode::const_iterator i = indexesNode->ConstBegin();
+        while ( i != indexesNode->ConstEnd() )
+        {
+            CDataTableIndexDef index;
+            if ( !index.Deserialize( *(*i), settings ) )
+                return false;
+            definition.indexes.push_back( index );
+            ++i;
+        }
+    }
 
     *this = definition;
     return true;

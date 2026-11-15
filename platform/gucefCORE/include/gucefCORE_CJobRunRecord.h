@@ -58,6 +58,7 @@ struct GUCEF_CORE_PUBLIC_CPP SJobRunRecord
 {
     static const UInt32 MaxNoteBytes = 256;
     static const UInt32 MaxOutcomeMessageBytes = 512;
+    static const UInt32 MaxResultDocumentBytes = 1024;
 
     UInt64 runId;                       /**< per scheduler, increasing, never reused within the scheduler instance */
     UInt64 hostInstanceId;              /**< random at scheduler start; runId is unique together with it */
@@ -74,11 +75,12 @@ struct GUCEF_CORE_PUBLIC_CPP SJobRunRecord
     Int64 endedUtcMs;
     UInt32 attempt;
     TJobRunState state;
-    UInt64 progressDone;                /**< 0 unless known; the task framework has no progress facility of its own */
-    UInt64 progressTotal;
-    CString note;                       /**< the task's status extra info (CTask::GetTaskStatusExtraInfo()), at most MaxNoteBytes */
+    UInt64 progressDone;                /**< 0 unless known: what the task reported (CTaskConsumer::ReportRunProgress()) */
+    UInt64 progressTotal;               /**< 0 when unknown */
+    CString note;                       /**< while running: the note of the last progress report; at the end the task's status extra info (CTask::GetTaskStatusExtraInfo()) when it has one; at most MaxNoteBytes */
     CString outcomeMessage;             /**< at most MaxOutcomeMessageBytes, through CRedactor::ForDisplay() for SENSITIVE jobs */
     CString requestedBy;                /**< principal subject for RUN_NOW, API and submitted jobs, empty otherwise */
+    CString resultDocument;             /**< where the task wrote its result document (a VFS or file path, CTaskConsumer::ReportRunResultDocument()), empty when none; at most MaxResultDocumentBytes. The scheduler keeps the reference only, the document belongs to whoever reads it */
     UInt32 taskId;                      /**< the task manager task of the run, 0 while not started: links the two views */
     UInt32 actualCost;                  /**< reported to the throttle policy; the estimated cost unless a work source says otherwise */
     UInt64 revision;                    /**< scheduler revision of the last change of this record */

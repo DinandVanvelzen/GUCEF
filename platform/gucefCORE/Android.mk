@@ -178,6 +178,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CDataTableColumnStats.cpp \
   src/gucefCORE_CDataTableDefinition.cpp \
   src/gucefCORE_CDataTableFilter.cpp \
+  src/gucefCORE_CDataTableIndexDef.cpp \
   src/gucefCORE_CDataTableMerge.cpp \
   src/gucefCORE_CDataTablePartitionInfo.cpp \
   src/gucefCORE_CDataTablePartitionSpec.cpp \
@@ -256,6 +257,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIPluginMetaData.cpp \
   src/gucefCORE_CIPulseGeneratorDriver.cpp \
   src/gucefCORE_CIServiceHealthCheck.cpp \
+  src/gucefCORE_CIServiceResourceSource.cpp \
   src/gucefCORE_CITableCodec.cpp \
   src/gucefCORE_CITableFileMetaData.cpp \
   src/gucefCORE_CITableReader.cpp \
@@ -301,6 +303,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CLoggingTask.cpp \
   src/gucefCORE_CMemoryDataTable.cpp \
   src/gucefCORE_CMetricsClientManager.cpp \
+  src/gucefCORE_CMonthlyJsonLinesFile.cpp \
   src/gucefCORE_CMultiLogger.cpp \
   src/gucefCORE_CNativeFileSystemAccess.cpp \
   src/gucefCORE_COSWindow.cpp \
@@ -332,6 +335,10 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CScheduledJobInfo.cpp \
   src/gucefCORE_CSecureBuffer.cpp \
   src/gucefCORE_CServiceHealthRegistry.cpp \
+  src/gucefCORE_CServiceLifecycle.cpp \
+  src/gucefCORE_CServiceResourceWatch.cpp \
+  src/gucefCORE_CServiceStopSignals.cpp \
+  src/gucefCORE_CSha1.cpp \
   src/gucefCORE_CSha256.cpp \
   src/gucefCORE_CSha512.cpp \
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp \

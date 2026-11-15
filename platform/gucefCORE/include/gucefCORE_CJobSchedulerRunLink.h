@@ -96,6 +96,12 @@ class GUCEF_CORE_PRIVATE_CPP CJobSchedulerRunLink : public CTSharedPtrCreator< C
                          TTaskStatus endStatus        ,
                          const CString& statusExtra   );
 
+    /** From the thread of the run's task: progress of the run; false when the scheduler or the run is gone */
+    bool OnRunProgress( UInt64 runId, UInt64 done, UInt64 total, const CString& note );
+
+    /** From the thread of the run's task: the result document of the run; false when the scheduler or the run is gone */
+    bool OnRunResultDocument( UInt64 runId, const CString& documentPath );
+
     /** The scheduler goes: no calls into it from now on. Waits for a call in progress */
     void Detach( void );
 

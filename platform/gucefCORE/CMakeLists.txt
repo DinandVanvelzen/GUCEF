@@ -153,6 +153,7 @@ set( HEADER_FILES
   include/gucefCORE_CCharSepLoggingFormatter.h
   include/gucefCORE_CCodecInstanceBase.h
   include/gucefCORE_CCodecParameterInfo.h
+  include/gucefCORE_CCommandIdempotencyCache.h
   include/gucefCORE_CCoreGlobal.h
   include/gucefCORE_CCronSchedule.h
   include/gucefCORE_CCsvTableCodec.h
@@ -178,6 +179,7 @@ set( HEADER_FILES
   include/gucefCORE_CDataTableColumnStats.h
   include/gucefCORE_CDataTableDefinition.h
   include/gucefCORE_CDataTableFilter.h
+  include/gucefCORE_CDataTableIndexDef.h
   include/gucefCORE_CDataTableMerge.h
   include/gucefCORE_CDataTablePartitionInfo.h
   include/gucefCORE_CDataTablePartitionSpec.h
@@ -259,6 +261,7 @@ set( HEADER_FILES
   include/gucefCORE_CIPluginMetaData.h
   include/gucefCORE_CIPulseGeneratorDriver.h
   include/gucefCORE_CIServiceHealthCheck.h
+  include/gucefCORE_CIServiceResourceSource.h
   include/gucefCORE_CITableCodec.h
   include/gucefCORE_CITableFileMetaData.h
   include/gucefCORE_CITableReader.h
@@ -305,6 +308,7 @@ set( HEADER_FILES
   include/gucefCORE_CLoggingTask.h
   include/gucefCORE_CMemoryDataTable.h
   include/gucefCORE_CMetricsClientManager.h
+  include/gucefCORE_CMonthlyJsonLinesFile.h
   include/gucefCORE_CMultiLogger.h
   include/gucefCORE_CNativeFileSystemAccess.h
   include/gucefCORE_COSWindow.h
@@ -336,6 +340,10 @@ set( HEADER_FILES
   include/gucefCORE_CScheduledJobInfo.h
   include/gucefCORE_CSecureBuffer.h
   include/gucefCORE_CServiceHealthRegistry.h
+  include/gucefCORE_CServiceLifecycle.h
+  include/gucefCORE_CServiceResourceWatch.h
+  include/gucefCORE_CServiceStopSignals.h
+  include/gucefCORE_CSha1.h
   include/gucefCORE_CSha256.h
   include/gucefCORE_CSha512.h
   include/gucefCORE_CSimplisticPluginLoadLogic.h
@@ -354,6 +362,7 @@ set( HEADER_FILES
   include/gucefCORE_CTBasicAbstractFactory.h
   include/gucefCORE_CTBasicAbstractFactoryWithParam.h
   include/gucefCORE_CTBasicSharedPtrObjOperators.h
+  include/gucefCORE_CTCommandIdempotencyCache.h
   include/gucefCORE_CTDataNodeSerializableObj.h
   include/gucefCORE_CTEventHandlerFunctor.h
   include/gucefCORE_CTEventHandlerFunctorProxy.h
@@ -633,6 +642,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDataTableColumnStats.cpp
   src/gucefCORE_CDataTableDefinition.cpp
   src/gucefCORE_CDataTableFilter.cpp
+  src/gucefCORE_CDataTableIndexDef.cpp
   src/gucefCORE_CDataTableMerge.cpp
   src/gucefCORE_CDataTablePartitionInfo.cpp
   src/gucefCORE_CDataTablePartitionSpec.cpp
@@ -711,6 +721,7 @@ set( SOURCE_FILES
   src/gucefCORE_CIPluginMetaData.cpp
   src/gucefCORE_CIPulseGeneratorDriver.cpp
   src/gucefCORE_CIServiceHealthCheck.cpp
+  src/gucefCORE_CIServiceResourceSource.cpp
   src/gucefCORE_CITableCodec.cpp
   src/gucefCORE_CITableFileMetaData.cpp
   src/gucefCORE_CITableReader.cpp
@@ -756,6 +767,7 @@ set( SOURCE_FILES
   src/gucefCORE_CLoggingTask.cpp
   src/gucefCORE_CMemoryDataTable.cpp
   src/gucefCORE_CMetricsClientManager.cpp
+  src/gucefCORE_CMonthlyJsonLinesFile.cpp
   src/gucefCORE_CMultiLogger.cpp
   src/gucefCORE_CNativeFileSystemAccess.cpp
   src/gucefCORE_COSWindow.cpp
@@ -787,6 +799,10 @@ set( SOURCE_FILES
   src/gucefCORE_CScheduledJobInfo.cpp
   src/gucefCORE_CSecureBuffer.cpp
   src/gucefCORE_CServiceHealthRegistry.cpp
+  src/gucefCORE_CServiceLifecycle.cpp
+  src/gucefCORE_CServiceResourceWatch.cpp
+  src/gucefCORE_CServiceStopSignals.cpp
+  src/gucefCORE_CSha1.cpp
   src/gucefCORE_CSha256.cpp
   src/gucefCORE_CSha512.cpp
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp

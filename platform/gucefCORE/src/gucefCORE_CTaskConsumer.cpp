@@ -43,6 +43,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CTASK_H
+#include "gucefCORE_CTask.h"
+#define GUCEF_CORE_CTASK_H
+#endif /* GUCEF_CORE_CTASK_H ? */
+
 #include "gucefCORE_CTaskConsumer.h"
 
 /*-------------------------------------------------------------------------//
@@ -227,6 +232,40 @@ CTaskConsumer::GetCurrentTaskId( void ) const
         return task->GetTaskId();
     }
     return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskConsumer::ReportRunProgress( UInt64 done, UInt64 total, const CString& note )
+{GUCEF_TRACE;
+
+    CTaskPtr task = m_currentTask;
+    if ( task.IsNULL() )
+        return false;
+    CJobSchedulerRunLinkPtr runLink;
+    CString jobId;
+    UInt64 runId = 0;
+    if ( !task->GetScheduledRun( runLink, jobId, runId ) || runLink.IsNULL() )
+        return false;
+    return runLink->OnRunProgress( runId, done, total, note );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskConsumer::ReportRunResultDocument( const CString& documentPath )
+{GUCEF_TRACE;
+
+    CTaskPtr task = m_currentTask;
+    if ( task.IsNULL() )
+        return false;
+    CJobSchedulerRunLinkPtr runLink;
+    CString jobId;
+    UInt64 runId = 0;
+    if ( !task->GetScheduledRun( runLink, jobId, runId ) || runLink.IsNULL() )
+        return false;
+    return runLink->OnRunResultDocument( runId, documentPath );
 }
 
 /*-------------------------------------------------------------------------*/

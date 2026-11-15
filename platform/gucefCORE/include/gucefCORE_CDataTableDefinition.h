@@ -34,6 +34,11 @@
 #define GUCEF_CORE_CDATATABLEWRITEROPTIONS_H
 #endif /* GUCEF_CORE_CDATATABLEWRITEROPTIONS_H ? */
 
+#ifndef GUCEF_CORE_CDATATABLEINDEXDEF_H
+#include "gucefCORE_CDataTableIndexDef.h"
+#define GUCEF_CORE_CDATATABLEINDEXDEF_H
+#endif /* GUCEF_CORE_CDATATABLEINDEXDEF_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -54,12 +59,15 @@ namespace CORE {
  *  What CreateTable takes and a database stores, for example as _tables/<name>.json.
  *
  *  Serialized as one DataNode object: "name", "codec", the schema members at the top level ("schemaVersion",
- *  "columns", "primaryKey", "sortKey"), "partitioning" when the table is partitioned, "storage" (the writer options)
- *  and "backendOptions" when not empty.
+ *  "columns", "primaryKey", "sortKey"), "partitioning" when the table is partitioned, "storage" (the writer options),
+ *  "backendOptions" when not empty and "indexes" (an array of index objects) when the definition has index hints.
+ *  A definition without index hints serializes as it did before they existed.
  */
 class GUCEF_CORE_PUBLIC_CPP CDataTableDefinition : public CIDataNodeSerializable
 {
     public:
+
+    typedef GUCEF::vector< CDataTableIndexDef > TIndexDefVector;
 
     CString name;                           /**< [A-Za-z0-9_.-], not starting with '.', usable as a file name */
     CDataTableSchema schema;
@@ -67,6 +75,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataTableDefinition : public CIDataNodeSerializable
     CString codecType;                      /**< registry key of the table codec, default "parquet" */
     CDataTableWriterOptions storage;
     CValueList backendOptions;
+    TIndexDefVector indexes;                /**< secondary index hints, see CDataTableIndexDef; none by default */
 
     CDataTableDefinition( void );
 
@@ -79,7 +88,10 @@ class GUCEF_CORE_PUBLIC_CPP CDataTableDefinition : public CIDataNodeSerializable
     bool operator==( const CDataTableDefinition& other ) const;
     bool operator!=( const CDataTableDefinition& other ) const;
 
-    /** The name, the schema, the partitioning against the schema, a codec type and the writer options */
+    /**
+     *  The name, the schema, the partitioning against the schema, a codec type, the writer options and the index hints
+     *  against the schema, with index names that differ from each other also when the case is ignored
+     */
     bool Validate( CString& error ) const;
 
     /**
@@ -88,6 +100,9 @@ class GUCEF_CORE_PUBLIC_CPP CDataTableDefinition : public CIDataNodeSerializable
      *  LPT9): the name becomes a file name ("_tables/<name>.json"), and data moves between platforms.
      */
     static bool IsValidTableName( const CString& tableName );
+
+    /** The index hint of the name (exact match), GUCEF_NULL when there is none */
+    const CDataTableIndexDef* FindIndex( const CString& indexName ) const;
 
     /** A shared copy of the schema, for batches and scans */
     CDataTableSchemaPtr CreateSchemaPtr( void ) const;

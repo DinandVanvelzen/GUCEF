@@ -622,6 +622,181 @@ PerformSharedPtrReleaseTests( void )
     GUCEF_TESTFW_TESTCASE_END
 }
 
+namespace {
+
+/** One shared pointer object that a thread reassigns while other threads copy it */
+struct SCopyRace
+{
+    TReleaseCountedPtr target;
+    TReleaseCountedPtr first;
+    TReleaseCountedPtr second;
+    GUCEF::MT::CTAtomic< bool > stop;
+    GUCEF::MT::CTAtomic< GUCEF::UInt32 > assignments;
+    GUCEF::MT::CTAtomic< GUCEF::UInt32 > copies;
+    GUCEF::MT::CTAtomic< GUCEF::UInt32 > wrongCopies;
+    GUCEF::MT::CTAtomic< GUCEF::UInt32 > timeouts;
+
+    SCopyRace( void )
+        : target()
+        , first()
+        , second()
+        , stop( false )
+        , assignments( 0 )
+        , copies( 0 )
+        , wrongCopies( 0 )
+        , timeouts( 0 )
+    {}
+
+    bool IsOneOfTheValues( const TReleaseCountedPtr& copy ) const
+    {
+        return copy.IsNULL() || copy == first || copy == second;
+    }
+};
+
+GUCEF::UInt32 GUCEF_CALLSPEC_PREFIX
+ReassignUntilStoppedThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SCopyRace* race = static_cast< SCopyRace* >( data );
+    while ( !race->stop.Load( GUCEF::MT::MEMORDER_ACQUIRE ) )
+    {
+        try
+        {
+            race->target = race->first;
+            race->target.Unlink();
+            race->target = race->second;
+            race->target = TReleaseCountedPtr();
+            race->assignments.FetchAdd( 1 );
+        }
+        catch ( const GUCEF::timeout_exception& )
+        {
+            race->timeouts.FetchAdd( 1 );
+        }
+    }
+    return 0;
+}
+
+GUCEF::UInt32 GUCEF_CALLSPEC_PREFIX
+CopyUntilStoppedThreadMain( void* data ) GUCEF_CALLSPEC_SUFFIX
+{
+    SCopyRace* race = static_cast< SCopyRace* >( data );
+    while ( !race->stop.Load( GUCEF::MT::MEMORDER_ACQUIRE ) )
+    {
+        try
+        {
+            TReleaseCountedPtr copy( race->target );
+            TReleaseCountedPtr assigned;
+            assigned = race->target;
+            if ( !race->IsOneOfTheValues( copy ) || !race->IsOneOfTheValues( assigned ) )
+                race->wrongCopies.FetchAdd( 1 );
+            race->copies.FetchAdd( 1 );
+        }
+        catch ( const GUCEF::timeout_exception& )
+        {
+            race->timeouts.FetchAdd( 1 );
+        }
+    }
+    return 0;
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Code shares a shared pointer object between threads and relies on a copy of it being safe while another thread
+ *  assigns to it (a task's consumer, a delegator's task). A copy that locks the shared data the object points at and
+ *  unlocks through the object again unlocks whatever the object points at by then: the lock it took stays locked, and
+ *  the next thread that takes that lock waits for good (a recursive mutex: the thread that left it locked does not
+ *  notice; on Linux the lock waits of CMutex do not time out). The test never takes such a lock itself: when the
+ *  reassigning thread stops getting anywhere the test fails and leaves the threads behind.
+ */
+void
+PerformSharedPtrConcurrentCopyTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "SharedPtr: Copies of a shared pointer another thread reassigns at the same time hold a reference or none, and leave no lock locked" )
+    try
+    {
+        static const GUCEF::UInt32 copierCount = 2;
+        static const GUCEF::UInt32 threadCount = copierCount + 1;
+        static const GUCEF::UInt32 wantedAssignments = 200000;
+
+        // on the heap: left behind with the threads when a lock was left locked
+        SCopyRace* race = GUCEF_NEW SCopyRace();
+        race->first = TReleaseCountedPtr( GUCEF_NEW CReleaseCounted() );
+        race->second = TReleaseCountedPtr( GUCEF_NEW CReleaseCounted() );
+
+        GUCEF::MT::SThreadData* threads[ threadCount ];
+        for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+        {
+            threads[ i ] = GUCEF::MT::ThreadDataReserve();
+            TESTASSERT( GUCEF_NULL != threads[ i ] );
+            if ( GUCEF_NULL != threads[ i ] )
+                TESTASSERT( 0 != GUCEF::MT::ThreadCreate( threads[ i ], 0 == i ? &ReassignUntilStoppedThreadMain : &CopyUntilStoppedThreadMain, race ) );
+        }
+
+        // until enough rounds were done, at most 6 seconds, or until the reassigning thread does not get anywhere for
+        // 2 seconds: it waits for a lock that was left locked
+        bool stalled = false;
+        GUCEF::UInt32 lastAssignments = 0;
+        GUCEF::UInt32 unchanged = 0;
+        for ( GUCEF::UInt32 i=0; i<600 && race->assignments.Load() < wantedAssignments; ++i )
+        {
+            GUCEF::MT::ThreadDelay( 10 );
+            const GUCEF::UInt32 assignments = race->assignments.Load();
+            if ( assignments == lastAssignments )
+            {
+                if ( ++unchanged >= 200 )
+                {
+                    stalled = true;
+                    break;
+                }
+            }
+            else
+            {
+                unchanged = 0;
+                lastAssignments = assignments;
+            }
+        }
+
+        race->stop.Store( true, GUCEF::MT::MEMORDER_RELEASE );
+        bool allEnded = true;
+        for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+        {
+            if ( GUCEF_NULL != threads[ i ] && GUCEF_THREAD_WAIT_OK != GUCEF::MT::ThreadWait( threads[ i ], 5000 ) )
+                allEnded = false;
+        }
+
+        GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "SharedPtr concurrent copies: " << race->assignments.Load() << " rounds of assignments, "
+                   << race->copies.Load() << " rounds of copies, " << race->wrongCopies.Load() << " wrong copies, " << race->timeouts.Load()
+                   << " lock timeouts, stalled: " << ( stalled ? "yes" : "no" ) << ", all threads ended: " << ( allEnded ? "yes" : "no" ) );
+
+        TESTASSERT( !stalled );
+        TESTASSERT( allEnded );
+        TESTASSERT( 0 == race->timeouts.Load() );
+        TESTASSERT( 0 == race->wrongCopies.Load() );
+        TESTASSERT( race->copies.Load() > 0 );
+
+        if ( allEnded )
+        {
+            for ( GUCEF::UInt32 i=0; i<threadCount; ++i )
+                if ( GUCEF_NULL != threads[ i ] )
+                    GUCEF::MT::ThreadDataCleanup( threads[ i ] );
+
+            // every reference a copy took was given back, and no copy took one it did not count
+            race->target.Unlink();
+            TESTASSERT( 1 == race->first.GetReferenceCount() && 1 == race->second.GetReferenceCount() );
+            GUCEF_DELETE race;
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 /*-------------------------------------------------------------------------*/
 
 void
@@ -634,6 +809,7 @@ PerformSharedPtrTests( void )
 
     PerformBasicSharedPtrSanityTests();
     PerformSharedPtrReleaseTests();
+    PerformSharedPtrConcurrentCopyTests();
 
     GUCEF::CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "ALL SHARED PTR TESTS COMPLETED" );

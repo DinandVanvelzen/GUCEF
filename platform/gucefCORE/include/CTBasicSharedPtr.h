@@ -38,6 +38,16 @@
 #define GUCEF_MT_COBJECTSCOPELOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
 
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"     /* ThreadDelay() */
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"       /* module macro's */
 #define GUCEF_CORE_MACROS_H
@@ -90,7 +100,7 @@ class TBasicSharedPtrSharedData : public MT::CILockable
 
     typedef LockType                       TLockType;
 
-    Int32 m_refCounter;                        /**< shared reference counter */
+    MT::CTAtomic< Int32 > m_refCounter;        /**< shared reference counter: a copy adds its reference without the lock (CTBasicSharedPtr::AcquireReference), everything else changes it with the lock */
     Int32 m_weakCounter;                       /**< weak references (CTWeakPtr): independent shared data stays until the last one goes */
     LockType m_lock;                           /**< shared lock, if any */
     bool m_hasIndependentLifeCycle;            /**< depending on if the shared data is part of a larger object it may not have an independent lifecycle */
@@ -153,6 +163,14 @@ class TBasicSharedPtrSharedData : public MT::CILockable
  *  Note that this shared pointer implementation's thread safety is dependent on the LockType
  *  template param. A NoLock could be used as the LockType for implementations where the
  *  shared ptr is guaranteed to never cross thread boundaries resulting is a minor optimization.
+ *
+ *  One shared pointer object may be copied on some threads while another thread assigns to it or
+ *  unlinks it: a copy holds a reference to the object the pointer object pointed at before or after
+ *  the assignment, never a mix of the two, and leaves no lock locked. While the object is copied or
+ *  changed its pointer and shared data are guarded by a spin guard of the pointer object itself, held
+ *  for a few instructions and never while a lock is taken or an object is destroyed. Using the object
+ *  (operator->, GetPointerAlways(), Lock()) while another thread assigns to the pointer object is not
+ *  covered by this: take a copy first and use the copy.
  */
 template< typename T, class LockType >
 class CTBasicSharedPtr : public MT::CILockable ,
@@ -163,13 +181,34 @@ class CTBasicSharedPtr : public MT::CILockable ,
     typedef T                              TContainedType;
     typedef LockType                       TLockType;
     typedef CTDynamicDestructorBase< T >   TTypedDestructor;
+    typedef TBasicSharedPtrSharedData< LockType > TSharedData;
 
     protected:
 
     template< typename, class > friend class CTWeakPtr;
+    template< typename, class > friend class CTBasicSharedPtr;
 
     mutable TBasicSharedPtrSharedData< LockType >* m_shared;    /**< holds data shared across multiple instances of the shared pointer */
     T* m_ptr;                                                   /**< the pointer that we wish to reference count */
+    mutable MT::CTAtomic< UInt32 > m_objectGuard;               /**< 1 while a thread reads m_shared and m_ptr to take a reference, or changes them */
+
+    /** Waits until this thread alone may read m_shared and m_ptr to take a reference, or change them; held for a few instructions only */
+    inline void AcquireObjectGuard( void ) const;
+
+    inline void ReleaseObjectGuard( void ) const;
+
+    /**
+     *  Takes a reference to what this pointer object points at, for the caller, and returns its shared data and pointer.
+     *  Safe while another thread assigns to this pointer object or unlinks it.
+     *  With onlyWithObject set nothing is taken from a pointer object that has shared data but no object.
+     */
+    TBasicSharedPtrSharedData< LockType >* AcquireReference( T*& ptr, bool onlyWithObject ) const;
+
+    /** Makes this pointer object point at the given reference, which the caller took already, and lets go of the one it had */
+    void ReplaceReference( TBasicSharedPtrSharedData< LockType >* shared, T* ptr );
+
+    /** Lets go of a reference no pointer object holds any more; the last reference destroys the object */
+    static void ReleaseReference( TBasicSharedPtrSharedData< LockType >* shared, const void* ptr );
 
     public:
 
@@ -199,6 +238,7 @@ class CTBasicSharedPtr : public MT::CILockable ,
     CTBasicSharedPtr( const CTBasicSharedPtr< Derived, LockType >& src )
         : m_shared( GUCEF_NULL )
         , m_ptr( GUCEF_NULL )
+        , m_objectGuard( 0 )
     {GUCEF_TRACE;
 
         InitializeUsingRelatedType( src );
@@ -221,28 +261,26 @@ class CTBasicSharedPtr : public MT::CILockable ,
     bool InitializeUsingRelatedType( const CTBasicSharedPtr< RelatedClass, LockType >& other )
     {GUCEF_TRACE;
 
-        Unlink();
-
-        // Note: after Unlink() this has no shared data and thus no lock of its own, the reference count
-        // we are about to increment is protected by the lock of the other shared pointer
-        MT::CObjectScopeLock lockOther( other );
+        // The reference to what 'other' points at is taken first, while 'other' cannot change, and the one this pointer
+        // object had is let go of after: safe while another thread assigns to 'other', and when the reference of this
+        // pointer object is all that keeps 'other' alive
+        RelatedClass* otherPtr = GUCEF_NULL;
+        TBasicSharedPtrSharedData< LockType >* otherSharedData = other.AcquireReference( otherPtr, true );
 
         // The static cast below is performed as a compile time validation
         // of the type passed.
-        T* relatedClassAsT = static_cast< T* >( const_cast< RelatedClass* >( other.GetPointerAlways() ) );
-        if ( GUCEF_NULL != relatedClassAsT )
+        T* relatedClassAsT = static_cast< T* >( otherPtr );
+
+        // We only allow the creation of copies if a destructor has been set
+        // init your shared pointer creator correctly first. this is to prevent creating dangling pointers
+        // (the reference taken above keeps the destructor set: only the last reference takes it away)
+        if ( GUCEF_NULL != relatedClassAsT && GUCEF_NULL != otherSharedData && GUCEF_NULL != otherSharedData->m_voidDestructor )
         {
-            // We only allow the creation of copies if a destructor has been set
-            // init your shared pointer creator correctly first. this is to prevent creating dangling pointers
-            const TBasicSharedPtrSharedData< LockType >* otherSharedData = other.GetSharedData();
-            if ( GUCEF_NULL != otherSharedData->m_voidDestructor )
-            {
-                m_ptr = relatedClassAsT;
-                m_shared = const_cast< TBasicSharedPtrSharedData< LockType >* >( otherSharedData );
-                ++(m_shared->m_refCounter);
-                return true;
-            }
+            ReplaceReference( otherSharedData, relatedClassAsT );
+            return true;
         }
+        ReleaseReference( otherSharedData, otherPtr );
+        ReplaceReference( GUCEF_NULL, GUCEF_NULL );
         return false;
     }
 
@@ -729,6 +767,7 @@ template< typename T, class LockType >
 CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( void )
     : m_shared( GUCEF_NULL )
     , m_ptr( GUCEF_NULL )
+    , m_objectGuard( 0 )
 {GUCEF_TRACE;
 
     // Note that if this constructor is used an assignment is required at
@@ -742,6 +781,7 @@ CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( const TBasicSharedPtrSharedDa
                                                    const T* ptr                                        )
     : m_shared( GUCEF_NULL )
     , m_ptr( GUCEF_NULL )
+    , m_objectGuard( 0 )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != shared )
@@ -761,6 +801,7 @@ CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( T* ptr                       
                                                    void* originalAddressAsCreated                  )
     : m_shared( GUCEF_NULL )
     , m_ptr( GUCEF_NULL )
+    , m_objectGuard( 0 )
 {GUCEF_TRACE;
 
     Initialize( ptr, voidedObjectDestructor, originalAddressAsCreated );
@@ -772,6 +813,7 @@ template< typename T, class LockType >
 CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( const CTBasicSharedPtr< T, LockType >& src )
     : m_shared( GUCEF_NULL )
     , m_ptr( GUCEF_NULL )
+    , m_objectGuard( 0 )
 {GUCEF_TRACE;
 
     // disable Clang warning: reference cannot be bound to dereferenced null pointer in well-defined C++ code; comparison may be assumed to always evaluate to true [-Wtautological-undefined-compare]
@@ -780,15 +822,14 @@ CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( const CTBasicSharedPtr< T, Lo
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wtautological-undefined-compare"
     #endif
-    if ( GUCEF_NULL != &src && GUCEF_NULL != src.m_shared )
+    if ( GUCEF_NULL != &src )
     {
-        MT::CObjectScopeLock lock( &src );
-        if ( GUCEF_NULL != src.m_shared )
-        {
-            m_shared = src.m_shared;
-            ++(m_shared->m_refCounter);
-        }
-        m_ptr = src.m_ptr;
+        // the reference is taken while 'src' cannot change: safe while another thread assigns to it. Locked and unlocked
+        // through 'src' instead, an assignment in between left the lock of what it pointed at before locked (T7)
+        T* ptr = GUCEF_NULL;
+        m_shared = src.AcquireReference( ptr, false );
+        if ( GUCEF_NULL != m_shared )
+            m_ptr = ptr;
     }
     #ifdef __clang__
     #pragma clang diagnostic pop
@@ -801,12 +842,17 @@ CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( const CTBasicSharedPtr< T, Lo
 
 template< typename T, class LockType >
 CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( CTBasicSharedPtr< T, LockType >&& src ) GUCEF_NOEXCEPT
-    : m_shared( GUCEF_MOVE( src.m_shared ) )
-    , m_ptr( GUCEF_MOVE( src.m_ptr ) )
+    : m_shared( GUCEF_NULL )
+    , m_ptr( GUCEF_NULL )
+    , m_objectGuard( 0 )
 {GUCEF_TRACE;
 
+    src.AcquireObjectGuard();
+    m_shared = src.m_shared;
+    m_ptr = src.m_ptr;
     src.m_shared = GUCEF_NULL;
     src.m_ptr = GUCEF_NULL;
+    src.ReleaseObjectGuard();
 }
 
 #endif
@@ -848,17 +894,16 @@ CTBasicSharedPtr< T, LockType >::Initialize( T* ptr                             
     #endif
 
     // Just in case we did not hit the asserts above because the code was compiled in release
-    // mode without asserts we will still allow the scenario by unlinking first
-    Unlink();
-
+    // mode without asserts we will still allow the scenario: the reference held before is let go of
+    TBasicSharedPtrSharedData< LockType >* shared = GUCEF_NULL;
     if ( GUCEF_NULL != ptr )
     {
-        m_shared = GUCEF_NEW TBasicSharedPtrSharedData< LockType >( true );
-        m_shared->m_refCounter = 1UL;
-        m_shared->m_voidDestructor = voidedObjectDestructor;
-        m_shared->m_originalAddressAsCreated = originalAddressAsCreated;
-        m_ptr = ptr;
+        shared = GUCEF_NEW TBasicSharedPtrSharedData< LockType >( true );
+        shared->m_refCounter.Store( 1 );
+        shared->m_voidDestructor = voidedObjectDestructor;
+        shared->m_originalAddressAsCreated = originalAddressAsCreated;
     }
+    ReplaceReference( shared, GUCEF_NULL != shared ? ptr : GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -868,14 +913,18 @@ bool
 CTBasicSharedPtr< T, LockType >::RelinquishOwnership( T*& rawPtr )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_shared || m_ptr == GUCEF_NULL )
+    AcquireObjectGuard();
+    TBasicSharedPtrSharedData< LockType >* shared = m_shared;
+    T* ptr = m_ptr;
+    ReleaseObjectGuard();
+
+    if ( GUCEF_NULL == shared || ptr == GUCEF_NULL )
     {
         // we are releasing ownership of a NULL pointer
         rawPtr = GUCEF_NULL;
         return true;
     }
 
-    TBasicSharedPtrSharedData< LockType >* shared = m_shared;
     shared->m_lock.Lock();
     if ( 1 != shared->m_refCounter )
     {
@@ -896,7 +945,7 @@ CTBasicSharedPtr< T, LockType >::RelinquishOwnership( T*& rawPtr )
     shared->m_originalAddressAsCreated = GUCEF_NULL;
     shared->m_lock.Unlock();
 
-    rawPtr = m_ptr;
+    rawPtr = ptr;
     Unlink();
 
     // A destructor made for this pointer alone deletes itself when asked to destroy an object, nothing is destroyed for NULL
@@ -926,12 +975,11 @@ CIDynamicVoidDestructor*
 CTBasicSharedPtr< T, LockType >::GetDestructor( void ) const
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    if ( GUCEF_NULL != m_shared )
-    {
-        return m_shared->m_voidDestructor;
-    }
-    return GUCEF_NULL;
+    // the reference of this pointer object keeps the shared data while the guard is held
+    AcquireObjectGuard();
+    CIDynamicVoidDestructor* destructor = GUCEF_NULL != m_shared ? m_shared->m_voidDestructor : GUCEF_NULL;
+    ReleaseObjectGuard();
+    return destructor;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -951,25 +999,34 @@ bool
 CTBasicSharedPtr< T, LockType >::UnlinkUnlessLast( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == m_shared || GUCEF_NULL == m_ptr )
+    AcquireObjectGuard();
+    TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
+    T* localPtr = m_ptr;
+    if ( GUCEF_NULL == localSharedRef || GUCEF_NULL == localPtr )
     {
         // no object this reference could be the last one of
-        Unlink();
+        m_shared = GUCEF_NULL;
+        m_ptr = GUCEF_NULL;
+        ReleaseObjectGuard();
+        ReleaseReference( localSharedRef, localPtr );
         return true;
     }
 
-    TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
-    localSharedRef->m_lock.Lock();
-    if ( localSharedRef->m_refCounter <= 1 )
+    // The reference goes only while others are left. Copies add theirs without the lock, the others take theirs off
+    // with it: one compare and exchange decides, so of references let go of this way at the same time exactly one stays
+    Int32 count = localSharedRef->m_refCounter.Load();
+    while ( count > 1 )
     {
-        localSharedRef->m_lock.Unlock();
-        return false;
+        if ( localSharedRef->m_refCounter.CompareExchangeWeak( count, count - 1 ) )
+        {
+            m_shared = GUCEF_NULL;
+            m_ptr = GUCEF_NULL;
+            ReleaseObjectGuard();
+            return true;
+        }
     }
-    --localSharedRef->m_refCounter;
-    m_shared = GUCEF_NULL;
-    m_ptr = GUCEF_NULL;
-    localSharedRef->m_lock.Unlock();
-    return true;
+    ReleaseObjectGuard();
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -979,10 +1036,10 @@ UInt32
 CTBasicSharedPtr< T, LockType >::GetReferenceCount( void ) const
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    if ( GUCEF_NULL != m_shared )
-        return m_shared->m_refCounter;
-    return 0;
+    AcquireObjectGuard();
+    const UInt32 count = GUCEF_NULL != m_shared ? (UInt32) m_shared->m_refCounter.Load() : 0;
+    ReleaseObjectGuard();
+    return count;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1019,10 +1076,15 @@ CTBasicSharedPtr< T, LockType >&
 CTBasicSharedPtr< T, LockType >::operator=( const CTBasicSharedPtr< T, LockType >& src )
 {GUCEF_TRACE;
 
-    // guard against self assignment
-    if ( this != &src && m_shared != src.m_shared )
+    // guard against self assignment; assigning what this pointer object points at already changes nothing.
+    // What 'src' points at is read under its guard: another thread may assign to 'src' meanwhile
+    if ( this != &src )
     {
-        InitializeUsingRelatedType( src );
+        src.AcquireObjectGuard();
+        const bool sameSharedData = m_shared == src.m_shared;
+        src.ReleaseObjectGuard();
+        if ( !sameSharedData )
+            InitializeUsingRelatedType( src );
     }
     return *this;
 }
@@ -1302,11 +1364,14 @@ inline T&
 CTBasicSharedPtr< T, LockType >::operator*( void )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    // read under the guard of this pointer object, not through its lock: an assignment in between left that locked (T7)
+    AcquireObjectGuard();
+    T* ptr = m_ptr;
+    ReleaseObjectGuard();
 
-    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != ptr )
     {
-        return *(m_ptr);
+        return *ptr;
     }
 
     // Someone forgot to initialize the shared pointer with an assignment
@@ -1320,11 +1385,13 @@ inline const T&
 CTBasicSharedPtr< T, LockType >::operator*( void ) const
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    AcquireObjectGuard();
+    T* ptr = m_ptr;
+    ReleaseObjectGuard();
 
-    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != ptr )
     {
-        return *m_ptr;
+        return *ptr;
     }
 
     // Someone forgot to initialize the shared pointer with an assignment
@@ -1369,11 +1436,13 @@ inline T*
 CTBasicSharedPtr< T, LockType >::GetPointer( void )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    AcquireObjectGuard();
+    T* ptr = m_ptr;
+    ReleaseObjectGuard();
 
-    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != ptr )
     {
-        return m_ptr;
+        return ptr;
     }
 
     // Someone forgot to initialize the shared pointer with an assignment
@@ -1387,11 +1456,13 @@ inline const T*
 CTBasicSharedPtr< T, LockType >::GetPointer( void ) const
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    AcquireObjectGuard();
+    T* ptr = m_ptr;
+    ReleaseObjectGuard();
 
-    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != ptr )
     {
-        return m_ptr;
+        return ptr;
     }
 
     // Someone forgot to initialize the shared pointer with an assignment
@@ -1421,20 +1492,100 @@ CTBasicSharedPtr< T, LockType >::GetPointerAlways( void ) const
 /*-------------------------------------------------------------------------*/
 
 template< typename T, class LockType >
+inline void
+CTBasicSharedPtr< T, LockType >::AcquireObjectGuard( void ) const
+{GUCEF_TRACE;
+
+    // held for a few instructions only: spin, and give the processor away when the holder does not get to run
+    UInt32 attempts = 0;
+    while ( 0 != m_objectGuard.Exchange( 1, MT::MEMORDER_ACQUIRE ) )
+    {
+        while ( 0 != m_objectGuard.Load( MT::MEMORDER_RELAXED ) )
+        {
+            if ( ++attempts > 64 )
+                MT::ThreadDelay( 0 );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+inline void
+CTBasicSharedPtr< T, LockType >::ReleaseObjectGuard( void ) const
+{GUCEF_TRACE;
+
+    m_objectGuard.Store( 0, MT::MEMORDER_RELEASE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+TBasicSharedPtrSharedData< LockType >*
+CTBasicSharedPtr< T, LockType >::AcquireReference( T*& ptr, bool onlyWithObject ) const
+{GUCEF_TRACE;
+
+    // While the guard is held this pointer object keeps its reference, so the count is at least 1 and the shared data
+    // stays: the reference is added without the lock of the shared data. Taking that lock here could deadlock with a
+    // thread that holds it (it locked a pointer object) and waits for this guard
+    AcquireObjectGuard();
+    TBasicSharedPtrSharedData< LockType >* shared = m_shared;
+    ptr = m_ptr;
+    if ( GUCEF_NULL != shared && ( !onlyWithObject || GUCEF_NULL != ptr ) )
+        ++( shared->m_refCounter );
+    else
+        shared = GUCEF_NULL;
+    ReleaseObjectGuard();
+    if ( GUCEF_NULL == shared && onlyWithObject )
+        ptr = GUCEF_NULL;
+    return shared;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+void
+CTBasicSharedPtr< T, LockType >::ReplaceReference( TBasicSharedPtrSharedData< LockType >* shared, T* ptr )
+{GUCEF_TRACE;
+
+    AcquireObjectGuard();
+    TBasicSharedPtrSharedData< LockType >* oldShared = m_shared;
+    T* oldPtr = m_ptr;
+    m_shared = shared;
+    m_ptr = ptr;
+    ReleaseObjectGuard();
+
+    // outside of the guard: this may destroy the object, whose destructor may use this pointer object again
+    ReleaseReference( oldShared, oldPtr );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
 void
 CTBasicSharedPtr< T, LockType >::Unlink( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_shared )
+    ReplaceReference( GUCEF_NULL, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+void
+CTBasicSharedPtr< T, LockType >::ReleaseReference( TBasicSharedPtrSharedData< LockType >* shared, const void* ptr )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != shared )
     {
-        m_shared->m_lock.Lock(); // We cannot use CObjectScopeLock here because we may have to delete the lock itself
-        if ( GUCEF_NULL != m_ptr )
+        shared->m_lock.Lock(); // We cannot use CObjectScopeLock here because we may have to delete the lock itself
+        if ( GUCEF_NULL != ptr )
         {
-            --m_shared->m_refCounter;
-            assert( m_shared->m_refCounter >= 0 );
-            if ( 0 >= m_shared->m_refCounter )
-            {                
-                TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
+            const Int32 remaining = --( shared->m_refCounter );
+            assert( remaining >= 0 );
+            if ( 0 >= remaining )
+            {
+                TBasicSharedPtrSharedData< LockType >* localSharedRef = shared;
                 bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
 
                 // We should check if the destructor pointer is not-NULL
@@ -1461,75 +1612,58 @@ CTBasicSharedPtr< T, LockType >::Unlink( void )
                 {
                     localSharedRef->m_lock.Unlock();
                 }
-                m_ptr = GUCEF_NULL;
 
                 if ( sharedDataIsIndependent )
                 {
                     // weak pointers still use the shared data to see the object is gone: the last of them deletes it
-                    m_shared = GUCEF_NULL;
                     bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
                     localSharedRef->m_lock.Unlock();
                     if ( !weaklyReferenced )
                         GUCEF_DELETE localSharedRef;
-                }
-                else
-                {
-                    m_shared = GUCEF_NULL;
                 }
             }
             else
             {
                 // Not the last reference but we are unlinking our usage
-                TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
-
-                // this object may not have been the last reference but we still have to NULL
-                // the attributes to allow this object to be re-used
-                m_shared = GUCEF_NULL;
-                m_ptr = GUCEF_NULL;
-
-                localSharedRef->m_lock.Unlock();
+                shared->m_lock.Unlock();
             }
         }
         else
         {
             // All we ever had was a lock
-            TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
-            m_shared = GUCEF_NULL;
-            if ( GUCEF_NULL != localSharedRef )
+            TBasicSharedPtrSharedData< LockType >* localSharedRef = shared;
+            bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
+
+            // We should check if the destructor pointer is not-NULL
+            // Under most conditions there would be no object destructor if there is no object pointed to
+            if ( GUCEF_NULL != localSharedRef->m_voidDestructor )
             {
-                bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
+                // Given there is no retry mechanism and we assume destroy succeeds we will null the pointers right away
+                // thus any invalid reuse of the same memory space is more likely to run into a null pointer rather than a dangling pointer
+                CIDynamicVoidDestructor* voidDestructor = localSharedRef->m_voidDestructor;
+                void* originalAddressAsCreated = localSharedRef->m_originalAddressAsCreated;
+                localSharedRef->m_voidDestructor = GUCEF_NULL;
+                localSharedRef->m_originalAddressAsCreated = GUCEF_NULL;
 
-                // We should check if the destructor pointer is not-NULL
-                // Under most conditions there would be no object destructor if there is no object pointed to
-                if ( GUCEF_NULL != localSharedRef->m_voidDestructor )
-                {
-                    // Given there is no retry mechanism and we assume destroy succeeds we will null the pointers right away
-                    // thus any invalid reuse of the same memory space is more likely to run into a null pointer rather than a dangling pointer
-                    CIDynamicVoidDestructor* voidDestructor = localSharedRef->m_voidDestructor;
-                    void* originalAddressAsCreated = localSharedRef->m_originalAddressAsCreated;
-                    localSharedRef->m_voidDestructor = GUCEF_NULL;
-                    localSharedRef->m_originalAddressAsCreated = GUCEF_NULL;
-
-                    // see above: shared data that is part of the object releases its lock before the object goes
-                    if ( !sharedDataIsIndependent )
-                        localSharedRef->m_lock.Unlock();
-
-                    GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
-                    voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
-                }
-                else
+                // see above: shared data that is part of the object releases its lock before the object goes
                 if ( !sharedDataIsIndependent )
-                {
                     localSharedRef->m_lock.Unlock();
-                }
 
-                if ( sharedDataIsIndependent )
-                {
-                    bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
-                    localSharedRef->m_lock.Unlock();
-                    if ( !weaklyReferenced )
-                        GUCEF_DELETE localSharedRef;
-                }
+                GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
+                voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
+            }
+            else
+            if ( !sharedDataIsIndependent )
+            {
+                localSharedRef->m_lock.Unlock();
+            }
+
+            if ( sharedDataIsIndependent )
+            {
+                bool weaklyReferenced = localSharedRef->m_weakCounter > 0;
+                localSharedRef->m_lock.Unlock();
+                if ( !weaklyReferenced )
+                    GUCEF_DELETE localSharedRef;
             }
         }
     }
@@ -1607,7 +1741,7 @@ TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( TBasicSharedPt
                                                                   void* originalAddressAsCreated            ,
                                                                   CIDynamicVoidDestructor* voidedDestructor ) GUCEF_NOEXCEPT
     : MT::CILockable()
-    , m_refCounter( src.m_refCounter )
+    , m_refCounter( src.m_refCounter.Load() )
     , m_weakCounter( src.m_weakCounter )
     , m_lock( GUCEF_MOVE( src.m_lock ) )
     , m_hasIndependentLifeCycle( src.m_hasIndependentLifeCycle )

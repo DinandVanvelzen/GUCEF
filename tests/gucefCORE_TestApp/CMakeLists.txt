@@ -26,6 +26,7 @@ set( HEADER_FILES
   include/TestBrowserLauncher.h
   include/TestBusyWaitPulseGeneratorDriver.h
   include/TestCodecPlugins.h
+  include/TestCommandIdempotencyCache.h
   include/TestConfigStore.h
   include/TestCoreGlobalTeardown.h
   include/TestCpuIsaFeatures.h
@@ -44,6 +45,7 @@ set( HEADER_FILES
   include/TestDataTableBatchBuilder.h
   include/TestDataTableBufferPool.h
   include/TestDataTableColumnBatch.h
+  include/TestDataTableIndexHints.h
   include/TestDataTablePredicate.h
   include/TestDataTableScan.h
   include/TestDataTableScanBenchmark.h
@@ -77,6 +79,7 @@ set( HEADER_FILES
   include/TestGlobalONRegistry.h
   include/TestIniParser.h
   include/TestInt128.h
+  include/TestJobRunProgress.h
   include/TestJobScheduler.h
   include/TestJobSchedulerPolicies.h
   include/TestJobSchedulerSupport.h
@@ -108,7 +111,9 @@ set( HEADER_FILES
   include/TestSecureBuffer.h
   include/TestServiceHealthRegistry.h
   include/TestServiceHosting.h
+  include/TestServiceProcessKit.h
   include/TestSfinaeUtils.h
+  include/TestSha1.h
   include/TestSharedPtr.h
   include/TestStandardStreams.h
   include/TestStopwatch.h
@@ -156,6 +161,7 @@ set( SOURCE_FILES
   src/TestBrowserLauncher.cpp
   src/TestBusyWaitPulseGeneratorDriver.cpp
   src/TestCodecPlugins.cpp
+  src/TestCommandIdempotencyCache.cpp
   src/TestConfigStore.cpp
   src/TestCoreGlobalTeardown.cpp
   src/TestCpuIsaFeatures.cpp
@@ -173,6 +179,7 @@ set( SOURCE_FILES
   src/TestDataTableBatchBuilder.cpp
   src/TestDataTableBufferPool.cpp
   src/TestDataTableColumnBatch.cpp
+  src/TestDataTableIndexHints.cpp
   src/TestDataTablePredicate.cpp
   src/TestDataTableScan.cpp
   src/TestDataTableScanBenchmark.cpp
@@ -204,6 +211,7 @@ set( SOURCE_FILES
   src/TestGlobalONRegistry.cpp
   src/TestIniParser.cpp
   src/TestInt128.cpp
+  src/TestJobRunProgress.cpp
   src/TestJobScheduler.cpp
   src/TestJobSchedulerPolicies.cpp
   src/TestJobSchedulerSupport.cpp
@@ -233,7 +241,9 @@ set( SOURCE_FILES
   src/TestSecureBuffer.cpp
   src/TestServiceHealthRegistry.cpp
   src/TestServiceHosting.cpp
+  src/TestServiceProcessKit.cpp
   src/TestSfinaeUtils.cpp
+  src/TestSha1.cpp
   src/TestSharedPtr.cpp
   src/TestStandardStreams.cpp
   src/TestStopwatch.cpp

@@ -447,6 +447,21 @@
 #define GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H
 #endif /* GUCEF_CORE_TESTAPP_TESTPBKDF2HMACSHA256_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTSHA1_H
+#include "TestSha1.h"
+#define GUCEF_CORE_TESTAPP_TESTSHA1_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSHA1_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTSERVICEPROCESSKIT_H
+#include "TestServiceProcessKit.h"
+#define GUCEF_CORE_TESTAPP_TESTSERVICEPROCESSKIT_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSERVICEPROCESSKIT_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLEINDEXHINTS_H
+#include "TestDataTableIndexHints.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLEINDEXHINTS_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLEINDEXHINTS_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTSERVICEHOSTING_H
 #include "TestServiceHosting.h"
 #define GUCEF_CORE_TESTAPP_TESTSERVICEHOSTING_H
@@ -464,6 +479,8 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTJOBSCHEDULER_H
 #include "TestJobScheduler.h"
+#include "TestJobRunProgress.h"
+#include "TestCommandIdempotencyCache.h"
 #define GUCEF_CORE_TESTAPP_TESTJOBSCHEDULER_H
 #endif /* GUCEF_CORE_TESTAPP_TESTJOBSCHEDULER_H ? */
 
@@ -479,6 +496,10 @@
 
 /** runs only the suites of the job scheduler and the task manager counters (a quick run while working on them) */
 #define GUCEF_CORE_TESTAPP_JOB_SCHEDULER_SUITES_ARG    "--job-scheduler-suites"
+#define GUCEF_CORE_TESTAPP_SERVICE_PROCESS_KIT_SUITES_ARG    "--service-process-kit-suites"
+
+/** runs only the suites of the shared and weak pointers (a quick, repeatable run of their thread tests) */
+#define GUCEF_CORE_TESTAPP_SHARED_PTR_SUITES_ARG    "--shared-ptr-suites"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -569,11 +590,34 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefCORE_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_SERVICE_PROCESS_KIT_SUITES_ARG ) )
+        {
+            PerformServiceProcessKitTests();
+
+            GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+            GUCEF::CORE::AppendToPath( subsetXmlPath, "gucefCORE_TestApp_Results.xml" );
+            GUCEF_TESTFW_WRITE_RESULTS( subsetXmlPath.C_String() );
+            return GUCEF_TESTFW_EXITCODE;
+        }
+
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_SHARED_PTR_SUITES_ARG ) )
+        {
+            PerformSharedPtrTests();
+            PerformWeakPtrTests();
+
+            GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+            GUCEF::CORE::AppendToPath( subsetXmlPath, "gucefCORE_TestApp_Results.xml" );
+            GUCEF_TESTFW_WRITE_RESULTS( subsetXmlPath.C_String() );
+            return GUCEF_TESTFW_EXITCODE;
+        }
+
         if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_CORE_TESTAPP_JOB_SCHEDULER_SUITES_ARG ) )
         {
             PerformTaskManagerCounterTests();
             PerformJobSchedulerPolicyTests();
             PerformJobSchedulerTests();
+            PerformJobRunProgressTests();
+            PerformCommandIdempotencyCacheTests();
             PerformTaskPoolHotPathTests();
 
             GUCEF::CORE::CString subsetXmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
@@ -657,6 +701,7 @@ GUCEF_OSMAIN_BEGIN
         PerformDecimalVariantTests();
         PerformDataTableVariantTests();
         PerformDataTableSchemaTests();
+        PerformDataTableIndexHintTests();
         PerformDataTableBufferPoolTests();
         PerformDataTableColumnBatchTests();
         PerformDataTableBatchBuilderTests();
@@ -695,6 +740,8 @@ GUCEF_OSMAIN_BEGIN
         PerformBinaryWireTests();
         PerformPbkdf2HmacSha256Tests();
         PerformAesTests();
+        PerformSha1Tests();
+        PerformServiceProcessKitTests();
         PerformServiceHostingTests();
         PerformServiceHealthRegistryTests();
         PerformCpuIsaFeaturesTests();
@@ -703,6 +750,8 @@ GUCEF_OSMAIN_BEGIN
         PerformTaskManagerCounterTests();
         PerformJobSchedulerPolicyTests();
         PerformJobSchedulerTests();
+        PerformJobRunProgressTests();
+        PerformCommandIdempotencyCacheTests();
         PerformGlobalONRegistryTests();     // last: it unregisters all plugins of the process
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );

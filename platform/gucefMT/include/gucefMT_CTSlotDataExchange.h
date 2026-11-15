@@ -463,6 +463,15 @@ class CTSlotDataExchange< T, SSlotDeliveryLatestOnly, FullPolicy, 1 >
     /** The number of values that can be held for reading: the newest one */
     UInt32 GetCapacity( void ) const            { return 1; }
 
+    /**
+     *  Writer thread only: the index (0, 1 or 2) of the slot the writer owns now. Neither the reader nor the hand over
+     *  place refers to it until the next Write() publishes it, and it is never the slot of the value the reader has.
+     *  A value that is written into slot i stays in slot i: a writer that keeps a resource per slot (one of three
+     *  frame buffers) fills the resource of this index, writes a value that names the index, and the reader uses the
+     *  resource the value it read names until its next Read(). Nothing is copied but the small value.
+     */
+    UInt32 GetWriterSlotIndex( void ) const     { return m_writeSlot; }
+
     private:
 
     CTSlotDataExchange( const CTSlotDataExchange& src );                /**< not implemented */
