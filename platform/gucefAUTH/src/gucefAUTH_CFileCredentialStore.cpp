@@ -95,6 +95,14 @@ const CORE::CString CFileCredentialStore::DataFileName = "credentials.bin";
 const CORE::CString CFileCredentialStore::KeyFileName = "credentials.key";
 const CORE::CString CFileCredentialStore::LockFileName = "credentials.lock";
 const UInt32 CFileCredentialStore::DefaultLockTimeoutInMs = 10000;
+const CORE::CString CFileCredentialStore::KeyringFileName = "keyring.bin";
+const UInt32 CFileCredentialStore::DefaultKeyringMemoryInKiB = 65536;
+const UInt32 CFileCredentialStore::DefaultKeyringPasses = 3;
+const UInt32 CFileCredentialStore::DefaultKeyringLanes = 1;
+const UInt32 CFileCredentialStore::MaxKeyringMemoryInKiB = 1048576;
+const UInt32 CFileCredentialStore::MaxKeyringPasses = 32;
+const UInt32 CFileCredentialStore::MaxKeyringLanes = 16;
+const UInt32 CFileCredentialStore::MaxKeyringCodeLength = 1024;
 
 static const char FileMagic[ 4 ] = { 'G', 'A', 'U', 'C' };
 static const UInt8 FileVersion = 1;
@@ -105,6 +113,29 @@ static const UInt32 MaxSecretSize = 65536;
 static const char KeyInfo[] = "gucefAUTH credentials v1";
 static const char KeyFileTrustOwnerOnlyText[] = "owner-only";
 static const char KeyFileTrustMountedSecretText[] = "mounted-secret";
+static const char KeyModeKeyFileText[] = "key-file";
+static const char KeyModeKeyringCodeText[] = "keyring-code";
+
+/*
+ *  The keyring file (format version 2), all numbers little endian:
+ *      0   4   magic "GAUC"
+ *      4   1   version 2
+ *      5   1   derivation: 1 = Argon2id
+ *      6   4   memory in KiB
+ *     10   4   passes
+ *     14   4   lanes
+ *     18  16   salt
+ *     34  32   check value
+ *     66  24   nonce
+ *     90   ..  the slots sealed with XChaCha20-Poly1305 (as in version 1), the 66 bytes of the header as additional data
+ */
+static const UInt8 KeyringFileVersion = 2;
+static const UInt8 KeyringKdfArgon2id = 1;
+static const UInt32 KeyringSaltSize = 16;
+static const UInt32 KeyringCheckSize = 32;
+static const UInt32 KeyringHeaderSize = 4 + 1 + 1 + 4 + 4 + 4 + KeyringSaltSize + KeyringCheckSize;
+static const char KeyringSealInfo[] = "gucefAUTH keyring v2 seal";
+static const char KeyringCheckInfo[] = "gucefAUTH keyring v2 check";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -208,6 +239,126 @@ KeyStateText( CFileCredentialStore::EKeyState state )
         case CFileCredentialStore::KEYSTATE_UNTRUSTED: return "refused by its trust check";
         default: return "not a key";
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+static UInt32
+ReadUInt32At( const UInt8* bytes )
+{GUCEF_TRACE;
+
+    return (UInt32) bytes[ 0 ] | ( (UInt32) bytes[ 1 ] << 8 ) | ( (UInt32) bytes[ 2 ] << 16 ) | ( (UInt32) bytes[ 3 ] << 24 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+WriteUInt32At( UInt8* bytes, UInt32 value )
+{GUCEF_TRACE;
+
+    bytes[ 0 ] = (UInt8) value;
+    bytes[ 1 ] = (UInt8) ( value >> 8 );
+    bytes[ 2 ] = (UInt8) ( value >> 16 );
+    bytes[ 3 ] = (UInt8) ( value >> 24 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The header of a keyring file: how its key is derived and the check value of that key; nothing in it is secret */
+struct SKeyringHeader
+{
+    UInt32 memoryInKiB;
+    UInt32 passes;
+    UInt32 lanes;
+    UInt8 salt[ KeyringSaltSize ];
+    UInt8 check[ KeyringCheckSize ];
+    UInt8 bytes[ KeyringHeaderSize ];       /**< the header as it is in the file, the additional data of the seal */
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The parameters of a keyring are within what a keyring file may ask for */
+static bool
+AreKeyringParametersValid( UInt32 memoryInKiB, UInt32 passes, UInt32 lanes )
+{GUCEF_TRACE;
+
+    return lanes >= 1 && lanes <= CFileCredentialStore::MaxKeyringLanes &&
+           passes >= 1 && passes <= CFileCredentialStore::MaxKeyringPasses &&
+           memoryInKiB >= 8 * lanes && memoryInKiB <= CFileCredentialStore::MaxKeyringMemoryInKiB;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Reads the header of a keyring file: KEYRING_OK, KEYRING_NEWER_VERSION or KEYRING_TAMPERED (not a keyring file) */
+static TKeyringResult
+ParseKeyringHeader( const CORE::CDynamicBuffer& file, SKeyringHeader& header )
+{GUCEF_TRACE;
+
+    const UInt8* bytes = static_cast< const UInt8* >( file.GetConstBufferPtr() );
+    if ( file.GetDataSize() < 5 || 0 != memcmp( bytes, FileMagic, sizeof( FileMagic ) ) )
+        return KEYRING_TAMPERED;
+    if ( bytes[ 4 ] > KeyringFileVersion )
+        return KEYRING_NEWER_VERSION;
+    if ( bytes[ 4 ] != KeyringFileVersion || file.GetDataSize() < KeyringHeaderSize + CAuthCrypto::NonceSize + CAuthCrypto::TagSize ||
+         KeyringKdfArgon2id != bytes[ 5 ] )
+        return KEYRING_TAMPERED;
+    header.memoryInKiB = ReadUInt32At( bytes + 6 );
+    header.passes = ReadUInt32At( bytes + 10 );
+    header.lanes = ReadUInt32At( bytes + 14 );
+    if ( !AreKeyringParametersValid( header.memoryInKiB, header.passes, header.lanes ) )
+        return KEYRING_TAMPERED;
+    memcpy( header.salt, bytes + 18, KeyringSaltSize );
+    memcpy( header.check, bytes + 18 + KeyringSaltSize, KeyringCheckSize );
+    memcpy( header.bytes, bytes, KeyringHeaderSize );
+    return KEYRING_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A new header with a random salt; the check value is filled in by DeriveKeyringKeys() */
+static bool
+MakeKeyringHeader( UInt32 memoryInKiB, UInt32 passes, UInt32 lanes, SKeyringHeader& header )
+{GUCEF_TRACE;
+
+    header.memoryInKiB = memoryInKiB;
+    header.passes = passes;
+    header.lanes = lanes;
+    memset( header.check, 0, sizeof( header.check ) );
+    if ( !CAuthCrypto::RandomBytes( header.salt, KeyringSaltSize ) )
+        return false;
+    memcpy( header.bytes, FileMagic, sizeof( FileMagic ) );
+    header.bytes[ 4 ] = KeyringFileVersion;
+    header.bytes[ 5 ] = KeyringKdfArgon2id;
+    WriteUInt32At( header.bytes + 6, memoryInKiB );
+    WriteUInt32At( header.bytes + 10, passes );
+    WriteUInt32At( header.bytes + 14, lanes );
+    memcpy( header.bytes + 18, header.salt, KeyringSaltSize );
+    memset( header.bytes + 18 + KeyringSaltSize, 0, KeyringCheckSize );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Argon2id of the code with the salt and parameters of the header gives 32 bytes, HKDF-SHA256 of those the sealing key and
+ *  the check value. Nothing of it is kept here: every intermediate is wiped. False when the derivation is not available
+ */
+static bool
+DeriveKeyringKeys( const CSecretString& code, const SKeyringHeader& header, UInt8* sealKey, UInt8* check )
+{GUCEF_TRACE;
+
+    UInt8 master[ CAuthCrypto::KeySize ];
+    bool derived = CAuthCrypto::DeriveKeyFromPassphrase( code.Reveal().C_String(), code.Length(), header.salt, KeyringSaltSize,
+                                                         header.memoryInKiB, header.passes, header.lanes, master, sizeof( master ) ) &&
+                   CORE::CHkdfSha256::Derive( GUCEF_NULL, 0, master, sizeof( master ), KeyringSealInfo, (UInt32) sizeof( KeyringSealInfo ) - 1, sealKey, CAuthCrypto::KeySize ) &&
+                   CORE::CHkdfSha256::Derive( GUCEF_NULL, 0, master, sizeof( master ), KeyringCheckInfo, (UInt32) sizeof( KeyringCheckInfo ) - 1, check, KeyringCheckSize );
+    CAuthCrypto::Wipe( master, sizeof( master ) );
+    if ( !derived )
+    {
+        CAuthCrypto::Wipe( sealKey, CAuthCrypto::KeySize );
+        CAuthCrypto::Wipe( check, KeyringCheckSize );
+    }
+    return derived;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -357,9 +508,19 @@ CFileCredentialStore::CFileCredentialStore( void )
     , m_keyStateLogged( false )
     , m_loggedKeyState( KEYSTATE_OK )
     , m_strayKeyWarned( false )
+    , m_keyMode( KEYMODE_KEY_FILE )
+    , m_keyringMemoryInKiB( DefaultKeyringMemoryInKiB )
+    , m_keyringPasses( DefaultKeyringPasses )
+    , m_keyringLanes( DefaultKeyringLanes )
+    , m_keyringKey( CAuthCrypto::KeySize )
+    , m_keyringHeader()
+    , m_keyringUnlocked( false )
+    , m_keyringLastUseMs( 0 )
+    , m_keyringLockReason( KEYRINGLOCK_REQUESTED )
 {GUCEF_TRACE;
 
     memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
+    memset( m_keyringCheck, 0, sizeof( m_keyringCheck ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -384,9 +545,19 @@ CFileCredentialStore::CFileCredentialStore( const CORE::CString& directory )
     , m_keyStateLogged( false )
     , m_loggedKeyState( KEYSTATE_OK )
     , m_strayKeyWarned( false )
+    , m_keyMode( KEYMODE_KEY_FILE )
+    , m_keyringMemoryInKiB( DefaultKeyringMemoryInKiB )
+    , m_keyringPasses( DefaultKeyringPasses )
+    , m_keyringLanes( DefaultKeyringLanes )
+    , m_keyringKey( CAuthCrypto::KeySize )
+    , m_keyringHeader()
+    , m_keyringUnlocked( false )
+    , m_keyringLastUseMs( 0 )
+    , m_keyringLockReason( KEYRINGLOCK_REQUESTED )
 {GUCEF_TRACE;
 
     memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
+    memset( m_keyringCheck, 0, sizeof( m_keyringCheck ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -394,6 +565,8 @@ CFileCredentialStore::CFileCredentialStore( const CORE::CString& directory )
 CFileCredentialStore::~CFileCredentialStore()
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
+    LockKeyringWhileLocked( KEYRINGLOCK_APPLICATION_END );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -646,11 +819,21 @@ CFileCredentialStore::ReadFiles( const CORE::CString& directory, SFileImage& ima
 
     // The lock of the store file is held by the caller. A file that is there but cannot be read is there with no
     // content: the data file is then not a credential file, the key file is not a key
-    CORE::CString dataPath = CORE::CombinePath( directory, DataFileName );
+    CORE::CString dataPath = CORE::CombinePath( directory, GetDataFileNameWhileLocked() );
     image.hasData = CORE::FileExists( dataPath );
     if ( image.hasData && !image.data.LoadContentFromFile( dataPath ) )
         image.data.Clear();
-    ReadKey( directory, image );
+    if ( IsKeyringModeWhileLocked() )
+    {
+        // the key is the one in memory: there is no key file to read
+        image.externalKey = false;
+        image.hasKey = false;
+        image.keyState = KEYSTATE_OK;
+    }
+    else
+    {
+        ReadKey( directory, image );
+    }
     image.ComputeDigest();
 }
 
@@ -778,6 +961,11 @@ CFileCredentialStore::ParseImage( const SFileImage& image ) const
         m_keyRefused = true;
         return;
     }
+    if ( IsKeyringModeWhileLocked() )
+    {
+        ParseKeyringImage( image );
+        return;
+    }
 
     CORE::CString dataPath = CORE::CombinePath( GetDirectory(), DataFileName );
     if ( !image.hasData )
@@ -828,31 +1016,10 @@ CFileCredentialStore::ParseImage( const SFileImage& image ) const
         return;
     }
 
-    CBoundedReader reader( static_cast< const UInt8* >( plain.GetConstBufferPtr() ), plain.GetDataSize() );
-    UInt32 count = 0;
-    bool valid = reader.ReadUInt32( count ) && count <= MaxSlotCount;
     TSlotVector slots;
-    for ( UInt32 i=0; valid && i<count; ++i )
-    {
-        SSlot slot;
-        UInt16 providerLength = 0;
-        UInt16 accountLength = 0;
-        UInt32 secretLength = 0;
-        CORE::CString secretText;
-        valid = reader.ReadUInt16( providerLength ) && providerLength <= MaxNameSize && reader.ReadText( providerLength, slot.providerName ) &&
-                reader.ReadUInt16( accountLength ) && accountLength <= MaxNameSize && reader.ReadText( accountLength, slot.accountKey ) &&
-                reader.ReadUInt64( slot.storedAtMs ) &&
-                reader.ReadUInt32( secretLength ) && secretLength <= MaxSecretSize && reader.ReadText( secretLength, secretText );
-        if ( valid )
-        {
-            slot.secret.Set( secretText );
-            slots.push_back( slot );
-        }
-        if ( GetByteLength( secretText ) > 0 )
-            CAuthCrypto::Wipe( secretText.C_String(), GetByteLength( secretText ) );
-    }
+    bool valid = DeserializeSlots( static_cast< const UInt8* >( plain.GetConstBufferPtr() ), plain.GetDataSize(), slots );
     CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
-    if ( !valid || !reader.AtEnd() )
+    if ( !valid )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " has content that does not make sense" );
         m_tamperDetected = true;
@@ -869,6 +1036,18 @@ CFileCredentialStore::RefreshView( void ) const
 
     // The lock is held by the caller. Nothing is made for a read: without the files there is nothing to lock
     CORE::CString dir = GetDirectory();
+    if ( IsKeyringModeWhileLocked() )
+    {
+        if ( !CORE::FileExists( CORE::CombinePath( dir, KeyringFileName ) ) )
+        {
+            SFileImage none;
+            none.keyState = KEYSTATE_OK;
+            none.ComputeDigest();
+            UpdateView( none );
+            return true;
+        }
+    }
+    else
     if ( HasExternalKeyFileWhileLocked() && !CORE::FileExists( CORE::CombinePath( dir, DataFileName ) ) )
     {
         // no data: what is to know is the state of the external key, which is read without touching the directory
@@ -877,6 +1056,7 @@ CFileCredentialStore::RefreshView( void ) const
         UpdateView( keyOnly );
         return true;
     }
+    else
     if ( !CORE::FileExists( CORE::CombinePath( dir, DataFileName ) ) && !CORE::FileExists( CORE::CombinePath( dir, KeyFileName ) ) )
     {
         SFileImage none;
@@ -946,18 +1126,7 @@ CFileCredentialStore::WriteSlots( const CORE::CString& directory, const TSlotVec
     }
 
     CORE::CDynamicBuffer plain;
-    AppendUInt32( plain, (UInt32) slots.size() );
-    for ( size_t i=0; i<slots.size(); ++i )
-    {
-        const SSlot& slot = slots[ i ];
-        AppendUInt16( plain, (UInt16) GetByteLength( slot.providerName ) );
-        plain.Append( slot.providerName.C_String(), GetByteLength( slot.providerName ) );
-        AppendUInt16( plain, (UInt16) GetByteLength( slot.accountKey ) );
-        plain.Append( slot.accountKey.C_String(), GetByteLength( slot.accountKey ) );
-        AppendUInt64( plain, slot.storedAtMs );
-        AppendUInt32( plain, slot.secret.Length() );
-        plain.Append( slot.secret.Reveal().C_String(), slot.secret.Length() );
-    }
+    SerializeSlots( slots, plain );
 
     UInt8 header[ HeaderSize ];
     memcpy( header, FileMagic, sizeof( FileMagic ) );
@@ -1013,7 +1182,13 @@ CFileCredentialStore::Change( TChangeKind kind                     ,
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::AeadCipher << "\" codec, nothing is changed in the store in " << dir );
         return false;
     }
-    if ( HasExternalKeyFileWhileLocked() )
+    if ( IsKeyringModeWhileLocked() && !m_keyringUnlocked )
+    {
+        // nothing is made for a keyring that is locked, not even the directory
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The keyring in " << dir << " is locked, nothing is changed" );
+        return false;
+    }
+    if ( !IsKeyringModeWhileLocked() && HasExternalKeyFileWhileLocked() )
     {
         // without a usable external key nothing is made, not even the directory or the lock file
         SFileImage keyProbe;
@@ -1060,6 +1235,12 @@ CFileCredentialStore::Change( TChangeKind kind                     ,
     }
     if ( m_newerVersion || !m_loaded )
         return false;
+    if ( IsKeyringModeWhileLocked() && ( !m_keyringUnlocked || !CORE::FileExists( CORE::CombinePath( dir, KeyringFileName ) ) ) )
+    {
+        // locked meanwhile (another instance sealed it with another code, or it was forgotten), or never set up
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The keyring in " << dir << " is locked or not set up, nothing is changed" );
+        return false;
+    }
 
     TSlotVector slots( m_slots );
     bool changed = false;
@@ -1111,9 +1292,18 @@ CFileCredentialStore::Change( TChangeKind kind                     ,
             break;
         }
     }
+    if ( IsKeyringModeWhileLocked() )
+        m_keyringLastUseMs = GetMonotonicTimeInMs();
     if ( !changed )
         return true;
 
+    if ( IsKeyringModeWhileLocked() )
+    {
+        if ( !WriteKeyringSlots( dir, slots, static_cast< const UInt8* >( m_keyringHeader.GetConstBufferPtr() ), m_keyringHeader.GetDataSize(),
+                                 m_keyringKey.GetData(), image ) )
+            return false;
+    }
+    else
     if ( !WriteSlots( dir, slots, image ) )
         return false;
     m_slots = slots;
@@ -1160,6 +1350,12 @@ CFileCredentialStore::Load( const CORE::CString& providerName ,
     MT::CScopeMutex lock( m_lock );
     if ( !RefreshView() )
         return false;
+    if ( IsKeyringModeWhileLocked() )
+    {
+        if ( !m_keyringUnlocked )
+            return false;
+        m_keyringLastUseMs = GetMonotonicTimeInMs();
+    }
     const SSlot* slot = FindSlot( providerName, accountKey );
     if ( GUCEF_NULL == slot )
         return false;
@@ -1188,6 +1384,13 @@ CFileCredentialStore::ListAccounts( const CORE::CString& providerName        ,
     MT::CScopeMutex lock( m_lock );
     if ( !RefreshView() )
         return false;
+    if ( IsKeyringModeWhileLocked() )
+    {
+        // a locked keyring cannot be read: that is not the same as having no accounts
+        if ( !m_keyringUnlocked )
+            return false;
+        m_keyringLastUseMs = GetMonotonicTimeInMs();
+    }
     // the slot stored last first
     for ( size_t i=m_slots.size(); i>0; --i )
         if ( m_slots[ i-1 ].providerName == providerName )
@@ -1214,7 +1417,11 @@ CFileCredentialStore::Wipe( void )
     ForgetView();
     CORE::CString dir = GetDirectory();
     if ( !CORE::DirExists( dir ) )
+    {
+        if ( IsKeyringModeWhileLocked() )
+            LockKeyringWhileLocked( KEYRINGLOCK_FORGOTTEN );
         return true;
+    }
 
     // Under the exclusive lock, which another instance may hold open: the lock file itself stays
     CFileLock fileLock;
@@ -1225,6 +1432,17 @@ CFileCredentialStore::Wipe( void )
     }
 
     bool wiped = true;
+    if ( IsKeyringModeWhileLocked() )
+    {
+        // forgetting the code: the saved credentials go with the keyring; the files of the key file mode are not of this store
+        LockKeyringWhileLocked( KEYRINGLOCK_FORGOTTEN );
+        CORE::CString keyringPath = CORE::CombinePath( dir, KeyringFileName );
+        if ( CORE::FileExists( keyringPath ) )
+            wiped = CORE::DeleteFile( keyringPath );
+        if ( wiped )
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Deleted the keyring in " << dir << " and the credentials saved in it" );
+        return wiped;
+    }
     CORE::CString dataPath = CORE::CombinePath( dir, DataFileName );
     CORE::CString keyPath = CORE::CombinePath( dir, KeyFileName );
     if ( CORE::FileExists( dataPath ) )
@@ -1242,6 +1460,708 @@ CFileCredentialStore::Wipe( void )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CFileCredentialStore::SerializeSlots( const TSlotVector& slots, CORE::CDynamicBuffer& plain )
+{GUCEF_TRACE;
+
+    AppendUInt32( plain, (UInt32) slots.size() );
+    for ( size_t i=0; i<slots.size(); ++i )
+    {
+        const SSlot& slot = slots[ i ];
+        AppendUInt16( plain, (UInt16) GetByteLength( slot.providerName ) );
+        plain.Append( slot.providerName.C_String(), GetByteLength( slot.providerName ) );
+        AppendUInt16( plain, (UInt16) GetByteLength( slot.accountKey ) );
+        plain.Append( slot.accountKey.C_String(), GetByteLength( slot.accountKey ) );
+        AppendUInt64( plain, slot.storedAtMs );
+        AppendUInt32( plain, slot.secret.Length() );
+        plain.Append( slot.secret.Reveal().C_String(), slot.secret.Length() );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::DeserializeSlots( const UInt8* data, UInt32 size, TSlotVector& slots )
+{GUCEF_TRACE;
+
+    CBoundedReader reader( data, size );
+    UInt32 count = 0;
+    bool valid = reader.ReadUInt32( count ) && count <= MaxSlotCount;
+    for ( UInt32 i=0; valid && i<count; ++i )
+    {
+        SSlot slot;
+        UInt16 providerLength = 0;
+        UInt16 accountLength = 0;
+        UInt32 secretLength = 0;
+        CORE::CString secretText;
+        valid = reader.ReadUInt16( providerLength ) && providerLength <= MaxNameSize && reader.ReadText( providerLength, slot.providerName ) &&
+                reader.ReadUInt16( accountLength ) && accountLength <= MaxNameSize && reader.ReadText( accountLength, slot.accountKey ) &&
+                reader.ReadUInt64( slot.storedAtMs ) &&
+                reader.ReadUInt32( secretLength ) && secretLength <= MaxSecretSize && reader.ReadText( secretLength, secretText );
+        if ( valid )
+        {
+            slot.secret.Set( secretText );
+            slots.push_back( slot );
+        }
+        if ( GetByteLength( secretText ) > 0 )
+            CAuthCrypto::Wipe( secretText.C_String(), GetByteLength( secretText ) );
+    }
+    if ( !valid || !reader.AtEnd() )
+    {
+        slots.clear();
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::IsKeyringModeWhileLocked( void ) const
+{GUCEF_TRACE;
+
+    return KEYMODE_KEYRING_CODE == m_keyMode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CFileCredentialStore::GetDataFileNameWhileLocked( void ) const
+{GUCEF_TRACE;
+
+    return IsKeyringModeWhileLocked() ? KeyringFileName : DataFileName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::SetKeyMode( EKeyMode keyMode )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( keyMode != m_keyMode )
+        LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+    m_keyMode = keyMode;
+    ForgetView();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CFileCredentialStore::EKeyMode
+CFileCredentialStore::GetKeyMode( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_keyMode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CFileCredentialStore::KeyModeToString( EKeyMode keyMode )
+{GUCEF_TRACE;
+
+    static const CORE::CString keyFile( KeyModeKeyFileText );
+    static const CORE::CString keyringCode( KeyModeKeyringCodeText );
+    return KEYMODE_KEYRING_CODE == keyMode ? keyringCode : keyFile;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::KeyModeFromString( const CORE::CString& text, EKeyMode& keyMode )
+{GUCEF_TRACE;
+
+    if ( KeyModeKeyFileText == text )
+    {
+        keyMode = KEYMODE_KEY_FILE;
+        return true;
+    }
+    if ( KeyModeKeyringCodeText == text )
+    {
+        keyMode = KEYMODE_KEYRING_CODE;
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::IsKeyringAvailable( void )
+{GUCEF_TRACE;
+
+    return CAuthCrypto::IsAeadAvailable() && CAuthCrypto::IsPassphraseKdfAvailable();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::SetKeyringParameters( UInt32 memoryInKiB, UInt32 passes, UInt32 lanes )
+{GUCEF_TRACE;
+
+    if ( lanes < 1 )
+        lanes = 1;
+    if ( lanes > MaxKeyringLanes )
+        lanes = MaxKeyringLanes;
+    if ( passes < 1 )
+        passes = 1;
+    if ( passes > MaxKeyringPasses )
+        passes = MaxKeyringPasses;
+    if ( memoryInKiB < 8 * lanes )
+        memoryInKiB = 8 * lanes;
+    if ( memoryInKiB > MaxKeyringMemoryInKiB )
+        memoryInKiB = MaxKeyringMemoryInKiB;
+    MT::CScopeMutex lock( m_lock );
+    m_keyringMemoryInKiB = memoryInKiB;
+    m_keyringPasses = passes;
+    m_keyringLanes = lanes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::GetKeyringParameters( UInt32& memoryInKiB, UInt32& passes, UInt32& lanes ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    memoryInKiB = m_keyringMemoryInKiB;
+    passes = m_keyringPasses;
+    lanes = m_keyringLanes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::GetSealedKeyringParameters( UInt32& memoryInKiB, UInt32& passes, UInt32& lanes ) const
+{GUCEF_TRACE;
+
+    CORE::CDynamicBuffer file;
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( KEYRING_OK != ReadKeyringFile( file ) )
+            return false;
+    }
+    SKeyringHeader header;
+    if ( KEYRING_OK != ParseKeyringHeader( file, header ) )
+        return false;
+    memoryInKiB = header.memoryInKiB;
+    passes = header.passes;
+    lanes = header.lanes;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::IsKeyringSetUp( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return CORE::FileExists( CORE::CombinePath( GetDirectory(), KeyringFileName ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::IsKeyringLocked( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return IsKeyringModeWhileLocked() && !m_keyringUnlocked;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TKeyringLockReason
+CFileCredentialStore::GetKeyringLockReason( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_keyringLockReason;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CFileCredentialStore::GetKeyringLastUseInMs( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_keyringUnlocked ? m_keyringLastUseMs : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TKeyringResult
+CFileCredentialStore::CheckKeyringUse( const CSecretString& code ) const
+{GUCEF_TRACE;
+
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( !IsKeyringModeWhileLocked() )
+            return KEYRING_NOT_KEYRING_MODE;
+    }
+    if ( code.IsEmpty() || code.Length() > MaxKeyringCodeLength )
+        return KEYRING_INVALID_CODE;
+    if ( !IsKeyringAvailable() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::PassphraseKdf << "\" or \"" <<
+            CAuthCrypto::AeadCipher << "\" codec, the keyring cannot be used" );
+        return KEYRING_UNAVAILABLE;
+    }
+    return KEYRING_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TKeyringResult
+CFileCredentialStore::ReadKeyringFile( CORE::CDynamicBuffer& file ) const
+{GUCEF_TRACE;
+
+    // The mutex of the instance is held by the caller
+    CORE::CString dir = GetDirectory();
+    CORE::CString path = CORE::CombinePath( dir, KeyringFileName );
+    if ( !CORE::FileExists( path ) )
+        return KEYRING_NOT_SET_UP;
+    CFileLock fileLock;
+    if ( CFileLock::LOCKOUTCOME_TIMED_OUT == fileLock.Acquire( CORE::CombinePath( dir, LockFileName ), false, m_lockTimeoutInMs ) )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The store in " << dir << " stayed locked by another instance for " << m_lockTimeoutInMs << " ms, the keyring is not read" );
+        return KEYRING_FAILED;
+    }
+    if ( !CORE::FileExists( path ) )
+        return KEYRING_NOT_SET_UP;
+    if ( !file.LoadContentFromFile( path ) )
+        return KEYRING_FAILED;
+    return KEYRING_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::InstallKeyringKey( const UInt8* sealKey, const UInt8* check, const UInt8* header, UInt32 headerSize ) const
+{GUCEF_TRACE;
+
+    // The mutex of the instance is held by the caller
+    m_keyringKey.Assign( sealKey, CAuthCrypto::KeySize );
+    memcpy( m_keyringCheck, check, KeyringCheckSize );
+    m_keyringHeader.Clear();
+    m_keyringHeader.Append( header, headerSize );
+    m_keyringUnlocked = true;
+    m_keyringLastUseMs = GetMonotonicTimeInMs();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::LockKeyringWhileLocked( TKeyringLockReason reason ) const
+{GUCEF_TRACE;
+
+    // The mutex of the instance is held by the caller. The secrets read with the key go with it
+    bool wasUnlocked = m_keyringUnlocked;
+    m_keyringKey.Clear();
+    CAuthCrypto::Wipe( m_keyringCheck, sizeof( m_keyringCheck ) );
+    m_keyringHeader.Clear();
+    m_keyringUnlocked = false;
+    m_keyringLastUseMs = 0;
+    if ( IsKeyringModeWhileLocked() )
+        m_slots.clear();
+    if ( wasUnlocked )
+    {
+        m_keyringLockReason = reason;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The keyring in " << GetDirectory() << " is locked (" << KeyringLockReasonToString( reason ) << ")" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::ParseKeyringImage( const SFileImage& image ) const
+{GUCEF_TRACE;
+
+    // The mutex of the instance is held by the caller; ParseImage() has emptied the view
+    CORE::CString dataPath = CORE::CombinePath( GetDirectory(), KeyringFileName );
+    if ( !image.hasData )
+    {
+        if ( m_keyringUnlocked )
+            LockKeyringWhileLocked( KEYRINGLOCK_CHANGED_ELSEWHERE );
+        return;
+    }
+
+    SKeyringHeader header;
+    TKeyringResult headerResult = ParseKeyringHeader( image.data, header );
+    if ( KEYRING_NEWER_VERSION == headerResult )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " is of a newer version, it is left alone" );
+        m_newerVersion = true;
+        LockKeyringWhileLocked( KEYRINGLOCK_CHANGED_ELSEWHERE );
+        return;
+    }
+    if ( KEYRING_OK != headerResult )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " is not a keyring file" );
+        m_tamperDetected = true;
+        LockKeyringWhileLocked( KEYRINGLOCK_CHANGED_ELSEWHERE );
+        return;
+    }
+    if ( !m_keyringUnlocked )
+        return;     // locked: the header is all that can be looked at
+    if ( !CAuthCrypto::ConstantTimeEquals( header.check, m_keyringCheck, KeyringCheckSize ) )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " was sealed with another code since the keyring was unlocked" );
+        LockKeyringWhileLocked( KEYRINGLOCK_CHANGED_ELSEWHERE );
+        return;
+    }
+    if ( !IsAvailable() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::AeadCipher << "\" codec, " << dataPath << " cannot be read" );
+        m_loaded = false;
+        return;
+    }
+
+    const UInt8* bytes = static_cast< const UInt8* >( image.data.GetConstBufferPtr() );
+    CORE::CDynamicBuffer plain;
+    bool opened = CAuthCrypto::AeadOpen( m_keyringKey.GetData(), bytes + KeyringHeaderSize, header.bytes, KeyringHeaderSize,
+                                         bytes + KeyringHeaderSize + CAuthCrypto::NonceSize,
+                                         image.data.GetDataSize() - KeyringHeaderSize - CAuthCrypto::NonceSize, plain );
+    if ( !opened )
+    {
+        // the code is right (the check value matches): the data was changed
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " failed authentication with the right code, it was changed" );
+        if ( plain.GetDataSize() > 0 )
+            CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
+        m_tamperDetected = true;
+        return;
+    }
+    TSlotVector slots;
+    bool valid = DeserializeSlots( static_cast< const UInt8* >( plain.GetConstBufferPtr() ), plain.GetDataSize(), slots );
+    CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
+    if ( !valid )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " has content that does not make sense" );
+        m_tamperDetected = true;
+        return;
+    }
+    m_slots = slots;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::WriteKeyringSlots( const CORE::CString& directory ,
+                                         const TSlotVector& slots       ,
+                                         const UInt8* header            ,
+                                         UInt32 headerSize              ,
+                                         const UInt8* sealKey           ,
+                                         SFileImage& image              ) const
+{GUCEF_TRACE;
+
+    // The exclusive lock of the store file is held by the caller
+    if ( KeyringHeaderSize != headerSize || GUCEF_NULL == sealKey )
+        return false;
+    CORE::CDynamicBuffer plain;
+    SerializeSlots( slots, plain );
+    UInt8 nonce[ CAuthCrypto::NonceSize ];
+    CORE::CDynamicBuffer file;
+    bool sealed = CAuthCrypto::RandomBytes( nonce, sizeof( nonce ) );
+    if ( sealed )
+    {
+        file.Append( header, headerSize );
+        file.Append( nonce, sizeof( nonce ) );
+        sealed = CAuthCrypto::AeadSeal( sealKey, nonce, header, headerSize, plain.GetConstBufferPtr(), plain.GetDataSize(), file );
+    }
+    if ( plain.GetDataSize() > 0 )
+        CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
+    if ( !sealed )
+        return false;
+
+    CORE::CString dataPath = CORE::CombinePath( directory, KeyringFileName );
+    if ( !CORE::WriteFileAtomically( dataPath, file ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot write " << dataPath );
+        return false;
+    }
+    if ( !CORE::SetOwnerOnlyAccess( dataPath ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot restrict " << dataPath << " to the user" );
+
+    image.hasData = true;
+    image.data = file;
+    image.hasKey = false;
+    image.keyState = KEYSTATE_OK;
+    image.ComputeDigest();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TKeyringResult
+CFileCredentialStore::SetUpKeyring( const CSecretString& code )
+{GUCEF_TRACE;
+
+    TKeyringResult result = CheckKeyringUse( code );
+    if ( KEYRING_OK != result )
+        return result;
+
+    SKeyringHeader header;
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( CORE::FileExists( CORE::CombinePath( GetDirectory(), KeyringFileName ) ) )
+            return KEYRING_ALREADY_SET_UP;
+        if ( !MakeKeyringHeader( m_keyringMemoryInKiB, m_keyringPasses, m_keyringLanes, header ) )
+            return KEYRING_FAILED;
+    }
+
+    // The derivation takes its time: without the lock of the instance, so that other threads are answered meanwhile
+    UInt8 sealKey[ CAuthCrypto::KeySize ];
+    if ( !DeriveKeyringKeys( code, header, sealKey, header.check ) )
+        return KEYRING_UNAVAILABLE;
+    memcpy( header.bytes + 18 + KeyringSaltSize, header.check, KeyringCheckSize );
+
+    MT::CScopeMutex lock( m_lock );
+    result = KEYRING_FAILED;
+    CORE::CString dir = GetDirectory();
+    if ( IsKeyringModeWhileLocked() && PrepareDirectory() )
+    {
+        CFileLock fileLock;
+        CFileLock::TLockOutcome outcome = fileLock.Acquire( CORE::CombinePath( dir, LockFileName ), true, m_lockTimeoutInMs );
+        if ( CFileLock::LOCKOUTCOME_TAKEN != outcome && CFileLock::IsSupported() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot lock the store in " << dir << ", the keyring is not set up" );
+        }
+        else
+        if ( CORE::FileExists( CORE::CombinePath( dir, KeyringFileName ) ) )
+        {
+            result = KEYRING_ALREADY_SET_UP;
+        }
+        else
+        {
+            SFileImage image;
+            TSlotVector none;
+            if ( WriteKeyringSlots( dir, none, header.bytes, KeyringHeaderSize, sealKey, image ) )
+            {
+                LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+                ForgetView();
+                InstallKeyringKey( sealKey, header.check, header.bytes, KeyringHeaderSize );
+                m_loaded = true;
+                memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Set up a keyring code for the store in " << dir );
+                result = KEYRING_OK;
+            }
+        }
+    }
+    CAuthCrypto::Wipe( sealKey, sizeof( sealKey ) );
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TKeyringResult
+CFileCredentialStore::UnlockKeyring( const CSecretString& code )
+{GUCEF_TRACE;
+
+    TKeyringResult result = CheckKeyringUse( code );
+    if ( KEYRING_INVALID_CODE == result )
+        return KEYRING_WRONG_CODE;
+    if ( KEYRING_OK != result )
+        return result;
+
+    CORE::CDynamicBuffer file;
+    {
+        MT::CScopeMutex lock( m_lock );
+        result = ReadKeyringFile( file );
+    }
+    if ( KEYRING_OK != result )
+        return result;
+    SKeyringHeader header;
+    result = ParseKeyringHeader( file, header );
+    if ( KEYRING_OK != result )
+    {
+        MT::CScopeMutex lock( m_lock );
+        RefreshView();     // notes the state of the file: tampered or newer
+        return result;
+    }
+
+    // The derivation takes its time: without the lock of the instance, so that other threads are answered (locked) meanwhile
+    UInt8 sealKey[ CAuthCrypto::KeySize ];
+    UInt8 check[ KeyringCheckSize ];
+    if ( !DeriveKeyringKeys( code, header, sealKey, check ) )
+        return KEYRING_UNAVAILABLE;
+    if ( !CAuthCrypto::ConstantTimeEquals( check, header.check, KeyringCheckSize ) )
+    {
+        CAuthCrypto::Wipe( sealKey, sizeof( sealKey ) );
+        CAuthCrypto::Wipe( check, sizeof( check ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: A wrong code was given for the keyring" );
+        return KEYRING_WRONG_CODE;
+    }
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !IsKeyringModeWhileLocked() )
+    {
+        CAuthCrypto::Wipe( sealKey, sizeof( sealKey ) );
+        CAuthCrypto::Wipe( check, sizeof( check ) );
+        return KEYRING_NOT_KEYRING_MODE;
+    }
+    InstallKeyringKey( sealKey, check, header.bytes, KeyringHeaderSize );
+    CAuthCrypto::Wipe( sealKey, sizeof( sealKey ) );
+    CAuthCrypto::Wipe( check, sizeof( check ) );
+    ForgetView();
+    if ( !RefreshView() )
+    {
+        LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+        ForgetView();
+        return KEYRING_FAILED;
+    }
+    if ( m_tamperDetected )
+    {
+        // the view stays as read (tampered) until the file changes; the key goes
+        LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+        return KEYRING_TAMPERED;
+    }
+    if ( !m_keyringUnlocked )
+        return KEYRING_WRONG_CODE;      // sealed with another code between the derivation and now
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The keyring in " << GetDirectory() << " is unlocked" );
+    return KEYRING_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::LockKeyring( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    if ( !m_keyringUnlocked )
+        return;
+    LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+    ForgetView();
+}
+
+/*-------------------------------------------------------------------------*/
+
+TKeyringResult
+CFileCredentialStore::ChangeKeyringCode( const CSecretString& currentCode, const CSecretString& newCode )
+{GUCEF_TRACE;
+
+    TKeyringResult result = CheckKeyringUse( newCode );
+    if ( KEYRING_OK != result )
+        return result;
+    if ( currentCode.IsEmpty() || currentCode.Length() > MaxKeyringCodeLength )
+        return KEYRING_WRONG_CODE;
+
+    CORE::CDynamicBuffer file;
+    SKeyringHeader newHeader;
+    {
+        MT::CScopeMutex lock( m_lock );
+        result = ReadKeyringFile( file );
+        if ( KEYRING_OK == result && !MakeKeyringHeader( m_keyringMemoryInKiB, m_keyringPasses, m_keyringLanes, newHeader ) )
+            result = KEYRING_FAILED;
+    }
+    if ( KEYRING_OK != result )
+        return result;
+    SKeyringHeader header;
+    result = ParseKeyringHeader( file, header );
+    if ( KEYRING_OK != result )
+        return result;
+
+    // Both derivations without the lock of the instance
+    UInt8 currentKey[ CAuthCrypto::KeySize ];
+    UInt8 currentCheck[ KeyringCheckSize ];
+    if ( !DeriveKeyringKeys( currentCode, header, currentKey, currentCheck ) )
+        return KEYRING_UNAVAILABLE;
+    if ( !CAuthCrypto::ConstantTimeEquals( currentCheck, header.check, KeyringCheckSize ) )
+    {
+        CAuthCrypto::Wipe( currentKey, sizeof( currentKey ) );
+        CAuthCrypto::Wipe( currentCheck, sizeof( currentCheck ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: A wrong code was given to change the code of the keyring" );
+        return KEYRING_WRONG_CODE;
+    }
+    UInt8 newKey[ CAuthCrypto::KeySize ];
+    if ( !DeriveKeyringKeys( newCode, newHeader, newKey, newHeader.check ) )
+    {
+        CAuthCrypto::Wipe( currentKey, sizeof( currentKey ) );
+        CAuthCrypto::Wipe( currentCheck, sizeof( currentCheck ) );
+        return KEYRING_UNAVAILABLE;
+    }
+    memcpy( newHeader.bytes + 18 + KeyringSaltSize, newHeader.check, KeyringCheckSize );
+
+    MT::CScopeMutex lock( m_lock );
+    result = KEYRING_FAILED;
+    CORE::CString dir = GetDirectory();
+    CFileLock fileLock;
+    CFileLock::TLockOutcome outcome = fileLock.Acquire( CORE::CombinePath( dir, LockFileName ), true, m_lockTimeoutInMs );
+    if ( !IsKeyringModeWhileLocked() )
+    {
+        result = KEYRING_NOT_KEYRING_MODE;
+    }
+    else
+    if ( CFileLock::LOCKOUTCOME_TAKEN != outcome && CFileLock::IsSupported() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot lock the store in " << dir << ", the code of the keyring is not changed" );
+    }
+    else
+    {
+        // what is in the file now, which has to be what the current code opens
+        SFileImage image;
+        ReadFiles( dir, image );
+        SKeyringHeader nowHeader;
+        TSlotVector slots;
+        if ( !image.hasData )
+        {
+            result = KEYRING_NOT_SET_UP;
+        }
+        else
+        if ( KEYRING_OK != ( result = ParseKeyringHeader( image.data, nowHeader ) ) )
+        {
+            // tampered or newer: as the view of the instance says after the next read
+        }
+        else
+        if ( !CAuthCrypto::ConstantTimeEquals( nowHeader.check, currentCheck, KeyringCheckSize ) )
+        {
+            result = KEYRING_WRONG_CODE;    // sealed with another code meanwhile
+        }
+        else
+        {
+            const UInt8* bytes = static_cast< const UInt8* >( image.data.GetConstBufferPtr() );
+            CORE::CDynamicBuffer plain;
+            bool opened = CAuthCrypto::AeadOpen( currentKey, bytes + KeyringHeaderSize, nowHeader.bytes, KeyringHeaderSize,
+                                                 bytes + KeyringHeaderSize + CAuthCrypto::NonceSize,
+                                                 image.data.GetDataSize() - KeyringHeaderSize - CAuthCrypto::NonceSize, plain );
+            bool valid = opened && DeserializeSlots( static_cast< const UInt8* >( plain.GetConstBufferPtr() ), plain.GetDataSize(), slots );
+            if ( plain.GetDataSize() > 0 )
+                CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
+            if ( !valid )
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The keyring in " << dir << " failed authentication with the right code, its code is not changed" );
+                result = KEYRING_TAMPERED;
+            }
+            else
+            if ( WriteKeyringSlots( dir, slots, newHeader.bytes, KeyringHeaderSize, newKey, image ) )
+            {
+                LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+                ForgetView();
+                InstallKeyringKey( newKey, newHeader.check, newHeader.bytes, KeyringHeaderSize );
+                m_slots = slots;
+                m_loaded = true;
+                memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The code of the keyring in " << dir << " was changed, the keyring was sealed again" );
+                result = KEYRING_OK;
+            }
+        }
+    }
+    CAuthCrypto::Wipe( currentKey, sizeof( currentKey ) );
+    CAuthCrypto::Wipe( currentCheck, sizeof( currentCheck ) );
+    CAuthCrypto::Wipe( newKey, sizeof( newKey ) );
+    if ( KEYRING_TAMPERED == result || KEYRING_NEWER_VERSION == result )
+    {
+        ForgetView();
+        RefreshView();
+    }
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CFileCredentialStore::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
@@ -1254,6 +2174,14 @@ CFileCredentialStore::SaveConfig( CORE::CDataNode& config ) const
         config.SetAttribute( "keyFile", m_keyFile );
     if ( KEYFILETRUST_OWNER_ONLY != m_keyFileTrust )
         config.SetAttribute( "keyFileTrust", KeyFileTrustToString( m_keyFileTrust ) );
+    if ( KEYMODE_KEY_FILE != m_keyMode )
+        config.SetAttribute( "keyMode", KeyModeToString( m_keyMode ) );
+    if ( DefaultKeyringMemoryInKiB != m_keyringMemoryInKiB )
+        config.SetAttribute( "keyringMemoryInKiB", m_keyringMemoryInKiB );
+    if ( DefaultKeyringPasses != m_keyringPasses )
+        config.SetAttribute( "keyringPasses", m_keyringPasses );
+    if ( DefaultKeyringLanes != m_keyringLanes )
+        config.SetAttribute( "keyringLanes", m_keyringLanes );
     return true;
 }
 
@@ -1276,7 +2204,22 @@ CFileCredentialStore::LoadConfig( const CORE::CDataNode& config )
             KeyFileTrustOwnerOnlyText << "\" is used" );
         keyFileTrust = KEYFILETRUST_OWNER_ONLY;
     }
+    CORE::CString keyModeText = config.GetAttributeValueOrChildValueByName( "keyMode" ).AsString( CORE::CString::Empty, true );
+    EKeyMode keyMode = KEYMODE_KEY_FILE;
+    if ( !keyModeText.IsNULLOrEmpty() && !KeyModeFromString( keyModeText, keyMode ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Unknown keyMode \"" << keyModeText << "\", \"" <<
+            KeyModeKeyFileText << "\" is used" );
+        keyMode = KEYMODE_KEY_FILE;
+    }
+    UInt32 keyringMemoryInKiB = config.GetAttributeValueOrChildValueByName( "keyringMemoryInKiB" ).AsUInt32( DefaultKeyringMemoryInKiB, true );
+    UInt32 keyringPasses = config.GetAttributeValueOrChildValueByName( "keyringPasses" ).AsUInt32( DefaultKeyringPasses, true );
+    UInt32 keyringLanes = config.GetAttributeValueOrChildValueByName( "keyringLanes" ).AsUInt32( DefaultKeyringLanes, true );
+    SetKeyringParameters( keyringMemoryInKiB, keyringPasses, keyringLanes );
     MT::CScopeMutex lock( m_lock );
+    if ( keyMode != m_keyMode )
+        LockKeyringWhileLocked( KEYRINGLOCK_REQUESTED );
+    m_keyMode = keyMode;
     m_appName = appName;
     m_directory = directory;
     m_lockTimeoutInMs = lockTimeoutInMs;

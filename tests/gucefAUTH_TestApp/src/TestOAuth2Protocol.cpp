@@ -91,6 +91,18 @@ Contains( const CORE::CString& text, const CORE::CString& part )
 
 /*-------------------------------------------------------------------------*/
 
+static CORE::CString
+Repeat( char c, UInt32 count )
+{GUCEF_TRACE;
+
+    CORE::CString text;
+    for ( UInt32 i=0; i<count; ++i )
+        text += c;
+    return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static AUTH::CAuthProviderDescriptor
 Descriptor( const CORE::CString& name )
 {GUCEF_TRACE;
@@ -495,6 +507,137 @@ PerformProtocolTests( void )
             settings.redirectMode = "manual";
             settings.redirectUri = "com.example.game:/cb";
             ASSERT_TRUE( AUTH::COAuth2Protocol::Resolve( google, settings, GUCEF_NULL, false, resolved, error ) && "manual" == resolved.redirectMode );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The redirect mode code-entry needs no redirect uri and leaves it out of the authorization request; token parameters are read from the settings and may not replace what the engine sets" )
+        try
+        {
+            AUTH::CAuthProviderDescriptor google = Descriptor( "google" );
+            AUTH::CAuthProviderSettings settings;
+            settings.clientId = "client-1";
+            AUTH::COAuth2Resolved resolved;
+            CORE::CString error;
+
+            settings.redirectMode = "code-entry";
+            ASSERT_TRUE( AUTH::COAuth2Protocol::Resolve( google, settings, GUCEF_NULL, false, resolved, error ) );
+            ASSERT_TRUE( "code-entry" == resolved.redirectMode && resolved.redirectUri.IsNULLOrEmpty() && resolved.tokenParameters.empty() );
+            CORE::CString url = AUTH::COAuth2Protocol::BuildAuthorizationUrl( google, resolved, resolved.redirectUri, "the-state", "the-nonce", "the-challenge", CORE::CString::Empty );
+            ASSERT_TRUE( Contains( url, "state=the-state" ) && !Contains( url, "redirect_uri" ) );
+
+            // with a redirect uri it is sent, and it has to be an acceptable one
+            settings.redirectUri = "https://game.example/code-page";
+            ASSERT_TRUE( AUTH::COAuth2Protocol::Resolve( google, settings, GUCEF_NULL, false, resolved, error ) && settings.redirectUri == resolved.redirectUri );
+            url = AUTH::COAuth2Protocol::BuildAuthorizationUrl( google, resolved, resolved.redirectUri, "s", "n", "c", CORE::CString::Empty );
+            ASSERT_TRUE( Contains( url, "redirect_uri=https%3A%2F%2Fgame.example%2Fcode-page" ) );
+            settings.redirectUri = "javascript:alert(1)";
+            ASSERT_FALSE( AUTH::COAuth2Protocol::Resolve( google, settings, GUCEF_NULL, false, resolved, error ) );
+            settings.redirectUri = CORE::CString::Empty;
+
+            // the other modes still need one
+            settings.redirectMode = "manual";
+            ASSERT_FALSE( AUTH::COAuth2Protocol::Resolve( google, settings, GUCEF_NULL, false, resolved, error ) );
+
+            // token parameters
+            settings.redirectMode = "loopback";
+            settings.tokenParameters[ "token_type" ] = "eg1";
+            settings.tokenParameters[ "some-field.1_x" ] = "a b";
+            ASSERT_TRUE( AUTH::COAuth2Protocol::Resolve( google, settings, GUCEF_NULL, false, resolved, error ) );
+            ASSERT_TRUE( 2 == resolved.tokenParameters.size() && "eg1" == resolved.tokenParameters[ "token_type" ] && "a b" == resolved.tokenParameters[ "some-field.1_x" ] );
+            const char* refusedNames[] = { "", "a b", "a=b", "a&b", "a\nb", "grant_type", "code", "redirect_uri", "code_verifier", "client_id", "client_secret", "refresh_token", "device_code" };
+            for ( size_t i=0; i<sizeof( refusedNames ) / sizeof( refusedNames[ 0 ] ); ++i )
+            {
+                AUTH::CAuthProviderSettings bad = settings;
+                bad.tokenParameters.clear();
+                bad.tokenParameters[ refusedNames[ i ] ] = "x";
+                ASSERT_FALSE( AUTH::COAuth2Protocol::Resolve( google, bad, GUCEF_NULL, false, resolved, error ) );
+                ASSERT_FALSE( error.IsNULLOrEmpty() );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The text of a pasted authorization code is a bare code or a JSON page with authorizationCode; anything else says why it is not" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json or rsa codec is not available" );
+        try
+        {
+            struct SCase { const char* text; AUTH::TCodeCheck expected; const char* code; };
+            const SCase cases[] =
+            {
+                // a bare code, as it is copied
+                { "0123456789abcdef0123456789abcdef", AUTH::CODECHECK_ACCEPTED, "0123456789abcdef0123456789abcdef" },
+                { "  0123abcd\r\n", AUTH::CODECHECK_ACCEPTED, "0123abcd" },
+                { "\"0123abcd\"", AUTH::CODECHECK_ACCEPTED, "0123abcd" },
+                { " \t\"0123abcd\" \n", AUTH::CODECHECK_ACCEPTED, "0123abcd" },
+                { "4/0AbC-d_e.f~g+h=i%2F", AUTH::CODECHECK_ACCEPTED, "4/0AbC-d_e.f~g+h=i%2F" },
+                // the page
+                { "{\"authorizationCode\":\"abc123\"}", AUTH::CODECHECK_ACCEPTED, "abc123" },
+                { "{\"redirectUrl\":\"https://x.example/?code=1\",\"sid\":null,\"authorizationCode\":\"abc123\",\"exchangeCode\":null}", AUTH::CODECHECK_ACCEPTED, "abc123" },
+                { "\n  { \"authorizationCode\" : \"abc123\" }  \n", AUTH::CODECHECK_ACCEPTED, "abc123" },
+                // nothing
+                { "", AUTH::CODECHECK_EMPTY, "" },
+                { "   \t\r\n ", AUTH::CODECHECK_EMPTY, "" },
+                { "\"\"", AUTH::CODECHECK_EMPTY, "" },
+                { "{\"authorizationCode\":\"\"}", AUTH::CODECHECK_EMPTY, "" },
+                // a page without the member, or with it as something that is not a string
+                { "{}", AUTH::CODECHECK_NO_CODE, "" },
+                { "{\"errorCode\":\"errors.com.example.invalid\"}", AUTH::CODECHECK_NO_CODE, "" },
+                { "{\"authorizationcode\":\"abc123\"}", AUTH::CODECHECK_NO_CODE, "" },
+                { "{\"authorizationCode\":null}", AUTH::CODECHECK_NO_CODE, "" },
+                { "{\"authorizationCode\":12345}", AUTH::CODECHECK_NO_CODE, "" },
+                { "{\"other\":{\"authorizationCode\":\"abc123\"}}", AUTH::CODECHECK_NO_CODE, "" },
+                // rubbish
+                { "this is not a code", AUTH::CODECHECK_MALFORMED, "" },
+                { "<html><body>code: abc123</body></html>", AUTH::CODECHECK_MALFORMED, "" },
+                { "https://www.example.com/?code=abc123", AUTH::CODECHECK_MALFORMED, "" },
+                { "abc123;rm -rf", AUTH::CODECHECK_MALFORMED, "" },
+                { "[\"abc123\"]", AUTH::CODECHECK_MALFORMED, "" },
+                { "\"abc123", AUTH::CODECHECK_MALFORMED, "" },
+                { "abc\"123", AUTH::CODECHECK_MALFORMED, "" },
+                { "{not json", AUTH::CODECHECK_MALFORMED, "" },
+                { "{\"authorizationCode\":\"abc123\"", AUTH::CODECHECK_MALFORMED, "" },
+                { "{\"authorizationCode\":\"abc 123\"}", AUTH::CODECHECK_MALFORMED, "" },
+                { "{\"authorizationCode\":\"abc123\",\"authorizationCode\":\"def456\"}", AUTH::CODECHECK_MALFORMED, "" }
+            };
+            for ( size_t i=0; i<sizeof( cases ) / sizeof( cases[ 0 ] ); ++i )
+            {
+                AUTH::CSecretString code( "left-over" );
+                AUTH::TCodeCheck check = AUTH::CODECHECK_REFUSED;
+                bool taken = AUTH::COAuth2Protocol::ParseAuthorizationCode( AUTH::CSecretString( cases[ i ].text ), code, check );
+                ASSERT_TRUE( ( AUTH::CODECHECK_ACCEPTED == cases[ i ].expected ) == taken );
+                ASSERT_TRUE( cases[ i ].expected == check );
+                ASSERT_TRUE( CORE::CString( cases[ i ].code ) == code.Reveal() );
+            }
+
+            // the limits: the code is at most MaxCodeBytes, the page at most MaxCodeTextBytes
+            AUTH::CSecretString code;
+            AUTH::TCodeCheck check = AUTH::CODECHECK_REFUSED;
+            CORE::CString longest = Repeat( 'a', AUTH::COAuth2Protocol::MaxCodeBytes );
+            ASSERT_TRUE( AUTH::COAuth2Protocol::ParseAuthorizationCode( AUTH::CSecretString( longest ), code, check ) && AUTH::CODECHECK_ACCEPTED == check );
+            ASSERT_TRUE( AUTH::COAuth2Protocol::MaxCodeBytes == code.Length() );
+            ASSERT_FALSE( AUTH::COAuth2Protocol::ParseAuthorizationCode( AUTH::CSecretString( longest + "a" ), code, check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_MALFORMED == check && code.IsEmpty() );
+            ASSERT_FALSE( AUTH::COAuth2Protocol::ParseAuthorizationCode( AUTH::CSecretString( "{\"authorizationCode\":\"" + longest + "a\"}" ), code, check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_MALFORMED == check );
+            CORE::CString hugePage = Repeat( ' ', AUTH::COAuth2Protocol::MaxCodeTextBytes );
+            ASSERT_FALSE( AUTH::COAuth2Protocol::ParseAuthorizationCode( AUTH::CSecretString( "{\"authorizationCode\":\"abc\",\"x\":\"" + hugePage + "\"}" ), code, check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_MALFORMED == check );
+
+            // the names of the outcomes are stable
+            ASSERT_TRUE( CORE::CString( "accepted" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_ACCEPTED ) );
+            ASSERT_TRUE( CORE::CString( "no-login-waiting" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_NO_LOGIN_WAITING ) );
+            ASSERT_TRUE( CORE::CString( "ambiguous" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_AMBIGUOUS ) );
+            ASSERT_TRUE( CORE::CString( "empty" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_EMPTY ) );
+            ASSERT_TRUE( CORE::CString( "malformed" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_MALFORMED ) );
+            ASSERT_TRUE( CORE::CString( "no-code" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_NO_CODE ) );
+            ASSERT_TRUE( CORE::CString( "refused" ) == AUTH::CodeCheckToString( AUTH::CODECHECK_REFUSED ) );
         }
         catch ( ... )
         {

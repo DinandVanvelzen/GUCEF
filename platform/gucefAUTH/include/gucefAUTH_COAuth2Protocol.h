@@ -45,6 +45,11 @@
 #define GUCEF_AUTH_CSECRETSTRING_H
 #endif /* GUCEF_AUTH_CSECRETSTRING_H ? */
 
+#ifndef GUCEF_AUTH_IAUTHFLOWENGINE_H
+#include "gucefAUTH_IAuthFlowEngine.h"
+#define GUCEF_AUTH_IAUTHFLOWENGINE_H
+#endif /* GUCEF_AUTH_IAUTHFLOWENGINE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -105,7 +110,8 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Resolved
     CORE::CString revocationEndpoint;
     CORE::CString tokenVerifyEndpoint;
     CORE::CString::StringMap parameters;        /**< the defaults of the descriptor with the settings on top */
-    CORE::CString redirectMode;                 /**< "loopback", "custom-scheme" or "manual" */
+    CORE::CString::StringMap tokenParameters;   /**< extra form fields of every request to the token endpoint, from the settings; they never replace a field the engine sets */
+    CORE::CString redirectMode;                 /**< "loopback", "custom-scheme", "manual" or "code-entry" */
     UInt16 loopbackPort;
     CORE::CString loopbackPath;
     CORE::CString redirectUri;
@@ -204,6 +210,20 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Protocol
                                                 const CORE::CString& nonce                ,
                                                 const CORE::CString& codeChallenge        ,
                                                 const CORE::CString& loginHint            );
+
+    /** The longest text SubmitAuthorizationCode() reads (a page that holds the code) and the longest code in it, in bytes */
+    static const UInt32 MaxCodeTextBytes = 16384;
+    static const UInt32 MaxCodeBytes = 2048;
+
+    /** The name of the member of a page that shows the code */
+    static const char* const CodePageMember;
+
+    /**
+     *  The code in the text a person pasted: the bare code, or a JSON page with the member CodePageMember. White space around
+     *  it and a pair of double quotes around a bare code are dropped. The check says what is wrong with text that holds no
+     *  code, see ECodeCheck; the code is empty then. Nothing of the text is logged
+     */
+    static bool ParseAuthorizationCode( const CSecretString& text, CSecretString& code, TCodeCheck& check );
 
     /** The parameters that go with a client at the token endpoint: the client id, and the secret when it goes in the body */
     static void AddClientParameters( const CAuthProviderDescriptor& descriptor, const COAuth2Resolved& resolved, CORE::CString::StringMap& parameters );

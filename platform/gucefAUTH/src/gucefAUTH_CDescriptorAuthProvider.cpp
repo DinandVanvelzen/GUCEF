@@ -277,6 +277,27 @@ CDescriptorAuthProvider::SubmitRedirectUrl( const CORE::CString& redirectUrl, TR
 /*-------------------------------------------------------------------------*/
 
 bool
+CDescriptorAuthProvider::SubmitAuthorizationCode( const CSecretString& text )
+{GUCEF_TRACE;
+
+    IAuthFlowEngine* engine = GetEngine();
+    return GUCEF_NULL != engine && engine->SubmitAuthorizationCode( text );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDescriptorAuthProvider::SubmitAuthorizationCode( const CSecretString& text, TCodeCheck& check )
+{GUCEF_TRACE;
+
+    check = CODECHECK_NO_LOGIN_WAITING;
+    IAuthFlowEngine* engine = GetEngine();
+    return GUCEF_NULL != engine && engine->SubmitAuthorizationCode( text, check );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDescriptorAuthProvider::GetUnavailability( CAuthUnavailableProvider& unavailable ) const
 {GUCEF_TRACE;
 

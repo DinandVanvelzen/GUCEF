@@ -57,7 +57,7 @@ add_dependencies( ${MODULE_NAME} authpluginANDROID authpluginEOS authpluginSTEAM
 target_link_libraries( ${MODULE_NAME} PUBLIC authpluginANDROID authpluginEOS authpluginSTEAM gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefAUTH_PluginsTestApp;MODULE_NAME=gucefAUTH_PluginsTestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/AUTH/authpluginANDROID/include ../../plugins/AUTH/authpluginEOS/include ../../plugins/AUTH/authpluginSTEAM/include ../../plugins/SHARED/pluginglueEOS/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../plugins/AUTH/authpluginANDROID/include ../../plugins/AUTH/authpluginEOS/include ../../plugins/AUTH/authpluginSTEAM/include ../../plugins/SHARED/pluginglueEOS/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

@@ -73,6 +73,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthCrypto
 
     static const CORE::CString AeadCipher;          /**< "xchacha20-poly1305" */
     static const CORE::CString SignatureType;       /**< "ed25519" */
+    static const CORE::CString PassphraseKdf;       /**< "argon2id", the KeyDerivationCodec of DeriveKeyFromPassphrase() */
 
     /** Random bytes from the operating system; false when it has none */
     static bool RandomBytes( void* buffer, UInt32 size );
@@ -115,6 +116,25 @@ class GUCEF_AUTH_EXPORT_CPP CAuthCrypto
                           const void* sealed                ,
                           UInt32 sealedSize                 ,
                           CORE::CDynamicBuffer& output      );
+
+    /** Whether the "argon2id" key derivation codec is there (codecspluginMONOCYPHER) */
+    static bool IsPassphraseKdfAvailable( void );
+
+    /**
+     *  Derives outputSize bytes from a passphrase with Argon2id (RFC 9106) through the "argon2id" KeyDerivationCodec: the salt
+     *  (at least 8 bytes), the memory in KiB (at least 8 per lane), the passes and the lanes (computed on one thread). The
+     *  passphrase and every copy of it and of the result that passes through here are wiped. False when the codec is not there
+     *  or refuses the parameters; the output is wiped then.
+     */
+    static bool DeriveKeyFromPassphrase( const void* passphrase   ,
+                                         UInt32 passphraseSize    ,
+                                         const UInt8* salt        ,
+                                         UInt32 saltSize          ,
+                                         UInt32 memoryInKiB       ,
+                                         UInt32 passes            ,
+                                         UInt32 lanes             ,
+                                         UInt8* output            ,
+                                         UInt32 outputSize        );
 
     static bool IsSignatureAvailable( void );
 

@@ -38,6 +38,11 @@ set( HEADER_FILES
   include/gucefAUTH_CJwk.h
   include/gucefAUTH_CJwksCache.h
   include/gucefAUTH_CJwt.h
+  include/gucefAUTH_CKeyringEventData.h
+  include/gucefAUTH_CKeyringOperationData.h
+  include/gucefAUTH_CKeyringOperationTaskConsumer.h
+  include/gucefAUTH_CKeyringSession.h
+  include/gucefAUTH_CKeyringSettings.h
   include/gucefAUTH_CLinkRecord.h
   include/gucefAUTH_CLocalIdentityLinkStore.h
   include/gucefAUTH_CLoopbackRedirectListener.h
@@ -59,6 +64,7 @@ set( HEADER_FILES
   include/gucefAUTH_IIdentityLinkStore.h
   include/gucefAUTH_ILinkSigner.h
   include/gucefAUTH_IOpenId2ProviderProfile.h
+  include/gucefAUTH_KeyringTypes.h
   include/gucefAUTH_Names.h
   include/gucefAUTH_StringUtils.h
   include/gucefAUTH_Types.h
@@ -93,6 +99,11 @@ set( SOURCE_FILES
   src/gucefAUTH_CJwk.cpp
   src/gucefAUTH_CJwksCache.cpp
   src/gucefAUTH_CJwt.cpp
+  src/gucefAUTH_CKeyringEventData.cpp
+  src/gucefAUTH_CKeyringOperationData.cpp
+  src/gucefAUTH_CKeyringOperationTaskConsumer.cpp
+  src/gucefAUTH_CKeyringSession.cpp
+  src/gucefAUTH_CKeyringSettings.cpp
   src/gucefAUTH_CLinkRecord.cpp
   src/gucefAUTH_CLocalIdentityLinkStore.cpp
   src/gucefAUTH_CLoopbackRedirectListener.cpp
@@ -113,6 +124,7 @@ set( SOURCE_FILES
   src/gucefAUTH_IIdentityLinkStore.cpp
   src/gucefAUTH_ILinkSigner.cpp
   src/gucefAUTH_IOpenId2ProviderProfile.cpp
+  src/gucefAUTH_KeyringTypes.cpp
   src/gucefAUTH_Names.cpp
 )
 
@@ -133,7 +145,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

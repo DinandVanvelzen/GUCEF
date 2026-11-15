@@ -575,6 +575,59 @@ COAuth2Engine::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectChe
 /*-------------------------------------------------------------------------*/
 
 bool
+COAuth2Engine::SubmitAuthorizationCode( const CSecretString& text )
+{GUCEF_TRACE;
+
+    TCodeCheck check = CODECHECK_REFUSED;
+    return SubmitAuthorizationCode( text, check );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COAuth2Engine::SubmitAuthorizationCode( const CSecretString& text, TCodeCheck& check )
+{GUCEF_TRACE;
+
+    // Who waits comes first: with nobody waiting the text is not even looked at
+    COAuth2Flow* waiting = GUCEF_NULL;
+    size_t waitingCount = 0;
+    for ( size_t i=0; i<m_flows.size(); ++i )
+    {
+        if ( !m_flows[ i ]->IsFinished() && m_flows[ i ]->IsWaitingForCode() )
+        {
+            waiting = m_flows[ i ];
+            ++waitingCount;
+        }
+    }
+    check = CODECHECK_NO_LOGIN_WAITING;
+    if ( 0 == waitingCount )
+        return false;
+
+    CSecretString code;
+    if ( !COAuth2Protocol::ParseAuthorizationCode( text, code, check ) )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "OAuth2Engine: a code handed over after a login was refused: " << CodeCheckToString( check ) );
+        return false;
+    }
+
+    // A code does not say which provider it is from: it is not sent to a token endpoint that may not be the one it belongs to
+    if ( waitingCount > 1 )
+    {
+        check = CODECHECK_AMBIGUOUS;
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "OAuth2Engine: a code handed over after a login was refused: " << CodeCheckToString( check ) );
+        return false;
+    }
+    if ( !waiting->SubmitAuthorizationCode( code, check ) )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "OAuth2Engine: a code handed over after a login was refused: " << CodeCheckToString( check ) );
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 COAuth2Engine::TryGetDiscovery( const CORE::CString& address, COidcMetadata& metadata ) const
 {GUCEF_TRACE;
 

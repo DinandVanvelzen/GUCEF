@@ -177,6 +177,7 @@ CFakeTokenSpec::CFakeTokenSpec( void )
 CFakeBehavior::CFakeBehavior( void )
     : denyAuthorization( false )
     , requirePkce( true )
+    , acceptMissingRedirectUri( false )
     , tokenDelayInMs( 0 )
     , tokenError()
     , tokenErrorStatus( 400 )
@@ -918,12 +919,13 @@ CFakeOidcProvider::HandleAuthorize( const WEB::CHttpRequestData& request, WEB::C
     bool customScheme = redirectUri.StartsWith( "com.example.game:" );
     // an https address on the loopback interface where nothing listens: the person copies the address from the browser (redirect mode manual)
     bool manualHttps = redirectUri == "https://127.0.0.1" || redirectUri.StartsWith( "https://127.0.0.1/" );
-    if ( parameters[ "response_type" ] != "code" || parameters[ "client_id" ] != m_clientId || ( !loopback && !customScheme && !manualHttps ) || parameters[ "state" ].IsNULLOrEmpty() )
+    bool noRedirect = redirectUri.IsNULLOrEmpty() && m_behavior.acceptMissingRedirectUri;
+    if ( parameters[ "response_type" ] != "code" || parameters[ "client_id" ] != m_clientId || ( !loopback && !customScheme && !manualHttps && !noRedirect ) || parameters[ "state" ].IsNULLOrEmpty() )
     {
         response.statusCode = 400;
         return;
     }
-    CORE::CString location = redirectUri + ( redirectUri.HasChar( '?' ) >= 0 ? "&" : "?" );
+    CORE::CString location = noRedirect ? CORE::CString( "/code?" ) : redirectUri + ( redirectUri.HasChar( '?' ) >= 0 ? "&" : "?" );
     if ( m_behavior.denyAuthorization )
     {
         Redirect( response, location + "error=access_denied&state=" + EncodeUrlText( parameters[ "state" ] ) );

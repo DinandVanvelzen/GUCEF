@@ -80,7 +80,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../plugins/AUTH/authpluginANDROID/include", "../../plugins/AUTH/authpluginEOS/include", "../../plugins/AUTH/authpluginSTEAM/include", "../../plugins/SHARED/pluginglueEOS/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../plugins/AUTH/authpluginANDROID/include", "../../plugins/AUTH/authpluginEOS/include", "../../plugins/AUTH/authpluginSTEAM/include", "../../plugins/SHARED/pluginglueEOS/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

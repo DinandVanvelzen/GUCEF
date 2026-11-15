@@ -23,6 +23,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdlib.h>
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -400,6 +402,89 @@ PumpFor( UInt32 durationInMs )
         CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
         MT::ThreadDelay( 1 );
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/**
+ *  The findings (warnings and errors, summed over the matrix) each form is still allowed per rule, recorded by the first run of
+ *  the layout lint; lowered as the forms are fixed, never raised. A scope that is not listed is allowed none
+ */
+const char* const FormLintBudget =
+    "# scope rule count: the warnings and errors of the forms after G1 (Noto Sans 18 px, 15 combinations)\n"
+    "KeyringUnlock L01 3\n"
+    "KeyringUnlock L04 4\n"
+    "OAuthCodeEntry L01 9\n"
+    "OAuthCodeEntry L04 8\n"
+    "OAuthCodeEntry L10 2\n"
+    "SignInSettings L01 18\n"
+    "SignInSettings L03 2\n"
+    "SignInSettings L04 18\n"
+    "SignInSettings L05 14\n"
+    "SignInSettings L10 2\n"
+    ;
+
+/** The text scale of the matrix: the font of the forms again, at its size times the scale */
+class CAuthFormLintSweep : public GUI::CLayoutLintSweep
+{
+    protected:
+
+    virtual bool ApplyTextScale( GUI::CGUIContext& context, Float32 scale ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( HasRealFont( &context ) )
+            return context.RegisterFont( "UI", GUI::CGuiGlobal::DefaultUiFontPath, (UInt32) ( 18.0f * scale + 0.5f ) );
+        return context.RegisterFont( "Test", MakeTestFont( (Int32) ( 8.0f * scale ), (Int32) ( 10.0f * scale ) ) );
+    }
+};
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+RunFormLayoutLint( GUI::CGUIContext* context, const char* scope )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == context )
+        return false;
+    GUI::CLayoutLintMatrix matrix;
+    matrix.SetTextScaleSupported( true );
+    CAuthFormLintSweep sweep;
+    sweep.Run( *context, matrix, GUI::CLayoutLintOptions() );
+    for ( UInt32 c=0; c<matrix.GetCombinationCount(); ++c )
+    {
+        const GUI::CLayoutLintMatrix::TCombination& combination = matrix.GetCombination( c );
+        if ( 1600 == combination.width && 900 == combination.height && !combination.pseudoLocalized )
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "LayoutLint " << scope << " at " << matrix.DescribeCombination( c ) << ": " << GUI::CLayoutLint::Report( sweep.GetFindings( c ), 40 ) );
+    }
+
+    GUI::CLayoutLintBudget budget;
+    CORE::CString problems, improvements;
+    budget.LoadFromText( FormLintBudget, problems );
+    const bool within = budget.Check( scope, sweep.GetRuleCounts(), problems, improvements );
+    const CORE::CString summary = CORE::CString( "== " ) + scope + ( HasRealFont( context ) ? " (Noto Sans 18 px)" : " (test font 8 x 10)" ) + ": " +
+                                  CORE::UInt32ToString( sweep.GetCount( GUI::LAYOUTLINTSEVERITY_ERROR ) ) + " errors, " +
+                                  CORE::UInt32ToString( sweep.GetCount( GUI::LAYOUTLINTSEVERITY_WARNING ) ) + " warnings, " +
+                                  CORE::UInt32ToString( sweep.GetCount( GUI::LAYOUTLINTSEVERITY_INFO ) ) + " info over " +
+                                  CORE::UInt32ToString( matrix.GetCombinationCount() ) + " combinations\n" + sweep.GetSummary() +
+                                  GUI::CLayoutLintBudget::FormatCounts( scope, sweep.GetRuleCounts() );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "LayoutLint baseline " << summary );
+    const char* reportPath = getenv( "GUCEF_TEST_LAYOUT_LINT_REPORT" );
+    if ( GUCEF_NULL != reportPath && '\0' != *reportPath )
+    {
+        CORE::CFileAccess file( reportPath, "ab" );
+        if ( file.IsValid() )
+            file.Write( summary.C_String(), 1, summary.Length() );
+    }
+    if ( !improvements.IsNULLOrEmpty() )
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "LayoutLint: " << improvements );
+    if ( !within )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "LayoutLint: over the budget:\n" << problems );
+
+    // the budget holds the counts with the real font; with the test font they are reported only
+    return within || !HasRealFont( context );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -139,6 +139,7 @@ CAuthProviderSettings::CAuthProviderSettings( void )
     , hasIdScope( false )
     , idScope( AUTHIDSCOPE_GLOBAL )
     , parameters()
+    , tokenParameters()
 {GUCEF_TRACE;
 
 }
@@ -167,6 +168,7 @@ CAuthProviderSettings::CAuthProviderSettings( const CAuthProviderSettings& src )
     , hasIdScope( src.hasIdScope )
     , idScope( src.idScope )
     , parameters( src.parameters )
+    , tokenParameters( src.tokenParameters )
 {GUCEF_TRACE;
 
 }
@@ -206,6 +208,7 @@ CAuthProviderSettings::operator=( const CAuthProviderSettings& src )
         hasIdScope = src.hasIdScope;
         idScope = src.idScope;
         parameters = src.parameters;
+        tokenParameters = src.tokenParameters;
     }
     return *this;
 }
@@ -295,6 +298,19 @@ CAuthProviderSettings::SaveConfig( CORE::CDataNode& config ) const
             ++i;
         }
     }
+    if ( !tokenParameters.empty() )
+    {
+        CORE::CDataNode* tokenParameterNode = config.AddChild( "TokenParameters", GUCEF_DATATYPE_OBJECT );
+        if ( GUCEF_NULL != tokenParameterNode )
+        {
+            TParameterMap::const_iterator t = tokenParameters.begin();
+            while ( t != tokenParameters.end() )
+            {
+                tokenParameterNode->SetAttribute( (*t).first, (*t).second );
+                ++t;
+            }
+        }
+    }
     return true;
 }
 
@@ -358,6 +374,18 @@ CAuthProviderSettings::LoadConfig( const CORE::CDataNode& config )
         {
             parameters[ (*i).first ] = (*i).second.AsString();
             ++i;
+        }
+    }
+
+    const CORE::CDataNode* tokenParameterNode = config.FindChild( "TokenParameters" );
+    if ( GUCEF_NULL != tokenParameterNode )
+    {
+        tokenParameters.clear();
+        CORE::CDataNode::TAttributeMap::const_iterator t = tokenParameterNode->AttributeBegin();
+        while ( t != tokenParameterNode->AttributeEnd() )
+        {
+            tokenParameters[ (*t).first ] = (*t).second.AsString();
+            ++t;
         }
     }
     return true;
@@ -581,6 +609,9 @@ CAuthSettings::RenameProvider( const CORE::CString& from, const CORE::CString& t
             for ( CAuthProviderSettings::TParameterMap::const_iterator p = (*f).second.parameters.begin(); p != (*f).second.parameters.end(); ++p )
                 if ( (*t).second.parameters.find( (*p).first ) == (*t).second.parameters.end() )
                     (*t).second.parameters[ (*p).first ] = (*p).second;
+            for ( CAuthProviderSettings::TParameterMap::const_iterator q = (*f).second.tokenParameters.begin(); q != (*f).second.tokenParameters.end(); ++q )
+                if ( (*t).second.tokenParameters.find( (*q).first ) == (*t).second.tokenParameters.end() )
+                    (*t).second.tokenParameters[ (*q).first ] = (*q).second;
         }
         providers.erase( from );
     }

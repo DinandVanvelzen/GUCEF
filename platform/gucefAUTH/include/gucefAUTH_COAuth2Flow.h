@@ -130,6 +130,15 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Flow : public CORE::CObserver       ,
     /** Takes the address the login was redirected to; true when this login took it, else check says which check failed */
     bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check );
 
+    /**
+     *  Whether this login waits for a code that a person hands over: an authorization code login of the redirect mode manual or
+     *  code-entry that has sent the person to the provider and has not been answered yet
+     */
+    bool IsWaitingForCode( void ) const;
+
+    /** Takes the authorization code (already read from what the person pasted) and exchanges it; true when this login took it, else check says why not */
+    bool SubmitAuthorizationCode( const CSecretString& code, TCodeCheck& check );
+
     /** Ends the login as cancelled */
     void Cancel( void );
 
@@ -180,6 +189,7 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Flow : public CORE::CObserver       ,
 
     void OnDiscoveryDone( bool ok, CAuthHttpResponse& response );
     void OnCallback( const CORE::CString::StringMap& parameters );
+    void ExchangeCode( const CSecretString& code );
     void OnTokenDone( bool ok, CAuthHttpResponse& response );
     void OnKeysDone( bool ok, CAuthHttpResponse& response );
     void OnUserInfoDone( bool ok, CAuthHttpResponse& response );

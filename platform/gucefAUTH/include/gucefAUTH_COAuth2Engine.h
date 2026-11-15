@@ -76,7 +76,7 @@ namespace AUTH {
  *  so that the descriptor providers work without further setup; the engine settings are those of the application
  *  (COAuth2EngineSettings, the child "Engine" of the section "Auth").
  *
- *  Threads. StartInteractive(), StartRefresh(), Revoke(), SubmitRedirectUrl() and CancelAll() are called on the thread that
+ *  Threads. StartInteractive(), StartRefresh(), Revoke(), SubmitRedirectUrl(), SubmitAuthorizationCode() and CancelAll() are called on the thread that
  *  pumps the global pulse generator; the logins run there, their HTTP requests run as tasks of the thread pool and
  *  their events come from the pulse thread. Verify() runs on the calling thread and can wait for the network on a miss
  *  of the key cache or for an OpenID 2.0 check: servers call it from a worker. The settings are set before use.
@@ -158,6 +158,11 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Engine : public IAuthFlowEngine ,
 
     /** Asks every login that waits for an address; the outcome of the login whose redirect uri matched is the one that is given */
     virtual bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool SubmitAuthorizationCode( const CSecretString& text ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Reads the code, and gives it to the one login that waits for a code; with none or more than one waiting nothing is sent anywhere */
+    virtual bool SubmitAuthorizationCode( const CSecretString& text, TCodeCheck& check ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

@@ -1932,6 +1932,447 @@ RelayOpenId2Settings( COAuth2Fixture& f, const CORE::CString& relayUrl );
 
 /*-------------------------------------------------------------------------*/
 
+static CORE::CString WithoutServerEchoes( const CORE::CString& log );
+
+/*-------------------------------------------------------------------------*/
+
+/** The code and the state in the address the fake redirected to */
+static bool
+ReadRedirect( const CORE::CString& redirect, CORE::CString& code, CORE::CString& state )
+{GUCEF_TRACE;
+
+    CORE::CString::StringMap parameters;
+    bool duplicate = false;
+    if ( !AUTH::CAuthUrl::ParseQuery( redirect.SubstrToChar( '?', false, true ), parameters, duplicate ) || duplicate )
+        return false;
+    code = parameters[ "code" ];
+    state = parameters[ "state" ];
+    return !code.IsNULLOrEmpty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Waits for the login to end; true when it did */
+static bool
+WaitForFuture( CORE::CFutureResult& future, UInt32 timeoutInMs = 10000 )
+{GUCEF_TRACE;
+
+    for ( UInt32 waited=0; waited<timeoutInMs && !future.IsReady(); ++waited )
+        PumpFor( 1 );
+    return future.IsReady();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The page of a client that shows the code: JSON with more than the code in it */
+static CORE::CString
+MakeCodePage( const CORE::CString& code )
+{GUCEF_TRACE;
+
+    return "{\"redirectUrl\":\"https://accounts.example/id/api/redirect?clientId=x\",\"sid\":null,\"authorizationCode\":\"" + code + "\",\"exchangeCode\":null}";
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformAuthorizationCodeTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Test: A pasted code continues the login: basic authorisation, extra token fields, the registered redirect uri, no PKCE verifier; the same for a refresh; the code is used once" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            f.fake.SetBehavior( behavior );
+            AUTH::CAuthProviderSettings settings = BrokerSettings( f );
+            settings.tokenParameters[ "token_type" ] = "eg1";
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), settings );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            CORE::CString code, state;
+            ASSERT_TRUE( ReadRedirect( redirect, code, state ) );
+            ASSERT_TRUE( 0 == f.fake.GetStats().token );
+
+            // the code as it is copied: white space and quotes around it
+            AUTH::TCodeCheck check = AUTH::CODECHECK_REFUSED;
+            ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( "  \"" + code + "\"\n" ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_ACCEPTED == check );
+            ASSERT_TRUE( WaitForFuture( future ) );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) && "brokerx:primary" == result.accountRef.ToString() );
+            ASSERT_TRUE( !result.accessToken.IsEmpty() && !result.refreshToken.IsEmpty() );
+            ASSERT_TRUE( 1 == f.fake.GetStats().token && 0 == f.fake.GetStats().codeReuse );
+
+            // what the token endpoint was asked
+            CORE::CString::StringMap sent = f.fake.GetLastTokenParameters();
+            ASSERT_TRUE( "authorization_code" == sent[ "grant_type" ] && code == sent[ "code" ] && "fake-client-id" == sent[ "client_id" ] );
+            ASSERT_TRUE( "https://127.0.0.1" == sent[ "redirect_uri" ] && "eg1" == sent[ "token_type" ] );
+            ASSERT_TRUE( sent.end() == sent.find( "code_verifier" ) && sent.end() == sent.find( "client_secret" ) );
+            const CORE::CString credentials = "fake-client-id:broker-app-secret";
+            ASSERT_TRUE( "Basic " + CORE::Base64Encode( credentials.C_String(), AUTH::GetByteLength( credentials ) ) == f.fake.GetLastTokenAuthorization() );
+            ASSERT_TRUE( f.fake.GetLastTokenContentType().HasSubstr( "application/x-www-form-urlencoded" ) >= 0 );
+            CORE::CString::StringMap asked = f.fake.GetLastAuthorizeParameters();
+            ASSERT_TRUE( asked.end() == asked.find( "code_challenge" ) && asked.end() == asked.find( "token_type" ) );
+
+            // used once: nothing waits any more
+            ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( code ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_LOGIN_WAITING == check );
+            ASSERT_TRUE( 1 == f.fake.GetStats().token );
+
+            // the extra fields go with a refresh too, and the secret is still in the header
+            AUTH::CSecretString stored;
+            ASSERT_TRUE( f.credentials.Load( "brokerx", "brokerx:primary", stored ) );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( provider->Refresh( result.accountRef, stored, future ) );
+            ASSERT_TRUE( WaitForFuture( future ) );
+            sent = f.fake.GetLastTokenParameters();
+            ASSERT_TRUE( "refresh_token" == sent[ "grant_type" ] && "eg1" == sent[ "token_type" ] );
+            ASSERT_TRUE( "Basic " + CORE::Base64Encode( credentials.C_String(), AUTH::GetByteLength( credentials ) ) == f.fake.GetLastTokenAuthorization() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The redirect mode code-entry: the whole JSON page continues the login, no redirect uri is sent in either request, an address is not taken as a redirect" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            behavior.acceptMissingRedirectUri = true;
+            f.fake.SetBehavior( behavior );
+            AUTH::CAuthProviderSettings settings = BrokerSettings( f );
+            settings.redirectMode = "code-entry";
+            settings.redirectUri.Clear();
+            settings.tokenParameters[ "token_type" ] = "eg1";
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), settings );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            ASSERT_TRUE( f.manager.IsProviderOffered( "brokerx" ) );
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            CORE::CString code, state;
+            ASSERT_TRUE( ReadRedirect( redirect, code, state ) );
+            CORE::CString::StringMap asked = f.fake.GetLastAuthorizeParameters();
+            ASSERT_TRUE( asked.end() == asked.find( "redirect_uri" ) && asked.end() == asked.find( "code_challenge" ) && !asked[ "state" ].IsNULLOrEmpty() );
+
+            // an address does not do: this mode has no redirect
+            AUTH::TRedirectCheck redirectCheck = AUTH::REDIRECTCHECK_REFUSED;
+            ASSERT_FALSE( provider->SubmitRedirectUrl( redirect, redirectCheck ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_NO_LOGIN_WAITING == redirectCheck );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "/code?code=" + code + "&state=" + state ) );
+            ASSERT_TRUE( 0 == f.fake.GetStats().token && !future.IsReady() );
+
+            // the page
+            AUTH::TCodeCheck check = AUTH::CODECHECK_REFUSED;
+            ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( MakeCodePage( code ) ), check ) && AUTH::CODECHECK_ACCEPTED == check );
+            ASSERT_TRUE( WaitForFuture( future ) );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) && "brokerx:primary" == result.accountRef.ToString() );
+            CORE::CString::StringMap sent = f.fake.GetLastTokenParameters();
+            ASSERT_TRUE( code == sent[ "code" ] && "eg1" == sent[ "token_type" ] && sent.end() == sent.find( "redirect_uri" ) && sent.end() == sent.find( "code_verifier" ) );
+            ASSERT_TRUE( f.fake.GetLastTokenAuthorization().StartsWith( "Basic " ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: With PKCE on the verifier goes to the token endpoint with a pasted code, and a wrong code ends the login at the token endpoint of the provider" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            AUTH::CAuthProviderDescriptor descriptor = MakeBrokerDescriptor();
+            descriptor.usesPkce = true;
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, descriptor, BrokerSettings( f ) );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            CORE::CString code, state;
+            ASSERT_TRUE( ReadRedirect( redirect, code, state ) );
+            ASSERT_TRUE( !f.fake.GetLastAuthorizeParameters()[ "code_challenge" ].IsNULLOrEmpty() );
+            ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( code ) ) );
+            ASSERT_TRUE( WaitForFuture( future ) );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+            ASSERT_TRUE( !f.fake.GetLastTokenParameters()[ "code_verifier" ].IsNULLOrEmpty() && 0 == f.fake.GetStats().pkceFailures );
+
+            // a code the provider does not know: taken by the login, refused by the provider
+            f.manager.Unlink( result.accountRef );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
+            redirect = StartBrokerLogin( f, future );
+            ASSERT_FALSE( redirect.IsNULLOrEmpty() );
+            AUTH::TCodeCheck check = AUTH::CODECHECK_REFUSED;
+            ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( "not-a-code-of-the-provider" ), check ) && AUTH::CODECHECK_ACCEPTED == check );
+            ASSERT_TRUE( WaitForFuture( future ) );
+            ASSERT_FALSE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+            ASSERT_TRUE( AUTH::AUTHFAIL_INVALID_GRANT == f.LastFailure() );
+            ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( code ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_LOGIN_WAITING == check );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Rubbish, an empty code, a page without the member and a code that is too long are refused with the reason, nothing is sent and the login goes on waiting" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            f.fake.SetBehavior( behavior );
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), BrokerSettings( f ) );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            CORE::CString code, state;
+            ASSERT_TRUE( ReadRedirect( redirect, code, state ) );
+
+            struct SCase { const char* text; AUTH::TCodeCheck expected; };
+            const SCase refused[] =
+            {
+                { "", AUTH::CODECHECK_EMPTY },
+                { "  \t\r\n", AUTH::CODECHECK_EMPTY },
+                { "{\"authorizationCode\":\"\"}", AUTH::CODECHECK_EMPTY },
+                { "this is not a code", AUTH::CODECHECK_MALFORMED },
+                { "<html>Sign in</html>", AUTH::CODECHECK_MALFORMED },
+                { "{ nope", AUTH::CODECHECK_MALFORMED },
+                { "{}", AUTH::CODECHECK_NO_CODE },
+                { "{\"errorCode\":\"errors.com.example.not_found\",\"message\":\"no\"}", AUTH::CODECHECK_NO_CODE },
+                { "{\"authorizationCode\":null}", AUTH::CODECHECK_NO_CODE }
+            };
+            for ( size_t i=0; i<sizeof( refused ) / sizeof( refused[ 0 ] ); ++i )
+            {
+                AUTH::TCodeCheck check = AUTH::CODECHECK_ACCEPTED;
+                ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( refused[ i ].text ), check ) );
+                ASSERT_TRUE( refused[ i ].expected == check );
+            }
+            AUTH::TCodeCheck check = AUTH::CODECHECK_ACCEPTED;
+            ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( RepeatedText( 'a', 3000 ) ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_MALFORMED == check );
+            // the engine too, and the form without the reason
+            ASSERT_FALSE( f.engine->SubmitAuthorizationCode( AUTH::CSecretString( "{}" ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_CODE == check );
+            ASSERT_FALSE( f.engine->SubmitAuthorizationCode( AUTH::CSecretString( "{}" ) ) );
+            ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( CORE::CString::Empty ) ) );
+
+            PumpFor( 50 );
+            ASSERT_TRUE( 0 == f.fake.GetStats().token && !future.IsReady() );
+
+            // the login still takes the right one
+            ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( MakeCodePage( code ) ), check ) && AUTH::CODECHECK_ACCEPTED == check );
+            ASSERT_TRUE( WaitForFuture( future ) );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+            ASSERT_TRUE( 1 == f.fake.GetStats().token );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A code is refused when no login waits for one: none at all, a login of the redirect mode loopback, a login that ended; with two waiting it is not sent to either" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            f.fake.SetBehavior( behavior );
+            AUTH::CDescriptorAuthProvider* first = AddProvider( f, factory, MakeBrokerDescriptor(), BrokerSettings( f ) );
+            AUTH::CAuthProviderDescriptor secondDescriptor = MakeBrokerDescriptor();
+            secondDescriptor.name = "brokery";
+            secondDescriptor.displayName = "Broker Y";
+            secondDescriptor.accountProviderId = "brokery";
+            AUTH::CDescriptorAuthProvider* second = AddProvider( f, factory, secondDescriptor, BrokerSettings( f ) );
+            ASSERT_TRUE( GUCEF_NULL != first && GUCEF_NULL != second );
+            if ( GUCEF_NULL == first || GUCEF_NULL == second )
+                return;
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            // none at all: the reason is the first thing that is said, whatever the text is
+            AUTH::TCodeCheck check = AUTH::CODECHECK_ACCEPTED;
+            ASSERT_FALSE( first->SubmitAuthorizationCode( AUTH::CSecretString( "abc12345" ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_LOGIN_WAITING == check );
+            ASSERT_FALSE( f.engine->SubmitAuthorizationCode( AUTH::CSecretString( "this is rubbish" ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_LOGIN_WAITING == check );
+            ASSERT_FALSE( f.engine->SubmitAuthorizationCode( AUTH::CSecretString( "abc12345" ) ) );
+
+            // a login that waits for a browser on its own loopback listener has no use for a code
+            f.browser.SetMode( CTestBrowser::MODE_IGNORE );
+            AUTH::CAuthProviderSettings loopback = f.LocalSettings();
+            AUTH::CAuthSettings all = f.manager.GetSettings();
+            all.SetProviderSettings( "google", loopback );
+            ASSERT_TRUE( f.Configure( all ) );
+            CORE::CFutureResult loopbackFuture( CORE::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), loopbackFuture ) );
+            ASSERT_TRUE( PumpUntilAction( f, 1 ) );
+            ASSERT_FALSE( f.engine->SubmitAuthorizationCode( AUTH::CSecretString( "abc12345" ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_LOGIN_WAITING == check );
+            f.manager.CancelLogin( "google" );
+            ASSERT_TRUE( WaitForFuture( loopbackFuture ) );
+            ASSERT_TRUE( 0 == f.fake.GetStats().token );
+
+            // two that wait: a code says nothing of the provider it is from
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+            CORE::CFutureResult firstFuture( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, firstFuture );
+            CORE::CString code, state;
+            ASSERT_TRUE( ReadRedirect( redirect, code, state ) );
+            CORE::CFutureResult secondFuture( CORE::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( f.manager.Login( "brokery", AUTH::CAuthOptions(), secondFuture ) );
+            for ( UInt32 waited=0; waited<5000 && f.browser.GetRedirects().size() < 2; ++waited )
+                PumpFor( 1 );
+            ASSERT_TRUE( 2 == f.browser.GetRedirects().size() );
+            ASSERT_FALSE( first->SubmitAuthorizationCode( AUTH::CSecretString( code ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_AMBIGUOUS == check );
+            ASSERT_FALSE( second->SubmitAuthorizationCode( AUTH::CSecretString( code ) ) );
+            PumpFor( 50 );
+            ASSERT_TRUE( 0 == f.fake.GetStats().token && !firstFuture.IsReady() && !secondFuture.IsReady() );
+
+            // once one of them is gone the other takes it
+            f.manager.CancelLogin( "brokery" );
+            ASSERT_TRUE( WaitForFuture( secondFuture ) );
+            ASSERT_TRUE( first->SubmitAuthorizationCode( AUTH::CSecretString( code ), check ) && AUTH::CODECHECK_ACCEPTED == check );
+            ASSERT_TRUE( WaitForFuture( firstFuture ) );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( firstFuture, result ) && "brokerx:primary" == result.accountRef.ToString() );
+
+            // ended
+            ASSERT_FALSE( first->SubmitAuthorizationCode( AUTH::CSecretString( code ), check ) );
+            ASSERT_TRUE( AUTH::CODECHECK_NO_LOGIN_WAITING == check );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A code, the page that holds it and what was refused never appear in the log, in a login that works, one that fails at the provider and refused text" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            CLogCapture capture;
+            CORE::CString::StringVector secrets;
+            {
+                TDescriptorProviderFactory factory;
+                COAuth2Fixture f;
+                ASSERT_TRUE( f.ready );
+                CFakeBehavior behavior;
+                behavior.requirePkce = false;
+                f.fake.SetBehavior( behavior );
+                AUTH::CAuthProviderSettings settings = BrokerSettings( f );
+                settings.tokenParameters[ "token_type" ] = "eg1";
+                AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), settings );
+                ASSERT_TRUE( GUCEF_NULL != provider );
+                if ( GUCEF_NULL == provider )
+                    return;
+                f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+                // refused text, then a code that works
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
+                CORE::CString redirect = StartBrokerLogin( f, future );
+                CORE::CString code, state;
+                ASSERT_TRUE( ReadRedirect( redirect, code, state ) );
+                const CORE::CString rubbish = "rubbish text of the person 0042";
+                const CORE::CString badPage = "{\"errorCode\":\"errors-page-marker-0042\",\"message\":\"no code here\"}";
+                secrets.push_back( rubbish );
+                secrets.push_back( badPage );
+                secrets.push_back( "errors-page-marker-0042" );
+                AUTH::TCodeCheck check = AUTH::CODECHECK_ACCEPTED;
+                ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( rubbish ), check ) );
+                ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( badPage ), check ) );
+                const CORE::CString page = MakeCodePage( code );
+                secrets.push_back( code );
+                secrets.push_back( page );
+                ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( page ), check ) );
+                ASSERT_TRUE( WaitForFuture( future ) );
+                AUTH::CAuthResult result;
+                ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+                secrets.push_back( result.accessToken.Reveal() );
+                secrets.push_back( result.refreshToken.Reveal() );
+
+                // a code the provider turns down
+                f.manager.Unlink( result.accountRef );
+                future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
+                redirect = StartBrokerLogin( f, future );
+                const CORE::CString forged = "forged-code-VALUE-7788";
+                secrets.push_back( forged );
+                ASSERT_TRUE( provider->SubmitAuthorizationCode( AUTH::CSecretString( forged ), check ) );
+                ASSERT_TRUE( WaitForFuture( future ) );
+                ASSERT_FALSE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+                secrets.push_back( f.fake.GetLastTokenParameters()[ "code" ] );
+                ASSERT_TRUE( forged == f.fake.GetLastTokenParameters()[ "code" ] );
+
+                // nothing waits
+                ASSERT_FALSE( provider->SubmitAuthorizationCode( AUTH::CSecretString( "late-code-VALUE-9911" ), check ) );
+                secrets.push_back( "late-code-VALUE-9911" );
+                PumpFor( 50 );
+            }
+
+            CORE::CString all = WithoutServerEchoes( capture.Text() );
+            ASSERT_TRUE( all.Length() > 100 );
+            // what was refused is said as a reason only
+            ASSERT_TRUE( Contains( all, "refused" ) );
+            UInt32 checked = 0;
+            for ( size_t i=0; i<secrets.size(); ++i )
+            {
+                if ( secrets[ i ].Length() < 8 )
+                    continue;
+                ++checked;
+                bool leaked = Contains( all, secrets[ i ] );
+                if ( leaked )
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Test: A secret of kind number " << (UInt32) i << " is in the log" );
+                ASSERT_FALSE( leaked );
+            }
+            ASSERT_TRUE( checked >= 9 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 static void
 PerformOpenId2Tests( void )
 {GUCEF_TRACE;
@@ -3199,6 +3640,7 @@ PerformOAuth2FlowTests( void )
     PerformBodyStyleTests();
     PerformOAuth2OnlyTests();
     PerformParametersAccountTests();
+    PerformAuthorizationCodeTests();
     PerformOpenId2Tests();
     PerformOpenId2RelayTests();
     PerformPolicyTests();

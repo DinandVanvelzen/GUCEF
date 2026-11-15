@@ -46,8 +46,12 @@ files( {
   "include/gucefAUTHGUI_CAccountSettingsForm.h",
   "include/gucefAUTHGUI_CAccountsPanel.h",
   "include/gucefAUTHGUI_CAuthGuiGlobal.h",
+  "include/gucefAUTHGUI_CKeyringUnlockForm.h",
   "include/gucefAUTHGUI_CLoginForm.h",
   "include/gucefAUTHGUI_CModule.h",
+  "include/gucefAUTHGUI_COAuthCodeEntryForm.h",
+  "include/gucefAUTHGUI_CSignInSettingsForm.h",
+  "include/gucefAUTHGUI_CSignInSettingsState.h",
   "include/gucefAUTHGUI_Utils.h",
   "include/gucefAUTHGUI_config.h",
   "include/gucefAUTHGUI_macros.h"
@@ -62,8 +66,12 @@ files( {
   "src/gucefAUTHGUI_CAccountSettingsForm.cpp",
   "src/gucefAUTHGUI_CAccountsPanel.cpp",
   "src/gucefAUTHGUI_CAuthGuiGlobal.cpp",
+  "src/gucefAUTHGUI_CKeyringUnlockForm.cpp",
   "src/gucefAUTHGUI_CLoginForm.cpp",
-  "src/gucefAUTHGUI_CModule.cpp"
+  "src/gucefAUTHGUI_CModule.cpp",
+  "src/gucefAUTHGUI_COAuthCodeEntryForm.cpp",
+  "src/gucefAUTHGUI_CSignInSettingsForm.cpp",
+  "src/gucefAUTHGUI_CSignInSettingsState.cpp"
  } )
 
 

@@ -169,8 +169,10 @@ configuration( { "ANDROID32" } )
       "src/TestAuthGuiCommon.cpp",
       "src/TestAuthGuiGlobal.cpp",
       "src/TestFormLayouts.cpp",
+      "src/TestKeyringUnlockForm.cpp",
       "src/TestLoginForm.cpp",
       "src/TestOpenId2Backend.cpp",
+      "src/TestSignInForms.cpp",
       "src/TestSigner.cpp",
       "src/gucefAUTHGUI_TestApp.cpp"
     } )
@@ -197,8 +199,10 @@ configuration( { "ANDROID64" } )
       "src/TestAuthGuiCommon.cpp",
       "src/TestAuthGuiGlobal.cpp",
       "src/TestFormLayouts.cpp",
+      "src/TestKeyringUnlockForm.cpp",
       "src/TestLoginForm.cpp",
       "src/TestOpenId2Backend.cpp",
+      "src/TestSignInForms.cpp",
       "src/TestSigner.cpp",
       "src/gucefAUTHGUI_TestApp.cpp"
     } )
@@ -225,8 +229,10 @@ configuration( { "LINUX32" } )
       "src/TestAuthGuiCommon.cpp",
       "src/TestAuthGuiGlobal.cpp",
       "src/TestFormLayouts.cpp",
+      "src/TestKeyringUnlockForm.cpp",
       "src/TestLoginForm.cpp",
       "src/TestOpenId2Backend.cpp",
+      "src/TestSignInForms.cpp",
       "src/TestSigner.cpp",
       "src/gucefAUTHGUI_TestApp.cpp"
     } )
@@ -253,8 +259,10 @@ configuration( { "LINUX64" } )
       "src/TestAuthGuiCommon.cpp",
       "src/TestAuthGuiGlobal.cpp",
       "src/TestFormLayouts.cpp",
+      "src/TestKeyringUnlockForm.cpp",
       "src/TestLoginForm.cpp",
       "src/TestOpenId2Backend.cpp",
+      "src/TestSignInForms.cpp",
       "src/TestSigner.cpp",
       "src/gucefAUTHGUI_TestApp.cpp"
     } )
@@ -281,8 +289,10 @@ configuration( { "WIN32" } )
       "src/TestAuthGuiCommon.cpp",
       "src/TestAuthGuiGlobal.cpp",
       "src/TestFormLayouts.cpp",
+      "src/TestKeyringUnlockForm.cpp",
       "src/TestLoginForm.cpp",
       "src/TestOpenId2Backend.cpp",
+      "src/TestSignInForms.cpp",
       "src/TestSigner.cpp",
       "src/gucefAUTHGUI_TestApp.cpp"
     } )
@@ -309,8 +319,10 @@ configuration( { "WIN64" } )
       "src/TestAuthGuiCommon.cpp",
       "src/TestAuthGuiGlobal.cpp",
       "src/TestFormLayouts.cpp",
+      "src/TestKeyringUnlockForm.cpp",
       "src/TestLoginForm.cpp",
       "src/TestOpenId2Backend.cpp",
+      "src/TestSignInForms.cpp",
       "src/TestSigner.cpp",
       "src/gucefAUTHGUI_TestApp.cpp"
     } )

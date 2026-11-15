@@ -48,6 +48,11 @@ LOCAL_SRC_FILES := \
   src/gucefAUTH_CJwk.cpp \
   src/gucefAUTH_CJwksCache.cpp \
   src/gucefAUTH_CJwt.cpp \
+  src/gucefAUTH_CKeyringEventData.cpp \
+  src/gucefAUTH_CKeyringOperationData.cpp \
+  src/gucefAUTH_CKeyringOperationTaskConsumer.cpp \
+  src/gucefAUTH_CKeyringSession.cpp \
+  src/gucefAUTH_CKeyringSettings.cpp \
   src/gucefAUTH_CLinkRecord.cpp \
   src/gucefAUTH_CLocalIdentityLinkStore.cpp \
   src/gucefAUTH_CLoopbackRedirectListener.cpp \
@@ -68,6 +73,7 @@ LOCAL_SRC_FILES := \
   src/gucefAUTH_IIdentityLinkStore.cpp \
   src/gucefAUTH_ILinkSigner.cpp \
   src/gucefAUTH_IOpenId2ProviderProfile.cpp \
+  src/gucefAUTH_KeyringTypes.cpp \
   src/gucefAUTH_Names.cpp
 
 LOCAL_C_INCLUDES := \
@@ -77,6 +83,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../gucefIMAGE/include \
   $(MY_MODULE_PATH)/../gucefMT/include \
   $(MY_MODULE_PATH)/../gucefVFS/include \
   $(MY_MODULE_PATH)/../gucefWEB/include

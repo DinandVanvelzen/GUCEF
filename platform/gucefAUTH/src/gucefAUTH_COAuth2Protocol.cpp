@@ -197,6 +197,7 @@ COAuth2Resolved::COAuth2Resolved( void )
     , revocationEndpoint()
     , tokenVerifyEndpoint()
     , parameters()
+    , tokenParameters()
     , redirectMode( "loopback" )
     , loopbackPort( 0 )
     , loopbackPath( "/callback" )
@@ -396,6 +397,30 @@ IsAcceptableRedirectUri( const CORE::CString& uri )
 
 /*-------------------------------------------------------------------------*/
 
+/** A form field name that is safe to send: 1 to 64 of A-Z a-z 0-9 - . _ and not one that the engine sets itself */
+static bool
+IsAcceptableTokenParameterName( const CORE::CString& name )
+{GUCEF_TRACE;
+
+    UInt32 size = GetByteLength( name );
+    if ( 0 == size || size > 64 )
+        return false;
+    const char* p = name.C_String();
+    for ( UInt32 i=0; i<size; ++i )
+    {
+        char c = p[ i ];
+        if ( !( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) || '-' == c || '.' == c || '_' == c ) )
+            return false;
+    }
+    static const char* const reserved[] = { "grant_type", "code", "redirect_uri", "code_verifier", "client_id", "client_secret", "refresh_token", "device_code" };
+    for ( size_t i=0; i<sizeof( reserved ) / sizeof( reserved[ 0 ] ); ++i )
+        if ( name == reserved[ i ] )
+            return false;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 COAuth2Protocol::Resolve( const CAuthProviderDescriptor& descriptor  ,
                           const CAuthProviderSettings& settings      ,
@@ -420,6 +445,19 @@ COAuth2Protocol::Resolve( const CAuthProviderDescriptor& descriptor  ,
     {
         resolved.parameters[ (*p).first ] = (*p).second;
         ++p;
+    }
+
+    // Extra fields of the token requests: names that cannot break the form, none of the fields the engine sets itself
+    CAuthProviderSettings::TParameterMap::const_iterator t = settings.tokenParameters.begin();
+    while ( t != settings.tokenParameters.end() )
+    {
+        if ( !IsAcceptableTokenParameterName( (*t).first ) )
+        {
+            error = "A name in the token parameters of the settings is not acceptable";
+            return false;
+        }
+        resolved.tokenParameters[ (*t).first ] = (*t).second;
+        ++t;
     }
 
     // The account of the source "parameters" is made of the parameters alone: they are there and are aliases before a login starts
@@ -532,15 +570,17 @@ COAuth2Protocol::Resolve( const CAuthProviderDescriptor& descriptor  ,
 
     // The redirect
     resolved.redirectMode = settings.redirectMode.IsNULLOrEmpty() ? CORE::CString( "loopback" ) : settings.redirectMode;
-    if ( resolved.redirectMode != "loopback" && resolved.redirectMode != "custom-scheme" && resolved.redirectMode != "manual" )
+    if ( resolved.redirectMode != "loopback" && resolved.redirectMode != "custom-scheme" && resolved.redirectMode != "manual" && resolved.redirectMode != "code-entry" )
     {
-        error = "The redirect mode is not one of loopback, custom-scheme and manual";
+        error = "The redirect mode is not one of loopback, custom-scheme, manual and code-entry";
         return false;
     }
     resolved.loopbackPort = settings.loopbackPort;
     resolved.loopbackPath = settings.loopbackPath.IsNULLOrEmpty() ? CORE::CString( "/callback" ) : settings.loopbackPath;
     resolved.redirectUri = settings.redirectUri;
-    if ( resolved.redirectMode != "loopback" && !IsAcceptableRedirectUri( resolved.redirectUri ) )
+    // The mode code-entry may do without: the provider then shows the code and the authorization request has no redirect uri
+    const bool redirectUriOptional = "code-entry" == resolved.redirectMode && resolved.redirectUri.IsNULLOrEmpty();
+    if ( resolved.redirectMode != "loopback" && !redirectUriOptional && !IsAcceptableRedirectUri( resolved.redirectUri ) )
     {
         error = "This redirect mode needs a redirect uri that is https, http on the loopback address or a scheme of the application";
         return false;
@@ -642,7 +682,8 @@ COAuth2Protocol::BuildAuthorizationUrl( const CAuthProviderDescriptor& descripto
     CORE::CString::StringMap parameters = descriptor.authorizationParameters;
     parameters[ "response_type" ] = "code";
     parameters[ "client_id" ] = resolved.clientId;
-    parameters[ "redirect_uri" ] = redirectUri;
+    if ( !redirectUri.IsNULLOrEmpty() )
+        parameters[ "redirect_uri" ] = redirectUri;
     parameters[ "state" ] = state;
 
     CORE::CString scope;
@@ -664,6 +705,114 @@ COAuth2Protocol::BuildAuthorizationUrl( const CAuthProviderDescriptor& descripto
     if ( descriptor.supportsLoginHint && !descriptor.loginHintParameter.IsNULLOrEmpty() && IsAcceptableLoginHint( loginHint ) )
         parameters[ descriptor.loginHintParameter ] = loginHint;
     return CAuthUrl::AppendQuery( resolved.authorizationEndpoint, parameters );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char* const COAuth2Protocol::CodePageMember = "authorizationCode";
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+IsCodeWhiteSpace( char c )
+{
+    return ' ' == c || '\t' == c || '\r' == c || '\n' == c;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** What a provider puts in a code: no white space, quotes, brackets or commas, so that nothing but a code gets through */
+static bool
+IsCodeCharacter( char c )
+{
+    return ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || ( c >= '0' && c <= '9' ) ||
+           '-' == c || '.' == c || '_' == c || '~' == c || '+' == c || '/' == c || '=' == c || '%' == c;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COAuth2Protocol::ParseAuthorizationCode( const CSecretString& text, CSecretString& code, TCodeCheck& check )
+{GUCEF_TRACE;
+
+    code.Clear();
+    check = CODECHECK_EMPTY;
+
+    const CORE::CString& raw = text.Reveal();
+    const char* p = raw.C_String();
+    UInt32 begin = 0;
+    UInt32 end = GetByteLength( raw );
+    while ( begin < end && IsCodeWhiteSpace( p[ begin ] ) )
+        ++begin;
+    while ( end > begin && IsCodeWhiteSpace( p[ end - 1 ] ) )
+        --end;
+    if ( begin == end )
+        return false;
+    if ( end - begin > MaxCodeTextBytes )
+    {
+        check = CODECHECK_MALFORMED;
+        return false;
+    }
+
+    CSecretString candidate;
+    if ( '{' == p[ begin ] )
+    {
+        // The page of a client that shows the code: a JSON object that has it as a string member
+        if ( !CAuthJson::IsAvailable() )
+        {
+            check = CODECHECK_REFUSED;
+            return false;
+        }
+        CORE::CDataNode root;
+        if ( !CAuthJson::Parse( p + begin, end - begin, MaxCodeTextBytes, CAuthJson::DefaultMaxDepth, true, root ) )
+        {
+            check = CODECHECK_MALFORMED;
+            return false;
+        }
+        CORE::CString value;
+        if ( !CAuthJson::GetString( CAuthJson::GetDocument( root ), CodePageMember, value ) )
+        {
+            check = CODECHECK_NO_CODE;
+            return false;
+        }
+        candidate.Set( value );
+        value.Clear();
+    }
+    else
+    {
+        // A bare code, as copied: it may come with a pair of double quotes
+        if ( end - begin >= 2 && '"' == p[ begin ] && '"' == p[ end - 1 ] )
+        {
+            ++begin;
+            --end;
+        }
+        candidate.Set( MakeString( p + begin, end - begin ) );
+    }
+
+    const CORE::CString& value = candidate.Reveal();
+    UInt32 size = GetByteLength( value );
+    if ( 0 == size )
+    {
+        check = CODECHECK_EMPTY;
+        return false;
+    }
+    if ( size > MaxCodeBytes )
+    {
+        check = CODECHECK_MALFORMED;
+        return false;
+    }
+    const char* c = value.C_String();
+    for ( UInt32 i=0; i<size; ++i )
+    {
+        if ( !IsCodeCharacter( c[ i ] ) )
+        {
+            check = CODECHECK_MALFORMED;
+            return false;
+        }
+    }
+    code = candidate;
+    check = CODECHECK_ACCEPTED;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

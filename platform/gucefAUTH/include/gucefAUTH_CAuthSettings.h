@@ -61,9 +61,16 @@ namespace AUTH {
  *
  *  Config: clientId, clientSecret (only for the provider kinds whose "installed application" secret is not confidential),
  *  audiences (array, or one value that is a comma list: further client ids a server accepts, see below), scopes (array), discoveryUrl, issuer, authorizationEndpoint, tokenEndpoint, deviceAuthorizationEndpoint, userInfoEndpoint, revocationEndpoint, tokenVerifyEndpoint,
- *  jwksUri, redirectMode ("loopback", "custom-scheme" or "manual"), loopbackPort (0 is an ephemeral port), loopbackPath, redirectUri
- *  (for custom-scheme and manual), idScope ("global", "organisation", "app" or empty for the descriptor's), and the child
- *  Parameters with the values of the placeholders the descriptor names, for example tenant, region, poolId, poolDomain.
+ *  jwksUri, redirectMode ("loopback", "custom-scheme", "manual" or "code-entry"), loopbackPort (0 is an ephemeral port), loopbackPath, redirectUri
+ *  (for custom-scheme and manual, optional for code-entry), idScope ("global", "organisation", "app" or empty for the descriptor's), and the child
+ *  Parameters with the values of the placeholders the descriptor names, for example tenant, region, poolId, poolDomain, and the
+ *  child TokenParameters with extra form fields for every request to the token endpoint (a field the engine sets itself, such as
+ *  grant_type or code, cannot be replaced).
+ *
+ *  Redirect mode code-entry: for a client of a provider that shows the authorization code on a page instead of redirecting to the
+ *  application. No listener is opened and the application hands the code over with IAuthFlowEngine::SubmitAuthorizationCode(). The
+ *  redirectUri is sent with the authorization request and the token request when it is set, and left out of both when it is empty.
+ *  The mode manual takes a code the same way when the redirect uri is the one the client is registered with.
  *
  *  OpenID 2.0: the parameter relayUrl, empty by default, is the address of a relay page on a domain of the developer
  *  (https, port 443, a plain path, see COpenId2Relay::ParseRelayUrl). With it the realm and the return address of the login
@@ -97,13 +104,14 @@ class GUCEF_AUTH_EXPORT_CPP CAuthProviderSettings : public CORE::CIConfigurable
     CORE::CString revocationEndpoint;
     CORE::CString tokenVerifyEndpoint;      /**< where a server checks an access token of a provider that has no id token (Facebook, Amazon) */
     CORE::CString jwksUri;
-    CORE::CString redirectMode;             /**< "loopback" (default), "custom-scheme" or "manual" (the application hands the address back, CDescriptorAuthProvider::SubmitRedirectUrl()) */
+    CORE::CString redirectMode;             /**< "loopback" (default), "custom-scheme", "manual" (the application hands the address back, CDescriptorAuthProvider::SubmitRedirectUrl(), or the code, SubmitAuthorizationCode()) or "code-entry" (the application hands the code over, redirectUri optional) */
     UInt16 loopbackPort;                    /**< 0: any free port, the provider's registration must then accept any port on the loopback address */
     CORE::CString loopbackPath;
     CORE::CString redirectUri;              /**< custom scheme redirect, as registered with the provider */
     bool hasIdScope;
     TAuthIdScope idScope;                   /**< only when hasIdScope: replaces the scope of the descriptor */
     TParameterMap parameters;               /**< placeholder values */
+    TParameterMap tokenParameters;          /**< extra form fields of every token request, for example token_type=eg1 */
 
     CAuthProviderSettings( void );
 

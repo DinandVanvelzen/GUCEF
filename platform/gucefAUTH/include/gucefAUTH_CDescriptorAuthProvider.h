@@ -120,6 +120,15 @@ class GUCEF_AUTH_EXPORT_CPP CDescriptorAuthProvider : public CIAuthProvider ,
     /** The same, and which check failed when it was not taken (REDIRECTCHECK_NO_LOGIN_WAITING without an engine) */
     bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check );
 
+    /**
+     *  For the redirect modes "manual" and "code-entry": hands the engine the code, or the page that shows it, of a provider that does
+     *  not redirect to the application (see IAuthFlowEngine::SubmitAuthorizationCode()). False when there is no engine, or no login waits for it
+     */
+    bool SubmitAuthorizationCode( const CSecretString& text );
+
+    /** The same, and which check failed when the text was not taken (CODECHECK_NO_LOGIN_WAITING without an engine) */
+    bool SubmitAuthorizationCode( const CSecretString& text, TCodeCheck& check );
+
     virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;

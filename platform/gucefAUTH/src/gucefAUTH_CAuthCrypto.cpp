@@ -44,6 +44,11 @@
 #define GUCEF_CORE_CICODECINSTANCE_H
 #endif /* GUCEF_CORE_CICODECINSTANCE_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#include "CDynamicBufferAccess.h"
+#define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
+
 #ifndef GUCEF_CORE_CVALUELIST_H
 #include "CValueList.h"
 #define GUCEF_CORE_CVALUELIST_H
@@ -93,6 +98,7 @@ const UInt32 CAuthCrypto::DigestSize;
 const UInt32 CAuthCrypto::SignatureSize;
 const CORE::CString CAuthCrypto::AeadCipher = "xchacha20-poly1305";
 const CORE::CString CAuthCrypto::SignatureType = "ed25519";
+const CORE::CString CAuthCrypto::PassphraseKdf = "argon2id";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -334,6 +340,71 @@ CAuthCrypto::AeadOpen( const UInt8* key                 ,
     if ( sealedSize < TagSize )
         return false;
     return RunAead( false, key, nonce, aad, aadSize, sealed, sealedSize, output );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAuthCrypto::IsPassphraseKdfAvailable( void )
+{GUCEF_TRACE;
+
+    return !GetCodec( CORE::CoreCodecTypes::KeyDerivationCodec, PassphraseKdf ).IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAuthCrypto::DeriveKeyFromPassphrase( const void* passphrase   ,
+                                      UInt32 passphraseSize    ,
+                                      const UInt8* salt        ,
+                                      UInt32 saltSize          ,
+                                      UInt32 memoryInKiB       ,
+                                      UInt32 passes            ,
+                                      UInt32 lanes             ,
+                                      UInt8* output            ,
+                                      UInt32 outputSize        )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == output || 0 == outputSize )
+        return false;
+    Wipe( output, outputSize );
+    if ( ( GUCEF_NULL == passphrase && passphraseSize > 0 ) || GUCEF_NULL == salt )
+        return false;
+    CORE::CCodecRegistry::TICodecPtr codec = GetCodec( CORE::CoreCodecTypes::KeyDerivationCodec, PassphraseKdf );
+    if ( codec.IsNULL() )
+        return false;
+
+    CORE::CValueList params;
+    params.Set( "salt", CORE::CVariant( salt, saltSize ) );
+    params.Set( "memory", CORE::CVariant( memoryInKiB ) );
+    params.Set( "iterations", CORE::CVariant( passes ) );
+    params.Set( "lanes", CORE::CVariant( lanes ) );
+    params.Set( "length", CORE::CVariant( outputSize ) );
+
+    // The codec reads the passphrase from a buffer and writes the key into another: both are wiped before they go
+    // (sized once, so no copy is left behind in memory that a growing buffer gave back)
+    CORE::CDynamicBuffer input;
+    if ( passphraseSize > 0 )
+    {
+        input.SetBufferSize( passphraseSize );
+        input.Append( passphrase, passphraseSize );
+    }
+    CORE::CDynamicBuffer derived;
+    derived.SetBufferSize( outputSize );
+    bool ok = false;
+    {
+        CORE::CDynamicBufferAccess inputAccess( input );
+        CORE::CDynamicBufferAccess outputAccess( derived );
+        ok = codec->Encode( inputAccess, outputAccess, params );
+    }
+    ok = ok && derived.GetDataSize() == outputSize;
+    if ( ok )
+        memcpy( output, derived.GetConstBufferPtr(), outputSize );
+    if ( input.GetBufferSize() > 0 )
+        Wipe( input.GetBufferPtr(), input.GetBufferSize() );
+    if ( derived.GetBufferSize() > 0 )
+        Wipe( derived.GetBufferPtr(), derived.GetBufferSize() );
+    return ok;
 }
 
 /*-------------------------------------------------------------------------*/

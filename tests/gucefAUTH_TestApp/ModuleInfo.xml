@@ -9,6 +9,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="monocypher" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
@@ -17,6 +18,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefAUTH" />
+            <Dependency Name="monocypher" />
         </Linker>
         <RuntimeDependencies>
             <RuntimeDependency Name="dstorepluginJSONPARSER" />

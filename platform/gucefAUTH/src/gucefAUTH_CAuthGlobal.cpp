@@ -84,6 +84,16 @@
 #define GUCEF_AUTH_CDESCRIPTORAUTHPROVIDER_H
 #endif /* GUCEF_AUTH_CDESCRIPTORAUTHPROVIDER_H ? */
 
+#ifndef GUCEF_AUTH_CKEYRINGSESSION_H
+#include "gucefAUTH_CKeyringSession.h"
+#define GUCEF_AUTH_CKEYRINGSESSION_H
+#endif /* GUCEF_AUTH_CKEYRINGSESSION_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
 #include "gucefAUTH_CAuthGlobal.h"
 
 #ifndef GUCEF_AUTH_COAUTH2ENGINE_H
@@ -117,6 +127,7 @@ CAuthGlobal* CAuthGlobal::g_instance = GUCEF_NULL;
 
 CAuthGlobal::CAuthGlobal( void )
     : m_providerFactory( GUCEF_NULL )
+    , m_keyringOperationFactory( GUCEF_NULL )
     , m_descriptorRegistry( GUCEF_NULL )
     , m_openId2Profiles( GUCEF_NULL )
     , m_manager( GUCEF_NULL )
@@ -146,6 +157,11 @@ CAuthGlobal::Initialize( void )
     CAuthManager::RegisterEvents();
     CAuthSettingsProfile::RegisterEvents();
     CAccessTokenKeeper::RegisterEvents();
+    CKeyringSession::RegisterEvents();
+
+    // The task of the asynchronous operations of the keyring code (the derivations run on a pool thread)
+    m_keyringOperationFactory = GUCEF_NEW TKeyringOperationTaskConsumerFactory();
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CKeyringOperationTaskConsumer::TaskType, m_keyringOperationFactory );
 
     m_providerFactory = GUCEF_NEW CAuthProviderFactory();
     m_descriptorRegistry = GUCEF_NEW CAuthProviderRegistry();
@@ -197,6 +213,13 @@ CAuthGlobal::~CAuthGlobal()
 
     GUCEF_DELETE m_providerFactory;
     m_providerFactory = GUCEF_NULL;
+
+    if ( GUCEF_NULL != m_keyringOperationFactory )
+    {
+        CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CKeyringOperationTaskConsumer::TaskType );
+        GUCEF_DELETE m_keyringOperationFactory;
+        m_keyringOperationFactory = GUCEF_NULL;
+    }
     GUCEF_DELETE m_openId2Profiles;
     m_openId2Profiles = GUCEF_NULL;
     GUCEF_DELETE m_descriptorRegistry;

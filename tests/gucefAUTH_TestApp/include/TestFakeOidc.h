@@ -96,6 +96,7 @@ class CFakeBehavior
 
     bool denyAuthorization;                             /**< authorize answers with error=access_denied */
     bool requirePkce;
+    bool acceptMissingRedirectUri;                      /**< authorize takes a request without redirect_uri (a client whose provider shows the code) and sends the code to the relative address /code */
     GUCEF::UInt32 tokenDelayInMs;
     GUCEF::CORE::CString tokenError;                    /**< when set the token endpoint answers with this error */
     int tokenErrorStatus;

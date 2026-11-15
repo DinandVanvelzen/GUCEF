@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := \
   src/TestFakeOidc.cpp \
   src/TestFakeProvider.cpp \
   src/TestJwt.cpp \
+  src/TestKeyring.cpp \
   src/TestLinkStore.cpp \
   src/TestMailOAuth.cpp \
   src/TestOAuth2Flows.cpp \
@@ -50,11 +51,13 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../common/test/include \
+  $(MY_MODULE_PATH)/../../dependencies/monocypher/include \
   $(MY_MODULE_PATH)/../../platform/gucefAUTH/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../platform/gucefIMAGE/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
   $(MY_MODULE_PATH)/../../platform/gucefVFS/include \
   $(MY_MODULE_PATH)/../../platform/gucefWEB/include
@@ -69,6 +72,10 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCORE \
   gucefMT \
   gucefWEB
+
+
+LOCAL_STATIC_LIBRARIES := \
+  monocypher
 
 include $(BUILD_EXECUTABLE)
 

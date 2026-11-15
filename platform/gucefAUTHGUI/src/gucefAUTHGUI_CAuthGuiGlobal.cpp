@@ -79,6 +79,21 @@
 #define GUCEF_AUTHGUI_CACCOUNTSETTINGSFORM_H
 #endif /* GUCEF_AUTHGUI_CACCOUNTSETTINGSFORM_H ? */
 
+#ifndef GUCEF_AUTHGUI_CKEYRINGUNLOCKFORM_H
+#include "gucefAUTHGUI_CKeyringUnlockForm.h"
+#define GUCEF_AUTHGUI_CKEYRINGUNLOCKFORM_H
+#endif /* GUCEF_AUTHGUI_CKEYRINGUNLOCKFORM_H ? */
+
+#ifndef GUCEF_AUTHGUI_COAUTHCODEENTRYFORM_H
+#include "gucefAUTHGUI_COAuthCodeEntryForm.h"
+#define GUCEF_AUTHGUI_COAUTHCODEENTRYFORM_H
+#endif /* GUCEF_AUTHGUI_COAUTHCODEENTRYFORM_H ? */
+
+#ifndef GUCEF_AUTHGUI_CSIGNINSETTINGSFORM_H
+#include "gucefAUTHGUI_CSignInSettingsForm.h"
+#define GUCEF_AUTHGUI_CSIGNINSETTINGSFORM_H
+#endif /* GUCEF_AUTHGUI_CSIGNINSETTINGSFORM_H ? */
+
 #include "gucefAUTHGUI_CAuthGuiGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -133,6 +148,9 @@ CAuthGuiGlobal::Initialize( void )
 
     CAccountsPanel::RegisterEvents();
     CLoginForm::RegisterEvents();
+    CKeyringUnlockForm::RegisterEvents();
+    COAuthCodeEntryForm::RegisterEvents();
+    CSignInSettingsForm::RegisterEvents();
 
     // a tool that has this module has the page
     GUI::CSettingsForm::GetPageFactory().RegisterConcreteFactory( AccountPageName, &g_accountSettingsPageFactory );

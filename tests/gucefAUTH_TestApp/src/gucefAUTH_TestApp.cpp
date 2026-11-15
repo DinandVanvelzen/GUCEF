@@ -100,6 +100,7 @@
 #include "TestAccountProfile.h"
 #include "TestCredentialStore.h"
 #include "TestCredentialStoreKeyFile.h"
+#include "TestKeyring.h"
 #include "TestLinkStore.h"
 #include "TestDescriptors.h"
 #include "TestAuthManager.h"
@@ -193,6 +194,7 @@ GUCEF_OSMAIN_BEGIN
         if ( RunGroup( "AccountProfile" ) ) PerformAccountProfileTests();
         if ( RunGroup( "CredentialStore" ) ) PerformCredentialStoreTests();
         if ( RunGroup( "CredentialKeyFile" ) ) PerformCredentialStoreKeyFileTests();
+        if ( RunGroup( "Keyring" ) )        PerformKeyringTests();
         if ( RunGroup( "LinkStore" ) )      PerformLinkStoreTests();
         if ( RunGroup( "Descriptors" ) )    PerformDescriptorTests();
         if ( RunGroup( "AuthManager" ) )    PerformAuthManagerTests();

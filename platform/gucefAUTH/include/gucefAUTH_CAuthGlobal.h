@@ -50,6 +50,11 @@
 #define GUCEF_AUTH_COPENID2PROFILEREGISTRY_H
 #endif /* GUCEF_AUTH_COPENID2PROFILEREGISTRY_H ? */
 
+#ifndef GUCEF_AUTH_CKEYRINGOPERATIONTASKCONSUMER_H
+#include "gucefAUTH_CKeyringOperationTaskConsumer.h"
+#define GUCEF_AUTH_CKEYRINGOPERATIONTASKCONSUMER_H
+#endif /* GUCEF_AUTH_CKEYRINGOPERATIONTASKCONSUMER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -167,6 +172,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthGlobal
     typedef GUCEF::vector< CDescriptorAuthProviderFactory* > TDescriptorFactoryVector;
 
     CAuthProviderFactory* m_providerFactory;
+    TKeyringOperationTaskConsumerFactory* m_keyringOperationFactory;   /**< the task of the asynchronous operations of CKeyringSession */
     CAuthProviderRegistry* m_descriptorRegistry;
     COpenId2ProfileRegistry* m_openId2Profiles;
     CAuthManager* m_manager;

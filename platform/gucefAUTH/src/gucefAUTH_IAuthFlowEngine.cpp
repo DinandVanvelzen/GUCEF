@@ -58,6 +58,24 @@ RedirectCheckToString( TRedirectCheck check )
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+CodeCheckToString( TCodeCheck check )
+{GUCEF_TRACE;
+
+    switch ( check )
+    {
+        case CODECHECK_ACCEPTED : return "accepted";
+        case CODECHECK_NO_LOGIN_WAITING : return "no-login-waiting";
+        case CODECHECK_AMBIGUOUS : return "ambiguous";
+        case CODECHECK_EMPTY : return "empty";
+        case CODECHECK_MALFORMED : return "malformed";
+        case CODECHECK_NO_CODE : return "no-code";
+        default : return "refused";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 IAuthFlowSinkWatcher::IAuthFlowSinkWatcher( void )
 {GUCEF_TRACE;
 
@@ -151,6 +169,26 @@ IAuthFlowEngine::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectC
 
     bool taken = SubmitRedirectUrl( redirectUrl );
     check = taken ? REDIRECTCHECK_ACCEPTED : REDIRECTCHECK_REFUSED;
+    return taken;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IAuthFlowEngine::SubmitAuthorizationCode( const CSecretString& text )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IAuthFlowEngine::SubmitAuthorizationCode( const CSecretString& text, TCodeCheck& check )
+{GUCEF_TRACE;
+
+    bool taken = SubmitAuthorizationCode( text );
+    check = taken ? CODECHECK_ACCEPTED : CODECHECK_REFUSED;
     return taken;
 }
 

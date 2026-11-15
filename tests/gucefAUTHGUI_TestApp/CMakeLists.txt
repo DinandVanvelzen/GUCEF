@@ -34,8 +34,10 @@ if (ANDROID32)
     src/TestAuthGuiCommon.cpp
     src/TestAuthGuiGlobal.cpp
     src/TestFormLayouts.cpp
+    src/TestKeyringUnlockForm.cpp
     src/TestLoginForm.cpp
     src/TestOpenId2Backend.cpp
+    src/TestSignInForms.cpp
     src/TestSigner.cpp
     src/gucefAUTHGUI_TestApp.cpp
   )
@@ -64,8 +66,10 @@ elseif (ANDROID64)
     src/TestAuthGuiCommon.cpp
     src/TestAuthGuiGlobal.cpp
     src/TestFormLayouts.cpp
+    src/TestKeyringUnlockForm.cpp
     src/TestLoginForm.cpp
     src/TestOpenId2Backend.cpp
+    src/TestSignInForms.cpp
     src/TestSigner.cpp
     src/gucefAUTHGUI_TestApp.cpp
   )
@@ -94,8 +98,10 @@ elseif (LINUX32)
     src/TestAuthGuiCommon.cpp
     src/TestAuthGuiGlobal.cpp
     src/TestFormLayouts.cpp
+    src/TestKeyringUnlockForm.cpp
     src/TestLoginForm.cpp
     src/TestOpenId2Backend.cpp
+    src/TestSignInForms.cpp
     src/TestSigner.cpp
     src/gucefAUTHGUI_TestApp.cpp
   )
@@ -124,8 +130,10 @@ elseif (LINUX64)
     src/TestAuthGuiCommon.cpp
     src/TestAuthGuiGlobal.cpp
     src/TestFormLayouts.cpp
+    src/TestKeyringUnlockForm.cpp
     src/TestLoginForm.cpp
     src/TestOpenId2Backend.cpp
+    src/TestSignInForms.cpp
     src/TestSigner.cpp
     src/gucefAUTHGUI_TestApp.cpp
   )
@@ -154,8 +162,10 @@ elseif (WIN32)
     src/TestAuthGuiCommon.cpp
     src/TestAuthGuiGlobal.cpp
     src/TestFormLayouts.cpp
+    src/TestKeyringUnlockForm.cpp
     src/TestLoginForm.cpp
     src/TestOpenId2Backend.cpp
+    src/TestSignInForms.cpp
     src/TestSigner.cpp
     src/gucefAUTHGUI_TestApp.cpp
   )
@@ -184,8 +194,10 @@ elseif (WIN64)
     src/TestAuthGuiCommon.cpp
     src/TestAuthGuiGlobal.cpp
     src/TestFormLayouts.cpp
+    src/TestKeyringUnlockForm.cpp
     src/TestLoginForm.cpp
     src/TestOpenId2Backend.cpp
+    src/TestSignInForms.cpp
     src/TestSigner.cpp
     src/gucefAUTHGUI_TestApp.cpp
   )

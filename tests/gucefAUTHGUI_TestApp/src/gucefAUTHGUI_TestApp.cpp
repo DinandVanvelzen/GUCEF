@@ -106,6 +106,8 @@ GUCEF_OSMAIN_BEGIN
         PerformAccountSettingsFormTests();
         PerformFormLayoutTests();
         PerformAccountOfferTests();
+        PerformKeyringUnlockFormTests();
+        PerformSignInFormTests();
 
         // the plugins the tests loaded go away before the global systems do
         GUCEF::AUTH::CAuthGlobal::Instance()->GetOAuth2Engine()->ReleaseHttpBackends();

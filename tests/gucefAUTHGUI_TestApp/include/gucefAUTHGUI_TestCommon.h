@@ -109,6 +109,13 @@ bool IsWidgetEnabled( GUCEF::GUI::CForm& form, const GUCEF::CORE::CString& name 
 /** Pulses the global pulse generator from the test thread for the given time, for timers of the lobby doubles */
 void PumpFor( GUCEF::UInt32 durationInMs );
 
+/**
+ *  Runs the layout lint of gucefGUI over the matrix of sizes, scales and pseudo-localised text on what the context shows
+ *  (a context of CreateSizedFormContext() with the real font when it is there), logs the counts (the baseline, also appended to the
+ *  file GUCEF_TEST_LAYOUT_LINT_REPORT names) and checks them against the budget of the scope; false when the budget is exceeded
+ */
+bool RunFormLayoutLint( GUCEF::GUI::CGUIContext* context, const char* scope );
+
 /*-------------------------------------------------------------------------*/
 
 /** Counts one event of one notifier */
@@ -143,6 +150,8 @@ void PerformLoginFormTests( void );
 void PerformAccountSettingsFormTests( void );
 void PerformFormLayoutTests( void );
 void PerformAccountOfferTests( void );
+void PerformKeyringUnlockFormTests( void );
+void PerformSignInFormTests( void );
 
 /** The offers of the page of the accounts when the HTTP client has no https: runs before the plugin for https is loaded */
 void PerformAccountOfferNoHttpsTests( void );

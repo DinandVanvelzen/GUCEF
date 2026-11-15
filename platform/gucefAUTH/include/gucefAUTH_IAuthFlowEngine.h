@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CFUTURERESULTSOURCE_H
 #endif /* GUCEF_CORE_CFUTURERESULTSOURCE_H ? */
 
+#ifndef GUCEF_AUTH_CSECRETSTRING_H
+#include "gucefAUTH_CSecretString.h"
+#define GUCEF_AUTH_CSECRETSTRING_H
+#endif /* GUCEF_AUTH_CSECRETSTRING_H ? */
+
 #ifndef GUCEF_AUTH_CAUTHPROVIDERDESCRIPTOR_H
 #include "gucefAUTH_CAuthProviderDescriptor.h"
 #define GUCEF_AUTH_CAUTHPROVIDERDESCRIPTOR_H
@@ -88,6 +93,29 @@ typedef enum ERedirectCheck TRedirectCheck;
 /** A stable lower case name of the outcome, for logs and an application that shows which check failed */
 GUCEF_AUTH_EXPORT_CPP const char*
 RedirectCheckToString( TRedirectCheck check );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  What became of the text handed to IAuthFlowEngine::SubmitAuthorizationCode(), so that the application can say which check
+ *  failed without repeating the text (it holds the code)
+ */
+enum ECodeCheck
+{
+    CODECHECK_ACCEPTED = 0,         /**< a login took the code (the login may still fail at the token endpoint) */
+    CODECHECK_NO_LOGIN_WAITING,     /**< no authorization code login of the redirect mode manual or code-entry waits for a code */
+    CODECHECK_AMBIGUOUS,            /**< more than one login waits and a code does not say which one it is for: nothing was sent anywhere */
+    CODECHECK_EMPTY,                /**< nothing, or only white space, or a page whose authorizationCode is empty */
+    CODECHECK_MALFORMED,            /**< too long, not a code, or a page that is not JSON that can be read */
+    CODECHECK_NO_CODE,              /**< a JSON page without the member authorizationCode as a string */
+    CODECHECK_REFUSED               /**< the engine did not take it and does not say why */
+};
+
+typedef enum ECodeCheck TCodeCheck;
+
+/** A stable lower case name of the outcome, for logs and an application that shows which check failed */
+GUCEF_AUTH_EXPORT_CPP const char*
+CodeCheckToString( TCodeCheck check );
 
 /*-------------------------------------------------------------------------*/
 
@@ -200,6 +228,23 @@ class GUCEF_AUTH_EXPORT_CPP IAuthFlowEngine
 
     /** The same, and why an address was not taken. Default: the form without the reason, REDIRECTCHECK_REFUSED when it is false */
     virtual bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check );
+
+    /**
+     *  Hands the engine the authorization code of a login whose provider shows the code on a page instead of redirecting to the
+     *  application (redirect mode "manual" or "code-entry"). The text is the code alone, or the text of the whole page: a JSON
+     *  object with the string member authorizationCode. White space around it and a pair of double quotes around a bare code are
+     *  ignored. The code is exchanged at the token endpoint of the provider as a redirect would have it and the login goes on
+     *  from there; the text is a secret and is never logged. Default: false, the engine has no such mode.
+     *
+     *  False, and nothing sent anywhere, when no login waits for a code (a login of the redirect mode loopback does not), when
+     *  more than one waits (a code does not say which provider it is from), or when the text is empty, too long (the page at
+     *  most 16384 bytes, the code at most 2048), not a code (visible characters of A-Z a-z 0-9 - . _ ~ + / = % only) or a page
+     *  without the member. A code is not tied to a state, so unlike a redirect it cannot be matched to a login.
+     */
+    virtual bool SubmitAuthorizationCode( const CSecretString& text );
+
+    /** The same, and why the text was not taken. Default: the form without the reason, CODECHECK_REFUSED when it is false */
+    virtual bool SubmitAuthorizationCode( const CSecretString& text, TCodeCheck& check );
 
     /**
      *  Whether the engine would run the provider but for one thing: what the engine asks of the provider goes over https and this build

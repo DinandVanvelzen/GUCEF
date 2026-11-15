@@ -346,10 +346,10 @@ COAuth2Flow::PrepareRedirect( CORE::CString& redirectUri, CORE::CString& origin,
         return true;
     }
 
-    // The application brings the redirect back
+    // The application brings the redirect, or with code-entry the code, back
     redirectUri = m_resolved.redirectUri;
-    origin = CAuthUrl::GetOrigin( redirectUri );
-    return !redirectUri.IsNULLOrEmpty();
+    origin = redirectUri.IsNULLOrEmpty() ? CORE::CString::Empty : CAuthUrl::GetOrigin( redirectUri );
+    return !redirectUri.IsNULLOrEmpty() || m_resolved.redirectMode == "code-entry";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -422,7 +422,7 @@ bool
 COAuth2Flow::BeginOpenId2( void )
 {GUCEF_TRACE;
 
-    if ( m_resolved.authorizationEndpoint.IsNULLOrEmpty() || m_resolved.redirectMode == "custom-scheme" )
+    if ( m_resolved.authorizationEndpoint.IsNULLOrEmpty() || m_resolved.redirectMode == "custom-scheme" || m_resolved.redirectMode == "code-entry" )
         return false;
     if ( !COAuth2Protocol::MakeRandomToken( COAuth2Protocol::RandomTokenBytes, m_state ) )
         return false;
@@ -516,7 +516,10 @@ bool
 COAuth2Flow::StartTokenRequest( const CORE::CString::StringMap& parameters )
 {GUCEF_TRACE;
 
-    CORE::CString::StringMap all = parameters;
+    // The extra fields of the settings first: they add to the request and never replace what the engine puts in it
+    CORE::CString::StringMap all = m_resolved.tokenParameters;
+    for ( CORE::CString::StringMap::const_iterator p = parameters.begin(); p != parameters.end(); ++p )
+        all[ (*p).first ] = (*p).second;
     COAuth2Protocol::AddClientParameters( m_descriptor, m_resolved, all );
     CORE::CString contentType;
     CORE::CString body = COAuth2Protocol::MakeBody( m_descriptor, all, contentType );
@@ -675,7 +678,7 @@ COAuth2Flow::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck
 {GUCEF_TRACE;
 
     check = REDIRECTCHECK_NO_LOGIN_WAITING;
-    if ( STAGE_AUTHORIZATION != m_stage || m_resolved.redirectMode == "loopback" )
+    if ( STAGE_AUTHORIZATION != m_stage || m_resolved.redirectMode == "loopback" || m_resolved.redirectMode == "code-entry" )
         return false;
     check = REDIRECTCHECK_MALFORMED;
     UInt32 size = GetByteLength( redirectUrl );
@@ -733,6 +736,35 @@ COAuth2Flow::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck
 
     check = REDIRECTCHECK_ACCEPTED;
     OnCallback( parameters );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COAuth2Flow::IsWaitingForCode( void ) const
+{GUCEF_TRACE;
+
+    return OAUTH2FLOW_AUTHORIZATION_CODE == m_kind && STAGE_AUTHORIZATION == m_stage &&
+           ( m_resolved.redirectMode == "manual" || m_resolved.redirectMode == "code-entry" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+COAuth2Flow::SubmitAuthorizationCode( const CSecretString& code, TCodeCheck& check )
+{GUCEF_TRACE;
+
+    check = CODECHECK_NO_LOGIN_WAITING;
+    if ( !IsWaitingForCode() )
+        return false;
+    if ( code.IsEmpty() )
+    {
+        check = CODECHECK_EMPTY;
+        return false;
+    }
+    check = CODECHECK_ACCEPTED;
+    ExchangeCode( code );
     return true;
 }
 
@@ -826,12 +858,22 @@ COAuth2Flow::OnCallback( const CORE::CString::StringMap& parameters )
         Fail( AUTHFAIL_INVALID_RESPONSE, "The provider gave no code" );
         return;
     }
-    m_code.Set( (*code).second );
+    ExchangeCode( CSecretString( (*code).second ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COAuth2Flow::ExchangeCode( const CSecretString& code )
+{GUCEF_TRACE;
+
+    m_code = code;
 
     CORE::CString::StringMap tokenParameters;
     tokenParameters[ "grant_type" ] = "authorization_code";
-    tokenParameters[ "code" ] = (*code).second;
-    tokenParameters[ "redirect_uri" ] = m_redirectUri;
+    tokenParameters[ "code" ] = code.Reveal();
+    if ( !m_redirectUri.IsNULLOrEmpty() )
+        tokenParameters[ "redirect_uri" ] = m_redirectUri;
     if ( !m_verifier.IsNULLOrEmpty() )
         tokenParameters[ "code_verifier" ] = m_verifier;
     if ( !StartTokenRequest( tokenParameters ) )

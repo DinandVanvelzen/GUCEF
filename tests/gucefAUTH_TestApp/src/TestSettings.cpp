@@ -123,6 +123,7 @@ MakeFilledSettings( void )
     cognito.parameters[ "region" ] = "eu-west-1";
     cognito.parameters[ "poolId" ] = "eu-west-1_AbCdEfGhI";
     cognito.parameters[ "poolDomain" ] = "myapp.auth.eu-west-1.amazoncognito.com";
+    cognito.tokenParameters[ "token_type" ] = "eg1";
     settings.SetProviderSettings( "aws-cognito", cognito );
     return settings;
 }
@@ -156,7 +157,7 @@ SameSettings( const AUTH::CAuthSettings& a, const AUTH::CAuthSettings& b )
              x.authorizationEndpoint != y.authorizationEndpoint || x.tokenEndpoint != y.tokenEndpoint ||
              x.redirectMode != y.redirectMode || x.loopbackPort != y.loopbackPort || x.loopbackPath != y.loopbackPath ||
              x.redirectUri != y.redirectUri || x.hasIdScope != y.hasIdScope || ( x.hasIdScope && x.idScope != y.idScope ) ||
-             x.parameters != y.parameters )
+             x.parameters != y.parameters || x.tokenParameters != y.tokenParameters )
             return false;
         ++i;
     }

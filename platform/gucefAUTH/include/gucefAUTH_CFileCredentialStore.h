@@ -40,10 +40,25 @@
 #define GUCEF_CORE_CICONFIGURABLE_H
 #endif /* GUCEF_CORE_CICONFIGURABLE_H ? */
 
+#ifndef GUCEF_CORE_CSECUREBUFFER_H
+#include "gucefCORE_CSecureBuffer.h"
+#define GUCEF_CORE_CSECUREBUFFER_H
+#endif /* GUCEF_CORE_CSECUREBUFFER_H ? */
+
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
 #ifndef GUCEF_AUTH_ICREDENTIALSTORE_H
 #include "gucefAUTH_ICredentialStore.h"
 #define GUCEF_AUTH_ICREDENTIALSTORE_H
 #endif /* GUCEF_AUTH_ICREDENTIALSTORE_H ? */
+
+#ifndef GUCEF_AUTH_KEYRINGTYPES_H
+#include "gucefAUTH_KeyringTypes.h"
+#define GUCEF_AUTH_KEYRINGTYPES_H
+#endif /* GUCEF_AUTH_KEYRINGTYPES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -101,8 +116,31 @@ class CFileCredentialStoreTestAccess;
  *  nothing is read and every change is refused, and the data file is left byte for byte, so the right key makes the
  *  store readable at the next operation. A credentials.key in the directory is never read then; a warning names it.
  *
+ *  Keyring code (SetKeyMode( KEYMODE_KEYRING_CODE ), config keyMode "keyring-code"): the key is derived from a passphrase
+ *  that the person types, the keyring code, instead of a key file, so a copy of the directory (a backup, another machine)
+ *  is of no use without the code and opens with it. The data is in keyring.bin, next to (and apart from) the files of the
+ *  key file mode, so one directory can have both: a key file store for what may be reused without the person (session
+ *  cookies) and a keyring store for saved passwords. The file is format version 2 of the same magic: the header holds the
+ *  derivation (Argon2id, the memory in KiB, the passes, the lanes), a random salt of 16 bytes and a check value, and is
+ *  authenticated as additional data. Argon2id of the code gives 32 bytes; HKDF-SHA256 of those gives the sealing key
+ *  (info "gucefAUTH keyring v2 seal") and the check value (info "gucefAUTH keyring v2 check"). A code whose check value
+ *  does not match the file is a wrong code (KEYRING_WRONG_CODE), not tampering; a right code whose data fails
+ *  authentication is tampering (KEYRING_TAMPERED, IsTamperDetected()). The parameters for the next seal are
+ *  SetKeyringParameters(); a file keeps those it was sealed with, so they can be raised by a change of code.
+ *
+ *  The keyring is locked until UnlockKeyring() is given the right code. While it is locked nothing is read (Load() and
+ *  ListAccounts() return false) and nothing is changed; the store keeps only the sealing key while unlocked, in a
+ *  CORE::CSecureBuffer that is wiped when it locks (LockKeyring(), Wipe(), destruction, the file sealed with another code
+ *  by another instance). Neither the code nor anything derived from it is logged or written; the file holds the salt and
+ *  the check value only. ChangeKeyringCode() reseals with a new salt and the current parameters; Wipe() deletes
+ *  keyring.bin (forgetting the code loses the saved credentials) and leaves the files of the key file mode alone. The
+ *  derivation takes the time and memory of the parameters (64 MiB and 3 passes by default) and runs without the lock of
+ *  the instance held, so reads on other threads answer (locked) meanwhile; CKeyringSession runs it on a pool thread and
+ *  adds the idle lock, the wait between wrong codes and the events. External key file settings have no meaning in this mode.
+ *
  *  Config: directory (empty: $APPDATADIR$/<appName>/Auth), appName, lockTimeoutInMs, keyFile (empty: credentials.key
- *  in the directory), keyFileTrust ("owner-only" or "mounted-secret"); the key settings are saved when not the default
+ *  in the directory), keyFileTrust ("owner-only" or "mounted-secret"), keyMode ("key-file" or "keyring-code"),
+ *  keyringMemoryInKiB, keyringPasses, keyringLanes; the key settings are saved when not the default
  */
 class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
                                                    public CORE::CIConfigurable
@@ -113,6 +151,21 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     static const CORE::CString KeyFileName;         /**< "credentials.key" */
     static const CORE::CString LockFileName;        /**< "credentials.lock" */
     static const UInt32 DefaultLockTimeoutInMs;     /**< 10000 */
+    static const CORE::CString KeyringFileName;     /**< "keyring.bin", the data of the keyring code mode */
+    static const UInt32 DefaultKeyringMemoryInKiB;  /**< 65536 (64 MiB) */
+    static const UInt32 DefaultKeyringPasses;       /**< 3 */
+    static const UInt32 DefaultKeyringLanes;        /**< 1 */
+    static const UInt32 MaxKeyringMemoryInKiB;      /**< 1048576 (1 GiB): a file asking for more is not a keyring file */
+    static const UInt32 MaxKeyringPasses;           /**< 32 */
+    static const UInt32 MaxKeyringLanes;            /**< 16 */
+    static const UInt32 MaxKeyringCodeLength;       /**< 1024 bytes */
+
+    /** Where the key of the store comes from */
+    enum EKeyMode
+    {
+        KEYMODE_KEY_FILE        ,   /**< "key-file": credentials.key in the directory or the external key file, the default */
+        KEYMODE_KEYRING_CODE        /**< "keyring-code": derived from a code the person types, data in keyring.bin */
+    };
 
     /** How an external key file is checked before it is read */
     enum EKeyFileTrust
@@ -215,6 +268,70 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     /** Whether the AEAD codec the store needs is there */
     static bool IsAvailable( void );
 
+    /** @name Keyring code mode */
+    ///@{
+
+    /** Switches the source of the key; locks the keyring and forgets what was read */
+    void SetKeyMode( EKeyMode keyMode );
+    EKeyMode GetKeyMode( void ) const;
+
+    /** "key-file" or "keyring-code" */
+    static const CORE::CString& KeyModeToString( EKeyMode keyMode );
+
+    /** False for a text that is neither of the two */
+    static bool KeyModeFromString( const CORE::CString& text, EKeyMode& keyMode );
+
+    /** Whether the codecs of the keyring code mode are there: "argon2id" and "xchacha20-poly1305" */
+    static bool IsKeyringAvailable( void );
+
+    /**
+     *  The Argon2id parameters of the next seal (SetUpKeyring(), ChangeKeyringCode()): the memory in KiB, the passes and the
+     *  lanes, brought within 1 to MaxKeyringPasses, 1 to MaxKeyringLanes and 8 KiB per lane to MaxKeyringMemoryInKiB
+     */
+    void SetKeyringParameters( UInt32 memoryInKiB, UInt32 passes, UInt32 lanes );
+    void GetKeyringParameters( UInt32& memoryInKiB, UInt32& passes, UInt32& lanes ) const;
+
+    /** The parameters the keyring file was sealed with; false when there is no keyring file or it is not one */
+    bool GetSealedKeyringParameters( UInt32& memoryInKiB, UInt32& passes, UInt32& lanes ) const;
+
+    /** Whether the keyring file exists (a code was set up) */
+    bool IsKeyringSetUp( void ) const;
+
+    /** Whether the keyring is locked: no key in memory. False in the key file mode */
+    bool IsKeyringLocked( void ) const;
+
+    /** Why the keyring locked last, while it is locked */
+    TKeyringLockReason GetKeyringLockReason( void ) const;
+
+    /**
+     *  Makes an empty keyring sealed with the code (a new salt, the parameters of SetKeyringParameters()) and leaves it unlocked.
+     *  KEYRING_ALREADY_SET_UP when there is one, KEYRING_INVALID_CODE for an empty code or one longer than MaxKeyringCodeLength.
+     *  Blocks the calling thread for the derivation
+     */
+    TKeyringResult SetUpKeyring( const CSecretString& code );
+
+    /**
+     *  Derives the key from the code and the salt and parameters of the file and keeps it when the check value matches.
+     *  KEYRING_WRONG_CODE when it does not, KEYRING_TAMPERED when it does and the data fails authentication (the keyring
+     *  stays locked then), KEYRING_NOT_SET_UP without a keyring file. Blocks the calling thread for the derivation
+     */
+    TKeyringResult UnlockKeyring( const CSecretString& code );
+
+    /** Wipes the key and the slots read with it */
+    void LockKeyring( void );
+
+    /**
+     *  Reseals the data with the new code, a new salt and the parameters of SetKeyringParameters(), under the exclusive lock of
+     *  the store, and leaves the keyring unlocked with the new code. The current code is required also while unlocked:
+     *  KEYRING_WRONG_CODE when it is not right. Blocks the calling thread for two derivations
+     */
+    TKeyringResult ChangeKeyringCode( const CSecretString& currentCode, const CSecretString& newCode );
+
+    /** The monotonic time (GetMonotonicTimeInMs()) of the last operation that used the key; 0 while locked */
+    UInt64 GetKeyringLastUseInMs( void ) const;
+
+    ///@}
+
     virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;
@@ -266,6 +383,17 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     bool Change( TChangeKind kind, const CORE::CString& providerName, const CORE::CString& accountKey, const CSecretString* secret );
     bool WriteSlots( const CORE::CString& directory, const TSlotVector& slots, SFileImage& image );
     bool PrepareDirectory( void );
+    bool IsKeyringModeWhileLocked( void ) const;
+    const CORE::CString& GetDataFileNameWhileLocked( void ) const;
+    TKeyringResult CheckKeyringUse( const CSecretString& code ) const;
+    TKeyringResult ReadKeyringFile( CORE::CDynamicBuffer& file ) const;
+    void ParseKeyringImage( const SFileImage& image ) const;
+    void InstallKeyringKey( const UInt8* sealKey, const UInt8* check, const UInt8* header, UInt32 headerSize ) const;
+    void LockKeyringWhileLocked( TKeyringLockReason reason ) const;
+    bool WriteKeyringSlots( const CORE::CString& directory, const TSlotVector& slots, const UInt8* header, UInt32 headerSize,
+                            const UInt8* sealKey, SFileImage& image ) const;
+    static void SerializeSlots( const TSlotVector& slots, CORE::CDynamicBuffer& plain );
+    static bool DeserializeSlots( const UInt8* data, UInt32 size, TSlotVector& slots );
     const SSlot* FindSlot( const CORE::CString& providerName, const CORE::CString& accountKey ) const;
 
     private:
@@ -290,6 +418,16 @@ class GUCEF_AUTH_EXPORT_CPP CFileCredentialStore : public ICredentialStore ,
     mutable EKeyState m_loggedKeyState;
     mutable bool m_strayKeyWarned;
     mutable UInt8 m_fileDigest[ CORE::CSha256::DigestSize ];
+    EKeyMode m_keyMode;
+    UInt32 m_keyringMemoryInKiB;
+    UInt32 m_keyringPasses;
+    UInt32 m_keyringLanes;
+    mutable CORE::CSecureBuffer m_keyringKey;       /**< the sealing key while the keyring is unlocked, wiped when it locks */
+    mutable UInt8 m_keyringCheck[ CORE::CSha256::DigestSize ];  /**< the check value of that key, as in the file */
+    mutable CORE::CDynamicBuffer m_keyringHeader;   /**< the header of the file the key opens (no secret in it) */
+    mutable bool m_keyringUnlocked;
+    mutable UInt64 m_keyringLastUseMs;
+    mutable TKeyringLockReason m_keyringLockReason;
 };
 
 /*-------------------------------------------------------------------------//

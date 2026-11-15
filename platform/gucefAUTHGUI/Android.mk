@@ -26,8 +26,12 @@ LOCAL_SRC_FILES := \
   src/gucefAUTHGUI_CAccountSettingsForm.cpp \
   src/gucefAUTHGUI_CAccountsPanel.cpp \
   src/gucefAUTHGUI_CAuthGuiGlobal.cpp \
+  src/gucefAUTHGUI_CKeyringUnlockForm.cpp \
   src/gucefAUTHGUI_CLoginForm.cpp \
-  src/gucefAUTHGUI_CModule.cpp
+  src/gucefAUTHGUI_CModule.cpp \
+  src/gucefAUTHGUI_COAuthCodeEntryForm.cpp \
+  src/gucefAUTHGUI_CSignInSettingsForm.cpp \
+  src/gucefAUTHGUI_CSignInSettingsState.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
