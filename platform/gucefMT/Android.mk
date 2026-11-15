@@ -43,6 +43,7 @@ LOCAL_SRC_FILES := \
   src/gucefMT_DVRWLOCK.c \
   src/gucefMT_LockStatus.cpp \
   src/gucefMT_MUTEX.c \
+  src/gucefMT_ThreadName.cpp \
   src/gucefMT_ThreadStatus.cpp \
   src/gucefMT_dvmtoswrap.c
 

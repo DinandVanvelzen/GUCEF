@@ -36,6 +36,7 @@ set( HEADER_FILES
   include/gucefMT_ETypes.h
   include/gucefMT_LockStatus.h
   include/gucefMT_SlotDataExchangePolicies.h
+  include/gucefMT_ThreadName.h
   include/gucefMT_ThreadStatus.h
   include/gucefMT_atomic_backends.h
   include/gucefMT_atomic_config.h
@@ -68,6 +69,7 @@ set( SOURCE_FILES
   src/gucefMT_DVRWLOCK.c
   src/gucefMT_LockStatus.cpp
   src/gucefMT_MUTEX.c
+  src/gucefMT_ThreadName.cpp
   src/gucefMT_ThreadStatus.cpp
   src/gucefMT_dvmtoswrap.c
 )
