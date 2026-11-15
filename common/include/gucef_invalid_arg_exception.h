@@ -28,6 +28,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <stdexcept>
+#include <string>
 
 #ifndef GUCEF_CONFIG_H
 #include "gucef_config.h"        /* GUCEF configuration */

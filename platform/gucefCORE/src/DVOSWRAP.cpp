@@ -30,6 +30,18 @@
 #include <fstream>
 #include <sstream>
 
+/* cpuid and xgetbv for GetCpuIsaFeatures(): compiler specific, each behind its guard with the 'no features' fallback */
+#if defined( __x86_64__ ) || defined( __i386__ ) || defined( _M_X64 ) || defined( _M_IX86 )
+  #if defined( _MSC_VER )
+    #include <intrin.h>                 /* __cpuidex */
+    #include <immintrin.h>              /* _xgetbv */
+    #define GUCEF_CORE_CPUID_MSVC
+  #elif defined( __GNUC__ ) || defined( __clang__ )
+    #include <cpuid.h>                  /* __get_cpuid_max, __cpuid_count */
+    #define GUCEF_CORE_CPUID_GNUC
+  #endif
+#endif
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"       /* build configuration */
 #define GUCEFCORE_MACROS_H
@@ -1596,6 +1608,146 @@ GetLogicalCPUCount( void )
     #else
     return 1;
     #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+#if defined( GUCEF_CORE_CPUID_MSVC ) || defined( GUCEF_CORE_CPUID_GNUC )
+
+/** cpuid of 'leaf' / 'subleaf' into eax, ebx, ecx, edx; zeros when the leaf is above the highest one of its range */
+static void
+CpuIdQuery( UInt32 leaf, UInt32 subleaf, UInt32 regs[ 4 ] )
+{
+    regs[ 0 ] = regs[ 1 ] = regs[ 2 ] = regs[ 3 ] = 0;
+
+    #if defined( GUCEF_CORE_CPUID_MSVC )
+
+    int info[ 4 ] = { 0, 0, 0, 0 };
+    __cpuidex( info, (int) ( leaf & 0x80000000 ), 0 );
+    if ( (UInt32) info[ 0 ] < leaf )
+        return;
+    __cpuidex( info, (int) leaf, (int) subleaf );
+    regs[ 0 ] = (UInt32) info[ 0 ]; regs[ 1 ] = (UInt32) info[ 1 ]; regs[ 2 ] = (UInt32) info[ 2 ]; regs[ 3 ] = (UInt32) info[ 3 ];
+
+    #else
+
+    if ( __get_cpuid_max( leaf & 0x80000000, GUCEF_NULL ) < leaf )
+        return;
+    unsigned int a = 0, b = 0, c = 0, d = 0;
+    __cpuid_count( leaf, subleaf, a, b, c, d );
+    regs[ 0 ] = a; regs[ 1 ] = b; regs[ 2 ] = c; regs[ 3 ] = d;
+
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** XCR0, the register state the operating system saves; only call when cpuid reports OSXSAVE */
+static UInt64
+CpuReadXcr0( void )
+{
+    #if defined( GUCEF_CORE_CPUID_MSVC )
+    return (UInt64) _xgetbv( 0 );
+    #else
+    UInt32 eax = 0, edx = 0;
+    __asm__ __volatile__( "xgetbv" : "=a" ( eax ), "=d" ( edx ) : "c" ( 0 ) );
+    return ( (UInt64) edx << 32 ) | eax;
+    #endif
+}
+
+#endif /* GUCEF_CORE_CPUID_MSVC || GUCEF_CORE_CPUID_GNUC ? */
+
+/*--------------------------------------------------------------------------*/
+
+UInt64
+GetCpuIsaFeatures( void )
+{
+    UInt64 features = 0;
+
+    #if defined( GUCEF_CORE_CPUID_MSVC ) || defined( GUCEF_CORE_CPUID_GNUC )
+
+    UInt32 leaf1[ 4 ];
+    UInt32 leaf7[ 4 ];
+    UInt32 extended1[ 4 ];
+    CpuIdQuery( 1, 0, leaf1 );
+    CpuIdQuery( 7, 0, leaf7 );
+    CpuIdQuery( 0x80000001, 0, extended1 );
+    const UInt32 ecx1 = leaf1[ 2 ];
+    const UInt32 edx1 = leaf1[ 3 ];
+    const UInt32 ebx7 = leaf7[ 1 ];
+
+    if ( 0 != ( edx1 & ( 1u << 26 ) ) ) features |= GUCEF_CPU_ISA_SSE2;
+    if ( 0 != ( ecx1 & ( 1u << 0 ) ) )  features |= GUCEF_CPU_ISA_SSE3;
+    if ( 0 != ( ecx1 & ( 1u << 9 ) ) )  features |= GUCEF_CPU_ISA_SSSE3;
+    if ( 0 != ( ecx1 & ( 1u << 19 ) ) ) features |= GUCEF_CPU_ISA_SSE41;
+    if ( 0 != ( ecx1 & ( 1u << 20 ) ) ) features |= GUCEF_CPU_ISA_SSE42;
+    if ( 0 != ( ecx1 & ( 1u << 23 ) ) ) features |= GUCEF_CPU_ISA_POPCNT;
+    if ( 0 != ( ebx7 & ( 1u << 3 ) ) )  features |= GUCEF_CPU_ISA_BMI1;
+    if ( 0 != ( ebx7 & ( 1u << 8 ) ) )  features |= GUCEF_CPU_ISA_BMI2;
+    if ( 0 != ( extended1[ 2 ] & ( 1u << 5 ) ) ) features |= GUCEF_CPU_ISA_LZCNT;
+
+    // The AVX family needs the operating system to save the YMM state (XCR0 bits 1 and 2), AVX-512 also the
+    // opmask and ZMM state (XCR0 bits 5 to 7)
+    const bool osXsave = 0 != ( ecx1 & ( 1u << 27 ) );
+    const UInt64 xcr0 = osXsave ? CpuReadXcr0() : 0;
+    const bool osAvx = 0x06 == ( xcr0 & 0x06 );
+    const bool osAvx512 = osAvx && 0xE0 == ( xcr0 & 0xE0 );
+    if ( osAvx && 0 != ( ecx1 & ( 1u << 28 ) ) )
+    {
+        features |= GUCEF_CPU_ISA_AVX;
+        if ( 0 != ( ebx7 & ( 1u << 5 ) ) )  features |= GUCEF_CPU_ISA_AVX2;
+        if ( 0 != ( ecx1 & ( 1u << 12 ) ) ) features |= GUCEF_CPU_ISA_FMA3;
+        if ( 0 != ( ecx1 & ( 1u << 29 ) ) ) features |= GUCEF_CPU_ISA_F16C;
+        if ( osAvx512 && 0 != ( ebx7 & ( 1u << 16 ) ) ) features |= GUCEF_CPU_ISA_AVX512F;
+    }
+
+    #elif defined( __aarch64__ ) || defined( _M_ARM64 )
+
+    // NEON (Advanced SIMD) is architectural on AArch64; the optional extensions are detected by a later package
+    features |= GUCEF_CPU_ISA_NEON;
+
+    #elif defined( __ARM_NEON ) || defined( __ARM_NEON__ )
+
+    // ARMv7 builds that target NEON only run on CPUs with NEON
+    features |= GUCEF_CPU_ISA_NEON;
+
+    #elif defined( __wasm_simd128__ )
+
+    features |= GUCEF_CPU_ISA_WASM_SIMD128;
+
+    #endif
+
+    return features;
+}
+
+/*--------------------------------------------------------------------------*/
+
+const char*
+GetCpuIsaFeatureName( UInt64 singleFeature )
+{
+    switch ( singleFeature )
+    {
+        case GUCEF_CPU_ISA_SSE2: return "SSE2";
+        case GUCEF_CPU_ISA_SSE3: return "SSE3";
+        case GUCEF_CPU_ISA_SSSE3: return "SSSE3";
+        case GUCEF_CPU_ISA_SSE41: return "SSE4.1";
+        case GUCEF_CPU_ISA_SSE42: return "SSE4.2";
+        case GUCEF_CPU_ISA_POPCNT: return "POPCNT";
+        case GUCEF_CPU_ISA_AVX: return "AVX";
+        case GUCEF_CPU_ISA_AVX2: return "AVX2";
+        case GUCEF_CPU_ISA_FMA3: return "FMA3";
+        case GUCEF_CPU_ISA_F16C: return "F16C";
+        case GUCEF_CPU_ISA_BMI1: return "BMI1";
+        case GUCEF_CPU_ISA_BMI2: return "BMI2";
+        case GUCEF_CPU_ISA_LZCNT: return "LZCNT";
+        case GUCEF_CPU_ISA_AVX512F: return "AVX512F";
+        case GUCEF_CPU_ISA_NEON: return "NEON";
+        case GUCEF_CPU_ISA_ARM_FP16: return "ARM_FP16";
+        case GUCEF_CPU_ISA_ARM_DOTPROD: return "ARM_DOTPROD";
+        case GUCEF_CPU_ISA_SVE: return "SVE";
+        case GUCEF_CPU_ISA_WASM_SIMD128: return "WASM_SIMD128";
+        default: return GUCEF_NULL;
+    }
 }
 
 /*--------------------------------------------------------------------------*/

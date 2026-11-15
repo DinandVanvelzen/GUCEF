@@ -74,6 +74,34 @@ namespace CORE {
 #define OSWRAP_TRUE     1UL
 #define OSWRAP_FALSE    0UL
 
+/*
+ *      Instruction set extensions of the CPU, the bits of GetCpuIsaFeatures().
+ *      x86 / x86-64 extensions that use the AVX register state (AVX, AVX2, FMA3, F16C, AVX512F) are only reported
+ *      when the operating system saves that state.
+ */
+#define GUCEF_CPU_ISA_SSE2          0x0000000000000001ULL
+#define GUCEF_CPU_ISA_SSE3          0x0000000000000002ULL
+#define GUCEF_CPU_ISA_SSSE3         0x0000000000000004ULL
+#define GUCEF_CPU_ISA_SSE41         0x0000000000000008ULL
+#define GUCEF_CPU_ISA_SSE42         0x0000000000000010ULL
+#define GUCEF_CPU_ISA_POPCNT        0x0000000000000020ULL
+#define GUCEF_CPU_ISA_AVX           0x0000000000000040ULL
+#define GUCEF_CPU_ISA_AVX2          0x0000000000000080ULL
+#define GUCEF_CPU_ISA_FMA3          0x0000000000000100ULL
+#define GUCEF_CPU_ISA_F16C          0x0000000000000200ULL
+#define GUCEF_CPU_ISA_BMI1          0x0000000000000400ULL
+#define GUCEF_CPU_ISA_BMI2          0x0000000000000800ULL
+#define GUCEF_CPU_ISA_LZCNT         0x0000000000001000ULL
+#define GUCEF_CPU_ISA_AVX512F       0x0000000000002000ULL
+#define GUCEF_CPU_ISA_NEON          0x0000000000010000ULL
+#define GUCEF_CPU_ISA_ARM_FP16      0x0000000000020000ULL
+#define GUCEF_CPU_ISA_ARM_DOTPROD   0x0000000000040000ULL
+#define GUCEF_CPU_ISA_SVE           0x0000000000080000ULL
+#define GUCEF_CPU_ISA_WASM_SIMD128  0x0000000001000000ULL
+
+/** Every bit that GetCpuIsaFeatures() can report */
+#define GUCEF_CPU_ISA_ALL_KNOWN     0x00000000010F3FFFULL
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      TYPES                                                              //
@@ -329,6 +357,27 @@ GetPhysicalCPUCount( void );
 
 GUCEF_CORE_PUBLIC_C UInt32
 GetLogicalCPUCount( void );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  The instruction set extensions of the CPU the calling thread runs on, as a bit set of the GUCEF_CPU_ISA_* values.
+ *  x86 and x86-64: cpuid, with the extensions of the AVX register state only when the operating system saves that
+ *  state (xgetbv). AArch64: NEON (architectural). ARMv7: NEON when the build targets it. WebAssembly: SIMD128 when the
+ *  build targets it (there is no run-time detection). Other CPUs, and compilers without cpuid support: 0.
+ *  Computed on every call (no cached state), without allocation; callers keep the value they need.
+ */
+GUCEF_CORE_PUBLIC_C UInt64
+GetCpuIsaFeatures( void );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  The name of one GUCEF_CPU_ISA_* bit ("SSE2", "AVX2", "NEON", ...) as static text, or GUCEF_NULL when the value is not
+ *  exactly one known bit
+ */
+GUCEF_CORE_PUBLIC_C const char*
+GetCpuIsaFeatureName( UInt64 singleFeature );
 
 /*--------------------------------------------------------------------------*/
 

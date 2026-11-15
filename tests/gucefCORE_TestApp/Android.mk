@@ -34,6 +34,7 @@ LOCAL_SRC_FILES := \
   src/TestBrowserLauncher.cpp \
   src/TestCodecPlugins.cpp \
   src/TestConfigStore.cpp \
+  src/TestCpuIsaFeatures.cpp \
   src/TestCronSchedule.cpp \
   src/TestCryptoCodecs.cpp \
   src/TestCsvTableCodec.cpp \

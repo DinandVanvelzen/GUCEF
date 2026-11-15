@@ -346,6 +346,7 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H
 #include "TestCodecPlugins.h"
+#include "TestCpuIsaFeatures.h"
 #include "TestCryptoCodecs.h"
 #define GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H
 #endif /* GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H ? */
@@ -634,6 +635,7 @@ GUCEF_OSMAIN_BEGIN
         PerformPbkdf2HmacSha256Tests();
         PerformServiceHostingTests();
         PerformServiceHealthRegistryTests();
+        PerformCpuIsaFeaturesTests();
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefCORE_TestApp_Results.xml" );

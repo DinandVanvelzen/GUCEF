@@ -25,6 +25,7 @@ set( HEADER_FILES
   include/TestBrowserLauncher.h
   include/TestCodecPlugins.h
   include/TestConfigStore.h
+  include/TestCpuIsaFeatures.h
   include/TestCronSchedule.h
   include/TestCryptoCodecs.h
   include/TestCsvTableCodec.h
@@ -142,6 +143,7 @@ set( SOURCE_FILES
   src/TestBrowserLauncher.cpp
   src/TestCodecPlugins.cpp
   src/TestConfigStore.cpp
+  src/TestCpuIsaFeatures.cpp
   src/TestCronSchedule.cpp
   src/TestCryptoCodecs.cpp
   src/TestCsvTableCodec.cpp
