@@ -241,6 +241,8 @@ void
 CUDPSocket::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator )
 {GUCEF_TRACE;
 
+    // the pulses of the old pulse generator must not reach the socket any more: it may be driven by another thread
+    UnsubscribeFrom( m_pulseGenerator.GetPointerAlways() );
     m_pulseGenerator = newPulseGenerator;
     RegisterEventHandlers();
 

@@ -939,6 +939,10 @@ PerformTcpSocketThreadsTests( void )
                 }
                 if ( !stalled )
                     ++roundsDone;
+                // what each round saw, so that a count that differs at the end can be traced to its round
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "TcpSocketThreads: close in event, round " << round << ": accepted " << acceptedBefore << " -> "
+                    << tcpCase->watcher->accepted.Load() << ", disconnects " << disconnectedBefore << " -> " << tcpCase->watcher->disconnected.Load()
+                    << ", closed in the data event " << tcpCase->closeInEventWatcher->closedInEvent.Load() << ", sender rounds " << tcpCase->senderRounds.Load() );
             }
 
             tcpCase->stopWorking.Store( true, MT::MEMORDER_RELEASE );

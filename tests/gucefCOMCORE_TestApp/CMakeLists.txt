@@ -24,6 +24,8 @@ set( HEADER_FILES
   include/TestCode_TlsServer.h
   include/TestDatabaseClient.h
   include/TestDatabaseClientFake.h
+  include/TestDatabaseClientTransactional.h
+  include/TestDatabaseTransaction.h
   include/TestNoTlsProvider.h
   include/TestRpcAllocationCounter.h
   include/TestRpcCodec.h
@@ -38,6 +40,7 @@ set( HEADER_FILES
   include/TestRpcSession.h
   include/TestRpcSupport.h
   include/TestRpcTransportSuite.h
+  include/TestServiceDiscovery.h
   include/TestSocketReadiness.h
   include/TestTcpSocketThreads.h
 )
@@ -53,12 +56,15 @@ set( SOURCE_FILES
   src/TestCode_TlsServer.cpp
   src/TestDatabaseClient.cpp
   src/TestDatabaseClientFake.cpp
+  src/TestDatabaseClientTransactional.cpp
+  src/TestDatabaseTransaction.cpp
   src/TestRpcCodec.cpp
   src/TestRpcContract.cpp
   src/TestRpcEndpoint.cpp
   src/TestRpcLifecycle.cpp
   src/TestRpcPerf.cpp
   src/TestRpcSession.cpp
+  src/TestServiceDiscovery.cpp
   src/TestSocketReadiness.cpp
   src/TestTcpSocketThreads.cpp
   src/gucefCOMCORE_TestApp.cpp

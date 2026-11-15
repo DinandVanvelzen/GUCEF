@@ -80,6 +80,7 @@ CDiscoveryClientBase::CDiscoveryClientBase( const CORE::CString& defaultClientNa
     , m_browsedServiceTypes()
     , m_advertised()
     , m_discovered()
+    , m_answerLimiter()
     , m_dataLock()
 {GUCEF_TRACE;
 
@@ -97,6 +98,7 @@ CDiscoveryClientBase::CDiscoveryClientBase( const CORE::CString& defaultClientNa
     , m_browsedServiceTypes()
     , m_advertised()
     , m_discovered()
+    , m_answerLimiter()
     , m_dataLock()
 {GUCEF_TRACE;
 
@@ -146,6 +148,53 @@ CDiscoveryClientBase::GetPulseGenerator( void ) const
 {GUCEF_TRACE;
 
     return m_pulseGenerator;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDiscoveryClientBase::SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+    if ( pulseGenerator.IsNULL() )
+        return false;
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        if ( !m_browsedServiceTypes.empty() || !m_advertised.empty() || !m_discovered.empty() )
+            return false;
+        if ( m_pulseGenerator == pulseGenerator )
+            return true;
+        m_pulseGenerator = pulseGenerator;
+    }
+    m_housekeepingTimer.SetPulseGenerator( pulseGenerator );
+    OnPulseGeneratorChanged( pulseGenerator );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDiscoveryClientBase::OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDiscoveryAnswerLimiter&
+CDiscoveryClientBase::GetAnswerLimiter( void )
+{GUCEF_TRACE;
+
+    return m_answerLimiter;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CDiscoveryAnswerLimiter&
+CDiscoveryClientBase::GetAnswerLimiter( void ) const
+{GUCEF_TRACE;
+
+    return m_answerLimiter;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -703,7 +752,7 @@ CDiscoveryClientBase::LoadConfig( const CORE::CDataNode& config )
     UInt32 interval = config.GetAttributeValueOrChildValueByName( "housekeepingIntervalInMs" ).AsUInt32( m_housekeepingTimer.GetInterval(), true );
     if ( interval > 0 )
         m_housekeepingTimer.SetInterval( interval );
-    return true;
+    return m_answerLimiter.LoadConfig( config );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -714,7 +763,7 @@ CDiscoveryClientBase::SaveConfig( CORE::CDataNode& config ) const
 
     config.SetAttribute( "name", m_clientName );
     config.SetAttribute( "housekeepingIntervalInMs", m_housekeepingTimer.GetInterval() );
-    return true;
+    return m_answerLimiter.SaveConfig( config );
 }
 
 /*-------------------------------------------------------------------------//

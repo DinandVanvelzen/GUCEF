@@ -117,6 +117,16 @@
 #define GUCEF_COMCORE_CDATABASECLIENTOPERATION_H
 #endif /* GUCEF_COMCORE_CDATABASECLIENTOPERATION_H ? */
 
+#ifndef GUCEF_COMCORE_CSERVICEFINDER_H
+#include "gucefCOMCORE_CServiceFinder.h"
+#define GUCEF_COMCORE_CSERVICEFINDER_H
+#endif /* GUCEF_COMCORE_CSERVICEFINDER_H ? */
+
+#ifndef GUCEF_COMCORE_CSERVICEDISCOVERYTASKCONSUMER_H
+#include "gucefCOMCORE_CServiceDiscoveryTaskConsumer.h"
+#define GUCEF_COMCORE_CSERVICEDISCOVERYTASKCONSUMER_H
+#endif /* GUCEF_COMCORE_CSERVICEDISCOVERYTASKCONSUMER_H ? */
+
 #ifndef GUCEF_COMCORE_CRPCCONTRACTREGISTRY_H
 #include "gucefCOMCORE_CRpcContractRegistry.h"
 #define GUCEF_COMCORE_CRPCCONTRACTREGISTRY_H
@@ -188,6 +198,7 @@ CComCoreGlobal* CComCoreGlobal::g_instance = GUCEF_NULL;
 TPingTaskConsumerFactory g_pingTaskConsumerFactory;
 TDnsCacheRefreshTaskConsumerFactory g_dnsCacheRefreshTaskConsumerFactory;
 TDatabaseClientOperationTaskFactory g_databaseClientOperationTaskFactory;
+TServiceDiscoveryTaskConsumerFactory g_serviceDiscoveryTaskConsumerFactory;
 CORE::CTFactory< CORE::CTaskConsumer, CRpcCallTaskConsumer, MT::CMutex > g_rpcCallTaskConsumerFactory;
 CORE::CTFactory< CIRpcTransport, CRpcLoopbackTransport, MT::CMutex > g_rpcLoopbackTransportFactory;
 CORE::CTFactory< CIRpcTransportListener, CRpcLoopbackTransportListener, MT::CMutex > g_rpcLoopbackTransportListenerFactory;
@@ -244,6 +255,7 @@ CComCoreGlobal::Initialize( void )
     CDnsCache::RegisterEvents();
     CDnsCacheEntry::RegisterEvents();
     CIDiscoveryClient::RegisterEvents();
+    CServiceFinder::RegisterEvents();
     CIRttProbe::RegisterEvents();
     CIPortMapper::RegisterEvents();
     CIDatabaseClient::RegisterEvents();
@@ -266,6 +278,9 @@ CComCoreGlobal::Initialize( void )
 
     // Make the task manager capable of carrying out the async calls of database clients
     taskManager.RegisterTaskConsumerFactory( CDatabaseClientOperation::TaskType, &g_databaseClientOperationTaskFactory );
+
+    // CServiceFinder::FindOnceAsync() runs as this task
+    taskManager.RegisterTaskConsumerFactory( CServiceDiscoveryTaskConsumer::TaskType, &g_serviceDiscoveryTaskConsumerFactory );
 
     // RPC handlers in the RPC_EXECUTION_THREAD_POOL mode run as these tasks
     taskManager.RegisterTaskConsumerFactory( CRpcCallTaskConsumer::TaskType, &g_rpcCallTaskConsumerFactory );
@@ -322,6 +337,7 @@ CComCoreGlobal::Shutdown( void )
     taskManager.UnregisterTaskConsumerFactory( CPingTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CDnsCacheRefreshTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CDatabaseClientOperation::TaskType );
+    taskManager.UnregisterTaskConsumerFactory( CServiceDiscoveryTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CRpcCallTaskConsumer::TaskType );
     
     GUCEF_DELETE m_tlsProviderRegistry;

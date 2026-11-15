@@ -55,6 +55,11 @@
 #define GUCEF_CORE_CLONEABLES_H
 #endif /* GUCEF_CORE_CLONEABLES_H ? */
 
+#ifndef GUCEF_CORE_CPULSEGENERATOR_H
+#include "gucefCORE_CPulseGenerator.h"
+#define GUCEF_CORE_CPULSEGENERATOR_H
+#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
+
 #ifndef GUCEF_COMCORE_CIDISCOVERY_H
 #include "gucefCOMCORE_CIDiscovery.h"
 #define GUCEF_COMCORE_CIDISCOVERY_H
@@ -146,6 +151,13 @@ class GUCEF_COMCORE_EXPORT_CPP CIDiscoveryClient : public CORE::CObservingNotifi
      */
     virtual bool GetDiscoveredEntries( const CORE::CString& serviceType ,
                                        TIDiscoveryEntrySet& entries     ) const = 0;
+
+    /**
+     *  Moves the work of the client (its sockets, its timers, its events) to another pulse generator, for example one
+     *  that the calling thread drives itself for a blocking operation, or the one of a task thread. Only while the
+     *  client neither browses nor advertises. The default refuses: false when the client cannot move.
+     */
+    virtual bool SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator );
 
     /** The same operation as Advertise() */
     virtual bool Register( CIDiscoveryEntryPtr entry ) GUCEF_VIRTUAL_OVERRIDE;

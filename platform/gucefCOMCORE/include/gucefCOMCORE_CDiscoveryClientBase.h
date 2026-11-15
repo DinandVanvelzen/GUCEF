@@ -50,6 +50,11 @@
 #define GUCEF_COMCORE_CDISCOVERYENTRY_H
 #endif /* GUCEF_COMCORE_CDISCOVERYENTRY_H ? */
 
+#ifndef GUCEF_COMCORE_CDISCOVERYANSWERLIMITER_H
+#include "gucefCOMCORE_CDiscoveryAnswerLimiter.h"
+#define GUCEF_COMCORE_CDISCOVERYANSWERLIMITER_H
+#endif /* GUCEF_COMCORE_CDISCOVERYANSWERLIMITER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -116,7 +121,9 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
     virtual void StopAll( void );
 
     /**
-     *  Reads the settings common to all clients: name, housekeepingIntervalInMs
+     *  Reads the settings common to all clients: name, housekeepingIntervalInMs and the answer limits of
+     *  CDiscoveryAnswerLimiter (answersPerSourcePerMinute, answerBurstPerSource, answersPerSecond, amplificationFactor,
+     *  maxTrackedSources)
      *  Derived classes call this from their own LoadConfig()
      */
     virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;
@@ -124,6 +131,19 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
     virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
     const CORE::PulseGeneratorPtr& GetPulseGenerator( void ) const;
+
+    /**
+     *  Moves the housekeeping timer and, through OnPulseGeneratorChanged(), the sockets of the derived class to the given
+     *  pulse generator. Refused while the client browses, advertises or still knows discovered entries
+     */
+    virtual bool SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  The limits on answers to queries every client applies before it answers (CDiscoveryAnswerLimiter); its settings
+     *  are part of the settings of the client
+     */
+    CDiscoveryAnswerLimiter& GetAnswerLimiter( void );
+    const CDiscoveryAnswerLimiter& GetAnswerLimiter( void ) const;
 
     /** A monotonic clock in milliseconds */
     static UInt64 GetTimeInMs( void );
@@ -152,6 +172,9 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
      *  opens what it needs again
      */
     virtual void OnIdle( void );
+
+    /** The client moved to another pulse generator while idle: move the sockets and timers of the derived class too */
+    virtual void OnPulseGeneratorChanged( const CORE::PulseGeneratorPtr& pulseGenerator );
 
     /**
      *  Records an entry that was heard on the network: new entries are reported as discovered, changed ones as
@@ -219,6 +242,7 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
     CORE::CString::StringSet m_browsedServiceTypes;
     TAdvertisedEntryMap m_advertised;
     TDiscoveredEntryMap m_discovered;
+    CDiscoveryAnswerLimiter m_answerLimiter;
     mutable MT::CMutex m_dataLock;
 };
 

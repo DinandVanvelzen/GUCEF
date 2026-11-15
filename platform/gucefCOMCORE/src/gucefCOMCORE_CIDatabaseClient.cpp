@@ -27,6 +27,11 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
+#ifndef GUCEF_CORE_CFUTURERESULTSOURCE_H
+#include "gucefCORE_CFutureResultSource.h"
+#define GUCEF_CORE_CFUTURERESULTSOURCE_H
+#endif /* GUCEF_CORE_CFUTURERESULTSOURCE_H ? */
+
 #include "gucefCOMCORE_CIDatabaseClient.h"
 
 /*-------------------------------------------------------------------------//
@@ -83,6 +88,82 @@ CIDatabaseClient::CIDatabaseClient( void )
 CIDatabaseClient::~CIDatabaseClient()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The future of a transaction call of a backend without transactions: failed with UNSUPPORTED, as the sync call */
+static CORE::CFutureResult
+TransactionsUnsupportedFuture( const CORE::CString& backendName )
+{GUCEF_TRACE;
+
+    CORE::CFutureResultSource source;
+    source.Fail( CORE::TASKSTATUS_TASKDATA_INVALID, CORE::CString( CORE::DataTableStatusToString( CORE::DATATABLE_STATUS_UNSUPPORTED ) ) +
+                 ": the database backend \"" + backendName + "\" has no transactions" );
+    return source.GetFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::TDataTableStatus
+CIDatabaseClient::BeginTransaction( void )
+{GUCEF_TRACE;
+
+    return CORE::DATATABLE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIDatabaseClient::BeginTransactionAsync( void )
+{GUCEF_TRACE;
+
+    return TransactionsUnsupportedFuture( GetBackendName() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::TDataTableStatus
+CIDatabaseClient::CommitTransaction( void )
+{GUCEF_TRACE;
+
+    return CORE::DATATABLE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIDatabaseClient::CommitTransactionAsync( void )
+{GUCEF_TRACE;
+
+    return TransactionsUnsupportedFuture( GetBackendName() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::TDataTableStatus
+CIDatabaseClient::RollbackTransaction( void )
+{GUCEF_TRACE;
+
+    return CORE::DATATABLE_STATUS_UNSUPPORTED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CIDatabaseClient::RollbackTransactionAsync( void )
+{GUCEF_TRACE;
+
+    return TransactionsUnsupportedFuture( GetBackendName() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDatabaseClient::IsInTransaction( void ) const
+{GUCEF_TRACE;
+
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

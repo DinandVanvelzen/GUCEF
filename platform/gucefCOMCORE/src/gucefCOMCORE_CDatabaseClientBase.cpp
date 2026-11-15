@@ -233,6 +233,33 @@ CDatabaseClientBase::DropTableAsync( const CORE::CString& tableName, bool delete
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CFutureResult
+CDatabaseClientBase::BeginTransactionAsync( void )
+{GUCEF_TRACE;
+
+    return QueueOperation( OPERATION_BEGIN_TRANSACTION, GetSettings(), CORE::CString::Empty, CORE::CDataTableDefinition(), false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CDatabaseClientBase::CommitTransactionAsync( void )
+{GUCEF_TRACE;
+
+    return QueueOperation( OPERATION_COMMIT_TRANSACTION, GetSettings(), CORE::CString::Empty, CORE::CDataTableDefinition(), false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CDatabaseClientBase::RollbackTransactionAsync( void )
+{GUCEF_TRACE;
+
+    return QueueOperation( OPERATION_ROLLBACK_TRANSACTION, GetSettings(), CORE::CString::Empty, CORE::CDataTableDefinition(), false );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDatabaseClientBase::RunOperation( EOperation operation, const CDatabaseClientSettings& settings, const CORE::CString& tableName,
                                    const CORE::CDataTableDefinition& definition, bool deleteData, CORE::CFutureResultSource& source )
@@ -279,6 +306,21 @@ CDatabaseClientBase::RunOperation( EOperation operation, const CDatabaseClientSe
             case OPERATION_DROP_TABLE:
             {
                 status = DropTable( tableName, deleteData );
+                break;
+            }
+            case OPERATION_BEGIN_TRANSACTION:
+            {
+                status = BeginTransaction();
+                break;
+            }
+            case OPERATION_COMMIT_TRANSACTION:
+            {
+                status = CommitTransaction();
+                break;
+            }
+            case OPERATION_ROLLBACK_TRANSACTION:
+            {
+                status = RollbackTransaction();
                 break;
             }
         }

@@ -88,6 +88,15 @@ CIDiscoveryClient::CIDiscoveryClient( const CIDiscoveryClient& src )
 /*-------------------------------------------------------------------------*/
 
 bool
+CIDiscoveryClient::SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CIDiscoveryClient::Register( CIDiscoveryEntryPtr entry )
 {GUCEF_TRACE;
 

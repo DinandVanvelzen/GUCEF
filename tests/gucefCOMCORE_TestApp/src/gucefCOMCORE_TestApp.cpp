@@ -61,10 +61,12 @@
 #include "TestCode_SimpleTCPClient.h"
 #include "TestCode_DNS.h"
 #include "TestCode_Discovery.h"
+#include "TestServiceDiscovery.h"
 #include "TestCode_TlsLayer.h"
 #include "TestCode_TlsOpenSsl.h"
 #include "TestCode_TlsServer.h"
 #include "TestDatabaseClient.h"
+#include "TestDatabaseTransaction.h"
 #include "TestRpcContract.h"
 #include "TestRpcCodec.h"
 #include "TestRpcEndpoint.h"
@@ -138,11 +140,13 @@ GUCEF_OSMAIN_BEGIN
         RUN_SUITE( PerformSimpleTCPClientTests );
         RUN_SUITE( PerformPingTests );
         RUN_SUITE( PerformDiscoveryTests );
+        RUN_SUITE( PerformServiceDiscoveryTests );
         RUN_SUITE( PerformTlsLayerTests );
         RUN_SUITE( PerformTlsOpenSslTests );
         RUN_SUITE( PerformTlsServerTests );
         RUN_SUITE( PerformNetworkServiceInterfaceTests );
         RUN_SUITE( PerformDatabaseClientTests );
+        RUN_SUITE( PerformDatabaseTransactionTests );
         RUN_SUITE( PerformRpcCodecTests );
         RUN_SUITE( PerformRpcContractTests );
         RUN_SUITE( PerformRpcEndpointTests );

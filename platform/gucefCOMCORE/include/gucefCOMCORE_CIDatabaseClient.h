@@ -82,6 +82,8 @@
 #define GUCEF_DATABASE_CAPABILITY_PREDICATE_PUSHDOWN    0x0004  /**< the predicates of a query are used to prune what is read */
 #define GUCEF_DATABASE_CAPABILITY_ASYNC                 0x0008  /**< the async calls run on a thread pool */
 #define GUCEF_DATABASE_CAPABILITY_SCHEMA_EVOLUTION      0x0010  /**< columns can be appended to a table */
+#define GUCEF_DATABASE_CAPABILITY_TRANSACTIONS          0x0020  /**< BeginTransaction(): the changes until the commit are applied all or none */
+#define GUCEF_DATABASE_CAPABILITY_INDEXES               0x0040  /**< the index hints of a table definition become indexes of the database */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -117,6 +119,14 @@ namespace COMCORE {
  *
  *  A client is thread safe once open; Open() and Close() are called from one thread. The last error message is kept per
  *  calling thread. Settings are stored with SaveConfig() and LoadConfig() as the serialized CDatabaseClientSettings.
+ *
+ *  Transactions (GUCEF_DATABASE_CAPABILITY_TRANSACTIONS): a client has at most one transaction at a time. From
+ *  BeginTransaction() until CommitTransaction() or RollbackTransaction(), every change made through the client and the
+ *  tables it opened belongs to the transaction, whichever thread makes it (async calls included), and reads through them
+ *  see those changes; other clients see none of them before the commit. A transaction still open when the client
+ *  closes is rolled back. CDatabaseTransaction pairs the calls in a scope. Backends without the capability keep the
+ *  defaults of the transaction calls, which return DATATABLE_STATUS_UNSUPPORTED (their async forms end the future
+ *  failed with that status); every change is then applied when it is made.
  */
 class GUCEF_COMCORE_EXPORT_CPP CIDatabaseClient : public CORE::CTSGNotifier ,
                                                   public CORE::CIConfigurable
@@ -165,6 +175,27 @@ class GUCEF_COMCORE_EXPORT_CPP CIDatabaseClient : public CORE::CTSGNotifier ,
 
     /** The message of the last failed call this thread made on the client */
     virtual CORE::CString GetLastErrorMessage( void ) const = 0;
+
+    /**
+     *  Starts the transaction of the client. INVALID_ARGUMENT when one is open already; UNSUPPORTED without
+     *  GUCEF_DATABASE_CAPABILITY_TRANSACTIONS (the default implementation)
+     */
+    virtual CORE::TDataTableStatus BeginTransaction( void );
+    virtual CORE::CFutureResult BeginTransactionAsync( void );
+
+    /**
+     *  Applies the changes of the transaction and ends it. INVALID_ARGUMENT when none is open; a commit the database
+     *  refuses (CONFLICT, FAILED, ...) ends the transaction without applying anything. UNSUPPORTED by default
+     */
+    virtual CORE::TDataTableStatus CommitTransaction( void );
+    virtual CORE::CFutureResult CommitTransactionAsync( void );
+
+    /** Drops the changes of the transaction and ends it. INVALID_ARGUMENT when none is open; UNSUPPORTED by default */
+    virtual CORE::TDataTableStatus RollbackTransaction( void );
+    virtual CORE::CFutureResult RollbackTransactionAsync( void );
+
+    /** Whether a transaction is open; false by default */
+    virtual bool IsInTransaction( void ) const;
 
     /** The settings the client was opened with, or the ones LoadConfig() loaded */
     const CDatabaseClientSettings& GetSettings( void ) const;

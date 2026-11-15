@@ -41,7 +41,10 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CDatabaseClientOperation.cpp \
   src/gucefCOMCORE_CDatabaseClientSettings.cpp \
   src/gucefCOMCORE_CDatabaseTableResult.cpp \
+  src/gucefCOMCORE_CDatabaseTransaction.cpp \
+  src/gucefCOMCORE_CDiscoveryAnswerLimiter.cpp \
   src/gucefCOMCORE_CDiscoveryClientBase.cpp \
+  src/gucefCOMCORE_CDiscoveryClientList.cpp \
   src/gucefCOMCORE_CDiscoveryEntry.cpp \
   src/gucefCOMCORE_CDiscoveryManager.cpp \
   src/gucefCOMCORE_CDnsCache.cpp \
@@ -123,6 +126,15 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CRpcTransportProperties.cpp \
   src/gucefCOMCORE_CRpcTypeDescriptor.cpp \
   src/gucefCOMCORE_CSerialPort.cpp \
+  src/gucefCOMCORE_CServiceAdvertiser.cpp \
+  src/gucefCOMCORE_CServiceAdvertiserSettings.cpp \
+  src/gucefCOMCORE_CServiceAnnouncement.cpp \
+  src/gucefCOMCORE_CServiceCandidate.cpp \
+  src/gucefCOMCORE_CServiceCandidateFilter.cpp \
+  src/gucefCOMCORE_CServiceDiscoveryTaskConsumer.cpp \
+  src/gucefCOMCORE_CServiceDiscoveryTaskData.cpp \
+  src/gucefCOMCORE_CServiceFinder.cpp \
+  src/gucefCOMCORE_CServiceFinderSettings.cpp \
   src/gucefCOMCORE_CSocketReadinessWaiter.cpp \
   src/gucefCOMCORE_CTlsClientConnection.cpp \
   src/gucefCOMCORE_CTlsProviderRegistry.cpp \

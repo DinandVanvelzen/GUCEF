@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <stdlib.h>
 
 #ifndef GUCEF_COMCORE_CRPCLOOPBACKTRANSPORT_H
 #include "gucefCOMCORE_CRpcLoopbackTransport.h"
@@ -116,10 +117,13 @@ StartTestSession( COMCORE::CRpcSession& session, bool reliableOrdered )
 
 /**
  *  The time the session takes for ackCount ACK frames with 64 SACK ranges among the first 128 frames of a retention
- *  of retained frames, in milliseconds
+ *  of retained frames, in milliseconds: the least of 'repeats' timings of the same loop over the same session. Other
+ *  work on the machine only adds time to a timing (a thread that is preempted, caches that another process evicted),
+ *  so the least of several is the cost of the work itself; one timing alone measures the machine as much as the code.
+ *  'retentionKept' tells whether the ACKs left the retention as it was (SACK ranges acknowledge nothing for good)
  */
 double
-SackProcessingMs( UInt32 retained, bool reliableOrdered, UInt32 ackCount )
+SackProcessingMs( UInt32 retained, bool reliableOrdered, UInt32 ackCount, UInt32 repeats, bool& retentionKept )
 {
     CTestSessionSink sink;
     COMCORE::CRpcSession session( sink );
@@ -143,13 +147,20 @@ SackProcessingMs( UInt32 retained, bool reliableOrdered, UInt32 ackCount )
         writer.WriteVarUInt64( 1 );
     }
     const UInt8* frame = static_cast< const UInt8* >( ack.GetConstBufferPtr() );
-    UInt64 start = MT::PrecisionTickCount();
-    for ( UInt32 i=0; i<ackCount; ++i )
-        session.OnFrameReceived( frame, ack.GetDataSize(), COMCORE::RPC_PROTECTION_CONFIDENTIAL, 2 );
-    double ms = (double) ( MT::PrecisionTickCount() - start ) * 1000.0 / (double) MT::PrecisionTimerResolution();
-    if ( session.GetRetainedFrameCount() != retained )
+    double least = -1.0;
+    for ( UInt32 repeat=0; repeat<repeats; ++repeat )
+    {
+        UInt64 start = MT::PrecisionTickCount();
+        for ( UInt32 i=0; i<ackCount; ++i )
+            session.OnFrameReceived( frame, ack.GetDataSize(), COMCORE::RPC_PROTECTION_CONFIDENTIAL, 2 );
+        double ms = (double) ( MT::PrecisionTickCount() - start ) * 1000.0 / (double) MT::PrecisionTimerResolution();
+        if ( least < 0.0 || ms < least )
+            least = ms;
+    }
+    retentionKept = session.GetRetainedFrameCount() == retained;
+    if ( !retentionKept )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "RpcPerf: the session holds " << session.GetRetainedFrameCount() << " frames instead of " << retained );
-    return ms;
+    return least;
 }
 
 }
@@ -185,8 +196,15 @@ PerformRpcPerfTests( void )
         GUCEF_TESTFW_ASSERT_TRUE( figures.medianUs > 0.0 && figures.callsPerSecond > 0.0 );
 
         #if !defined( __SANITIZE_THREAD__ ) && !defined( __SANITIZE_ADDRESS__ )
-        // a frame wakes the protocol task of the other side: no wait for the next 1 ms cycle per hop
-        GUCEF_TESTFW_ASSERT_TRUE( figures.medianUs < 500.0 );
+        // A frame wakes the protocol task of the other side: no wait for the next 1 ms cycle per hop. Without that wake a
+        // round trip waits for about one cycle per hop, a median of about 1000 us, which the bound of 750 us catches also
+        // on a machine that is busy with other work. The performance target of 500 us is checked only in performance
+        // runs (GUCEF_TEST_PERF set), on a machine that is otherwise idle.
+        const char* perfRun = getenv( "GUCEF_TEST_PERF" );
+        if ( GUCEF_NULL != perfRun && '\0' != *perfRun )
+            GUCEF_TESTFW_ASSERT_TRUE( figures.medianUs < 500.0 );
+        else
+            GUCEF_TESTFW_ASSERT_TRUE( figures.medianUs < 750.0 );
         #endif
     }
     catch ( ... )
@@ -200,12 +218,18 @@ PerformRpcPerfTests( void )
     {
         // each SACK range searched the whole retention: 64 ranges over 16000 retained frames took 16 times as long as
         // over 1000. The ranges index the retention now, and a reliable ordered transport does not look at them
+        // Each figure is the least of 15 timings (see SackProcessingMs()), so work of other processes on the machine does
+        // not decide the ratio; the regression it guards against costs about 16 times, far above the bound of 4
         const UInt32 ackCount = 200;
+        const UInt32 repeats = 15;
         for ( UInt32 mode=0; mode<2; ++mode )
         {
             bool reliable = 1 == mode;
-            double small = SackProcessingMs( 1000, reliable, ackCount );
-            double large = SackProcessingMs( 16000, reliable, ackCount );
+            bool smallKept = false;
+            bool largeKept = false;
+            double small = SackProcessingMs( 1000, reliable, ackCount, repeats, smallKept );
+            double large = SackProcessingMs( 16000, reliable, ackCount, repeats, largeKept );
+            GUCEF_TESTFW_ASSERT_TRUE( smallKept && largeKept );
             double ratio = large / ( small > 0.05 ? small : 0.05 );
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RpcPerf: " << ackCount << " ACKs with 64 SACK ranges, " << ( reliable ? "reliable" : "unreliable" ) <<
                        " transport: 1000 retained " << small << " ms, 16000 retained " << large << " ms (x" << ratio << ")" );

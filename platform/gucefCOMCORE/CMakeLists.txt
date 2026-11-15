@@ -32,8 +32,11 @@ set( HEADER_FILES
   include/gucefCOMCORE_CDatabaseClientOperation.h
   include/gucefCOMCORE_CDatabaseClientSettings.h
   include/gucefCOMCORE_CDatabaseTableResult.h
+  include/gucefCOMCORE_CDatabaseTransaction.h
+  include/gucefCOMCORE_CDiscoveryAnswerLimiter.h
   include/gucefCOMCORE_CDiscoveryClientBase.h
   include/gucefCOMCORE_CDiscoveryClientFactory.h
+  include/gucefCOMCORE_CDiscoveryClientList.h
   include/gucefCOMCORE_CDiscoveryEntry.h
   include/gucefCOMCORE_CDiscoveryManager.h
   include/gucefCOMCORE_CDnsCache.h
@@ -115,6 +118,15 @@ set( HEADER_FILES
   include/gucefCOMCORE_CRpcTransportProperties.h
   include/gucefCOMCORE_CRpcTypeDescriptor.h
   include/gucefCOMCORE_CSerialPort.h
+  include/gucefCOMCORE_CServiceAdvertiser.h
+  include/gucefCOMCORE_CServiceAdvertiserSettings.h
+  include/gucefCOMCORE_CServiceAnnouncement.h
+  include/gucefCOMCORE_CServiceCandidate.h
+  include/gucefCOMCORE_CServiceCandidateFilter.h
+  include/gucefCOMCORE_CServiceDiscoveryTaskConsumer.h
+  include/gucefCOMCORE_CServiceDiscoveryTaskData.h
+  include/gucefCOMCORE_CServiceFinder.h
+  include/gucefCOMCORE_CServiceFinderSettings.h
   include/gucefCOMCORE_CSocketReadinessWaiter.h
   include/gucefCOMCORE_CTRpcMethodHandler.h
   include/gucefCOMCORE_CTlsClientConnection.h
@@ -154,7 +166,10 @@ set( SOURCE_FILES
   src/gucefCOMCORE_CDatabaseClientOperation.cpp
   src/gucefCOMCORE_CDatabaseClientSettings.cpp
   src/gucefCOMCORE_CDatabaseTableResult.cpp
+  src/gucefCOMCORE_CDatabaseTransaction.cpp
+  src/gucefCOMCORE_CDiscoveryAnswerLimiter.cpp
   src/gucefCOMCORE_CDiscoveryClientBase.cpp
+  src/gucefCOMCORE_CDiscoveryClientList.cpp
   src/gucefCOMCORE_CDiscoveryEntry.cpp
   src/gucefCOMCORE_CDiscoveryManager.cpp
   src/gucefCOMCORE_CDnsCache.cpp
@@ -236,6 +251,15 @@ set( SOURCE_FILES
   src/gucefCOMCORE_CRpcTransportProperties.cpp
   src/gucefCOMCORE_CRpcTypeDescriptor.cpp
   src/gucefCOMCORE_CSerialPort.cpp
+  src/gucefCOMCORE_CServiceAdvertiser.cpp
+  src/gucefCOMCORE_CServiceAdvertiserSettings.cpp
+  src/gucefCOMCORE_CServiceAnnouncement.cpp
+  src/gucefCOMCORE_CServiceCandidate.cpp
+  src/gucefCOMCORE_CServiceCandidateFilter.cpp
+  src/gucefCOMCORE_CServiceDiscoveryTaskConsumer.cpp
+  src/gucefCOMCORE_CServiceDiscoveryTaskData.cpp
+  src/gucefCOMCORE_CServiceFinder.cpp
+  src/gucefCOMCORE_CServiceFinderSettings.cpp
   src/gucefCOMCORE_CSocketReadinessWaiter.cpp
   src/gucefCOMCORE_CTlsClientConnection.cpp
   src/gucefCOMCORE_CTlsProviderRegistry.cpp

@@ -70,7 +70,10 @@ class GUCEF_COMCORE_EXPORT_CPP CDatabaseClientBase : public CIDatabaseClient
         OPERATION_LIST_TABLES ,
         OPERATION_OPEN_TABLE ,
         OPERATION_CREATE_TABLE ,
-        OPERATION_DROP_TABLE
+        OPERATION_DROP_TABLE ,
+        OPERATION_BEGIN_TRANSACTION ,
+        OPERATION_COMMIT_TRANSACTION ,
+        OPERATION_ROLLBACK_TRANSACTION
     };
 
     CDatabaseClientBase( void );
@@ -86,6 +89,11 @@ class GUCEF_COMCORE_EXPORT_CPP CDatabaseClientBase : public CIDatabaseClient
     virtual CORE::CFutureResult CreateTableAsync( const CORE::CDataTableDefinition& definition ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CFutureResult DropTableAsync( const CORE::CString& tableName, bool deleteData ) GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Queue the sync transaction calls; a backend without transactions keeps their defaults, the future then fails with UNSUPPORTED */
+    virtual CORE::CFutureResult BeginTransactionAsync( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual CORE::CFutureResult CommitTransactionAsync( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual CORE::CFutureResult RollbackTransactionAsync( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** Async operations that are queued or running */
     UInt32 GetPendingAsyncOperationCount( void ) const;

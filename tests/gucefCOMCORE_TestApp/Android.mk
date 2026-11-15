@@ -31,12 +31,15 @@ LOCAL_SRC_FILES := \
   src/TestCode_TlsServer.cpp \
   src/TestDatabaseClient.cpp \
   src/TestDatabaseClientFake.cpp \
+  src/TestDatabaseClientTransactional.cpp \
+  src/TestDatabaseTransaction.cpp \
   src/TestRpcCodec.cpp \
   src/TestRpcContract.cpp \
   src/TestRpcEndpoint.cpp \
   src/TestRpcLifecycle.cpp \
   src/TestRpcPerf.cpp \
   src/TestRpcSession.cpp \
+  src/TestServiceDiscovery.cpp \
   src/TestSocketReadiness.cpp \
   src/TestTcpSocketThreads.cpp \
   src/gucefCOMCORE_TestApp.cpp
