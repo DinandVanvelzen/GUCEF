@@ -46,6 +46,7 @@ namespace MATH {
 //-------------------------------------------------------------------------*/
 
 class CModule;
+class CMathBatchDispatcher;
 
 /*-------------------------------------------------------------------------*/
 
@@ -57,13 +58,28 @@ class GUCEF_MATH_PUBLIC_CPP CMathGlobal
 {
     public:
 
+    /**
+     *  The instance, created on first use. Thread-safe: when several threads make the first call together, one creates
+     *  and initialises the instance and the others wait until it is complete. After that a call is one acquire load
+     *  (lock-free, realtime-safe).
+     */
     static CMathGlobal* Instance( void );
+
+    /**
+     *  The batch dispatch table that the batch functions (gucefMATH_BatchFunctions.h) use, created with the providers of
+     *  this module registered (scalar, and the best SIMD set for the CPU). Bridge plugins register their providers
+     *  here. Realtime-safe once Instance() has been called.
+     */
+    CMathBatchDispatcher& GetBatchDispatcher( void ) GUCEF_MATH_REALTIME_CONTEXT;
 
 
     private:
     friend class CModule;
 
     static void Deinstance( void );
+
+    /** The slow path of Instance(): one thread creates, the others wait for the publication */
+    static CMathGlobal* CreateInstance( void );
 
     private:
 
@@ -76,6 +92,10 @@ class GUCEF_MATH_PUBLIC_CPP CMathGlobal
 
     CMathGlobal( const CMathGlobal& src );            /**< not implemented */
     CMathGlobal& operator=( const CMathGlobal& src ); /**< not implemented */
+
+    private:
+
+    CMathBatchDispatcher* m_batchDispatcher;
 };
 
 /*-------------------------------------------------------------------------//

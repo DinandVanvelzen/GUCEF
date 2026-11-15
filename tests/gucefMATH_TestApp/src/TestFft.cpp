@@ -55,6 +55,14 @@
 #define GUCEF_MATH_CPCG32_H
 #endif /* GUCEF_MATH_CPCG32_H ? */
 
+#ifndef GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H
+#include "gucefMATH_DeterministicTrigonometry.h"
+#define GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H
+#endif /* GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H ? */
+
+// the twiddle table is private to the module ( the transforms own it ), the test reads it through the kernel header
+#include "../../../platform/gucefMATH/src/gucefMATH_FftKernels.h"
+
 #include "TestFftHashing.h"
 #include "TestFft.h"
 
@@ -156,25 +164,49 @@ StopCounting( void )
 //-------------------------------------------------------------------------*/
 
 /*
- *  FNV-1a 64 bit hashes of the outputs of the real FFT as it was in gucefAUDIO before the move to gucefMATH, captured
- *  with the signals and the layout of TestFftHashing.h. Index: FftHashing::HashIndex( size index, precision, mode ).
+ *  FNV-1a 64 bit hashes of the outputs of the real FFT, captured with the signals and the layout of TestFftHashing.h.
+ *  Index: FftHashing::HashIndex( size index, precision, mode ). The Float32 hashes are those of the transform as it was in
+ *  gucefAUDIO before the move to gucefMATH. The Float64 hashes were captured again when the twiddle factors came from the
+ *  deterministic sine and cosine of gucefMATH instead of the C library (the C library differs in the last bit between
+ *  platforms, so the old Float64 hashes held on one platform only); the same hashes hold on every platform.
  */
 static const UInt64 PinnedHashes[ 56 ] =
 {
     0xaa7deba905d4b702ULL, 0x3a9ad61203aff452ULL, 0xaa7deba905d4b702ULL, 0x3a9ad61203aff452ULL,
-    0xe979a8211e070db5ULL, 0x0a7e74394aed2595ULL, 0xe979a8211e070db5ULL, 0x0a7e74394aed2595ULL,
+    0xf708c5ef13f9e10cULL, 0xf349b3ed44e260faULL, 0xf708c5ef13f9e10cULL, 0xf349b3ed44e260faULL,
     0x9aaa042f3abe7e6aULL, 0x18e890468552e8f0ULL, 0x9aaa042f3abe7e6aULL, 0x18e890468552e8f0ULL,
-    0xd8d3c9a71d4f3526ULL, 0x7913897c6e577e39ULL, 0xd8d3c9a71d4f3526ULL, 0x7913897c6e577e39ULL,
+    0x03f3d2318af8939aULL, 0x47e278cdf1c7a25bULL, 0x03f3d2318af8939aULL, 0x47e278cdf1c7a25bULL,
     0x745bee0ec9a60419ULL, 0x2e540dc0c9dac80bULL, 0x745bee0ec9a60419ULL, 0x2e540dc0c9dac80bULL,
-    0xd9a95da7986bc7deULL, 0x2603fdf7e84ae7aaULL, 0xd9a95da7986bc7deULL, 0x2603fdf7e84ae7aaULL,
+    0x81a3db1192c9fd3eULL, 0x533ec92e15614484ULL, 0x81a3db1192c9fd3eULL, 0x533ec92e15614484ULL,
     0x0b4989ab0913655aULL, 0x8cb0abbb9034381eULL, 0x0b4989ab0913655aULL, 0x8cb0abbb9034381eULL,
-    0xc0e9b19a3f03a2f7ULL, 0x504da564e056bdedULL, 0xc0e9b19a3f03a2f7ULL, 0x504da564e056bdedULL,
+    0x9d6647d2d9417e15ULL, 0x581ca8340ba9e842ULL, 0x9d6647d2d9417e15ULL, 0x581ca8340ba9e842ULL,
     0xbe472c69a20b7338ULL, 0x371f326306752654ULL, 0xbe472c69a20b7338ULL, 0x371f326306752654ULL,
-    0x9906ce0f023821b9ULL, 0x32e725a28256ecadULL, 0x9906ce0f023821b9ULL, 0x32e725a28256ecadULL,
+    0x2e06bccef9ecfe40ULL, 0x5fffbb18bf59ddabULL, 0x2e06bccef9ecfe40ULL, 0x5fffbb18bf59ddabULL,
     0xdb83fb2040454f37ULL, 0xd456cf2a72174c98ULL, 0xdb83fb2040454f37ULL, 0xd456cf2a72174c98ULL,
-    0xb2c399cfc4c34f64ULL, 0x00beb35831ca9b21ULL, 0xb2c399cfc4c34f64ULL, 0x00beb35831ca9b21ULL,
+    0x6e5c49f12166f6e7ULL, 0x625c0c51bcecc9e9ULL, 0x6e5c49f12166f6e7ULL, 0x625c0c51bcecc9e9ULL,
     0x269d9ab2ea52e73eULL, 0x807291404c6d8f82ULL, 0x269d9ab2ea52e73eULL, 0x807291404c6d8f82ULL,
-    0x908d791375db958fULL, 0x7d2272181f370506ULL, 0x908d791375db958fULL, 0x7d2272181f370506ULL
+    0x92d69980b31dcc7bULL, 0x49459272bb5c50e4ULL, 0x92d69980b31dcc7bULL, 0x49459272bb5c50e4ULL
+};
+
+/*
+ *  FNV-1a 64 bit hashes of the bytes of the twiddle tables ( 2 * size values: cos then -sin of 2 pi j / size ), for the sizes
+ *  2 to 4096 in powers of two. Index: ( log2( size ) - 1 ) * 2 + precision ( 0 = Float32, 1 = Float64 ). The tables are
+ *  generated with the deterministic sine and cosine of gucefMATH, so these are the same on every platform.
+ */
+static const UInt64 PinnedTwiddleHashes[ 24 ] =
+{
+    0x1388217063726245ULL, 0x078eeb3b43a0afe5ULL,
+    0x1cc37b73f04bf6c5ULL, 0xf618948b3bab7065ULL,
+    0xbf25c76c8c1b03b5ULL, 0x38ce9b310d2a6715ULL,
+    0xf5eb55152fba31f5ULL, 0x6039cc1bc334b0e5ULL,
+    0x1ea8e1c225a888e5ULL, 0x65f84709a746d9c5ULL,
+    0x938ff979f6847ea5ULL, 0x0e1cd3663ae7bfe5ULL,
+    0x646c871e3b7a81e5ULL, 0xfa75b1f53b716105ULL,
+    0x4f5fb7d85f5938a5ULL, 0x722541608bd9fa95ULL,
+    0x9725524913b250a5ULL, 0x189e44b7d3ec0ce5ULL,
+    0xd08363a04f140125ULL, 0xd9825b6ceb12b965ULL,
+    0x09265a723ee56115ULL, 0xb1f2db2deda2be55ULL,
+    0x44decc25b94099d5ULL, 0xe6f81e1720391fe5ULL
 };
 
 /*-------------------------------------------------------------------------//
@@ -271,6 +303,133 @@ PerformIdentityTests( void )
             }
         }
         ASSERT_TRUE( 0 == mismatches );
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Checks the table of exp( -2 pi i j / size ): exact symmetries, the exact points, equality with the direct evaluation of every angle */
+template< typename T >
+static bool
+CheckTwiddleTable( UInt32 size )
+{
+    GUCEF::vector< T > table;
+    MATH::FftFillTwiddles( table, size );
+    if ( table.size() != 2 * (size_t) size )
+        return false;
+
+    // cosine and sine of the angle 2 pi j / size, as stored ( the table holds cos and -sin )
+    #define TWIDDLE_COS( j ) ( table[ 2 * (size_t) ( j ) ] )
+    #define TWIDDLE_SIN( j ) ( (T) 0 - table[ 2 * (size_t) ( j ) + 1 ] )
+
+    bool ok = TWIDDLE_COS( 0 ) == (T) 1 && TWIDDLE_SIN( 0 ) == (T) 0;
+    if ( size >= 2 )
+        ok = ok && TWIDDLE_COS( size / 2 ) == (T) -1 && TWIDDLE_SIN( size / 2 ) == (T) 0;
+    if ( size >= 4 )
+        ok = ok && TWIDDLE_COS( size / 4 ) == (T) 0 && TWIDDLE_SIN( size / 4 ) == (T) 1 && TWIDDLE_COS( 3 * ( size / 4 ) ) == (T) 0 && TWIDDLE_SIN( 3 * ( size / 4 ) ) == (T) -1;
+
+    for ( UInt32 j = 1; j < size && ok; ++j )
+    {
+        // the conjugate: the angle of size - j is minus the angle of j
+        ok = ok && TWIDDLE_COS( size - j ) == TWIDDLE_COS( j ) && TWIDDLE_SIN( size - j ) == (T) 0 - TWIDDLE_SIN( j );
+        // half a turn minus the angle
+        if ( j <= size / 2 )
+            ok = ok && TWIDDLE_COS( size / 2 - j ) == (T) 0 - TWIDDLE_COS( j ) && TWIDDLE_SIN( size / 2 - j ) == TWIDDLE_SIN( j );
+        // a quarter turn minus the angle: sine and cosine swap
+        if ( size >= 4 && j <= size / 4 )
+            ok = ok && TWIDDLE_COS( size / 4 - j ) == TWIDDLE_SIN( j ) && TWIDDLE_SIN( size / 4 - j ) == TWIDDLE_COS( j );
+    }
+
+    // every entry equals the direct evaluation of its angle
+    for ( UInt32 j = 0; j < size && ok; ++j )
+    {
+        Float64 s = 0.0, c = 0.0;
+        MATH::SinCosOfTurnFraction( (Int64) j, (Int64) size, s, c );
+        ok = ok && TWIDDLE_COS( j ) == (T) c && TWIDDLE_SIN( j ) == (T) s;
+    }
+
+    #undef TWIDDLE_COS
+    #undef TWIDDLE_SIN
+    return ok;
+}
+
+static void
+PerformTwiddleTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Fft: the twiddle tables are exactly symmetric and equal to the direct evaluation of every angle (sizes 2 to 2^16 in both precisions, 2^20 in Float64)" )
+    try
+    {
+        for ( UInt32 size = 2; size <= 65536; size *= 2 )
+        {
+            const bool ok64 = CheckTwiddleTable< Float64 >( size );
+            const bool ok32 = CheckTwiddleTable< Float32 >( size );
+            if ( !ok64 || !ok32 )
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fft: twiddle table check failed for size " << size << ( ok64 ? "" : " in Float64" ) << ( ok32 ? "" : " in Float32" ) );
+            ASSERT_TRUE( ok64 );
+            ASSERT_TRUE( ok32 );
+        }
+        ASSERT_TRUE( CheckTwiddleTable< Float64 >( 1048576 ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Fft: the Float32 twiddle table is the Float64 table rounded, entry for entry" )
+    try
+    {
+        for ( UInt32 size = 2; size <= 4096; size *= 2 )
+        {
+            GUCEF::vector< Float32 > table32;
+            GUCEF::vector< Float64 > table64;
+            MATH::FftFillTwiddles( table32, size );
+            MATH::FftFillTwiddles( table64, size );
+            ASSERT_TRUE( table32.size() == table64.size() );
+            bool ok = true;
+            for ( size_t i = 0; i < table64.size(); ++i )
+                ok = ok && table32[ i ] == (Float32) table64[ i ];
+            ASSERT_TRUE( ok );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Fft: the twiddle tables of sizes 2 to 4096 reproduce their pinned hashes (the tables are the same on every platform)" )
+    try
+    {
+        UInt32 mismatches = 0;
+        for ( UInt32 exponent = 1; exponent <= 12; ++exponent )
+        {
+            const UInt32 size = (UInt32) 1 << exponent;
+            GUCEF::vector< Float32 > table32;
+            GUCEF::vector< Float64 > table64;
+            MATH::FftFillTwiddles( table32, size );
+            MATH::FftFillTwiddles( table64, size );
+            const UInt64 offset = (UInt64) 0xcbf29ce484222325ULL;
+            const UInt64 hash32 = FftHashing::Fnv1a( &table32[ 0 ], table32.size() * sizeof( Float32 ), offset );
+            const UInt64 hash64 = FftHashing::Fnv1a( &table64[ 0 ], table64.size() * sizeof( Float64 ), offset );
+            if ( hash32 != PinnedTwiddleHashes[ ( exponent - 1 ) * 2 ] )
+            {
+                ++mismatches;
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fft: the Float32 twiddle table of size " << size << " differs from the pinned hash" );
+            }
+            if ( hash64 != PinnedTwiddleHashes[ ( exponent - 1 ) * 2 + 1 ] )
+            {
+                ++mismatches;
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Fft: the Float64 twiddle table of size " << size << " differs from the pinned hash" );
+            }
+        }
+        ASSERT_TRUE( 0 == mismatches );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
 }
@@ -579,6 +738,7 @@ PerformFftTests( void )
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING Fft TESTS" );
 
     PerformIdentityTests();
+    PerformTwiddleTests();
     PerformRealPropertyTests();
     PerformAllocationTests();
     PerformComplexFftTests();

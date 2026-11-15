@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #define GUCEF_TESTFW_IMPL
 
 #ifndef GUCEF_MACROS_H
@@ -49,6 +51,7 @@
 #include "TestColour.h"
 #include "TestComplex.h"
 #include "TestEasing.h"
+#include "TestDeterministicTrigonometry.h"
 #include "TestFft.h"
 #include "TestPolynomialSolver.h"
 #include "TestRandomGenerators.h"
@@ -69,6 +72,43 @@
 #include "TestVectorConversions.h"
 #include "TestVectorSerialization.h"
 #include "TestVectors.h"
+#include "TestMatrices.h"
+#include "TestQuaternion.h"
+#include "TestEulerAngles.h"
+#include "TestTransforms.h"
+#include "TestQuaternionPacking.h"
+#include "TestProjections.h"
+#include "TestCoordinateSystems.h"
+#include "TestRotationSerialization.h"
+#include "TestMatrixFpContraction.h"
+#include "TestSmoothing.h"
+#include "TestCurves.h"
+#include "TestCurve1D.h"
+#include "TestPath.h"
+#include "TestIntegrators.h"
+#include "TestBallistics.h"
+#include "TestCurveFpContraction.h"
+#include "TestRandomStream.h"
+#include "TestSampling.h"
+#include "TestNoise.h"
+#include "TestOctahedral.h"
+#include "TestQuantizer.h"
+#include "TestRandomFpContraction.h"
+#include "TestAmbisonics.h"
+#include "TestDecompositions.h"
+#include "TestGeneralMatrices.h"
+#include "TestGeneralMatrixFpContraction.h"
+#include "TestLeastSquares.h"
+#include "TestSphericalHarmonics.h"
+#include "TestProjectionHelpers.h"
+#include "TestSpherical.h"
+#include "TestFrames.h"
+#include "TestVbap.h"
+#include "TestSpatialFpContraction.h"
+#include "TestSimdEquivalence.h"
+#include "TestBatchDispatcher.h"
+#include "TestBatchKernels.h"
+#include "TestMathRealtimeSafety.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -84,6 +124,10 @@ GUCEF_OSMAIN_BEGIN
 
     try
     {
+        // started by a test as the process whose first batch call 16 threads make together, see TestBatchDispatcher.h
+        if ( argc > 1 && 0 == strcmp( argv[ 1 ], GUCEF_MATH_TESTAPP_CONCURRENT_FIRST_CALL_ARG ) )
+            return RunConcurrentFirstBatchCall();
+
         GUCEF::CORE::CString logFilename = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( logFilename, "gucefMATH_TestApp_Log.txt" );
         GUCEF::CORE::CFileAccess logFileAccess( logFilename, "w" );
@@ -103,6 +147,7 @@ GUCEF_OSMAIN_BEGIN
         PerformMathModuleTests();
         PerformBitFunctionsTests();
         PerformEasingTests();
+        PerformDeterministicTrigonometryTests();
         PerformFftTests();
         PerformPolynomialSolverTests();
         PerformColourTests();
@@ -125,6 +170,43 @@ GUCEF_OSMAIN_BEGIN
         PerformVectorConversionsTests();
         PerformVectorSerializationTests();
         PerformFpContractionTests();
+        PerformMatricesTests();
+        PerformQuaternionTests();
+        PerformEulerAnglesTests();
+        PerformTransformsTests();
+        PerformQuaternionPackingTests();
+        PerformProjectionsTests();
+        PerformCoordinateSystemsTests();
+        PerformRotationSerializationTests();
+        PerformMatrixFpContractionTests();
+        PerformSmoothingTests();
+        PerformCurvesTests();
+        PerformCurve1DTests();
+        PerformPathTests();
+        PerformIntegratorsTests();
+        PerformBallisticsTests();
+        PerformCurveFpContractionTests();
+        PerformRandomStreamTests();
+        PerformSamplingTests();
+        PerformNoiseTests();
+        PerformOctahedralTests();
+        PerformQuantizerTests();
+        PerformRandomFpContractionTests();
+        PerformAmbisonicsTests();
+        PerformDecompositionsTests();
+        PerformGeneralMatricesTests();
+        PerformGeneralMatrixFpContractionTests();
+        PerformLeastSquaresTests();
+        PerformSphericalHarmonicsTests();
+        PerformProjectionHelpersTests();
+        PerformSphericalTests();
+        PerformFramesTests();
+        PerformVbapTests();
+        PerformSpatialFpContractionTests();
+        PerformSimdEquivalenceTests();
+        PerformBatchDispatcherTests();
+        PerformBatchKernelsTests();
+        PerformMathRealtimeSafetyTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
         return GUCEF_TESTFW_EXITCODE;

@@ -20,7 +20,7 @@
 #define GUCEF_MATH_FRACTIONTYPES_H
 
 /*
- *  The typedef families of the exact fraction kinds: T<kind>Vector2D/3D/4D and T<kind>Point2D/3D for
+ *  The typedef families of the exact fraction kinds: T<kind>Vector2D/3D/4D, T<kind>Point2D/3D and T<kind>Matrix2D/3D/4D for
  *  Int64Fraction (CORE::CTFraction< Int64, Int64 >, bounded) and BigFraction (CORE::CTFraction< CBigInteger,
  *  CBigInteger >, unbounded, heap beyond 256 bits). Separate from the other family headers because it includes
  *  gucefCORE_CBigInteger.h and the fraction traits. Fractions have no square root: no lengths and no directions.
@@ -46,6 +46,11 @@
 #include "gucefMATH_points.h"
 #define GUCEF_MATH_POINTS_H
 #endif /* GUCEF_MATH_POINTS_H ? */
+
+#ifndef GUCEF_MATH_MATRICES_H
+#include "gucefMATH_matrices.h"
+#define GUCEF_MATH_MATRICES_H
+#endif /* GUCEF_MATH_MATRICES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -77,6 +82,15 @@ typedef CTPoint2D< TMathBigFraction > TBigFractionPoint2D;
 typedef CTPoint3D< CORE::TInt64Fraction > TInt64FractionPoint3D;
 typedef CTPoint3D< TMathBigFraction > TBigFractionPoint3D;
 
+typedef CTMatrix2D< CORE::TInt64Fraction > TInt64FractionMatrix2D;
+typedef CTMatrix2D< TMathBigFraction > TBigFractionMatrix2D;
+
+typedef CTMatrix3D< CORE::TInt64Fraction > TInt64FractionMatrix3D;
+typedef CTMatrix3D< TMathBigFraction > TBigFractionMatrix3D;
+
+typedef CTMatrix4D< CORE::TInt64Fraction > TInt64FractionMatrix4D;
+typedef CTMatrix4D< TMathBigFraction > TBigFractionMatrix4D;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      EXPORTED INSTANTIATIONS                                            //
@@ -90,6 +104,9 @@ GUCEF_MATH_CTVECTOR3D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
 GUCEF_MATH_CTVECTOR4D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
 GUCEF_MATH_CTPOINT2D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
 GUCEF_MATH_CTPOINT3D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
+GUCEF_MATH_CTMATRIX2D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
+GUCEF_MATH_CTMATRIX3D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
+GUCEF_MATH_CTMATRIX4D_FRACTION_KINDS( GUCEF_MATH_EXTERN_TEMPLATE )
 #endif /* GUCEF_MATH_EXTERN_TEMPLATES_ENABLED ? */
 
 /*-------------------------------------------------------------------------//

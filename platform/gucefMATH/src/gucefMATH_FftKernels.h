@@ -25,12 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <math.h>
-
 #ifndef GUCEF_MATH_MACROS_H
 #include "gucefMATH_macros.h"
 #define GUCEF_MATH_MACROS_H
 #endif /* GUCEF_MATH_MACROS_H ? */
+
+#ifndef GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H
+#include "gucefMATH_DeterministicTrigonometry.h"
+#define GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H
+#endif /* GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -156,18 +159,53 @@ FftSplitRadix( const T* input, UInt32 stride, T* output, UInt32 count, const T* 
 
 /*-------------------------------------------------------------------------*/
 
-/** Fills the table with exp( -2 pi i j / size ) for j below size, real and imaginary part alternating */
+/**
+ *  Fills the table with exp( -2 pi i j / size ) for j below size, real and imaginary part alternating.
+ *  The values come from the deterministic sine and cosine of gucefMATH ( the C library gives other last bits on other
+ *  platforms ), and only the first octant is computed: the rest follows by the exact symmetries of the circle (swapping
+ *  sine and cosine, flipping signs), so the table is exactly symmetric and identical on every platform.
+ */
 template< typename T >
 void
 FftFillTwiddles( GUCEF::vector< T >& table, UInt32 size )
 {
-    const Float64 Pi = 3.14159265358979323846;
     table.assign( 2 * (size_t) size, (T) 0 );
-    for ( UInt32 j=0; j<size; ++j )
+
+    // first octant, including its end: j from 0 to size / 8 ( only j = 0 for the sizes below 8 )
+    const UInt32 octantEnd = size / 8;
+    for ( UInt32 j=0; j<=octantEnd && j<size; ++j )
     {
-        const Float64 angle = -2.0 * Pi * (Float64) j / (Float64) size;
-        table[ 2 * (size_t) j ] = (T) cos( angle );
-        table[ 2 * (size_t) j + 1 ] = (T) sin( angle );
+        Float64 s = 0.0, c = 0.0;
+        SinCosOfTurnFraction( (Int64) j, (Int64) size, s, c );
+        table[ 2 * (size_t) j ] = (T) c;
+        table[ 2 * (size_t) j + 1 ] = (T) ( 0.0 - s );
+    }
+
+    // the other octants: the angle is j / size of a turn, in octant o it is o / 8 turn plus 'within' / ( 8 size ),
+    // measured back from the end of the octant for an odd one; the table holds ( cos, -sin ) of the first octant
+    for ( UInt32 j=octantEnd+1; j<size; ++j )
+    {
+        const UInt64 eighths = 8 * (UInt64) j;
+        const UInt32 octant = (UInt32) ( eighths / size );
+        UInt64 within = eighths - (UInt64) octant * size;       // a multiple of 8 for sizes from 8 up, zero below
+        if ( 0 != ( octant & 1 ) )
+            within = size - within;
+        const T* base = &table[ 0 ] + 2 * (size_t) ( within / 8 );
+        const T c = base[ 0 ];
+        const T s = (T) 0 - base[ 1 ];
+        T sine, cosine;
+        switch ( octant )
+        {
+            case 1: sine = c;           cosine = s;         break;
+            case 2: sine = c;           cosine = (T) 0 - s; break;
+            case 3: sine = s;           cosine = (T) 0 - c; break;
+            case 4: sine = (T) 0 - s;   cosine = (T) 0 - c; break;
+            case 5: sine = (T) 0 - c;   cosine = (T) 0 - s; break;
+            case 6: sine = (T) 0 - c;   cosine = s;         break;
+            default: sine = (T) 0 - s;  cosine = c;         break;
+        }
+        table[ 2 * (size_t) j ] = cosine;
+        table[ 2 * (size_t) j + 1 ] = (T) 0 - sine;
     }
 }
 

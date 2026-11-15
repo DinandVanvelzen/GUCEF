@@ -24,23 +24,52 @@ LOCAL_MODULE_FILENAME := libgucefMATH
 LOCAL_SRC_FILES := \
   src/gucefMATH.cpp \
   src/gucefMATH_AngleFunctions.cpp \
+  src/gucefMATH_BallisticsInstantiations.cpp \
+  src/gucefMATH_BatchFunctions.cpp \
+  src/gucefMATH_BatchKernels_Avx2.cpp \
+  src/gucefMATH_BatchKernels_F16c.cpp \
+  src/gucefMATH_BatchKernels_Neon.cpp \
+  src/gucefMATH_BatchKernels_Scalar.cpp \
+  src/gucefMATH_BatchKernels_Sse2.cpp \
+  src/gucefMATH_BatchKernels_Wasm128.cpp \
+  src/gucefMATH_CAmbisonicFormat.cpp \
   src/gucefMATH_CComplexFft.cpp \
+  src/gucefMATH_CCoordinateSystem.cpp \
   src/gucefMATH_CDecimalStatistics.cpp \
   src/gucefMATH_CFloat16.cpp \
+  src/gucefMATH_CMathBatchDispatcher.cpp \
   src/gucefMATH_CMathGlobal.cpp \
   src/gucefMATH_CModule.cpp \
+  src/gucefMATH_COctahedralEncoding.cpp \
+  src/gucefMATH_COpenSimplex2Noise.cpp \
+  src/gucefMATH_CPerlinNoise.cpp \
+  src/gucefMATH_CQuaternionPacking.cpp \
   src/gucefMATH_CRealFft.cpp \
   src/gucefMATH_CTCompensatedSum.cpp \
   src/gucefMATH_CTDegree.cpp \
   src/gucefMATH_CTFixedPoint.cpp \
   src/gucefMATH_CTNumericTraits.cpp \
   src/gucefMATH_CTRadian.cpp \
+  src/gucefMATH_CValueNoise.cpp \
+  src/gucefMATH_CWorleyNoise.cpp \
+  src/gucefMATH_CurveInstantiations.cpp \
   src/gucefMATH_DecimalConversions.cpp \
+  src/gucefMATH_DeterministicTrigonometry.cpp \
   src/gucefMATH_DirectionInstantiations.cpp \
   src/gucefMATH_FractionInstantiations.cpp \
+  src/gucefMATH_GeneralMatrixInstantiations.cpp \
+  src/gucefMATH_MatrixFractionInstantiations.cpp \
+  src/gucefMATH_MatrixInstantiations.cpp \
   src/gucefMATH_PointInstantiations.cpp \
+  src/gucefMATH_ProjectionInstantiations.cpp \
+  src/gucefMATH_QuaternionInstantiations.cpp \
+  src/gucefMATH_RandomInstantiations.cpp \
+  src/gucefMATH_TransformInstantiations.cpp \
+  src/gucefMATH_VbapInstantiations.cpp \
   src/gucefMATH_VectorInstantiations.cpp \
-  src/gucefMATH_ScalarFunctions.cpp
+  src/gucefMATH_ScalarFunctions.cpp \
+  src/gucefMATH_SmoothingInstantiations.cpp \
+  src/gucefMATH_SphericalInstantiations.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

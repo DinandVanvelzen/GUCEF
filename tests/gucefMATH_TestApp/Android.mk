@@ -21,28 +21,67 @@ LOCAL_MODULE := gucefMATH_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestAmbisonics.cpp \
   src/TestAngles.cpp \
+  src/TestBallistics.cpp \
+  src/TestBatchDispatcher.cpp \
+  src/TestBatchKernels.cpp \
   src/TestBitFunctions.cpp \
   src/TestColour.cpp \
   src/TestComplex.cpp \
+  src/TestCoordinateSystems.cpp \
+  src/TestCurve1D.cpp \
+  src/TestCurveFpContraction.cpp \
+  src/TestCurves.cpp \
+  src/TestDecompositions.cpp \
+  src/TestDeterministicTrigonometry.cpp \
   src/TestDirections.cpp \
   src/TestEasing.cpp \
+  src/TestEulerAngles.cpp \
   src/TestFft.cpp \
   src/TestFixedPoint.cpp \
   src/TestFixedPointFunctions.cpp \
   src/TestFloat16.cpp \
   src/TestFpContraction.cpp \
+  src/TestFrames.cpp \
+  src/TestGeneralMatrices.cpp \
+  src/TestGeneralMatrixFpContraction.cpp \
+  src/TestIntegrators.cpp \
+  src/TestLeastSquares.cpp \
+  src/TestMathAllocationCounter.cpp \
   src/TestMathModule.cpp \
+  src/TestMathRealtimeSafety.cpp \
+  src/TestMatrices.cpp \
+  src/TestMatrixFpContraction.cpp \
+  src/TestNoise.cpp \
   src/TestNumericConversions.cpp \
   src/TestNumericTraits.cpp \
+  src/TestOctahedral.cpp \
+  src/TestPath.cpp \
   src/TestPoints.cpp \
   src/TestPolynomialSolver.cpp \
+  src/TestProjectionHelpers.cpp \
+  src/TestProjections.cpp \
+  src/TestQuantizer.cpp \
+  src/TestQuaternion.cpp \
+  src/TestQuaternionPacking.cpp \
+  src/TestRandomFpContraction.cpp \
   src/TestRandomGenerators.cpp \
+  src/TestRandomStream.cpp \
+  src/TestRotationSerialization.cpp \
+  src/TestSampling.cpp \
   src/TestScalarFpContraction.cpp \
   src/TestScalarFunctions.cpp \
   src/TestScalarPacking.cpp \
+  src/TestSimdEquivalence.cpp \
+  src/TestSmoothing.cpp \
   src/TestSpatialAudioFunctions.cpp \
+  src/TestSpatialFpContraction.cpp \
+  src/TestSpherical.cpp \
+  src/TestSphericalHarmonics.cpp \
   src/TestStatistics.cpp \
+  src/TestTransforms.cpp \
+  src/TestVbap.cpp \
   src/TestVectorConversions.cpp \
   src/TestVectorSerialization.cpp \
   src/TestVectors.cpp \

@@ -35,6 +35,11 @@
 #define GUCEF_MATH_COMPONENTFUNCTIONS_H
 #endif /* GUCEF_MATH_COMPONENTFUNCTIONS_H ? */
 
+#ifndef GUCEF_MATH_SIMD_BACKENDS_H
+#include "gucefMATH_simd_backends.h"
+#define GUCEF_MATH_SIMD_BACKENDS_H
+#endif /* GUCEF_MATH_SIMD_BACKENDS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -51,9 +56,6 @@ namespace MATH {
 //-------------------------------------------------------------------------*/
 
 template < typename T > class CTVector4D;
-
-/** Tag of the scalar backend; the SIMD configuration (section 5.2 of the design) adds the other tags */
-struct SMathSimdScalar;
 
 /*-------------------------------------------------------------------------*/
 
@@ -124,10 +126,15 @@ class CTVector4Normalization< T, 1 >
  *    component kernel;
  *  - Normalize: floats divide each component by Sqrt( Dot( a, a ) ) when that squared length is in the safe range,
  *    otherwise they first divide by the largest magnitude; a zero or non-finite vector gives the zero vector.
- *  Specialisations exist for Float32 only and change implementations, never results, layouts or signatures.
+ *  Specialisations exist for Float32 only and change implementations, never results, layouts or signatures. The
+ *  default backend is the one of the build (TMathSimdDefaultBackend, gucefMATH_simd_backends.h); a specialisation
+ *  header (gucefMATH_CTVector4Ops_Sse2.h, ...) is included at the end of this header when its instruction set is
+ *  configured. Naming SMathSimdScalar always gives this primary template.
+ *  Bit identity holds for every input except the payload of a NaN result when more than one operand is NaN (which
+ *  NaN propagates depends on the operand order a compiler picks).
  *  All functions are realtime-safe. In-place use (out aliasing an input) is allowed.
  */
-template < typename T, typename TBackend = SMathSimdScalar >
+template < typename T, typename TBackend = TMathSimdDefaultBackend >
 class GUCEF_MATH_TEMPLATE_PUBLIC CTVector4Ops
 {
     public:
@@ -194,6 +201,33 @@ class GUCEF_MATH_TEMPLATE_PUBLIC CTVector4Ops
 
 }  /* namespace MATH */
 }  /* namespace GUCEF */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      SPECIALISATIONS                                                    //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#if ( GUCEF_MATH_SIMD_HAVE_SSE2 == 1 )
+  #ifndef GUCEF_MATH_CTVECTOR4OPS_SSE2_H
+  #include "gucefMATH_CTVector4Ops_Sse2.h"
+  #define GUCEF_MATH_CTVECTOR4OPS_SSE2_H
+  #endif /* GUCEF_MATH_CTVECTOR4OPS_SSE2_H ? */
+#endif
+
+#if ( GUCEF_MATH_SIMD_HAVE_NEON == 1 )
+  #ifndef GUCEF_MATH_CTVECTOR4OPS_NEON_H
+  #include "gucefMATH_CTVector4Ops_Neon.h"
+  #define GUCEF_MATH_CTVECTOR4OPS_NEON_H
+  #endif /* GUCEF_MATH_CTVECTOR4OPS_NEON_H ? */
+#endif
+
+#if ( GUCEF_MATH_SIMD_HAVE_WASM128 == 1 )
+  #ifndef GUCEF_MATH_CTVECTOR4OPS_WASM128_H
+  #include "gucefMATH_CTVector4Ops_Wasm128.h"
+  #define GUCEF_MATH_CTVECTOR4OPS_WASM128_H
+  #endif /* GUCEF_MATH_CTVECTOR4OPS_WASM128_H ? */
+#endif
 
 /*-------------------------------------------------------------------------*/
 

@@ -239,6 +239,11 @@
 #define GUCEF_MATH_CTPOLYNOMIALSOLVER_H
 #endif /* GUCEF_MATH_CTPOLYNOMIALSOLVER_H ? */
 
+#ifndef GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H
+#include "gucefMATH_DeterministicTrigonometry.h"
+#define GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H
+#endif /* GUCEF_MATH_DETERMINISTICTRIGONOMETRY_H ? */
+
 #ifndef GUCEF_MATH_CREALFFT_H
 #include "gucefMATH_CRealFft.h"
 #define GUCEF_MATH_CREALFFT_H
@@ -258,6 +263,305 @@
 #include "gucefMATH_ColourFunctions.h"
 #define GUCEF_MATH_COLOURFUNCTIONS_H
 #endif /* GUCEF_MATH_COLOURFUNCTIONS_H ? */
+
+/*
+ *      Matrices, quaternions, Euler angles, transforms, projections and coordinate systems
+ */
+#ifndef GUCEF_MATH_MATRICES_H
+#include "gucefMATH_matrices.h"
+#define GUCEF_MATH_MATRICES_H
+#endif /* GUCEF_MATH_MATRICES_H ? */
+
+#ifndef GUCEF_MATH_QUATERNIONS_H
+#include "gucefMATH_quaternions.h"
+#define GUCEF_MATH_QUATERNIONS_H
+#endif /* GUCEF_MATH_QUATERNIONS_H ? */
+
+#ifndef GUCEF_MATH_TRANSFORMS_H
+#include "gucefMATH_transforms.h"
+#define GUCEF_MATH_TRANSFORMS_H
+#endif /* GUCEF_MATH_TRANSFORMS_H ? */
+
+#ifndef GUCEF_MATH_CQUATERNIONPACKING_H
+#include "gucefMATH_CQuaternionPacking.h"
+#define GUCEF_MATH_CQUATERNIONPACKING_H
+#endif /* GUCEF_MATH_CQUATERNIONPACKING_H ? */
+
+#ifndef GUCEF_MATH_SPROJECTIONCONVENTION_H
+#include "gucefMATH_SProjectionConvention.h"
+#define GUCEF_MATH_SPROJECTIONCONVENTION_H
+#endif /* GUCEF_MATH_SPROJECTIONCONVENTION_H ? */
+
+#ifndef GUCEF_MATH_CCOORDINATESYSTEM_H
+#include "gucefMATH_CCoordinateSystem.h"
+#define GUCEF_MATH_CCOORDINATESYSTEM_H
+#endif /* GUCEF_MATH_CCOORDINATESYSTEM_H ? */
+
+
+/*
+ *      Smoothing, curves, paths, integrators and ballistics
+ */
+#ifndef GUCEF_MATH_SMOOTHINGFUNCTIONS_H
+#include "gucefMATH_SmoothingFunctions.h"
+#define GUCEF_MATH_SMOOTHINGFUNCTIONS_H
+#endif /* GUCEF_MATH_SMOOTHINGFUNCTIONS_H ? */
+
+#ifndef GUCEF_MATH_CTBEZIERCURVE2_H
+#include "gucefMATH_CTBezierCurve2.h"
+#define GUCEF_MATH_CTBEZIERCURVE2_H
+#endif /* GUCEF_MATH_CTBEZIERCURVE2_H ? */
+
+#ifndef GUCEF_MATH_CTBEZIERCURVE3_H
+#include "gucefMATH_CTBezierCurve3.h"
+#define GUCEF_MATH_CTBEZIERCURVE3_H
+#endif /* GUCEF_MATH_CTBEZIERCURVE3_H ? */
+
+#ifndef GUCEF_MATH_CTHERMITESPLINE_H
+#include "gucefMATH_CTHermiteSpline.h"
+#define GUCEF_MATH_CTHERMITESPLINE_H
+#endif /* GUCEF_MATH_CTHERMITESPLINE_H ? */
+
+#ifndef GUCEF_MATH_CTCATMULLROMSPLINE_H
+#include "gucefMATH_CTCatmullRomSpline.h"
+#define GUCEF_MATH_CTCATMULLROMSPLINE_H
+#endif /* GUCEF_MATH_CTCATMULLROMSPLINE_H ? */
+
+#ifndef GUCEF_MATH_CTBSPLINE_H
+#include "gucefMATH_CTBSpline.h"
+#define GUCEF_MATH_CTBSPLINE_H
+#endif /* GUCEF_MATH_CTBSPLINE_H ? */
+
+#ifndef GUCEF_MATH_CTARCLENGTHTABLE_H
+#include "gucefMATH_CTArcLengthTable.h"
+#define GUCEF_MATH_CTARCLENGTHTABLE_H
+#endif /* GUCEF_MATH_CTARCLENGTHTABLE_H ? */
+
+#ifndef GUCEF_MATH_CTCURVE_H
+#include "gucefMATH_CTCurve.h"
+#define GUCEF_MATH_CTCURVE_H
+#endif /* GUCEF_MATH_CTCURVE_H ? */
+
+#ifndef GUCEF_MATH_CTPATH_H
+#include "gucefMATH_CTPath.h"
+#define GUCEF_MATH_CTPATH_H
+#endif /* GUCEF_MATH_CTPATH_H ? */
+
+#ifndef GUCEF_MATH_CURVEQUERYFUNCTIONS_H
+#include "gucefMATH_CurveQueryFunctions.h"
+#define GUCEF_MATH_CURVEQUERYFUNCTIONS_H
+#endif /* GUCEF_MATH_CURVEQUERYFUNCTIONS_H ? */
+
+#ifndef GUCEF_MATH_INTEGRATORFUNCTIONS_H
+#include "gucefMATH_IntegratorFunctions.h"
+#define GUCEF_MATH_INTEGRATORFUNCTIONS_H
+#endif /* GUCEF_MATH_INTEGRATORFUNCTIONS_H ? */
+
+#ifndef GUCEF_MATH_CTRUNGEKUTTA4_H
+#include "gucefMATH_CTRungeKutta4.h"
+#define GUCEF_MATH_CTRUNGEKUTTA4_H
+#endif /* GUCEF_MATH_CTRUNGEKUTTA4_H ? */
+
+#ifndef GUCEF_MATH_CTBALLISTICS_H
+#include "gucefMATH_CTBallistics.h"
+#define GUCEF_MATH_CTBALLISTICS_H
+#endif /* GUCEF_MATH_CTBALLISTICS_H ? */
+
+/*
+ *      Random distributions, sampling, noise, octahedral encoding and quantisation
+ */
+#ifndef GUCEF_MATH_SAMPLEWARPING_H
+#include "gucefMATH_SampleWarping.h"
+#define GUCEF_MATH_SAMPLEWARPING_H
+#endif /* GUCEF_MATH_SAMPLEWARPING_H ? */
+
+#ifndef GUCEF_MATH_LOWDISCREPANCYSEQUENCES_H
+#include "gucefMATH_LowDiscrepancySequences.h"
+#define GUCEF_MATH_LOWDISCREPANCYSEQUENCES_H
+#endif /* GUCEF_MATH_LOWDISCREPANCYSEQUENCES_H ? */
+
+#ifndef GUCEF_MATH_CTRANDOMSTREAM_H
+#include "gucefMATH_CTRandomStream.h"
+#define GUCEF_MATH_CTRANDOMSTREAM_H
+#endif /* GUCEF_MATH_CTRANDOMSTREAM_H ? */
+
+#ifndef GUCEF_MATH_CTALIASTABLE_H
+#include "gucefMATH_CTAliasTable.h"
+#define GUCEF_MATH_CTALIASTABLE_H
+#endif /* GUCEF_MATH_CTALIASTABLE_H ? */
+
+#ifndef GUCEF_MATH_CPERLINNOISE_H
+#include "gucefMATH_CPerlinNoise.h"
+#define GUCEF_MATH_CPERLINNOISE_H
+#endif /* GUCEF_MATH_CPERLINNOISE_H ? */
+
+#ifndef GUCEF_MATH_COPENSIMPLEX2NOISE_H
+#include "gucefMATH_COpenSimplex2Noise.h"
+#define GUCEF_MATH_COPENSIMPLEX2NOISE_H
+#endif /* GUCEF_MATH_COPENSIMPLEX2NOISE_H ? */
+
+#ifndef GUCEF_MATH_CVALUENOISE_H
+#include "gucefMATH_CValueNoise.h"
+#define GUCEF_MATH_CVALUENOISE_H
+#endif /* GUCEF_MATH_CVALUENOISE_H ? */
+
+#ifndef GUCEF_MATH_CWORLEYNOISE_H
+#include "gucefMATH_CWorleyNoise.h"
+#define GUCEF_MATH_CWORLEYNOISE_H
+#endif /* GUCEF_MATH_CWORLEYNOISE_H ? */
+
+#ifndef GUCEF_MATH_CTFRACTALNOISE_H
+#include "gucefMATH_CTFractalNoise.h"
+#define GUCEF_MATH_CTFRACTALNOISE_H
+#endif /* GUCEF_MATH_CTFRACTALNOISE_H ? */
+
+#ifndef GUCEF_MATH_CTDOMAINWARP_H
+#include "gucefMATH_CTDomainWarp.h"
+#define GUCEF_MATH_CTDOMAINWARP_H
+#endif /* GUCEF_MATH_CTDOMAINWARP_H ? */
+
+#ifndef GUCEF_MATH_COCTAHEDRALENCODING_H
+#include "gucefMATH_COctahedralEncoding.h"
+#define GUCEF_MATH_COCTAHEDRALENCODING_H
+#endif /* GUCEF_MATH_COCTAHEDRALENCODING_H ? */
+
+#ifndef GUCEF_MATH_CTQUANTIZER_H
+#include "gucefMATH_CTQuantizer.h"
+#define GUCEF_MATH_CTQUANTIZER_H
+#endif /* GUCEF_MATH_CTQUANTIZER_H ? */
+
+/*
+ *      General and dynamic matrices, decompositions, least squares, spherical harmonics and ambisonics
+ */
+#ifndef GUCEF_MATH_CTMATRIX_H
+#include "gucefMATH_CTMatrix.h"
+#define GUCEF_MATH_CTMATRIX_H
+#endif /* GUCEF_MATH_CTMATRIX_H ? */
+
+#ifndef GUCEF_MATH_CTDYNAMICVECTOR_H
+#include "gucefMATH_CTDynamicVector.h"
+#define GUCEF_MATH_CTDYNAMICVECTOR_H
+#endif /* GUCEF_MATH_CTDYNAMICVECTOR_H ? */
+
+#ifndef GUCEF_MATH_CTDYNAMICMATRIX_H
+#include "gucefMATH_CTDynamicMatrix.h"
+#define GUCEF_MATH_CTDYNAMICMATRIX_H
+#endif /* GUCEF_MATH_CTDYNAMICMATRIX_H ? */
+
+#ifndef GUCEF_MATH_CTLUDECOMPOSITION_H
+#include "gucefMATH_CTLuDecomposition.h"
+#define GUCEF_MATH_CTLUDECOMPOSITION_H
+#endif /* GUCEF_MATH_CTLUDECOMPOSITION_H ? */
+
+#ifndef GUCEF_MATH_CTQRDECOMPOSITION_H
+#include "gucefMATH_CTQrDecomposition.h"
+#define GUCEF_MATH_CTQRDECOMPOSITION_H
+#endif /* GUCEF_MATH_CTQRDECOMPOSITION_H ? */
+
+#ifndef GUCEF_MATH_CTCHOLESKYDECOMPOSITION_H
+#include "gucefMATH_CTCholeskyDecomposition.h"
+#define GUCEF_MATH_CTCHOLESKYDECOMPOSITION_H
+#endif /* GUCEF_MATH_CTCHOLESKYDECOMPOSITION_H ? */
+
+#ifndef GUCEF_MATH_CTSYMMETRICEIGEN3_H
+#include "gucefMATH_CTSymmetricEigen3.h"
+#define GUCEF_MATH_CTSYMMETRICEIGEN3_H
+#endif /* GUCEF_MATH_CTSYMMETRICEIGEN3_H ? */
+
+#ifndef GUCEF_MATH_CTSVD3_H
+#include "gucefMATH_CTSvd3.h"
+#define GUCEF_MATH_CTSVD3_H
+#endif /* GUCEF_MATH_CTSVD3_H ? */
+
+#ifndef GUCEF_MATH_CTLEASTSQUARES_H
+#include "gucefMATH_CTLeastSquares.h"
+#define GUCEF_MATH_CTLEASTSQUARES_H
+#endif /* GUCEF_MATH_CTLEASTSQUARES_H ? */
+
+#ifndef GUCEF_MATH_CTSPHERICALHARMONICS_H
+#include "gucefMATH_CTSphericalHarmonics.h"
+#define GUCEF_MATH_CTSPHERICALHARMONICS_H
+#endif /* GUCEF_MATH_CTSPHERICALHARMONICS_H ? */
+
+#ifndef GUCEF_MATH_CTSPHERICALHARMONICSROTATION_H
+#include "gucefMATH_CTSphericalHarmonicsRotation.h"
+#define GUCEF_MATH_CTSPHERICALHARMONICSROTATION_H
+#endif /* GUCEF_MATH_CTSPHERICALHARMONICSROTATION_H ? */
+
+#ifndef GUCEF_MATH_CAMBISONICFORMAT_H
+#include "gucefMATH_CAmbisonicFormat.h"
+#define GUCEF_MATH_CAMBISONICFORMAT_H
+#endif /* GUCEF_MATH_CAMBISONICFORMAT_H ? */
+
+/*
+ *      Projection helpers, polar and spherical coordinates, frames, VBAP and vector Doppler
+ */
+#ifndef GUCEF_MATH_CTVIEWPORT_H
+#include "gucefMATH_CTViewport.h"
+#define GUCEF_MATH_CTVIEWPORT_H
+#endif /* GUCEF_MATH_CTVIEWPORT_H ? */
+
+#ifndef GUCEF_MATH_PROJECTIONFUNCTIONS_H
+#include "gucefMATH_ProjectionFunctions.h"
+#define GUCEF_MATH_PROJECTIONFUNCTIONS_H
+#endif /* GUCEF_MATH_PROJECTIONFUNCTIONS_H ? */
+
+#ifndef GUCEF_MATH_CTPOLARCOORDINATES_H
+#include "gucefMATH_CTPolarCoordinates.h"
+#define GUCEF_MATH_CTPOLARCOORDINATES_H
+#endif /* GUCEF_MATH_CTPOLARCOORDINATES_H ? */
+
+#ifndef GUCEF_MATH_CTSPHERICALCOORDINATES_H
+#include "gucefMATH_CTSphericalCoordinates.h"
+#define GUCEF_MATH_CTSPHERICALCOORDINATES_H
+#endif /* GUCEF_MATH_CTSPHERICALCOORDINATES_H ? */
+
+#ifndef GUCEF_MATH_CTORTHONORMALFRAME3D_H
+#include "gucefMATH_CTOrthonormalFrame3D.h"
+#define GUCEF_MATH_CTORTHONORMALFRAME3D_H
+#endif /* GUCEF_MATH_CTORTHONORMALFRAME3D_H ? */
+
+#ifndef GUCEF_MATH_CTVBAP2D_H
+#include "gucefMATH_CTVbap2D.h"
+#define GUCEF_MATH_CTVBAP2D_H
+#endif /* GUCEF_MATH_CTVBAP2D_H ? */
+
+#ifndef GUCEF_MATH_CTVBAP3D_H
+#include "gucefMATH_CTVbap3D.h"
+#define GUCEF_MATH_CTVBAP3D_H
+#endif /* GUCEF_MATH_CTVBAP3D_H ? */
+
+#ifndef GUCEF_MATH_SPATIALAUDIOVECTORFUNCTIONS_H
+#include "gucefMATH_SpatialAudioVectorFunctions.h"
+#define GUCEF_MATH_SPATIALAUDIOVECTORFUNCTIONS_H
+#endif /* GUCEF_MATH_SPATIALAUDIOVECTORFUNCTIONS_H ? */
+
+/*
+ *      SIMD configuration, batch kernel dispatch and batch functions
+ */
+#ifndef GUCEF_MATH_SIMD_CONFIG_H
+#include "gucefMATH_simd_config.h"
+#define GUCEF_MATH_SIMD_CONFIG_H
+#endif /* GUCEF_MATH_SIMD_CONFIG_H ? */
+
+#ifndef GUCEF_MATH_MATHBATCHTYPES_H
+#include "gucefMATH_MathBatchTypes.h"
+#define GUCEF_MATH_MATHBATCHTYPES_H
+#endif /* GUCEF_MATH_MATHBATCHTYPES_H ? */
+
+#ifndef GUCEF_MATH_CMATHBATCHDISPATCHER_H
+#include "gucefMATH_CMathBatchDispatcher.h"
+#define GUCEF_MATH_CMATHBATCHDISPATCHER_H
+#endif /* GUCEF_MATH_CMATHBATCHDISPATCHER_H ? */
+
+#ifndef GUCEF_MATH_BATCHFUNCTIONS_H
+#include "gucefMATH_BatchFunctions.h"
+#define GUCEF_MATH_BATCHFUNCTIONS_H
+#endif /* GUCEF_MATH_BATCHFUNCTIONS_H ? */
+
+
+
+
+
 
 #endif /* __cplusplus ? */
 
