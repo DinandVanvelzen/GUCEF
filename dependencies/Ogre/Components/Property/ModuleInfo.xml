@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE Property component</DescriptionHeadline>
         <DescriptionDetails>Typed properties with binding to the members of objects, for OGRE 14.6.3.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreProperty" Type="SharedLibrary" Platform="All" Tags="ogre">
+    <Module Name="OgreProperty" Type="SharedLibrary" Platform="All">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

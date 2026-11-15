@@ -96,7 +96,7 @@ links( { "Ogre", "OgreGLSupport", "dl" } )
 
 
 configuration( { "ANDROID32" } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "ANDROID64" } )
 links( { "Ogre", "OgreGLSupport" } )
@@ -106,7 +106,7 @@ links( { "Ogre", "OgreGLSupport", "dl" } )
 
 
 configuration( { "ANDROID64" } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "EMSCRIPTEN32" } )
 links( { "Ogre", "OgreGLSupport" } )
@@ -116,7 +116,7 @@ links( { "Ogre", "OgreGLSupport" } )
 
 
 configuration( { "EMSCRIPTEN32" } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "EMSCRIPTEN64" } )
 links( { "Ogre", "OgreGLSupport" } )
@@ -126,7 +126,7 @@ links( { "Ogre", "OgreGLSupport" } )
 
 
 configuration( { "EMSCRIPTEN64" } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "LINUX32" } )
 links( { "Ogre", "OgreGLSupport" } )
@@ -136,7 +136,7 @@ links( { "Ogre", "OgreGLSupport", "dl" } )
 
 
 configuration( { "LINUX32" } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 configuration( { "LINUX64" } )
 links( { "Ogre", "OgreGLSupport" } )
@@ -146,7 +146,7 @@ links( { "Ogre", "OgreGLSupport", "dl" } )
 
 
 configuration( { "LINUX64" } )
-defines( { "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_GLES2", "MODULE_SEMVER=14_6_3_0", "OGRE_GCC_VISIBILITY", "RenderSystem_GLES2_EXPORTS" } )
 
 
 configuration( { "ANDROID32" } )

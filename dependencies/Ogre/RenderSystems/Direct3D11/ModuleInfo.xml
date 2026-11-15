@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE Direct3D 11 render system plugin</DescriptionHeadline>
         <DescriptionDetails>The Direct3D 11 render system of OGRE 14.6.3, a plugin of the Ogre core library, for Windows.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreRenderSystem_Direct3D11" Type="SharedLibrary" Platform="mswin" Tags="ogre">
+    <Module Name="OgreRenderSystem_Direct3D11" Type="SharedLibrary" Platform="mswin" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

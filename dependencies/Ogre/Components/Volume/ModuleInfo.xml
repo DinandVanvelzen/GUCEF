@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE Volume component</DescriptionHeadline>
         <DescriptionDetails>Volume rendering of OGRE 14.6.3: chunked volumes of density values turned into meshes. Upstream builds it for all platforms except WebAssembly.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreVolume" Type="SharedLibrary" Platform="linux;mswin;android" Tags="ogre">
+    <Module Name="OgreVolume" Type="SharedLibrary" Platform="linux;mswin;android">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

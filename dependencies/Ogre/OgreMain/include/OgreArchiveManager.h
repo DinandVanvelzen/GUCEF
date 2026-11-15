@@ -101,6 +101,14 @@ namespace Ogre {
             Archive subclasses for their archive type.
         */
         void addArchiveFactory(ArchiveFactory* factory);
+
+        // DV edit: a plugin that registered an archive factory can take it out again when it is uninstalled.
+        // Archives that the factory made and that are still loaded must be unloaded before.
+        /** Removes the factory, when it is the one registered for its type. Returns whether it was removed */
+        bool removeArchiveFactory(ArchiveFactory* factory);
+
+        /** Whether a factory is registered for the archive type */
+        bool hasArchiveFactory(const String& archiveType) const;
         /// @copydoc Singleton::getSingleton()
         static ArchiveManager& getSingleton(void);
         /// @copydoc Singleton::getSingleton()

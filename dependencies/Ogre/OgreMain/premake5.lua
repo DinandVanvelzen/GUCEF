@@ -40,7 +40,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "MINIZ_NO_STDIO", "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "MODULE_SEMVER=14_6_3_0", "OgreMain_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MINIZ_NO_STDIO", "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "MODULE_SEMVER=14_6_3_0", "OgreMain_EXPORTS" } )
 
 configuration( { "ANDROID32" } )
 links( { "android", "atomic", "dl", "log" } )

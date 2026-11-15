@@ -5,13 +5,14 @@
         <DescriptionHeadline>OGRE 3D rendering engine, the core library (OgreMain)</DescriptionHeadline>
         <DescriptionDetails>The core of OGRE 14.6.3 (the classic Ogre 1.x line, not Ogre-Next): scene management, resources, scripts, materials, compositors, animation, image and mesh codecs and ZIP archives. The configuration headers which the upstream CMake build generates are checked in under dependencies/Ogre/include. It is built as C++14, which is what OGRE requires.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="Ogre" Type="SharedLibrary" Platform="All" Tags="ogre">
+    <Module Name="Ogre" Type="SharedLibrary" Platform="All">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
         </Dependencies>
         <Preprocessor>
             <Define String="OgreMain_EXPORTS" />
             <Define String="MINIZ_NO_STDIO" />
+            <Define String="GUCEF_OGRE_NO_NATIVE_ARCHIVES" />
         </Preprocessor>
         <Compiler MinCppStandard="14">
             <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math" />

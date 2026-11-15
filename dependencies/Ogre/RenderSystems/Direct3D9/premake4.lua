@@ -52,7 +52,7 @@ links( { "Ogre", "d3d9.lib", "dxguid.lib" } )
 
 
 configuration( { "WIN32" } )
-defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_Direct3D9", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
 
 configuration( { "WIN64" } )
 links( { "Ogre" } )
@@ -62,7 +62,7 @@ links( { "Ogre", "d3d9.lib", "dxguid.lib" } )
 
 
 configuration( { "WIN64" } )
-defines( { "MODULE_NAME=OgreRenderSystem_Direct3D9", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgreRenderSystem_Direct3D9", "MODULE_SEMVER=14_6_3_0", "OGRED3DENGINEDLL_EXPORTS", "_USRDLL" } )
 
 
 configuration( { "WIN32" } )

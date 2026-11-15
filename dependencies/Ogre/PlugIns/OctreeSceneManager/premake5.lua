@@ -46,7 +46,15 @@ links( { "Ogre" } )
 
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=OgrePlugin_OctreeSceneManager", "MODULE_NAME=OgrePlugin_OctreeSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_OctreeSceneManager_EXPORTS" } )
+defines( { "MODULE_CONSENSUS_NAME=OgrePlugin_OctreeSceneManager", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_OctreeSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_OctreeSceneManager_EXPORTS" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+defines( { "MODULE_API_PREFIX=OgrePlugin_OctreeSceneManager" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+defines( { "MODULE_API_PREFIX=OgrePlugin_OctreeSceneManager" } )
 
 
 configuration( {} )

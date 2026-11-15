@@ -46,7 +46,15 @@ links( { "Ogre" } )
 
 
 configuration( {} )
-defines( { "MODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX", "MODULE_NAME=OgrePlugin_ParticleFX", "MODULE_SEMVER=14_6_3_0", "Plugin_ParticleFX_EXPORTS" } )
+defines( { "MODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_ParticleFX", "MODULE_SEMVER=14_6_3_0", "Plugin_ParticleFX_EXPORTS" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+defines( { "MODULE_API_PREFIX=OgrePlugin_ParticleFX" } )
+
+
+configuration( { "EMSCRIPTEN64" } )
+defines( { "MODULE_API_PREFIX=OgrePlugin_ParticleFX" } )
 
 
 configuration( {} )

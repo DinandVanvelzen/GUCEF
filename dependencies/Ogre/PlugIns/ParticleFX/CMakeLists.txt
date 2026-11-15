@@ -96,7 +96,7 @@ else()
 endif()
 add_dependencies( ${MODULE_NAME} Ogre )
 target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX;MODULE_NAME=OgrePlugin_ParticleFX;MODULE_SEMVER=14_6_3_0;Plugin_ParticleFX_EXPORTS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX;MODULE_IS_PLUGIN=1;MODULE_NAME=OgrePlugin_ParticleFX;MODULE_SEMVER=14_6_3_0;Plugin_ParticleFX_EXPORTS" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 if ( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden;-fvisibility-inlines-hidden> )
@@ -109,6 +109,14 @@ if ( MSVC )
 endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 14.6.3.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 14.6.3.0 )
+
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=OgrePlugin_ParticleFX" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=OgrePlugin_ParticleFX" )
+endif( EMSCRIPTEN64 )
 
 include_directories( ../../OgreMain/include ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/zip ../../include include src )
 

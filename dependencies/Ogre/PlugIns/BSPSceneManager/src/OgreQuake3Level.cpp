@@ -53,7 +53,8 @@ namespace Ogre {
         mChunk = std::make_shared<MemoryDataStream>(stream);
         initialise();
 
-#if OGRE_DEBUG_MODE
+// DV edit: dumpContents writes Quake3Level.log in the current directory
+#if OGRE_DEBUG_MODE && !defined(GUCEF_OGRE_NO_NATIVE_ARCHIVES)
         dumpContents();
 #endif
 

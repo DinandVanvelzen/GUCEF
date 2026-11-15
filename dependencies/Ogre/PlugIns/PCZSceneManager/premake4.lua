@@ -74,7 +74,7 @@ links( { "Ogre" } )
 
 
 configuration( { "LINUX32" } )
-defines( { "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
 
 configuration( { "LINUX64" } )
 links( { "Ogre" } )
@@ -84,7 +84,7 @@ links( { "Ogre" } )
 
 
 configuration( { "LINUX64" } )
-defines( { "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
 
 configuration( { "WIN32" } )
 links( { "Ogre" } )
@@ -94,7 +94,7 @@ links( { "Ogre" } )
 
 
 configuration( { "WIN32" } )
-defines( { "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
 
 configuration( { "WIN64" } )
 links( { "Ogre" } )
@@ -104,7 +104,7 @@ links( { "Ogre" } )
 
 
 configuration( { "WIN64" } )
-defines( { "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_PCZSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_PCZSceneManager_EXPORTS" } )
 
 
 configuration( { "LINUX32" } )

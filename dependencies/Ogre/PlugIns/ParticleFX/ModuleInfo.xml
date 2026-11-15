@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE ParticleFX plugin</DescriptionHeadline>
         <DescriptionDetails>The particle emitters, affectors and billboard renderer of OGRE 14.6.3, a plugin of the Ogre core library.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgrePlugin_ParticleFX" Type="SharedLibrary" Platform="All" Tags="ogre">
+    <Module Name="OgrePlugin_ParticleFX" Type="SharedLibrary" Platform="All" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

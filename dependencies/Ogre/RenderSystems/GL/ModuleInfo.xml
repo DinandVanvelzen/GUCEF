@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE OpenGL render system plugin</DescriptionHeadline>
         <DescriptionDetails>The OpenGL (2.x compatibility and later) render system of OGRE 14.6.3, a plugin of the Ogre core library. The OpenGL entry points are loaded at run time.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreRenderSystem_GL" Type="SharedLibrary" Platform="linux;mswin" Tags="ogre">
+    <Module Name="OgreRenderSystem_GL" Type="SharedLibrary" Platform="linux;mswin" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

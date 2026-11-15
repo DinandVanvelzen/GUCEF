@@ -127,6 +127,9 @@ namespace Ogre {
 #if OGRE_PLATFORM == OGRE_PLATFORM_EMSCRIPTEN
             // suppress writing log to Emscripten virtual FS, improves performance
             mLogManager->createLog(logFileName, true, true, true);
+#elif defined(GUCEF_OGRE_NO_NATIVE_ARCHIVES)
+            // DV edit: the log goes to the application's logging, Ogre does not write a log file by itself
+            mLogManager->createLog(logFileName, true, true, true);
 #else
             mLogManager->createLog(logFileName, true, true);
 #endif
@@ -175,11 +178,19 @@ namespace Ogre {
 #endif
 
 
+        // DV edit: the file system and ZIP archive factories read from disk by themselves. With
+        // GUCEF_OGRE_NO_NATIVE_ARCHIVES they are not registered, the application registers archive
+        // factories that read through a virtual file system instead. The embedded ZIP factory only reads
+        // from memory and stays.
+#if !defined(GUCEF_OGRE_NO_NATIVE_ARCHIVES)
         mFileSystemArchiveFactory = std::make_unique<FileSystemArchiveFactory>();
         ArchiveManager::getSingleton().addArchiveFactory( mFileSystemArchiveFactory.get() );
+#endif
 #   if OGRE_NO_ZIP_ARCHIVE == 0
+#if !defined(GUCEF_OGRE_NO_NATIVE_ARCHIVES)
         mZipArchiveFactory = std::make_unique<ZipArchiveFactory>();
         ArchiveManager::getSingleton().addArchiveFactory( mZipArchiveFactory.get() );
+#endif
         mEmbeddedZipArchiveFactory = std::make_unique<EmbeddedZipArchiveFactory>();
         ArchiveManager::getSingleton().addArchiveFactory( mEmbeddedZipArchiveFactory.get() );
 #   endif

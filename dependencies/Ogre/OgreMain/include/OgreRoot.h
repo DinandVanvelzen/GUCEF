@@ -217,9 +217,17 @@ namespace Ogre
         @param logFileName The logfile to create, defaults to Ogre.log, may be
             left blank if you've already set up LogManager & Log yourself
         */
+#if defined(GUCEF_OGRE_NO_NATIVE_ARCHIVES)
+        // DV edit: no plugin, configuration and log file names by default, so that a default constructed
+        // Root does not read or write files. Pass empty names or the names of the files the application wants.
+        Root(const String& pluginFileName = "",
+            const String& configFileName = "",
+            const String& logFileName = "");
+#else
         Root(const String& pluginFileName = "plugins.cfg",
             const String& configFileName = "ogre.cfg",
             const String& logFileName = "Ogre.log");
+#endif
         ~Root();
 
         /** Saves the details of the current configuration

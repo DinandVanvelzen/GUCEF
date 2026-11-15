@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE Octree zone plugin</DescriptionHeadline>
         <DescriptionDetails>The octree zone of the portal connected zone scene manager of OGRE 14.6.3, a plugin of the Ogre core library.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgrePlugin_OctreeZone" Type="SharedLibrary" Platform="linux;mswin" Tags="ogre">
+    <Module Name="OgrePlugin_OctreeZone" Type="SharedLibrary" Platform="linux;mswin" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

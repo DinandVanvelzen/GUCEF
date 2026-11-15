@@ -207,7 +207,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/src/zip \
   $(MY_MODULE_PATH)/../include
 
-LOCAL_CFLAGS := -DMINIZ_NO_STDIO -DMODULE_CONSENSUS_NAME=Ogre -DMODULE_NAME=Ogre -DMODULE_SEMVER=14_6_3_0 -DOgreMain_EXPORTS
+LOCAL_CFLAGS := -DGUCEF_OGRE_NO_NATIVE_ARCHIVES -DMINIZ_NO_STDIO -DMODULE_CONSENSUS_NAME=Ogre -DMODULE_NAME=Ogre -DMODULE_SEMVER=14_6_3_0 -DOgreMain_EXPORTS
 
 LOCAL_CPPFLAGS +=-fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math
 

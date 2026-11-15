@@ -112,6 +112,14 @@ OGRE_THREAD_PROVIDER = 4
 
 #define OGRE_NO_ASTC_CODEC 0
 
+/* DV edit: Ogre does not read or write files by itself in this code base. The archive factories for the
+   file system and ZIP files are not registered by Root, Root has no default plugin, configuration and log
+   file names and the default log has no file. Applications read through the GucefVFS archive factories.
+   The Ogre modules also get this define from their ModuleInfo.xml. */
+#ifndef GUCEF_OGRE_NO_NATIVE_ARCHIVES
+#   define GUCEF_OGRE_NO_NATIVE_ARCHIVES
+#endif
+
 /** Disables use of the ZIP archive support. */
 #define OGRE_NO_ZIP_ARCHIVE 0
 

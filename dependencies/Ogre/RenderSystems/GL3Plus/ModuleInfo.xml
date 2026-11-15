@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE OpenGL 3+ render system plugin</DescriptionHeadline>
         <DescriptionDetails>The core profile OpenGL 3.3 and later render system of OGRE 14.6.3, a plugin of the Ogre core library. The OpenGL entry points are loaded at run time.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreRenderSystem_GL3Plus" Type="SharedLibrary" Platform="linux;mswin" Tags="ogre">
+    <Module Name="OgreRenderSystem_GL3Plus" Type="SharedLibrary" Platform="linux;mswin" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

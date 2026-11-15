@@ -51,7 +51,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../OgreMain/src/zip \
   $(MY_MODULE_PATH)/../../include
 
-LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX -DMODULE_NAME=OgrePlugin_ParticleFX -DMODULE_SEMVER=14_6_3_0 -DPlugin_ParticleFX_EXPORTS
+LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=OgrePlugin_ParticleFX -DMODULE_IS_PLUGIN=1 -DMODULE_NAME=OgrePlugin_ParticleFX -DMODULE_SEMVER=14_6_3_0 -DPlugin_ParticleFX_EXPORTS
 
 LOCAL_CPPFLAGS +=-fvisibility=hidden -fvisibility-inlines-hidden
 

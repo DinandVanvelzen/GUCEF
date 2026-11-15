@@ -96,7 +96,7 @@ links( { "Ogre" } )
 
 
 configuration( { "ANDROID32" } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
 configuration( { "ANDROID64" } )
 links( { "Ogre" } )
@@ -106,7 +106,7 @@ links( { "Ogre" } )
 
 
 configuration( { "ANDROID64" } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
 configuration( { "LINUX32" } )
 links( { "Ogre" } )
@@ -116,7 +116,7 @@ links( { "Ogre" } )
 
 
 configuration( { "LINUX32" } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
 configuration( { "LINUX64" } )
 links( { "Ogre" } )
@@ -126,7 +126,7 @@ links( { "Ogre" } )
 
 
 configuration( { "LINUX64" } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
 configuration( { "WIN32" } )
 links( { "Ogre" } )
@@ -136,7 +136,7 @@ links( { "Ogre" } )
 
 
 configuration( { "WIN32" } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
 configuration( { "WIN64" } )
 links( { "Ogre" } )
@@ -146,7 +146,7 @@ links( { "Ogre" } )
 
 
 configuration( { "WIN64" } )
-defines( { "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
+defines( { "GUCEF_OGRE_NO_NATIVE_ARCHIVES", "MODULE_IS_PLUGIN=1", "MODULE_NAME=OgrePlugin_BSPSceneManager", "MODULE_SEMVER=14_6_3_0", "Plugin_BSPSceneManager_EXPORTS" } )
 
 
 configuration( { "ANDROID32" } )

@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE Terrain component</DescriptionHeadline>
         <DescriptionDetails>Height field terrain of OGRE 14.6.3 with paging, blend maps and shader based materials. Upstream builds it for all platforms except WebAssembly.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreTerrain" Type="SharedLibrary" Platform="linux;mswin;android" Tags="ogre">
+    <Module Name="OgreTerrain" Type="SharedLibrary" Platform="linux;mswin;android">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

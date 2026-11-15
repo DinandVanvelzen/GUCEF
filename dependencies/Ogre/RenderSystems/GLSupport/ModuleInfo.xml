@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE OpenGL support library: context and window creation shared by the OpenGL render systems</DescriptionHeadline>
         <DescriptionDetails>Static library which the OpenGL, OpenGL 3+ and OpenGL ES 2 render systems of OGRE 14.6.3 link into themselves. The window system part is EGL with X11 on Linux, EGL on Android and WebAssembly and WGL on Windows.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreGLSupport" Type="StaticLibrary" Platform="linux;mswin;android" Tags="ogre">
+    <Module Name="OgreGLSupport" Type="StaticLibrary" Platform="linux;mswin;android">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE Overlay component</DescriptionHeadline>
         <DescriptionDetails>The 2D overlay system of OGRE 14.6.3: overlays, panels, text areas and fonts (TrueType fonts through FreeType). The Dear ImGui integration of the component is not built.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgreOverlay" Type="SharedLibrary" Platform="All" Tags="ogre">
+    <Module Name="OgreOverlay" Type="SharedLibrary" Platform="All">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />

@@ -5,7 +5,7 @@
         <DescriptionHeadline>OGRE BSP scene manager plugin</DescriptionHeadline>
         <DescriptionDetails>The binary space partitioning scene manager of OGRE 14.6.3, which loads Quake 3 levels, a plugin of the Ogre core library. Upstream builds it for all platforms except WebAssembly.</DescriptionDetails>
     </ModuleMetaData>
-    <Module Name="OgrePlugin_BSPSceneManager" Type="SharedLibrary" Platform="linux;mswin;android" Tags="ogre">
+    <Module Name="OgrePlugin_BSPSceneManager" Type="SharedLibrary" Platform="linux;mswin;android" Tags="plugin">
         <Dependencies>
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />
@@ -15,6 +15,7 @@
         </Linker>
         <Preprocessor>
             <Define String="Plugin_BSPSceneManager_EXPORTS" />
+            <Define String="GUCEF_OGRE_NO_NATIVE_ARCHIVES" />
         </Preprocessor>
         <Compiler MinCppStandard="14">
             <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />

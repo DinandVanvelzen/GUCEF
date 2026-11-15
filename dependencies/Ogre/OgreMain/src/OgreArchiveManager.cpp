@@ -128,5 +128,23 @@ namespace Ogre {
         LogManager::getSingleton().logMessage("ArchiveFactory for type '" + factory->getType() + "' registered");
     }
 
+    // DV edit: see OgreArchiveManager.h
+    bool ArchiveManager::removeArchiveFactory(ArchiveFactory* factory)
+    {
+        ArchiveFactoryMap::iterator it = mArchFactories.find(factory->getType());
+        if (it == mArchFactories.end() || it->second != factory)
+            return false;
+
+        mArchFactories.erase(it);
+        LogManager::getSingleton().logMessage("ArchiveFactory for type '" + factory->getType() + "' unregistered");
+        return true;
+    }
+
+    // DV edit: see OgreArchiveManager.h
+    bool ArchiveManager::hasArchiveFactory(const String& archiveType) const
+    {
+        return mArchFactories.find(archiveType) != mArchFactories.end();
+    }
+
 }
 
