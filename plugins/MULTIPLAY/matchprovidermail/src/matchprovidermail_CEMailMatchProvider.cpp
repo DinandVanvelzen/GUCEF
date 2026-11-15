@@ -966,7 +966,7 @@ CEMailMatchProvider::CreateMatch( const MULTIPLAY::CMatchRecord& record, const M
         Reject( future, matchId, MULTIPLAY::MATCHOPERATION_REJECTED, "The record was not made by the player" );
         return true;
     }
-    if ( NULL != FindMatch( matchId ) || IsRemoved( matchId ) )
+    if ( GUCEF_NULL != FindMatch( matchId ) || IsRemoved( matchId ) )
     {
         Reject( future, matchId, MULTIPLAY::MATCHOPERATION_REJECTED, "The match exists already" );
         return true;
@@ -3649,7 +3649,7 @@ CEMailMatchProvider::HandleIntroRequest( const CEMailInboxMessage& mail )
         return;
     }
     const Int64 now = GetNowMs();
-    const TMailIntroResult result = m_intros.HandleRequest( request, mail.incoming.fromAddress, m_settings.mailAddress, NULL != FindMatch( request.matchId ) || IsRemoved( request.matchId ), now );
+    const TMailIntroResult result = m_intros.HandleRequest( request, mail.incoming.fromAddress, m_settings.mailAddress, GUCEF_NULL != FindMatch( request.matchId ) || IsRemoved( request.matchId ), now );
     switch ( result )
     {
         case MAILINTRORESULT_OK:
@@ -3740,7 +3740,7 @@ CEMailMatchProvider::TryJoinIntroduced( SMatch& match, const CEMailInboxMessage&
     if ( !join )
         return;
     MULTIPLAY::CMatchAcceptance acceptance;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     if ( acceptance.Sign( m_identity, match.state.record.info, true ) && Respond( matchId, acceptance, future ) )
         IntroNotice( "INTRO_JOINED", matchId, "The player joined the game they were introduced to" );
 }

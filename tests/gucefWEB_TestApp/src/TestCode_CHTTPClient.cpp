@@ -124,7 +124,7 @@ class CMyHTTPClient : public GUCEF::CORE::CObserver
 
         virtual void OnNotify( CORE::CNotifier* notifier           ,
                                const CORE::CEvent& eventid         ,
-                               CORE::CICloneable* eventdata = NULL )
+                               CORE::CICloneable* eventdata = GUCEF_NULL )
         {
             
         }

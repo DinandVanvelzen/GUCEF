@@ -68,7 +68,7 @@ class GUCEF_CORE_PUBLIC_CPP CWindowMsgHook
      *  @param userData optional pointer that will be passed when WindowProc is called
      */
     void Hook( const HWND hWnd       ,
-               void* userData = NULL );
+               void* userData = GUCEF_NULL );
 
     /**
      *  Unsubscribes the hook object from messages sent to the window

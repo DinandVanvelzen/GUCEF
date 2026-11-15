@@ -697,6 +697,40 @@ class CClientDestroyedInEvent : public CORE::CObserver
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** PumpUntil() condition: the client connected and the server saw the client */
+class CClientAndServerConnected
+{
+    public:
+    explicit CClientAndServerConnected( const CTestTCPClientServer& test ) : m_test( test ) {}
+    bool operator()( void ) const { return m_test.m_clientConnected && m_test.m_serverSawClient; }
+    private:
+    const CTestTCPClientServer& m_test;
+};
+
+/** PumpUntil() condition: the server received the given text */
+class CServerReceived
+{
+    public:
+    CServerReceived( const CTestTCPClientServer& test, const char* text ) : m_test( test ), m_text( text ) {}
+    bool operator()( void ) const { return m_test.m_serverReceived == m_text; }
+    private:
+    const CTestTCPClientServer& m_test;
+    const char* m_text;
+};
+
+/** PumpUntil() condition: the client received the given text */
+class CClientReceived
+{
+    public:
+    CClientReceived( const CTestTCPClientServer& test, const char* text ) : m_test( test ), m_text( text ) {}
+    bool operator()( void ) const { return m_test.m_clientReceived == m_text; }
+    private:
+    const CTestTCPClientServer& m_test;
+    const char* m_text;
+};
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformClientServerTests( void )
 {GUCEF_TRACE;
@@ -709,14 +743,14 @@ PerformClientServerTests( void )
             CTestTCPClientServer test( "pong" );
             ASSERT_TRUE( test.Start( 0 ) );
 
-            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientConnected && test.m_serverSawClient; }, 5000 ) );
+            ASSERT_TRUE( PumpUntil( CClientAndServerConnected( test ), 5000 ) );
 
             ASSERT_TRUE( test.Client().Send( "ping", 4 ) );
-            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_serverReceived == "ping"; }, 5000 ) );
-            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientReceived == "pong"; }, 5000 ) );
+            ASSERT_TRUE( PumpUntil( CServerReceived( test, "ping" ), 5000 ) );
+            ASSERT_TRUE( PumpUntil( CClientReceived( test, "pong" ), 5000 ) );
 
             test.Client().Close();
-            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_serverSawDisconnect; }, 5000 ) );
+            ASSERT_TRUE( PumpUntilTrue( test.m_serverSawDisconnect, 5000 ) );
         }
         catch ( ... )
         {
@@ -744,7 +778,7 @@ PerformClientServerTests( void )
 
             // a port that was free when it was looked up, nothing is started on it
             client.ConnectTo( "127.0.0.1", TESTFW::FindFreeTcpPort() );
-            ASSERT_TRUE( PumpUntil( [&errorOrClosed]() { return errorOrClosed; }, 5000 ) );
+            ASSERT_TRUE( PumpUntilTrue( errorOrClosed, 5000 ) );
         }
         catch ( ... )
         {
@@ -1192,9 +1226,9 @@ PerformClientServerTests( void )
             // new sockets and their locks after it
             CTestTCPClientServer test( "pong" );
             ASSERT_TRUE( test.Start( 0 ) );
-            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientConnected && test.m_serverSawClient; }, 5000 ) );
+            ASSERT_TRUE( PumpUntil( CClientAndServerConnected( test ), 5000 ) );
             ASSERT_TRUE( test.Client().Send( "ping", 4 ) );
-            ASSERT_TRUE( PumpUntil( [&test]() { return test.m_clientReceived == "pong"; }, 5000 ) );
+            ASSERT_TRUE( PumpUntil( CClientReceived( test, "pong" ), 5000 ) );
             test.Client().Close();
         }
         catch ( ... )

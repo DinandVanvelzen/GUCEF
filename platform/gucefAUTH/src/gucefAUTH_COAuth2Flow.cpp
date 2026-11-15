@@ -114,7 +114,7 @@ COAuth2Flow::COAuth2Flow( COAuth2Engine& engine                      ,
     , m_metadata()
     , m_hasMetadata( false )
     , m_deadlineMs( 0 )
-    , m_pending( CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED ) )
+    , m_pending( CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED ) )
     , m_hasPending( false )
     , m_pendingStage( STAGE_NEW )
     , m_listener( GUCEF_NULL )
@@ -610,7 +610,7 @@ COAuth2Flow::CheckPending( void )
     CAuthHttpResponse response;
     bool ok = m_engine.GetHttp().Collect( m_pending, response );
     m_hasPending = false;
-    m_pending = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    m_pending = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     OnHttpDone( ok, response );
 }
 

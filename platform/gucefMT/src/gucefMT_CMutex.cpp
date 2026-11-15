@@ -137,7 +137,7 @@ CMutex::CMutex( void )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #if ( GUCEF_MT_MUTEX_WINDOWS_LOCK_IMPLEMENTATION == GUCEF_MT_MUTEX_LOCK_IMPLEMENTATION_WIN32_MUTEX )
 
-    _mutexdata->id = CreateMutex( NULL, FALSE, NULL );
+    _mutexdata->id = CreateMutex( GUCEF_NULL, FALSE, GUCEF_NULL );
     if ( 0 == _mutexdata->id )
     {
         GUCEF_DELETE _mutexdata;
@@ -177,12 +177,16 @@ CMutex::CMutex( void )
 
 /*--------------------------------------------------------------------------*/
 
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+
 CMutex::CMutex( CMutex&& src ) GUCEF_NOEXCEPT
     : _mutexdata( src._mutexdata )
 {GUCEF_TRACE;
 
     src._mutexdata = GUCEF_NULL;
 }
+
+#endif
 
 /*--------------------------------------------------------------------------*/
 

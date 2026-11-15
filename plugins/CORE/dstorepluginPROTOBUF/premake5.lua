@@ -26,12 +26,12 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -40,18 +40,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT", "libprotobuf" } )
+
+configuration( {} )
 links( { "libprotobuf" } )
 
 
 configuration( {} )
 defines( { "DSTOREPLUGINPROTOBUF_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dstorepluginPROTOBUF", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dstorepluginPROTOBUF", "PROTOBUF_USE_DLLS" } )
-  
 
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 defines( { "MODULE_API_PREFIX=dstorepluginPROTOBUF" } )
-  
 
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 defines( { "MODULE_API_PREFIX=dstorepluginPROTOBUF" } )
 
 

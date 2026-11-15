@@ -70,11 +70,20 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of redis-plus-plus and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 11 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( redis-plus-plus "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "redis-plus-plus" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} hiredis )
 target_link_libraries( ${MODULE_NAME} PUBLIC hiredis )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=redis_plus_plus;MODULE_NAME=redis_plus_plus;REDIS_PLUS_PLUS_BUILD_TEST=OFF;REDIS_PLUS_PLUS_CXX_STANDARD=11" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_11 )
 
 include_directories( ../../ ../../../../ ../../../../hiredis ../redis++ cxx11 cxx11/sw cxx11/sw/redis++ no_tls no_tls/sw no_tls/sw/redis++ patterns )
 
@@ -161,6 +170,10 @@ endif( WIN64 )
 if ( WINDOWS )
   include_directories( ../../../../hiredis )
 endif( WINDOWS )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS . cxx11/sw/redis++ no_tls/sw/redis++ patterns )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES dependencies.root redis-plus-plus-headers )
 
 
 

@@ -56,7 +56,7 @@ namespace CORE {
 CLoggingTask::CLoggingTask( void )
     : CTaskConsumer()         ,
       CILogger()              ,
-      m_loggerBackend( NULL ) ,
+      m_loggerBackend( GUCEF_NULL ) ,
       m_mailbox()             ,
       m_mailList()            ,
       m_minLogLevel( 0 )
@@ -198,7 +198,7 @@ void
 CLoggingTask::FlushLog( void )
 {GUCEF_TRACE;
 
-    m_mailbox.AddMail( MAILTYPE_FLUSHLOG, NULL );
+    m_mailbox.AddMail( MAILTYPE_FLUSHLOG, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -248,7 +248,7 @@ CLoggingTask::OnTaskCycleLog( const TLogMsgType logMsgType ,
                               const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
-    if ( NULL != m_loggerBackend )
+    if ( GUCEF_NULL != m_loggerBackend )
     {
         m_loggerBackend->Log( logMsgType ,
                               logLevel   ,
@@ -271,7 +271,7 @@ CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType ,
 
 {GUCEF_TRACE;
 
-    if ( NULL != m_loggerBackend )
+    if ( GUCEF_NULL != m_loggerBackend )
     {
         m_loggerBackend->LogWithoutFormatting( logMsgType ,
                                                logLevel   ,
@@ -293,7 +293,7 @@ CLoggingTask::OnTaskCycleLog( const TLogMsgType logMsgType     ,
                               const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
-    if ( NULL != m_loggerBackend )
+    if ( GUCEF_NULL != m_loggerBackend )
     {
         m_loggerBackend->Log( logMsgType ,
                               logLevel   ,
@@ -315,7 +315,7 @@ CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType     
                                                const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
-    if ( NULL != m_loggerBackend )
+    if ( GUCEF_NULL != m_loggerBackend )
     {
         m_loggerBackend->LogWithoutFormatting( logMsgType ,
                                                logLevel   ,
@@ -333,7 +333,7 @@ bool
 CLoggingTask::OnTaskCycleLogFlush( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_loggerBackend )
+    if ( GUCEF_NULL != m_loggerBackend )
     {
         m_loggerBackend->FlushLog();
         return true;
@@ -366,7 +366,7 @@ CLoggingTask::OnTaskCycle( CTaskPtr task )
 
     if ( IsReadyToProcessCycle() )
     {
-        CLoggingMail* loggingMail = NULL;
+        CLoggingMail* loggingMail = GUCEF_NULL;
         if ( m_mailbox.GetMailList( m_mailList           ,
                                     MAXMAILITEMSPERCYCLE ) )
         {

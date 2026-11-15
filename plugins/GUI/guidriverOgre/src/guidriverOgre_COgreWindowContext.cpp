@@ -95,7 +95,7 @@ COgreWindowContext::~COgreWindowContext()
 {GUCEF_TRACE;
 
     Shutdown();
-    if ( nullptr != m_osWindow )
+    if ( GUCEF_NULL != m_osWindow )
     {
         CORE::COSWindow::Destroy( m_osWindow );
         m_osWindow = 0;
@@ -159,7 +159,7 @@ COgreWindowContext::Shutdown( void )
         pulseGenerator->RequestStopOfPeriodicUpdates( this );
         UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
 
-        if ( NULL != m_osWindow )
+        if ( GUCEF_NULL != m_osWindow )
         {
             m_osWindow->WindowDestroy();
         }
@@ -252,7 +252,7 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
         options[ "externalWindowHandle" ] = Ogre::StringConverter::toString( (size_t) windowRef ); 
 
         Ogre::Root* ogreRoot = Ogre::Root::getSingletonPtr();
-        if ( ogreRoot == nullptr )
+        if ( ogreRoot == GUCEF_NULL )
         {            
             ogreRoot = OGRE_NEW Ogre::Root( "", "", "" ); 
         }
@@ -269,7 +269,7 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
                 return false;
             }
 
-            Ogre::RenderSystem* renderSystem = nullptr;
+            Ogre::RenderSystem* renderSystem = GUCEF_NULL;
             Ogre::RenderSystemList::const_iterator i = rsList.begin();
             while ( i != rsList.end() )
             {
@@ -281,7 +281,7 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
                 }
                 ++i;
             }
-            if ( renderSystem == nullptr )
+            if ( renderSystem == GUCEF_NULL )
             {
                 GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "OgreWindowContext: Preferred Ogre render systems not available, using first available alternative: " << (*rsList.begin())->getName() );
                 renderSystem = *rsList.begin();
@@ -340,7 +340,7 @@ COgreWindowContext::OnNotify( CORE::CNotifier* notifier   ,
     {
         // Notify that we are going to redraw the window
         Ogre::Root* root = Ogre::Root::getSingletonPtr();
-        if ( nullptr != root )
+        if ( GUCEF_NULL != root )
         {   
             root->renderOneFrame();
         }
@@ -350,7 +350,7 @@ COgreWindowContext::OnNotify( CORE::CNotifier* notifier   ,
     if ( eventID == CORE::COSWindow::WindowResizeEvent )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Window resize event received" );
-        if ( nullptr != m_renderWindow )
+        if ( GUCEF_NULL != m_renderWindow )
             m_renderWindow->windowMovedOrResized();
         NotifyObservers( WindowContextSizeEvent );
     }
@@ -359,7 +359,7 @@ COgreWindowContext::OnNotify( CORE::CNotifier* notifier   ,
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Window activation event received" );
         Ogre::Root* root = Ogre::Root::getSingletonPtr();
-        if ( nullptr != root )
+        if ( GUCEF_NULL != root )
         {   
             root->renderOneFrame();
         }
@@ -370,7 +370,7 @@ COgreWindowContext::OnNotify( CORE::CNotifier* notifier   ,
          ( eventID == CORE::COSWindow::WindowDestroyEvent ) )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: Window close/destroy event received" );
-        if ( nullptr != m_renderWindow )
+        if ( GUCEF_NULL != m_renderWindow )
             m_renderWindow->destroy(); // cleanup and call DestroyWindow 
         Shutdown();
     }

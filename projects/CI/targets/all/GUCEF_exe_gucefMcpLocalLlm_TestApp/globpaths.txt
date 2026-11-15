@@ -1,0 +1,14 @@
+common/include/*
+common/test/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/dstorepluginJSONPARSER/*
+tests/gucefCOMCORE_TestApp/include/*
+tests/gucefCOM_TestApp/include/*
+tests/gucefMcpLocalLlm_TestApp/*
+tools/gucefMcpLocalLlm/*

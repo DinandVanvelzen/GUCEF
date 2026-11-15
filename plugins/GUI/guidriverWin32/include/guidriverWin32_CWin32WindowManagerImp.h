@@ -71,7 +71,7 @@ class GUIDRIVERWIN32_PUBLIC_CPP CWin32WindowManagerImp : public GUI::CWindowMana
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title             ,
                                                         const GUI::CVideoSettings& settings   ,
-                                                        const CORE::CValueList* params = NULL ) GUCEF_VIRTUAL_OVERRIDE;
+                                                        const CORE::CValueList* params = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title      ,
                                                         const GUI::UInt32 width        ,

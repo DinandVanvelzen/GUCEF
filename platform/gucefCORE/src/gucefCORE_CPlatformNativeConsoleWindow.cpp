@@ -54,7 +54,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CPlatformNativeConsoleWindow::CPlatformNativeConsoleWindow( void )
-    : m_nativeConsoleWindow( NULL )
+    : m_nativeConsoleWindow( GUCEF_NULL )
 {
     #if GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
     m_nativeConsoleWindow = GUCEF_NEW CMsWin32ConsoleWindow();
@@ -72,7 +72,7 @@ CPlatformNativeConsoleWindow::~CPlatformNativeConsoleWindow()
     #elif GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX
     // @TODO make an implementation
     #endif
-    m_nativeConsoleWindow = NULL;
+    m_nativeConsoleWindow = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

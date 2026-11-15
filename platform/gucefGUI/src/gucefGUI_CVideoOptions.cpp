@@ -455,7 +455,7 @@ CVideoOptions::RetrieveCurrentDisplayModeFromOS( TDisplayMode& displayMode )
     DEVMODE currentMode;
     memset( &currentMode, 0, sizeof( DEVMODE ) );
     currentMode.dmSize = sizeof( DEVMODE );
-    if ( TRUE != EnumDisplaySettings( NULL, ENUM_CURRENT_SETTINGS, &currentMode ) || 0 == currentMode.dmPelsWidth || 0 == currentMode.dmPelsHeight )
+    if ( TRUE != EnumDisplaySettings( GUCEF_NULL, ENUM_CURRENT_SETTINGS, &currentMode ) || 0 == currentMode.dmPelsWidth || 0 == currentMode.dmPelsHeight )
         return false;
     displayMode = MakeDisplayMode( currentMode.dmPelsWidth, currentMode.dmPelsHeight, currentMode.dmBitsPerPel, currentMode.dmDisplayFrequency );
     return true;
@@ -517,7 +517,7 @@ CVideoOptions::RetrieveOptionsFromOS( CVideoOptions& options )
     TDisplayMode newMode;
     
     options.Clear();
-    while ( TRUE == EnumDisplaySettings( NULL         ,
+    while ( TRUE == EnumDisplaySettings( GUCEF_NULL         ,
                                          i            ,
                                          &displayMode ) )
     {

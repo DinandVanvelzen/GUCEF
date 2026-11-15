@@ -66,7 +66,7 @@ class GUCEF_CORE_PUBLIC_CPP CLinkedTransferBuffer : public CTLinkedCloneableObj<
     CLinkedTransferBuffer( const CDynamicBuffer* buffer             ,
                            const Float32 transferProgress = 0       ,
                            const Int64 totalSize = -1               ,
-                           const CICloneable* additionalData = NULL );
+                           const CICloneable* additionalData = GUCEF_NULL );
 
     CLinkedTransferBuffer( const CLinkedTransferBuffer& src );
 

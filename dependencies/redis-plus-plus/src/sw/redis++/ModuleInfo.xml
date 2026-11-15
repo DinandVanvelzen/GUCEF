@@ -12,5 +12,7 @@
         <Linker>
             <Dependency Name="hiredis" />	
         </Linker>		
+        <!-- redis-plus-plus is built as C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
 </ModuleInfoEntry>

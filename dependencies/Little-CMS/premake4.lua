@@ -31,13 +31,13 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "CMS_DLL_BUILD", "MODULE_CONSENSUS_NAME=lcms2", "MODULE_NAME=lcms2" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "CMS_RELY_ON_WINDOWS_STATIC_MUTEX_INIT" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "CMS_RELY_ON_WINDOWS_STATIC_MUTEX_INIT" } )
 
 

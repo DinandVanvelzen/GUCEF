@@ -144,25 +144,6 @@
 
 /*-------------------------------------------------------------------------*/
 
-#undef NULL
-#if defined(__cplusplus)
-  #ifndef __CPP09NULLPTRSUPPORTED
-    #if GUCEF_COMPILER == GUCEF_COMPILER_GNUC
-      #define NULL __null
-    #else
-      #define NULL (0)
-    #endif
-  #else
-    #define NULL (nullptr)
-  #endif
-#else
-  #define NULL ((void*)0)
-#endif
-
-#define GUCEF_NULL NULL
-
-/*-------------------------------------------------------------------------*/
-
 /* Portable deprecation message macro */
 #ifndef GUCEF_DEPRECATED
   #if defined(_MSC_VER)

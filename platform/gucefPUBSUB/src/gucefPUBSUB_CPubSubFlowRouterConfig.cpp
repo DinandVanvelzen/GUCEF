@@ -51,7 +51,7 @@ namespace PUBSUB {
 
 CPubSubFlowRouterConfig::CPubSubFlowRouterConfig( void )
     : CORE::CIConfigurable()
-    , ackStyle( AckStyle::AllOrNothing )
+    , ackStyle( CPubSubFlowRouterConfig::AllOrNothing )
     , routes()
     , minBadHealthDurationBeforeFailoverInMs( 1000 )
     , minBadHealthDurationBeforeSpilloverInMs( 5000 )
@@ -112,7 +112,7 @@ void
 CPubSubFlowRouterConfig::Clear( void )
 {GUCEF_TRACE;
 
-    ackStyle = AckStyle::AllOrNothing;
+    ackStyle = CPubSubFlowRouterConfig::AllOrNothing;
     routes.clear();
     minBadHealthDurationBeforeFailoverInMs = 1000;
     minBadHealthDurationBeforeSpilloverInMs = 5000;

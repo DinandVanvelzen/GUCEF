@@ -277,7 +277,7 @@ CDRNBulkTransfer::CDRNBulkTransfer( CDRNBulkTransferManager& manager )
     , m_nextOffset( 0 )
     , m_bytesDone( 0 )
     , m_progressDue( false )
-    , m_hashFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    , m_hashFuture( CORE::TASKSTATUS_UNDEFINED )
     , m_failureReason()
     , m_chunk()
 {GUCEF_TRACE;
@@ -420,7 +420,7 @@ CDRNBulkTransfer::TryTakeHash( UInt8* digest, UInt64& size, bool& ok )
     if ( !m_hashFuture.IsReady() )
         return false;
     CORE::CTaskPtr task = m_hashFuture.GetResult();
-    m_hashFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    m_hashFuture = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     if ( task.IsNULL() )
         return true;
     const CDRNHashTaskData* data = static_cast< const CDRNHashTaskData* >( task->GetTaskData() );

@@ -119,7 +119,7 @@ CDatabaseTableResult::TryGetFromFuture( const CORE::CFutureResult& future, CORE:
         return false;
 
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
     const CDatabaseTableResult* data = CORE::CICloneable::CloneableAs< CDatabaseTableResult >( task->GetTaskData() );
@@ -212,7 +212,7 @@ CDatabaseTableNamesResult::TryGetFromFuture( const CORE::CFutureResult& future, 
         return false;
 
     CORE::CTaskPtr task = future.GetResult();
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
     const CDatabaseTableNamesResult* data = CORE::CICloneable::CloneableAs< CDatabaseTableNamesResult >( task->GetTaskData() );

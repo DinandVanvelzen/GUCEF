@@ -97,10 +97,10 @@ namespace PATCHERAPP {
 
 CMainPatcherAppLogic::CMainPatcherAppLogic( void )
     : CORE::CObservingNotifier() ,
-      m_consoleLogger( NULL )    ,
-      m_fileLogger( NULL )       ,
-      m_logFile( NULL )          ,
-      m_consoleWindow( NULL )    ,
+      m_consoleLogger( GUCEF_NULL )    ,
+      m_fileLogger( GUCEF_NULL )       ,
+      m_logFile( GUCEF_NULL )          ,
+      m_consoleWindow( GUCEF_NULL )    ,
       m_windowContext()          ,
       m_guiContext()             ,
       m_patchManager()
@@ -150,13 +150,13 @@ void
 CMainPatcherAppLogic::LoadFontsFromAssets( GUI::TGuiContextPtr guiContext )
 {
     // Load fonts from assets as needed
-    if ( NULL != guiContext )
+    if ( GUCEF_NULL != guiContext )
     {       
         CPatcherAppConfig& config = CPatcherAppGlobal::Instance()->GetConfig();
         const CPatcherAppConfig::TStringList& fontAssetsToLoad = config.GetFontAssetsToLoad();
 
         GUI::CGUIDriver* guiDriver = guiContext->GetDriver();
-        if ( NULL != guiDriver )
+        if ( GUCEF_NULL != guiDriver )
         {
             CPatcherAppConfig::TStringList::const_iterator i = fontAssetsToLoad.begin();
             while ( i != fontAssetsToLoad.end() )
@@ -182,13 +182,13 @@ CMainPatcherAppLogic::SetupWindowContext( GUI::TWindowManagerBackendPtr windowMn
                                                               600         ,
                                                               false       );
 
-    if ( NULL != m_windowContext )
+    if ( GUCEF_NULL != m_windowContext )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully created window context using backend " + windowMngrBackendName );
 
         // create GUI context for our window
         m_guiContext = GUI::CGuiGlobal::Instance()->GetGuiManager().CreateGUIContext( guiDriverToUse, m_windowContext );
-        if ( NULL != m_guiContext )
+        if ( GUCEF_NULL != m_guiContext )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully created GUI context using backend " + guiDriverToUse );
 
@@ -200,7 +200,7 @@ CMainPatcherAppLogic::SetupWindowContext( GUI::TWindowManagerBackendPtr windowMn
 
             // Create a form to load the layout into
             GUI::CFormEx* form = static_cast< GUI::CFormEx* >( m_guiContext->CreateForm( initialFormTypeName ) );
-            if ( NULL != form )
+            if ( GUCEF_NULL != form )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully created form object of type: " + initialFormTypeName );
 
@@ -415,7 +415,7 @@ CMainPatcherAppLogic::OnFirstAppCycle( CORE::CNotifier* notifier    ,
         }
 
         GUI::TWindowManagerBackendPtr windowMngrBackend = GUI::CGuiGlobal::Instance()->GetWindowManager().GetBackend( windowManagerName );
-        if ( NULL != windowMngrBackend )
+        if ( GUCEF_NULL != windowMngrBackend )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully obtained window manager backend " + windowManagerName );
 

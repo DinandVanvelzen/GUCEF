@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "fliclib", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+
+configuration( {} )
 links( { "fliclib" } )
 
 

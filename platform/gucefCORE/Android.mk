@@ -160,7 +160,6 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CDataDrivenDStoreCodec.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp \
-  src/gucefCORE_CDenormalFlushScope.cpp \
   src/gucefCORE_CDataNodeBinarySerializer.cpp \
   src/gucefCORE_CDataNodeDefinition.cpp \
   src/gucefCORE_CDataNodeDocumentBuilder.cpp \
@@ -198,6 +197,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CDecimal.cpp \
   src/gucefCORE_CDecimalAccumulator.cpp \
   src/gucefCORE_CDefaultCodecInstance.cpp \
+  src/gucefCORE_CDenormalFlushScope.cpp \
   src/gucefCORE_CDirectoryWatcherEvents.cpp \
   src/gucefCORE_CDocumentStreamWriter.cpp \
   src/gucefCORE_CDynamicBufferStringStream.cpp \
@@ -308,7 +308,6 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CSoftwareCryptoCodecs.cpp \
   src/gucefCORE_CStandardInputReader.cpp \
   src/gucefCORE_CStandardOutputWriter.cpp \
-  src/gucefCORE_StdoutClaim.cpp \
   src/gucefCORE_CStdDataNodeSerializableTaskData.cpp \
   src/gucefCORE_CStopwatch.cpp \
   src/gucefCORE_CStringLogHelper.cpp \
@@ -368,6 +367,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_LogLevels.cpp \
   src/gucefCORE_ProcessArguments.cpp \
   src/gucefCORE_SecureMemory.cpp \
+  src/gucefCORE_StdoutClaim.cpp \
   src/gucefCORE_TaskStatus.cpp \
   src/gucefCORE_ThreadStatus.cpp \
   src/gucefCORE_c_api_impl.cpp \
@@ -380,7 +380,6 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/include/c_api \
-  $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefMT/include
 

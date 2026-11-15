@@ -104,7 +104,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../../common/include ../../../platform/gucefAUTH/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefDRN/include ../../../platform/gucefMT/include ../../../platform/gucefMULTIPLAY/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
+include_directories( ../../../common/include ../../../platform/gucefAUTH/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefDRN/include ../../../platform/gucefMT/include ../../../platform/gucefMULTIPLAY/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCOMCORE/include/android ../../../platform/gucefCORE/include/android )
@@ -129,6 +129,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin ../../../platform/gucefWEB/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 
 
 

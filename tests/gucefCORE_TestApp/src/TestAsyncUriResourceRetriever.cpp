@@ -305,17 +305,18 @@ const CORE::CString CSlowTestAccessor::SchemeName = "slowtest";
 
 typedef CORE::CTFactory< CORE::CUriResourceAccessor, CSlowTestAccessor, MT::CMutex > TSlowTestAccessorFactory;
 
-/** Condition for PumpUntil(): the recorder saw progress of a retrieval */
+/** Condition for PumpUntil(): the recorder saw more progress notifications of a retrieval than the given count */
 class CHasProgress
 {
     public:
 
-    CHasProgress( const CRetrievalRecorder& recorder ) : m_recorder( recorder ) {}
-    bool operator()( void ) const { return m_recorder.progress > 0; }
+    CHasProgress( const CRetrievalRecorder& recorder, UInt32 moreThan = 0 ) : m_recorder( recorder ), m_moreThan( moreThan ) {}
+    bool operator()( void ) const { return m_recorder.progress > m_moreThan; }
 
     private:
 
     const CRetrievalRecorder& m_recorder;
+    UInt32 m_moreThan;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -490,7 +491,7 @@ PerformAsyncUriResourceRetrieverTests( void )
             CORE::CDynamicBuffer other;
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( FileUri( bigFile ) ), other ).HasNoFuture() );
 
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
             ASSERT_TRUE( 1 == recorder.completed && 0 == recorder.failed && 0 == recorder.cancelled );
             ASSERT_TRUE( 1 == recorder.started );
             ASSERT_TRUE( recorder.progress > 1 );
@@ -505,7 +506,7 @@ PerformAsyncUriResourceRetrieverTests( void )
             CORE::CDynamicBufferAccess received2Access( received2 );
             CORE::CFutureResult future2 = retriever.Retrieve( CORE::CUri( FileUri( bigFile ) ), received2Access );
             ASSERT_TRUE( future2.HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&recorder2]() { return recorder2.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder2 ), 10000 ) );
             ASSERT_TRUE( 1 == recorder2.completed );
             ASSERT_TRUE( received2.GetDataSize() == content.GetDataSize() );
         }
@@ -522,7 +523,7 @@ PerformAsyncUriResourceRetrieverTests( void )
             CRetrievalRecorder recorder( retriever );
             CORE::CDynamicBuffer received;
             ASSERT_TRUE( retriever.GetPartial( CORE::CUri( FileUri( bigFile ) ), 1000, 500, received ).HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
             ASSERT_TRUE( 1 == recorder.completed );
             ASSERT_TRUE( 500 == received.GetDataSize() );
             if ( 500 == received.GetDataSize() )
@@ -541,7 +542,7 @@ PerformAsyncUriResourceRetrieverTests( void )
             CRetrievalRecorder recorder( retriever );
             CORE::CDynamicBuffer received;
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "data:text/plain;base64,SGVsbG8gYXN5bmM=" ), received ).HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
             ASSERT_TRUE( 1 == recorder.completed );
             ASSERT_TRUE( 11 == received.GetDataSize() && 0 == memcmp( received.GetConstBufferPtr(), "Hello async", 11 ) );
 
@@ -549,14 +550,14 @@ PerformAsyncUriResourceRetrieverTests( void )
             CRetrievalRecorder missingRecorder( retriever );
             CORE::CDynamicBuffer nothing;
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( FileUri( CORE::CombinePath( tempDir, "doesnotexist.bin" ) ) ), nothing ).HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&missingRecorder]() { return missingRecorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( missingRecorder ), 10000 ) );
             ASSERT_TRUE( 1 == missingRecorder.failed && 0 == missingRecorder.completed );
             ASSERT_FALSE( missingRecorder.lastError.IsNULLOrEmpty() );
 
             // a scheme nobody handles
             CRetrievalRecorder schemeRecorder( retriever );
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "nosuchscheme://something/here" ), nothing ).HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&schemeRecorder]() { return schemeRecorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( schemeRecorder ), 10000 ) );
             ASSERT_TRUE( 1 == schemeRecorder.failed );
             ASSERT_FALSE( retriever.IsBusy() );
         }
@@ -574,11 +575,11 @@ PerformAsyncUriResourceRetrieverTests( void )
             CRetrievalRecorder recorder( retriever );
             CORE::CDynamicBuffer received;
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "slowtest://anything" ), received ).HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.progress > 1; }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CHasProgress( recorder, 1 ), 10000 ) );
             ASSERT_FALSE( recorder.IsFinished() );
 
             retriever.Cancel( true );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
             ASSERT_TRUE( 1 == recorder.cancelled && 0 == recorder.completed && 0 == recorder.failed );
             ASSERT_FALSE( retriever.IsBusy() );
 
@@ -592,7 +593,7 @@ PerformAsyncUriResourceRetrieverTests( void )
             CRetrievalRecorder recorder2( retriever );
             CORE::CDynamicBuffer received2;
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "data:text/plain;base64,SGVsbG8gYXN5bmM=" ), received2 ).HasAFuture() );
-            ASSERT_TRUE( PumpUntil( [&recorder2]() { return recorder2.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder2 ), 10000 ) );
             ASSERT_TRUE( 1 == recorder2.completed );
         }
         catch ( ... )
@@ -647,7 +648,7 @@ PerformAsyncUriResourceRetrieverTests( void )
                 retriever.SetProgressReportIntervalInBytes( 4000 );
                 CRetrievalRecorder recorder( retriever );
                 ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "slowtest://anything" ), received ).HasAFuture() );
-                ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.progress > 0; }, 10000 ) );
+                ASSERT_TRUE( PumpUntil( CHasProgress( recorder ), 10000 ) );
             }
             // the retriever is gone and the destination is ours again
             UInt32 sizeAfterDestroy = received.GetDataSize();

@@ -67,7 +67,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubBookmark
 
     typedef GUCEF::vector< CPubSubBookmark >  TPubSubBookmarkVector;
 
-    enum EBookmarkType : Int32
+    enum EBookmarkType GUCEF_ENUM_BASE( Int32 )
     {
         BOOKMARK_TYPE_NOT_INITIALIZED = 0 ,         /**< the backend has not initialized the bookmark information to anything */
         BOOKMARK_TYPE_NOT_AVAILABLE       ,         /**< bookmark information is not available at the moment but the concept is supported */

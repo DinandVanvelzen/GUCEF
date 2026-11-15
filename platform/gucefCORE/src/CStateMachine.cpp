@@ -139,7 +139,7 @@ CStateMachine::Stop( void )
                         }
                 }
                 
-                _curstate = NULL;
+                _curstate = GUCEF_NULL;
         }                
 }
 
@@ -239,7 +239,7 @@ CStateMachine::LookupStateObj( UInt32 state ) const
                         return mstate;
                 }                
         }
-        return NULL;
+        return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -271,7 +271,7 @@ CStateMachine::DelState( UInt32 state )
                 mstate = _states[ i ];
                 if ( mstate->GetState() == state )
                 {
-                    _states[ i ] = NULL;
+                    _states[ i ] = GUCEF_NULL;
                     GUCEF_DELETE mstate;
                     mstate = 0;
                     //_states.FillNULLGaps(); @TODO

@@ -14,16 +14,16 @@
 set( HEADER_FILES 
   include/TestGeneratorFeatures.h
   include/TestIncludeDirInstruction.h
-  include/TestMsvcCompilerFlags.h
   include/TestModuleInfoMerge.h
+  include/TestMsvcCompilerFlags.h
 )
 
 set( SOURCE_FILES 
   src/ProjectGen_TestApp_main.cpp
   src/TestGeneratorFeatures.cpp
   src/TestIncludeDirInstruction.cpp
-  src/TestMsvcCompilerFlags.cpp
   src/TestModuleInfoMerge.cpp
+  src/TestMsvcCompilerFlags.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -70,6 +70,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 
 
 

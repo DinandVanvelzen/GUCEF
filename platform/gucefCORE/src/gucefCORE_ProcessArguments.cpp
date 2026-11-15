@@ -133,7 +133,7 @@ GetProcessArguments( int argc                         ,
     // CommandLineToArgvW(), which is what the Microsoft C runtime does for argv except for the program name.
     int count = 0;
     LPWSTR* wideArguments = ::CommandLineToArgvW( ::GetCommandLineW(), &count );
-    if ( NULL == wideArguments )
+    if ( GUCEF_NULL == wideArguments )
         return false;
     for ( int i=1; i<count; ++i )
         arguments.push_back( ToString( wideArguments[ i ] ) );

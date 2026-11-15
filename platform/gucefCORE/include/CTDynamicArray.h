@@ -78,7 +78,7 @@ class CTDynamicArray
                                         m_entrys[ i ] = m_entrys[ i+jmp ];
                                         if ( m_entrys[ i ] )
                                         {
-                                                m_entrys[ i+jmp ] = NULL;
+                                                m_entrys[ i+jmp ] = GUCEF_NULL;
                                                 break;
                                         }
                                         ++jmp;
@@ -325,7 +325,7 @@ class CTDynamicArray
         
         CDynamicArray( void )
         {
-                m_entrys = NULL;
+                m_entrys = GUCEF_NULL;
                 m_max = 0;
                 m_last = -1;
                 m_resize_change = 1;        

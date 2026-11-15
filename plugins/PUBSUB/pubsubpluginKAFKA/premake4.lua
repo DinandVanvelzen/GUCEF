@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "RdKafka", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+
+configuration( {} )
 links( { "RdKafka", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
 
 

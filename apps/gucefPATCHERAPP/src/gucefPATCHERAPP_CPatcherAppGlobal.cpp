@@ -85,7 +85,7 @@ namespace PATCHERAPP {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CPatcherAppGlobal* CPatcherAppGlobal::g_instance = NULL;
+CPatcherAppGlobal* CPatcherAppGlobal::g_instance = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -94,8 +94,8 @@ CPatcherAppGlobal* CPatcherAppGlobal::g_instance = NULL;
 //-------------------------------------------------------------------------*/
 
 CPatcherAppGlobal::CPatcherAppGlobal( void )
-    : m_config( NULL )    ,
-      m_mainLogic( NULL )
+    : m_config( GUCEF_NULL )    ,
+      m_mainLogic( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -106,10 +106,10 @@ CPatcherAppGlobal::~CPatcherAppGlobal()
 {GUCEF_TRACE;
 
     delete m_mainLogic;
-    m_mainLogic = NULL;
+    m_mainLogic = GUCEF_NULL;
 
     delete m_config;
-    m_config = NULL;
+    m_config = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -118,7 +118,7 @@ CPatcherAppGlobal*
 CPatcherAppGlobal::Instance( void )
 {GUCEF_TRACE;
 
-    if ( NULL == g_instance )
+    if ( GUCEF_NULL == g_instance )
     {
         g_instance = new CPatcherAppGlobal();         
         g_instance->Init();
@@ -133,7 +133,7 @@ CPatcherAppGlobal::Deinstance( void )
 {GUCEF_TRACE;
 
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

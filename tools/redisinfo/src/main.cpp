@@ -310,7 +310,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "redisinfo" )
     pulseGenerator->RequestPulseInterval( 25 );
     pulseGenerator->RequestPulsesPerImmediatePulseRequest( 25 );
     
-    auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+    CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
         returnValue = app.main( argc, argv, true );
         redisInfo.SetStandbyMode( true );
     }

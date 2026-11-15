@@ -155,7 +155,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPing : public CORE::CTSGNotifier
     
     virtual void OnPumpedNotify( CORE::CNotifier* notifier           ,
                                  const CORE::CEvent& eventid         ,
-                                 CORE::CICloneable* eventdata = NULL );
+                                 CORE::CICloneable* eventdata = GUCEF_NULL );
     
     private:
     

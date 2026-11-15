@@ -197,7 +197,7 @@ PerformEosPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             ASSERT_TRUE( future.HasAFuture() );
             // The call did not wait for the SDK
@@ -251,7 +251,7 @@ PerformEosPluginTests( void )
             CEosAuthProvider provider( eos.MakeShim() );
             ASSERT_TRUE( Configure( provider ) );
             AUTH::CAccountRef account( AUTH::CAuthProviderIds::Epic, "0123456789abcdef0123456789abcdef" );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             // The account has no product user yet: it is made
             eos.connectOutcome = EOSOUTCOME_NEEDS_USER_CREATION;
@@ -344,7 +344,7 @@ PerformEosPluginTests( void )
             ASSERT_TRUE( Configure( provider ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             struct SCase { EEosOutcome outcome; AUTH::TAuthFailureReason reason; };
             const SCase cases[] =
@@ -385,7 +385,7 @@ PerformEosPluginTests( void )
             ASSERT_TRUE( Configure( provider ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             eos.idTokenAvailable = false;
             ASSERT_TRUE( LoginSilent( provider, future ) );
@@ -413,7 +413,7 @@ PerformEosPluginTests( void )
             ASSERT_TRUE( Configure( provider ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             AUTH::CAuthOptions portal;
             portal.preferBrowser = true;
@@ -470,13 +470,13 @@ PerformEosPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult first( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult first( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( first ) );
             // a second silent one does not start, an interactive one is told why
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( provider.TrySilentLogin( second ) );
             ASSERT_FALSE( second.HasAFuture() );
-            CORE::CFutureResult third( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult third( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.BeginLogin( AUTH::CAuthOptions(), third ) );
             ASSERT_TRUE( third.IsReady() );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
@@ -489,7 +489,7 @@ PerformEosPluginTests( void )
             ASSERT_TRUE( 0 == provider.GetPendingLoginCount() );
 
             // cancel
-            CORE::CFutureResult fourth( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult fourth( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( fourth ) );
             ASSERT_TRUE( fourth.RequestCancellation() );
             ASSERT_TRUE( PumpUntilReady( fourth, 2000 ) );
@@ -499,7 +499,7 @@ PerformEosPluginTests( void )
             // The SDK finishes a login nobody waits for any more: dropped
             eos.authNeverAnswers = false;
             eos.ticksUntilAnswer = 1;
-            CORE::CFutureResult fifth( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult fifth( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( fifth ) );
             ASSERT_TRUE( fifth.RequestCancellation() );
             PumpFor( 60 );
@@ -522,9 +522,9 @@ PerformEosPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( provider.TrySilentLogin( silent ) );
-            CORE::CFutureResult interactive( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult interactive( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.BeginLogin( AUTH::CAuthOptions(), interactive ) );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
             ASSERT_TRUE( AUTH::AUTHFAIL_NOT_AVAILABLE == recorder.Last( CProviderRecorder::KIND_FAILED )->failure.reason );
@@ -534,7 +534,7 @@ PerformEosPluginTests( void )
             // fixed in the meantime
             eos.platformOk = true;
             eos.loginStarts = false;
-            CORE::CFutureResult refused( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult refused( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.BeginLogin( AUTH::CAuthOptions(), refused ) );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 2, 1000 ) );
             ASSERT_TRUE( AUTH::AUTHFAIL_INTERNAL == recorder.Last( CProviderRecorder::KIND_FAILED )->failure.reason );
@@ -545,7 +545,7 @@ PerformEosPluginTests( void )
             eos.authNeverAnswers = true;
             CFakeEos other;
             other.authNeverAnswers = true;
-            CORE::CFutureResult orphan( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult orphan( CORE::TASKSTATUS_UNDEFINED );
             {
                 CEosAuthProvider shortLived( other.MakeShim() );
                 ASSERT_TRUE( Configure( shortLived ) );
@@ -568,7 +568,7 @@ PerformEosPluginTests( void )
             CFakeEos eos;
             CEosAuthProvider provider( eos.MakeShim() );
             ASSERT_TRUE( Configure( provider ) );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( LoginSilent( provider, future ) );
             AUTH::CAuthResult result;
             ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, result ) );
@@ -768,7 +768,7 @@ PerformEosPluginTests( void )
             ASSERT_TRUE( Configure( provider ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
 
             ASSERT_TRUE( LoginSilent( provider, future ) );
             AUTH::CAuthResult result;
@@ -818,11 +818,11 @@ PerformEosPluginTests( void )
             CEosAuthProvider provider;
             ASSERT_TRUE( Configure( provider ) );
             ASSERT_FALSE( provider.IsAvailable() );
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( provider.TrySilentLogin( silent ) );
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
-            CORE::CFutureResult interactive( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult interactive( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.BeginLogin( AUTH::CAuthOptions(), interactive ) );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
             ASSERT_TRUE( AUTH::AUTHFAIL_NOT_AVAILABLE == recorder.Last( CProviderRecorder::KIND_FAILED )->failure.reason );

@@ -48,7 +48,7 @@ if ( EMSCRIPTEN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginJSONPARSER" )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../../common/include ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
+include_directories( ../../../common/include ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 
 if ( ANDROID )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
@@ -133,6 +133,10 @@ endif( WIN64 )
 if ( WINDOWS )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
 endif( WINDOWS )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders INCLUDE_ONLY_MODULES gucefCORE gucefMT )
 
 
 

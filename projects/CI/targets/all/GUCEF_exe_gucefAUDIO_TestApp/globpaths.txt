@@ -1,7 +1,9 @@
 common/include/*
 common/test/include/*
+dependencies/dr_libs/*
 platform/gucefAUDIO/*
 platform/gucefCORE/*
+platform/gucefMATH/*
 platform/gucefMT/*
 plugins/AUDIO/audiocodecpluginAU/*
 plugins/AUDIO/audiocodecpluginFLAC/*

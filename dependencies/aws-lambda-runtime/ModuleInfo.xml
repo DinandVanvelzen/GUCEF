@@ -8,5 +8,7 @@
         <Linker>
             <Dependency Name="curl" />
         </Linker>		
+        <!-- the AWS Lambda C++ runtime requires C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
 </ModuleInfoEntry>

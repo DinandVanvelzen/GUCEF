@@ -59,7 +59,7 @@ DRGUP_UnloadMemoryManager( void )
     if ( 0 == g_memoryManagerModulePtr || 0 == g_dynLoadMutex )
         return 1;
 
-    if ( NULL != fp_DRGUP_Shutdown )
+    if ( GUCEF_NULL != fp_DRGUP_Shutdown )
     {
         DRGUP_Int32 callResult = fp_DRGUP_Shutdown();
         if ( 1 == callResult )
@@ -91,7 +91,7 @@ DRGUP_LazyLoadMemoryManager( void )
         return 1;
     if ( 0 == g_dynLoadMutex )
     {
-        g_dynLoadMutex = CreateMutex( NULL, FALSE, NULL );
+        g_dynLoadMutex = CreateMutex( GUCEF_NULL, FALSE, GUCEF_NULL );
         if ( 0 == g_dynLoadMutex )
             return 0;
     }
@@ -247,14 +247,14 @@ static const char* MemoryLeakFinderLibSo = "libMemoryLeakFinder_d.so";
 static DRGUP_Int32 GUCEF_HIDDEN
 DRGUP_UnloadMemoryManager( void )
 {
-    if ( NULL == g_memoryManagerModulePtr )
+    if ( GUCEF_NULL == g_memoryManagerModulePtr )
         return 1;
 
-    if ( NULL != fp_DRGUP_Shutdown )
+    if ( GUCEF_NULL != fp_DRGUP_Shutdown )
         fp_DRGUP_Shutdown();
 
     dlclose( g_memoryManagerModulePtr );
-    g_memoryManagerModulePtr = NULL;
+    g_memoryManagerModulePtr = GUCEF_NULL;
     return 1;
 }
 
@@ -263,14 +263,14 @@ DRGUP_UnloadMemoryManager( void )
 static int GUCEF_HIDDEN
 DRGUP_LazyLoadMemoryManager( void )
 {
-    if ( NULL != g_memoryManagerModulePtr )
+    if ( GUCEF_NULL != g_memoryManagerModulePtr )
         return 1;
 
     /* Check if already loaded in the process (e.g. by another TU) */
     g_memoryManagerModulePtr = dlopen( MemoryLeakFinderLibSo, RTLD_NOLOAD | RTLD_NOW );
-    if ( NULL == g_memoryManagerModulePtr )
+    if ( GUCEF_NULL == g_memoryManagerModulePtr )
         g_memoryManagerModulePtr = dlopen( MemoryLeakFinderLibSo, RTLD_NOW | RTLD_GLOBAL );
-    if ( NULL == g_memoryManagerModulePtr )
+    if ( GUCEF_NULL == g_memoryManagerModulePtr )
         return 0;
 
     /* Resolve the base set of function pointers */
@@ -281,15 +281,15 @@ DRGUP_LazyLoadMemoryManager( void )
     fp_DRGUP_SetLogAlways  = (TFP_DRGUP_SetLogAlways)  dlsym( g_memoryManagerModulePtr, "DRGUP_SetLogAlways" );
     fp_DRGUP_CleanLogFile  = (TFP_DRGUP_CleanLogFile)  dlsym( g_memoryManagerModulePtr, "DRGUP_CleanLogFile" );
 
-    if ( NULL == fp_DRGUP_Initialize    ||
-         NULL == fp_DRGUP_Shutdown      ||
-         NULL == fp_DRGUP_DumpLogReport ||
-         NULL == fp_DRGUP_SetLogFile    ||
-         NULL == fp_DRGUP_SetLogAlways  ||
-         NULL == fp_DRGUP_CleanLogFile   )
+    if ( GUCEF_NULL == fp_DRGUP_Initialize    ||
+         GUCEF_NULL == fp_DRGUP_Shutdown      ||
+         GUCEF_NULL == fp_DRGUP_DumpLogReport ||
+         GUCEF_NULL == fp_DRGUP_SetLogFile    ||
+         GUCEF_NULL == fp_DRGUP_SetLogAlways  ||
+         GUCEF_NULL == fp_DRGUP_CleanLogFile   )
     {
         dlclose( g_memoryManagerModulePtr );
-        g_memoryManagerModulePtr = NULL;
+        g_memoryManagerModulePtr = GUCEF_NULL;
         return 0;
     }
 
@@ -312,24 +312,24 @@ DRGUP_LazyLoadMemoryManager( void )
     fp_DRGUP_DeAllocateMemoryEx         = (TFP_DRGUP_DeAllocateMemoryEx)         dlsym( g_memoryManagerModulePtr, "DRGUP_DeAllocateMemoryEx" );
     fp_DRGUP_SetOwner                   = (TFP_DRGUP_SetOwner)                   dlsym( g_memoryManagerModulePtr, "DRGUP_SetOwner" );
 
-    if ( NULL == fp_DRGUP_DumpMemoryAllocations      ||
-         NULL == fp_DRGUP_SetExhaustiveTesting        ||
-         NULL == fp_DRGUP_SetPaddingSize              ||
-         NULL == fp_DRGUP_BreakOnAllocation           ||
-         NULL == fp_DRGUP_BreakOnDeallocation         ||
-         NULL == fp_DRGUP_BreakOnReallocation         ||
-         NULL == fp_DRGUP_ValidateKnownAllocPtr       ||
-         NULL == fp_DRGUP_ValidateKnownAllocBlock     ||
-         NULL == fp_DRGUP_ValidateAccessibility       ||
-         NULL == fp_DRGUP_ValidateChunk               ||
-         NULL == fp_DRGUP_ValidatePendingDestructor   ||
-         NULL == fp_DRGUP_ValidateFinishedDestructor  ||
-         NULL == fp_DRGUP_AllocateMemory              ||
-         NULL == fp_DRGUP_DeAllocateMemory            ||
-         NULL == fp_DRGUP_SetOwner                     )
+    if ( GUCEF_NULL == fp_DRGUP_DumpMemoryAllocations      ||
+         GUCEF_NULL == fp_DRGUP_SetExhaustiveTesting        ||
+         GUCEF_NULL == fp_DRGUP_SetPaddingSize              ||
+         GUCEF_NULL == fp_DRGUP_BreakOnAllocation           ||
+         GUCEF_NULL == fp_DRGUP_BreakOnDeallocation         ||
+         GUCEF_NULL == fp_DRGUP_BreakOnReallocation         ||
+         GUCEF_NULL == fp_DRGUP_ValidateKnownAllocPtr       ||
+         GUCEF_NULL == fp_DRGUP_ValidateKnownAllocBlock     ||
+         GUCEF_NULL == fp_DRGUP_ValidateAccessibility       ||
+         GUCEF_NULL == fp_DRGUP_ValidateChunk               ||
+         GUCEF_NULL == fp_DRGUP_ValidatePendingDestructor   ||
+         GUCEF_NULL == fp_DRGUP_ValidateFinishedDestructor  ||
+         GUCEF_NULL == fp_DRGUP_AllocateMemory              ||
+         GUCEF_NULL == fp_DRGUP_DeAllocateMemory            ||
+         GUCEF_NULL == fp_DRGUP_SetOwner                     )
     {
         dlclose( g_memoryManagerModulePtr );
-        g_memoryManagerModulePtr = NULL;
+        g_memoryManagerModulePtr = GUCEF_NULL;
         return 0;
     }
 
@@ -339,11 +339,11 @@ DRGUP_LazyLoadMemoryManager( void )
     fp_DRGUP_CallstackScopeBegin = (TFP_DRGUP_CallstackScopeBegin) dlsym( g_memoryManagerModulePtr, "DRGUP_CallstackScopeBegin" );
     fp_DRGUP_CallstackScopeEnd   = (TFP_DRGUP_CallstackScopeEnd)   dlsym( g_memoryManagerModulePtr, "DRGUP_CallstackScopeEnd" );
 
-    if ( NULL == fp_DRGUP_CallstackScopeBegin ||
-         NULL == fp_DRGUP_CallstackScopeEnd    )
+    if ( GUCEF_NULL == fp_DRGUP_CallstackScopeBegin ||
+         GUCEF_NULL == fp_DRGUP_CallstackScopeEnd    )
     {
         dlclose( g_memoryManagerModulePtr );
-        g_memoryManagerModulePtr = NULL;
+        g_memoryManagerModulePtr = GUCEF_NULL;
         return 0;
     }
 
@@ -356,14 +356,14 @@ DRGUP_LazyLoadMemoryManager( void )
     fp_DRGUP_ExclusiveLockAbandoned = (TFP_DRGUP_ExclusiveLockAbandoned) dlsym( g_memoryManagerModulePtr, "DRGUP_ExclusiveLockAbandoned" );
     fp_DRGUP_ExclusiveLockDestroy   = (TFP_DRGUP_ExclusiveLockDestroy)   dlsym( g_memoryManagerModulePtr, "DRGUP_ExclusiveLockDestroy" );
 
-    if ( NULL == fp_DRGUP_ExclusiveLockCreated   ||
-         NULL == fp_DRGUP_ExclusiveLockObtained  ||
-         NULL == fp_DRGUP_ExclusiveLockReleased  ||
-         NULL == fp_DRGUP_ExclusiveLockAbandoned ||
-         NULL == fp_DRGUP_ExclusiveLockDestroy    )
+    if ( GUCEF_NULL == fp_DRGUP_ExclusiveLockCreated   ||
+         GUCEF_NULL == fp_DRGUP_ExclusiveLockObtained  ||
+         GUCEF_NULL == fp_DRGUP_ExclusiveLockReleased  ||
+         GUCEF_NULL == fp_DRGUP_ExclusiveLockAbandoned ||
+         GUCEF_NULL == fp_DRGUP_ExclusiveLockDestroy    )
     {
         dlclose( g_memoryManagerModulePtr );
-        g_memoryManagerModulePtr = NULL;
+        g_memoryManagerModulePtr = GUCEF_NULL;
         return 0;
     }
 
@@ -404,7 +404,7 @@ inline
 void
 DRGUP_DumpLogReport( void )
 {
-    if ( NULL != fp_DRGUP_DumpLogReport )
+    if ( GUCEF_NULL != fp_DRGUP_DumpLogReport )
         fp_DRGUP_DumpLogReport();
 }
 

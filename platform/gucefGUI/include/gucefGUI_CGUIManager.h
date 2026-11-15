@@ -135,11 +135,11 @@ class GUCEF_GUI_PUBLIC_CPP CGUIManager : public CORE::CObservingNotifier
     
     void OnFormFactoryRegistered( CORE::CNotifier* notifier           ,
                                   const CORE::CEvent& eventid         ,
-                                  CORE::CICloneable* eventdata = NULL );
+                                  CORE::CICloneable* eventdata = GUCEF_NULL );
 
     void OnFormFactoryUnregistered( CORE::CNotifier* notifier           ,
                                     const CORE::CEvent& eventid         ,
-                                    CORE::CICloneable* eventdata = NULL );
+                                    CORE::CICloneable* eventdata = GUCEF_NULL );
                                       
     private:
     

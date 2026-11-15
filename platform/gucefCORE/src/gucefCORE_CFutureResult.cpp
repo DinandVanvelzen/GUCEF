@@ -59,7 +59,7 @@ CFutureResult::CFutureResult( TTaskStatus taskStatus )
 
     if GUCEF_PREDICT_FALSE( !TaskStatusIsAnError( taskStatus ) )
     {
-        taskStatus = TTaskStatus::TASKSTATUS_INVALID_STATUS;
+        taskStatus = CORE::TASKSTATUS_INVALID_STATUS;
     }
 
     m_task = CTask::CreateSharedObjWithParam( taskStatus );
@@ -75,11 +75,15 @@ CFutureResult::CFutureResult( const CFutureResult& src )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
 CFutureResult::CFutureResult( CFutureResult&& src ) GUCEF_NOEXCEPT
     : m_task( GUCEF_MOVE( src.m_task ) )
 {GUCEF_TRACE;
     
 }
+
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -116,8 +120,8 @@ CFutureResult::Await( Int32 timeoutInMs ) const
     if ( !m_task.IsNULL() )               
     {
         MT::TLockStatus waitStatus = m_task->WaitForTaskToFinish( timeoutInMs );
-        if ( MT::TLockStatus::LOCKSTATUS_OPERATION_FAILED == waitStatus ||
-             MT::TLockStatus::LOCKSTATUS_WAIT_TIMEOUT == waitStatus      )
+        if ( MT::LOCKSTATUS_OPERATION_FAILED == waitStatus ||
+             MT::LOCKSTATUS_WAIT_TIMEOUT == waitStatus      )
         {
             throw timeout_exception();
         }

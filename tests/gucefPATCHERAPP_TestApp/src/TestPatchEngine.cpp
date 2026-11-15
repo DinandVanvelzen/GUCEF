@@ -239,6 +239,36 @@ PumpUntil( Condition condition, UInt32 timeoutInMs )
 
 /*-------------------------------------------------------------------------*/
 
+/** Condition for PumpUntil(): the recorder saw the end of the patch process */
+class CIsFinished
+{
+    public:
+
+    CIsFinished( const CPatchEngineRecorder& recorder ) : m_recorder( recorder ) {}
+    bool operator()( void ) const { return m_recorder.IsFinished(); }
+
+    private:
+
+    const CPatchEngineRecorder& m_recorder;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Condition for PumpUntil(): the recorder saw patch list data arrive */
+class CHasListData
+{
+    public:
+
+    CHasListData( const CPatchEngineRecorder& recorder ) : m_recorder( recorder ) {}
+    bool operator()( void ) const { return m_recorder.listDataReceived > 0; }
+
+    private:
+
+    const CPatchEngineRecorder& m_recorder;
+};
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformPatchEngineTests( void )
 {GUCEF_TRACE;
@@ -306,7 +336,7 @@ PerformPatchEngineTests( void )
             engine.GetConfig().SetLocalTempStorageRootDir( tempDir );
 
             ASSERT_TRUE( engine.Start() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 20000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 20000 ) );
             ASSERT_TRUE( 1 == recorder.started );
             ASSERT_TRUE( 1 == recorder.completed && 0 == recorder.failed && 0 == recorder.aborted );
             ASSERT_TRUE( 0 == recorder.listRetrievalFailed );
@@ -336,7 +366,7 @@ PerformPatchEngineTests( void )
             engine.GetConfig().SetLocalTempStorageRootDir( tempDir );
 
             ASSERT_TRUE( engine.Start() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 20000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 20000 ) );
             ASSERT_TRUE( 1 == recorder.listRetrievalFailed );
             ASSERT_TRUE( 1 == recorder.failed && 0 == recorder.completed );
             ASSERT_FALSE( engine.IsActive() );
@@ -358,11 +388,11 @@ PerformPatchEngineTests( void )
             engine.GetConfig().SetLocalTempStorageRootDir( tempDir );
 
             ASSERT_TRUE( engine.Start() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.listDataReceived > 0; }, 20000 ) );
+            ASSERT_TRUE( PumpUntil( CHasListData( recorder ), 20000 ) );
             ASSERT_TRUE( engine.IsActive() );
 
             engine.Stop();
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 20000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 20000 ) );
             ASSERT_TRUE( 1 == recorder.aborted && 0 == recorder.completed && 0 == recorder.failed );
             ASSERT_FALSE( engine.IsActive() );
         }

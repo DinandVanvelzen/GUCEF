@@ -293,7 +293,7 @@ class CTFreeList : public MT::CILockable
     {GUCEF_TRACE;
 
         // There is no clear so we revert back to using the destructor
-        m_allocator.destroy( obj );
+        AllocatorDestroy( obj );
     }
 
     void InvokeClearIfAvailable( TSharedPtrCreator* obj )
@@ -316,7 +316,7 @@ class CTFreeList : public MT::CILockable
 
         // There is no clear so we revert back to using the constructor
         // Always use placement new to (re)init the object
-        m_allocator.construct( obj );
+        AllocatorConstruct( obj );
         obj->InitializeSharedPtrCreatorData( obj, &m_destructor );
     }
 
@@ -324,6 +324,31 @@ class CTFreeList : public MT::CILockable
     {GUCEF_TRACE;
 
         ReconstructIfNoClearIsAvailableImpl< TSharedPtrCreator >( obj );
+    }
+
+    /**
+     *  Constructs and destroys an object in memory of the allocator: through std::allocator_traits from C++11 on, which
+     *  also works from C++20 on where std::allocator no longer has construct() and destroy(), before C++11 through the
+     *  allocator itself
+     */
+    void AllocatorConstruct( TSharedPtrCreator* obj )
+    {GUCEF_TRACE;
+
+        #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1700 )
+        std::allocator_traits< TAllocator >::construct( m_allocator, obj );
+        #else
+        m_allocator.construct( obj );
+        #endif
+    }
+
+    void AllocatorDestroy( TSharedPtrCreator* obj )
+    {GUCEF_TRACE;
+
+        #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1700 )
+        std::allocator_traits< TAllocator >::destroy( m_allocator, obj );
+        #else
+        m_allocator.destroy( obj );
+        #endif
     }
 
     /**
@@ -398,7 +423,7 @@ CTFreeList< T, LockType >::Clear( void )
     while ( i != m_active.end() )
     {
         TSharedPtrCreator* obj = (*i);
-        m_allocator.destroy( obj );
+        AllocatorDestroy( obj );
         ++i;
     }
     m_active.clear();
@@ -407,7 +432,7 @@ CTFreeList< T, LockType >::Clear( void )
     while ( i != m_dormant.end() )
     {
         TSharedPtrCreator* obj = (*i);
-        m_allocator.destroy( obj );
+        AllocatorDestroy( obj );
         ++i;
     }
     m_dormant.clear();
@@ -419,7 +444,7 @@ CTFreeList< T, LockType >::Clear( void )
         while ( n != m_freed.end() )
         {
             TSharedPtrCreator* obj = (*n);
-            m_allocator.destroy( obj );
+            AllocatorDestroy( obj );
             ++n;
         }
     }
@@ -465,7 +490,7 @@ CTFreeList< T, LockType >::Acquire( void )
                 default:
                 {
                     // Always use placement new to (re)init the object
-                    m_allocator.construct( raw );
+                    AllocatorConstruct( raw );
                     raw->InitializeSharedPtrCreatorData( raw, &m_destructor );
                     break;
                 }
@@ -549,7 +574,7 @@ CTFreeList< T, LockType >::Reserve( UInt32 count )
             // unless they are reused via Clear(), in which case they have to be constructed objects already
             if ( FreedObjectsAreConstructed() )
             {
-                m_allocator.construct( slot );
+                AllocatorConstruct( slot );
                 slot->InitializeSharedPtrCreatorData( slot, &m_destructor );
             }
 
@@ -745,7 +770,7 @@ CTFreeList< T, LockType >::OnObjectDestruction( TSharedPtrCreator* object )
             default:
             {
                 // Always use destructor to reset the object
-                m_allocator.destroy( object );
+                AllocatorDestroy( object );
                 break;
             }
         }

@@ -43,20 +43,20 @@ namespace MT {
 
 CScopeReaderLock::CScopeReaderLock( const CReadWriteLock& rwLock, UInt32 lockWaitTimeoutInMs )
     : m_rwLock( &rwLock )
-    , m_lockState( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lockState( CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_isReadLocked( false )
 {GUCEF_TRACE;
 
     assert( m_rwLock );
     m_lockState = m_rwLock->ReaderStart( lockWaitTimeoutInMs );
-    m_isReadLocked = TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState;
+    m_isReadLocked = CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState;
 }
 
 /*--------------------------------------------------------------------------*/
 
 CScopeReaderLock::CScopeReaderLock( CScopeWriterLock& writerToTransition, UInt32 lockWaitTimeoutInMs )
     : m_rwLock( writerToTransition.m_rwLock )
-    , m_lockState( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lockState( CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_isReadLocked( false )
 {GUCEF_TRACE;
 
@@ -76,7 +76,7 @@ CScopeReaderLock::~CScopeReaderLock()
     if ( m_isReadLocked )
     {
         m_lockState = m_rwLock->ReaderStop();
-        m_isReadLocked = !( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState );
+        m_isReadLocked = !( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState );
     }
 }
 
@@ -116,9 +116,9 @@ CScopeReaderLock::EarlyUnlock( void )
     if ( m_isReadLocked )
     {        
         m_lockState = m_rwLock->ReaderStop();
-        m_isReadLocked = !( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState );
+        m_isReadLocked = !( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState );
     }
-    return TRWLockStates::RWLOCK_OPERATION_SUCCESS;
+    return CReadWriteLock::RWLOCK_OPERATION_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -137,7 +137,7 @@ CScopeReaderLock::TransitionToWriter( CScopeWriterLock& targetWriter, UInt32 loc
             do
             {
                 m_lockState = m_rwLock->TransitionReaderToWriter( lockWaitTimeoutInMs );
-                m_isReadLocked = !( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState );
+                m_isReadLocked = !( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState );
                 if ( !m_isReadLocked )
                 {
                     targetWriter.m_rwLock = m_rwLock;
@@ -152,7 +152,7 @@ CScopeReaderLock::TransitionToWriter( CScopeWriterLock& targetWriter, UInt32 loc
         {
             targetWriter.m_rwLock = m_rwLock;
             targetWriter.m_lockState = m_rwLock->WriterStart( lockWaitTimeoutInMs );
-            targetWriter.m_isWriteLocked = TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState;
+            targetWriter.m_isWriteLocked = CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState;
             return true;
         }
     }
@@ -172,7 +172,7 @@ CScopeReaderLock::GetReadWriteLock( void ) const
 
 CScopeWriterLock::CScopeWriterLock( const CReadWriteLock& rwLock, UInt32 lockWaitTimeoutInMs )
     : m_rwLock( &rwLock )
-    , m_lockState( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lockState( CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_isWriteLocked( false )
 {GUCEF_TRACE;
 
@@ -180,7 +180,7 @@ CScopeWriterLock::CScopeWriterLock( const CReadWriteLock& rwLock, UInt32 lockWai
     do
     {
         m_lockState = m_rwLock->WriterStart( lockWaitTimeoutInMs );
-        m_isWriteLocked = TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState;
+        m_isWriteLocked = CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState;
     }
     while ( !m_isWriteLocked );
 }
@@ -189,7 +189,7 @@ CScopeWriterLock::CScopeWriterLock( const CReadWriteLock& rwLock, UInt32 lockWai
 
 CScopeWriterLock::CScopeWriterLock( CScopeReaderLock& readerToTransition, UInt32 lockWaitTimeoutInMs )
     : m_rwLock( readerToTransition.m_rwLock )
-    , m_lockState( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lockState( CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_isWriteLocked( false )
 {GUCEF_TRACE;
 
@@ -211,7 +211,7 @@ CScopeWriterLock::~CScopeWriterLock()
         do
         {
             m_lockState = m_rwLock->WriterStop();
-            m_isWriteLocked = !( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState );
+            m_isWriteLocked = !( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState );
         }
         while ( m_isWriteLocked );
     }
@@ -262,10 +262,10 @@ CScopeWriterLock::EarlyUnlock( void )
     if ( m_isWriteLocked )
     {        
         m_lockState = m_rwLock->WriterStop();
-        m_isWriteLocked = !( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState );
+        m_isWriteLocked = !( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState );
         return m_lockState;
     }
-    return TRWLockStates::RWLOCK_OPERATION_SUCCESS;
+    return CReadWriteLock::RWLOCK_OPERATION_SUCCESS;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -284,9 +284,9 @@ CScopeWriterLock::TransitionToReader( CScopeReaderLock& targetReader, UInt32 loc
             do
             {
                 m_lockState = m_rwLock->TransitionWriterToReader( lockWaitTimeoutInMs );
-                m_isWriteLocked = !( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState );
+                m_isWriteLocked = !( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState );
             
-                if ( !m_isWriteLocked && ( TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState ) )
+                if ( !m_isWriteLocked && ( CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState ) )
                 {
                     targetReader.m_rwLock = m_rwLock;
                     targetReader.m_isReadLocked = true;
@@ -300,7 +300,7 @@ CScopeWriterLock::TransitionToReader( CScopeReaderLock& targetReader, UInt32 loc
         {
             targetReader.m_rwLock = m_rwLock;
             targetReader.m_lockState = m_rwLock->ReaderStart( lockWaitTimeoutInMs );
-            targetReader.m_isReadLocked = TRWLockStates::RWLOCK_OPERATION_SUCCESS == m_lockState;
+            targetReader.m_isReadLocked = CReadWriteLock::RWLOCK_OPERATION_SUCCESS == m_lockState;
             return true;
         }
     }

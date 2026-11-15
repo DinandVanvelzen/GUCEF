@@ -55,8 +55,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 
 	// create a view to occupy the client area of the frame
-	if (!m_wndView.Create(NULL, NULL, AFX_WS_DEFAULT_VIEW,
-		CRect(0, 0, 480, 160), this, AFX_IDW_PANE_FIRST, NULL))
+	if (!m_wndView.Create(GUCEF_NULL, GUCEF_NULL, AFX_WS_DEFAULT_VIEW,
+		CRect(0, 0, 480, 160), this, AFX_IDW_PANE_FIRST, GUCEF_NULL))
 	{
 		TRACE0("Failed to create view window\n");
 		return -1;
@@ -66,7 +66,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
     // Remove positions of menu
     CMenu* pTopMenu = GetSystemMenu(FALSE);
-    if( pTopMenu != NULL)
+    if( pTopMenu != GUCEF_NULL)
     {   
        // pTopMenu->DestroyMenu();
         pTopMenu->RemoveMenu(SC_SIZE, MF_BYCOMMAND);      // no resize

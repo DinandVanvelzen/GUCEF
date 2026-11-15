@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "StaticLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "StaticLib" )
-  
-configuration( { ANDROID32 } )
-links( { "MyGUI.Engine" } )
-  links( { "GLESv1_CM", "MyGUI.Engine" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "MyGUI.Engine" } )
+
+configuration( { "ANDROID32" } )
+links( { "GLESv1_CM", "MyGUI.Engine" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=MyGUI_OpenGLESPlatform" } )
-  
-configuration( { ANDROID64 } )
-links( { "MyGUI.Engine" } )
-  links( { "GLESv1_CM", "MyGUI.Engine" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "MyGUI.Engine" } )
+
+configuration( { "ANDROID64" } )
+links( { "GLESv1_CM", "MyGUI.Engine" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "MODULE_NAME=MyGUI_OpenGLESPlatform" } )
 
 

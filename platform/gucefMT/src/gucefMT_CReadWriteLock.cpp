@@ -62,12 +62,16 @@ CReadWriteLock::CReadWriteLock( const CReadWriteLock& src )
 
 /*--------------------------------------------------------------------------*/
 
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+
 CReadWriteLock::CReadWriteLock( CReadWriteLock&& src ) GUCEF_NOEXCEPT      
     : _rwlock( src._rwlock )
 {GUCEF_TRACE;
 
     src._rwlock = GUCEF_NULL;
 }
+
+#endif
 
 /*--------------------------------------------------------------------------*/
 
@@ -86,12 +90,12 @@ CReadWriteLock::RwLockIntStateToEnum( UInt32 intState )
 
     switch ( intState )
     {
-        case GUCEF_RWLOCK_OPERATION_FAILED:     return ERWLockStates::RWLOCK_OPERATION_FAILED;
-        case GUCEF_RWLOCK_OPERATION_SUCCESS:    return ERWLockStates::RWLOCK_OPERATION_SUCCESS;        
-        case GUCEF_RWLOCK_WAIT_TIMEOUT:         return ERWLockStates::RWLOCK_WAIT_TIMEOUT;
-        case GUCEF_RWLOCK_ABANDONED:            return ERWLockStates::RWLOCK_ABANDONED;
+        case GUCEF_RWLOCK_OPERATION_FAILED:     return CReadWriteLock::RWLOCK_OPERATION_FAILED;
+        case GUCEF_RWLOCK_OPERATION_SUCCESS:    return CReadWriteLock::RWLOCK_OPERATION_SUCCESS;        
+        case GUCEF_RWLOCK_WAIT_TIMEOUT:         return CReadWriteLock::RWLOCK_WAIT_TIMEOUT;
+        case GUCEF_RWLOCK_ABANDONED:            return CReadWriteLock::RWLOCK_ABANDONED;
         default: 
-            return ERWLockStates::RWLOCK_OPERATION_FAILED;
+            return CReadWriteLock::RWLOCK_OPERATION_FAILED;
     }
 }
 
@@ -103,8 +107,8 @@ CReadWriteLock::RwLockStateToLockOpBool( TRWLockStates state )
 
     switch ( state )
     {
-        case ERWLockStates::RWLOCK_OPERATION_SUCCESS:
-        case ERWLockStates::RWLOCK_ABANDONED:
+        case CReadWriteLock::RWLOCK_OPERATION_SUCCESS:
+        case CReadWriteLock::RWLOCK_ABANDONED:
         {
             return true;
         }
@@ -123,18 +127,18 @@ CReadWriteLock::RwLockStateToLockStatus( TRWLockStates state )
 
     switch ( state )
     {
-        case ERWLockStates::RWLOCK_OPERATION_SUCCESS: 
-            return TLockStatus::LOCKSTATUS_OPERATION_SUCCESS;
-        case ERWLockStates::RWLOCK_ABANDONED:
-            return TLockStatus::LOCKSTATUS_ABANDONED;
-        case ERWLockStates::RWLOCK_OPERATION_FAILED: 
-            return TLockStatus::LOCKSTATUS_OPERATION_FAILED;
-        case ERWLockStates::RWLOCK_WAIT_TIMEOUT: 
-            return TLockStatus::LOCKSTATUS_WAIT_TIMEOUT;
+        case CReadWriteLock::RWLOCK_OPERATION_SUCCESS: 
+            return LOCKSTATUS_OPERATION_SUCCESS;
+        case CReadWriteLock::RWLOCK_ABANDONED:
+            return LOCKSTATUS_ABANDONED;
+        case CReadWriteLock::RWLOCK_OPERATION_FAILED: 
+            return LOCKSTATUS_OPERATION_FAILED;
+        case CReadWriteLock::RWLOCK_WAIT_TIMEOUT: 
+            return LOCKSTATUS_WAIT_TIMEOUT;
             
         default:
         {
-            return TLockStatus::LOCKSTATUS_OPERATION_FAILED;
+            return LOCKSTATUS_OPERATION_FAILED;
         }
     }
 }

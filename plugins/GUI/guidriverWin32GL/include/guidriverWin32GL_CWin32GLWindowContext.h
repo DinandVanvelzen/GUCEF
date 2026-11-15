@@ -106,7 +106,7 @@ class GUIDRIVERWIN32GL_PUBLIC_CPP CWin32GLWindowContext : public GUI::CWindowCon
    
     virtual void OnNotify( CORE::CNotifier* notifier          ,
                            const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
+                           CORE::CICloneable* evenData = GUCEF_NULL );
     
     private:
     

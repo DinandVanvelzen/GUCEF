@@ -72,7 +72,7 @@ CWin32WindowManagerImp::CreateWindowContext( const GUI::CString& title ,
 
     return CreateWindowContext( title         ,
                                 videoSettings ,
-                                NULL          );
+                                GUCEF_NULL          );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -118,7 +118,7 @@ CWin32WindowManagerImp::DestroyWindowContext( GUI::TWindowContextPtr& windowCont
 {GUCEF_TRACE;
 
     CWin32WindowContext* context = static_cast<CWin32WindowContext*>( windowContext.GetPointerAlways() );
-    if ( NULL != context )
+    if ( GUCEF_NULL != context )
     {
         context->Shutdown();
     }

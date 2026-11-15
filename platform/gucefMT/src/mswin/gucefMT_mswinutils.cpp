@@ -63,7 +63,7 @@ TryNtQueryInformationThread( HANDLE ThreadHandle                                
 {GUCEF_TRACE;
 
     static pNtQIT NtQueryInformationThread = (pNtQIT) GetProcAddress( GetModuleHandle("ntdll.dll"), "NtQueryInformationThread" );
-	if ( NULL == NtQueryInformationThread ) 
+	if ( GUCEF_NULL == NtQueryInformationThread ) 
         return NTSTATUS_NOT_SUPPORTED;
 
     return NtQueryInformationThread( ThreadHandle, (LONG) ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength );

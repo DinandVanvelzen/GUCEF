@@ -195,7 +195,7 @@ CServerPortExtenderClient::RemoveConnectionUsingLocalClient( COMCORE::CTCPClient
     COMCORE::CTCPClientSocket* speClientSocket = m_localToRemoteConnectionMap[ localSocket->GetSocketID() ];
     m_localToRemoteConnectionMap.erase( localSocket->GetSocketID() );
 
-    if ( NULL != speClientSocket )
+    if ( GUCEF_NULL != speClientSocket )
     {
         m_remoteToLocalConnectionMap.erase( speClientSocket->GetSocketID() );
         speClientSocket->Close();
@@ -217,7 +217,7 @@ CServerPortExtenderClient::RemoveConnectionUsingSPEClient( COMCORE::CTCPClientSo
     COMCORE::CTCPClientSocket* localSocket = m_remoteToLocalConnectionMap[ speClientSocket->GetSocketID() ];
     m_remoteToLocalConnectionMap.erase( speClientSocket->GetSocketID() );
 
-    if ( NULL != localSocket )
+    if ( GUCEF_NULL != localSocket )
     {
         m_localToRemoteConnectionMap.erase( localSocket->GetSocketID() );
         localSocket->Close();
@@ -330,7 +330,7 @@ CServerPortExtenderClient::OnPulse( CORE::CNotifier* notifier    ,
         {
             // Since we have data to transfer check if the corresponding connection is available for transfer
             COMCORE::CTCPClientSocket* connection = GetRemoteConnectionForLocalConnection( (*i).first->GetSocketID() );
-            if ( NULL != connection )
+            if ( GUCEF_NULL != connection )
             {
                 // transfer the data
                 CORE::UInt32 bytesRead;
@@ -359,7 +359,7 @@ CServerPortExtenderClient::OnPulse( CORE::CNotifier* notifier    ,
         {
             // Since we have data to transfer check if the corresponding connection is available for transfer
             COMCORE::CTCPClientSocket* connection = GetLocalConnectionForRemoteConnection( (*i).first->GetSocketID() );
-            if ( NULL != connection )
+            if ( GUCEF_NULL != connection )
             {
                 // transfer the data
                 CORE::UInt32 bytesRead;
@@ -419,7 +419,7 @@ CServerPortExtenderClient::OnClientToActualServerDataRecieved( CORE::CNotifier* 
     COMCORE::CTCPClientSocket* localClientConnection = static_cast< COMCORE::CTCPClientSocket* >( notifier );
     COMCORE::CTCPClientSocket* remoteClientConnection = GetRemoteConnectionForLocalConnection( localClientConnection->GetSocketID() );
 
-    if ( NULL != remoteClientConnection )
+    if ( GUCEF_NULL != remoteClientConnection )
     {
         // get the received data
         COMCORE::CTCPClientSocket::TDataRecievedEventData* receivedDataObj = static_cast< COMCORE::CTCPClientSocket::TDataRecievedEventData* >( eventdata );
@@ -560,7 +560,7 @@ CServerPortExtenderClient::OnClientToRemoteSPEDataRecieved( CORE::CNotifier* not
 
     // See if we can already forward the data to the local connection
     COMCORE::CTCPClientSocket* localClientConnection = GetLocalConnectionForRemoteConnection( remoteConnection->GetSocketID() );
-    if ( NULL != localClientConnection )
+    if ( GUCEF_NULL != localClientConnection )
     {
         // send all data from the data buffer
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ServerPortExtenderClient: Forwarding received " + CORE::UInt32ToString( buffer.GetBufferedDataSizeInBytes() ) + " bytes of data from remote SPE server to actual server" );
@@ -716,7 +716,7 @@ CServerPortExtenderClient::OnControlClientDataRecieved( CORE::CNotifier* notifie
     if ( dataSize > 0 )
     {
         TServerPortExtenderProtocolEnum msgType = (TServerPortExtenderProtocolEnum) data.AsConstType< CORE::Int8 >( 0 );
-        const CORE::UInt8* dataPtr = dataSize > 1 ? (const CORE::UInt8*) data.GetConstBufferPtr( 1 ) : NULL;
+        const CORE::UInt8* dataPtr = dataSize > 1 ? (const CORE::UInt8*) data.GetConstBufferPtr( 1 ) : GUCEF_NULL;
         OnControlMsg( msgType, dataPtr );
     }
 }
@@ -776,7 +776,7 @@ CServerPortExtenderClient::GetRemoteConnectionForLocalConnection( const CORE::UI
     {
         return (*i).second;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -790,7 +790,7 @@ CServerPortExtenderClient::GetLocalConnectionForRemoteConnection( const CORE::UI
     {
         return (*i).second;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -91,10 +91,10 @@ class CThreadSigPipeBlockScope
                 struct timespec noWait;
                 noWait.tv_sec = 0;
                 noWait.tv_nsec = 0;
-                sigtimedwait( &m_pipeSet, NULL, &noWait );
+                sigtimedwait( &m_pipeSet, GUCEF_NULL, &noWait );
             }
         }
-        pthread_sigmask( SIG_SETMASK, &m_oldMask, NULL );
+        pthread_sigmask( SIG_SETMASK, &m_oldMask, GUCEF_NULL );
     }
 
     private:

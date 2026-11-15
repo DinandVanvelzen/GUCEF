@@ -204,6 +204,19 @@ class CAnswerOnceServer : public CORE::CObserver
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** PumpUntil() condition: the client received at least the given number of bytes */
+class CClientReceivedAtLeast
+{
+    public:
+    CClientReceivedAtLeast( const CSimpleTCPClient& client, UInt32 byteCount ) : m_client( client ), m_byteCount( byteCount ) {}
+    bool operator()( void ) const { return m_client.m_received.Length() >= m_byteCount; }
+    private:
+    const CSimpleTCPClient& m_client;
+    UInt32 m_byteCount;
+};
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformSimpleTCPClientTests( void )
 {GUCEF_TRACE;
@@ -219,7 +232,7 @@ PerformSimpleTCPClientTests( void )
             CSimpleTCPClient client( "127.0.0.1", server.GetPort(), "GET /\r\n" );
             ASSERT_TRUE( client.Start() );
 
-            ASSERT_TRUE( PumpUntil( [&client]() { return client.m_received.Length() >= 40; }, 5000 ) );
+            ASSERT_TRUE( PumpUntil( CClientReceivedAtLeast( client, 40 ), 5000 ) );
             ASSERT_TRUE( client.m_connected );
             ASSERT_TRUE( client.m_received == "HTTP/1.0 200 OK\r\nContent-Length: 2\r\n\r\nok" );
             ASSERT_TRUE( server.m_request == "GET /\r\n" );

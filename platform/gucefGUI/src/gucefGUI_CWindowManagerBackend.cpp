@@ -116,7 +116,7 @@ CWindowManagerBackend::CreateWindowContextViaConfig( const GUCEF::CORE::CDataNod
      *      Attempt to get all the info for the preferred window setup
      */                
     const CORE::CDataNode* n = params.Find( "WindowSettings" );
-    if ( NULL != n )
+    if ( GUCEF_NULL != n )
     {
         const CORE::CDataNode::TKeyValuePair* att;
         UInt32 width( 640 ), height( 480 );
@@ -144,10 +144,10 @@ CWindowManagerBackend::CreateWindowContextViaConfig( const GUCEF::CORE::CDataNod
             if ( cn->GetName() == "WindowSetting" )
             {
                 att = cn->GetAttribute( name );
-                if ( NULL != att )
+                if ( GUCEF_NULL != att )
                 {
                     att2 = cn->GetAttribute( value );
-                    if ( NULL != att2 )
+                    if ( GUCEF_NULL != att2 )
                     {
                         valuelist[ att->second ] = att2->second;
                     }        

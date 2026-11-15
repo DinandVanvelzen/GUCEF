@@ -31,13 +31,13 @@ kind( "StaticLib" )
 
 configuration( {} )
 defines( { "AWS_CORE_EXPORTS", "CJSON_AS4CPP_EXPORT_SYMBOLS", "HAVE_BUILTIN_CPU_SUPPORTS", "MODULE_CONSENSUS_NAME=aws_c_common", "MODULE_NAME=aws_c_common", "USE_IMPORT_EXPORT" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "PLATFORM_LINUX", "_POSIX_C_SOURCE=200809L", "_XOPEN_SOURCE=500" } )
 
 

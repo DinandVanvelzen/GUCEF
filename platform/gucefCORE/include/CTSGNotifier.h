@@ -200,7 +200,7 @@ class GUCEF_CORE_PUBLIC_CPP CTSGNotifier : public CNotifier  ,
      *  notification is pumped first.
      */
     void NotifyObserversFromThread( const CEvent& eventid         ,
-                                    CICloneable* eventData = NULL );
+                                    CICloneable* eventData = GUCEF_NULL );
 
     /**
      *  Event callback member function.

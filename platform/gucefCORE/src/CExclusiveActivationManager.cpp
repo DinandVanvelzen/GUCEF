@@ -108,7 +108,7 @@ CExclusiveActivationManager::SetActivateObj( const CString& objTypeName ,
                 {
                     exObjList.activeObj->SetActiveState( false );   
                     exObjList.activeObj->OnPostDeactivate( true );
-                    exObjList.activeObj = NULL;
+                    exObjList.activeObj = GUCEF_NULL;
                 }
                 else
                 {
@@ -193,7 +193,7 @@ CExclusiveActivationManager::GetActiveObject( const CString& objTypeName ) const
     {
         return (*typeItterator).second.activeObj;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -210,7 +210,7 @@ CExclusiveActivationManager::RegisterObj( CExclusiveActiveObj* newObj )
      *  First we get a pointer to the list of mutual exclusive objects for the
      *  given type
      */
-    TExclusiveObjList* exObjList = NULL;
+    TExclusiveObjList* exObjList = GUCEF_NULL;
     TObjTypeList::iterator typeItterator( m_typeList.find( newObj->GetObjTypeName() ) ); 
     if ( typeItterator == m_typeList.end() )
     {
@@ -218,7 +218,7 @@ CExclusiveActivationManager::RegisterObj( CExclusiveActiveObj* newObj )
          *  new object type, add some initialization
          */
         exObjList = &m_typeList[ newObj->GetObjTypeName() ];
-        exObjList->activeObj = NULL;
+        exObjList->activeObj = GUCEF_NULL;
     }
     else
     {
@@ -255,7 +255,7 @@ CExclusiveActivationManager::UnregisterObj( CExclusiveActiveObj* theObj )
         if ( !SetActivateObj( theObj->GetObjTypeName() ,
                               exObjList.defaultObj     ) )
         {
-            exObjList.activeObj = NULL;
+            exObjList.activeObj = GUCEF_NULL;
         }
     }
     

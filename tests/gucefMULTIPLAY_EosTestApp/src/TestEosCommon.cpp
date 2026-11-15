@@ -404,7 +404,7 @@ CEosPeerContext::Connect( void )
 
     PLUGINGLUE::EOS::SEosP2PShim p2p = peer.P2PShim();
     service.SetShim( peer.LobbyShim(), &p2p );
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     bool started = service.Connect( identity, future );
     if ( !PumpUntilReady( future, 3000 ) )
     {
@@ -412,7 +412,7 @@ CEosPeerContext::Connect( void )
         return false;
     }
     CORE::CTaskPtr task = future.GetResult( 0 );
-    if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
+    if ( task.IsNULL() || CORE::TASKSTATUS_FINISHED != task->GetTaskStatus() )
     {
         reason = task.IsNULL() ? CORE::CString( "no task" ) : task->GetTaskStatusExtraInfo();
         return false;
@@ -426,7 +426,7 @@ MULTIPLAY::CILobbyPtr
 CEosPeerContext::Create( const MULTIPLAY::CLobbyCreateParams& params )
 {GUCEF_TRACE;
 
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     service.CreateLobby( params, future );
     if ( !PumpUntilReady( future, 5000 ) )
     {
@@ -449,7 +449,7 @@ MULTIPLAY::CILobbyPtr
 CEosPeerContext::Join( const CORE::CString& lobbyId, const CORE::CString& password, bool asSpectator )
 {GUCEF_TRACE;
 
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     service.JoinLobby( lobbyId, password, asSpectator, future );
     if ( !PumpUntilReady( future, 5000 ) )
     {
@@ -608,7 +608,7 @@ FailureOf( const CORE::CFutureResult& future )
 bool
 Browse( CEosPeerContext& context, const MULTIPLAY::CGameListingFilter& filter, MULTIPLAY::CGameListingList& list, CORE::CString* failure )
 {
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     context.service.Browse( filter, future );
     if ( !PumpUntilReady( future, 5000 ) )
         return false;

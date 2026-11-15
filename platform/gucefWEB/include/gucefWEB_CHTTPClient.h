@@ -249,11 +249,11 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPClient : public CORE::CTSGNotifier
               UInt16 port                              ,
               const CORE::CString& path                ,
               const UInt32 byteoffset = 0              ,
-              const CORE::CValueList* valuelist = NULL );
+              const CORE::CValueList* valuelist = GUCEF_NULL );
 
     bool Get( const CORE::CString& urlstring           ,
               const UInt32 byteoffset = 0              ,
-              const CORE::CValueList* valuelist = NULL );
+              const CORE::CValueList* valuelist = GUCEF_NULL );
 
     /** Classic API: cancels the current request */
     void Close( void );

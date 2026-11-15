@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "ConsoleApp" )
-  
-configuration( { LINUX32 } )
-links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
-  links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=gucefMULTIPLAY_DesktopNotifyTestApp" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
-  links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB", "notifysinkpluginDESKTOP" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "MODULE_NAME=gucefMULTIPLAY_DesktopNotifyTestApp" } )
 
 

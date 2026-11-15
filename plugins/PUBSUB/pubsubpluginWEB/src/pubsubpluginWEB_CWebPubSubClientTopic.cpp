@@ -139,7 +139,7 @@ RestApiPublishedMessagesResource::Deserialize( const CORE::CString& resourcePath
 {GUCEF_TRACE;
 
 
-            return TDeserializeState::DESERIALIZESTATE_NOTSUPPORTED;
+            return CIHTTPServerResource::DESERIALIZESTATE_NOTSUPPORTED;
 
 }
 

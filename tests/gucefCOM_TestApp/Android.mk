@@ -46,12 +46,12 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../../common/test/include \
-  $(MY_MODULE_PATH)/../../tests/gucefCOMCORE_TestApp/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../../platform/gucefMT/include
+  $(MY_MODULE_PATH)/../../platform/gucefMT/include \
+  $(MY_MODULE_PATH)/../../tests/gucefCOMCORE_TestApp/include
 
 LOCAL_CFLAGS := -DGUCEF_COM_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefCOM_TestApp -DMODULE_NAME=gucefCOM_TestApp
 

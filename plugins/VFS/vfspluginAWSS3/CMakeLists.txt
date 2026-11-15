@@ -36,6 +36,14 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of vfspluginAWSS3 and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 11 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( vfspluginAWSS3 "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "vfspluginAWSS3" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-cpp-sdk-core aws-cpp-sdk-s3 gucefCORE gucefMT gucefVFS pluginglueAWSSDK )
@@ -75,6 +83,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/windows ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
 
 
 

@@ -86,7 +86,7 @@ bool
 CIAuthProvider::Refresh( const CAccountRef& account, const CSecretString& refreshToken, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     return false;
 }
 
@@ -174,7 +174,7 @@ CIAuthProvider::FailLogin( CORE::CFutureResultSource& source, TAuthFailureReason
         CORE::CString extraInfo = AuthFailureReasonToString( reason );
         extraInfo += ": ";
         extraInfo += message;
-        ended = source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, extraInfo );
+        ended = source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, extraInfo );
     }
     if ( !ended )
         return false;

@@ -266,7 +266,7 @@ CTCPServerSocket::GetConnectionBySocketId( UInt32 socketId )
             return _connections[ i ];
         }
     }
-	return NULL;
+	return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

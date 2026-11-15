@@ -221,7 +221,7 @@ CMsWin32Window::SetFullscreenStatus( bool fullscreen )
     else
     {
         ::SetWindowLongPtr( m_hwnd, GWL_STYLE, m_windowedStyle );
-        ::SetWindowPos( m_hwnd, NULL, m_windowedRect.left, m_windowedRect.top,
+        ::SetWindowPos( m_hwnd, GUCEF_NULL, m_windowedRect.left, m_windowedRect.top,
                         m_windowedRect.right - m_windowedRect.left, m_windowedRect.bottom - m_windowedRect.top,
                         SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW );
     }
@@ -642,7 +642,7 @@ void
 CMsWin32Window::Repaint( void )
 {GUCEF_TRACE;
 
-    ::InvalidateRect( m_hwnd, NULL, TRUE );
+    ::InvalidateRect( m_hwnd, GUCEF_NULL, TRUE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -739,7 +739,7 @@ CMsWin32Window::WindowCreate( const CString& windowClassName ,
                              windowTitle.C_String(),
                              WS_OVERLAPPEDWINDOW,
                              xPosition, yPosition, (int)width, (int)height,
-                             hWndParent, NULL, GetCurrentModuleHandle(), (LPVOID)this );
+                             hWndParent, GUCEF_NULL, GetCurrentModuleHandle(), (LPVOID)this );
     
     if ( 0 == m_hwnd )
     {
@@ -790,12 +790,12 @@ CMsWin32Window::RegisterWindowClass( const CString& windowClassName )
         wc.cbClsExtra    = 0;
         wc.cbWndExtra    = 0;
         wc.hInstance     = GetCurrentModuleHandle();
-        wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-        wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
+        wc.hIcon         = LoadIcon(GUCEF_NULL, IDI_APPLICATION);
+        wc.hCursor       = LoadCursor(GUCEF_NULL, IDC_ARROW);
         wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-        wc.lpszMenuName  = NULL;
+        wc.lpszMenuName  = GUCEF_NULL;
         wc.lpszClassName = windowClassName.C_String();
-        wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
+        wc.hIconSm       = LoadIcon(GUCEF_NULL, IDI_APPLICATION);
 
         if ( 0 == RegisterClassEx( &wc ) )
         {

@@ -766,7 +766,7 @@ CDRNDataGridTable::ScanAsync( const CORE::CDataTableQuery& query, CORE::CDataTab
     scan.Unlink();
     CORE::CMemoryDataTablePtr snapshot;
     if ( CORE::DATATABLE_STATUS_OK != TakeSnapshot( query, snapshot ) )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
     return snapshot->ScanAsync( query, scan, threadPool );
 }
 
@@ -942,7 +942,7 @@ CDRNDataGridTable::WriteAsync( const CORE::CDataTableBatchPtr& rows, CORE::TData
     CDRNDataGrid* grid = GUCEF_NULL;
     CDRNSession* session = GUCEF_NULL;
     if ( CORE::DATATABLE_STATUS_OK != CheckWritable( mode, grid, session ) || rows.IsNULL() )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 
     if ( grid->IsOrigin() )
     {
@@ -955,7 +955,7 @@ CDRNDataGridTable::WriteAsync( const CORE::CDataTableBatchPtr& rows, CORE::TData
 
     TDRNRowChangeVector changes;
     if ( CORE::DATATABLE_STATUS_OK != ExtractChanges( *rows, changes ) )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
     return EnqueueWrite( CDRNDataGridPendingWritePtr( GUCEF_NEW CDRNDataGridPendingWrite( changes, mode, m_settings.writeTimeoutMs ) ) );
 }
 
@@ -1031,7 +1031,7 @@ CDRNDataGridTable::DeleteRowsAsync( const CORE::CDataTableQuery& predicates, COR
     CDRNDataGrid* grid = GUCEF_NULL;
     CDRNSession* session = GUCEF_NULL;
     if ( CORE::DATATABLE_STATUS_OK != CheckWritable( CORE::DATATABLE_WRITE_UPSERT, grid, session ) )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
 
     if ( grid->IsOrigin() )
     {
@@ -1043,7 +1043,7 @@ CDRNDataGridTable::DeleteRowsAsync( const CORE::CDataTableQuery& predicates, COR
 
     CDRNDataGridPendingWritePtr removal;
     if ( CORE::DATATABLE_STATUS_OK != ProposeDeleteRows( predicates, removal ) )
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
     return EnqueueWrite( removal );
 }
 

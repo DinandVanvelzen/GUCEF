@@ -12,6 +12,7 @@ platform/gucefGAMEGUI/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
 platform/gucefINPUT/*
+platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefMULTIPLAY/*
 platform/gucefVFS/*

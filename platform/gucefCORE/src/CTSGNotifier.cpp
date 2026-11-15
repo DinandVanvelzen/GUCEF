@@ -206,7 +206,7 @@ CTSGNotifier::NotifyObserversFromThread( void )
 
     m_tsgObserver.AddEventToMailbox( this                   ,
                                      CNotifier::ModifyEvent ,
-                                     NULL                   );
+                                     GUCEF_NULL                   );
 }
 
 /*-------------------------------------------------------------------------*/

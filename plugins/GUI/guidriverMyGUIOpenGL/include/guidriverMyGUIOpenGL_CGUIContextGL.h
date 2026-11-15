@@ -91,7 +91,7 @@ class GUCEF_MYGUIGL_EXPORT_CPP CGUIContextGL : public MYGUI::CGUIContext ,
 
     virtual void OnNotify( CORE::CNotifier* notifier          ,
                            const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
+                           CORE::CICloneable* evenData = GUCEF_NULL );
 
     private:
 

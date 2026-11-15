@@ -54,40 +54,44 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  links( { "dl", "gomp", "pthread" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "dl", "gomp", "pthread" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "ENABLE_OPT=0", "ENABLE_SPIRV", "GLSLANG_OSINCLUDE_UNIX", "MODULE_NAME=ncnn", "MODULE_SEMVER=2026_5_26_0", "NCNN_STATIC_DEFINE" } )
-  links( { "dl", "gomp", "pthread" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "dl", "gomp", "pthread" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "ENABLE_OPT=0", "ENABLE_SPIRV", "GLSLANG_OSINCLUDE_UNIX", "MODULE_NAME=ncnn", "MODULE_SEMVER=2026_5_26_0", "NCNN_STATIC_DEFINE" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "ENABLE_OPT=0", "ENABLE_SPIRV", "GLSLANG_OSINCLUDE_WIN32", "MODULE_NAME=ncnn", "MODULE_SEMVER=2026_5_26_0", "NCNN_STATIC_DEFINE" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "ENABLE_OPT=0", "ENABLE_SPIRV", "GLSLANG_OSINCLUDE_WIN32", "MODULE_NAME=ncnn", "MODULE_SEMVER=2026_5_26_0", "NCNN_STATIC_DEFINE" } )
 
 

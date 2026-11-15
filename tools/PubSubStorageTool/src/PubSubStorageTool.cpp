@@ -364,7 +364,7 @@ PubSubStorageTool::CreateTargetContainerAtTimeBoundary( const CORE::CString& tar
     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubStorageTool:CreateTargetContainerAtTimeBoundary: Will attempt to create container at root \"" + targetRootPath + "\" with time boundary datetime " + 
         CORE::ToString( datetime ) );
 
-    if ( timeBoundary == CORE::CDateTime::TDateTimeComponent::DATETIMECOMPONENT_UNKNOWN )
+    if ( timeBoundary == CORE::CDateTime::DATETIMECOMPONENT_UNKNOWN )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubStorageTool:CreateTargetContainerAtTimeBoundary: Unknown time boundary: " + timeBoundary );
         return false;
@@ -377,12 +377,12 @@ PubSubStorageTool::CreateTargetContainerAtTimeBoundary( const CORE::CString& tar
         return false;
     }
     
-    if ( !datetime.ClampToBoundary( timeBoundary, TBoundaryType::BOUNDARYTYPE_MINIMUM, container->minClampedDt ) )
+    if ( !datetime.ClampToBoundary( timeBoundary, BOUNDARYTYPE_MINIMUM, container->minClampedDt ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubStorageTool:CreateTargetContainerAtTimeBoundary: Cannot clamp dt to minimum boundary" );
         return false;
     }
-    if ( !datetime.ClampToBoundary( timeBoundary, TBoundaryType::BOUNDARYTYPE_MAXIMUM, container->maxClampedDt ) )
+    if ( !datetime.ClampToBoundary( timeBoundary, BOUNDARYTYPE_MAXIMUM, container->maxClampedDt ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubStorageTool:CreateTargetContainerAtTimeBoundary: Cannot clamp dt to maximum boundary" );
         return false;
@@ -393,7 +393,7 @@ PubSubStorageTool::CreateTargetContainerAtTimeBoundary( const CORE::CString& tar
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
 
     CORE::CString tempDir;
-    if ( vfs.TryResolveSpecialDir( CORE::TSpecialDirs::SPECIALDIR_TEMP_DIR, tempDir ) )
+    if ( vfs.TryResolveSpecialDir( CORE::SPECIALDIR_TEMP_DIR, tempDir ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubStorageTool:CreateTargetContainerAtTimeBoundary: VFS resolved temp dir to: " + tempDir );
     }
@@ -444,7 +444,7 @@ PubSubStorageTool::GetOrCreateTargetContainerAtTimeBoundary( TDateTimeToTimeBoun
 {GUCEF_TRACE;
 
     CORE::CDateTime minClampedDt;
-    if ( !datetime.ClampToBoundary( timeBoundary, TBoundaryType::BOUNDARYTYPE_MINIMUM, minClampedDt ) )
+    if ( !datetime.ClampToBoundary( timeBoundary, BOUNDARYTYPE_MINIMUM, minClampedDt ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubStorageTool:GetOrCreateTargetContainerAtTimeBoundary: Cannot clamp dt to minimum boundary" );
         return false;
@@ -604,7 +604,7 @@ PubSubStorageTool::PerformReSplit( void )
                 const CORE::CDateTime& msgDt = msg.GetMsgDateTime();
 
                 CORE::CDateTime minClampedDt;
-                if ( !msgDt.ClampToBoundary( timeBoundaryValue, TBoundaryType::BOUNDARYTYPE_MINIMUM, minClampedDt ) )
+                if ( !msgDt.ClampToBoundary( timeBoundaryValue, BOUNDARYTYPE_MINIMUM, minClampedDt ) )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubStorageTool:PerformReSplit: Cannot clamp dt to minimum boundary" );
                     return false;

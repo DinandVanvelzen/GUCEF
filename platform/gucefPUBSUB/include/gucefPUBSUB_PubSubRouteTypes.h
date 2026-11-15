@@ -45,7 +45,7 @@ namespace PUBSUB {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum RouteType : CORE::Int32
+enum RouteType GUCEF_ENUM_BASE( CORE::Int32 )
 {
     Disabled        = 0 , /**< not a runtime active route */
     Active          = 1 , /**< the active route this varies between the available routes and the logic applied */

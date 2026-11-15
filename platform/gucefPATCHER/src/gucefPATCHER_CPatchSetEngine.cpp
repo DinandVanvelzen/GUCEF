@@ -63,7 +63,7 @@ CPatchSetEngine::CPatchSetEngine( void )
       CPatchSetFileEngineEvents()                     ,
       CPatchSetEngineEvents()                         ,
       m_patchSetDirEngine( new CPatchSetDirEngine() ) ,
-      m_patchSet( NULL )                              ,
+      m_patchSet()                                        ,
       m_dirIndex( 0 )                                 ,
       m_isActive( false )                             ,
       m_stopSignalGiven( false )                      ,
@@ -85,7 +85,7 @@ CPatchSetEngine::CPatchSetEngine( const CORE::PulseGeneratorPtr& pulseGenerator 
       CPatchSetFileEngineEvents()                                     ,
       CPatchSetEngineEvents()                                         ,
       m_patchSetDirEngine( new CPatchSetDirEngine( pulseGenerator ) ) ,
-      m_patchSet( NULL )                                              ,
+      m_patchSet()                                                        ,
       m_dirIndex( 0 )                                                 ,
       m_isActive( false )                                             ,
       m_stopSignalGiven( false )                                      ,
@@ -105,7 +105,7 @@ void
 CPatchSetEngine::Initialize( void )
 {GUCEF_TRACE;
 
-    assert( m_patchSetDirEngine != NULL );
+    assert( m_patchSetDirEngine != GUCEF_NULL );
 
     // Forward events from the dir engines
     AddForwardingForEvent( DirProcessingStartedEvent, EVENTORIGINFILTER_UNMODIFIED );
@@ -161,7 +161,7 @@ CPatchSetEngine::Start( const TPatchSet& patchSet               ,
                         const bool stopOnFileReplacementFailure )
 {GUCEF_TRACE;
 
-    assert( &patchSet != NULL );
+    assert( &patchSet != GUCEF_NULL );
 
     // The user should explicitly stop first if we are already busy
     if ( !IsActive() )

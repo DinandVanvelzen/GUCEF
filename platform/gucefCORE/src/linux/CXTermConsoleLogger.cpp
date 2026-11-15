@@ -95,7 +95,7 @@ CXTermConsoleLogger::CXTermConsoleLogger( bool initialize )
     , m_xtermpid( -1 )
     , m_masterfd( -1 )
     , m_slavefd( -1 )
-    , m_slaveFptr( NULL )
+    , m_slaveFptr( GUCEF_NULL )
     , m_logFormatter( CCoreGlobal::Instance()->GetLogManager().CreateDefaultLoggingFormatter() )
 {GUCEF_TRACE;
 
@@ -110,10 +110,10 @@ CXTermConsoleLogger::CXTermConsoleLogger( bool initialize )
 CXTermConsoleLogger::~CXTermConsoleLogger()
 {GUCEF_TRACE;
 
-    if ( NULL != m_slaveFptr )
+    if ( GUCEF_NULL != m_slaveFptr )
     {
         fclose( m_slaveFptr );
-        m_slaveFptr = NULL;
+        m_slaveFptr = GUCEF_NULL;
     }
     if ( m_masterfd != -1 )
     {
@@ -152,7 +152,7 @@ CXTermConsoleLogger::Initialize( void )
     GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "CXTermConsoleLogger: opened pseudo terminal master and slave" );
 
     m_slaveFptr = fdopen( m_slavefd, "w" );
-    if ( NULL == m_slaveFptr )
+    if ( GUCEF_NULL == m_slaveFptr )
     {
         close( m_masterfd );
         m_masterfd = -1;
@@ -201,7 +201,7 @@ CXTermConsoleLogger::Initialize( void )
                     close(i);
                 }
             }
-            execl("/usr/bin/xterm", "xterm", sopt, NULL);
+            execl("/usr/bin/xterm", "xterm", sopt, GUCEF_NULL);
             perror("/usr/bin/xterm");
 
             // We are the forked child and the exec failed
@@ -246,7 +246,7 @@ bool
 CXTermConsoleLogger::IsTerminalAttached( void )
 {GUCEF_TRACE;
 
-    if ( m_slavefd == -1 || m_xtermpid == -1 || m_slaveFptr == NULL )
+    if ( m_slavefd == -1 || m_xtermpid == -1 || m_slaveFptr == GUCEF_NULL )
         return false;
 
     // Check whether the xterm process is still running, this also reaps it if it exited
@@ -380,7 +380,7 @@ void
 CXTermConsoleLogger::FlushLog( void )
 {GUCEF_TRACE;
 
-    if ( m_slavefd != -1 && m_slaveFptr != NULL )
+    if ( m_slavefd != -1 && m_slaveFptr != GUCEF_NULL )
     {
         fflush( m_slaveFptr );
     }

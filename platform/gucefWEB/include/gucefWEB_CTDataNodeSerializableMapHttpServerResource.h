@@ -395,26 +395,26 @@ CTDataNodeSerializableMapHttpServerResource< CollectionKeyType, SerializableObj 
 
     if ( m_keyPropertyName.IsNULLOrEmpty() )
     {
-        return ECreateState::CREATESTATE_FAILED;
+        return CIHTTPServerResource::CREATESTATE_FAILED;
     }
 
     const CORE::CVariant& keyPropertyValue = input.GetAttributeValueOrChildValueByName( m_keyPropertyName );
     CollectionKeyType entryKey = keyPropertyValue.AsTValue< CollectionKeyType >();
     if ( keyPropertyValue.IsNULLOrEmpty() )
     {
-        return ECreateState::CREATESTATE_UNSUPPORTEDREPRESENTATION;
+        return CIHTTPServerResource::CREATESTATE_UNSUPPORTEDREPRESENTATION;
     }
 
     // Obtain a write lock to the collection
     MT::CObjectScopeLock lock( m_collectionLock );
 
     if ( GUCEF_NULL == m_collection )
-        return TCreateState::CREATESTATE_FAILED;
+        return CIHTTPServerResource::CREATESTATE_FAILED;
 
     typename TSerializableCollectionMap::iterator i = m_collection->find( entryKey );
     if ( i != m_collection->end() )
     {
-        return ECreateState::CREATESTATE_CONFLICTING;
+        return CIHTTPServerResource::CREATESTATE_CONFLICTING;
     }
 
     SerializableObj& newEntry = (*m_collection)[ entryKey ];
@@ -423,7 +423,7 @@ CTDataNodeSerializableMapHttpServerResource< CollectionKeyType, SerializableObj 
         if ( !m_valueSerializer->DeserializeType< SerializableObj >( newEntry, input, *m_serializerOptions ) )
         {
             m_collection->erase( entryKey );
-            return ECreateState::CREATESTATE_DESERIALIZATIONFAILED;
+            return CIHTTPServerResource::CREATESTATE_DESERIALIZATIONFAILED;
         }
     }
     else
@@ -432,11 +432,11 @@ CTDataNodeSerializableMapHttpServerResource< CollectionKeyType, SerializableObj 
         if ( !m_valueSerializer->DeserializeType< SerializableObj >( newEntry, input, defaultSerializableSettings ) )
         {
             m_collection->erase( entryKey );
-            return ECreateState::CREATESTATE_DESERIALIZATIONFAILED;
+            return CIHTTPServerResource::CREATESTATE_DESERIALIZATIONFAILED;
         }
     }
 
-    return ECreateState::CREATESTATE_CREATED;
+    return CIHTTPServerResource::CREATESTATE_CREATED;
 }
 
 /*-------------------------------------------------------------------------//

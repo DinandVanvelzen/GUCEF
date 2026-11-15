@@ -60,80 +60,92 @@ language( "C++" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "SharedLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
-  links( { "opus" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
+
+configuration( { "ANDROID32" } )
+links( { "opus" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiovoicecodecOPUS", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { ANDROID64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
-  links( { "opus" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
+
+configuration( { "ANDROID64" } )
+links( { "opus" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiovoicecodecOPUS", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
-  links( { "opus" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
+
+configuration( { "LINUX32" } )
+links( { "opus" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiovoicecodecOPUS", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
-  links( { "opus" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
+
+configuration( { "LINUX64" } )
+links( { "opus" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiovoicecodecOPUS", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
-  links( { "opus" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
+
+configuration( { "WIN32" } )
+links( { "opus" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiovoicecodecOPUS", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
-  links( { "opus" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "opus" } )
+
+configuration( { "WIN64" } )
+links( { "opus" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_AUDIOVOICECODEC_OPUS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiovoicecodecOPUS", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -263,7 +275,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefCORE/src", "../../../platform/gucefMT/include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/opus/.", "../../../dependencies/opus/celt", "../../../dependencies/opus/celt/arm", "../../../dependencies/opus/celt/mips", "../../../dependencies/opus/celt/x86", "../../../dependencies/opus/include", "../../../dependencies/opus/silk", "../../../dependencies/opus/silk/arm", "../../../dependencies/opus/silk/fixed", "../../../dependencies/opus/silk/fixed/arm", "../../../dependencies/opus/silk/fixed/mips", "../../../dependencies/opus/silk/float", "../../../dependencies/opus/silk/mips", "../../../dependencies/opus/silk/x86", "../../../dependencies/opus/src", "../../../platform/gucefCORE/include/android", "include" } )

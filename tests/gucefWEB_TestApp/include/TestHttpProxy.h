@@ -109,7 +109,7 @@ class CTestHttpProxy
         ::getsockname( m_listenFd, (struct sockaddr*) &addr, &length );
         m_port = ntohs( addr.sin_port );
         m_running = true;
-        if ( 0 != pthread_create( &m_thread, NULL, &CTestHttpProxy::AcceptMain, this ) )
+        if ( 0 != pthread_create( &m_thread, GUCEF_NULL, &CTestHttpProxy::AcceptMain, this ) )
         {
             m_running = false;
             return false;
@@ -127,7 +127,7 @@ class CTestHttpProxy
         m_running = false;
         if ( m_threadStarted )
         {
-            pthread_join( m_thread, NULL );
+            pthread_join( m_thread, GUCEF_NULL );
             m_threadStarted = false;
         }
         for ( int i=0; i<500 && GetLive() > 0; ++i )
@@ -176,7 +176,7 @@ class CTestHttpProxy
             pfd.revents = 0;
             if ( ::poll( &pfd, 1, 50 ) <= 0 || 0 == ( pfd.revents & POLLIN ) )
                 continue;
-            int fd = ::accept( self->m_listenFd, NULL, NULL );
+            int fd = ::accept( self->m_listenFd, GUCEF_NULL, GUCEF_NULL );
             if ( fd < 0 )
                 continue;
             SConnection* connection = new SConnection;
@@ -199,7 +199,7 @@ class CTestHttpProxy
             }
             pthread_attr_destroy( &attributes );
         }
-        return NULL;
+        return GUCEF_NULL;
     }
 
     static void* ConnectionMain( void* arg )
@@ -212,7 +212,7 @@ class CTestHttpProxy
         ::close( fd );
         MT::CScopeMutex lock( owner->m_lock );
         --owner->m_liveConnections;
-        return NULL;
+        return GUCEF_NULL;
     }
 
     static bool SendAll( int fd, const char* data, size_t size )
@@ -233,8 +233,8 @@ class CTestHttpProxy
         // the head of the request
         char buffer[ 16384 ];
         size_t have = 0;
-        const char* headEnd = NULL;
-        while ( m_running && NULL == headEnd && have < sizeof( buffer ) - 1 )
+        const char* headEnd = GUCEF_NULL;
+        while ( m_running && GUCEF_NULL == headEnd && have < sizeof( buffer ) - 1 )
         {
             struct pollfd pfd;
             pfd.fd = fd;
@@ -249,7 +249,7 @@ class CTestHttpProxy
             buffer[ have ] = '\0';
             headEnd = strstr( buffer, "\r\n\r\n" );
         }
-        if ( NULL == headEnd )
+        if ( GUCEF_NULL == headEnd )
             return;
 
         CORE::CString head( buffer, (UInt32) ( headEnd - buffer ) );

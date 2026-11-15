@@ -24,9 +24,13 @@ set( SOURCE_FILES
   src/gucefLabLink_TestApp_main.cpp
 )
 
-set( PLATFORM_HEADER_FILES "" )
-set( PLATFORM_SOURCE_FILES "" )
+# Make sure the PLATFORM_HEADER_FILES variable is always defined
+ set( PLATFORM_HEADER_FILES "" )
 
+# Make sure the PLATFORM_SOURCE_FILES variable is always defined
+ set( PLATFORM_SOURCE_FILES "" )
+
+# For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "gucefLabLink_TestApp" )
@@ -39,7 +43,7 @@ add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefM
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_LABLINK_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefLabLink_TestApp;MODULE_NAME=gucefLabLink_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefWEB/include ../../tools/gucefLabLink/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tools/gucefLabLink/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
@@ -64,6 +68,9 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin ../../platform/gucefWEB/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefTestHeaders )
 
 
 

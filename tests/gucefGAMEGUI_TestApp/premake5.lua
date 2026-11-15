@@ -60,80 +60,92 @@ language( "C++" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "ConsoleApp" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "ConsoleApp" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "WindowedApp" )
-  
-configuration( { ANDROID32 } )
-links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "ANDROID32" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestApp" } )
-  
-configuration( { ANDROID64 } )
-links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestApp" } )
-  
-configuration( { LINUX32 } )
-links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestApp" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestApp" } )
-  
-configuration( { WIN32 } )
-links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestApp" } )
-  
-configuration( { WIN64 } )
-links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefGAMEGUI", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefMULTIPLAY", "gucefVFS", "gucefVIDEO", "gucefWEB" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestApp" } )
 
 
@@ -389,7 +401,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefGAMEGUI/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefGAMEGUI/include", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMATH/include", "../../platform/gucefMATH/src", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../platform/gucefWEB/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android", "include" } )

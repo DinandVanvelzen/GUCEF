@@ -231,7 +231,7 @@ CAuthAccountEventData::Clone( void ) const
 
 CAuthManager::SPending::SPending( void )
     : managerSource()
-    , providerFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    , providerFuture( CORE::TASKSTATUS_UNDEFINED )
     , deadlineMs( 0 )
     , graceDeadlineMs( 0 )
     , readySeenMs( 0 )
@@ -727,7 +727,7 @@ CAuthManager::FailImmediately( const CORE::CString& providerName     ,
         CORE::CString extraInfo = AuthFailureReasonToString( reason );
         extraInfo += ": ";
         extraInfo += message;
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, extraInfo );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, extraInfo );
     }
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AuthManager: Login with " << providerName << " refused (" << AuthFailureReasonToString( reason ) << "): " << message );
     CAuthFailure failure( providerName, reason, message );
@@ -807,7 +807,7 @@ CAuthManager::StartLogin( const CORE::CString& providerName, const CAuthOptions&
     future = pending.managerSource.GetFuture();
     UpdateTimer();
 
-    CORE::CFutureResult providerFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult providerFuture( CORE::TASKSTATUS_UNDEFINED );
     if ( !provider->BeginLogin( effectiveOptions, providerFuture ) )
     {
         CAuthFailure failure( providerName, AUTHFAIL_NOT_AVAILABLE, "The provider could not start the login" );
@@ -1106,7 +1106,7 @@ CAuthManager::FinishPending( const CORE::CString& providerName, const CAuthResul
             CORE::CString extraInfo = AuthFailureReasonToString( outcome.reason );
             extraInfo += ": ";
             extraInfo += outcome.message;
-            pending.managerSource.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, extraInfo );
+            pending.managerSource.Fail( CORE::TASKSTATUS_STARTUP_FAILED, extraInfo );
         }
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AuthManager: Login with " << providerName << " failed (" << AuthFailureReasonToString( outcome.reason ) << "): " << outcome.message );
         NotifyObservers( LoginFailedEvent, &outcome );
@@ -1200,7 +1200,7 @@ CAuthManager::CheckPending( void )
                 else
                 {
                     CORE::CTaskPtr task = pending.providerFuture.GetResult();
-                    bool cancelled = !task.IsNULL() && CORE::TTaskStatus::TASKSTATUS_CANCELLED == task->GetTaskStatus();
+                    bool cancelled = !task.IsNULL() && CORE::TASKSTATUS_CANCELLED == task->GetTaskStatus();
                     CAuthFailure failure( names[ n ], cancelled ? AUTHFAIL_CANCELLED : AUTHFAIL_INTERNAL, "The provider ended the login without saying how" );
                     FinishPending( names[ n ], GUCEF_NULL, &failure );
                 }
@@ -1386,7 +1386,7 @@ CAuthManager::RunAutoSteps( void )
         if ( m_settings.autoLoginStepTimeoutInMs > 0 )
             pending.deadlineMs = GetMonotonicTimeInMs() + m_settings.autoLoginStepTimeoutInMs;
 
-        CORE::CFutureResult providerFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult providerFuture( CORE::TASKSTATUS_UNDEFINED );
         bool started = false;
         m_pending[ step.providerName ] = pending;
         if ( step.silent )

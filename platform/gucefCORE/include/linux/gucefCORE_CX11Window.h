@@ -165,7 +165,7 @@ class GUCEF_CORE_PUBLIC_CPP CX11Window : public COSWindow
 
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL );
+                           CICloneable* eventdata = GUCEF_NULL );
 
     private:
 

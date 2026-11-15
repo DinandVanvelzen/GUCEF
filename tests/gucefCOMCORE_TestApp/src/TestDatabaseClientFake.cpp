@@ -88,7 +88,7 @@ class CTestFakeDataTable : public CORE::CIDataTable
     static CORE::CFutureResult Refused( void )
     {GUCEF_TRACE;
 
-        return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
 
     CORE::CDataTableDefinition m_definition;

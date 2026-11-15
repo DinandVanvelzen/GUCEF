@@ -71,7 +71,7 @@ class GUCEF_PRODMAN_PUBLIC_CPP CCodecBasedProductInfoListProvider : public CProd
      */
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );
+                           CORE::CICloneable* eventdata = GUCEF_NULL );
 
     private:
 

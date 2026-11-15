@@ -200,7 +200,7 @@ FindIdenticalBlock( CORE::MFILE* file                   ,
     }
 
     delete []fileBlock;
-    fileBlock = NULL;
+    fileBlock = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -408,9 +408,9 @@ FindIdenticalBlocks( CORE::MFILE* file1                      ,
     }
 
     delete []prevTestBuffer;
-    prevTestBuffer = NULL;
+    prevTestBuffer = GUCEF_NULL;
     delete [](char*)testBuffer;
-    testBuffer = NULL;
+    testBuffer = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -442,7 +442,7 @@ FindIdenticalBlocks( const CORE::CString& file1         ,
     CORE::MFILE* file1Ptr = CORE::mfcreate( file1Buffer.GetBufferPtr(), file1Buffer.GetDataSize() );
     CORE::MFILE* file2Ptr = CORE::mfcreate( file2Buffer.GetBufferPtr(), file2Buffer.GetDataSize() );
 
-    if ( NULL != file1Ptr && NULL != file2Ptr )
+    if ( GUCEF_NULL != file1Ptr && GUCEF_NULL != file2Ptr )
     {
         FindIdenticalBlocks( file1Ptr             ,
                              file2Ptr             ,
@@ -450,11 +450,11 @@ FindIdenticalBlocks( const CORE::CString& file1         ,
                              testBlockSizeInBytes ,
                              preciseMatching      );
     }
-    if ( NULL != file1Ptr )
+    if ( GUCEF_NULL != file1Ptr )
     {
         CORE::mfdestroy( file1Ptr );
     }
-    if ( NULL != file2Ptr )
+    if ( GUCEF_NULL != file2Ptr )
     {
         CORE::mfdestroy( file2Ptr );
     }
@@ -470,7 +470,7 @@ WriteBlockMatchesAsTextFile( const TBlockMatchComboMap& blockMatchComboMap ,
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Writing matched blocks to text file at " + filename );
 
     FILE* fileOut = fopen( filename.C_String(), "w" );
-    if ( NULL == fileOut )
+    if ( GUCEF_NULL == fileOut )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to write matched blocks to text file at " + filename );
         return;
@@ -740,7 +740,7 @@ WriteBlocksAsHexInTextFile( const TBlockMatchVector& blocks ,
     }
 
     FILE* outFile = fopen( outputFile.C_String(), "w" );
-    if ( NULL == outFile )
+    if ( GUCEF_NULL == outFile )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to open text file for writing at " + outputFile );
         return;
@@ -788,7 +788,7 @@ WriteBlockMatchGapsAsTextFile( const TBlockMatchVector& unmatchedBlocks ,
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Writing match gaps to text file at " + outputFile );
 
     FILE* outFile = fopen( outputFile.C_String(), "w" );
-    if ( NULL == outFile )
+    if ( GUCEF_NULL == outFile )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to write unmatched block gaps to text file at " + outputFile );
         return;
@@ -929,18 +929,18 @@ MatchSpecificBlocks( const TBlockMatchVector& blocksToMatch ,
     CORE::MFILE* file1Ptr = CORE::mfcreate( sourceFileBuffer.GetBufferPtr(), sourceFileBuffer.GetDataSize() );
     CORE::MFILE* file2Ptr = CORE::mfcreate( searchFileBuffer.GetBufferPtr(), searchFileBuffer.GetDataSize() );
 
-    if ( NULL != file1Ptr && NULL != file2Ptr )
+    if ( GUCEF_NULL != file1Ptr && GUCEF_NULL != file2Ptr )
     {
         MatchSpecificBlocks( blocksToMatch ,
                              file1Ptr      ,
                              file2Ptr      ,
                              matches       );
     }
-    if ( NULL != file1Ptr )
+    if ( GUCEF_NULL != file1Ptr )
     {
         CORE::mfdestroy( file1Ptr );
     }
-    if ( NULL != file2Ptr )
+    if ( GUCEF_NULL != file2Ptr )
     {
         CORE::mfdestroy( file2Ptr );
     }
@@ -1123,7 +1123,7 @@ GUCEF_OSMAIN_BEGIN
     CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( &logger );
 
     // Do we want to display the console window?
-    CORE::CPlatformNativeConsoleLogger* consoleOut = NULL;
+    CORE::CPlatformNativeConsoleLogger* consoleOut = GUCEF_NULL;
     bool showConsole = defaultShowConsoleState;
     if ( keyValueList.HasKey( "showConsole" ) )
     {
@@ -1258,7 +1258,7 @@ GUCEF_OSMAIN_BEGIN
     }
 
     delete consoleOut;
-    consoleOut = NULL;
+    consoleOut = GUCEF_NULL;
 
     return 1;
 }

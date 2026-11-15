@@ -244,7 +244,7 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPClientSocket : public CTCPConnection
     
     void OnPulse( CORE::CNotifier* notifier           ,
                   const CORE::CEvent& eventid         ,
-                  CORE::CICloneable* eventdata = NULL );
+                  CORE::CICloneable* eventdata = GUCEF_NULL );
 
     CTCPClientSocket( void );                /* default constructor cannot be used since we need to register the socket */
     CTCPClientSocket& operator=( const CTCPClientSocket& src ); /* making a copy of a socket doesn't make sense */

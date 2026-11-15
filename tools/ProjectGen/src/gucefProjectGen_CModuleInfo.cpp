@@ -414,7 +414,7 @@ CModuleInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
 
     // Find all the module dependencies
     const CORE::CDataNode* dependenciesNode = moduleInfoNode->Find( "Dependencies" );
-    if ( NULL != dependenciesNode )
+    if ( GUCEF_NULL != dependenciesNode )
     {
         CORE::CDataNode::TConstDataNodeSet dependencies = dependenciesNode->FindChildrenOfType( "Dependency" );
         i = dependencies.begin();
@@ -432,7 +432,7 @@ CModuleInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
 
     // Get all the runtime module dependencies if any
     const CORE::CDataNode* rdependenciesNode = moduleInfoNode->Find( "RuntimeDependencies" );
-    if ( NULL != rdependenciesNode )
+    if ( GUCEF_NULL != rdependenciesNode )
     {
         CORE::CDataNode::TConstDataNodeSet dependencies = rdependenciesNode->FindChildrenOfType( "RuntimeDependency" );
         i = dependencies.begin();
@@ -450,7 +450,7 @@ CModuleInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
 
     // Get all the runtime module dependencies if any
     const CORE::CDataNode* ldependenciesNode = moduleInfoNode->Find( "LogicalDependencies" );
-    if ( NULL != ldependenciesNode )
+    if ( GUCEF_NULL != ldependenciesNode )
     {
         CORE::CDataNode::TConstDataNodeSet dependencies = ldependenciesNode->FindChildrenOfType( "LogicalDependency" );
         i = dependencies.begin();

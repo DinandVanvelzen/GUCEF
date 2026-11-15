@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "aws-cpp-sdk-core", "aws-crt-cpp" } )
+
+configuration( {} )
 links( { "aws-cpp-sdk-core", "aws-crt-cpp" } )
 
 

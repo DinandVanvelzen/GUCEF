@@ -55,9 +55,9 @@ CLLNode::CLLNode( void )
         /*
          *      Default contructor
          */
-        next = NULL;
-        prev = NULL;
-        link = NULL;
+        next = GUCEF_NULL;
+        prev = GUCEF_NULL;
+        link = GUCEF_NULL;
         GUCEF_END;
 }
 
@@ -70,8 +70,8 @@ CLLNode::CLLNode( void* set_link )
         /*
          *      contructor, init link to given void*
          */
-        next = NULL;
-        prev = NULL;
+        next = GUCEF_NULL;
+        prev = GUCEF_NULL;
         link = set_link;
         GUCEF_END;
 }
@@ -109,13 +109,13 @@ CLLNode::Detach( void )
                         GUCEF_END;
                         return;
                 }
-        	prev->next = NULL;
+        	prev->next = GUCEF_NULL;
         	GUCEF_END;
                 return;
         }
         if ( next )
         {
-        	next->prev = NULL;
+        	next->prev = GUCEF_NULL;
         }
         GUCEF_END;
 }

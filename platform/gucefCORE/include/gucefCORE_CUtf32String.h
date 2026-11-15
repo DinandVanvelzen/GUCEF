@@ -30,12 +30,16 @@
 #include <set>
 #include <string>
 #include <map>
-#include <unordered_map>
 
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"    /* macros that are GUCEF specific and generic macros */
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
+
+/* unordered containers are a C++11 addition */
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
+#include <unordered_map>
+#endif
 
 #ifndef GUCEF_CORE_ETYPES_H
 #include "ETypes.h"              /* simple types used */
@@ -89,18 +93,20 @@ class GUCEF_CORE_PUBLIC_CPP CUtf32String
     typedef GUCEF::set< CUtf32String, std::less< CUtf32String >, gucef_allocator< CUtf32String > >                                      StringSet;
     typedef std::pair< const CUtf32String, CUtf32String >                                                                             StringPair;
     typedef GUCEF::map< CUtf32String, CUtf32String, std::less< CUtf32String >, gucef_allocator< StringPair > >                          StringMap;
-    typedef std::unordered_map< CUtf32String, CUtf32String, std::less< CUtf32String >, gucef_allocator< StringPair > >               StringUMap;
     typedef std::pair< const CUtf32String, StringSet >                                                                               StringStringSetPair;
     typedef GUCEF::map< CUtf32String, StringSet, std::less< CUtf32String >, gucef_allocator< StringStringSetPair > >                    StringMapSet;
-    typedef std::unordered_map< CUtf32String, StringSet, std::less< CUtf32String >, gucef_allocator< StringStringSetPair > >          StringUMapSet;
     typedef std::pair< const CUtf32String, StringMap >                                                                               StringStringMapPair;
-    typedef std::pair< const CUtf32String, StringUMap >                                                                              StringStringUMapPair;
     typedef GUCEF::map< CUtf32String, StringMap, std::less< CUtf32String >, gucef_allocator< StringStringMapPair > >                    StringMapMap;
-    typedef std::unordered_map< CUtf32String, StringUMap, std::less< CUtf32String >, gucef_allocator< StringStringUMapPair > >        StringUMapUMap;
     typedef std::pair< const CUtf32String, StringMapSet >                                                                            StringStringMapSetPair;
-    typedef std::pair< const CUtf32String, StringUMapSet >                                                                           StringStringUMapSetPair;
     typedef GUCEF::map< CUtf32String, StringMapSet, std::less< CUtf32String >, gucef_allocator< StringStringMapSetPair > >              StringMapMapSet;
+    #ifdef GUCEF_STL_HAVE_CXX11_FEATURES
+    typedef std::unordered_map< CUtf32String, CUtf32String, std::less< CUtf32String >, gucef_allocator< StringPair > >               StringUMap;
+    typedef std::unordered_map< CUtf32String, StringSet, std::less< CUtf32String >, gucef_allocator< StringStringSetPair > >          StringUMapSet;
+    typedef std::pair< const CUtf32String, StringUMap >                                                                              StringStringUMapPair;
+    typedef std::unordered_map< CUtf32String, StringUMap, std::less< CUtf32String >, gucef_allocator< StringStringUMapPair > >        StringUMapUMap;
+    typedef std::pair< const CUtf32String, StringUMapSet >                                                                           StringStringUMapSetPair;
     typedef std::unordered_map< CUtf32String, StringUMapSet, std::less< CUtf32String >, gucef_allocator< StringStringUMapSetPair > > StringUMapUMapSet;
+    #endif
 
     static const CUtf32String   Empty;
     static const StringVector   EmptyStringVector;

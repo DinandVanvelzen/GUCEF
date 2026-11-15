@@ -161,7 +161,7 @@ public:
 
     virtual void OnMyCallback( CNotifier* notifier           ,
                                const CEvent& eventid         ,
-                               CICloneable* eventdata = NULL )
+                               CICloneable* eventdata = GUCEF_NULL )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer received event in custom callback" );
         m_eventCache[ m_index ] = eventid;
@@ -171,7 +171,7 @@ public:
 
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL )
+                           CICloneable* eventdata = GUCEF_NULL )
     {
 
         if ( eventid == CNotifier::DestructionEvent )
@@ -240,7 +240,7 @@ public:
     }
 
     void DoNotifyObservers( const CEvent& eventid         ,
-                            CICloneable* eventData = NULL )
+                            CICloneable* eventData = GUCEF_NULL )
     {
         NotifyObservers( eventid   ,
                          eventData );
@@ -285,7 +285,7 @@ protected:
 
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL )
+                           CICloneable* eventdata = GUCEF_NULL )
     {
         if ( eventid == CNotifier::DestructionEvent )
             ++m_destructionEvents;

@@ -639,7 +639,7 @@ CThreadPool::PrepTaskObj( const CString& taskType        ,
 {GUCEF_TRACE;
 
     if ( !m_acceptNewWork )
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
 /*
     // If the caller wants to have a reference to the task consumer we will create it now
@@ -651,20 +651,20 @@ CThreadPool::PrepTaskObj( const CString& taskType        ,
         if ( !GetOrCreateTaskConsumerOfType( taskType, taskConsumer ) )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot queue task of type \"" + taskType + "\" because no suitable task consumer is available" );
-            return TTaskStatus::TASKSTATUS_TASKTYPE_INVALID;
+            return CORE::TASKSTATUS_TASKTYPE_INVALID;
         }
         taskConsumer->Subscribe( taskObserver );
 
         // Assume queue success below for now, may have to undo if it fails
-        taskConsumer->SetTaskStatus( TTaskStatus::TASKSTATUS_QUEUED );
+        taskConsumer->SetTaskStatus( CORE::TASKSTATUS_QUEUED );
     }
 */
 
     CTaskPtr task;
-    if ( !GetOrCreateTaskObj( task ) || task.IsNULL() || task->GetTaskStatus() == TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED )
+    if ( !GetOrCreateTaskObj( task ) || task.IsNULL() || task->GetTaskStatus() == CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED )
     {
         TaskCleanup( task );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
     }
 
     if ( !task->Init( taskType                       ,
@@ -672,10 +672,10 @@ CThreadPool::PrepTaskObj( const CString& taskType        ,
                       taskData                       ,
                       assumeOwnershipOfTaskData      ,
                       GUCEF_NULL                     ,
-                      TTaskStatus::TASKSTATUS_SETUP  ,
+                      CORE::TASKSTATUS_SETUP  ,
                       CreateBasicSharedPtr()         ) )
     {
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_SETUP_FAILED );
     }
     return task;
 }
@@ -689,19 +689,19 @@ CThreadPool::ValidateTaskForIngress( CTaskPtr& task ) const
     if GUCEF_PREDICT_FALSE( task.IsNULL() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot queue task because it is NULL" );
-        return TTaskStatus::TASKSTATUS_QUEUEING_FAILED;
+        return CORE::TASKSTATUS_QUEUEING_FAILED;
     }
     if GUCEF_PREDICT_FALSE( task->IsTaskInErrorState() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot queue task because it is in an error state" );
-        return TTaskStatus::TASKSTATUS_QUEUEING_FAILED;
+        return CORE::TASKSTATUS_QUEUEING_FAILED;
     }
     if GUCEF_PREDICT_FALSE( !m_acceptNewWork )
     {
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED ;
+        task->SetTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED ;
     }
-    return TTaskStatus::TASKSTATUS_SETUP;
+    return CORE::TASKSTATUS_SETUP;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -713,7 +713,7 @@ CThreadPool::ValidateTaskChainForIngress( const TTaskPtrVector& tasks ) const
     if GUCEF_PREDICT_FALSE( tasks.empty() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot queue task chain because the task list is empty" );
-        return TTaskStatus::TASKSTATUS_QUEUEING_FAILED;
+        return CORE::TASKSTATUS_QUEUEING_FAILED;
     }
 
     // Validate the task chain before accepting it
@@ -724,12 +724,12 @@ CThreadPool::ValidateTaskChainForIngress( const TTaskPtrVector& tasks ) const
         if GUCEF_PREDICT_FALSE( task.IsNULL() )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot queue task chain because one of the tasks is NULL" );
-            return TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
+            return CORE::TASKSTATUS_TASK_CHAINING_FAILED;
         }
         if GUCEF_PREDICT_FALSE( task->IsTaskInErrorState() )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot queue task chain because one of the tasks is in an error state" );
-            return TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
+            return CORE::TASKSTATUS_TASK_CHAINING_FAILED;
         }
         ++i;
     }
@@ -740,13 +740,13 @@ CThreadPool::ValidateTaskChainForIngress( const TTaskPtrVector& tasks ) const
         while ( i != tasks.end() )
         {
             CTaskPtr task = (*i);
-            task->SetTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+            task->SetTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
             ++i;
         }
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED ;
+        return CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED ;
     }
 
-    return TTaskStatus::TASKSTATUS_SETUP;
+    return CORE::TASKSTATUS_SETUP;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -761,7 +761,7 @@ CThreadPool::QueueTask( CTaskPtr task )
         return status;
     }
 
-    task->SetTaskStatus( TTaskStatus::TASKSTATUS_QUEUED );
+    task->SetTaskStatus( CORE::TASKSTATUS_QUEUED );
 
     {
         MT::CObjectScopeLock lock( this );
@@ -790,13 +790,13 @@ CThreadPool::QueueTask( CTaskPtr task )
     {
         // Since we failed to add the task to the queue we need to roll back everything
 
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_QUEUEING_FAILED );
         {
             MT::CObjectScopeLock lock( this );
             m_inUseTaskObjs.erase( task->GetTaskId() );
         }
 
-        return TTaskStatus::TASKSTATUS_QUEUEING_FAILED;
+        return CORE::TASKSTATUS_QUEUEING_FAILED;
     }
 }
 
@@ -833,8 +833,8 @@ CThreadPool::QueueTaskChain( const TTaskPtrVector& tasks )
     }
 
     CTaskPtr firstTask = tasks.front();
-    firstTask->SetTaskStatus( TTaskStatus::TASKSTATUS_QUEUED );
-    status = TTaskStatus::TASKSTATUS_QUEUED;
+    firstTask->SetTaskStatus( CORE::TASKSTATUS_QUEUED );
+    status = CORE::TASKSTATUS_QUEUED;
 
     {
         TTaskQueuedEventData eventData( firstTask->GetTaskId() );
@@ -854,7 +854,7 @@ CThreadPool::QueueTaskChain( const TTaskPtrVector& tasks )
         while ( i != tasks.end() )
         {
             CTaskPtr task = (*i);
-            task->SetTaskStatus( TTaskStatus::TASKSTATUS_CHAIN_PREREQ_QUEUED );
+            task->SetTaskStatus( CORE::TASKSTATUS_CHAIN_PREREQ_QUEUED );
             m_inUseTaskObjs[ task->GetTaskId() ] = task;
 
             TTaskQueuedEventData eventData( task->GetTaskId() );
@@ -890,14 +890,14 @@ CThreadPool::QueueTaskChain( const TTaskPtrVector& tasks )
     {
         // Since we failed to add the first task to the queue we need to roll back everything
 
-        firstTask->SetTaskStatus( TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+        firstTask->SetTaskStatus( CORE::TASKSTATUS_QUEUEING_FAILED );
 
         TTaskPtrVector::const_iterator i = tasks.begin();
         ++i;
         while ( i != tasks.end() )
         {
             CTaskPtr task = (*i);
-            task->SetTaskStatus( TTaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED );
+            task->SetTaskStatus( CORE::TASKSTATUS_CHAIN_PREREQ_FAILED );
             ++i;
         }
 
@@ -912,7 +912,7 @@ CThreadPool::QueueTaskChain( const TTaskPtrVector& tasks )
             }            
         }
 
-        return TTaskStatus::TASKSTATUS_QUEUEING_FAILED;
+        return CORE::TASKSTATUS_QUEUEING_FAILED;
     }
 }
 
@@ -1092,7 +1092,7 @@ CThreadPool::GetOrCreateTaskObj( CTaskPtr& taskObj )
         return false;
     }
 
-    if ( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED == taskObj->GetTaskStatus() )
+    if ( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED == taskObj->GetTaskStatus() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):GetOrCreateTaskObj: Failed to create a new task object due to task internal resource limit" );
         return false;
@@ -1210,8 +1210,8 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
 
     // We will need a task object which represents the task to be executed
     // This variant of the function expects things to arrive more pre-baked
-    if ( task.IsNULL() || TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED == task->GetTaskStatus() )
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+    if ( task.IsNULL() || CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED == task->GetTaskStatus() )
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     // Sanity check: the task consumer should not already have a delegator assigned for this use-case
     CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
@@ -1219,7 +1219,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
     {
         TSystemThreadId threadId = taskConsumer->GetTaskDelegator()->GetThreadID();
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because the taskConsumer given already has a delegator (thread: " + ToString( threadId ) + ") assigned" );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_SETUP_FAILED );
         return task;
     }
 
@@ -1231,14 +1231,14 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
         if ( taskType.IsNULLOrEmpty() )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because it has no taskConsumer or task type" );
-            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKTYPE_INVALID );
+            return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKTYPE_INVALID );
         }
 
         bool consumerObtained = GetOrCreateTaskConsumerOfType( taskType, taskConsumer );
         if ( !consumerObtained || taskConsumer.IsNULL() )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because no taskConsumer could be obtained for task of type: " + taskType );
-            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_SETUP_FAILED );
+            return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_SETUP_FAILED );
         }
 
         // the task consumer was created by the pool so we already have a reference to it and are subscribed to its events
@@ -1268,7 +1268,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Refusing to setup task immediately of type \"" + task->GetTaskType() +
             "\" with id " + ToString( task->GetTaskId() ) + " because the thread pool is not accepting new work" );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        task->SetTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
         return task;
     }
 
@@ -1304,7 +1304,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskPtr task )
             "\" with task ID " + ToString( task->GetTaskId() )  + " and thread ID " + ToString( delegator->GetThreadID() )  );
 
         taskConsumer->SetCurrentTask( CTaskPtr() );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_STARTUP_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_STARTUP_FAILED );
         return task;
     }
 }
@@ -1324,13 +1324,13 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
 
     // We will need a task object which represents the task to be executed
     CTaskPtr task;
-    if ( !GetOrCreateTaskObj( task ) || task.IsNULL() || TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED == task->GetTaskStatus() )
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+    if ( !GetOrCreateTaskObj( task ) || task.IsNULL() || CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED == task->GetTaskStatus() )
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     if ( taskConsumer.IsNULL() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because a nullptr is passed as the taskConsumer" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_SETUP_FAILED );
     }
 
     MT::CObjectScopeLock lock( this );
@@ -1339,7 +1339,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
     if ( !m_acceptNewWork )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Refusing to setup task immediately of type \"" + taskConsumer->GetType() + "\" because the thread pool is not accepting new work" );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        task->SetTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
         return task;
     }
 
@@ -1348,7 +1348,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
     {
         TSystemThreadId threadId = taskConsumer->GetTaskDelegator()->GetThreadID();
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot setup task because the taskConsumer given already has a delegator (thread: " + ToString( threadId ) + ") assigned" );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_SETUP_FAILED );
         return task;
     }
 
@@ -1375,11 +1375,11 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
                                          taskData                      ,
                                          assumeOwnershipOfTaskData     ,
                                          taskDataDom                   ,
-                                         TTaskStatus::TASKSTATUS_SETUP ,
+                                         CORE::TASKSTATUS_SETUP ,
                                          CreateBasicSharedPtr()        ) )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):SetupSingularTaskImpl: Init failed for Task" );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_SETUP_FAILED );
         return task;
     }
 
@@ -1415,7 +1415,7 @@ CThreadPool::SetupSingularTaskImpl( CTaskConsumerPtr taskConsumer  ,
             "\" with task ID " + ToString( task->GetTaskId() )  + " and thread ID " + ToString( delegator->GetThreadID() )  );
 
         taskConsumer->SetCurrentTask( CTaskPtr() );
-        task->SetTaskStatus( TTaskStatus::TASKSTATUS_STARTUP_FAILED );
+        task->SetTaskStatus( CORE::TASKSTATUS_STARTUP_FAILED );
         return task;
     }
 }
@@ -1442,7 +1442,7 @@ CThreadPool::StartTaskChain( const TTaskPtrVector& tasks )
         while ( i != tasks.end() )
         {
             CTaskPtr task = (*i);
-            task->SetTaskStatus( TTaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED );
+            task->SetTaskStatus( CORE::TASKSTATUS_CHAIN_PREREQ_FAILED );
             ++i;
         }
 
@@ -1458,7 +1458,7 @@ CThreadPool::StartTaskChain( const TTaskPtrVector& tasks )
         while ( i != tasks.end() )
         {
             CTaskPtr task = (*i);
-            firstTask->SetTaskStatus( TTaskStatus::TASKSTATUS_CHAIN_PREREQ_QUEUED );
+            firstTask->SetTaskStatus( CORE::TASKSTATUS_CHAIN_PREREQ_QUEUED );
             m_inUseTaskObjs[ task->GetTaskId() ] = task;
             ++i;
         }
@@ -1529,7 +1529,7 @@ CThreadPool::StartTaskWithConsumer( CTaskConsumerPtr taskConsumer  ,
     if ( taskConsumer.IsNULL() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Cannot start task because a nullptr is passed as the taskConsumer" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_UNDEFINED );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_UNDEFINED );
     }
 
     // Check to see if setup has been performed yet
@@ -1574,7 +1574,7 @@ CThreadPool::StartTask( const CString& taskType        ,
 
     if ( !m_acceptNewWork )
     {        
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
     }
 
     CTaskConsumerPtr taskConsumer;
@@ -1583,7 +1583,7 @@ CThreadPool::StartTask( const CString& taskType        ,
         GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ThreadPool(" + m_poolName + "): Failed to start task of type \"" + taskType +
             " because no such task type is known" );
 
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKTYPE_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKTYPE_INVALID );
     }
 
     CFutureResult taskFuture = SetupSingularTaskImpl( taskConsumer, taskData, assumeOwnershipOfTaskData, GUCEF_NULL, true );
@@ -1618,14 +1618,14 @@ CThreadPool::StartTask( const CString& taskType        ,
     if ( taskDataPtr.IsNULL() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTask: Task of type \"" + taskType + "\" cannot be created because no task data factory exists for the given type" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKTYPE_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKTYPE_INVALID );
     }
 
     CDataNodeSerializableSettings defaultSerializerSettings;
     if ( !taskDataPtr->Deserialize( taskData, defaultSerializerSettings ) )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTask: Task of type \"" + taskType + "\" cannot be created because deserialization of the task data failed" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
 
     // Now start the task with the data we constructed    
@@ -1669,7 +1669,7 @@ CThreadPool::TaskOfTypeExists( const CString& taskType  ,
     if ( GUCEF_NULL != threadIdIfExists )
         *threadIdIfExists = 0; 
     if ( GUCEF_NULL != taskStatus )
-        *taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED; 
+        *taskStatus = CORE::TASKSTATUS_UNDEFINED; 
 
     return false;
 }
@@ -1687,12 +1687,12 @@ CThreadPool::StartTaskIfNoneExists( const CString& taskType        ,
     // Check if a task of the type given already exists while we have the lock
     UInt32 taskIdIfExists = 0;   
     TSystemThreadId threadIdIfExists = 0;
-    TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
+    TTaskStatus taskStatus = CORE::TASKSTATUS_UNDEFINED;
     if ( TaskOfTypeExists( taskType, &taskIdIfExists, &threadIdIfExists, &taskStatus ) )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTaskIfNoneExists: Task of type \"" + taskType + "\" with ID " +
                                             UInt32ToString( taskIdIfExists ) + " already exists and its using thread with ID " + ToString( threadIdIfExists ) );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASK_WITH_TYPE_EXISTS );
     }
 
 
@@ -1712,12 +1712,12 @@ CThreadPool::StartTaskIfNoneExists( const CString& taskType   ,
     // Check if a task of the type given already exists while we have the lock
     UInt32 taskIdIfExists = 0;   
     TSystemThreadId threadIdIfExists = 0;
-    TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
+    TTaskStatus taskStatus = CORE::TASKSTATUS_UNDEFINED;
     if ( TaskOfTypeExists( taskType, &taskIdIfExists, &threadIdIfExists, &taskStatus ) )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTaskIfNoneExists: Task of type \"" + taskType + "\" with ID " +
                                             UInt32ToString( taskIdIfExists ) + " already exists and its using thread with ID " + ToString( threadIdIfExists ) );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASK_WITH_TYPE_EXISTS );
     }
 
     // No such task exists, just create a new one
@@ -1727,14 +1727,14 @@ CThreadPool::StartTaskIfNoneExists( const CString& taskType   ,
     if ( taskDataPtr.IsNULL() )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTaskIfNoneExists: Task of type \"" + taskType + "\" cannot be created because no task data factory exists for the given type" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKTYPE_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKTYPE_INVALID );
     }
 
     CDataNodeSerializableSettings defaultSerializerSettings;
     if ( !taskDataPtr->Deserialize( taskData, defaultSerializerSettings ) )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):StartTaskIfNoneExists: Task of type \"" + taskType + "\" cannot be created because deserialization of the task data failed" );
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
 
     // Now start the task with the data we constructed    
@@ -1830,7 +1830,7 @@ CThreadPool::PerformTaskFailureChainCleanup( CTaskPtr task )
                 for ( size_t j=i+1; j<chainTasks.size(); ++j )
                 {
                     CTaskPtr& subsequentTask = chainTasks[ j ];
-                    subsequentTask->SetTaskStatus( TTaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED );
+                    subsequentTask->SetTaskStatus( CORE::TASKSTATUS_CHAIN_PREREQ_FAILED );
                 }
             }
         }
@@ -2192,9 +2192,9 @@ CThreadPool::RequestTaskCancellation( const UInt32 taskId    ,
         candidate->SetCancellationRequested( true );
 
         bool wasQueued = idsRemovedFromQueue.find( candidate->GetTaskId() ) != idsRemovedFromQueue.end();
-        if ( wasQueued || TTaskStatus::TASKSTATUS_CHAIN_PREREQ_QUEUED == candidate->GetTaskStatus() )
+        if ( wasQueued || CORE::TASKSTATUS_CHAIN_PREREQ_QUEUED == candidate->GetTaskStatus() )
         {
-            candidate->SetTaskStatus( TTaskStatus::TASKSTATUS_CANCELLED );
+            candidate->SetTaskStatus( CORE::TASKSTATUS_CANCELLED );
             endedHere.insert( candidate );
             if ( candidate->GetTaskId() == taskId )
                 mainTaskEndedHere = true;

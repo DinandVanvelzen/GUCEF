@@ -42,68 +42,76 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=imgpluginDEVIL" } )
-  
-configuration( { LINUX32 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "DevIL2" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
-  
-configuration( { LINUX64 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "DevIL2" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
-  
-configuration( { WIN32 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "DevIL2" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
-  
-configuration( { WIN64 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "DevIL2" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
 
 

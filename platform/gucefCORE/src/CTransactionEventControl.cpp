@@ -203,7 +203,7 @@ CTransactionEventControl::AddEventFilter( const CEvent& eventID                 
     if ( !IsEventFiltered( eventID ,
                            sender  ) )
     {
-    if ( NULL != sender )
+    if ( GUCEF_NULL != sender )
     {
             TFilterData& filterdata = (m_senderFilterMap[ sender ])[ eventID ];
         filterdata.filterAction = filterAction;
@@ -236,7 +236,7 @@ CTransactionEventControl::RemoveEventFilter( const CEvent& eventID              
     bool retValue = false;
 
     m_mutex.Lock();
-    if ( NULL != sender )
+    if ( GUCEF_NULL != sender )
     {
         TSenderFilterMap::iterator i = m_senderFilterMap.find( sender );
         if ( i != m_senderFilterMap.end() )
@@ -272,7 +272,7 @@ CTransactionEventControl::IsEventFiltered( const CEvent& eventID   ,
     bool retValue = false;
 
     m_mutex.Lock();
-    if ( NULL != sender )
+    if ( GUCEF_NULL != sender )
     {
         TSenderFilterMap::const_iterator i = m_senderFilterMap.find( sender );
         if ( i != m_senderFilterMap.end() )
@@ -311,7 +311,7 @@ CTransactionEventControl::GetFilterInfo( const CEvent& eventID            ,
     bool retValue = false;
 
     m_mutex.Lock();
-    if ( NULL != sender )
+    if ( GUCEF_NULL != sender )
     {
         TSenderFilterMap::const_iterator i = m_senderFilterMap.find( sender );
         if ( i != m_senderFilterMap.end() )
@@ -375,7 +375,7 @@ CTransactionEventControl::ApplyFilter( const TFilterMap& filterMap ,
                 m_mailbox.Delete( eventID );
                 
                 // Apply the origin filter to the message
-                CNotifier* sender = NULL;
+                CNotifier* sender = GUCEF_NULL;
                 switch ( filterdata.originFilter )
                 {
                     case EVENTORIGINFILTER_TRANSFER :
@@ -404,7 +404,7 @@ CTransactionEventControl::ApplyFilter( const TFilterMap& filterMap ,
                 else
                 {
                     // Add the latest version and drop it's data
-                    CMailElement mail( sender, NULL );
+                    CMailElement mail( sender, GUCEF_NULL );
                     m_mailbox.AddMail( eventID, &mail );
                 }
                 

@@ -150,7 +150,7 @@ CSocket::ConvertToIPAddress( const CORE::CString& destaddrstr ,
 
         int errorCode = 0;
         struct hostent* retval = dvsocket_gethostbyname( destaddrstr.C_String(), &errorCode );
-        if ( retval != NULL )
+        if ( retval != GUCEF_NULL )
         {
             GUCEF_DEBUG_LOG( 1, CORE::CString( "CSocket::ConvertToIPAddress(): gethostbyname(): full name: " ) + retval->h_name );
             char* addrStr = inet_ntoa( *( struct ::in_addr*)( retval->h_addr_list[0] ) );
@@ -168,11 +168,11 @@ CSocket::ConvertToIPAddress( const CORE::CString& destaddrstr ,
 
         /* Alternate method */
 
-        struct addrinfo* info = NULL;
+        struct addrinfo* info = GUCEF_NULL;
         CORE::CString portString( CORE::Int32ToString( destport ) );
         int retval = getaddrinfo( destaddrstr.C_String() ,
                                   portString.C_String()  ,
-                                  NULL                   ,
+                                  GUCEF_NULL                   ,
                                   &info                  );
         if ( retval == 0 )
         {
@@ -208,7 +208,7 @@ CSocket::ConvertFromIPAddress( const CIPv4Address& src     ,
     #endif
 
     const char* addrStr = inet_ntoa( addrStruct );
-    if ( addrStr != NULL )
+    if ( addrStr != GUCEF_NULL )
     {
         srcaddrstr = addrStr;
         srcport = ntohs( src.GetPort() );

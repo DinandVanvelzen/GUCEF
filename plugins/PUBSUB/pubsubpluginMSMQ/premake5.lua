@@ -30,32 +30,36 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=pubsubpluginMSMQ" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
-  links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+
+configuration( { "WIN32" } )
+links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+
+
+configuration( { "WIN32" } )
 defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginMSMQ", "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
-  links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+
+configuration( { "WIN64" } )
+links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+
+
+configuration( { "WIN64" } )
 defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginMSMQ", "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" } )
 
 

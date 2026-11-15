@@ -95,7 +95,7 @@ CPulseGenerator::CPulseGenerator( void )
     , m_ticksPerMs( 1000 )                             
     , m_forcedStopOfPeriodPulses( false )              
     , m_periodicUpdateRequestors()                     
-    , m_driver( NULL )    
+    , m_driver( GUCEF_NULL )    
     , m_driverThreadId( 0 )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverSystemThreadId, 0 )
     , m_notificationLock()
@@ -206,7 +206,7 @@ CPulseGenerator::RequestPeriodicPulses( void* requestor )
 
     MT::CScopeMutex lock( m_dataLock );
     m_periodicUpdateRequestors[ requestor ] = m_updateDeltaInMilliSecs;
-    if ( m_driver != NULL && m_periodicUpdateRequestors.size() == 1 )
+    if ( m_driver != GUCEF_NULL && m_periodicUpdateRequestors.size() == 1 )
     {
         m_driver->RequestPeriodicPulses( *this, m_updateDeltaInMilliSecs );
         return;
@@ -341,7 +341,7 @@ CPulseGenerator::RequestPulseInterval( const UInt32 minimalPulseDeltaInMilliSecs
 
     if ( minimalPulseDeltaInMilliSecs < m_updateDeltaInMilliSecs )
     {
-        if ( NULL != m_driver )
+        if ( GUCEF_NULL != m_driver )
         {
             m_updateDeltaInMilliSecs = minimalPulseDeltaInMilliSecs;
             m_driver->RequestPulseInterval( *this, m_updateDeltaInMilliSecs );
@@ -553,7 +553,7 @@ CPulseGenerator::AllowPeriodicPulses( void )
     if ( m_forcedStopOfPeriodPulses )
     {
         m_forcedStopOfPeriodPulses = false;        
-        if ( NULL != m_driver && m_periodicUpdateRequestors.size() > 0 )
+        if ( GUCEF_NULL != m_driver && m_periodicUpdateRequestors.size() > 0 )
         {
             m_driver->RequestPeriodicPulses( *this, m_updateDeltaInMilliSecs );
             return;
@@ -571,7 +571,7 @@ CPulseGenerator::RequestPeriodicPulses( void )
 
     if ( !m_forcedStopOfPeriodPulses )
     {
-        if ( NULL != m_driver )
+        if ( GUCEF_NULL != m_driver )
         {
             m_driver->RequestPeriodicPulses( *this, m_updateDeltaInMilliSecs );
             return;

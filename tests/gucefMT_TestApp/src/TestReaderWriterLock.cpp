@@ -409,7 +409,7 @@ CRwLockTestData::Configure( void )
     
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CRwLockTestData:Shutdown: Configuring " + CORE::ToString( nrOfWriters ) + " writers" );
     
-    writers.resize( nrOfWriters );
+    TTestWriterVector( nrOfWriters ).swap( writers );
     TTestWriterVector::iterator w = writers.begin();
     while ( w != writers.end() )
     {
@@ -420,7 +420,7 @@ CRwLockTestData::Configure( void )
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CRwLockTestData:Shutdown: Configuring " + CORE::ToString( nrOfReaders ) + " readers" );
 
-    readers.resize( nrOfReaders );
+    TTestReaderVector( nrOfReaders ).swap( readers );
     TTestReaderVector::iterator r = readers.begin();
     while ( r != readers.end() )
     {
@@ -431,7 +431,7 @@ CRwLockTestData::Configure( void )
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CRwLockTestData:Shutdown: Configuring " + CORE::ToString( nrOfReaderAndWriters ) + " reader-writers" );
 
-    readerAndWriters.resize( nrOfReaderAndWriters );
+    TTestReaderAndWriterVector( nrOfReaderAndWriters ).swap( readerAndWriters );
     TTestReaderAndWriterVector::iterator d = readerAndWriters.begin();
     while ( d != readerAndWriters.end() )
     {
@@ -695,7 +695,7 @@ CTestWriter::CTestWriter( void )
     , m_testData( GUCEF_NULL )
     , m_onThreadStartWasTriggered( false )
     , m_onThreadEndingWasTriggered( false )
-    , m_lastRwLockOpResult( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lastRwLockOpResult( MT::CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_rwLockFailed( false )
     , m_isDone( false )
     , m_ticksAtLastCycle( 0 )
@@ -815,7 +815,7 @@ CTestWriter::OnThreadStart( void* taskdata )
     else
     {
         m_lastRwLockOpResult = m_testData->rwLock.WriterStart();
-        if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+        if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
             m_rwLockFailed = true;
     }
     return true;
@@ -874,7 +874,7 @@ CTestWriter::OnThreadCycle( void* taskdata )
         else
         {
             m_lastRwLockOpResult = m_testData->rwLock.WriterStart();
-            if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+            if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
             {
                 m_rwLockFailed = true;
             }
@@ -936,7 +936,7 @@ CTestWriter::OnThreadEnding( void* taskdata, bool willBeForced )
                 // We must unroll the reentrancy on this thread
                 // similar to rolling up in the call stack
                 m_lastRwLockOpResult = m_testData->rwLock.WriterStop();
-                if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+                if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
                 {
                     m_rwLockFailed = true;
                 }
@@ -944,7 +944,7 @@ CTestWriter::OnThreadEnding( void* taskdata, bool willBeForced )
         }
 
         m_lastRwLockOpResult = m_testData->rwLock.WriterStop();
-        if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+        if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
         {
             m_rwLockFailed = true;
         }
@@ -960,7 +960,7 @@ CTestReader::CTestReader( void )
     , m_testData( GUCEF_NULL )
     , m_onThreadStartWasTriggered( false )
     , m_onThreadEndingWasTriggered( false )
-    , m_lastRwLockOpResult( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lastRwLockOpResult( MT::CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_rwLockFailed( false )
     , m_isDone( false )
     , m_ticksAtLastCycle( 0 )
@@ -1079,7 +1079,7 @@ CTestReader::OnThreadStart( void* taskdata )
     else
     {
         m_lastRwLockOpResult = m_testData->rwLock.ReaderStart();    
-        if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+        if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
             m_rwLockFailed = true;
     
     }
@@ -1138,7 +1138,7 @@ CTestReader::OnThreadCycle( void* taskdata )
             // We already hold the lock to be able to get here
             // however we will now make a reentrant lock request from the same thread
             m_lastRwLockOpResult = m_testData->rwLock.ReaderStart();
-            if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+            if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
             {
                 m_rwLockFailed = true;
             }
@@ -1202,7 +1202,7 @@ CTestReader::OnThreadEnding( void* taskdata, bool willBeForced )
                 // We must unroll the reentrancy on this thread
                 // similar to rolling up in the call stack
                 m_lastRwLockOpResult = m_testData->rwLock.ReaderStop();
-                if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+                if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
                 {
                     m_rwLockFailed = true;
                 }
@@ -1210,7 +1210,7 @@ CTestReader::OnThreadEnding( void* taskdata, bool willBeForced )
         }
 
         m_lastRwLockOpResult = m_testData->rwLock.ReaderStop();
-        if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+        if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
             m_rwLockFailed = true;
 
     }
@@ -1224,7 +1224,7 @@ CTestReaderAndWriter::CTestReaderAndWriter( void )
     , m_testData( GUCEF_NULL )
     , m_onThreadStartWasTriggered( false )
     , m_onThreadEndingWasTriggered( false )
-    , m_lastRwLockOpResult( TRWLockStates::RWLOCK_OPERATION_FAILED )
+    , m_lastRwLockOpResult( MT::CReadWriteLock::RWLOCK_OPERATION_FAILED )
     , m_rwLockFailed( false )
     , m_isDone( false )
     , m_ticksAtLastCycle( 0 )
@@ -1384,13 +1384,13 @@ CTestReaderAndWriter::OnThreadStart( void* taskdata )
         if ( m_testData->readerAndWriterUsesTopLevelReader )
         {
             m_lastRwLockOpResult = m_testData->rwLock.ReaderStart();
-            if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+            if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
                 m_rwLockFailed = true;
         }
         else
         {
             m_lastRwLockOpResult = m_testData->rwLock.WriterStart();
-            if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+            if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
                 m_rwLockFailed = true;
         }
     }
@@ -1474,7 +1474,7 @@ CTestReaderAndWriter::OnThreadCycle( void* taskdata )
         else
         {
             m_lastRwLockOpResult = m_testData->rwLock.WriterStart();
-            if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+            if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
             {
                 m_rwLockFailed = true;
             }
@@ -1544,7 +1544,7 @@ CTestReaderAndWriter::OnThreadEnding( void* taskdata, bool willBeForced )
                 // We must unroll the reentrancy on this thread
                 // similar to rolling up in the call stack
                 m_lastRwLockOpResult = m_testData->rwLock.WriterStop();
-                if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+                if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
                 {
                     m_rwLockFailed = true;
                 }
@@ -1552,7 +1552,7 @@ CTestReaderAndWriter::OnThreadEnding( void* taskdata, bool willBeForced )
         }
 
         m_lastRwLockOpResult = m_testData->rwLock.WriterStop();
-        if ( TRWLockStates::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
+        if ( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS != m_lastRwLockOpResult )
         {
             m_rwLockFailed = true;
         }
@@ -1625,7 +1625,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReader( bool writersHavePriority,
         ASSERT_TRUE( 0 == activeWriterCount );
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
@@ -1636,7 +1636,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReader( bool writersHavePriority,
         ASSERT_TRUE( 0 == activeWriterCount );
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
         activeWriterCount = testData.rwLock.ActiveWriterCount();
@@ -1678,7 +1678,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriter( bool writersHavePriority,
         ASSERT_TRUE( 0 == activeWriterCount );
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
@@ -1687,7 +1687,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriter( bool writersHavePriority,
         ASSERT_TRUE( 1 == activeWriterCount );
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeWriterCount = testData.rwLock.ActiveWriterCount();
         queuedReaderCount = testData.rwLock.QueuedReaderCount();
@@ -1734,7 +1734,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderReentrant( bool writersHave
         {
             // note that the first pass is not re-entrant
 
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
             activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
@@ -1748,7 +1748,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderReentrant( bool writersHave
         }
         for ( UInt32 i=0; i<reentrancyDepth; ++i )
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
             activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
@@ -1814,7 +1814,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriterReentrant( bool writersHave
         UInt32 desiredReentrancyDepth = 5;
         for ( UInt32 i=0; i<=desiredReentrancyDepth; ++i )
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
             activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
@@ -1830,7 +1830,7 @@ PerformReaderWriterLockSingleThreadTests_SingleWriterReentrant( bool writersHave
         }
         for ( UInt32 i=0; i<=desiredReentrancyDepth; ++i )
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
             activeReaderCount = testData.rwLock.ActiveReaderCount();
             activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
             activeWriterCount = testData.rwLock.ActiveWriterCount();
@@ -1917,12 +1917,12 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterReentrant( bool write
             bool actAsWriter = depthIsWriterFlags[ i ];
             if ( actAsWriter )
             {
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
                 ++writeCount;
             }
             else
             {
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
                 ++readCount;
             }
             activeReaderCount = testData.rwLock.ActiveReaderCount();
@@ -1951,11 +1951,11 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterReentrant( bool write
             bool actAsWriter = depthIsWriterFlags[ i ];
             if ( actAsWriter )
             {
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
             }
             else
             {
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
             }
             activeReaderCount = testData.rwLock.ActiveReaderCount();
             activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2038,8 +2038,8 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
         // we dont have a lock and as such should not be able to transition
         // cannot run in debug builds since the rw lock code itself will hit an assert
         #ifndef GUCEF_DEBUG_MODE
-        ASSERT_FALSE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_FALSE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_FALSE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_FALSE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2060,12 +2060,12 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
         bool actAsWriter = !testData.readerAndWriterUsesTopLevelReader;
         if ( actAsWriter )
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
             ++writeCount;
         }
         else
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
             ++readCount;
         }
 
@@ -2090,7 +2090,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
             if ( lastWasWriter && !actAsWriter )
             {
                 // we are a writer becoming a reader
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
                 --writeCount;
                 ++readCount;
             }
@@ -2098,7 +2098,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
             if ( !lastWasWriter && actAsWriter )
             {
                 // we are a reader becoming a writer
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
                 --readCount;
                 ++writeCount;
             }
@@ -2129,11 +2129,11 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransition( b
         bool lastWasWriter = actAsWriter;
         if ( lastWasWriter )
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
         }
         else
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
         }
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
@@ -2198,12 +2198,12 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
         
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2218,12 +2218,12 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2238,9 +2238,9 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2255,10 +2255,10 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2273,11 +2273,11 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2292,7 +2292,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2307,15 +2307,15 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2330,7 +2330,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2345,7 +2345,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2360,17 +2360,17 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2385,7 +2385,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         ASSERT_TRUE( 0 == queuedReaderCount );
         ASSERT_TRUE( 0 == queuedWriterCount );
 
-        ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+        ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
 
         activeReaderCount = testData.rwLock.ActiveReaderCount();
         activeReaderReentrantCount = testData.rwLock.ActiveReaderReentrancyDepth( MT::GetCurrentThreadID() );
@@ -2462,12 +2462,12 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
         bool actAsWriter = depthIsWriterFlags[ 0 ];
         if ( actAsWriter )
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
             ++writeCount;
         }
         else
         {
-            ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+            ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
             ++readCount;
         }
 
@@ -2479,21 +2479,21 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
             if ( lastWasWriter && actAsWriter )
             {
                 // just a reentrant write
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStart() );
                 ++writeCount;
             }
             else
             if ( !lastWasWriter && !actAsWriter )
             {
                 // just a reentrant read
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStart() );
                 ++readCount;
             }
             else
             if ( lastWasWriter && !actAsWriter )
             {
                 // we are a writer becoming a reader
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionWriterToReader() );
                 --writeCount;
                 ++readCount;
             }
@@ -2501,7 +2501,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
             if ( !lastWasWriter && actAsWriter )
             {
                 // we are a reader becoming a writer
-                ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
+                ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.TransitionReaderToWriter() );
                 --readCount;
                 ++writeCount;
             }
@@ -2534,7 +2534,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
             {
                 if ( writeCount > 0 )
                 {
-                    ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
+                    ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.WriterStop() );
                     --writeCount;
                 }
             }
@@ -2542,7 +2542,7 @@ PerformReaderWriterLockSingleThreadTests_SingleReaderWriterExplicitTransitionRee
             {
                 if ( readCount > 0 )
                 {
-                    ASSERT_TRUE( MT::CReadWriteLock::TRWLockStates::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
+                    ASSERT_TRUE( MT::CReadWriteLock::RWLOCK_OPERATION_SUCCESS == testData.rwLock.ReaderStop() );
                     --readCount;
                 }
             }

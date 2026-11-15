@@ -585,8 +585,8 @@ CKafkaPubSubClient::BeginTopicDiscovery( const CORE::CString::StringSet& globPat
     try
     {
         RdKafka::Metadata* metaDataInfo = GUCEF_NULL;
-        RdKafka::ErrorCode errorCode = m_kafkaProducer->metadata( true, NULL, &metaDataInfo, 10000 );
-        if ( RdKafka::ErrorCode::ERR_NO_ERROR == errorCode )
+        RdKafka::ErrorCode errorCode = m_kafkaProducer->metadata( true, GUCEF_NULL, &metaDataInfo, 10000 );
+        if ( RdKafka::ERR_NO_ERROR == errorCode )
         {
                 
         }

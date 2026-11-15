@@ -161,13 +161,13 @@ class CLobbyFixture
         GUCEF::CORE::CString::StringVector endpoints;
         endpoints.push_back( "udp://127.0.0.1:" + GUCEF::CORE::ToString( 5001 + index ) );
         service.SetLocalEndpoints( endpoints );
-        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TASKSTATUS_UNDEFINED );
         return service.Connect( identity, future ) && service.IsConnected();
     }
 
     GUCEF::MULTIPLAY::CILobbyPtr Join( GUCEF::UInt32 index, bool asSpectator )
     {
-        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TASKSTATUS_UNDEFINED );
         GUCEF::MULTIPLAY::CILobbyPtr lobby;
         if ( services[ index ].JoinLobby( lobbyId, GUCEF::CORE::CString::Empty, asSpectator, future ) )
             GUCEF::MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, lobby );
@@ -181,7 +181,7 @@ class CLobbyFixture
              !Connect( 2, "carol-id", "Carol" ) || !Connect( 3, "dave-id", "Dave" ) )
             return false;
 
-        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        GUCEF::CORE::CFutureResult future( GUCEF::CORE::TASKSTATUS_UNDEFINED );
         if ( !services[ 0 ].CreateLobby( params, future ) || !GUCEF::MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, alice ) )
             return false;
         lobbyId = alice->GetState().lobbyId;

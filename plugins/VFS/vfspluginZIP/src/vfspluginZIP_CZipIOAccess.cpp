@@ -92,11 +92,11 @@ void
 CZipIOAccess::Close( void )
 {GUCEF_TRACE;
 
-    if ( NULL == m_zzipFile )
+    if ( GUCEF_NULL == m_zzipFile )
         return;
     MT::CScopeMutex lock( m_zipLock );
     zzip_file_close( m_zzipFile );
-    m_zzipFile = NULL;
+    m_zzipFile = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -105,7 +105,7 @@ bool
 CZipIOAccess::Opened( void ) const
 {GUCEF_TRACE;
 
-    return NULL != m_zzipFile;
+    return GUCEF_NULL != m_zzipFile;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -238,7 +238,7 @@ CORE::CICloneable*
 CZipIOAccess::Clone( void ) const
 {GUCEF_TRACE;
 
-    return NULL;
+    return GUCEF_NULL;
 }
     
 /*-------------------------------------------------------------------------//

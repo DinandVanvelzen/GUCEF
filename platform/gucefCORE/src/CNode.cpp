@@ -170,7 +170,7 @@ CNode::DetachNode( void )
 	//
 	if ( _pparent && ( _pparent->_pchild == this ) )
 	{
-        	_pparent->_pchild = ( _pnext == this) ? NULL : _pnext;
+        	_pparent->_pchild = ( _pnext == this) ? GUCEF_NULL : _pnext;
 	}
 
 	//
@@ -183,7 +183,7 @@ CNode::DetachNode( void )
         }
 	_pprev = this;
 	_pnext = this;
-	_pparent = NULL;
+	_pparent = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -352,8 +352,8 @@ CNode::~CNode()
 /*-------------------------------------------------------------------------*/
 
 CNode::CNode( void ) 
-        : _pparent( NULL ), 
-          _pchild( NULL )
+        : _pparent( GUCEF_NULL ), 
+          _pchild( GUCEF_NULL )
 {
         _pprev = _pnext = this;
 }
@@ -361,8 +361,8 @@ CNode::CNode( void )
 /*-------------------------------------------------------------------------*/
 
 CNode::CNode( CNode *pnode ) 
-        : _pparent( NULL ), 
-          _pchild( NULL )
+        : _pparent( GUCEF_NULL ), 
+          _pchild( GUCEF_NULL )
 {	
         _pprev = _pnext = this;
 	AttachToNode( pnode );

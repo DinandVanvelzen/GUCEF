@@ -12,7 +12,10 @@
 -- Configuration for module: audiocodecpluginOGG
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "audiocodecpluginOGG" )
+
+configuration( { "ANDROID64" } )
   project( "audiocodecpluginOGG" )
 
 configuration( { "LINUX32" } )
@@ -36,74 +39,116 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { "ANDROID32" } )
+kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
-  links( { "libogg", "libvorbis", "opus", "opusfile" } )
-  
 
-configuration( { ANDROID } )
-defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
 links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
-  links( { "libogg", "libvorbis", "opus", "opusfile" } )
-  
 
-configuration( { LINUX32 } )
-defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
-  links( { "libogg", "libvorbis", "opus", "opusfile" } )
-  
+configuration( { "ANDROID32" } )
+links( { "libogg", "libvorbis", "opus", "opusfile" } )
 
-configuration( { LINUX64 } )
-defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
-  links( { "libogg", "libvorbis", "opus", "opusfile" } )
-  
 
-configuration( { WIN32 } )
-defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { WIN64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
-  links( { "libogg", "libvorbis", "opus", "opusfile" } )
-  
-
-configuration( { WIN64 } )
+configuration( { "ANDROID32" } )
 defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
 
+configuration( { "ANDROID64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+links( { "libogg", "libvorbis", "opus", "opusfile" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
+
+configuration( { "LINUX32" } )
+links( { "libogg", "libvorbis", "opus", "opusfile" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
+
+configuration( { "LINUX64" } )
+links( { "libogg", "libvorbis", "opus", "opusfile" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
+
+configuration( { "WIN32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
+
+configuration( { "WIN32" } )
+links( { "libogg", "libvorbis", "opus", "opusfile" } )
+
+
+configuration( { "WIN32" } )
+defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
+
+configuration( { "WIN64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT", "libogg", "libvorbis", "opus", "opusfile" } )
+
+configuration( { "WIN64" } )
+links( { "libogg", "libvorbis", "opus", "opusfile" } )
+
+
+configuration( { "WIN64" } )
+defines( { "GUCEF_AUDIOCODECPLUGIN_OGG_BUILD_MODULE", "GUCEF_AUDIOCODECPLUGIN_OGG_HAVE_OPUS", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiocodecpluginOGG", "MODULE_SEMVER=0_1_0_0" } )
+
+
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/audiocodecpluginOGG.h",
+      "include/audiocodecpluginOGG_internal.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/audiocodecpluginOGG.c",
+      "src/audiocodecpluginOGG_common.c",
+      "src/audiocodecpluginOGG_opus.c",
+      "src/audiocodecpluginOGG_vorbis.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/audiocodecpluginOGG.h",
@@ -188,9 +233,12 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefCORE/src", "../../../platform/gucefMT/include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../dependencies/libogg/include", "../../../dependencies/libogg/include/ogg", "../../../dependencies/libogg/src", "../../../dependencies/libvorbis/include", "../../../dependencies/libvorbis/include/vorbis", "../../../dependencies/libvorbis/lib", "../../../dependencies/libvorbis/lib/books/coupled", "../../../dependencies/libvorbis/lib/books/floor", "../../../dependencies/libvorbis/lib/books/uncoupled", "../../../dependencies/libvorbis/lib/modes", "../../../dependencies/opus/.", "../../../dependencies/opus/celt", "../../../dependencies/opus/celt/arm", "../../../dependencies/opus/celt/mips", "../../../dependencies/opus/celt/x86", "../../../dependencies/opus/include", "../../../dependencies/opus/silk", "../../../dependencies/opus/silk/arm", "../../../dependencies/opus/silk/fixed", "../../../dependencies/opus/silk/fixed/arm", "../../../dependencies/opus/silk/fixed/mips", "../../../dependencies/opus/silk/float", "../../../dependencies/opus/silk/mips", "../../../dependencies/opus/silk/x86", "../../../dependencies/opus/src", "../../../dependencies/opusfile/include", "../../../dependencies/opusfile/src", "../../../platform/gucefCORE/include/android", "include" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/libogg/include", "../../../dependencies/libogg/include/ogg", "../../../dependencies/libogg/src", "../../../dependencies/libvorbis/include", "../../../dependencies/libvorbis/include/vorbis", "../../../dependencies/libvorbis/lib", "../../../dependencies/libvorbis/lib/books/coupled", "../../../dependencies/libvorbis/lib/books/floor", "../../../dependencies/libvorbis/lib/books/uncoupled", "../../../dependencies/libvorbis/lib/modes", "../../../dependencies/opus/.", "../../../dependencies/opus/celt", "../../../dependencies/opus/celt/arm", "../../../dependencies/opus/celt/mips", "../../../dependencies/opus/celt/x86", "../../../dependencies/opus/include", "../../../dependencies/opus/silk", "../../../dependencies/opus/silk/arm", "../../../dependencies/opus/silk/fixed", "../../../dependencies/opus/silk/fixed/arm", "../../../dependencies/opus/silk/fixed/mips", "../../../dependencies/opus/silk/float", "../../../dependencies/opus/silk/mips", "../../../dependencies/opus/silk/x86", "../../../dependencies/opus/src", "../../../dependencies/opusfile/include", "../../../dependencies/opusfile/src", "../../../platform/gucefCORE/include/android", "include" } )
 
 configuration( { "LINUX32" } )

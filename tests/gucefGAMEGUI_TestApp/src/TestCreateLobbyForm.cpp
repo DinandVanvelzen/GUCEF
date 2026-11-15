@@ -200,9 +200,9 @@ PerformCreateLobbyFormTests( void )
         MULTIPLAY::CPlayerIdentity identity;
         identity.userId = "alice-id";
         identity.displayName = "Alice";
-        CORE::CFutureResult connected( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult connected( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( service.Connect( identity, connected ) );
-        CORE::CFutureResult created( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult created( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CILobbyPtr lobby;
         ASSERT_TRUE( service.CreateLobby( params, created ) && MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( created, lobby ) );
         ASSERT_TRUE( !lobby.IsNULL() && "Brawl" == lobby->GetState().name && "4" == lobby->GetState().GetSetting( "speed" ) && 3 == lobby->GetState().slots.size() );

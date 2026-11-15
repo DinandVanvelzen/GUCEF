@@ -217,7 +217,7 @@ class CEMailOAuthFixture
     {
         AUTH::CAuthOptions options;
         options.linkToProfile = false;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         if ( !manager.Login( "google", options, future ) )
             return false;
         for ( UInt32 waited=0; waited<5000 && !future.IsReady(); ++waited )

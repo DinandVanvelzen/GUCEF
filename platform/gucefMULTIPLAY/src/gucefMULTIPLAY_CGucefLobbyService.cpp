@@ -311,12 +311,12 @@ CGucefLobbyService::Connect( const CPlayerIdentity& identity, CORE::CFutureResul
     CPlayerIdentity keyed( identity );
     if ( !keyed.privateKey.IsNULLOrEmpty() && !keyed.SetPrivateKey( identity.privateKey ) )
     {
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The key of the identity cannot be used, is there an \"ed25519\" signature codec?" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The key of the identity cannot be used, is there an \"ed25519\" signature codec?" );
         return false;
     }
     if ( keyed.userId.IsNULLOrEmpty() || m_serverEndpoints.IsEmpty() )
     {
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "An identity and the endpoints of a server are needed" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "An identity and the endpoints of a server are needed" );
         return false;
     }
     if ( m_connected || m_connectPending )
@@ -329,7 +329,7 @@ CGucefLobbyService::Connect( const CPlayerIdentity& identity, CORE::CFutureResul
     settings.pulseIntervalMs = 1;
     if ( !m_node.SetSettings( settings ) || !m_node.Start() )
     {
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The node could not start" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The node could not start" );
         return false;
     }
 
@@ -351,7 +351,7 @@ CGucefLobbyService::Connect( const CPlayerIdentity& identity, CORE::CFutureResul
     if ( !m_directory->Join( m_serverEndpoints, sessionSettings, &credentials ) )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "Could not join the directory of the server" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "Could not join the directory of the server" );
         return false;
     }
     return true;
@@ -368,7 +368,7 @@ CGucefLobbyService::Disconnect( void )
     if ( m_connectPending )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "Disconnected" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "Disconnected" );
     }
     FailPending( "Disconnected" );
     if ( GUCEF_NULL != m_directory && m_directory->IsActive() )
@@ -388,12 +388,12 @@ CGucefLobbyService::FailPending( const CORE::CString& reason )
     TPendingRequestMap::iterator i = m_pendingRequests.begin();
     while ( i != m_pendingRequests.end() )
     {
-        (*i).second.result.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        (*i).second.result.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
         ++i;
     }
     m_pendingRequests.clear();
     for ( size_t n=0; n<m_pendingBrowses.size(); ++n )
-        m_pendingBrowses[ n ].Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        m_pendingBrowses[ n ].Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
     m_pendingBrowses.clear();
     m_pendingBrowseFilters.clear();
 }
@@ -444,7 +444,7 @@ CGucefLobbyService::OnJoined( void )
     if ( 0 == requestId )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "Could not say hello to the directory" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "Could not say hello to the directory" );
         return;
     }
     m_pendingRequests[ requestId ].kind = REQUEST_HELLO;
@@ -633,7 +633,7 @@ CGucefLobbyService::OnLobbyGranted( TPendingRequest& request, const CORE::CVaria
     if ( !lobby->Start( endpoints, token, request.asSpectator ) )
     {
         UnsubscribeFrom( lobby );
-        request.result.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "Could not join the lobby session" );
+        request.result.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "Could not join the lobby session" );
         return;
     }
     m_pendingLobbies.push_back( pending );
@@ -657,7 +657,7 @@ CGucefLobbyService::OnReply( UInt32 requestId, bool ok, const CORE::CString& rea
             m_connectPending = false;
             if ( !ok )
             {
-                m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+                m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
                 return;
             }
             // The server knows the player by the user id it replies with: the one of the key
@@ -675,7 +675,7 @@ CGucefLobbyService::OnReply( UInt32 requestId, bool ok, const CORE::CString& rea
             if ( ok )
                 OnLobbyGranted( request, args );
             else
-                request.result.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+                request.result.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
             return;
         }
     }
@@ -836,7 +836,7 @@ CGucefLobbyService::OnDirectoryJoinFailed( CORE::CNotifier* notifier    ,
     {
         m_connectPending = false;
         CORE::CString reason = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "Could not join the directory" );
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
     }
 }
 
@@ -895,7 +895,7 @@ CGucefLobbyService::OnDirectoryClosed( CORE::CNotifier* notifier    ,
     if ( m_connectPending )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The directory session ended" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The directory session ended" );
     }
     FailPending( "The directory session ended" );
     m_listings = GUCEF_NULL;
@@ -975,7 +975,7 @@ CGucefLobbyService::OnPendingLobbyEnded( CORE::CNotifier* notifier, bool ready, 
         else
         {
             CORE::CString reason = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "Could not join the lobby" );
-            pending.result.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+            pending.result.Fail( CORE::TASKSTATUS_STARTUP_FAILED, reason );
             m_retiredLobbies.push_back( pending.lobby );
         }
         return;

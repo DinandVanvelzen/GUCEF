@@ -323,7 +323,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "pubsub2storage" )
     pulseGenerator->RequestPulseInterval( 25 );
     pulseGenerator->RequestPulsesPerImmediatePulseRequest( 25 );
     
-    auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+    CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
     returnValue = app.main( argc, argv, true );
     pubSub2Storage.SetStandbyMode( true );
 

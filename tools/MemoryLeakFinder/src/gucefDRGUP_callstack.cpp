@@ -802,7 +802,7 @@ EnsureDbgHelpInitialized( void )
     if ( !g_dbgHelpInitialized )
     {
         SymSetOptions( SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES );
-        SymInitialize( GetCurrentProcess(), NULL, TRUE );
+        SymInitialize( GetCurrentProcess(), GUCEF_NULL, TRUE );
         g_dbgHelpInitialized = true;
     }
 }
@@ -851,7 +851,7 @@ DRGUP_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
     if ( GUCEF_NULL == frames )
         return;
 
-    USHORT captured = RtlCaptureStackBackTrace( 1 /* skip this frame */, (DWORD)maxDepth, frames, NULL );
+    USHORT captured = RtlCaptureStackBackTrace( 1 /* skip this frame */, (DWORD)maxDepth, frames, GUCEF_NULL );
 
     TRawCallStack* stack = (TRawCallStack*) ::malloc( sizeof(TRawCallStack) );
     if ( GUCEF_NULL == stack )

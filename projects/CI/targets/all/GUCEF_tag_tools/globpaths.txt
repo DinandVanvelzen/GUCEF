@@ -11,11 +11,13 @@ dependencies/libarchive/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
 dependencies/minizip/*
+dependencies/monocypher/*
 dependencies/protobuf/src/*
 dependencies/stbrumme-hash-library/*
 dependencies/zziplib/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefDRN/*
 platform/gucefIMAGE/*
 platform/gucefKAITAI/*
 platform/gucefMT/*
@@ -23,6 +25,7 @@ platform/gucefPATCHER/*
 platform/gucefPUBSUB/*
 platform/gucefVFS/*
 platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
 plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
@@ -49,4 +52,7 @@ tools/GucefArchiver/*
 tools/HDFiller/*
 tools/ProjectGen/*
 tools/PubSubStorageTool/*
+tools/gucefLabLink/*
+tools/gucefMcpEcho/*
+tools/gucefMcpLocalLlm/*
 tools/itvExporter/*

@@ -94,6 +94,7 @@ typedef CAsciiString::StringMapMapMapMap      CStringMapMapMapMap;
 typedef CAsciiString::StringMapSet            CStringMapSet;
 typedef CAsciiString::StringMapMapSet         CStringMapMapSet;
 typedef CAsciiString::StringMapMapMapSet      CStringMapMapMapSet;
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
 typedef CAsciiString::StringUMap              CStringUMap;
 typedef CAsciiString::StringUMapUMap          CStringUMapUMap;
 typedef CAsciiString::StringUMapUMapUMap      CStringUMapUMapUMap;
@@ -101,6 +102,7 @@ typedef CAsciiString::StringUMapUMapUMapUMap  CStringUMapUMapUMapUMap;
 typedef CAsciiString::StringUMapSet           CStringUMapSet;
 typedef CAsciiString::StringUMapUMapSet       CStringUMapUMapSet;
 typedef CAsciiString::StringUMapUMapUMapSet   CStringUMapUMapUMapSet;
+#endif
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_ASCII_STRING
@@ -118,6 +120,7 @@ typedef CUtf8String::StringMapMapMapMap      CStringMapMapMapMap;
 typedef CUtf8String::StringMapSet            CStringMapSet;
 typedef CUtf8String::StringMapMapSet         CStringMapMapSet;
 typedef CUtf8String::StringMapMapMapSet      CStringMapMapMapSet;
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
 typedef CUtf8String::StringUMap              CStringUMap;
 typedef CUtf8String::StringUMapUMap          CStringUMapUMap;
 typedef CUtf8String::StringUMapUMapUMap      CStringUMapUMapUMap;
@@ -125,6 +128,7 @@ typedef CUtf8String::StringUMapUMapUMapUMap  CStringUMapUMapUMapUMap;
 typedef CUtf8String::StringUMapSet           CStringUMapSet;
 typedef CUtf8String::StringUMapUMapSet       CStringUMapUMapSet;
 typedef CUtf8String::StringUMapUMapUMapSet   CStringUMapUMapUMapSet;
+#endif
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF8_STRING
@@ -142,10 +146,12 @@ typedef CUtf16String::StringMap               CStringMap;
 typedef CUtf16String::StringMapMap            CStringMapMap;
 typedef CUtf16String::StringMapSet            CStringMapSet;
 typedef CUtf16String::StringMapMapSet         CStringMapMapSet;
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
 typedef CUtf16String::StringUMap              CStringUMap;
 typedef CUtf16String::StringUMapUMap          CStringUMapUMap;
 typedef CUtf16String::StringUMapSet           CStringUMapSet;
 typedef CUtf16String::StringUMapUMapSet       CStringUMapUMapSet;
+#endif
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF16_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF16_STRING
@@ -163,10 +169,12 @@ typedef CUtf32String::StringMap               CStringMap;
 typedef CUtf32String::StringMapMap            CStringMapMap;
 typedef CUtf32String::StringMapSet            CStringMapSet;
 typedef CUtf32String::StringMapMapSet         CStringMapMapSet;
+#ifdef GUCEF_STL_HAVE_CXX11_FEATURES
 typedef CUtf32String::StringUMap              CStringUMap;
 typedef CUtf32String::StringUMapUMap          CStringUMapUMap;
 typedef CUtf32String::StringUMapSet           CStringUMapSet;
 typedef CUtf32String::StringUMapUMapSet       CStringUMapUMapSet;
+#endif
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF32_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF32_STRING

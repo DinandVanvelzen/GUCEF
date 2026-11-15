@@ -17,8 +17,8 @@
             <Define String="OGRE_PAGING_EXPORTS" />
             <Define String="OGRE_GCC_VISIBILITY" />
         </Preprocessor>
-        <Compiler>
-            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden" />
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden" />
             <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
             <CompilerFlags CompilerName="MSVC" Flags="/bigobj" />
         </Compiler>

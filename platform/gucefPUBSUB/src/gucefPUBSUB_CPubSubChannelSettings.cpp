@@ -269,7 +269,7 @@ CPubSubChannelConfig::LoadConfig( const CORE::CDataNode& cfg )
 
         // We also use the safest setting for the ack style
         // this setting matches the historical behaviour
-        flowRouterConfig.ackStyle = CPubSubFlowRouterConfig::AckStyle::AllOrNothing;
+        flowRouterConfig.ackStyle = CPubSubFlowRouterConfig::AllOrNothing;
     }
 
     return true;

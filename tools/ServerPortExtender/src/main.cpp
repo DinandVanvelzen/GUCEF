@@ -84,11 +84,11 @@ class SpeTestController : CORE::CObserver
 
     SpeTestController()
         : CORE::CObserver()          ,
-          m_client( NULL )           ,
-          m_server( NULL )           ,
-          m_serverConnection( NULL ) ,
-          m_spe( NULL )              ,
-          m_speClient( NULL )
+          m_client( GUCEF_NULL )           ,
+          m_server( GUCEF_NULL )           ,
+          m_serverConnection( GUCEF_NULL ) ,
+          m_spe( GUCEF_NULL )              ,
+          m_speClient( GUCEF_NULL )
     {
         GUCEF::CORE::CGUCEFApplication* app = &CORE::CCoreGlobal::Instance()->GetApplication();
 
@@ -102,21 +102,21 @@ class SpeTestController : CORE::CObserver
     virtual ~SpeTestController()
     {
         delete m_spe;
-        m_spe = NULL;
+        m_spe = GUCEF_NULL;
 
         delete m_speClient;
-        m_speClient = NULL;
+        m_speClient = GUCEF_NULL;
 
         delete m_client;
-        m_client = NULL;
+        m_client = GUCEF_NULL;
 
         delete m_server;
-        m_server = NULL;
+        m_server = GUCEF_NULL;
     }
 
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL )
+                           CORE::CICloneable* eventdata = GUCEF_NULL )
     {
         if ( GUCEF::CORE::CGUCEFApplication::AppInitEvent == eventid )
         {
@@ -334,7 +334,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "ServerPortExtender" )
 
     // Do we want to display the console window?
     #ifdef GUCEF_MSWIN_BUILD
-    CORE::CMSWinConsoleLogger* consoleOut = NULL;
+    CORE::CMSWinConsoleLogger* consoleOut = GUCEF_NULL;
     bool showConsole = true;
     if ( keyValueList.TryGetValue( "showConsole", value ) )
     {
@@ -458,7 +458,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "ServerPortExtender" )
 
     #ifdef GUCEF_MSWIN_BUILD
     delete consoleOut;
-    consoleOut = NULL;
+    consoleOut = GUCEF_NULL;
     #endif /* GUCEF_MSWIN_BUILD ? */
 
     return 0;

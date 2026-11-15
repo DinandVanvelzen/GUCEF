@@ -30,32 +30,36 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=guidriverWin32GL" } )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefGUI", "gucefMT" } )
-  links( { "Opengl32", "gucefCORE", "gucefGUI", "gucefMT" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "Opengl32", "gucefCORE", "gucefGUI", "gucefMT" } )
+
+
+configuration( { "WIN32" } )
 defines( { "GUIDRIVERWIN32GL_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverWin32GL" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefGUI", "gucefMT" } )
-  links( { "Opengl32", "gucefCORE", "gucefGUI", "gucefMT" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "gucefCORE", "gucefGUI", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "Opengl32", "gucefCORE", "gucefGUI", "gucefMT" } )
+
+
+configuration( { "WIN64" } )
 defines( { "GUIDRIVERWIN32GL_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverWin32GL" } )
 
 
@@ -82,7 +86,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "include" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

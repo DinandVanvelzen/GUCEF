@@ -30,13 +30,19 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "freetype", "pcre" } )
+
+configuration( {} )
 links( { "freetype", "pcre" } )
 
 
 configuration( {} )
 defines( { "CEGUIBASE_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI", "MODULE_NAME=CEGUI" } )
-  links( { "Dbghelp.lib", "Winmm.lib" } )
-  links( { "Dbghelp.lib", "Winmm.lib" } )
+
+configuration( { "WIN32" } )
+links( { "Dbghelp.lib", "Winmm.lib" } )
+
+configuration( { "WIN64" } )
+links( { "Dbghelp.lib", "Winmm.lib" } )
 
 
 configuration( {} )

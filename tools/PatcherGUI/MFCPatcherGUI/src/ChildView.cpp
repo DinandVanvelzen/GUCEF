@@ -60,11 +60,11 @@ using namespace GUCEF;
 //-------------------------------------------------------------------------*/
 
 CChildView::CChildView()
-    : m_listBox( NULL )            ,
-      m_transferProgress( NULL )   ,
-      m_totalProgress( NULL )      ,
+    : m_listBox( GUCEF_NULL )            ,
+      m_transferProgress( GUCEF_NULL )   ,
+      m_totalProgress( GUCEF_NULL )      ,
       m_patchEngine()              ,
-      m_gucefDriver( NULL )        ,
+      m_gucefDriver( GUCEF_NULL )        ,
       m_closeAppWhenDone( false )  ,
       m_fileReplacements()
 {GUCEF_TRACE;
@@ -115,7 +115,7 @@ BOOL CChildView::PreCreateWindow(CREATESTRUCT& cs)
 	cs.dwExStyle |= WS_EX_CLIENTEDGE;
 	cs.style &= ~WS_BORDER;
 	cs.lpszClass = AfxRegisterWndClass(CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS, 
-		::LoadCursor(NULL, IDC_ARROW), HBRUSH(COLOR_WINDOW+1), NULL);
+		::LoadCursor(GUCEF_NULL, IDC_ARROW), HBRUSH(COLOR_WINDOW+1), GUCEF_NULL);
 
 	return TRUE;
 }
@@ -262,7 +262,7 @@ int CChildView::OnCreate(LPCREATESTRUCT lpcs)
         
         // Start the application from the GUCEF point of view
         CORE::CCoreGlobal::Instance()->GetApplication().Main( AfxGetInstanceHandle() ,
-                                                              NULL                   ,
+                                                              GUCEF_NULL                   ,
                                                               0                      ,
                                                               false                  );
         return 0;                                                  
@@ -623,7 +623,7 @@ CChildView::OnNotify( CORE::CNotifier* notifier                 ,
     }    
     else
     {
-        if ( ( NULL != m_listBox )                            &&
+        if ( ( GUCEF_NULL != m_listBox )                            &&
              ( eventid != CORE::CNotifier::DestructionEvent ) &&
              ( eventid != CORE::CNotifier::UnsubscribeEvent )  )
         {

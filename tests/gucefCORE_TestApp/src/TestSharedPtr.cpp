@@ -185,7 +185,7 @@ PerformBasicSharedPtrSanityTests( void )
         //---- runtime tests
         
         Derived* d = new Derived();
-        Derived* d2 = NULL;
+        Derived* d2 = GUCEF_NULL;
         
         bool bool1 = false;
         TBasePtr bptr2;
@@ -213,8 +213,8 @@ PerformBasicSharedPtrSanityTests( void )
         TESTASSERT( d->GetNr() == dptr2->GetNr() );
         TESTASSERT( !dptr2.IsNULL() );
         TESTASSERT( !bptr2.IsNULL() );
-        TESTASSERT( NULL != dptr2.GetSharedData() );
-        TESTASSERT( NULL != bptr2.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != dptr2.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != bptr2.GetSharedData() );
         TESTASSERT( dptr2.GetSharedData() == bptr2.GetSharedData() );
         TESTASSERT( bptr2 == dptr2.StaticCast< Base >() );
         TESTASSERT( !dptr2.GetSharedData()->m_lock.IsLocked() );
@@ -246,8 +246,8 @@ PerformBasicSharedPtrSanityTests( void )
         TESTASSERT( dptr2.GetReferenceCount() == 3 );
         TESTASSERT( d2 == dptr.GetPointerAlways() );
         TESTASSERT( d2 == dptr2.GetPointerAlways() );
-        TESTASSERT( NULL != dptr.GetSharedData() );
-        TESTASSERT( NULL != dptr2.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != dptr.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != dptr2.GetSharedData() );
         TESTASSERT( dptr.GetSharedData() == dptr2.GetSharedData() );
         TESTASSERT( dptr == dptr2 );
         TESTASSERT( !dptr.GetSharedData()->m_lock.IsLocked() );
@@ -266,8 +266,8 @@ PerformBasicSharedPtrSanityTests( void )
         TESTASSERT( dptr4.GetReferenceCount() == 1 );
         TESTASSERT( d3 == dptr3.GetPointerAlways() );
         TESTASSERT( d4 == dptr4.GetPointerAlways() );
-        TESTASSERT( NULL != dptr3.GetSharedData() );
-        TESTASSERT( NULL != dptr4.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != dptr3.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != dptr4.GetSharedData() );
         TESTASSERT( dptr3.GetSharedData() != dptr4.GetSharedData() );
         TESTASSERT( dptr3 != dptr4 );
         TESTASSERT( !dptr3.GetSharedData()->m_lock.IsLocked() );
@@ -288,8 +288,8 @@ PerformBasicSharedPtrSanityTests( void )
         TESTASSERT( d3 == bptr3.StaticCast< Derived >().GetPointerAlways() );
         TESTASSERT( d4b == bptr4.GetPointerAlways() );
         TESTASSERT( d4 == bptr4.StaticCast< Derived >().GetPointerAlways() );
-        TESTASSERT( NULL != bptr3.GetSharedData() );
-        TESTASSERT( NULL != bptr4.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != bptr3.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != bptr4.GetSharedData() );
         TESTASSERT( bptr3.GetSharedData() != bptr4.GetSharedData() );
         TESTASSERT( bptr3 != bptr4 );
         TESTASSERT( !bptr3.GetSharedData()->m_lock.IsLocked() );
@@ -302,7 +302,7 @@ PerformBasicSharedPtrSanityTests( void )
         TESTASSERT( ibptr3.GetReferenceCount() == 3 );
         TESTASSERT( ib3 == ibptr3.GetPointerAlways() );
         TESTASSERT( d3 == ibptr3.StaticCast< Derived >().GetPointerAlways() );
-        TESTASSERT( NULL != ibptr3.GetSharedData() );
+        TESTASSERT( GUCEF_NULL != ibptr3.GetSharedData() );
         TESTASSERT( !ibptr3.GetSharedData()->m_lock.IsLocked() );
 
         bptr4 = bptr3;
@@ -312,9 +312,9 @@ PerformBasicSharedPtrSanityTests( void )
 
         TDerivedPtr* dynDptr4 = new TDerivedPtr( dptr4 );
         TESTASSERT( dptr4.GetReferenceCount() == 2 );
-        TESTASSERT( NULL != dptr4.GetPointerAlways() );
+        TESTASSERT( GUCEF_NULL != dptr4.GetPointerAlways() );
         TESTASSERT( dynDptr4->GetReferenceCount() == 2 );
-        TESTASSERT( NULL != dynDptr4->GetPointerAlways() );
+        TESTASSERT( GUCEF_NULL != dynDptr4->GetPointerAlways() );
 
         dptr4 = dptr3;
         

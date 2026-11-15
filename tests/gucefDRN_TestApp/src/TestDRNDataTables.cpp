@@ -184,12 +184,12 @@ AwaitPumped( const CORE::CFutureResult& future, CORE::CTaskPtr& task, UInt32 tim
     while ( !future.IsReady() )
     {
         if ( DRN::CDRNClock::NowInMicroseconds() - start > (UInt64) timeoutMs * 1000 )
-            return CORE::TTaskStatus::TASKSTATUS_UNDEFINED;
+            return CORE::TASKSTATUS_UNDEFINED;
         pulseGenerator->ForceDirectPulse();
         MT::ThreadDelay( 1 );
     }
     task = future.GetResult( 0 );
-    return task.IsNULL() ? CORE::TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -533,7 +533,7 @@ PerformDRNDataTableTests( void )
             asyncRows += batch->GetSelectedRowCount();
         ASSERT_TRUE( count == asyncRows );
         CORE::CTaskPtr task;
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( scanned, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( scanned, task ) );
 
         // a scan that outlives the table it came from
         CORE::CDataTableScanPtr orphan;
@@ -688,13 +688,13 @@ PerformDRNDataTableTests( void )
         keys.push_back( CORE::CVariant( "pool" ) );
         values.push_back( CORE::CVariant( (Int32) 1 ) );
         CORE::CTaskPtr task;
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( table.WriteAsync( MakeRows( table, keys, values ), CORE::DATATABLE_WRITE_UPSERT ), task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( table.WriteAsync( MakeRows( table, keys, values ), CORE::DATATABLE_WRITE_UPSERT ), task ) );
         ASSERT_TRUE( GUCEF_NULL != GetWriteResult( task ) && 1 == GetWriteResult( task )->GetTotalRowsWritten() && grid->HasKey( "pool" ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == AwaitPumped( table.WriteAsync( MakeRows( table, keys, values ), CORE::DATATABLE_WRITE_INSERT ), task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == AwaitPumped( table.WriteAsync( MakeRows( table, keys, values ), CORE::DATATABLE_WRITE_INSERT ), task ) );
         ASSERT_TRUE( task->GetTaskStatusExtraInfo().HasSubstr( "CONFLICT" ) >= 0 );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( table.DeleteRowsAsync( CORE::CDataTableQuery() ), task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( table.DeleteRowsAsync( CORE::CDataTableQuery() ), task ) );
         ASSERT_FALSE( grid->HasKey( "pool" ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == AwaitPumped( table.DeletePartitionsAsync( CORE::CDataTableQuery() ), task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == AwaitPumped( table.DeletePartitionsAsync( CORE::CDataTableQuery() ), task ) );
 
         // a table opened read only refuses changes whatever the grid allows
         DRN::CDRNDataGridTableSettings readOnly;
@@ -769,7 +769,7 @@ PerformDRNDataTableTests( void )
         CORE::CFutureResult written = replica.WriteAsync( MakeRows( replica, keys, values ), CORE::DATATABLE_WRITE_UPSERT );
         ASSERT_TRUE( 0 != replica.GetGridSubscriptionCount() );
         CORE::CTaskPtr task;
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( written, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( written, task ) );
         const CORE::CDataTableWriteResult* answers = GetWriteResult( task );
         REQUIRE_TRUE( GUCEF_NULL != answers && 2 == answers->partitions.size() );
         ASSERT_TRUE( "key=forbidden" == answers->partitions[ 0 ].path && CORE::DATATABLE_STATUS_OK != answers->partitions[ 0 ].status && "not today" == answers->partitions[ 0 ].message );
@@ -782,7 +782,7 @@ PerformDRNDataTableTests( void )
 
         // a delete is a proposal too
         CORE::CFutureResult removed = replica.DeleteRowsAsync( CORE::CDataTableQuery().WhereEquals( "key", CORE::CVariant( "speed" ) ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( removed, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( removed, task ) );
         ASSERT_TRUE( GUCEF_NULL != GetWriteResult( task ) && 1 == GetWriteResult( task )->partitions.size() && CORE::DATATABLE_STATUS_OK == GetWriteResult( task )->partitions[ 0 ].status );
         CGridCondition gone;
         gone.ExpectMissing( group[ 0 ], "rules", 1, "speed" );
@@ -809,9 +809,9 @@ PerformDRNDataTableTests( void )
         otherValues.push_back( CORE::CVariant( (Int32) 2 ) );
         CORE::CFutureResult first = replica.WriteAsync( MakeRows( replica, keys, values ), CORE::DATATABLE_WRITE_UPSERT );
         CORE::CFutureResult second = replica.WriteAsync( MakeRows( replica, otherKeys, otherValues ), CORE::DATATABLE_WRITE_UPSERT );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( first, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( first, task ) );
         ASSERT_TRUE( GUCEF_NULL != GetWriteResult( task ) && CORE::DATATABLE_STATUS_OK == GetWriteResult( task )->partitions[ 0 ].status );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( second, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( second, task ) );
         ASSERT_TRUE( GUCEF_NULL != GetWriteResult( task ) && CORE::DATATABLE_STATUS_OK != GetWriteResult( task )->partitions[ 0 ].status );
     }
     catch ( ... )
@@ -871,7 +871,7 @@ PerformDRNDataTableTests( void )
         recorders[ 2 ].autoVote = CItemRecorder::VOTE_YES;
         recorders[ 3 ].autoVote = CItemRecorder::VOTE_YES;
         CORE::CFutureResult yes = proposer.WriteAsync( MakeRows( proposer, keys, values ), CORE::DATATABLE_WRITE_UPSERT );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( yes, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( yes, task ) );
         ASSERT_TRUE( GUCEF_NULL != GetWriteResult( task ) && CORE::DATATABLE_STATUS_OK == GetWriteResult( task )->partitions[ 0 ].status );
         CORE::CVariant map;
         ASSERT_TRUE( ballot->GetValue( "map", map ) && "dust" == map.AsString() );
@@ -880,7 +880,7 @@ PerformDRNDataTableTests( void )
         recorders[ 2 ].autoVote = CItemRecorder::VOTE_NO;
         recorders[ 3 ].autoVote = CItemRecorder::VOTE_NO;
         CORE::CFutureResult no = proposer.WriteAsync( MakeRows( proposer, keys, values ), CORE::DATATABLE_WRITE_UPSERT );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( no, task ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( no, task ) );
         REQUIRE_TRUE( GUCEF_NULL != GetWriteResult( task ) );
         ASSERT_TRUE( CORE::DATATABLE_STATUS_OK != GetWriteResult( task )->partitions[ 0 ].status && GetWriteResult( task )->partitions[ 0 ].message.HasSubstr( "vote failed" ) >= 0 );
         PumpFor( 50 );
@@ -1118,7 +1118,7 @@ PerformDRNDataTableTests( void )
             CORE::CDataTableScanPtr scan;
             ASSERT_TRUE( CORE::DATATABLE_STATUS_NOT_FOUND == replica.Scan( CORE::CDataTableQuery(), scan ) );
             CORE::CTaskPtr task;
-            ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == AwaitPumped( pending, task, 2000 ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == AwaitPumped( pending, task, 2000 ) );
             ASSERT_TRUE( task->GetTaskStatusExtraInfo().HasSubstr( "NOT_FOUND" ) >= 0 );
             ASSERT_TRUE( replica.WriteAsync( MakeRows( replica, keys, values ), CORE::DATATABLE_WRITE_UPSERT ).HasNoFuture() );
         }
@@ -1147,7 +1147,7 @@ PerformDRNDataTableTests( void )
             values.push_back( CORE::CVariant( (UInt32) 2 ) );
             const UInt64 start = DRN::CDRNClock::NowInMicroseconds();
             CORE::CTaskPtr task;
-            ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == AwaitPumped( proposer.WriteAsync( MakeRows( proposer, keys, values ), CORE::DATATABLE_WRITE_UPSERT ), task, 5000 ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == AwaitPumped( proposer.WriteAsync( MakeRows( proposer, keys, values ), CORE::DATATABLE_WRITE_UPSERT ), task, 5000 ) );
             ASSERT_TRUE( task->GetTaskStatusExtraInfo().HasSubstr( "did not answer" ) >= 0 );
             ASSERT_TRUE( DRN::CDRNClock::NowInMicroseconds() - start >= 250000 );
             ASSERT_TRUE( 0 == proposer.GetGridSubscriptionCount() );
@@ -1403,7 +1403,7 @@ PerformDRNDataTableTests( void )
 
             CORE::CFutureResult opened = client.OpenTableAsync( "remote" );
             CORE::CTaskPtr task;
-            ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == AwaitPumped( opened, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitPumped( opened, task ) );
             CORE::CIDataTablePtr table;
             REQUIRE_TRUE( COMCORE::CDatabaseTableResult::TryGetFromFuture( opened, table ) );
             ASSERT_TRUE( replicaGrid->IsSnapshotComplete() );

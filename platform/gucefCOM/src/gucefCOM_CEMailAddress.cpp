@@ -72,7 +72,7 @@ IsAtextChar( char c, bool allowUtf8 )
         return true;
     if ( ( (UInt8) c ) >= 0x80 )
         return allowUtf8;
-    return NULL != strchr( "!#$%&'*+-/=?^_`{|}~", c ) && '\0' != c;
+    return GUCEF_NULL != strchr( "!#$%&'*+-/=?^_`{|}~", c ) && '\0' != c;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -514,7 +514,7 @@ CEMailAddress::Format( CORE::CString& text, bool allowUtf8 ) const
         const UInt32 size = ByteLength( displayName );
         bool needsQuotes = false;
         for ( UInt32 i=0; i<size; ++i )
-            if ( NULL != strchr( "()<>[]:;@\\,.\"", p[ i ] ) )
+            if ( GUCEF_NULL != strchr( "()<>[]:;@\\,.\"", p[ i ] ) )
                 needsQuotes = true;
         if ( needsQuotes )
         {

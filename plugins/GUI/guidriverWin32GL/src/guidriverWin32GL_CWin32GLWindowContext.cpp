@@ -74,8 +74,8 @@ CWin32GLWindowContext::CWin32GLWindowContext( void )
       m_id()                   ,
       m_name()                 ,
       m_window()               ,
-      m_renderContext( NULL )  ,
-      m_deviceContext( NULL )
+      m_renderContext( GUCEF_NULL )  ,
+      m_deviceContext( GUCEF_NULL )
 {GUCEF_TRACE;
 
     SubscribeTo( &m_window );
@@ -144,20 +144,20 @@ CWin32GLWindowContext::Shutdown( void )
     pulseGenerator->RequestStopOfPeriodicUpdates( this );
     UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
     
-    if ( NULL != m_renderContext )
+    if ( GUCEF_NULL != m_renderContext )
 	{
-		wglMakeCurrent( NULL, NULL ); 
+		wglMakeCurrent( GUCEF_NULL, GUCEF_NULL ); 
 		wglDeleteContext( m_renderContext );
-		m_renderContext = NULL;
+		m_renderContext = GUCEF_NULL;
 	}
 
-	if ( NULL != m_deviceContext )
+	if ( GUCEF_NULL != m_deviceContext )
 	{
 		ReleaseDC( m_window.GetHwnd(), m_deviceContext );
-		m_deviceContext = NULL;
+		m_deviceContext = GUCEF_NULL;
 	}
 
-    if ( NULL != m_window.GetHwnd() )
+    if ( GUCEF_NULL != m_window.GetHwnd() )
     {
         CORE::CMsWin32Window::UnregisterWindowClass( m_window.GetText() );
         m_window.WindowDestroy();
@@ -238,7 +238,7 @@ CWin32GLWindowContext::Initialize( const GUI::CString& title                ,
 
 	    // Now proceed with setting up the OpenGL specifics
         m_deviceContext = GetDC( m_window.GetHwnd() );
-	    if ( NULL == m_deviceContext )
+	    if ( GUCEF_NULL == m_deviceContext )
 	    {
 		    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Win32GLWindowContext: Could not obtain window device context" );
             Shutdown();
@@ -275,7 +275,7 @@ CWin32GLWindowContext::Initialize( const GUI::CString& title                ,
 	    }
 
 	    m_renderContext = wglCreateContext( m_deviceContext );
-	    if ( NULL == m_renderContext )
+	    if ( GUCEF_NULL == m_renderContext )
 	    { 
 		    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Win32GLWindowContext: Could not create OpenGL rendering context" );
 		    Shutdown();
@@ -343,7 +343,7 @@ CWin32GLWindowContext::ApplySwapInterval( bool vsync )
 
     typedef BOOL ( WINAPI *TSwapIntervalEXT )( int );
     TSwapIntervalEXT swapIntervalEXT = (TSwapIntervalEXT) wglGetProcAddress( "wglSwapIntervalEXT" );
-    if ( NULL == swapIntervalEXT )
+    if ( GUCEF_NULL == swapIntervalEXT )
         return false;
     return FALSE != swapIntervalEXT( vsync ? 1 : 0 );
 }
@@ -354,7 +354,7 @@ bool
 CWin32GLWindowContext::ApplyVideoSettings( const GUI::CVideoSettings& videoSettings )
 {GUCEF_TRACE;
 
-    if ( NULL == m_window.GetHwnd() || NULL == m_renderContext )
+    if ( GUCEF_NULL == m_window.GetHwnd() || GUCEF_NULL == m_renderContext )
         return false;
     if ( !MakeCurrent() )
         return false;

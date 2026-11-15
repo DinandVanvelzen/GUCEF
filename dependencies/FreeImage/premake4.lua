@@ -60,64 +60,72 @@ language( "C++" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "zlib" } )
-  links( { "zlib" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "zlib" } )
+
+configuration( { "LINUX32" } )
+links( { "zlib" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "DISABLE_PERF_MEASUREMENT", "FREEIMAGE_EXPORTS", "LIBRAW_LIBRARY_BUILD", "LIBRAW_NODLL", "MODULE_NAME=FreeImage", "NO_JASPER", "OPJ_STATIC", "USE_JPIP", "ZENO_STATIC", "__ANSI__" } )
-  
-configuration( { LINUX64 } )
-links( { "zlib" } )
-  links( { "zlib" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "DISABLE_PERF_MEASUREMENT", "FREEIMAGE_EXPORTS", "LIBRAW_LIBRARY_BUILD", "LIBRAW_NODLL", "MODULE_NAME=FreeImage", "NO_JASPER", "OPJ_STATIC", "USE_JPIP", "ZENO_STATIC", "__ANSI__" } )
-  
-configuration( { WIN32 } )
-links( { "zlib" } )
-  links( { "zlib" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+
+configuration( { "WIN32" } )
 defines( { "FREEIMAGE_EXPORTS", "LIBRAW_LIBRARY_BUILD", "LIBRAW_NODLL", "MODULE_NAME=FreeImage", "NO_JASPER", "OPJ_STATIC", "USE_JPIP", "ZENO_STATIC", "_CRT_SECURE_NO_WARNINGS" } )
-  
-configuration( { WIN64 } )
-links( { "zlib" } )
-  links( { "zlib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+
+configuration( { "WIN64" } )
 defines( { "FREEIMAGE_EXPORTS", "LIBRAW_LIBRARY_BUILD", "LIBRAW_NODLL", "MODULE_NAME=FreeImage", "NO_JASPER", "OPJ_STATIC", "USE_JPIP", "ZENO_STATIC", "_CRT_SECURE_NO_WARNINGS" } )
 
 

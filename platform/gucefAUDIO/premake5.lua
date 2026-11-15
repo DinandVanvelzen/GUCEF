@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMATH", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMATH", "gucefMT" } )
 
 
@@ -271,7 +273,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMATH/include", "../gucefMT/include", "include", "include/c_api" } )
+includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMATH/include", "../gucefMATH/src", "../gucefMT/include", "include", "include/c_api" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../gucefCORE/include/android" } )

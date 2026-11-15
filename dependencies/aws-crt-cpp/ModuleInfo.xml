@@ -44,6 +44,8 @@
 			<Dependency Name="aws-c-sdkutils" />
 			<Dependency Name="aws-c-s3" />
         </Linker>		
+        <!-- the AWS Common Runtime for C++ requires C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
     <Module Platform="mswin">
         <Preprocessor>

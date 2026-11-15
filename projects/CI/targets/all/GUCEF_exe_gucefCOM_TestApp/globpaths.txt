@@ -1,8 +1,15 @@
 common/include/*
 common/test/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
 dependencies/miniupnpc/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
 plugins/COMCORE/comcorepluginUPNP/*
+plugins/CORE/dstorepluginJSONPARSER/*
+tests/gucefCOMCORE_TestApp/include/*
 tests/gucefCOM_TestApp/*
+tools/gucefMcpEcho/*

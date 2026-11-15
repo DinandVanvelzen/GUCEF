@@ -68,7 +68,7 @@ CDnaMatches::BuildListUrl( const std::string& testId, UInt32 page )
 
     std::string url = "https://www.ancestry.com/api/dna/matches/" + testId + "/matches";
     if ( page > 1 )
-        url += "?currentPage=" + std::to_string( (unsigned long long) page );
+        url += "?currentPage=" + CORE::ToString( (CORE::UInt64) page ).STL_String();
     return url;
 }
 
@@ -312,9 +312,9 @@ CDnaMatches::ToCsvRow( const SDnaMatch& m )
 {GUCEF_TRACE;
 
     return CsvField( m.provider ) + "," + CsvField( m.testId ) + "," + CsvField( m.matchId ) + "," + CsvField( m.name ) + "," + CsvField( m.initials ) + "," + CsvField( m.sex ) + "," +
-           Number( m.sharedCm ) + "," + std::to_string( (unsigned long long) m.sharedSegments ) + "," + ( m.longestSegmentCm > 0.0 ? Number( m.longestSegmentCm ) : std::string() ) + "," +
+           Number( m.sharedCm ) + "," + CORE::ToString( (CORE::UInt64) m.sharedSegments ).STL_String() + "," + ( m.longestSegmentCm > 0.0 ? Number( m.longestSegmentCm ) : std::string() ) + "," +
            CsvField( m.percentShared ) + "," + CsvField( m.predictedRelationship ) + "," + CsvField( m.relationshipGroup ) + "," + CsvField( m.predictionSource ) + "," + CsvField( m.parentSide ) + "," +
-           CsvField( m.clusterCode ) + "," + std::to_string( (unsigned long long) m.meiosis ) + "," + ( m.ignored ? "true" : "false" ) + "," + CsvField( m.hasTree ) + "," + CsvField( m.treeSize ) + "," +
+           CsvField( m.clusterCode ) + "," + CORE::ToString( (CORE::UInt64) m.meiosis ).STL_String() + "," + ( m.ignored ? "true" : "false" ) + "," + CsvField( m.hasTree ) + "," + CsvField( m.treeSize ) + "," +
            CsvField( m.matchDate ) + "," + CsvField( m.tags ) + "," + CsvField( m.notes ) + "," + CsvField( m.profileUrl );
 }
 
@@ -326,10 +326,10 @@ CDnaMatches::ToJsonLine( const SDnaMatch& m )
 
     #define J(x) CUrlTemplate::EscapeJson( (x).c_str() ).STL_String()
     return "{\"provider\":\"" + J( m.provider ) + "\",\"testId\":\"" + J( m.testId ) + "\",\"matchId\":\"" + J( m.matchId ) + "\",\"name\":\"" + J( m.name ) + "\",\"initials\":\"" + J( m.initials ) +
-           "\",\"sex\":\"" + J( m.sex ) + "\",\"sharedCm\":" + Number( m.sharedCm ) + ",\"sharedSegments\":" + std::to_string( (unsigned long long) m.sharedSegments ) +
+           "\",\"sex\":\"" + J( m.sex ) + "\",\"sharedCm\":" + Number( m.sharedCm ) + ",\"sharedSegments\":" + CORE::ToString( (CORE::UInt64) m.sharedSegments ).STL_String() +
            ",\"longestSegmentCm\":" + Number( m.longestSegmentCm ) + ",\"percentShared\":\"" + J( m.percentShared ) + "\",\"predictedRelationship\":\"" + J( m.predictedRelationship ) +
            "\",\"relationshipGroup\":\"" + J( m.relationshipGroup ) + "\",\"predictionSource\":\"" + J( m.predictionSource ) + "\",\"parentSide\":\"" + J( m.parentSide ) +
-           "\",\"clusterCode\":\"" + J( m.clusterCode ) + "\",\"meiosis\":" + std::to_string( (unsigned long long) m.meiosis ) + ",\"ignored\":" + ( m.ignored ? "true" : "false" ) +
+           "\",\"clusterCode\":\"" + J( m.clusterCode ) + "\",\"meiosis\":" + CORE::ToString( (CORE::UInt64) m.meiosis ).STL_String() + ",\"ignored\":" + ( m.ignored ? "true" : "false" ) +
            ",\"hasTree\":\"" + J( m.hasTree ) + "\",\"treeSize\":\"" + J( m.treeSize ) + "\",\"matchDate\":\"" + J( m.matchDate ) + "\",\"tags\":\"" + J( m.tags ) +
            "\",\"notes\":\"" + J( m.notes ) + "\",\"profileUrl\":\"" + J( m.profileUrl ) + "\"}";
     #undef J

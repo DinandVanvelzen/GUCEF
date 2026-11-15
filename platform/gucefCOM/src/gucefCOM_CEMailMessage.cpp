@@ -67,7 +67,7 @@ IsValidContentType( const CORE::CString& type )
             ++slashes;
             continue;
         }
-        if ( ( (UInt8) c ) <= 0x20 || ( (UInt8) c ) >= 0x7F || NULL != strchr( "()<>@,;:\\\"[]?=", c ) )
+        if ( ( (UInt8) c ) <= 0x20 || ( (UInt8) c ) >= 0x7F || GUCEF_NULL != strchr( "()<>@,;:\\\"[]?=", c ) )
             return false;
     }
     return 1 == slashes;

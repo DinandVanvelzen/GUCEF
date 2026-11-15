@@ -217,6 +217,9 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBufferSwap : public MT::CILockable
 
         CBufferEntry( void );
         CBufferEntry( const CBufferEntry& src );
+
+        /** copies the buffer state, each entry keeps its own lock */
+        CBufferEntry& operator=( const CBufferEntry& src );
     };
 
     typedef GUCEF::vector< CBufferEntry > TBufferEntryVector;

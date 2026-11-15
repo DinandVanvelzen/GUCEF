@@ -116,7 +116,7 @@ CGUIDriverOgre::~CGUIDriverOgre()
 
     m_contextSet.clear();
 
-    if ( NULL != m_guiSystem )
+    if ( GUCEF_NULL != m_guiSystem )
         m_guiSystem->destroy();
 }
 
@@ -137,12 +137,12 @@ CGUIDriverOgre::Init( GUI::TWindowContextPtr windowContext )
     {
         try
         {
-            Ogre::RenderTarget* renderTarget = nullptr;
+            Ogre::RenderTarget* renderTarget = GUCEF_NULL;
             CORE::CString renderTargetPtrStr = windowContext->GetProperty( "Ogre::RenderTarget" );
             if ( !renderTargetPtrStr.IsNULLOrEmpty() )
             {
                 renderTarget = static_cast< Ogre::RenderTarget* >( CORE::StringToPointer( renderTargetPtrStr ) );
-                if ( NULL == renderTarget )
+                if ( GUCEF_NULL == renderTarget )
                     return false;
             }
             else
@@ -150,12 +150,12 @@ CGUIDriverOgre::Init( GUI::TWindowContextPtr windowContext )
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CGUIDriverOgre:Init: No \"Ogre::RenderTarget\" has NOT been set on the Window context, unable to proceed" );
                 return false;
             }
-            Ogre::SceneManager* sceneManager = nullptr;
+            Ogre::SceneManager* sceneManager = GUCEF_NULL;
             CORE::CString sceneManagerPtrStr = windowContext->GetProperty( "Ogre::SceneManager" );
             if ( !sceneManagerPtrStr.IsNULLOrEmpty() )
             {
                 sceneManager = static_cast< Ogre::SceneManager* >( CORE::StringToPointer( sceneManagerPtrStr ) );
-                if ( NULL == sceneManager )
+                if ( GUCEF_NULL == sceneManager )
                     return false;
             }
             
@@ -187,7 +187,7 @@ CGUIDriverOgre::Init( GUI::TWindowContextPtr windowContext )
 
             // setup default group for validation schemas
             CEGUI::XMLParser* parser = m_guiSystem->getXMLParser();
-            if ( nullptr != parser && parser->isPropertyPresent( "SchemaDefaultResourceGroup" )  )
+            if ( GUCEF_NULL != parser && parser->isPropertyPresent( "SchemaDefaultResourceGroup" )  )
                 parser->setProperty( "SchemaDefaultResourceGroup", m_schemasResourceGroup );
 
             // Load the fonts
@@ -247,7 +247,7 @@ CGUIDriverOgre::CreateGUIContext( GUI::TWindowContextPtr windowContext )
     INPUT::CInputContext* inputContext = INPUT::CInputGlobal::Instance()->GetInputController().CreateContext( inputContextParams );
 
     //CEGUI::RenderTarget* renderTarget = m_guiRenderer->getActiveRenderTarget();
-    //if ( nullptr == renderTarget )
+    //if ( GUCEF_NULL == renderTarget )
     //{
     //    renderTarget = &m_guiRenderer->getDefaultRenderTarget();
     //}

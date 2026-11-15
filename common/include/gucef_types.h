@@ -58,6 +58,10 @@
   #if __cplusplus >= 201103L
     #include <cstdint>
     #define GUCEF_HAS_STDINT 1
+  #elif defined( __GNUC__ ) || defined( __clang__ ) || ( defined( _MSC_VER ) && ( _MSC_VER >= 1600 ) )
+    /* stdint.h is available on these toolchains in every language mode; using it keeps the integer types identical across C++ standards */
+    #include <stdint.h>
+    #define GUCEF_HAS_STDINT 1
   #endif
 #endif /* __cplusplus ? */
 #if __STDC_VERSION__ >= 199901L
@@ -215,8 +219,10 @@ typedef UInt32             TSystemThreadId;
 
 /*
  *      Maximum and minimal values for the build-in types
+ *      From C++11 on std::numeric_limits gives them as constant expressions, before that they are given as constants
+ *      with the same meaning so that they can be used in constant expressions with any C++ version
  */
-#ifdef __cplusplus
+#if defined( __cplusplus ) && ( __cplusplus >= 201103L || ( defined( _MSC_VER ) && _MSC_VER >= 1900 ) )
     #define GUCEF_INT8MAX     ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int8 >::max() ) ) )
     #define GUCEF_INT8MIN     ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int8 >::min() ) ) )
     #define GUCEF_UINT8MAX    ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt8 >::max() ) ) )
@@ -237,6 +243,29 @@ typedef UInt32             TSystemThreadId;
     #define GUCEF_FLOAT32MIN  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float32 >::min() ) ) )
     #define GUCEF_FLOAT64MAX  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float64 >::max() ) ) )
     #define GUCEF_FLOAT64MIN  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float64 >::min() ) ) )
+#elif defined( __cplusplus )
+    #include <climits>
+    #include <cfloat>
+    #define GUCEF_INT8MAX     ( static_cast< GUCEF_NS_FOR_BUILDINS Int8 >( SCHAR_MAX ) )
+    #define GUCEF_INT8MIN     ( static_cast< GUCEF_NS_FOR_BUILDINS Int8 >( SCHAR_MIN ) )
+    #define GUCEF_UINT8MAX    ( static_cast< GUCEF_NS_FOR_BUILDINS UInt8 >( UCHAR_MAX ) )
+    #define GUCEF_UINT8MIN    ( static_cast< GUCEF_NS_FOR_BUILDINS UInt8 >( 0 ) )
+    #define GUCEF_INT16MAX    ( static_cast< GUCEF_NS_FOR_BUILDINS Int16 >( 32767 ) )
+    #define GUCEF_INT16MIN    ( static_cast< GUCEF_NS_FOR_BUILDINS Int16 >( -32767-1 ) )
+    #define GUCEF_UINT16MAX   ( static_cast< GUCEF_NS_FOR_BUILDINS UInt16 >( 65535U ) )
+    #define GUCEF_UINT16MIN   ( static_cast< GUCEF_NS_FOR_BUILDINS UInt16 >( 0 ) )
+    #define GUCEF_INT32MAX    ( static_cast< GUCEF_NS_FOR_BUILDINS Int32 >( 2147483647 ) )
+    #define GUCEF_INT32MIN    ( static_cast< GUCEF_NS_FOR_BUILDINS Int32 >( -2147483647-1 ) )
+    #define GUCEF_UINT32MAX   ( static_cast< GUCEF_NS_FOR_BUILDINS UInt32 >( 4294967295U ) )
+    #define GUCEF_UINT32MIN   ( static_cast< GUCEF_NS_FOR_BUILDINS UInt32 >( 0 ) )
+    #define GUCEF_INT64MAX    ( static_cast< GUCEF_NS_FOR_BUILDINS Int64 >( 9223372036854775807LL ) )
+    #define GUCEF_INT64MIN    ( static_cast< GUCEF_NS_FOR_BUILDINS Int64 >( -9223372036854775807LL-1 ) )
+    #define GUCEF_UINT64MAX   ( static_cast< GUCEF_NS_FOR_BUILDINS UInt64 >( 18446744073709551615ULL ) )
+    #define GUCEF_UINT64MIN   ( static_cast< GUCEF_NS_FOR_BUILDINS UInt64 >( 0 ) )
+    #define GUCEF_FLOAT32MAX  ( static_cast< GUCEF_NS_FOR_BUILDINS Float32 >( FLT_MAX ) )
+    #define GUCEF_FLOAT32MIN  ( static_cast< GUCEF_NS_FOR_BUILDINS Float32 >( FLT_MIN ) )
+    #define GUCEF_FLOAT64MAX  ( static_cast< GUCEF_NS_FOR_BUILDINS Float64 >( DBL_MAX ) )
+    #define GUCEF_FLOAT64MIN  ( static_cast< GUCEF_NS_FOR_BUILDINS Float64 >( DBL_MIN ) )
 #else
     #define GUCEF_INT8MAX     ( (GUCEF_NS_FOR_BUILDINS Int8) 127 )
     #define GUCEF_INT8MIN     ( (GUCEF_NS_FOR_BUILDINS Int8) (-128) )
@@ -676,7 +705,7 @@ typedef enum EBoundaryType TBoundaryType;
 template < typename T >
 inline
 UInt8
-TryToGetGucefTypeIdForTType( const T* dummyValue = NULL )
+TryToGetGucefTypeIdForTType( const T* dummyValue = GUCEF_NULL )
 {
     return GUCEF_DATATYPE_UNKNOWN;
 }

@@ -81,11 +81,21 @@ if ( EMSCRIPTEN64 )
 endif( EMSCRIPTEN64 )
 
 if ( EMSCRIPTEN32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+endif( EMSCRIPTEN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( EMSCRIPTEN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
+endif( EMSCRIPTEN32 )
+if ( EMSCRIPTEN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
 endif( EMSCRIPTEN64 )
 
 

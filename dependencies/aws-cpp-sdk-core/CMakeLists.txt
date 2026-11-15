@@ -474,11 +474,20 @@ endif ()
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of aws-cpp-sdk-core and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 11 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( aws-cpp-sdk-core "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "aws-cpp-sdk-core" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
 target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CORE_EXPORTS=1;MODULE_CONSENSUS_NAME=aws_cpp_sdk_core;MODULE_NAME=aws_cpp_sdk_core;USE_IMPORT_EXPORT=1" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_11 )
 
 if ( ANDROID32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ENABLE_OPENSSL_ENCRYPTION" )
@@ -526,6 +535,22 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( include/aws/core/http/windows )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/aws/core include/aws/core/auth include/aws/core/auth/bearer-token-provider include/aws/core/auth/signer include/aws/core/auth/signer-provider include/aws/core/client include/aws/core/config include/aws/core/config/defaults include/aws/core/endpoint include/aws/core/endpoint/internal include/aws/core/external include/aws/core/external/cjson include/aws/core/external/tinyxml2 include/aws/core/http include/aws/core/http/curl include/aws/core/http/standard include/aws/core/internal include/aws/core/monitoring include/aws/core/net include/aws/core/platform include/aws/core/platform/refs include/aws/core/utils include/aws/core/utils/base64 include/aws/core/utils/crypto include/aws/core/utils/crypto/bcrypt include/aws/core/utils/crypto/commoncrypto include/aws/core/utils/crypto/openssl include/aws/core/utils/event include/aws/core/utils/json include/aws/core/utils/logging include/aws/core/utils/memory include/aws/core/utils/memory/stl include/aws/core/utils/ratelimiter include/aws/core/utils/stream include/aws/core/utils/threading include/aws/core/utils/xml )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES aws-c-auth-headers aws-c-cal-headers aws-c-common-headers aws-c-compression-headers aws-c-event-stream-headers aws-c-http-headers aws-c-io-headers aws-c-mqtt-headers aws-c-s3-headers aws-c-sdkutils-headers aws-checksums-headers aws-crt-cpp-headers )
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/aws/core/utils/logging/android )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/aws/core/utils/logging/android )
+endif( ANDROID64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/aws/core/http/windows )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/aws/core/http/windows )
 endif( WIN64 )
 
 

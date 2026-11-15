@@ -68,8 +68,8 @@ std::string
 CMediaInventory::BuildListUrl( const std::string& siteTreeId, const std::string& filter, UInt32 page, UInt32 rows )
 {GUCEF_TRACE;
 
-    return "https://www.ancestry.com/api/media/viewer/v1/trees/" + siteTreeId + "?client=ugcgallery-fe&excludeInlineStories=1&collectionId=1030&page=" + std::to_string( (unsigned long long) page ) +
-           "&rows=" + std::to_string( (unsigned long long) rows ) + "&sort=-created&withTranscription=true&filter=" + filter;
+    return "https://www.ancestry.com/api/media/viewer/v1/trees/" + siteTreeId + "?client=ugcgallery-fe&excludeInlineStories=1&collectionId=1030&page=" + CORE::ToString( (CORE::UInt64) page ).STL_String() +
+           "&rows=" + CORE::ToString( (CORE::UInt64) rows ).STL_String() + "&sort=-created&withTranscription=true&filter=" + filter;
 }
 
 /*-------------------------------------------------------------------------*/

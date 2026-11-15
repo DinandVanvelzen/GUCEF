@@ -427,11 +427,11 @@ LinkedDependencyScopeToString( const TLinkedDependencyScope scope )
 
     switch ( scope )
     {        
-        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PRIVATE: return "private";
-        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PUBLIC: return "public";
-        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_AUTO: return "auto";
+        case LINKEDDEPENDENCYSCOPE_PRIVATE: return "private";
+        case LINKEDDEPENDENCYSCOPE_PUBLIC: return "public";
+        case LINKEDDEPENDENCYSCOPE_AUTO: return "auto";
 
-        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED:
+        case LINKEDDEPENDENCYSCOPE_UNDEFINED:
         default:
         {
             return "undefined";
@@ -446,11 +446,11 @@ StringToLinkedDependencyScope( const CORE::CString& linkedDependencyScopeStr )
 {GUCEF_TRACE;
 
     CORE::CString scopeStr = linkedDependencyScopeStr.Lowercase();
-    if ( scopeStr == "private" ) return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PRIVATE;
-    if ( scopeStr == "public" ) return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PUBLIC;
-    if ( scopeStr == "auto" ) return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_AUTO;
+    if ( scopeStr == "private" ) return LINKEDDEPENDENCYSCOPE_PRIVATE;
+    if ( scopeStr == "public" ) return LINKEDDEPENDENCYSCOPE_PUBLIC;
+    if ( scopeStr == "auto" ) return LINKEDDEPENDENCYSCOPE_AUTO;
 
-    return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED;
+    return LINKEDDEPENDENCYSCOPE_UNDEFINED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1236,7 +1236,7 @@ GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry 
 
     // First try and get a 'AllPlatforms' definition which makes all the difference
     const CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
-    if ( NULL != moduleInfo && ( MODULETYPE_UNDEFINED != moduleInfo->moduleType ) )
+    if ( GUCEF_NULL != moduleInfo && ( MODULETYPE_UNDEFINED != moduleInfo->moduleType ) )
     {
         // Since a 'AllPlatforms' definition is available we have a baseline to compare against
         // We will only add platform specific entries if they differ from our baseline
@@ -1282,7 +1282,7 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
     // First try and get a 'AllPlatforms' definition which makes all the difference
     const CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
-    if ( NULL != moduleInfo && !moduleInfo->name.IsNULLOrEmpty() )
+    if ( GUCEF_NULL != moduleInfo && !moduleInfo->name.IsNULLOrEmpty() )
     {
         // Since a 'AllPlatforms' definition is available we have a baseline to compare against
         // We will only add platform specific entries if they differ from our baseline
@@ -1825,6 +1825,62 @@ GetKnownLicenseFiles( void )
 
 /*---------------------------------------------------------------------------*/
 
+UInt32
+CppStandardToYear( const CORE::CString& cppStandard )
+{GUCEF_TRACE;
+
+    CORE::CString name = cppStandard.Lowercase().Trim( true ).Trim( false );
+    if ( 0 == name.HasSubstr( "gnu++", true ) )
+        name = name.CutChars( 5, true );
+    else
+    if ( 0 == name.HasSubstr( "c++", true ) )
+        name = name.CutChars( 3, true );
+
+    if ( name.IsNULLOrEmpty() || name.Length() > 4 )
+        return 0;
+    for ( UInt32 i=0; i<name.Length(); ++i )
+    {
+        if ( name[ i ] < '0' || name[ i ] > '9' )
+            return 0;
+    }
+
+    UInt32 year = CORE::StringToUInt32( name );
+    if ( name.Length() == 2 )
+        year += ( year >= 90 ) ? 1900 : 2000;
+
+    switch ( year )
+    {
+        case 1998:
+        case 2003:
+        case 2011:
+        case 2014:
+        case 2017:
+        case 2020:
+        case 2023:
+        case 2026:
+            return year;
+        default:
+            return 0;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+CORE::CString
+CppStandardYearToName( UInt32 cppStandardYear )
+{GUCEF_TRACE;
+
+    if ( 0 == CppStandardToYear( CORE::ToString( cppStandardYear ) ) )
+        return CORE::CString::Empty;
+
+    CORE::CString name = CORE::ToString( cppStandardYear % 100 );
+    if ( name.Length() < 2 )
+        name = '0' + name;
+    return name;
+}
+
+/*---------------------------------------------------------------------------*/
+
 bool
 DirHasLicenseFile( const CORE::CString& path      ,
                    CORE::CString& licenceFilePath )
@@ -2151,8 +2207,8 @@ TryAutoSemVerDetection( const CORE::CString& fileContent ,
 
 CLinkedLibrarySettings::CLinkedLibrarySettings( void )
     : CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >( this )
-    , m_moduleType( TModuleType::MODULETYPE_UNDEFINED )
-    , m_linkedDependencyScope( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED )
+    , m_moduleType( MODULETYPE_UNDEFINED )
+    , m_linkedDependencyScope( LINKEDDEPENDENCYSCOPE_UNDEFINED )
     , m_libPath()
 {GUCEF_TRACE;
 
@@ -2183,7 +2239,7 @@ void
 CLinkedLibrarySettings::Clear( void )
 {GUCEF_TRACE;
 
-    m_moduleType = TModuleType::MODULETYPE_UNDEFINED;
+    m_moduleType = MODULETYPE_UNDEFINED;
     m_libPath.Clear();
 }
 
@@ -2254,16 +2310,16 @@ CLinkedLibrarySettings::Merge( const CLinkedLibrarySettings& linkedLibrarySettin
     if ( !onConflictOriginalInfoStays && !linkedLibrarySettingsToMergeIn.m_libPath.IsNULLOrEmpty() )
         m_libPath = linkedLibrarySettingsToMergeIn.m_libPath;
 
-    if ( TModuleType::MODULETYPE_UNDEFINED == m_moduleType || ( TModuleType::MODULETYPE_UNKNOWN == m_moduleType && TModuleType::MODULETYPE_UNDEFINED != linkedLibrarySettingsToMergeIn.m_moduleType ) )
+    if ( MODULETYPE_UNDEFINED == m_moduleType || ( MODULETYPE_UNKNOWN == m_moduleType && MODULETYPE_UNDEFINED != linkedLibrarySettingsToMergeIn.m_moduleType ) )
         m_moduleType = linkedLibrarySettingsToMergeIn.m_moduleType;
     else
-    if ( !onConflictOriginalInfoStays && !( TModuleType::MODULETYPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_moduleType || TModuleType::MODULETYPE_UNKNOWN == linkedLibrarySettingsToMergeIn.m_moduleType ) )
+    if ( !onConflictOriginalInfoStays && !( MODULETYPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_moduleType || MODULETYPE_UNKNOWN == linkedLibrarySettingsToMergeIn.m_moduleType ) )
         m_moduleType = linkedLibrarySettingsToMergeIn.m_moduleType;
 
-    if ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == m_linkedDependencyScope || ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == m_linkedDependencyScope && TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED != linkedLibrarySettingsToMergeIn.m_linkedDependencyScope ) )
+    if ( LINKEDDEPENDENCYSCOPE_UNDEFINED == m_linkedDependencyScope || ( LINKEDDEPENDENCYSCOPE_UNDEFINED == m_linkedDependencyScope && LINKEDDEPENDENCYSCOPE_UNDEFINED != linkedLibrarySettingsToMergeIn.m_linkedDependencyScope ) )
         m_linkedDependencyScope = linkedLibrarySettingsToMergeIn.m_linkedDependencyScope;
     else
-    if ( !onConflictOriginalInfoStays && !( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_linkedDependencyScope || TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_linkedDependencyScope ) )
+    if ( !onConflictOriginalInfoStays && !( LINKEDDEPENDENCYSCOPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_linkedDependencyScope || LINKEDDEPENDENCYSCOPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_linkedDependencyScope ) )
         m_linkedDependencyScope = linkedLibrarySettingsToMergeIn.m_linkedDependencyScope;
 
     return true;
@@ -2771,6 +2827,7 @@ CCompilerSettings::CCompilerSettings( void )
     : CORE::CTSharedObjCreator< CCompilerSettings, MT::CMutex >( this )
     , m_languagesUsed()
     , m_compilerFlags()
+    , m_minCppStandard()
 {GUCEF_TRACE;
 
 }
@@ -2781,6 +2838,7 @@ CCompilerSettings::CCompilerSettings( const CCompilerSettings& src )
     : CORE::CTSharedObjCreator< CCompilerSettings, MT::CMutex >( this )
     , m_languagesUsed( src.m_languagesUsed )
     , m_compilerFlags( src.m_compilerFlags )
+    , m_minCppStandard( src.m_minCppStandard )
 {GUCEF_TRACE;
 
 }
@@ -2822,6 +2880,24 @@ CCompilerSettings::GetCompilerFlags( void ) const
 
 /*---------------------------------------------------------------------------*/
 
+const CORE::CString&
+CCompilerSettings::GetMinCppStandard( void ) const
+{GUCEF_TRACE;
+
+    return m_minCppStandard;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CCompilerSettings::SetMinCppStandard( const CORE::CString& minCppStandard )
+{GUCEF_TRACE;
+
+    m_minCppStandard = CppStandardYearToName( CppStandardToYear( minCppStandard ) );
+}
+
+/*---------------------------------------------------------------------------*/
+
 bool
 CCompilerSettings::Merge( const CCompilerSettings& compilerSettingsToMergeIn ,
                           bool onConflictOriginalInfoStays                   )
@@ -2829,6 +2905,10 @@ CCompilerSettings::Merge( const CCompilerSettings& compilerSettingsToMergeIn ,
 
     MergeStringSet( m_languagesUsed, compilerSettingsToMergeIn.m_languagesUsed, false );
     MergeStringMap( m_compilerFlags, compilerSettingsToMergeIn.m_compilerFlags, false, true );
+
+    // A requirement is never lowered by merging: the higher minimum C++ standard is kept
+    if ( CppStandardToYear( compilerSettingsToMergeIn.m_minCppStandard ) > CppStandardToYear( m_minCppStandard ) )
+        m_minCppStandard = compilerSettingsToMergeIn.m_minCppStandard;
     return true;
 }
 
@@ -2843,6 +2923,19 @@ CCompilerSettings::Deserialize( const CORE::CDataNode& domRootNode              
     const CORE::CDataNode* compilerNode = domRootNode.Find( "Compiler" );
     if ( GUCEF_NULL != compilerNode )
     {
+        // The minimum C++ standard the module needs, if any
+        CORE::CString minCppStandard = compilerNode->GetAttributeValue( "MinCppStandard" ).AsString();
+        if ( !minCppStandard.IsNULLOrEmpty() )
+        {
+            if ( 0 != CppStandardToYear( minCppStandard ) )
+            {
+                SetMinCppStandard( minCppStandard );
+            }
+            else
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CompilerSettings:Deserialize: Ignoring unknown MinCppStandard \"" + minCppStandard + "\"" );
+            }
+        }
         // Find all the code languages defined for the compiler
         CORE::CDataNode::TConstDataNodeSet languages = compilerNode->FindChildrenOfType( "Language" );
         CORE::CDataNode::TConstDataNodeSet::const_iterator i = languages.begin();
@@ -2877,12 +2970,53 @@ CCompilerSettings::Deserialize( const CORE::CDataNode& domRootNode              
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CCompilerSettings::Serialize( CORE::CDataNode& domRootNode                        ,
+                              const CORE::CDataNodeSerializableSettings& settings ) const
+{GUCEF_TRACE;
+
+    if ( m_languagesUsed.empty() && m_compilerFlags.empty() && m_minCppStandard.IsNULLOrEmpty() )
+        return true;
+
+    CORE::CDataNode compilerNode;
+    compilerNode.SetName( "Compiler" );
+    if ( !m_minCppStandard.IsNULLOrEmpty() )
+        compilerNode.SetAttribute( "MinCppStandard", m_minCppStandard );
+
+    TStringSet::const_iterator i = m_languagesUsed.begin();
+    while ( i != m_languagesUsed.end() )
+    {
+        CORE::CDataNode languageNode;
+        languageNode.SetName( "Language" );
+        languageNode.SetAttribute( "Name", (*i) );
+        compilerNode.AddChild( languageNode );
+        ++i;
+    }
+
+    CORE::CStringMap::const_iterator n = m_compilerFlags.begin();
+    while ( n != m_compilerFlags.end() )
+    {
+        CORE::CDataNode flagsNode;
+        flagsNode.SetName( "CompilerFlags" );
+        flagsNode.SetAttribute( "CompilerName", (*n).first );
+        flagsNode.SetAttribute( "Flags", (*n).second );
+        compilerNode.AddChild( flagsNode );
+        ++n;
+    }
+
+    domRootNode.AddChild( compilerNode );
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void
 CCompilerSettings::Clear( void )
 {GUCEF_TRACE;
 
     m_languagesUsed.clear();
     m_compilerFlags.clear();
+    m_minCppStandard.Clear();
 }
 
 /*---------------------------------------------------------------------------*/

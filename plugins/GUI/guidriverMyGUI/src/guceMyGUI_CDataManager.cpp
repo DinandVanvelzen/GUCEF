@@ -116,7 +116,7 @@ CDataManager::getData( const std::string& name )
     {
         return new CVfsHandleToMyGUIDataStreamAdapter( filePtr );
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -279,7 +279,7 @@ AwaitFuture( const CORE::CFutureResult& future, UInt32 timeoutInMs )
 static bool
 LoginWith( MULTIPLAY::CAuthIdentityProvider& provider, const CORE::CString& providerName )
 {
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     if ( !provider.Login( providerName, future ) || !AwaitFuture( future, 5000 ) )
         return false;
     AUTH::CAuthResult result;
@@ -393,7 +393,7 @@ PerformAuthIdentityTests( void )
             ASSERT_TRUE( AUTH::AUTHLOGINSTATE_GUEST == AsSso( provider )->GetLoginState() );
 
             // The local provider ignores logins, so does anything that is not an sso provider
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             MULTIPLAY::CIIdentityProviderPtr local = MULTIPLAY::CMultiplayGlobal::Instance()->GetIdentityProviderFactory().Create( "local" );
             REQUIRE_TRUE( !local.IsNULL() );
             ASSERT_FALSE( local->Login( "fakesso", future ) );

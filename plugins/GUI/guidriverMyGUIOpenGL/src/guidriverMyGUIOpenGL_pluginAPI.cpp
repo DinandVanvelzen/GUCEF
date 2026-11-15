@@ -60,7 +60,7 @@ namespace MYGUIGL {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static CGUIDriverGL* g_guiDriver = NULL;
+static CGUIDriverGL* g_guiDriver = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,7 +90,7 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     
     GUI::CGuiGlobal::Instance()->GetGuiManager().UnregisterGUIDriverByName( "MyGUIOpenGL" );
     delete g_guiDriver;
-    g_guiDriver = NULL;
+    g_guiDriver = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/

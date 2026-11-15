@@ -75,7 +75,7 @@ CTask::CTask( TTaskStatus taskStatus )
         // Set status to an error but only if the input was not already an error condition
         // in which case the task object is just a conveyance for error info
         if ( !IsTaskInErrorState() )
-            m_taskStatus = TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+            m_taskStatus = CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
     }
 
     m_serializedTaskData.SetNodeType( GUCEF_DATATYPE_UNKNOWN );
@@ -389,22 +389,22 @@ CTask::SetTaskStatus( TTaskStatus newStatus )
         // However we want them to have a chain-like feel when viewed in any sort of task manager
         switch ( newStatus )
         {
-            case TTaskStatus::TASKSTATUS_SETUP:
+            case CORE::TASKSTATUS_SETUP:
             {
                 if ( !nextTask->IsTaskInErrorState() )
                     nextTask->SetTaskStatus( newStatus );
                 break;
             }
-            case TTaskStatus::TASKSTATUS_STARTUP:
-            case TTaskStatus::TASKSTATUS_RUNNING:
+            case CORE::TASKSTATUS_STARTUP:
+            case CORE::TASKSTATUS_RUNNING:
             {
                 if ( !nextTask->IsTaskInErrorState() )
-                    nextTask->SetTaskStatus( TTaskStatus::TASKSTATUS_QUEUED );
+                    nextTask->SetTaskStatus( CORE::TASKSTATUS_QUEUED );
                 break;
             }
-            case TTaskStatus::TASKSTATUS_STOPPED:
-            case TTaskStatus::TASKSTATUS_KILLED:
-            case TTaskStatus::TASKSTATUS_CANCELLED:
+            case CORE::TASKSTATUS_STOPPED:
+            case CORE::TASKSTATUS_KILLED:
+            case CORE::TASKSTATUS_CANCELLED:
             {
                 if ( !nextTask->IsTaskInErrorState() )
                     nextTask->SetTaskStatus( newStatus );
@@ -555,7 +555,7 @@ CTask::Clear( void )
     }
     else
     {
-        m_taskStatus = TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+        m_taskStatus = CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED;
     }
 }
 
@@ -568,7 +568,7 @@ CTask::ClearUseState( void )
     MT::CScopeMutex lock( m_lock );
 
     SetTaskData( GUCEF_NULL, false );
-    m_taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
+    m_taskStatus = CORE::TASKSTATUS_UNDEFINED;
     m_cancellationRequested = false;
     m_taskStatusExtraInfo.Clear();
     m_serializedTaskData.Clear();
@@ -646,9 +646,9 @@ CTask::WaitForTaskToFinish( Int32 timeoutInMs ) const
         UInt64 ticksNow = MT::PrecisionTickCount();
         if ( timeoutInMs > 0 )
             if ( MT::PrecisionTimerTicksToMs( ticksNow - startTicks ) >= timeoutInMs )
-                return MT::TLockStatus::LOCKSTATUS_WAIT_TIMEOUT;
+                return MT::LOCKSTATUS_WAIT_TIMEOUT;
     }
-    return MT::TLockStatus::LOCKSTATUS_OPERATION_SUCCESS;
+    return MT::LOCKSTATUS_OPERATION_SUCCESS;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -722,7 +722,7 @@ CTask::GetFirstErrorStateTask( void ) const
 
     CTaskPtr task = GetFirstTaskInChain();
     if ( task.IsNULL() )
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+        return CTask::CreateSharedObjWithParam( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 
     while ( !task->IsTaskInErrorState() )
     {

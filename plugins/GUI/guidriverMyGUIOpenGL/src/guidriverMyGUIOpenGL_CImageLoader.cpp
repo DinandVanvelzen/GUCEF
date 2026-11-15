@@ -161,7 +161,7 @@ CImageLoader::loadImage( int& _width                  ,
         }
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

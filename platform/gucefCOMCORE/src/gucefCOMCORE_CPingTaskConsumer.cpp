@@ -328,9 +328,9 @@ CPingTaskConsumer::CEchoReceivedEventData::GetRoundTripTime( void ) const
 
 CPingTaskConsumer::CPingTaskConsumer( void )
     : CTaskConsumer()        ,
-      m_platformData( NULL ) ,
+      m_platformData( GUCEF_NULL ) ,
       m_notDone( true )      ,
-      m_taskData( NULL )     ,
+      m_taskData( GUCEF_NULL )     ,
       m_pingCounters()
 {GUCEF_TRACE;
 
@@ -338,7 +338,7 @@ CPingTaskConsumer::CPingTaskConsumer( void )
     
     TMsWinPingData* platformData = GUCEF_NEW TMsWinPingData;
     platformData->icmpHandle = IcmpCreateFile();
-    platformData->pingEvent = CreateEvent( NULL, FALSE, FALSE, NULL );
+    platformData->pingEvent = CreateEvent( GUCEF_NULL, FALSE, FALSE, GUCEF_NULL );
     m_platformData = platformData;
     
     #endif
@@ -559,13 +559,13 @@ CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
                     pingEntry.areWeWaitingForPingResult = true;
                     
                     DWORD result = IcmpSendEcho2( ((TMsWinPingData*)m_platformData)->icmpHandle          ,
-                                                  NULL                                                   ,
+                                                  GUCEF_NULL                                                   ,
                                                   (PIO_APC_ROUTINE_OLD)&IcmpCallback                     ,
                                                   &pingEntry                                             ,
                                                   netIp                                                  ,
                                                   pingData                                               ,
                                                   (WORD) m_taskData->GetBytesToSend()                    ,
-                                                  NULL                                                   ,
+                                                  GUCEF_NULL                                                   ,
                                                   pingEntry.replyBuffer                                  ,
                                                   sizeof(ICMP_ECHO_REPLY) + m_taskData->GetBytesToSend() ,
                                                   m_taskData->GetTimeout()                               );

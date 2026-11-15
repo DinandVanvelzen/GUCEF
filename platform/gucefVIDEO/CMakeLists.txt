@@ -68,7 +68,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefMATH/include ../gucefAUDIO/include/c_api ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefIMAGE/include ../gucefMT/include include include/c_api )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefMATH/include ../gucefMATH/src ../gucefMT/include include include/c_api )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )
@@ -93,6 +93,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include include/c_api )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
 
 
 

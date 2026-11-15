@@ -30,17 +30,31 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "MyGUI.Engine" } )
+
+configuration( {} )
 links( { "MyGUI.Engine" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=MyGUI_OpenGLPlatform", "MODULE_NAME=MyGUI_OpenGLPlatform" } )
-  links( { "GLESv1_CM" } )
-  links( { "GLESv1_CM" } )
-  links( { "GL" } )
-  links( { "GL" } )
-  links( { "opengl32" } )
-  links( { "opengl32" } )
+
+configuration( { "ANDROID32" } )
+links( { "GLESv1_CM" } )
+
+configuration( { "ANDROID64" } )
+links( { "GLESv1_CM" } )
+
+configuration( { "LINUX32" } )
+links( { "GL" } )
+
+configuration( { "LINUX64" } )
+links( { "GL" } )
+
+configuration( { "WIN32" } )
+links( { "opengl32" } )
+
+configuration( { "WIN64" } )
+links( { "opengl32" } )
 
 
 configuration( {} )

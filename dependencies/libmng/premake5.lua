@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "lcms2", "libjpeg", "zlib" } )
+
+configuration( {} )
 links( { "lcms2", "libjpeg", "zlib" } )
 
 

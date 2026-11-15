@@ -71,7 +71,7 @@ class GUIDRIVERWIN32D3D9_PUBLIC_CPP CWin32D3D9WindowManagerImp : public GUI::CWi
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title             ,
                                                         const GUI::CVideoSettings& settings   ,
-                                                        const CORE::CValueList* params = NULL );
+                                                        const CORE::CValueList* params = GUCEF_NULL );
 
     virtual GUI::TWindowContextPtr CreateWindowContext( const GUI::CString& title      ,
                                                         const GUI::UInt32 width        ,

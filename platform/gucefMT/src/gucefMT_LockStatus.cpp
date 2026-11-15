@@ -47,16 +47,16 @@ LockStatusToLockSuccessStatusBool( TLockStatus threadStatus )
 
     switch ( threadStatus )
     {
-        case TLockStatus::LOCKSTATUS_OPERATION_SUCCESS:
-        case TLockStatus::LOCKSTATUS_ABANDONED:        
-        case TLockStatus::LOCKSTATUS_NOT_APPLICABLE:
+        case LOCKSTATUS_OPERATION_SUCCESS:
+        case LOCKSTATUS_ABANDONED:        
+        case LOCKSTATUS_NOT_APPLICABLE:
         {
             return true;
         }
         default:
-        case TLockStatus::LOCKSTATUS_OPERATION_FAILED:
-        case TLockStatus::LOCKSTATUS_WAIT_TIMEOUT:
-        case TLockStatus::LOCKSTATUS_UNDEFINED:
+        case LOCKSTATUS_OPERATION_FAILED:
+        case LOCKSTATUS_WAIT_TIMEOUT:
+        case LOCKSTATUS_UNDEFINED:
         {
             return false;
         }
@@ -71,13 +71,13 @@ LockStatusToLockStatusString( TLockStatus threadStatus )
 
     switch ( threadStatus )
     {
-        case TLockStatus::LOCKSTATUS_OPERATION_SUCCESS: return "OPERATION_SUCCESS";
-        case TLockStatus::LOCKSTATUS_ABANDONED: return "ABANDONED";       
-        case TLockStatus::LOCKSTATUS_NOT_APPLICABLE: return "NOT_APPLICABLE";         
-        case TLockStatus::LOCKSTATUS_OPERATION_FAILED: return "OPERATION_FAILED";
-        case TLockStatus::LOCKSTATUS_WAIT_TIMEOUT: return "WAIT_TIMEOUT";
+        case LOCKSTATUS_OPERATION_SUCCESS: return "OPERATION_SUCCESS";
+        case LOCKSTATUS_ABANDONED: return "ABANDONED";       
+        case LOCKSTATUS_NOT_APPLICABLE: return "NOT_APPLICABLE";         
+        case LOCKSTATUS_OPERATION_FAILED: return "OPERATION_FAILED";
+        case LOCKSTATUS_WAIT_TIMEOUT: return "WAIT_TIMEOUT";
         
-        case TLockStatus::LOCKSTATUS_UNDEFINED:
+        case LOCKSTATUS_UNDEFINED:
         default:
         {
             return "<UNDEFINED>";

@@ -136,7 +136,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CServerList : public CORE::CObservingNotifier
     
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL ) GUCEF_VIRTUAL_OVERRIDE;    
+                           CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;    
     
     private:
     typedef std::vector< COMCORE::CPing* > TPingers;

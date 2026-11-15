@@ -482,7 +482,7 @@ PerformArchiveDiffTemplateToMain( const PATCHER::CPatchSetParser::TFileEntry& te
             // We can use 1 other criterea, what if there are multiple entries with the same hash
             // all at different locations then the original, but what if only 1 has the same name as
             // the original? The odds are then pretty good that this is a positive match
-            const PATCHER::CPatchSetParser::TFileEntry* entryWithSameName = NULL;
+            const PATCHER::CPatchSetParser::TFileEntry* entryWithSameName = GUCEF_NULL;
             CORE::UInt32 matchCount = 0;
             while ( n != entries.end() )
             {
@@ -915,10 +915,10 @@ DeserializeFileInfo( const CORE::CDataNode& fileStatusNode           ,
 
     static PATCHER::CPatchSetParser parser;
     const CORE::CDataNode* infoNodeParent = fileStatusNode.FindChild( name );
-    if ( NULL != infoNodeParent )
+    if ( GUCEF_NULL != infoNodeParent )
     {
         const CORE::CDataNode* infoNode = infoNodeParent->GetFirstChild();
-        if ( NULL != infoNode )
+        if ( GUCEF_NULL != infoNode )
         {
             if ( parser.ValidateAndParseFileEntry( *infoNode ,
                                                    fileEntry ,
@@ -1117,7 +1117,7 @@ LoadFileStatusListSegment( const CORE::CString& filePath     ,
                                           " nodes, parsing data into strongly typed data structures" );
 
         const CORE::CDataNode* rootNode = fileStatusTree.Find( "FileStatusList" );
-        if ( NULL != rootNode )
+        if ( GUCEF_NULL != rootNode )
         {
             CORE::CDataNode::const_iterator i = rootNode->ConstBegin();
             while ( i != rootNode->ConstEnd() )
@@ -1157,7 +1157,7 @@ GetListOfMultiPartFiles( const CORE::CString& filePath ,
     CORE::CString rootFilename = CORE::ExtractFilename( filePath );
 
     struct CORE::SDI_Data* dirEntry = CORE::DI_First_Dir_Entry( rootDir.C_String() );
-    if ( dirEntry != NULL )
+    if ( dirEntry != GUCEF_NULL )
     {
         do
         {

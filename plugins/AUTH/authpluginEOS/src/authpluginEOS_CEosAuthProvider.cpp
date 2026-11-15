@@ -332,7 +332,7 @@ bool
 CEosAuthProvider::TrySilentLogin( CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     UInt32 timeout = 0;
     {
         MT::CScopeMutex lock( m_lock );
@@ -347,7 +347,7 @@ bool
 CEosAuthProvider::BeginLogin( const AUTH::CAuthOptions& options, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     EEosLoginType type = options.preferDeviceCode ? EOSLOGIN_DEVICE_CODE : EOSLOGIN_ACCOUNT_PORTAL;
     return Start( type, true, options.timeoutInMs > 0 ? options.timeoutInMs : AUTH::CAuthOptions::DefaultTimeoutInMs, future );
 }

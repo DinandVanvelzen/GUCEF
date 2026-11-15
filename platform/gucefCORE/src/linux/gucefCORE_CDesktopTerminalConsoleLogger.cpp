@@ -109,17 +109,17 @@ struct SKnownTerminal
 /** In order of preference after the explicitly configured ones */
 static const SKnownTerminal g_knownTerminals[] =
 {
-    { "xdg-terminal-exec"   , TERMINALSTYLE_DIRECT   , TERMINALTITLE_NONE       , NULL               },
-    { "x-terminal-emulator" , TERMINALSTYLE_DASH_E   , TERMINALTITLE_NONE       , NULL               },
+    { "xdg-terminal-exec"   , TERMINALSTYLE_DIRECT   , TERMINALTITLE_NONE       , GUCEF_NULL               },
+    { "x-terminal-emulator" , TERMINALSTYLE_DASH_E   , TERMINALTITLE_NONE       , GUCEF_NULL               },
     { "ptyxis"              , TERMINALSTYLE_DASHDASH , TERMINALTITLE_LONG_EQ    , "--new-window"     },
-    { "gnome-terminal"      , TERMINALSTYLE_DASHDASH , TERMINALTITLE_LONG_EQ    , NULL               },
+    { "gnome-terminal"      , TERMINALSTYLE_DASHDASH , TERMINALTITLE_LONG_EQ    , GUCEF_NULL               },
     { "konsole"             , TERMINALSTYLE_DASH_E   , TERMINALTITLE_NONE       , "--separate"       },
     { "xfce4-terminal"      , TERMINALSTYLE_DASH_X   , TERMINALTITLE_DASH_T     , "--disable-server" },
-    { "kgx"                 , TERMINALSTYLE_DASH_E   , TERMINALTITLE_NONE       , NULL               },
-    { "kitty"               , TERMINALSTYLE_DIRECT   , TERMINALTITLE_LONG_SPACE , NULL               },
-    { "alacritty"           , TERMINALSTYLE_DASH_E   , TERMINALTITLE_LONG_SPACE , NULL               },
-    { "foot"                , TERMINALSTYLE_DIRECT   , TERMINALTITLE_LONG_SPACE , NULL               },
-    { "xterm"               , TERMINALSTYLE_DASH_E   , TERMINALTITLE_DASH_T     , NULL               }
+    { "kgx"                 , TERMINALSTYLE_DASH_E   , TERMINALTITLE_NONE       , GUCEF_NULL               },
+    { "kitty"               , TERMINALSTYLE_DIRECT   , TERMINALTITLE_LONG_SPACE , GUCEF_NULL               },
+    { "alacritty"           , TERMINALSTYLE_DASH_E   , TERMINALTITLE_LONG_SPACE , GUCEF_NULL               },
+    { "foot"                , TERMINALSTYLE_DIRECT   , TERMINALTITLE_LONG_SPACE , GUCEF_NULL               },
+    { "xterm"               , TERMINALSTYLE_DASH_E   , TERMINALTITLE_DASH_T     , GUCEF_NULL               }
 };
 
 static const UInt32 g_knownTerminalCount = sizeof( g_knownTerminals ) / sizeof( g_knownTerminals[ 0 ] );
@@ -163,10 +163,10 @@ class CSigPipeGuard
                 struct timespec noWait;
                 noWait.tv_sec = 0;
                 noWait.tv_nsec = 0;
-                sigtimedwait( &m_pipeSet, NULL, &noWait );
+                sigtimedwait( &m_pipeSet, GUCEF_NULL, &noWait );
             }
         }
-        pthread_sigmask( SIG_SETMASK, &m_oldMask, NULL );
+        pthread_sigmask( SIG_SETMASK, &m_oldMask, GUCEF_NULL );
     }
 
     private:

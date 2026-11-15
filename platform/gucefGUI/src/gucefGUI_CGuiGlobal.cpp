@@ -116,7 +116,7 @@ CGuiGlobal::Deinstance( void )
     MT::CScopeMutex lock( g_datalock );
 
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -182,10 +182,10 @@ const CString CGuiGlobal::DefaultUiFontPath = "gucefGUI/fonts/NotoSans-Regular.t
 /*-------------------------------------------------------------------------*/
 
 CGuiGlobal::CGuiGlobal( void )
-    : m_windowManager( NULL ) ,
-      m_guiManager( NULL )    ,
-      m_widgetTypeRegistry( NULL ) ,
-      m_fontRasterizerRegistry( NULL )
+    : m_windowManager( GUCEF_NULL ) ,
+      m_guiManager( GUCEF_NULL )    ,
+      m_widgetTypeRegistry( GUCEF_NULL ) ,
+      m_fontRasterizerRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -203,14 +203,14 @@ CGuiGlobal::~CGuiGlobal()
      *      Take care to deinstance them in the correct order !!!
      */
     delete m_guiManager;
-    m_guiManager = NULL;
+    m_guiManager = GUCEF_NULL;
     delete m_windowManager;
-    m_windowManager = NULL;
+    m_windowManager = GUCEF_NULL;
     CSettingsForm::UnregisterStandardPages();
     delete m_fontRasterizerRegistry;
-    m_fontRasterizerRegistry = NULL;
+    m_fontRasterizerRegistry = GUCEF_NULL;
     delete m_widgetTypeRegistry;
-    m_widgetTypeRegistry = NULL;
+    m_widgetTypeRegistry = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

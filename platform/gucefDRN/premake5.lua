@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB" } )
+
+configuration( {} )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB" } )
 
 
@@ -65,9 +67,9 @@ files( {
   "include/gucefDRN_CDRNLinkMonitor.h",
   "include/gucefDRN_CDRNLinkReliability.h",
   "include/gucefDRN_CDRNNode.h",
+  "include/gucefDRN_CDRNNodePulseDriver.h",
   "include/gucefDRN_CDRNNodeSettings.h",
   "include/gucefDRN_CDRNNodeTask.h",
-  "include/gucefDRN_CDRNNodePulseDriver.h",
   "include/gucefDRN_CDRNPacketCodec.h",
   "include/gucefDRN_CDRNPacketProtection.h",
   "include/gucefDRN_CDRNPeerLink.h",
@@ -152,9 +154,9 @@ files( {
   "src/gucefDRN_CDRNLinkMonitor.cpp",
   "src/gucefDRN_CDRNLinkReliability.cpp",
   "src/gucefDRN_CDRNNode.cpp",
+  "src/gucefDRN_CDRNNodePulseDriver.cpp",
   "src/gucefDRN_CDRNNodeSettings.cpp",
   "src/gucefDRN_CDRNNodeTask.cpp",
-  "src/gucefDRN_CDRNNodePulseDriver.cpp",
   "src/gucefDRN_CDRNPacketCodec.cpp",
   "src/gucefDRN_CDRNPacketProtection.cpp",
   "src/gucefDRN_CDRNPeerLink.cpp",

@@ -423,7 +423,7 @@ class CFakeMatchProvider : public MULTIPLAY::CIMatchProvider
         if ( !op.hasSource )
             return;
         if ( op.failure )
-            op.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The call failed" );
+            op.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The call failed" );
         else
             op.source.Complete( result.Clone(), true );
     }

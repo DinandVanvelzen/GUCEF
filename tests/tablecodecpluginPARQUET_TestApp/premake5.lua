@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,6 +36,8 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT", "tablecodecpluginPARQUET" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMT", "tablecodecpluginPARQUET" } )
 
 

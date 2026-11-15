@@ -112,7 +112,7 @@ CDataQueue::Get( const void** dataptr ,
                 return;                
         }
         
-        *dataptr = NULL;
+        *dataptr = GUCEF_NULL;
         *datasize = 0;
         GUCEF_END;      
 }

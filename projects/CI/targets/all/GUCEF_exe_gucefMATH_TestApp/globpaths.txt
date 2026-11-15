@@ -1,0 +1,6 @@
+common/include/*
+common/test/include/*
+platform/gucefCORE/*
+platform/gucefMATH/*
+platform/gucefMT/*
+tests/gucefMATH_TestApp/*

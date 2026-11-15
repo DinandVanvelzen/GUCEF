@@ -196,7 +196,7 @@ StartFromDraft( CEMailTable& table, UInt32 creator, const CORE::CString& matchId
     const int holder = PlayerOfAddress( table, introduced[ 0 ].address );
     MULTIPLAY::CMatchPackage package = TESTFW::MakeTestPackage( 1, GUCEF_NULL, "game|setup|start" );
     MULTIPLAY::CMatchPreview preview = TESTFW::MakeTestPreview( record.info, table.P( creator ).identity, package, holder >= 0 ? &table.P( (UInt32) holder ).identity : GUCEF_NULL, MULTIPLAY::MATCHSTATUS_ACTIVE, table.clock.nowMs );
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     if ( !table.P( creator ).provider->CreateMatch( record, package, preview, future ) )
         return false;
     return table.Await( future, result );
@@ -208,7 +208,7 @@ StartFromDraft( CEMailTable& table, UInt32 creator, const CORE::CString& matchId
 bool
 RemoveMatch( CEMailTable& table, UInt32 player, const CORE::CString& matchId )
 {
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     MULTIPLAY::CMatchOperationResult result;
     return table.P( player ).provider->Remove( matchId, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status;
 }
@@ -387,7 +387,7 @@ PerformMailHandshakeTests( void )
         MULTIPLAY::CMatchInfo info;
         ASSERT_TRUE( table.P( 1 ).provider->GetMatchInfo( changed, info ) );
         MULTIPLAY::CMatchAcceptance acceptance;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( acceptance.Sign( table.P( 1 ).identity, info, true ) && table.P( 1 ).provider->Respond( changed, acceptance, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         PUMP_WAIT( active, MULTIPLAY::MATCHPARTICIPANT_ACTIVE == table.StatusOf( 1, changed, 1 ), 8000 );
         ASSERT_TRUE( active );
@@ -486,7 +486,7 @@ PerformMailHandshakeTests( void )
         MULTIPLAY::CMatchInfo info;
         ASSERT_TRUE( table.P( 1 ).provider->GetMatchInfo( id, info ) );
         MULTIPLAY::CMatchAcceptance acceptance;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( acceptance.Sign( table.P( 1 ).identity, info, true ) && table.P( 1 ).provider->Respond( id, acceptance, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         bool active = false;
         PUMP_WAIT( active, MULTIPLAY::MATCHPARTICIPANT_ACTIVE == table.StatusOf( 1, id, 1 ), 8000 );

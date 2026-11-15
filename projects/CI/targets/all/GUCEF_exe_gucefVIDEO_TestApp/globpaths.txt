@@ -3,6 +3,7 @@ common/test/include/*
 platform/gucefAUDIO/*
 platform/gucefCORE/*
 platform/gucefIMAGE/*
+platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVIDEO/*
 plugins/VIDEO/videocodecpluginSMK/*

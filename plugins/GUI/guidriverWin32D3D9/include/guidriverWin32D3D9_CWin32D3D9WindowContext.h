@@ -105,7 +105,7 @@ class GUIDRIVERWIN32D3D9_PUBLIC_CPP CWin32D3D9WindowContext : public GUI::CWindo
    
     virtual void OnNotify( CORE::CNotifier* notifier          ,
                            const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
+                           CORE::CICloneable* evenData = GUCEF_NULL );
     
     private:
     

@@ -273,25 +273,65 @@ ProjectGenerator::PerformWork( void )
     projectInfo->ApplyConfig( m_config );
     projectInfo->SetSetttings( m_params );
 
+    // The fingerprint of everything the project information is gathered from. It is stored with the project information
+    // so that a later run can tell whether the stored project information is still valid
+    CDirCrawlingProjectInfoGatherer infoGatherer;
+    CORE::CString inputFingerprint;
+    if ( !infoGatherer.ComputeInputFingerprint( rootDirs, *projectInfo, inputFingerprint ) )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Failed to compute the input fingerprint, stored project information cannot be validated nor reused" );
+        inputFingerprint.Clear();
+    }
+
     bool useProjectInfoCache = m_params.GetValueAlways( "useProjectInfoCache", false ).AsBool( false, true );
     bool projectInfoLoadedFromCache = false;
-    if ( useProjectInfoCache )
+    if ( useProjectInfoCache && !inputFingerprint.IsNULLOrEmpty() )
     {
         CORE::CString cachedInfoPath = CORE::CombinePath( CORE::RelativePath( outputDir ), "Project.xml" );
         if ( CORE::FileExists( cachedInfoPath ) )
         {
-            projectInfo->SetRootDir( outputDir );
-            projectInfoLoadedFromCache = projectInfo->Deserialize( cachedInfoPath );
+            // Load into a separate object so that stale project information never mixes with freshly gathered information
+            CProjectInfoPtr cachedProjectInfo = CProjectInfo::CreateSharedObj();
+            cachedProjectInfo->ApplyConfig( m_config );
+            cachedProjectInfo->SetSetttings( m_params );
+
+            // Root the stored project information at the resolved root dirs, the same as gathering does
+            TStringVector resolvedRootDirs;
+            TStringVector::iterator r = rootDirs.begin();
+            while ( r != rootDirs.end() )
+            {
+                resolvedRootDirs.push_back( CORE::RelativePath( (*r), true ) );
+                ++r;
+            }
+            cachedProjectInfo->SetRootDirs( resolvedRootDirs );
+            if ( cachedProjectInfo->Deserialize( cachedInfoPath ) )
+            {
+                if ( cachedProjectInfo->GetInputFingerprint() == inputFingerprint )
+                {
+                    projectInfo = cachedProjectInfo;
+                    projectInfoLoadedFromCache = true;
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Using the stored project information from " + cachedInfoPath + " since its input fingerprint matches" );
+                }
+                else
+                {
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Not using the stored project information from " + cachedInfoPath + ": its input fingerprint \"" +
+                        cachedProjectInfo->GetInputFingerprint() + "\" differs from the current \"" + inputFingerprint + "\"" );
+                }
+            }
+            else
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Failed to load the stored project information from " + cachedInfoPath );
+            }
         }
     }
 
     if ( !projectInfoLoadedFromCache )
     {
         // Use an info gatherer to get all the project information for us
-        CDirCrawlingProjectInfoGatherer infoGatherer;
         infoGatherer.GatherInfo( rootDirs    ,
                                  projectInfo ,
                                  m_params    );
+        projectInfo->SetInputFingerprint( inputFingerprint );
     }
 
     // Before we hand the data we collected and generated to the generator(s) for the desired output we will check

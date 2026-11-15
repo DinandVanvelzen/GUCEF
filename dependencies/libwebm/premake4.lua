@@ -57,56 +57,56 @@ language( "C" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "StaticLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "StaticLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "StaticLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "StaticLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "StaticLib" )
-  
 
-configuration( { ANDROID32 } )
+
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=libwebm", "MODULE_SEMVER=1_0_0_31" } )
-  
 
-configuration( { ANDROID64 } )
+
+configuration( { "ANDROID64" } )
 defines( { "MODULE_NAME=libwebm", "MODULE_SEMVER=1_0_0_31" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "MODULE_NAME=libwebm", "MODULE_SEMVER=1_0_0_31" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "MODULE_NAME=libwebm", "MODULE_SEMVER=1_0_0_31" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "MODULE_NAME=libwebm", "MODULE_SEMVER=1_0_0_31" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "MODULE_NAME=libwebm", "MODULE_SEMVER=1_0_0_31" } )
 
 

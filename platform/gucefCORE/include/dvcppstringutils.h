@@ -502,7 +502,7 @@ GUCEF_CORE_PUBLIC_CPP bool
 LoadTextFileAsString( const CString& filePath      ,
                       CString& fileContent         ,
                       const bool unifyEol = false  ,
-                      const char* eolString = NULL );
+                      const char* eolString = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 

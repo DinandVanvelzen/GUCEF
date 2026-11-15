@@ -589,7 +589,7 @@ PerformNetworkServiceInterfaceTests( void )
 
             CPromise failing;
             CORE::CFutureResult failed = failing.source.GetFuture();
-            ASSERT_TRUE( failing.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "no gateway" ) );
+            ASSERT_TRUE( failing.source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "no gateway" ) );
             ASSERT_FALSE( CPortMappingResult::TryGetFromFuture( failed, result ) );
 
             // a future that finished well but carries data of another class is no port mapping result

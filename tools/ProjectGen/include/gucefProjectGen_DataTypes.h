@@ -350,6 +350,14 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCompilerSettings : public CORE::CTSharedObjCr
 
     const CORE::CStringMap& GetCompilerFlags( void ) const;
 
+    /**
+     *  The minimum C++ standard the module needs by its short name: "98", "03", "11", "14", "17", "20", "23" or "26".
+     *  Empty when the module does not declare one. Set from the MinCppStandard attribute of the Compiler section.
+     */
+    const CORE::CString& GetMinCppStandard( void ) const;
+
+    void SetMinCppStandard( const CORE::CString& minCppStandard );
+
     bool Merge( const CCompilerSettings& compilerSettingsToMergeIn ,
                 bool onConflictOriginalInfoStays = true            );
 
@@ -362,12 +370,19 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCompilerSettings : public CORE::CTSharedObjCr
     virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
                               const CORE::CDataNodeSerializableSettings& settings );
 
+    /**
+     *  Adds a Compiler node to the given DOM node in the form Deserialize() reads, if there are any compiler settings
+     */
+    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const;
+
     void Clear( void );
 
     private:
 
     TStringSet m_languagesUsed;                // list of all programming languages used within this module
     CORE::CStringMap m_compilerFlags;          // map of flags to pass to the specific compilers
+    CORE::CString m_minCppStandard;            // minimum C++ standard by short name, empty if not declared
 };
 
 /*---------------------------------------------------------------------------*/
@@ -786,6 +801,26 @@ IsAnyLicenseDefined( const TStringToModuleInfoEntryPtrMap& moduleInfoEntries );
 GUCEF_PROJECTGEN_PUBLIC_CPP
 const CORE::CString::StringSet&
 GetKnownLicenseFiles( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Converts the name of a C++ standard to the year of the standard: 1998, 2003, 2011, 2014, 2017, 2020, 2023 or 2026.
+ *  Accepted are the short names ("98", "11", ...), the years and the names with a "c++" or "gnu++" prefix.
+ *  Returns 0 if the name is not one of a known C++ standard.
+ */
+GUCEF_PROJECTGEN_PUBLIC_CPP
+UInt32
+CppStandardToYear( const CORE::CString& cppStandard );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Converts the year of a C++ standard to its short name ("98", "03", "11", ...), empty for an unknown year
+ */
+GUCEF_PROJECTGEN_PUBLIC_CPP
+CORE::CString
+CppStandardYearToName( UInt32 cppStandardYear );
 
 /*-------------------------------------------------------------------------*/
 

@@ -522,7 +522,7 @@ PerformAccountSettingsFormTests( void )
             CFakeLoginProvider* google = inner.AddProvider( "google" );
             REQUIRE_TRUE( GUCEF_NULL != google );
             google->mode = CFakeLoginProvider::MODE_BROWSER;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( inner.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             page->SetAuthManager( &inner.manager );
             ASSERT_TRUE( AUTHGUI::CAccountsPanel::LOGINPROGRESS_WAITING_FOR_BROWSER == page->GetProgress( "google" ) );

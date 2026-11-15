@@ -129,7 +129,7 @@ CFileLock::Acquire( const CORE::CString& lockFilePath, bool exclusive, UInt32 ti
     #if defined( GUCEF_AUTH_FILELOCK_LOCKFILEEX )
 
     std::wstring wPath = CORE::ToWString( lockFilePath );
-    HANDLE handle = ::CreateFileW( wPath.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+    HANDLE handle = ::CreateFileW( wPath.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, GUCEF_NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, GUCEF_NULL );
     if ( INVALID_HANDLE_VALUE == handle )
         return LOCKOUTCOME_UNAVAILABLE;
     m_handle = handle;

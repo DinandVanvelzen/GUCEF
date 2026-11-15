@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERWAYLAND_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverWAYLAND", "MODULE_SEMVER=1_0_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
-  links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT", "pluginglueWAYLAND" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERWAYLAND_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverWAYLAND", "MODULE_SEMVER=1_0_0_0" } )
 
 

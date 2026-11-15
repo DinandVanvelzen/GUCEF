@@ -176,14 +176,14 @@ CDataTableAsyncOperation::Queue( const CDataTableAsyncOperationData& data, Threa
         threadPool = CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( DefaultThreadPoolName );
     if ( threadPool.IsNULL() )
     {
-        result.Fail( TTaskStatus::TASKSTATUS_QUEUEING_FAILED, "No thread pool for the data table operation" );
+        result.Fail( CORE::TASKSTATUS_QUEUEING_FAILED, "No thread pool for the data table operation" );
         return result.GetFuture();
     }
 
     CDataTableAsyncOperationData taskData( data );
     CFutureResult queued = threadPool->QueueTask( TaskType, &taskData, GUCEF_NULL, false );
     if ( queued.HasNoFuture() )
-        result.Fail( TTaskStatus::TASKSTATUS_QUEUEING_FAILED, "The data table operation could not be queued on thread pool \"" + threadPool->GetThreadPoolName() + "\"" );
+        result.Fail( CORE::TASKSTATUS_QUEUEING_FAILED, "The data table operation could not be queued on thread pool \"" + threadPool->GetThreadPoolName() + "\"" );
     return result.GetFuture();
 }
 
@@ -215,7 +215,7 @@ CDataTableAsyncOperation::OnTaskCycle( CTaskPtr task )
         return true;
     if ( data->table.IsNULL() )
     {
-        data->result.Fail( TTaskStatus::TASKSTATUS_TASKDATA_INVALID, "The operation names no table" );
+        data->result.Fail( CORE::TASKSTATUS_TASKDATA_INVALID, "The operation names no table" );
         return true;
     }
     if ( data->result.IsCancellationRequested() )
@@ -228,7 +228,7 @@ CDataTableAsyncOperation::OnTaskCycle( CTaskPtr task )
     if ( GUCEF_NULL == table )
     {
         data->table->Unlock();
-        data->result.Fail( TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The table was destroyed before the operation ran" );
+        data->result.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The table was destroyed before the operation ran" );
         return true;
     }
 
@@ -278,7 +278,7 @@ CDataTableAsyncOperation::OnTaskCycle( CTaskPtr task )
 
     if ( DATATABLE_STATUS_OK != status )
     {
-        data->result.Fail( TTaskStatus::TASKSTATUS_STARTUP_FAILED, CString( DataTableStatusToString( status ) ) + ": " + message );
+        data->result.Fail( CORE::TASKSTATUS_STARTUP_FAILED, CString( DataTableStatusToString( status ) ) + ": " + message );
         return true;
     }
     if ( isList )

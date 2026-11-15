@@ -89,7 +89,7 @@ class GUCEF_CORE_PUBLIC_CPP CMsWin32ConsoleWindow : public CMsWin32Window ,
 
     virtual void OnNotify( CNotifier* notifier           ,
                            const CEvent& eventid         ,
-                           CICloneable* eventdata = NULL );
+                           CICloneable* eventdata = GUCEF_NULL );
 
     private:
 

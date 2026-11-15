@@ -17,6 +17,10 @@
         <Preprocessor>
             <Define String="GUCEF_COM_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
+        <!-- test support headers shared from other modules -->
+        <Includes Source="Dependency">
+            <Include Path="../../tests/gucefCOMCORE_TestApp/include" />
+        </Includes>
         <RuntimeDependencies>
             <RuntimeDependency Name="comcorepluginUPNP" />
             <RuntimeDependency Name="dstorepluginJSONPARSER" />

@@ -91,7 +91,7 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPChannel : public CORE::CNotifier
     virtual ~CUDPChannel();
     
     bool DoNotifyObservers( const CORE::CEvent& eventid         ,
-                            CORE::CICloneable* eventData = NULL );
+                            CORE::CICloneable* eventData = GUCEF_NULL );
     
     private:
     

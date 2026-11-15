@@ -519,7 +519,7 @@ PerformDescriptorTests( void )
                 ASSERT_TRUE( provider->GetProviderName() == expected[ i ] );
                 ASSERT_TRUE( 0 != provider->GetCapabilities() );
                 ASSERT_FALSE( provider->IsAvailable() );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_FALSE( provider->BeginLogin( AUTH::CAuthOptions(), future ) );
                 ASSERT_TRUE( future.HasNoFuture() );
                 ASSERT_FALSE( provider->TrySilentLogin( future ) );
@@ -577,7 +577,7 @@ PerformDescriptorTests( void )
             // an engine that does not support what is configured
             engine.supported = false;
             ASSERT_FALSE( provider.IsAvailable() );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( provider.BeginLogin( AUTH::CAuthOptions(), future ) && engine.interactiveCount > 0 );
             ASSERT_TRUE( 0 == engine.interactiveCount );
             engine.supported = true;

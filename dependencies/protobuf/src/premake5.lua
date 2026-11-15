@@ -26,12 +26,12 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -41,24 +41,36 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "LIBPROTOBUF_EXPORTS", "LIBPROTOC_EXPORTS", "MODULE_CONSENSUS_NAME=libprotobuf", "MODULE_NAME=libprotobuf", "PROTOBUF_USE_DLLS" } )
-  links( { "log", "z" } )
-  links( { "log", "z" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "ANDROID32" } )
+links( { "log", "z" } )
+
+configuration( { "ANDROID64" } )
+links( { "log", "z" } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { LINUX64 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
 
 
 configuration( {} )

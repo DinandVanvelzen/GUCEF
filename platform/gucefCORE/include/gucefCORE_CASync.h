@@ -857,7 +857,7 @@ CASync::QueueCallback( R (*f)() )
 
     CICloneable* taskData = CDeferredTask::Construct( f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
    return QueueCallbackCommonImpl( taskData );
 }
@@ -871,7 +871,7 @@ CASync::QueueCallback( R (*f)(A1), A1 a1 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
    return QueueCallbackCommonImpl( taskData );
 }
@@ -885,7 +885,7 @@ CASync::QueueCallback( R (*f)(A1, A2), A1 a1, A2 a2 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
    return QueueCallbackCommonImpl( taskData );
 }
@@ -899,7 +899,7 @@ CASync::QueueCallback( R (*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
    return QueueCallbackCommonImpl( taskData );
 }
@@ -913,7 +913,7 @@ CASync::QueueCallback( R (*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3 a3, A4 a4 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3, a4 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
    return QueueCallbackCommonImpl( taskData );
 }
@@ -927,11 +927,11 @@ CASync::ThenCallback( R (*f)( CTaskPtr ) )
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::Construct( f, lastTask );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -945,11 +945,11 @@ CASync::ThenCallback( R (*f)( CTaskPtr, A2 ), A2 a2 )
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::Construct( f, lastTask, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -963,11 +963,11 @@ CASync::ThenCallback( R (*f)( CTaskPtr, A2, A3 ), A2 a2, A3 a3 )
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::Construct( f, lastTask, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -983,7 +983,7 @@ CASync::QueueMemberCallback( C* obj, R (C::*f)() )
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -997,7 +997,7 @@ CASync::QueueMemberCallback( C* obj, R (C::*f)(A1), A1 a1 )
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, a1 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1011,7 +1011,7 @@ CASync::QueueMemberCallback( C* obj, R (C::*f)(A1, A2), A1 a1, A2 a2 )
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, a1, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1025,7 +1025,7 @@ CASync::QueueMemberCallback( C* obj, R (C::*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, a1, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1039,7 +1039,7 @@ CASync::QueueMemberCallback( C* obj, R (C::*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, a1, a2, a3, a4 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1055,7 +1055,7 @@ CASync::QueueMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1069,7 +1069,7 @@ CASync::QueueMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, a1 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1083,7 +1083,7 @@ CASync::QueueMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, a1, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1097,7 +1097,7 @@ CASync::QueueMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, a1, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1111,7 +1111,7 @@ CASync::QueueMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, a1, a2, a3, a4 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return QueueCallbackCommonImpl( taskData );
 }
@@ -1127,11 +1127,11 @@ CASync::ThenMemberCallback( C* obj, R (C::*f)(CTaskPtr) )
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, lastTask );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1145,11 +1145,11 @@ CASync::ThenMemberCallback( C* obj, R (C::*f)(CTaskPtr, A2), A2 a2 )
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, lastTask, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1163,11 +1163,11 @@ CASync::ThenMemberCallback( C* obj, R (C::*f)(CTaskPtr, A2, A3), A2 a2, A3 a3 )
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::ConstructMember( obj, f, lastTask, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1183,11 +1183,11 @@ CASync::ThenMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(C
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, lastTask );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1201,11 +1201,11 @@ CASync::ThenMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(C
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, lastTask, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1219,11 +1219,11 @@ CASync::ThenMemberCallback( SharedPtrT obj, R (SharedPtrT::TContainedType::*f)(C
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
 
     CICloneable* taskData = CDeferredTask::ConstructMemberShared( obj, f, lastTask, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1251,16 +1251,16 @@ CASyncChainStepArity1< R, A1, plain_true >::ThenPassToCallback( R (*f)( CTaskPtr
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1288,16 +1288,16 @@ CASyncChainStepArity1< R, A1, plain_false >::ThenPassToCallback( R (*f)( CTaskPt
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1325,16 +1325,16 @@ CASyncChainStepArity2< R, A1, A2, plain_true >::ThenPassToCallback( R (*f)( CTas
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1362,16 +1362,16 @@ CASyncChainStepArity2< R, A1, A2, plain_false >::ThenPassToCallback( R (*f)( CTa
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1399,16 +1399,16 @@ CASyncChainStepArity3< R, A1, A2, A3, plain_true >::ThenPassToCallback( R (*f)( 
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1436,16 +1436,16 @@ CASyncChainStepArity3< R, A1, A2, A3, plain_false >::ThenPassToCallback( R (*f)(
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1473,16 +1473,16 @@ CASyncChainStepArity4< R, A1, A2, A3, A4, plain_true >::ThenPassToCallback( R (*
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1510,16 +1510,16 @@ CASyncChainStepArity4< R, A1, A2, A3, A4, plain_false >::ThenPassToCallback( R (
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1547,16 +1547,16 @@ CASyncChainStepArity5< R, A1, A2, A3, A4, A5, plain_true >::ThenPassToCallback( 
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1584,16 +1584,16 @@ CASyncChainStepArity5< R, A1, A2, A3, A4, A5, plain_false >::ThenPassToCallback(
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1621,16 +1621,16 @@ CASyncChainStepArity6< R, A1, A2, A3, A4, A5, A6, plain_true >::ThenPassToCallba
     // Obtain access to prior invoker
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1699,15 +1699,15 @@ CASyncRawMemberChainStep< PriorInvoker, arity_0 >::ThenPassToMemberCallback( C2*
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     PriorInvoker* priorInvoker = static_cast< PriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1727,15 +1727,15 @@ CASyncRawMemberChainStep< PriorInvoker, arity_1 >::ThenPassToMemberCallback( C2*
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     PriorInvoker* priorInvoker = static_cast< PriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1755,15 +1755,15 @@ CASyncRawMemberChainStep< PriorInvoker, arity_2 >::ThenPassToMemberCallback( C2*
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     PriorInvoker* priorInvoker = static_cast< PriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1783,15 +1783,15 @@ CASyncRawMemberChainStep< PriorInvoker, arity_3 >::ThenPassToMemberCallback( C2*
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     PriorInvoker* priorInvoker = static_cast< PriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1811,15 +1811,15 @@ CASyncRawMemberChainStep< PriorInvoker, arity_4 >::ThenPassToMemberCallback( C2*
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     PriorInvoker* priorInvoker = static_cast< PriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1888,15 +1888,15 @@ CASyncSharedMemberChainStep< SharedPriorInvoker, arity_0 >::ThenPassToMemberCall
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     SharedPriorInvoker* priorInvoker = static_cast< SharedPriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1916,15 +1916,15 @@ CASyncSharedMemberChainStep< SharedPriorInvoker, arity_1 >::ThenPassToMemberCall
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     SharedPriorInvoker* priorInvoker = static_cast< SharedPriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1944,15 +1944,15 @@ CASyncSharedMemberChainStep< SharedPriorInvoker, arity_2 >::ThenPassToMemberCall
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     SharedPriorInvoker* priorInvoker = static_cast< SharedPriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -1972,15 +1972,15 @@ CASyncSharedMemberChainStep< SharedPriorInvoker, arity_3 >::ThenPassToMemberCall
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     SharedPriorInvoker* priorInvoker = static_cast< SharedPriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }
@@ -2000,15 +2000,15 @@ CASyncSharedMemberChainStep< SharedPriorInvoker, arity_4 >::ThenPassToMemberCall
 
     CTaskPtr lastTask = GetLastTask();
     if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASK_CHAINING_FAILED );
     CICloneable* opaqueTaskData = lastTask->GetTaskData();
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return SetLastTaskStatus( CORE::TASKSTATUS_TASKDATA_INVALID );
     SharedPriorInvoker* priorInvoker = static_cast< SharedPriorInvoker* >( opaqueTaskData );
 
     CICloneable* taskData = GUCEF_NEW NewInvoker( obj, f, lastTask, priorInvoker );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return SetLastTaskStatus( CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
     return ThenCallbackCommonImpl( taskData );
 }

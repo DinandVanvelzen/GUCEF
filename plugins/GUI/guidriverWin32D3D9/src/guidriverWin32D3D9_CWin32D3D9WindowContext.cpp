@@ -69,19 +69,19 @@ namespace GUIDRIVERWIN32D3D9 {
 
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(x) \
-   if(x != NULL)        \
+   if(x != GUCEF_NULL)        \
    {                    \
       x->Release();     \
-      x = NULL;         \
+      x = GUCEF_NULL;         \
    }
 #endif
 
 #ifndef SAFE_ARRAY_DELETE
 #define SAFE_ARRAY_DELETE(x) \
-   if(x != NULL)             \
+   if(x != GUCEF_NULL)             \
    {                         \
       delete[] x;            \
-      x = NULL;              \
+      x = GUCEF_NULL;              \
    }
 #endif
 
@@ -98,8 +98,8 @@ CWin32D3D9WindowContext::CWin32D3D9WindowContext( void )
       m_id()                   ,
       m_name()                 ,
       m_window()               ,
-      m_pD3D9( NULL )          ,
-      m_pD3DDevice( NULL )
+      m_pD3D9( GUCEF_NULL )          ,
+      m_pD3DDevice( GUCEF_NULL )
 {GUCEF_TRACE;
 
     SubscribeTo( &m_window );
@@ -171,7 +171,7 @@ CWin32D3D9WindowContext::Shutdown( void )
     SAFE_RELEASE( m_pD3DDevice ); 
     SAFE_RELEASE( m_pD3D9 );
 
-    if ( NULL != m_window.GetHwnd() )
+    if ( GUCEF_NULL != m_window.GetHwnd() )
     {
         CORE::CMsWin32Window::UnregisterWindowClass( m_window.GetText() );
         m_window.WindowDestroy();
@@ -247,7 +247,7 @@ CWin32D3D9WindowContext::Initialize( const GUI::CString& title                ,
     {
         // Create Direct3D9 Object 
         LPDIRECT3D9 pD3D9 = Direct3DCreate9( D3D_SDK_VERSION ); 
-        if ( NULL == pD3D9 ) 
+        if ( GUCEF_NULL == pD3D9 ) 
         {
 		    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Win32D3D9WindowContext: Could not create D3D9 device object. SDK Version " + CORE::Int32ToString( D3D_SDK_VERSION ) );
             Shutdown();
@@ -261,7 +261,7 @@ CWin32D3D9WindowContext::Initialize( const GUI::CString& title                ,
         D3Dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
  
         // Create the Direct3D Device 
-        LPDIRECT3DDEVICE9 pD3DDevice = NULL; 
+        LPDIRECT3DDEVICE9 pD3DDevice = GUCEF_NULL; 
         if ( FAILED( pD3D9->CreateDevice( D3DADAPTER_DEFAULT, 
                                           D3DDEVTYPE_HAL, 
                                           m_window.GetHwnd(),

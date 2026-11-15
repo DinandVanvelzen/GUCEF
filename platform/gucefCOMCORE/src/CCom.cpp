@@ -115,7 +115,7 @@ GetMSWinInternetProxyFromRegistry( CORE::CString& remoteHost ,
     {
         if ( ERROR_SUCCESS == RegQueryValueEx( hKey              ,
                                                "ProxyServer"     ,
-                                               NULL              ,
+                                               GUCEF_NULL              ,
                                                &dwType           ,
                                                (LPBYTE)&lszValue ,
                                                &dwSize           ) )
@@ -133,7 +133,7 @@ GetMSWinInternetProxyFromRegistry( CORE::CString& remoteHost ,
             active = false;
             if ( ERROR_SUCCESS == RegQueryValueEx( hKey              ,
                                                    "ProxyEnable"     ,
-                                                   NULL              ,
+                                                   GUCEF_NULL              ,
                                                    &dwType           ,
                                                    (LPBYTE)&lszValue ,
                                                    &dwSize           ) )

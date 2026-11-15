@@ -539,7 +539,7 @@ CMemoryDataTable::ScanAsync( const CDataTableQuery& query, CDataTableScanPtr& sc
     if ( !m_valid )
     {
         Fail( DATATABLE_STATUS_INVALID_ARGUMENT, "The table definition is not valid" );
-        return CFutureResult( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+        return CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
     }
     CDataTableScanSourcePtr source( GUCEF_NEW CMemoryDataTableScanSource( GetData(), m_definition.name ) );
     scan = CDataTableScanPtr( GUCEF_NEW CDataTableScan( source, m_schema, *m_pool, GetPulseGenerator() ) );

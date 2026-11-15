@@ -137,6 +137,8 @@ CTDynamicDestructorBase< T >::CTDynamicDestructorBase( void )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
 template< typename T >
 CTDynamicDestructorBase< T >::CTDynamicDestructorBase( CTDynamicDestructorBase&& src ) GUCEF_NOEXCEPT
     : CIDynamicVoidDestructor()
@@ -144,6 +146,8 @@ CTDynamicDestructorBase< T >::CTDynamicDestructorBase( CTDynamicDestructorBase&&
 
     // Nothing to move at this time
 }
+
+#endif
 
 /*-------------------------------------------------------------------------*/
 

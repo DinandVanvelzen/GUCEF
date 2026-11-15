@@ -28,6 +28,9 @@ LOCAL_SRC_FILES := \
   src/TestCode_SimpleTCPClient.cpp \
   src/TestCode_TlsLayer.cpp \
   src/TestCode_TlsOpenSsl.cpp \
+  src/TestCode_TlsServer.cpp \
+  src/TestDatabaseClient.cpp \
+  src/TestDatabaseClientFake.cpp \
   src/TestRpcCodec.cpp \
   src/TestRpcContract.cpp \
   src/TestRpcEndpoint.cpp \
@@ -37,8 +40,6 @@ LOCAL_SRC_FILES := \
   src/TestSocketReadiness.cpp \
   src/TestTcpSocketThreads.cpp \
   src/gucefCOMCORE_TestApp.cpp
-  src/TestDatabaseClient.cpp \
-  src/TestDatabaseClientFake.cpp \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

@@ -36,58 +36,66 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=inputdriverOIS" } )
-  
-configuration( { LINUX32 } )
-links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "OIS" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "OIS" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVEROIS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverOIS" } )
-  
-configuration( { LINUX64 } )
-links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "OIS" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "OIS" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVEROIS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverOIS" } )
-  
-configuration( { WIN32 } )
-links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "OIS" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "WIN32" } )
+links( { "OIS" } )
+
+
+configuration( { "WIN32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVEROIS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverOIS" } )
-  
-configuration( { WIN64 } )
-links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "OIS" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "OIS", "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "WIN64" } )
+links( { "OIS" } )
+
+
+configuration( { "WIN64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVEROIS_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverOIS" } )
 
 

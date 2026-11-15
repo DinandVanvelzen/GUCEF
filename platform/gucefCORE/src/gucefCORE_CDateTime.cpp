@@ -239,7 +239,7 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         ::GetSystemTime( &utcSystemTime );
         ::SYSTEMTIME localSystemTime;
         memset( &localSystemTime, 0, sizeof( localSystemTime ) );
-        ::SystemTimeToTzSpecificLocalTime( NULL, &utcSystemTime, &localSystemTime );
+        ::SystemTimeToTzSpecificLocalTime( GUCEF_NULL, &utcSystemTime, &localSystemTime );
 
         CDateTime localDatetime;
         Win32SystemTimeToDateTime( localSystemTime, GetTimezoneOffsetInMins(), localDatetime );
@@ -1749,21 +1749,21 @@ CDateTime::ToDateTimeComponentType( const CORE::CString& dateTimeComponentType )
     CORE::CString dateTimeComponentTypeLc = dateTimeComponentType.Lowercase();
     
     if ( "year" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_YEAR;
+        return CDateTime::DATETIMECOMPONENT_YEAR;
     if ( "month" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_MONTH;
+        return CDateTime::DATETIMECOMPONENT_MONTH;
     if ( "day" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_DAY;
+        return CDateTime::DATETIMECOMPONENT_DAY;
     if ( "hour" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_HOURS;
+        return CDateTime::DATETIMECOMPONENT_HOURS;
     if ( "minute" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_MINUTES;
+        return CDateTime::DATETIMECOMPONENT_MINUTES;
     if ( "second" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_SECONDS;
+        return CDateTime::DATETIMECOMPONENT_SECONDS;
     if ( "millisecond" == dateTimeComponentTypeLc )
-        return TDateTimeComponent::DATETIMECOMPONENT_MILLISECONDS;
+        return CDateTime::DATETIMECOMPONENT_MILLISECONDS;
 
-    return TDateTimeComponent::DATETIMECOMPONENT_UNKNOWN;
+    return CDateTime::DATETIMECOMPONENT_UNKNOWN;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1778,9 +1778,9 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
 
     switch ( boundary )
     {
-        case TDateTimeComponent::DATETIMECOMPONENT_YEAR:
+        case CDateTime::DATETIMECOMPONENT_YEAR:
         {
-            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MINIMUM == boundaryType )
             {
                 clampedDt.SetMonth( 1 );
                 clampedDt.SetDay( 1 );
@@ -1790,7 +1790,7 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
                 clampedDt.SetMilliseconds( 0 );
             }
             else
-            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MAXIMUM == boundaryType )
             {
                 clampedDt.SetMonth( 12 );
                 clampedDt.SetDay( GetDaysInMonth() );
@@ -1801,9 +1801,9 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
             }
             return true;
         }
-        case TDateTimeComponent::DATETIMECOMPONENT_MONTH:
+        case CDateTime::DATETIMECOMPONENT_MONTH:
         {
-            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MINIMUM == boundaryType )
             {
                 clampedDt.SetDay( 1 );
                 clampedDt.SetHours( 0 );
@@ -1812,7 +1812,7 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
                 clampedDt.SetMilliseconds( 0 );
             }
             else
-            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MAXIMUM == boundaryType )
             {
                 clampedDt.SetDay( GetDaysInMonth() );
                 clampedDt.SetHours( 23 );
@@ -1822,9 +1822,9 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
             }
             return true;
         }
-        case TDateTimeComponent::DATETIMECOMPONENT_DAY:
+        case CDateTime::DATETIMECOMPONENT_DAY:
         {
-            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MINIMUM == boundaryType )
             {
                 clampedDt.SetHours( 0 );
                 clampedDt.SetMinutes( 0 );
@@ -1832,7 +1832,7 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
                 clampedDt.SetMilliseconds( 0 );
             }
             else
-            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MAXIMUM == boundaryType )
             {
                 clampedDt.SetHours( 23 );
                 clampedDt.SetMinutes( 59 );
@@ -1841,16 +1841,16 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
             }
             return true;
         }
-        case TDateTimeComponent::DATETIMECOMPONENT_HOURS:
+        case CDateTime::DATETIMECOMPONENT_HOURS:
         {
-            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MINIMUM == boundaryType )
             {
                 clampedDt.SetMinutes( 0 );
                 clampedDt.SetSeconds( 0 );
                 clampedDt.SetMilliseconds( 0 );
             }
             else
-            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MAXIMUM == boundaryType )
             {
                 clampedDt.SetMinutes( 59 );
                 clampedDt.SetSeconds( 59 );
@@ -1858,42 +1858,42 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
             }
             return true;
         }
-        case TDateTimeComponent::DATETIMECOMPONENT_MINUTES:
+        case CDateTime::DATETIMECOMPONENT_MINUTES:
         {
-            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MINIMUM == boundaryType )
             {
                 clampedDt.SetSeconds( 0 );
                 clampedDt.SetMilliseconds( 0 );
             }
             else
-            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MAXIMUM == boundaryType )
             {
                 clampedDt.SetSeconds( 59 );
                 clampedDt.SetMilliseconds( 999 );
             }
             return true;
         }
-        case TDateTimeComponent::DATETIMECOMPONENT_SECONDS:
+        case CDateTime::DATETIMECOMPONENT_SECONDS:
         {
-            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MINIMUM == boundaryType )
             {
                 clampedDt.SetMilliseconds( 0 );
             }
             else
-            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            if ( BOUNDARYTYPE_MAXIMUM == boundaryType )
             {
                 clampedDt.SetMilliseconds( 999 );
             }
             return true;
         }
-        case TDateTimeComponent::DATETIMECOMPONENT_MILLISECONDS:
+        case CDateTime::DATETIMECOMPONENT_MILLISECONDS:
         {
             // no-op clamp: full precision
             return true;
         }
         
-        case TDateTimeComponent::DATETIMECOMPONENT_TIMEZONEOFFSETINMINS:
-        case TDateTimeComponent::DATETIMECOMPONENT_UNKNOWN:
+        case CDateTime::DATETIMECOMPONENT_TIMEZONEOFFSETINMINS:
+        case CDateTime::DATETIMECOMPONENT_UNKNOWN:
         default:
         {
             // non-sensical in this context

@@ -93,11 +93,21 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( LINUX32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../SHARED/pluginglueWAYLAND/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../SHARED/pluginglueWAYLAND/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../SHARED/pluginglueWAYLAND/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../SHARED/pluginglueWAYLAND/include include )
+endif( LINUX64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
 endif( LINUX64 )
 
 

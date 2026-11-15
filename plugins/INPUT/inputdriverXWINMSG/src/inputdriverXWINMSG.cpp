@@ -105,7 +105,7 @@ ParseArgListItemUInt32( const int argc    ,
                         const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
         UInt32 result = 0UL;
         sscanf( value, "%ul", &result );
@@ -122,9 +122,9 @@ ParseArgListItemPointer( const int argc    ,
                          const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
-        void* result = NULL;
+        void* result = GUCEF_NULL;
         sscanf( value, "%p", &result );
         return result;
     }
@@ -197,7 +197,7 @@ INPUTDRIVERPLUG_CreateContext( void* plugdata                   ,
                                const TInputCallbacks* callbacks ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     // input sanity check
-    if ( NULL == plugdata ) return 0;
+    if ( GUCEF_NULL == plugdata ) return 0;
 
     ::Window window = ParseArgListItemUInt32( argc, argv, "-WINDOW" );
     if ( 0 == window ) return 0;
@@ -220,7 +220,7 @@ INPUTDRIVERPLUG_DestroyContext( void* plugdata    ,
                                 void* contextdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     // input sanity check
-    if ( NULL == plugdata ) return 0;
+    if ( GUCEF_NULL == plugdata ) return 0;
 
     TEventListnerSet* eventListnerSet = (TEventListnerSet*) plugdata;
     CEventListner* eventListner = (CEventListner*) contextdata;

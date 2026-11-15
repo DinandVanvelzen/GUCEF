@@ -127,7 +127,7 @@ CIniParser::SaveTo( CDataNode& rootNode ) const
 
         // We use the ordering in the ini of the different sections to implicitly denote going up and down
         // a tree thus allowing branches to be defined in an ini file which otherwise does not support this concept
-        CDataNode* sectionNodeParent = NULL;
+        CDataNode* sectionNodeParent = GUCEF_NULL;
         if ( !sectionName.IsNULLOrEmpty() )
         {
             CDataNode::TDataNodeVector existingPaths = rootNode.SearchForAll( sectionName, '\\', true, true );

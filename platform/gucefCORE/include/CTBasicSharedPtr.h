@@ -279,6 +279,11 @@ class CTBasicSharedPtr : public MT::CILockable ,
 
     CTBasicSharedPtr& operator=( int nullValue );
 
+    #ifdef GUCEF_NULLPTR_IS_SUPPORTED
+    /** assigning GUCEF_NULL unlinks the pointer */
+    CTBasicSharedPtr& operator=( std::nullptr_t );
+    #endif
+
     inline bool operator==( Int32 nullValue ) const;
 
     inline bool operator==( Int64 nullValue ) const;
@@ -987,12 +992,27 @@ CTBasicSharedPtr< T, LockType >&
 CTBasicSharedPtr< T, LockType >::operator=( int nullValue )
 {GUCEF_TRACE;
 
-    assert( nullValue == (int) GUCEF_NULL );
+    assert( 0 == nullValue );
     Unlink();
     return *this;
 }
 
 /*-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_NULLPTR_IS_SUPPORTED
+
+template< typename T, class LockType >
+CTBasicSharedPtr< T, LockType >&
+CTBasicSharedPtr< T, LockType >::operator=( std::nullptr_t )
+{GUCEF_TRACE;
+
+    Unlink();
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_NULLPTR_IS_SUPPORTED ? */
 
 template< typename T, class LockType >
 CTBasicSharedPtr< T, LockType >&
@@ -1248,6 +1268,34 @@ operator!=( Int64 intPtr, const CTBasicSharedPtr< T, LockType >& other )
 }
 
 /*-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_NULLPTR_IS_SUPPORTED
+
+/*
+ *  GUCEF_NULL on the left hand side: the const T* overloads cannot take it since T cannot be deduced from nullptr
+ */
+
+template< typename T, class LockType >
+inline bool
+operator==( std::nullptr_t, const CTBasicSharedPtr< T, LockType >& other )
+{GUCEF_TRACE;
+
+    return other.IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+inline bool
+operator!=( std::nullptr_t, const CTBasicSharedPtr< T, LockType >& other )
+{GUCEF_TRACE;
+
+    return !other.IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_NULLPTR_IS_SUPPORTED ? */
 
 template< typename T, class LockType >
 inline T&

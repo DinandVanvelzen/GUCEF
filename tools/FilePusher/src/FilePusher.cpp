@@ -778,8 +778,8 @@ FilePushDestination::Start( void )
     m_pushTimer.SetInterval( 1000 );
     m_pushTimer.SetEnabled( true );
 
-    CORE::CString::StringVector rolloverPatterns = GetFilePatternsForPushType( TPushStyle::PUSHSTYLE_ROLLED_OVER_FILES );
-    CORE::CString::StringVector allFilesPatterns = GetFilePatternsForPushType( TPushStyle::PUSHSTYLE_MATCHING_ALL_FILES_WITH_REST_PERIOD );
+    CORE::CString::StringVector rolloverPatterns = GetFilePatternsForPushType( FilePushDestinationSettings::PUSHSTYLE_ROLLED_OVER_FILES );
+    CORE::CString::StringVector allFilesPatterns = GetFilePatternsForPushType( FilePushDestinationSettings::PUSHSTYLE_MATCHING_ALL_FILES_WITH_REST_PERIOD );
 
     CORE::CFileSystemDirectoryWatcher::CDirWatchOptions watchOptions;
     watchOptions.watchSubTree = m_settings.watchSubDirsOfDirsToWatch;
@@ -1517,7 +1517,7 @@ FilePushDestination::PruneAgedMovedFiles( void )
                         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "FilePushDestination:OnFilePrunerTimerCycle: Pruned " + CORE::ToString( ageInMs ) +
                             "ms rested moved file: " + filePath );
 
-                        n = filePaths.erase( n );
+                        GUCEF_ERASE_AND_ADVANCE( filePaths, n );
                         continue;
                     }
                     ++n;
@@ -1525,7 +1525,7 @@ FilePushDestination::PruneAgedMovedFiles( void )
 
                 if ( filePaths.empty() )
                 {
-                    m = movedFilesOnVolume.erase( m );
+                    GUCEF_ERASE_AND_ADVANCE( movedFilesOnVolume, m );
                     continue;
                 }
             }
@@ -1540,7 +1540,7 @@ FilePushDestination::PruneAgedMovedFiles( void )
 
         if ( movedFilesOnVolume.empty() )
         {
-            i = m_movedFiles.erase( i );
+            GUCEF_ERASE_AND_ADVANCE( m_movedFiles, i );
             continue;
         }
 
@@ -1656,7 +1656,7 @@ FilePushDestination::PruneMovedFilesIfLowOnVolumeSpace( void )
                                 GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "FilePushDestination:OnFilePrunerTimerCycle: Pruned " + CORE::ToString( ageInMs ) +
                                     "ms rested moved file: " + filePath );
 
-                                n = fileSet.erase( n );
+                                GUCEF_ERASE_AND_ADVANCE( fileSet, n );
                                 continue;
                             }
                             else
@@ -1681,7 +1681,7 @@ FilePushDestination::PruneMovedFilesIfLowOnVolumeSpace( void )
 
                 if ( fileSet.empty() )
                 {
-                    m = movedFilesOnVolumeAtDt.erase( m );
+                    GUCEF_ERASE_AND_ADVANCE( movedFilesOnVolumeAtDt, m );
                     continue;
                 }
 
@@ -1815,14 +1815,14 @@ FilePushDestination::OnFilePushTimerCycle( CORE::CNotifier* notifier    ,
                     GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FilePushDestination:OnFilePushTimerCycle: Encoded file does not exists when we were about to commence pushing it: \"" +
                         entry->encodedFilepath + "\", queuing file again for encoding instead" );
                     m_encodeQueue[ filePath ] = entry;
-                    i = m_pushQueue.erase( i );
+                    GUCEF_ERASE_AND_ADVANCE( m_pushQueue, i );
                     continue;
                 }
             }
 
             if ( 0 == m_settings.filePushDestinationUri.HasSubstr( "http://", true ) )
             {
-                i = m_pushQueue.erase( i );
+                GUCEF_ERASE_AND_ADVANCE( m_pushQueue, i );
                 if ( PushFileUsingHttp( entry ) )
                 {                    
                     if ( m_inflightFreeSlots.empty() )
@@ -1841,7 +1841,7 @@ FilePushDestination::OnFilePushTimerCycle( CORE::CNotifier* notifier    ,
             }
             if ( 0 == m_settings.filePushDestinationUri.HasSubstr( "vfs://", true ) )
             {
-                i = m_pushQueue.erase( i );
+                GUCEF_ERASE_AND_ADVANCE( m_pushQueue, i );
                 if ( PushFileUsingVfs( entry ) )
                 {
                     if ( m_inflightFreeSlots.empty() )
@@ -1862,7 +1862,7 @@ FilePushDestination::OnFilePushTimerCycle( CORE::CNotifier* notifier    ,
         else
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FilePushDestination:OnFilePushTimerCycle: File no longer exists when we were about to commence pushing it: \"" + filePath + "\", removing it from the queue" );
-            i = m_pushQueue.erase( i );
+            GUCEF_ERASE_AND_ADVANCE( m_pushQueue, i );
             continue;
         }
         ++i;
@@ -2183,7 +2183,7 @@ FilePushDestination::OnWatchedLocalDirFileCreation( CORE::CNotifier* notifier   
     const CORE::CString& newFilePath = fileCreatedEventData->GetData();
 
     // Filter potentially unrelated files
-    TPushStyle pushStyle = TPushStyle::PUSHSTYLE_UNKNOWN;
+    TPushStyle pushStyle = FilePushDestinationSettings::PUSHSTYLE_UNKNOWN;
     CORE::CString patternMatched;
     CORE::CString newFilename = CORE::ExtractFilename( newFilePath );
     TStringPushStyleMap::iterator i = m_settings.fileMatchPatterns.begin();
@@ -2203,19 +2203,19 @@ FilePushDestination::OnWatchedLocalDirFileCreation( CORE::CNotifier* notifier   
     // Handle based on the configured push style for the given pattern
     switch ( pushStyle )
     {
-        case TPushStyle::PUSHSTYLE_ROLLED_OVER_FILES:
+        case FilePushDestinationSettings::PUSHSTYLE_ROLLED_OVER_FILES:
         {
             CORE::CString dirWithFiles = CORE::StripFilename( newFilePath );
             TriggerRolledOverFileCheck( dirWithFiles, patternMatched );
             return;
         }
-        case TPushStyle::PUSHSTYLE_MATCHING_ALL_FILES_WITH_REST_PERIOD:
-        case TPushStyle::PUSHSTYLE_MATCHING_NEW_FILES_WITH_REST_PERIOD:
+        case FilePushDestinationSettings::PUSHSTYLE_MATCHING_ALL_FILES_WITH_REST_PERIOD:
+        case FilePushDestinationSettings::PUSHSTYLE_MATCHING_NEW_FILES_WITH_REST_PERIOD:
         {
             QueueNewFileForPushingAfterUnmodifiedRestPeriod( newFilePath, false );
             return;
         }
-        case TPushStyle::PUSHSTYLE_UNKNOWN:
+        case FilePushDestinationSettings::PUSHSTYLE_UNKNOWN:
         default:
         {
             return;
@@ -2233,7 +2233,7 @@ FilePushDestination::DoesFilenameMatchPushAllFilesPattern( const CORE::CString& 
     while ( i != m_settings.fileMatchPatterns.end() )
     {
         // Is the pattern one that is configured for a 'all files' push method?
-        if ( TPushStyle::PUSHSTYLE_MATCHING_ALL_FILES_WITH_REST_PERIOD == (*i).second )
+        if ( FilePushDestinationSettings::PUSHSTYLE_MATCHING_ALL_FILES_WITH_REST_PERIOD == (*i).second )
         {
             // Does the file match a configured pattern?
             if ( filename.WildcardEquals( (*i).first, '*', false ) )

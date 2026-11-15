@@ -10,5 +10,7 @@
         <Linker>
 			<Dependency Name="aws-cpp-sdk-core" />		
         </Linker>		
+        <!-- the AWS SDK for C++ requires C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
 </ModuleInfoEntry>

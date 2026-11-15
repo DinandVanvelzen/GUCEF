@@ -216,7 +216,7 @@ PerformAuthTypesTests( void )
             ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( source.GetFuture(), fetched ) && fetched.accountRef == done.accountRef && "r" == fetched.refreshToken.Reveal() );
 
             CORE::CFutureResultSource failed;
-            failed.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "denied: no" );
+            failed.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "denied: no" );
             ASSERT_FALSE( AUTH::CAuthResult::TryGetFromFuture( failed.GetFuture(), fetched ) );
 
             // a future that finished with data of another type, or with data that does not tell its type, is refused

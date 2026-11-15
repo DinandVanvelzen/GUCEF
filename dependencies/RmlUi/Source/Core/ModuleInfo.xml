@@ -11,5 +11,7 @@
         <Linker>
             <Dependency Name="freetype" />
         </Linker>
+        <!-- RmlUi requires C++14 -->
+        <Compiler MinCppStandard="14" />
     </Module>
 </ModuleInfoEntry>

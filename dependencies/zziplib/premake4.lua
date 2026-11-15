@@ -26,12 +26,12 @@ language( "C" )
 configuration( { "EMSCRIPTEN32" } )
 
 
-configuration( { EMSCRIPTEN32 } )
+configuration( { "EMSCRIPTEN32" } )
 kind( "StaticLib" )
 configuration( { "EMSCRIPTEN64" } )
 
 
-configuration( { EMSCRIPTEN64 } )
+configuration( { "EMSCRIPTEN64" } )
 kind( "StaticLib" )
 
 
@@ -41,46 +41,58 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=zziplib", "MODULE_NAME=zziplib", "ZZIP_DLL" } )
-  links( { "z" } )
-  
 
-configuration( { ANDROID32 } )
-defines( { "ZZIP_HAVE_STDINT_H" } )
-  links( { "z" } )
-  
+configuration( { "ANDROID32" } )
+links( { "z" } )
 
-configuration( { ANDROID64 } )
-defines( { "ZZIP_HAVE_STDINT_H" } )
-  
-configuration( { EMSCRIPTEN32 } )
-links( { "zlib" } )
-  
-configuration( { EMSCRIPTEN64 } )
-links( { "zlib" } )
-  
-configuration( { LINUX32 } )
-links( { "zlib" } )
-  links( { "zlib" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "ANDROID32" } )
 defines( { "ZZIP_HAVE_STDINT_H" } )
-  
-configuration( { LINUX64 } )
-links( { "zlib" } )
-  links( { "zlib" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "ANDROID64" } )
+links( { "z" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "ZZIP_HAVE_STDINT_H" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "EMSCRIPTEN32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
+
+configuration( { "LINUX32" } )
+links( { "zlib" } )
+
+configuration( { "LINUX32" } )
+links( { "zlib" } )
+
+
+configuration( { "LINUX32" } )
+defines( { "ZZIP_HAVE_STDINT_H" } )
+
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+
+configuration( { "LINUX64" } )
+defines( { "ZZIP_HAVE_STDINT_H" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
 
 
 configuration( {} )

@@ -83,7 +83,7 @@ CPubSubFlowRouter::~CPubSubFlowRouter()
 CPubSubFlowRouter::CRouteTopicLinks::CRouteTopicLinks( void )
     : fromTopic( GUCEF_NULL )
     , activeTopic( GUCEF_NULL )
-    , activeTopicType( RouteType::Disabled )
+    , activeTopicType( Disabled )
     , toTopic( GUCEF_NULL )
     , failoverTopic( GUCEF_NULL )
     , spilloverTopic( GUCEF_NULL )
@@ -113,7 +113,7 @@ CPubSubFlowRouter::CRouteTopicLinks::CRouteTopicLinks( const CRouteTopicLinks& s
 CPubSubFlowRouter::CRouteInfo::CRouteInfo( void )
     : fromSide( GUCEF_NULL )
     , activeSide( GUCEF_NULL )
-    , activeSideType( RouteType::Disabled )
+    , activeSideType( Disabled )
     , toSide( GUCEF_NULL )
     , toSideIsHealthy( true )
     , toSideLastHealthStatusChange( CORE::CDateTime::PastMax )
@@ -231,17 +231,17 @@ CPubSubFlowRouter::CRouteInfo::SwitchTopicLinksActiveTopic( RouteType activeSide
 
     switch ( activeSide )
     {
-        case RouteType::Primary: { topicLinks.activeTopic = topicLinks.toTopic; break; }
-        case RouteType::Failover: { topicLinks.activeTopic = topicLinks.failoverTopic; break; }
-        case RouteType::SpilloverBuffer: { topicLinks.activeTopic = topicLinks.spilloverTopic; break; }
-        case RouteType::DeadLetter: { topicLinks.activeTopic = topicLinks.deadletterTopic; break; }
+        case Primary: { topicLinks.activeTopic = topicLinks.toTopic; break; }
+        case Failover: { topicLinks.activeTopic = topicLinks.failoverTopic; break; }
+        case SpilloverBuffer: { topicLinks.activeTopic = topicLinks.spilloverTopic; break; }
+        case DeadLetter: { topicLinks.activeTopic = topicLinks.deadletterTopic; break; }
 
-        case RouteType::Disabled:
+        case Disabled:
         default:
         {
             topicLinks.activeTopic = GUCEF_NULL;
         }
-        case RouteType::Active: { break; }
+        case Active: { break; }
     }
 
     topicLinks.activeTopicType = activeSide;
@@ -1774,7 +1774,7 @@ CPubSubFlowRouter::PublishMsgs( CPubSubClientSide* fromSide                     
 
                     switch ( routeType )
                     {
-                        case RouteType::Active:
+                        case Active:
                         {
                             targetSide = routeInfo.activeSide;
                             if ( GUCEF_NULL != topicLinks )
@@ -1790,28 +1790,28 @@ CPubSubFlowRouter::PublishMsgs( CPubSubClientSide* fromSide                     
                             break;
                         }
 
-                        case RouteType::Primary:
+                        case Primary:
                         {
                             targetSide = routeInfo.toSide;
                             if ( GUCEF_NULL != topicLinks )
                                 targetTopic = topicLinks->toTopic;
                             break;
                         }
-                        case RouteType::Failover:
+                        case Failover:
                         {
                             targetSide = routeInfo.failoverSide;
                             if ( GUCEF_NULL != topicLinks )
                                 targetTopic = topicLinks->failoverTopic;
                             break;
                         }
-                        case RouteType::SpilloverBuffer:
+                        case SpilloverBuffer:
                         {
                             targetSide = routeInfo.spilloverBufferSide;
                             if ( GUCEF_NULL != topicLinks )
                                 targetTopic = topicLinks->spilloverTopic;
                             break;
                         }
-                        case RouteType::DeadLetter:
+                        case DeadLetter:
                         {
                             targetSide = routeInfo.deadLetterSide;
                             if ( GUCEF_NULL != topicLinks )
@@ -2360,7 +2360,7 @@ CPubSubFlowRouter::DetermineFirstActiveRoute( CRouteInfo& routeInfo, bool attemp
                             "\" for route with regular 'from' side \"" + routeInfo.fromSide->GetSideId() + "\"" );
 
                     routeInfo.activeSide = routeInfo.spilloverBufferSide;
-                    routeInfo.activeSideType = RouteType::SpilloverBuffer;
+                    routeInfo.activeSideType = SpilloverBuffer;
                 }
             }
         }
@@ -2438,7 +2438,7 @@ CPubSubFlowRouter::DetermineActiveRouteDestination( CRouteInfo& routeInfo, bool 
                     "\" -> \"" + routeInfo.toSide->GetSideId() + "\"" );
 
                 routeInfo.activeSide = routeInfo.toSide;
-                routeInfo.activeSideType = RouteType::Primary;
+                routeInfo.activeSideType = Primary;
                 routeInfo.routeSwitchingTimer.SetEnabled( false );
                 routeInfo.SwitchAllTopicLinksActiveTopic( routeInfo.activeSideType );
             }
@@ -2492,7 +2492,7 @@ CPubSubFlowRouter::DetermineActiveRouteDestination( CRouteInfo& routeInfo, bool 
                             "):DetermineActiveRoute: Switching active route to the Failover side" );
 
                         routeInfo.activeSide = routeInfo.failoverSide;
-                        routeInfo.activeSideType = RouteType::Failover;
+                        routeInfo.activeSideType = Failover;
                         routeInfo.routeSwitchingTimer.SetEnabled( false );
                         routeInfo.SwitchAllTopicLinksActiveTopic( routeInfo.activeSideType );
                     }
@@ -2546,7 +2546,7 @@ CPubSubFlowRouter::DetermineActiveRouteDestination( CRouteInfo& routeInfo, bool 
                                 "):DetermineActiveRoute: Switching active route to the Spillover buffer side" );
 
                             routeInfo.activeSide = routeInfo.spilloverBufferSide;
-                            routeInfo.activeSideType = RouteType::SpilloverBuffer;
+                            routeInfo.activeSideType = SpilloverBuffer;
                             routeInfo.routeSwitchingTimer.SetEnabled( false );
                             routeInfo.SwitchAllTopicLinksActiveTopic( routeInfo.activeSideType );
 
@@ -2572,7 +2572,7 @@ CPubSubFlowRouter::DetermineActiveRouteDestination( CRouteInfo& routeInfo, bool 
                                     {
                                         // Something went wrong, abort and try again next cycle
                                         routeInfo.activeSide = GUCEF_NULL;
-                                        routeInfo.activeSideType = RouteType::Disabled;
+                                        routeInfo.activeSideType = Disabled;
                                         routeInfo.SwitchAllTopicLinksActiveTopic( routeInfo.activeSideType );
                                         routeInfo.routeSwitchingTimer.SetEnabled( true );
                                     }

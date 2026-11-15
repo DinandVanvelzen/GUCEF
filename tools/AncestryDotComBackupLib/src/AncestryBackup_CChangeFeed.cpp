@@ -57,7 +57,7 @@ std::string
 CChangeFeed::BuildUrl( const std::string& treeId, UInt32 limit, const std::string& cursor )
 {GUCEF_TRACE;
 
-    std::string url = "https://www.ancestry.com/tree-change-event/api/change-events?useMockData=false&limit=" + std::to_string( (unsigned long long) limit ) + "&treeId=" + treeId;
+    std::string url = "https://www.ancestry.com/tree-change-event/api/change-events?useMockData=false&limit=" + CORE::ToString( (CORE::UInt64) limit ).STL_String() + "&treeId=" + treeId;
     if ( !cursor.empty() )
         url += "&cursor=" + cursor;
     return url;

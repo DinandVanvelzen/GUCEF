@@ -41,14 +41,13 @@ LOCAL_SRC_FILES := \
   ../gucefCORE/src/dvstrutils.cpp \
   ../gucefCORE/src/gucefCORE_CAsciiString.cpp \
   ../gucefCORE/src/gucefCORE_CDataTableValues.cpp \
-  ../gucefCORE/src/gucefCORE_CDecimal.cpp \
-  ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp \
   ../gucefCORE/src/gucefCORE_CDate.cpp \
   ../gucefCORE/src/gucefCORE_CDateTime.cpp \
+  ../gucefCORE/src/gucefCORE_CDecimal.cpp \
+  ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp \
   ../gucefCORE/src/gucefCORE_CIDate.cpp \
   ../gucefCORE/src/gucefCORE_CITime.cpp \
   ../gucefCORE/src/gucefCORE_CProcess.cpp \
-  ../gucefCORE/src/gucefCORE_StdoutClaim.cpp \
   ../gucefCORE/src/gucefCORE_CProcessPipe.cpp \
   ../gucefCORE/src/gucefCORE_CRandom.cpp \
   ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp \
@@ -59,6 +58,8 @@ LOCAL_SRC_FILES := \
   ../gucefCORE/src/gucefCORE_CUtf8String.cpp \
   ../gucefCORE/src/gucefCORE_CVariant.cpp \
   ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp \
+  ../gucefCORE/src/gucefCORE_SecureMemory.cpp \
+  ../gucefCORE/src/gucefCORE_StdoutClaim.cpp \
   ../gucefCORE/src/md5.c \
   ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c \
   ../gucefMT/src/gucefMT_CICloneable.cpp \

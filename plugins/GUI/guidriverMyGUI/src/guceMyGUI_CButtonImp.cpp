@@ -42,7 +42,7 @@ namespace MYGUI {
 
 CButtonImp::CButtonImp( void )
     : CWidgetImp< GUCEF::GUI::CButton >() ,
-      m_button( NULL )
+      m_button( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -52,7 +52,7 @@ CButtonImp::CButtonImp( void )
 CButtonImp::~CButtonImp()
 {GUCEF_TRACE;
 
-    m_button = NULL;
+    m_button = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -61,7 +61,7 @@ bool
 CButtonImp::SetButtonText( const CString& newText )
 {GUCEF_TRACE;
 
-    if ( NULL != m_button )
+    if ( GUCEF_NULL != m_button )
     {
         m_button->setCaption( newText.C_String() );
     }
@@ -74,7 +74,7 @@ bool
 CButtonImp::GetButtonText( CString& text ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_button )
+    if ( GUCEF_NULL != m_button )
     {
        text = m_button->getCaption().asUTF8();
     }

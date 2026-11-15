@@ -50,13 +50,26 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+# The minimum C++ standard of RmlUI_Debugger and the modules it depends on
+set( MODULE_MIN_CPP_STANDARD 14 )
+GUCEF_cpp_standard_is_below( "${MODULE_MIN_CPP_STANDARD}" MODULE_CPP_STANDARD_TOO_LOW )
+if ( MODULE_CPP_STANDARD_TOO_LOW )
+  GUCEF_add_skipped_module( RmlUI_Debugger "${MODULE_MIN_CPP_STANDARD}" )
+  return()
+endif()
+
 set( MODULE_NAME "RmlUI_Debugger" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} RmlUI_Core freetype )
 target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core freetype )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=RmlUI_Debugger;MODULE_NAME=RmlUI_Debugger" )
+target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Include ../../Include/RmlUi ../../Include/RmlUi/Config ../../Include/RmlUi/Core ../../Include/RmlUi/Core/Containers ../../Include/RmlUi/Core/Containers/itlib ../../Include/RmlUi/Core/Elements ../../Include/RmlUi/Debugger ../../Include/RmlUi/Lottie ../../Include/RmlUi/Lua ../../Include/RmlUi/SVG ../Core ../Core/Elements ../Core/FontEngineDefault ../Core/Layout )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS . )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES RmlUI_Includes )
 
 
 

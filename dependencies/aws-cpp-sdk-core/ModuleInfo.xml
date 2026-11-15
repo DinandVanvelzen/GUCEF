@@ -46,6 +46,8 @@
 			<Dependency Name="aws-crt-cpp" />
 			<Dependency Name="curl" />
         </Linker>		
+        <!-- the AWS SDK for C++ requires C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
     <Module Platform="mswin">
         <Preprocessor>

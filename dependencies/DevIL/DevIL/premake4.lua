@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "OpenEXR", "jasper", "lcms2", "libjpeg", "libmng", "libpng", "libtiff", "squish", "zlib" } )
+
+configuration( {} )
 links( { "OpenEXR", "jasper", "lcms2", "libjpeg", "libmng", "libpng", "libtiff", "squish", "zlib" } )
 
 

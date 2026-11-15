@@ -67,8 +67,8 @@ class GUCEF_COM_PUBLIC_CPP CDBColumn
 	public:
         const char *AsString(void) { return value; }
 
-        CDBColumn( void ) { value = NULL; table = NULL; }
-        virtual ~CDBColumn() { if(value != NULL) delete[] value; }
+        CDBColumn( void ) { value = GUCEF_NULL; table = GUCEF_NULL; }
+        virtual ~CDBColumn() { if(value != GUCEF_NULL) delete[] value; }
 };
 
 /*-------------------------------------------------------------------------//

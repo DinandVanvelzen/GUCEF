@@ -91,7 +91,7 @@ class IOAccessAdapter : public ::flic::FileInterface
         , m_baseOffset( baseOffset )
     {
         // The FLIC decoder starts reading right away, so make sure we start at the beginning of the FLIC data
-        if ( NULL != m_ioAccess )
+        if ( GUCEF_NULL != m_ioAccess )
             m_ioAccess->setpos( m_ioAccess, m_baseOffset );
     }
 
@@ -99,7 +99,7 @@ class IOAccessAdapter : public ::flic::FileInterface
 
     bool ok() const override
     {
-        return NULL != m_ioAccess && 0 == m_ioAccess->eof( m_ioAccess );
+        return GUCEF_NULL != m_ioAccess && 0 == m_ioAccess->eof( m_ioAccess );
     }
     
     size_t tell() override
@@ -156,9 +156,9 @@ ImageCodecLinkEncode( void* pluginData                   ,
                       CORE::TIOAccess* output               ,
                       CORE::TCodecErrorInfo* error          ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    if ( 0 != ImageStreamEncode( pluginData, NULL, "ImageCodec", (const char*) codecData, input, output ) )
+    if ( 0 != ImageStreamEncode( pluginData, GUCEF_NULL, "ImageCodec", (const char*) codecData, input, output ) )
         return CORE::GUCEF_CODEC_STATUS_OK;
-    if ( NULL != error )
+    if ( GUCEF_NULL != error )
     {
         strncpy( error->message, "Unable to encode the image", GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 );
         error->message[ GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 ] = '\0';
@@ -176,9 +176,9 @@ ImageCodecLinkDecode( void* pluginData                   ,
                       CORE::TIOAccess* output               ,
                       CORE::TCodecErrorInfo* error          ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    if ( 0 != ImageStreamDecode( pluginData, NULL, "ImageCodec", (const char*) codecData, input, output ) )
+    if ( 0 != ImageStreamDecode( pluginData, GUCEF_NULL, "ImageCodec", (const char*) codecData, input, output ) )
         return CORE::GUCEF_CODEC_STATUS_OK;
-    if ( NULL != error )
+    if ( GUCEF_NULL != error )
     {
         strncpy( error->message, "Unable to decode the image", GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 );
         error->message[ GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 ] = '\0';
@@ -189,7 +189,7 @@ ImageCodecLinkDecode( void* pluginData                   ,
 /*---------------------------------------------------------------------------*/
 
 /* One link per supported type, owned by the plugin from Init until Shutdown */
-static CORE::TCodecPluginLink* codecLinks = NULL;
+static CORE::TCodecPluginLink* codecLinks = GUCEF_NULL;
 
 /*---------------------------------------------------------------------------*/
 
@@ -200,7 +200,7 @@ BuildCodecLinks( void )
 
     free( codecLinks );
     codecLinks = ( CORE::TCodecPluginLink* ) calloc( codecCount > 0 ? codecCount : 1, sizeof( CORE::TCodecPluginLink ) );
-    if ( NULL == codecLinks )
+    if ( GUCEF_NULL == codecLinks )
         return CORE::GUCEF_CODEC_STATUS_FAILED;
 
     for ( i=0; i<codecCount; ++i )
@@ -222,7 +222,7 @@ static void
 FreeCodecLinks( void )
 {
     free( codecLinks );
-    codecLinks = NULL;
+    codecLinks = GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -239,7 +239,7 @@ CODECPLUGIN_Init( void** plugdata                    ,
                   const CORE::TVariantMapApi* pluginParams ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
 
-    *plugdata = NULL;
+    *plugdata = GUCEF_NULL;
     return BuildCodecLinks();
 }
 
@@ -312,7 +312,7 @@ ImageStreamDecode( void* pluginData        ,
     void* imageData;
 
     /* input sanity check */
-    if ( ( NULL == familyType ) || ( NULL == codecType ) || ( NULL == input ) || ( NULL == output ) ) return 0;
+    if ( ( GUCEF_NULL == familyType ) || ( GUCEF_NULL == codecType ) || ( GUCEF_NULL == input ) || ( GUCEF_NULL == output ) ) return 0;
     if ( 0 != strcmp( familyType, "ImageCodec" ) ) return 0;
 
     /* this plugin only supports image codecs so we can redirect to the specialized image API */
@@ -365,7 +365,7 @@ ImageStreamDecode( void* pluginData        ,
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 CODECPLUGIN_GetCodecCount( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    return NULL != codecLinks ? codecCount : 0;
+    return GUCEF_NULL != codecLinks ? codecCount : 0;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -375,11 +375,11 @@ CODECPLUGIN_GetCodecLink( void* plugdata                          ,
                           UInt32 index                            ,
                           const CORE::TCodecPluginLink** codecLink   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    if ( NULL == codecLink )
+    if ( GUCEF_NULL == codecLink )
         return CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER;
-    if ( NULL == codecLinks || index >= codecCount )
+    if ( GUCEF_NULL == codecLinks || index >= codecCount )
     {
-        *codecLink = NULL;
+        *codecLink = GUCEF_NULL;
         return CORE::GUCEF_CODEC_STATUS_UNSUPPORTED;
     }
     *codecLink = &codecLinks[ index ];
@@ -392,7 +392,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 IMGCODECPLUGIN_FreeImageStorage( TImage* image   ,
                                  void* imageData )
 {
-    if ( NULL != image )
+    if ( GUCEF_NULL != image )
     {
         /* free the image access structures */
         UInt32 i;
@@ -400,7 +400,7 @@ IMGCODECPLUGIN_FreeImageStorage( TImage* image   ,
         for ( i=0; i<frameCount; ++i )
         {
             TImageFrame* frame = &image->frames[ i ];
-            if ( NULL != frame->mipmapLevel )
+            if ( GUCEF_NULL != frame->mipmapLevel )
             {
                 UInt32 n;
                 for ( n=0; n<frame->frameInfo.nrOfMipmapLevels; ++n )
@@ -427,7 +427,7 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData       ,
                             void** imageData       )
 {
     /* input sanity check */
-    if ( ( NULL == imageOutput ) || ( NULL == codecType ) || ( NULL == input ) || ( NULL == imageData ) ) 
+    if ( ( GUCEF_NULL == imageOutput ) || ( GUCEF_NULL == codecType ) || ( GUCEF_NULL == input ) || ( GUCEF_NULL == imageData ) ) 
         return 0;
 
     IOAccessAdapter ioAccessAdapter( input, GetBaseOffset( codecType ) );
@@ -447,13 +447,13 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData       ,
     flicFrame.rowstride = (uint32_t) flicHeader.width;
 
     TImage* image = (TImage*) malloc( sizeof(TImage) );
-    if ( NULL == image )
+    if ( GUCEF_NULL == image )
         return 0;
     image->imageInfo.version = GUCEF_IMAGE_TIMAGEINFO_VERSION;
     image->imageInfo.nrOfFramesInImage = (UInt32) flicHeader.frames;
     image->imageInfo.loopCount = 0; // FLIC animations loop forever
     image->frames = (TImageFrame*) malloc( sizeof(TImageFrame) * flicHeader.frames );
-    if ( NULL == image->frames )
+    if ( GUCEF_NULL == image->frames )
     {
         free( image );
         return 0;
@@ -478,7 +478,7 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData       ,
         
         // FLIC only has 1 level per frame
         frame.mipmapLevel = (TImageMipMapLevel*) malloc( sizeof(TImageMipMapLevel) ); 
-        if ( NULL == frame.mipmapLevel )
+        if ( GUCEF_NULL == frame.mipmapLevel )
         {
             image->imageInfo.nrOfFramesInImage = (UInt32) i;
             IMGCODECPLUGIN_FreeImageStorage( image, GUCEF_NULL );
@@ -518,7 +518,7 @@ IMGCODECPLUGIN_DecodeImage( void* pluginData       ,
     }
     
     *imageOutput = image;
-    *imageData = NULL;
+    *imageData = GUCEF_NULL;
     return 1;
 }
 

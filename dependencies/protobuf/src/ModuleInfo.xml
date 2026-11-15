@@ -1,6 +1,8 @@
 <root>
 <ModuleInfoEntry>
     <Module Name="libprotobuf_header_root" Type="HeaderIncludeLocation" ConsiderSubDirs="False" Platform="All" >
+        <!-- protobuf requires at least C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
 </ModuleInfoEntry>
 <ModuleInfoEntry>
@@ -13,6 +15,8 @@
             <Define String="LIBPROTOBUF_EXPORTS" />
 			<Define String="LIBPROTOC_EXPORTS" />
         </Preprocessor>
+        <!-- protobuf requires at least C++11 -->
+        <Compiler MinCppStandard="11" />
     </Module>
     <Module Platform="linux;mswin">
         <Dependencies>

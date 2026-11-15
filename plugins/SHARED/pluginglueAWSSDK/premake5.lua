@@ -30,18 +30,20 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "aws-cpp-sdk-core", "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "aws-cpp-sdk-core", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
 defines( { "GUCEF_PLUGINGLUE_AWSSDK_BUILD_MODULE", "MODULE_CONSENSUS_NAME=pluginglueAWSSDK", "MODULE_NAME=pluginglueAWSSDK" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "PLATFORM_WINDOWS", "USE_IMPORT_EXPORT" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "PLATFORM_WINDOWS", "USE_IMPORT_EXPORT" } )
 
 

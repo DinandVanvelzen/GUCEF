@@ -193,7 +193,7 @@ PerformUnavailableProviderTests( void )
             }
 
             // no browser is opened for a login that cannot be checked afterwards
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( b.manager.Login( "testopenid", AUTH::CAuthOptions(), future ) );
 
             // a request to a https address fails at once, with the class and a sentence that holds the host and nothing else of the address

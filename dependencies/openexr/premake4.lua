@@ -30,20 +30,26 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "zlib" } )
+
+configuration( {} )
 links( { "zlib" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=OpenEXR", "MODULE_NAME=OpenEXR" } )
-  links( { "pthread" } )
-  links( { "pthread" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "LINUX32" } )
+links( { "pthread" } )
+
+configuration( { "LINUX64" } )
+links( { "pthread" } )
+
+
+configuration( { "WIN32" } )
 defines( { "HALF_EXPORTS", "IEX_EXPORTS", "ILMIMF_EXPORTS", "ILMTHREAD_EXPORTS", "IMATH_EXPORTS", "OPENEXR_DLL" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "HALF_EXPORTS", "IEX_EXPORTS", "ILMIMF_EXPORTS", "ILMTHREAD_EXPORTS", "IMATH_EXPORTS", "OPENEXR_DLL" } )
 
 

@@ -211,7 +211,7 @@ CDataNodeSerializableHttpServerResource::Deserialize( const CString& resourcePat
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == m_serializable )
-        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 
     // Make sure we always have some degree of serializer options
     const CORE::CDataNodeSerializableSettings* serializerOptions = m_serializerOptions;
@@ -235,8 +235,8 @@ CDataNodeSerializableHttpServerResource::Deserialize( const CString& resourcePat
     MT::CObjectScopeReadOnlyLock lock( m_serializableLock );
 
     if ( GUCEF_NULL != m_serializable )
-        return m_serializable->Deserialize( input, *serializerOptions ) ? TDeserializeState::DESERIALIZESTATE_SUCCEEDED : TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
-    return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;    
+        return m_serializable->Deserialize( input, *serializerOptions ) ? CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED : CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
+    return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;    
 }
 
 /*-------------------------------------------------------------------------*/

@@ -124,6 +124,7 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CSocketReadinessWaiter.cpp \
   src/gucefCOMCORE_CTlsClientConnection.cpp \
   src/gucefCOMCORE_CTlsProviderRegistry.cpp \
+  src/gucefCOMCORE_CTlsServerSettings.cpp \
   src/gucefCOMCORE_CTlsSettings.cpp \
   src/gucefCOMCORE_ITlsProvider.cpp \
   src/gucefCOMCORE_ITlsSession.cpp \

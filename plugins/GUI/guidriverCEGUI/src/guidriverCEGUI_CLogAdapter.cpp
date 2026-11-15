@@ -50,7 +50,7 @@ CLogAdapter::CLogAdapter( void )
       m_logManager( &GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager() )
 {GUCEF_TRACE;
 
-    assert( m_logManager != NULL );
+    assert( m_logManager != GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/

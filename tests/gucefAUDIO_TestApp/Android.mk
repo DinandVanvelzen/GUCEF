@@ -24,6 +24,7 @@ LOCAL_SRC_FILES := \
   src/TestAudioAlsa.cpp \
   src/TestAudioAutomaticGain.cpp \
   src/TestAudioBenchmark.cpp \
+  src/TestAudioBuiltinEffects.cpp \
   src/TestAudioBusLayout.cpp \
   src/TestAudioCapture.cpp \
   src/TestAudioCodecFlac.cpp \
@@ -31,23 +32,21 @@ LOCAL_SRC_FILES := \
   src/TestAudioCodecOgg.cpp \
   src/TestAudioCodecPlugin.cpp \
   src/TestAudioCodecs.cpp \
+  src/TestAudioCompressor.cpp \
   src/TestAudioConversion.cpp \
+  src/TestAudioDelay.cpp \
   src/TestAudioDevices.cpp \
   src/TestAudioDsp.cpp \
   src/TestAudioDucker.cpp \
   src/TestAudioEchoCanceller.cpp \
   src/TestAudioEffects.cpp \
-  src/TestAudioBuiltinEffects.cpp \
-  src/TestAudioCompressor.cpp \
-  src/TestAudioDelay.cpp \
-  src/TestAudioEqualizer.cpp \
-  src/TestAudioLimiter.cpp \
   src/TestAudioEngine.cpp \
   src/TestAudioEngineReopen.cpp \
+  src/TestAudioEqualizer.cpp \
   src/TestAudioFormat.cpp \
-  src/TestAudioGeoSpace.cpp \
   src/TestAudioHalfDuplex.cpp \
   src/TestAudioIntercomHardware.cpp \
+  src/TestAudioLimiter.cpp \
   src/TestAudioMixer.cpp \
   src/TestAudioNoiseGate.cpp \
   src/TestAudioNoiseSuppressor.cpp \
@@ -57,8 +56,6 @@ LOCAL_SRC_FILES := \
   src/TestAudioRouting.cpp \
   src/TestAudioSettings.cpp \
   src/TestAudioSincResampler.cpp \
-  src/TestAudioSpatial.cpp \
-  src/TestAudioSpatialVoice.cpp \
   src/TestAudioStream.cpp \
   src/TestAudioStreaming.cpp \
   src/TestAudioTestSignals.cpp \
@@ -82,8 +79,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../../platform/gucefGEOMETRY/include \
   $(MY_MODULE_PATH)/../../platform/gucefMATH/include \
+  $(MY_MODULE_PATH)/../../platform/gucefMATH/src \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEF_AUDIO_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefAUDIO_TestApp -DMODULE_NAME=gucefAUDIO_TestApp
@@ -92,8 +89,6 @@ LOCAL_CFLAGS := -DGUCEF_AUDIO_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucef
 LOCAL_SHARED_LIBRARIES := \
   gucefAUDIO \
   gucefCORE \
-  gucefGEOMETRY \
-  gucefMATH \
   gucefMT
 
 include $(BUILD_EXECUTABLE)

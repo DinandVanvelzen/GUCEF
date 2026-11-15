@@ -58,10 +58,10 @@ namespace CORE {
 CDataNode::CDataNode( int nodeType )
     : CIEnumerable()
     , m_nodeType( nodeType )
-    , _pparent( NULL ) 
+    , _pparent( GUCEF_NULL ) 
     , m_children()     
-    , _pnext( NULL )   
-    , _pprev( NULL )   
+    , _pnext( GUCEF_NULL )   
+    , _pprev( GUCEF_NULL )   
     , _name()          
     , m_value()
     , m_associatedData( GUCEF_NULL )
@@ -75,10 +75,10 @@ CDataNode::CDataNode( const CString& name, int nodeType )
     , m_nodeType( nodeType )
     , _name( name )    
     , m_value()      
-    , _pparent( NULL ) 
+    , _pparent( GUCEF_NULL ) 
     , m_children()     
-    , _pnext( NULL )   
-    , _pprev( NULL )
+    , _pnext( GUCEF_NULL )   
+    , _pprev( GUCEF_NULL )
     , m_associatedData( GUCEF_NULL )
 {GUCEF_TRACE;
 }
@@ -101,8 +101,8 @@ CDataNode::CDataNode( const CDataNode& src )
     if ( GUCEF_NULL != src.m_associatedData )
         m_associatedData = src.m_associatedData->Clone();    
     
-    TDataNodeList::const_iterator n = src.m_children.cbegin();
-    while ( n != src.m_children.cend() )
+    TDataNodeList::const_iterator n = src.m_children.begin();
+    while ( n != src.m_children.end() )
     {
         AddChild( *(*n) );
         ++n;
@@ -581,6 +581,86 @@ CDataNode::SetAttribute( const CString& name ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDataNode::SetAttribute( const char* name ,
+                         bool value       )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         UInt16  value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         Int16   value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         UInt32  value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         Int32   value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         Int64   value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         UInt64  value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttribute( const char* name ,
+                         Float32 value    )
+{GUCEF_TRACE;
+
+    return SetAttribute( CString( name ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
 CDataNode::SetAttribute( const CString& name ,
                          UInt16 value        )
@@ -733,8 +813,8 @@ CDataNode::CopySubTree( const CDataNode& root )
 
     if ( this != &root )
     {
-        TDataNodeList::const_iterator n = root.m_children.cbegin();
-        while ( n != root.m_children.cend() )
+        TDataNodeList::const_iterator n = root.m_children.begin();
+        while ( n != root.m_children.end() )
         {
             AddChild( *(*n) );
             ++n;
@@ -770,14 +850,14 @@ CDataNode*
 CDataNode::FindChild( const CString& name, bool caseSensitive ) const
 {GUCEF_TRACE;
         
-    TDataNodeList::const_iterator i = m_children.cbegin();
+    TDataNodeList::const_iterator i = m_children.begin();
     while ( i != m_children.end() )
     {
         if ( (*i)->_name.Equals( name, caseSensitive ) )
             return (*i);
         ++i;
     }
-    return nullptr;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -789,8 +869,8 @@ CDataNode::FindChildrenOfType( const CString& name      ,
 {GUCEF_TRACE;
 
     TConstDataNodeSet children;
-    TDataNodeList::const_iterator m = m_children.cbegin();
-    while ( m != m_children.cend() )
+    TDataNodeList::const_iterator m = m_children.begin();
+    while ( m != m_children.end() )
     {
         const CDataNode* child = (*m);
         if ( child->_name.Equals( name, caseSensitive ) )
@@ -890,7 +970,7 @@ CDataNode::FindChild( const CString& name         ,
         {
             // See if the node has the attribute we want
             TKeyValuePair* att = (*i)->GetAttribute( attribName );
-            if ( att != NULL )
+            if ( att != GUCEF_NULL )
             {
                 // See if the node attribute has the value we want
                 if ( att->second == attribValue )
@@ -901,7 +981,7 @@ CDataNode::FindChild( const CString& name         ,
         }
         ++i;
     }  
-    return nullptr;    
+    return GUCEF_NULL;    
 }
 
 /*-------------------------------------------------------------------------*/
@@ -980,7 +1060,7 @@ CDataNode::CompareChild( const CDataNode& other        ,
         
         ++i;
     }
-    return NULL;   
+    return GUCEF_NULL;   
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1029,7 +1109,7 @@ CDataNode::FindSibling( const CString& name ) const
             }
             n = n->_pprev;
     }        
-    return NULL;        
+    return GUCEF_NULL;        
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1061,7 +1141,7 @@ CDataNode::FindSibling( const CString& name )
             }
             n = n->_pprev;
     }        
-    return NULL;        
+    return GUCEF_NULL;        
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1160,8 +1240,8 @@ CDataNode::Find( const CString& name ) const
         return n;
     }                
 
-    TDataNodeList::const_iterator m = m_children.cbegin();
-    while ( m != m_children.cend() )
+    TDataNodeList::const_iterator m = m_children.begin();
+    while ( m != m_children.end() )
     {
         n = (*m)->Find( name );
         if ( GUCEF_NULL != n )
@@ -1189,8 +1269,8 @@ CDataNode::GetNrOfChildNodes( void ) const
 {GUCEF_TRACE;
 
     UInt32 count = 0;
-    TDataNodeList::const_iterator i = m_children.cbegin();
-    while ( i != m_children.cend() )
+    TDataNodeList::const_iterator i = m_children.begin();
+    while ( i != m_children.end() )
     {
         count += (*i)->GetNrOfChildNodes()+1;
         ++i;
@@ -1485,7 +1565,7 @@ CDataNode::Structure( const CString& sequence ,
     }
     
     if ( walkResults.empty() )
-        return nullptr;
+        return GUCEF_NULL;
     return *walkResults.begin();        
 }                      
 
@@ -1611,7 +1691,7 @@ CDataNode::Structure( const CString& nodeName       ,
     CString attSeqRemnant = attribSequence;
     CVariant attValue = attSeqRemnant.SubstrToChar( seperator );
     bool childExists = true;
-    CDataNode* childNode = NULL;
+    CDataNode* childNode = GUCEF_NULL;
     
     do
     {
@@ -1623,14 +1703,14 @@ CDataNode::Structure( const CString& nodeName       ,
             childNode = node->FindChild( nodeName   ,
                                          attribName ,
                                          attValue   );
-            if ( childNode == NULL )
+            if ( childNode == GUCEF_NULL )
             {
                 childExists = false;
             }
         }
         
         // Check if we have to create a new node
-        if ( childNode == NULL )
+        if ( childNode == GUCEF_NULL )
         {
             // No such node exists, we will create it
             CDataNode newChild( nodeName );
@@ -2492,7 +2572,7 @@ CDataNode::End( void )
 
     // the same end state operator++ reaches: no position, at the end, not at the start
     iterator i( this );
-    i._pos = NULL;
+    i._pos = GUCEF_NULL;
     i._atend = true;
     i._atstart = false;
     return i;
@@ -2516,7 +2596,7 @@ CDataNode::End( void ) const
 {
         GUCEF_BEGIN;
         const_iterator i( this );
-        i._pos = NULL;
+        i._pos = GUCEF_NULL;
         i._atend = true;
         i._atstart = false;
         GUCEF_END;       
@@ -2541,7 +2621,7 @@ CDataNode::ConstEnd( void ) const
 {
         GUCEF_BEGIN;
         const_iterator i( this );
-        i._pos = NULL;
+        i._pos = GUCEF_NULL;
         i._atend = true;
         i._atstart = false;
         GUCEF_END;        
@@ -2551,8 +2631,8 @@ CDataNode::ConstEnd( void ) const
 /*-------------------------------------------------------------------------*/
 
 CDataNode::const_iterator::const_iterator( const CDataNode* parent )
-        : _pfchild( NULL )  ,
-          _pos( NULL )      ,
+        : _pfchild( GUCEF_NULL )  ,
+          _pos( GUCEF_NULL )      ,
           _atend( true )    ,
           _atstart( false )
 {
@@ -2633,7 +2713,7 @@ CDataNode::const_iterator::operator++( void )
                         GUCEF_END;
                         return *this;
                 }
-                _pos = NULL;
+                _pos = GUCEF_NULL;
                 _atend = true;
                 _atstart = false;
                 GUCEF_END;
@@ -2653,7 +2733,7 @@ CDataNode::const_iterator::operator--( void )
         {
                 if ( _pos == _pfchild )
                 {
-                        _pos = NULL;
+                        _pos = GUCEF_NULL;
                         _atstart = true;
                         _atend = false;
                         GUCEF_END;
@@ -2694,8 +2774,8 @@ CDataNode::const_iterator::operator==( const const_iterator& src ) const
 /*-------------------------------------------------------------------------*/
 
 CDataNode::iterator::iterator( CDataNode* parent )
-        : _pfchild( NULL )  ,
-          _pos( NULL )      ,
+        : _pfchild( GUCEF_NULL )  ,
+          _pos( GUCEF_NULL )      ,
           _atend( true )    ,
           _atstart( false )
 {
@@ -2770,7 +2850,7 @@ CDataNode::iterator::operator++( void )
             _pos = _pos->_pnext;
             return *this;
         }
-        _pos = NULL;
+        _pos = GUCEF_NULL;
         _atend = true;
         _atstart = false;
         return *this;
@@ -2788,7 +2868,7 @@ CDataNode::iterator::operator--( void )
     {
         if ( _pos == _pfchild )
         {
-            _pos = NULL;
+            _pos = GUCEF_NULL;
             _atstart = true;
             _atend = false;
             return *this;

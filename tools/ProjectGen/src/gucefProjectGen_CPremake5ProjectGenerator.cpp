@@ -149,7 +149,7 @@ LoadPremake5FileAdditionTemplates( const CORE::CString& templateDir )
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Attempting to load Premake5 file addition templates from: " + pathToTemplates );
 
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( pathToTemplates.C_String() );
-    if ( NULL != sdiData )
+    if ( GUCEF_NULL != sdiData )
     {
         do
         {
@@ -197,7 +197,7 @@ GeneratePremake5TemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoE
     CModuleInfoPtr moduleInfo;
     const CORE::CString* moduleName = moduleInfoEntry->GetModuleName( platformName, &moduleInfo );
 
-    if ( ( NULL != moduleName ) && ( !moduleInfo.IsNULL() ) )
+    if ( ( GUCEF_NULL != moduleName ) && ( !moduleInfo.IsNULL() ) )
     {
         // Use the module type as the index to find a template.
         // We can make this more advanced later if needed but for now differentiating based on module
@@ -664,7 +664,7 @@ GeneratePremake5ModuleDescriptionLine( const CModuleInfo& moduleInfo     ,
     }
     else
     {
-        platformPrefix = "\n\nconfiguration( { " + platformName.Uppercase() + " } )\n";
+        platformPrefix = "\n\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\n";
     }
 
     switch ( moduleInfo.moduleType )
@@ -744,7 +744,7 @@ GeneratePremake5ModuleDependenciesLine( const CProjectInfo& projectInfo   ,
             }
             else
             {
-                sectionContent = "\nconfiguration( { " + platformName.Uppercase() + " } )\nlinks( {";
+                sectionContent = "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\nlinks( {";
             }
 
             // The reason we first put the dependency strings in a set is to sort them alphabetically.
@@ -784,7 +784,15 @@ GeneratePremake5ModuleLinkerLine( const CModuleInfoPtr& moduleInfo  ,
         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating Premake5 module linker line for module " + moduleName + " and platform " + platformName );
 
         bool first = true;
-        CORE::CString sectionContent = "links( {";
+        CORE::CString sectionContent;
+        if ( platformName == KnownPlatforms::AllPlatforms )
+        {
+            sectionContent = "\nconfiguration( {} )\nlinks( {";
+        }
+        else
+        {
+            sectionContent = "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\nlinks( {";
+        }
         TLinkedLibrarySettingsPtrMap::const_iterator i = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
         while ( i != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
         {
@@ -825,7 +833,7 @@ GeneratePremake5ModuleDefinesLine( const CModuleInfoPtr& moduleInfo  ,
         }
         else
         {
-            sectionContent = "\n\nconfiguration( { " + platformName.Uppercase() + " } )\ndefines( { ";
+            sectionContent = "\n\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\ndefines( { ";
         }
 
         bool first = true;
@@ -1150,23 +1158,21 @@ GeneratePremake5ModuleInfoSection( const CProjectInfo& projectInfo            ,
             {
                 CORE::CString platformSection;
 
-                platformSection.Clear();// = "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\n";
-
                 if ( !moduleDependenciesStr.IsNULLOrEmpty() )
                 {
-                    platformSection += "  " + moduleDependenciesStr;
+                    platformSection += moduleDependenciesStr;
                 }
                 if ( !moduleLinkingStr.IsNULLOrEmpty() )
                 {
-                    platformSection += "  " + moduleLinkingStr;
+                    platformSection += moduleLinkingStr;
                 }
                 if ( !moduleDefinesStr.IsNULLOrEmpty() )
                 {
-                    platformSection += "  " + moduleDefinesStr;
+                    platformSection += moduleDefinesStr;
                 }
                 if ( !moduleTargetNameStr.IsNULLOrEmpty() )
                 {
-                    platformSection += "  " + moduleTargetNameStr;
+                    platformSection += moduleTargetNameStr;
                 }
 
                 // Now that we finished generating the section for this platform add it to the entire info content section

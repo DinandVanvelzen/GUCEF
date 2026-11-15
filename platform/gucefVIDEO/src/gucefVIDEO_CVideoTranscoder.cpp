@@ -160,7 +160,7 @@ struct SPendingFrame
     IMAGE::TPixelMapPtr upscaled;                   /**< the upscaled picture, when it was made on this thread */
     CVideoFrame picture;                            /**< the picture as it is, without an upscaler */
 
-    SPendingFrame( void ) : frameIndex( 0 ), timeInMicroSeconds( 0 ), sound(), upscale( CORE::TTaskStatus::TASKSTATUS_UNDEFINED ), upscaled(), picture() {}
+    SPendingFrame( void ) : frameIndex( 0 ), timeInMicroSeconds( 0 ), sound(), upscale( CORE::TASKSTATUS_UNDEFINED ), upscaled(), picture() {}
 };
 
 /*-------------------------------------------------------------------------*/
@@ -560,7 +560,7 @@ CVideoTranscoder::TranscodeAsync( const TVideoSourcePtr& source       ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VideoTranscoder:TranscodeAsync: Failed to queue the task: " << e.what() );
     }
     status->SetFinished( false );
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/

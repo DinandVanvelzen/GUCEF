@@ -106,15 +106,15 @@ class CWinHttpSession
     public:
 
     CWinHttpSession( void )
-        : m_session( NULL )
+        : m_session( GUCEF_NULL )
     {GUCEF_TRACE;
 
         // Asynchronous, which means every operation reports its completion via a callback instead of blocking.
         // Automatic proxy detection needs Windows 8.1, older versions use the proxy settings of the system
         m_session = WinHttpOpen( L"GUCEF", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC );
-        if ( NULL == m_session )
+        if ( GUCEF_NULL == m_session )
             m_session = WinHttpOpen( L"GUCEF", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC );
-        if ( NULL == m_session )
+        if ( GUCEF_NULL == m_session )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WinHttpClientBackend: WinHttpOpen() failed with error " + CORE::UInt32ToString( (UInt32) GetLastError() ) );
             return;
@@ -134,9 +134,9 @@ class CWinHttpSession
     ~CWinHttpSession()
     {GUCEF_TRACE;
 
-        if ( NULL != m_session )
+        if ( GUCEF_NULL != m_session )
             WinHttpCloseHandle( m_session );
-        m_session = NULL;
+        m_session = GUCEF_NULL;
     }
 
     HINTERNET GetHandle( void ) const { return m_session; }
@@ -250,9 +250,9 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
         , m_session( session )
         , m_state()
         , m_pulseGenerator()
-        , m_winConnection( NULL )
-        , m_winRequest( NULL )
-        , m_context( NULL )
+        , m_winConnection( GUCEF_NULL )
+        , m_winRequest( GUCEF_NULL )
+        , m_context( GUCEF_NULL )
         , m_pulsesRequested( false )
         , m_startTicks( 0 )
         , m_uploadSize( 0 )
@@ -278,7 +278,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
         m_pulseGenerator = pulseGenerator;
         m_startTicks = MT::PrecisionTickCount();
 
-        if ( NULL == m_session->GetHandle() )
+        if ( GUCEF_NULL == m_session->GetHandle() )
         {
             Finish( false, "No WinHTTP session available" );
             return false;
@@ -300,15 +300,15 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
             target += "?" + m_request.requestUriParams;
 
         m_winConnection = WinHttpConnect( m_session->GetHandle(), CORE::ToWString( hostName ).c_str(), (INTERNET_PORT) m_request.GetPort(), 0 );
-        if ( NULL == m_winConnection )
+        if ( GUCEF_NULL == m_winConnection )
         {
             Finish( false, DescribeError( GetLastError() ), (Int32) GetLastError() );
             return false;
         }
 
         m_winRequest = WinHttpOpenRequest( m_winConnection, CORE::ToWString( GetRequestMethod() ).c_str(), CORE::ToWString( target ).c_str(),
-                                        NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, isSecure ? WINHTTP_FLAG_SECURE : 0 );
-        if ( NULL == m_winRequest )
+                                        GUCEF_NULL, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, isSecure ? WINHTTP_FLAG_SECURE : 0 );
+        if ( GUCEF_NULL == m_winRequest )
         {
             Finish( false, DescribeError( GetLastError() ), (Int32) GetLastError() );
             return false;
@@ -333,7 +333,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
             // without a callback nothing will release the context for us
             DWORD error = GetLastError();
             GUCEF_DELETE m_context;
-            m_context = NULL;
+            m_context = GUCEF_NULL;
             Finish( false, DescribeError( error ), (Int32) error );
             return false;
         }
@@ -410,7 +410,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
 
         wchar_t buffer[ 512 ];
         DWORD length = FormatMessageW( FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                                       GetModuleHandleW( L"winhttp.dll" ), error, 0, buffer, sizeof( buffer ) / sizeof( wchar_t ), NULL );
+                                       GetModuleHandleW( L"winhttp.dll" ), error, 0, buffer, sizeof( buffer ) / sizeof( wchar_t ), GUCEF_NULL );
         CString description = "WinHTTP error " + CORE::UInt32ToString( (UInt32) error );
         if ( length > 0 )
         {
@@ -469,7 +469,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
             }
             case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE :
             {
-                state->Push( WINHTTPEVENT_DATA_AVAILABLE, NULL != statusInformation ? *static_cast< DWORD* >( statusInformation ) : 0, 0 );
+                state->Push( WINHTTPEVENT_DATA_AVAILABLE, GUCEF_NULL != statusInformation ? *static_cast< DWORD* >( statusInformation ) : 0, 0 );
                 break;
             }
             case WINHTTP_CALLBACK_STATUS_READ_COMPLETE :
@@ -479,18 +479,18 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
             }
             case WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE :
             {
-                state->Push( WINHTTPEVENT_WRITE_DONE, NULL != statusInformation ? *static_cast< DWORD* >( statusInformation ) : 0, 0 );
+                state->Push( WINHTTPEVENT_WRITE_DONE, GUCEF_NULL != statusInformation ? *static_cast< DWORD* >( statusInformation ) : 0, 0 );
                 break;
             }
             case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE :
             {
-                state->Push( WINHTTPEVENT_SECURE_FAILURE, NULL != statusInformation ? *static_cast< DWORD* >( statusInformation ) : 0, 0 );
+                state->Push( WINHTTPEVENT_SECURE_FAILURE, GUCEF_NULL != statusInformation ? *static_cast< DWORD* >( statusInformation ) : 0, 0 );
                 break;
             }
             case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR :
             {
                 const WINHTTP_ASYNC_RESULT* result = static_cast< const WINHTTP_ASYNC_RESULT* >( statusInformation );
-                if ( NULL != result )
+                if ( GUCEF_NULL != result )
                     state->Push( WINHTTPEVENT_ERROR, (DWORD) result->dwResult, result->dwError );
                 else
                     state->Push( WINHTTPEVENT_ERROR, 0, ERROR_WINHTTP_INTERNAL_ERROR );
@@ -632,14 +632,14 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
             Finish( false, "The request body ended before the announced size was reached" );
             return;
         }
-        if ( !WinHttpWriteData( m_winRequest, &m_writeBuffer[ 0 ], bytesToWrite, NULL ) )
+        if ( !WinHttpWriteData( m_winRequest, &m_writeBuffer[ 0 ], bytesToWrite, GUCEF_NULL ) )
             Finish( false, DescribeError( GetLastError() ), (Int32) GetLastError() );
     }
 
     void ReceiveResponse( void )
     {GUCEF_TRACE;
 
-        if ( !WinHttpReceiveResponse( m_winRequest, NULL ) )
+        if ( !WinHttpReceiveResponse( m_winRequest, GUCEF_NULL ) )
             Finish( false, DescribeError( GetLastError() ), (Int32) GetLastError() );
     }
 
@@ -698,7 +698,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
     void QueryData( void )
     {GUCEF_TRACE;
 
-        if ( !WinHttpQueryDataAvailable( m_winRequest, NULL ) )
+        if ( !WinHttpQueryDataAvailable( m_winRequest, GUCEF_NULL ) )
             Finish( false, DescribeError( GetLastError() ), (Int32) GetLastError() );
     }
 
@@ -713,7 +713,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
         }
 
         DWORD bytesToRead = bytesAvailable > ReadBlockSize ? ReadBlockSize : bytesAvailable;
-        if ( !WinHttpReadData( m_winRequest, m_state->GetReadBuffer(), bytesToRead, NULL ) )
+        if ( !WinHttpReadData( m_winRequest, m_state->GetReadBuffer(), bytesToRead, GUCEF_NULL ) )
             Finish( false, DescribeError( GetLastError() ), (Int32) GetLastError() );
     }
 
@@ -815,16 +815,16 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
         // Closing a handle with an operation in progress cancels the operation. WinHTTP reports
         // that and the closing of the handle through the callback, which releases the context.
         // Those only note down events in the state, so it does not matter that we are going away
-        if ( NULL != m_winRequest )
+        if ( GUCEF_NULL != m_winRequest )
         {
             HINTERNET request = m_winRequest;
-            m_winRequest = NULL;
+            m_winRequest = GUCEF_NULL;
             WinHttpCloseHandle( request );
         }
-        if ( NULL != m_winConnection )
+        if ( GUCEF_NULL != m_winConnection )
         {
             HINTERNET connection = m_winConnection;
-            m_winConnection = NULL;
+            m_winConnection = GUCEF_NULL;
             WinHttpCloseHandle( connection );
         }
     }

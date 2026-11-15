@@ -274,7 +274,7 @@ PerformEosLobbyRulesTests( void )
             ASSERT_TRUE( again.IsNULL() && fixture[ 1 ].reason.HasSubstr( "permission" ) >= 0 );
 
             // an invitation lets it in again
-            CORE::CFutureResult none( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult none( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( Eos( pair.host ).InvitePlayer( guestId ) );
             ASSERT_TRUE( PumpUntilCount( fixture[ 1 ].serviceRecorder.invites, 1 ) );
             ASSERT_TRUE( fixture[ 1 ].serviceRecorder.lastInviteLobby == lobbyId && fixture[ 1 ].serviceRecorder.lastInviteSender == fixture[ 0 ].peer.puid );

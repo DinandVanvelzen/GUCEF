@@ -130,7 +130,7 @@ void
 CPatchListEngine::Initialize( void )
 {GUCEF_TRACE;
 
-    assert( m_patchSetEngine != NULL );
+    assert( m_patchSetEngine != GUCEF_NULL );
 
     // Forward events from the set engine
     AddForwardingForEvent( PatchSetProcessingStartedEvent, EVENTORIGINFILTER_UNMODIFIED );
@@ -175,7 +175,7 @@ CPatchListEngine::~CPatchListEngine()
     Stop();
 
     delete m_patchSetEngine;
-    m_patchSetEngine = NULL;
+    m_patchSetEngine = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -222,7 +222,7 @@ CPatchListEngine::ObtainCurrentPatchSet( void )
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchListEngine: Obtaining the current patch set" );
 
-    TPatchSetLocation* setLocation = NULL;
+    TPatchSetLocation* setLocation = GUCEF_NULL;
     if ( GetCurrentPatchSetLocation( &setLocation ) )
     {
         // Make sure the buffer is cleared
@@ -253,7 +253,7 @@ CPatchListEngine::Start( const TPatchList& patchList             ,
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchListEngine: Starting,.." );
 
-    assert( &patchList != NULL );
+    assert( &patchList != GUCEF_NULL );
 
     // The user should explicitly stop first if we are already busy
     if ( !IsActive() )
@@ -330,7 +330,7 @@ CPatchListEngine::ProcessRecievedPatchSet( void )
     if ( m_setDataBuffer.GetDataSize() > 0 )
     {
         // Now we must process the raw patch set data to turn it into something we can use
-        TPatchSetLocation* setLocation = NULL;
+        TPatchSetLocation* setLocation = GUCEF_NULL;
         if ( GetCurrentPatchSetLocation( &setLocation ) )
         {
             // Get the required codec for the current raw patch set data type

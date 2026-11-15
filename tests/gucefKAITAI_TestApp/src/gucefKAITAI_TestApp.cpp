@@ -271,7 +271,7 @@ GUCEF_OSMAIN_BEGIN
         // Now actually run the tests...
         PerformKaitaiTest_ConfigDrivenCodecSpecification();
 
-        auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+        CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
         app.GetPulseGenerator()->RequestPulseInterval( 10 );
         int appReturnValue = app.main( argc, argv, true );
 

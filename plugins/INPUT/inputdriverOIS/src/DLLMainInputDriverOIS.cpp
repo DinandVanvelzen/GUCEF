@@ -118,7 +118,7 @@ ParseArgListItemUInt32( const int argc    ,
                         const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
         UInt32 result = 0UL;
         sscanf( value, "%d", &result );
@@ -135,9 +135,9 @@ ParseArgListItemPointer( const int argc    ,
                          const char* key   )
 {
     const char* value = GetArgListItem( argc, argv, key );
-    if ( NULL != value )
+    if ( GUCEF_NULL != value )
     {
-        void* result = NULL;
+        void* result = GUCEF_NULL;
         sscanf( value, "%p", &result );
         return result;
     }
@@ -245,7 +245,7 @@ INPUTDRIVERPLUG_CreateContext( void* plugdata                   ,
     if ( 0 != handle )
     {
         TContextData* data = new TContextData;
-        data->inputManager = NULL;
+        data->inputManager = GUCEF_NULL;
         data->callbacks = *callbacks;
 
         try
@@ -324,9 +324,9 @@ INPUTDRIVERPLUG_DestroyContext( void* plugdata    ,
                                 void* contextData ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TContextData* data = (TContextData*) contextData;
-    if ( NULL != data )
+    if ( GUCEF_NULL != data )
     {
-        if ( NULL != data->inputManager )
+        if ( GUCEF_NULL != data->inputManager )
         {
             for ( UInt32 i=0; i<data->keyboards.size(); ++i )
             {
@@ -353,14 +353,14 @@ INPUTDRIVERPLUG_DestroyContext( void* plugdata    ,
             data->joysticks.clear();
 
             delete data->joystickListener;
-            data->joystickListener = NULL;
+            data->joystickListener = GUCEF_NULL;
             delete data->mouseListener;
-            data->mouseListener = NULL;
+            data->mouseListener = GUCEF_NULL;
             delete data->keyboardListener;
-            data->keyboardListener = NULL;
+            data->keyboardListener = GUCEF_NULL;
 
             OIS::InputManager::destroyInputSystem( data->inputManager );
-            data->inputManager = NULL;
+            data->inputManager = GUCEF_NULL;
         }
 
         delete data;

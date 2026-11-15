@@ -354,12 +354,12 @@ PerformAsyncLobbyTests( void )
             identity.displayName = "Me";
             backend.available = false;
             backend.unavailableReason = "No mailbox is set up yet";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( service.Connect( identity, future ) );
             ASSERT_TRUE( !service.IsConnected() && future.IsReady() && "No mailbox is set up yet" == FailureOf( future ) );
 
             backend.available = true;
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.Connect( identity, future ) && service.IsConnected() && future.IsReady() );
             service.Disconnect();
             ASSERT_FALSE( service.IsConnected() );
@@ -379,23 +379,23 @@ PerformAsyncLobbyTests( void )
             MULTIPLAY::CAsyncLobbyService service( backend, "fake" );
             MULTIPLAY::CPlayerIdentity identity;
             identity.userId = "me";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.Connect( identity, future ) );
 
             MULTIPLAY::CGameListingFilter filter;
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.Browse( filter, future ) );
             MULTIPLAY::CGameListingList list;
             ASSERT_TRUE( MULTIPLAY::CGameListingList::TryGetFromFuture( future, list ) && 2 == list.listings.size() );
 
             filter.kind = MULTIPLAY::CGameListingFilter::KINDFILTER_GAME_IN_PROGRESS;
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.Browse( filter, future ) );
             ASSERT_TRUE( MULTIPLAY::CGameListingList::TryGetFromFuture( future, list ) && 1 == list.listings.size() && "b" == list.listings[ 0 ].listingId );
 
             // a service that is not connected browses nothing
             service.Disconnect();
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( service.Browse( filter, future ) );
         }
         catch ( ... )
@@ -411,7 +411,7 @@ PerformAsyncLobbyTests( void )
             MULTIPLAY::CAsyncLobbyService service( backend, "fake" );
             MULTIPLAY::CPlayerIdentity identity;
             identity.userId = "me";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.Connect( identity, future ) );
 
             MULTIPLAY::CLobbyCreateParams params;
@@ -419,7 +419,7 @@ PerformAsyncLobbyTests( void )
             params.maxPlayers = 3;
             params.invitations.push_back( MULTIPLAY::CLobbyInvitation( "Bob", "bob@example.org" ) );
             params.invitations.push_back( MULTIPLAY::CLobbyInvitation( "Carol", "carol@example.org", "abcd" ) );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.CreateLobby( params, future ) );
             MULTIPLAY::CILobbyPtr lobby;
             ASSERT_TRUE( MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, lobby ) && !lobby.IsNULL() );
@@ -433,7 +433,7 @@ PerformAsyncLobbyTests( void )
             ASSERT_TRUE( loaded.LoadConfig( tree ) && params.invitations == loaded.invitations );
 
             backend.refusal = "The mailbox is not working";
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( service.CreateLobby( params, future ) );
             ASSERT_TRUE( "The mailbox is not working" == FailureOf( future ) );
             lobby = MULTIPLAY::CILobbyPtr();
@@ -453,15 +453,15 @@ PerformAsyncLobbyTests( void )
             MULTIPLAY::CAsyncLobbyService service( backend, "fake" );
             MULTIPLAY::CPlayerIdentity identity;
             identity.userId = "me";
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.Connect( identity, future ) );
 
             MULTIPLAY::CILobbyPtr first, second;
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.JoinLobby( "g1", CORE::CString::Empty, false, future ) );
             ASSERT_TRUE( MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, first ) && !first.IsNULL() );
             ASSERT_TRUE( "Round one" == first->GetState().name && 3 == first->GetState().members.size() && 0 == backend.calls.size() );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.JoinLobby( "g1", CORE::CString::Empty, false, future ) );
             ASSERT_TRUE( MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, second ) && first.GetPointerAlways() == second.GetPointerAlways() );
 
@@ -469,18 +469,18 @@ PerformAsyncLobbyTests( void )
             service.ReleaseLobby( "g1" );
             first = MULTIPLAY::CILobbyPtr();
             second = MULTIPLAY::CILobbyPtr();
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( service.JoinLobby( "g1", CORE::CString::Empty, true, future ) );
             ASSERT_TRUE( backend.Called( "spectate g1 yes" ) && MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( future, first ) );
 
             // an id the backend does not know
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( service.JoinLobby( "nope", CORE::CString::Empty, false, future ) );
             ASSERT_TRUE( FailureOf( future ).Length() > 0 );
 
             // a spectator that is refused makes the join fail with the reason
             backend.refusal = "You cannot watch this game";
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             service.ReleaseLobby( "g1" );
             ASSERT_FALSE( service.JoinLobby( "g1", CORE::CString::Empty, true, future ) );
             ASSERT_TRUE( "You cannot watch this game" == FailureOf( future ) );

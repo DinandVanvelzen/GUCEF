@@ -49,7 +49,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefMATH/include ../gucefAUDIO/include/c_api ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMATH/include ../gucefMATH/src ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
@@ -74,6 +74,10 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders )
 
 
 

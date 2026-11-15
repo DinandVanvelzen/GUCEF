@@ -10,7 +10,8 @@
             <Include Path="." />
         </Includes>
         <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
-        <Compiler>
+        <!-- libwebm requires C++11 -->
+        <Compiler MinCppStandard="11">
             <CompilerFlags CompilerName="G++" Flags="-O2" />
         </Compiler>
     </Module>

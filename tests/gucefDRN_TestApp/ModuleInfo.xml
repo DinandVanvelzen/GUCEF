@@ -20,6 +20,11 @@
         <Preprocessor>
             <Define String="GUCEF_DRN_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
+        <!-- test support headers shared from other modules -->
+        <Includes Source="Dependency">
+            <Include Path="../../tests/gucefCOMCORE_TestApp/include" />
+            <Include Path="../../tests/gucefCOM_TestApp/include" />
+        </Includes>
 		<RuntimeDependencies>
 			<RuntimeDependency Name="dstorepluginJSONPARSER" />
 			<RuntimeDependency Name="dstorepluginPARSIFALXML" />

@@ -122,7 +122,7 @@ bool
 WriteText( const CORE::CString& path, const CORE::CString& text, bool executable = false )
 {
     FILE* file = fopen( path.C_String(), "wb" );
-    if ( NULL == file )
+    if ( GUCEF_NULL == file )
         return false;
     fwrite( text.C_String(), 1, text.Length(), file );
     fclose( file );

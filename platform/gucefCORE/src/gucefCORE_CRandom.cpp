@@ -118,7 +118,7 @@ CRandom::GetRandomBytes( void* buffer, UInt32 byteCount )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    return 0 == BCryptGenRandom( NULL, (PUCHAR) buffer, (ULONG) byteCount, BCRYPT_USE_SYSTEM_PREFERRED_RNG );
+    return 0 == BCryptGenRandom( GUCEF_NULL, (PUCHAR) buffer, (ULONG) byteCount, BCRYPT_USE_SYSTEM_PREFERRED_RNG );
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 

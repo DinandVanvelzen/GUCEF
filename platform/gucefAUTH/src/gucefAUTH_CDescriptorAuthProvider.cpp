@@ -180,7 +180,7 @@ CDescriptorAuthProvider::TrySilentLogin( CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
     // A descriptor describes a login that involves the user, platform sessions are plugins
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     return false;
 }
 
@@ -190,7 +190,7 @@ bool
 CDescriptorAuthProvider::BeginLogin( const CAuthOptions& options, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     IAuthFlowEngine* engine = GetEngine();
     if ( !IsAvailable() )
     {
@@ -211,7 +211,7 @@ bool
 CDescriptorAuthProvider::Refresh( const CAccountRef& account, const CSecretString& refreshToken, CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     IAuthFlowEngine* engine = GetEngine();
     if ( !IsAvailable() || 0 == ( m_descriptor.capabilities & AUTHCAP_REFRESHABLE ) || refreshToken.IsEmpty() )
         return false;

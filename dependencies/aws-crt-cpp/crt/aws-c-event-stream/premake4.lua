@@ -30,6 +30,8 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "aws-c-cal", "aws-c-common", "aws-c-io", "aws-checksums" } )
+
+configuration( {} )
 links( { "aws-c-cal", "aws-c-common", "aws-c-io", "aws-checksums" } )
 
 

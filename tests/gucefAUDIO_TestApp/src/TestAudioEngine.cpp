@@ -142,7 +142,7 @@ CORE::TTaskStatus
 StatusOf( const CORE::CFutureResult& future )
 {
     CORE::CTaskPtr task = future.GetResult( 1000 );
-    return task.IsNULL() ? CORE::TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 class CEngineObserver : public CORE::CObserver
@@ -267,7 +267,7 @@ PerformPlaybackTests( void )
         ASSERT_TRUE( AUDIO::AUDIOVOICESTATE_PLAYING == voice->GetState() );
         ASSERT_FALSE( started.IsReady() );                                      // not until the application side has heard of it
         ASSERT_TRUE( engine.WaitFor( started, 2000 ) );                         // WaitFor pumps Update() in cooperative mode
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_FINISHED == StatusOf( started ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == StatusOf( started ) );
 
         const AUDIO::CAudioBuffer& heard = Null( engine )->GetRenderedAudio();
         ASSERT_TRUE( 256 == heard.GetFrameCount() );
@@ -474,7 +474,7 @@ PerformLimitTests( void )
             ASSERT_TRUE( futures[ i ].IsReady() );
         ASSERT_FALSE( IsFailed( futures[ 0 ] ) || IsFailed( futures[ 1 ] ) );
         ASSERT_TRUE( IsFailed( futures[ 2 ] ) && IsFailed( futures[ 3 ] ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED == StatusOf( futures[ 2 ] ) );     // the mixer had no room: an end state
+        ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == StatusOf( futures[ 2 ] ) );     // the mixer had no room: an end state
         ASSERT_TRUE( 2 == engine.GetActiveVoiceCount() );
         ASSERT_TRUE( Near( 0.2f, Null( engine )->GetRenderedAudio().GetSampleAsFloat( 10, 0 ) ) );     // the two that got in play
     }
@@ -506,7 +506,7 @@ PerformLimitTests( void )
         }
         ASSERT_TRUE( 4 == accepted );            // the queue holds four commands until the audio thread comes by
         ASSERT_TRUE( 6 == refused );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED == StatusOf( futures[ 9 ] ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_QUEUEING_FAILED == StatusOf( futures[ 9 ] ) );
 
         Run( engine, 256 );
         for ( UInt32 i=0; i<4; ++i )
@@ -636,9 +636,9 @@ PerformShutdownAndLossTests( void )
             engine.Shutdown();
             ASSERT_TRUE( pending[ 0 ].IsReady() && pending[ 1 ].IsReady() && pending[ 2 ].IsReady() );
         }
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( pending[ 0 ] ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( pending[ 1 ] ) );
-        ASSERT_TRUE( CORE::TTaskStatus::TASKSTATUS_CANCELLED == StatusOf( pending[ 2 ] ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == StatusOf( pending[ 0 ] ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == StatusOf( pending[ 1 ] ) );
+        ASSERT_TRUE( CORE::TASKSTATUS_CANCELLED == StatusOf( pending[ 2 ] ) );
     }
     catch( ... )
     {

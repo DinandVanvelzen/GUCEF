@@ -21,6 +21,10 @@
         <Preprocessor>
             <Define String="DBPLUGIN_VFSTABLES_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
+        <!-- test support headers shared from other modules -->
+        <Includes Source="Dependency">
+            <Include Path="../../tests/gucefCORE_TestApp/include" />
+        </Includes>
         <RuntimeDependencies>
             <RuntimeDependency Name="codecspluginZLIB" />
             <RuntimeDependency Name="dstorepluginJSONPARSER" />

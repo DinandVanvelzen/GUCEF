@@ -375,7 +375,7 @@ PerformSteamPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             ASSERT_TRUE( future.HasAFuture() );
             // The call did not wait for Steam
@@ -417,7 +417,7 @@ PerformSteamPluginTests( void )
             CFakeSteam steam;
             CSteamAuthProvider provider( steam.MakeShim() );
             ASSERT_TRUE( Configure( provider ) );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             AUTH::CAuthOptions options;
             options.preferBrowser = true;
             ASSERT_TRUE( provider.BeginLogin( options, future ) );
@@ -443,13 +443,13 @@ PerformSteamPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( provider.TrySilentLogin( silent ) );
             ASSERT_FALSE( silent.HasAFuture() );
             PumpFor( 20 );
             ASSERT_TRUE( 0 == recorder.records.size() );
 
-            CORE::CFutureResult interactive( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult interactive( CORE::TASKSTATUS_UNDEFINED );
             AUTH::CAuthOptions options;
             ASSERT_TRUE( provider.BeginLogin( options, interactive ) );
             // The login has ended already, as failed: a future that has nothing to wait for
@@ -468,7 +468,7 @@ PerformSteamPluginTests( void )
             offline.loggedOn = false;
             CSteamAuthProvider offlineProvider( offline.MakeShim() );
             ASSERT_TRUE( Configure( offlineProvider ) );
-            CORE::CFutureResult offlineFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult offlineFuture( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( offlineProvider.TrySilentLogin( offlineFuture ) );
             CFakeSteam nobody;
             nobody.steamId = 0;
@@ -492,7 +492,7 @@ PerformSteamPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             ASSERT_TRUE( PumpUntilReady( future, 2000 ) );
             AUTH::CAuthResult none;
@@ -517,7 +517,7 @@ PerformSteamPluginTests( void )
             none2.sessionTicketFails = true;
             CProviderRecorder sessionRecorder;
             sessionRecorder.SubscribeTo( &session );
-            CORE::CFutureResult sessionFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult sessionFuture( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( session.TrySilentLogin( sessionFuture ) );
             ASSERT_TRUE( sessionFuture.IsReady() );
             ASSERT_TRUE( sessionRecorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
@@ -540,7 +540,7 @@ PerformSteamPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             ASSERT_TRUE( PumpUntilReady( future, 2000 ) );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );
@@ -570,7 +570,7 @@ PerformSteamPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             ASSERT_TRUE( future.RequestCancellation() );
             ASSERT_TRUE( PumpUntilReady( future, 2000 ) );
@@ -592,7 +592,7 @@ PerformSteamPluginTests( void )
             {
                 CSteamAuthProvider provider( steam.MakeShim() );
                 ASSERT_TRUE( Configure( provider ) );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( provider.TrySilentLogin( future ) );
                 ASSERT_TRUE( PumpUntilReady( future, 2000 ) );
                 ASSERT_TRUE( 1 == provider.GetIssuedTicketCount() );
@@ -644,7 +644,7 @@ PerformSteamPluginTests( void )
             CSteamAuthProvider provider( steam.MakeShim() );
             // auto mode, no identity needed because there is no web api ticket
             ASSERT_TRUE( provider.IsClientAvailable() );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             // At once: the ticket is there when Steam returns
             ASSERT_TRUE( future.IsReady() );
@@ -677,7 +677,7 @@ PerformSteamPluginTests( void )
             node.FindChild( "Parameters" )->SetAttribute( "callbackMode", "external" );
             ASSERT_TRUE( provider.LoadConfig( node ) );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             PumpFor( 40 );
             ASSERT_TRUE( 0 == steam.frames );
@@ -1070,7 +1070,7 @@ PerformSteamPluginTests( void )
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.TrySilentLogin( future ) );
             ASSERT_TRUE( PumpUntilReady( future, 2000 ) );
             AUTH::CAuthResult result;
@@ -1285,7 +1285,7 @@ PerformSteamPluginTests( void )
                 CSteamAuthProvider provider( shim );
                 ASSERT_TRUE( Configure( provider, "flat-service" ) );
                 ASSERT_TRUE( provider.IsClientAvailable() );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( provider.TrySilentLogin( future ) );
                 ASSERT_TRUE( PumpUntilReady( future, 2000 ) );
                 AUTH::CAuthResult result;
@@ -1317,13 +1317,13 @@ PerformSteamPluginTests( void )
             ASSERT_TRUE( provider.LoadConfig( node ) );
             ASSERT_FALSE( provider.IsClientAvailable() );
 
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( provider.TrySilentLogin( silent ) );
             ASSERT_FALSE( silent.HasAFuture() );
 
             CProviderRecorder recorder;
             recorder.SubscribeTo( &provider );
-            CORE::CFutureResult interactive( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult interactive( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider.BeginLogin( AUTH::CAuthOptions(), interactive ) );
             ASSERT_TRUE( PumpUntilReady( interactive, 1000 ) );
             ASSERT_TRUE( recorder.PumpUntil( CProviderRecorder::KIND_FAILED, 1, 1000 ) );

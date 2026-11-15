@@ -20,6 +20,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstoreplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/tablecodecpluginPARQUET ${CMAKE_BINARY_DIR}/tablecodecpluginPARQUET )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/dbpluginVFSTABLES_TestApp ${CMAKE_BINARY_DIR}/dbpluginVFSTABLES_TestApp )
 
+
 if (EMSCRIPTEN32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 elseif (EMSCRIPTEN64)

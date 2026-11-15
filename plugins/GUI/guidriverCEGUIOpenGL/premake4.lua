@@ -30,35 +30,49 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "CEGUI", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverCEGUI" } )
+
+configuration( {} )
 links( { "CEGUI", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS", "guidriverCEGUI" } )
 
 
 configuration( {} )
 defines( { "GUCEF_GUIDRIVERCEGUIGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverCEGUIOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverCEGUIOpenGL" } )
-  
-configuration( { ANDROID32 } )
+
+configuration( { "ANDROID32" } )
 links( { "CEGUI.RendererModule.OpenGLES" } )
-  links( { "CEGUI.RendererModule.OpenGLES", "GLESv1_CM" } )
-  
-configuration( { ANDROID64 } )
+
+configuration( { "ANDROID32" } )
+links( { "CEGUI.RendererModule.OpenGLES", "GLESv1_CM" } )
+
+configuration( { "ANDROID64" } )
 links( { "CEGUI.RendererModule.OpenGLES" } )
-  links( { "CEGUI.RendererModule.OpenGLES", "GLESv1_CM" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "ANDROID64" } )
+links( { "CEGUI.RendererModule.OpenGLES", "GLESv1_CM" } )
+
+configuration( { "LINUX32" } )
 links( { "CEGUI.RendererModule.OpenGL" } )
-  links( { "CEGUI.RendererModule.OpenGL", "GL" } )
-  
-configuration( { LINUX64 } )
+
+configuration( { "LINUX32" } )
+links( { "CEGUI.RendererModule.OpenGL", "GL" } )
+
+configuration( { "LINUX64" } )
 links( { "CEGUI.RendererModule.OpenGL" } )
-  links( { "CEGUI.RendererModule.OpenGL", "GL" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX64" } )
+links( { "CEGUI.RendererModule.OpenGL", "GL" } )
+
+configuration( { "WIN32" } )
 links( { "CEGUI.RendererModule.OpenGL" } )
-  links( { "CEGUI.RendererModule.OpenGL", "OpenGL32" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "WIN32" } )
+links( { "CEGUI.RendererModule.OpenGL", "OpenGL32" } )
+
+configuration( { "WIN64" } )
 links( { "CEGUI.RendererModule.OpenGL" } )
-  links( { "CEGUI.RendererModule.OpenGL", "OpenGL32" } )
+
+configuration( { "WIN64" } )
+links( { "CEGUI.RendererModule.OpenGL", "OpenGL32" } )
 
 
 configuration( {} )
@@ -85,7 +99,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/cegui/cegui/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverCEGUI/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/cegui/cegui/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../guidriverCEGUI/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )

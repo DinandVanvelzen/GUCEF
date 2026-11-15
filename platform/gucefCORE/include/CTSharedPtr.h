@@ -346,7 +346,7 @@ CTSharedPtr< T, LockType >::CTSharedPtr( const int NULLvalue )
 
     // Note that if this constructor is used an assignment is required at
     // a later time to initialize the shared pointer
-    assert( NULLvalue == (int) NULL );
+    assert( 0 == NULLvalue );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -31,37 +31,45 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "BUILDING_LIBCURL", "MODULE_CONSENSUS_NAME=curl", "MODULE_NAME=curl" } )
-  
-configuration( { LINUX32 } )
-links( { "zlib" } )
-  links( { "crypto", "ssl", "zlib" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "zlib" } )
+
+configuration( { "LINUX32" } )
+links( { "crypto", "ssl", "zlib" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "CURL_HIDDEN_SYMBOLS", "HAVE_CONFIG_H", "_GNU_SOURCE" } )
-  
-configuration( { LINUX64 } )
-links( { "zlib" } )
-  links( { "crypto", "ssl", "zlib" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+configuration( { "LINUX64" } )
+links( { "crypto", "ssl", "zlib" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "CURL_HIDDEN_SYMBOLS", "HAVE_CONFIG_H", "_GNU_SOURCE" } )
-  
-configuration( { WIN32 } )
-links( { "zlib" } )
-  links( { "Advapi32.lib", "Bcrypt.lib", "Crypt32.lib", "Iphlpapi.lib", "Secur32.lib", "Ws2_32.lib", "zlib" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "Advapi32.lib", "Bcrypt.lib", "Crypt32.lib", "Iphlpapi.lib", "Secur32.lib", "Ws2_32.lib", "zlib" } )
+
+
+configuration( { "WIN32" } )
 defines( { "CURL_DISABLE_LDAP", "CURL_DISABLE_LDAPS", "HAVE_LIBZ", "HAVE_ZLIB_H", "USE_SCHANNEL", "USE_WINDOWS_SSPI", "_CRT_NONSTDC_NO_DEPRECATE", "_CRT_SECURE_NO_DEPRECATE" } )
-  
-configuration( { WIN64 } )
-links( { "zlib" } )
-  links( { "Advapi32.lib", "Bcrypt.lib", "Crypt32.lib", "Iphlpapi.lib", "Secur32.lib", "Ws2_32.lib", "zlib" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "Advapi32.lib", "Bcrypt.lib", "Crypt32.lib", "Iphlpapi.lib", "Secur32.lib", "Ws2_32.lib", "zlib" } )
+
+
+configuration( { "WIN64" } )
 defines( { "CURL_DISABLE_LDAP", "CURL_DISABLE_LDAPS", "HAVE_LIBZ", "HAVE_ZLIB_H", "USE_SCHANNEL", "USE_WINDOWS_SSPI", "_CRT_NONSTDC_NO_DEPRECATE", "_CRT_SECURE_NO_DEPRECATE" } )
 
 

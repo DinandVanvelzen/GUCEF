@@ -272,7 +272,7 @@ void
 CWin32SerialPort::SetReadTimeout( const UInt32 timeOutInMilliSecs )
 {GUCEF_TRACE;
 
-    if ( NULL != m_portHandle )
+    if ( GUCEF_NULL != m_portHandle )
     {
         ::COMMTIMEOUTS commTimeouts;
         if( ::GetCommTimeouts( m_portHandle, &commTimeouts ) )
@@ -292,7 +292,7 @@ UInt32
 CWin32SerialPort::GetReadTimeout( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_portHandle )
+    if ( GUCEF_NULL != m_portHandle )
     {
         ::COMMTIMEOUTS commTimeouts;
         if( ::GetCommTimeouts( m_portHandle, &commTimeouts ) )
@@ -309,7 +309,7 @@ void
 CWin32SerialPort::SetWriteTimeout( const UInt32 timeOutInMilliSecs )
 {GUCEF_TRACE;
 
-    if ( NULL != m_portHandle )
+    if ( GUCEF_NULL != m_portHandle )
     {
         ::COMMTIMEOUTS commTimeouts;
         if( ::GetCommTimeouts( m_portHandle, &commTimeouts ) )
@@ -328,7 +328,7 @@ UInt32
 CWin32SerialPort::GetWriteTimeout( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_portHandle )
+    if ( GUCEF_NULL != m_portHandle )
     {
         ::COMMTIMEOUTS commTimeouts;
         if( ::GetCommTimeouts( m_portHandle, &commTimeouts ) )

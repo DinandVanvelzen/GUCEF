@@ -24,7 +24,6 @@ set( HEADER_FILES
   ../gucefCORE/include/MFILE.h
   ../gucefCORE/include/PAFILE.h
   ../gucefCORE/include/dvcppfileutils.h
-  ../gucefCORE/include/gucefCORE_SecureMemory.h
   ../gucefCORE/include/dvcppstringutils.h
   ../gucefCORE/include/dvfileutils.h
   ../gucefCORE/include/dvmd5utils.h
@@ -50,6 +49,7 @@ set( HEADER_FILES
   ../gucefCORE/include/gucefCORE_CVariant.h
   ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
   ../gucefCORE/include/gucefCORE_RoundingMode.h
+  ../gucefCORE/include/gucefCORE_SecureMemory.h
   ../gucefCORE/include/gucefCORE_StdoutClaim.h
   ../gucefCORE/include/md5.h
   ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -85,7 +85,6 @@ set( SOURCE_FILES
   ../gucefCORE/src/MFILE.c
   ../gucefCORE/src/PAFILE.c
   ../gucefCORE/src/dvcppfileutils.cpp
-  ../gucefCORE/src/gucefCORE_SecureMemory.cpp
   ../gucefCORE/src/dvcppstringutils.cpp
   ../gucefCORE/src/dvfileutils.cpp
   ../gucefCORE/src/dvmd5utils.c
@@ -109,6 +108,7 @@ set( SOURCE_FILES
   ../gucefCORE/src/gucefCORE_CUtf8String.cpp
   ../gucefCORE/src/gucefCORE_CVariant.cpp
   ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+  ../gucefCORE/src/gucefCORE_SecureMemory.cpp
   ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
   ../gucefCORE/src/md5.c
   ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -142,7 +142,6 @@ if (ANDROID)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -168,6 +167,7 @@ if (ANDROID)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -202,7 +202,6 @@ if (ANDROID)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -226,6 +225,7 @@ if (ANDROID)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -259,7 +259,6 @@ elseif (ANDROID32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -285,6 +284,7 @@ elseif (ANDROID32)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h
@@ -320,7 +320,6 @@ elseif (ANDROID32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -344,6 +343,7 @@ elseif (ANDROID32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp
@@ -378,7 +378,6 @@ elseif (ANDROID64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -404,6 +403,7 @@ elseif (ANDROID64)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h
@@ -439,7 +439,6 @@ elseif (ANDROID64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -463,6 +462,7 @@ elseif (ANDROID64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp
@@ -497,7 +497,6 @@ elseif (ARDUINO)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -523,6 +522,7 @@ elseif (ARDUINO)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -557,7 +557,6 @@ elseif (ARDUINO)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -581,6 +580,7 @@ elseif (ARDUINO)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -614,7 +614,6 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -640,6 +639,7 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -674,7 +674,6 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -698,6 +697,7 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -731,7 +731,6 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -757,6 +756,7 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -791,7 +791,6 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -815,6 +814,7 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -848,7 +848,6 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -874,6 +873,7 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -908,7 +908,6 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -932,6 +931,7 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -965,7 +965,6 @@ elseif (GLX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -991,6 +990,7 @@ elseif (GLX)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1025,7 +1025,6 @@ elseif (GLX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1049,6 +1048,7 @@ elseif (GLX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1082,7 +1082,6 @@ elseif (GTK)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1108,6 +1107,7 @@ elseif (GTK)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1142,7 +1142,6 @@ elseif (GTK)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1166,6 +1165,7 @@ elseif (GTK)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1199,7 +1199,6 @@ elseif (IOS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1225,6 +1224,7 @@ elseif (IOS)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1259,7 +1259,6 @@ elseif (IOS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1283,6 +1282,7 @@ elseif (IOS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1316,7 +1316,6 @@ elseif (IPHONE)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1342,6 +1341,7 @@ elseif (IPHONE)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1376,7 +1376,6 @@ elseif (IPHONE)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1400,6 +1399,7 @@ elseif (IPHONE)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1433,7 +1433,6 @@ elseif (IPHONEOS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1459,6 +1458,7 @@ elseif (IPHONEOS)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1493,7 +1493,6 @@ elseif (IPHONEOS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1517,6 +1516,7 @@ elseif (IPHONEOS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1550,7 +1550,6 @@ elseif (LINUX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1576,6 +1575,7 @@ elseif (LINUX)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1610,7 +1610,6 @@ elseif (LINUX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1634,6 +1633,7 @@ elseif (LINUX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1667,7 +1667,6 @@ elseif (LINUX32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1693,6 +1692,7 @@ elseif (LINUX32)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1727,7 +1727,6 @@ elseif (LINUX32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1751,6 +1750,7 @@ elseif (LINUX32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1784,7 +1784,6 @@ elseif (LINUX64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1810,6 +1809,7 @@ elseif (LINUX64)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1844,7 +1844,6 @@ elseif (LINUX64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1868,6 +1867,7 @@ elseif (LINUX64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -1901,7 +1901,6 @@ elseif (MAC)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -1927,6 +1926,7 @@ elseif (MAC)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -1961,7 +1961,6 @@ elseif (MAC)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -1985,6 +1984,7 @@ elseif (MAC)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2018,7 +2018,6 @@ elseif (MACOS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2044,6 +2043,7 @@ elseif (MACOS)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2078,7 +2078,6 @@ elseif (MACOS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2102,6 +2101,7 @@ elseif (MACOS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2135,7 +2135,6 @@ elseif (MACOSX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2161,6 +2160,7 @@ elseif (MACOSX)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2195,7 +2195,6 @@ elseif (MACOSX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2219,6 +2218,7 @@ elseif (MACOSX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2252,7 +2252,6 @@ elseif (MSWIN)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2278,6 +2277,7 @@ elseif (MSWIN)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2312,7 +2312,6 @@ elseif (MSWIN)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2336,6 +2335,7 @@ elseif (MSWIN)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2369,7 +2369,6 @@ elseif (NACL)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2395,6 +2394,7 @@ elseif (NACL)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2429,7 +2429,6 @@ elseif (NACL)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2453,6 +2452,7 @@ elseif (NACL)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2486,7 +2486,6 @@ elseif (OSX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2512,6 +2511,7 @@ elseif (OSX)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2546,7 +2546,6 @@ elseif (OSX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2570,6 +2569,7 @@ elseif (OSX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2603,7 +2603,6 @@ elseif (POSIX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2629,6 +2628,7 @@ elseif (POSIX)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2663,7 +2663,6 @@ elseif (POSIX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2687,6 +2686,7 @@ elseif (POSIX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2720,7 +2720,6 @@ elseif (SDL)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2746,6 +2745,7 @@ elseif (SDL)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2780,7 +2780,6 @@ elseif (SDL)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2804,6 +2803,7 @@ elseif (SDL)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2837,7 +2837,6 @@ elseif (SYMBIAN)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2863,6 +2862,7 @@ elseif (SYMBIAN)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -2897,7 +2897,6 @@ elseif (SYMBIAN)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -2921,6 +2920,7 @@ elseif (SYMBIAN)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -2954,7 +2954,6 @@ elseif (UNIX)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -2980,6 +2979,7 @@ elseif (UNIX)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -3014,7 +3014,6 @@ elseif (UNIX)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3038,6 +3037,7 @@ elseif (UNIX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -3071,7 +3071,6 @@ elseif (WIN32)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -3097,6 +3096,7 @@ elseif (WIN32)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -3134,7 +3134,6 @@ elseif (WIN32)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3158,6 +3157,7 @@ elseif (WIN32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -3194,7 +3194,6 @@ elseif (WIN64)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -3220,6 +3219,7 @@ elseif (WIN64)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -3257,7 +3257,6 @@ elseif (WIN64)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3281,6 +3280,7 @@ elseif (WIN64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -3317,7 +3317,6 @@ elseif (WINDOWS)
     ../gucefCORE/include/MFILE.h
     ../gucefCORE/include/PAFILE.h
     ../gucefCORE/include/dvcppfileutils.h
-    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/dvcppstringutils.h
     ../gucefCORE/include/dvfileutils.h
     ../gucefCORE/include/dvmd5utils.h
@@ -3343,6 +3342,7 @@ elseif (WINDOWS)
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
     ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_SecureMemory.h
     ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -3377,7 +3377,6 @@ elseif (WINDOWS)
     ../gucefCORE/src/MFILE.c
     ../gucefCORE/src/PAFILE.c
     ../gucefCORE/src/dvcppfileutils.cpp
-    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/dvcppstringutils.cpp
     ../gucefCORE/src/dvfileutils.cpp
     ../gucefCORE/src/dvmd5utils.c
@@ -3401,6 +3400,7 @@ elseif (WINDOWS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_SecureMemory.cpp
     ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -3456,7 +3456,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
 endif( WIN64 )
 
-include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT ../gucefMT/include include )
+include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )
 
 if ( ANDROID )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
@@ -3569,6 +3569,10 @@ endif( WIN64 )
 if ( WINDOWS )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
 endif( WINDOWS )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+GUCEF_module_uses( ${MODULE_NAME} HEADER_MODULES gucefHeaders INCLUDE_ONLY_MODULES gucefCORE gucefMT )
 
 
 

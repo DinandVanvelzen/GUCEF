@@ -512,7 +512,7 @@ CEMailIntroductions::CheckContact( const CEMailIntroDraft& draft, const CEMailIn
         reason = "A mail address is not valid";
         return false;
     }
-    if ( contact.address == draft.creatorAddress || NULL != draft.FindContact( contact.address ) )
+    if ( contact.address == draft.creatorAddress || GUCEF_NULL != draft.FindContact( contact.address ) )
     {
         reason = "A mail address is used twice";
         return false;
@@ -547,7 +547,7 @@ CEMailIntroductions::BeginDraft( const CORE::CString& matchId, const CORE::CStri
 {GUCEF_TRACE;
 
     reason.Clear();
-    if ( !MULTIPLAY::CMatchId::IsValid( matchId ) || NULL != FindDraftPtr( matchId ) )
+    if ( !MULTIPLAY::CMatchId::IsValid( matchId ) || GUCEF_NULL != FindDraftPtr( matchId ) )
     {
         reason = "The id of the game is not valid or is in use";
         return false;

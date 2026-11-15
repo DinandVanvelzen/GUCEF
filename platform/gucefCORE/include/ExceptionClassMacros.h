@@ -63,7 +63,7 @@
                                                                    \
         exceptionName( const exceptionName& src );                 \
                                                                    \
-        virtual ~exceptionName();                                  \
+        virtual ~exceptionName() GUCEF_NOTHROW;                                \
                                                                    \
         private:                                                   \
         exceptionName& operator=( const exceptionName& src );      \
@@ -93,7 +93,7 @@
                                                                       \
         exceptionName( const exceptionName& src );                    \
                                                                       \
-        virtual ~exceptionName();                                     \
+        virtual ~exceptionName() GUCEF_NOTHROW;                                   \
                                                                       \
         private:                                                      \
         exceptionName( void );                                        \
@@ -141,7 +141,7 @@
                                                                          \
         }                                                                \
                                                                          \
-        virtual ~exceptionName()                                         \
+        virtual ~exceptionName() GUCEF_NOTHROW                           \
         {                                                                \
                                                                          \
         }                                                                \
@@ -175,7 +175,7 @@ ownerScopeClass::exceptionName::exceptionName( const exceptionName& src )   \
 {                                                                           \
 }                                                                           \
                                                                             \
-ownerScopeClass::exceptionName::~exceptionName()                            \
+ownerScopeClass::exceptionName::~exceptionName() GUCEF_NOTHROW             \
 {                                                                           \
 }
 
@@ -212,7 +212,7 @@ ownerScopeClass::exceptionName::exceptionName( const exceptionName& src )   \
 {                                                                           \
 }                                                                           \
                                                                             \
-ownerScopeClass::exceptionName::~exceptionName()                            \
+ownerScopeClass::exceptionName::~exceptionName() GUCEF_NOTHROW             \
 {                                                                           \
 }
 

@@ -518,7 +518,7 @@ CPluginControl::LoadPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
             // Use the globally defined module root dirs to try and load the module
             TVersion versionInfo = pluginMetaData->GetVersion();
             TStringSet::iterator i = m_rootDirs.begin();
-            while ( i != m_rootDirs.end() && modulePtr == NULL )
+            while ( i != m_rootDirs.end() && modulePtr == GUCEF_NULL )
             {
                 CString filename = pluginMetaData->GetModuleFilename();
 
@@ -739,7 +739,7 @@ CPluginControl::GetPluginManagerForType( const CString& pluginType )
         }
         ++w;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

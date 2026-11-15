@@ -81,7 +81,7 @@ namespace MYGUI {
 
 CMyGUIInputAdapter::CMyGUIInputAdapter( void )
     : GUCEF::CORE::CObserver()  ,
-      m_inputContext( NULL )
+      m_inputContext( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -91,7 +91,7 @@ CMyGUIInputAdapter::CMyGUIInputAdapter( void )
 CMyGUIInputAdapter::~CMyGUIInputAdapter()
 {GUCEF_TRACE;
 
-    m_inputContext = NULL;
+    m_inputContext = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -177,7 +177,7 @@ CMyGUIInputAdapter::OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
 {GUCEF_TRACE;
 
     MyGUI::InputManager* inputManager = MyGUI::InputManager::getInstancePtr();
-    if ( NULL != inputManager )
+    if ( GUCEF_NULL != inputManager )
     {
         if ( GUCEF::INPUT::CMouse::MouseButtonEvent == eventid )
         {

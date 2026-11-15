@@ -112,26 +112,26 @@ CTaskDataCollectionServerResource::CreateResource( const CString& resourcePath  
                 supportedRepresentationsOutput = m_serializationReps;
             }            
         }
-        return TCreateState::CREATESTATE_CREATED;
+        return CIHTTPServerResource::CREATESTATE_CREATED;
     }
     else
     {
         CORE::TTaskStatus taskStatus = result.GetResult()->GetTaskStatus();
         switch ( taskStatus )
         {
-            case CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID: 
-                return TCreateState::CREATESTATE_DESERIALIZATIONFAILED;
+            case CORE::TASKSTATUS_TASKDATA_INVALID: 
+                return CIHTTPServerResource::CREATESTATE_DESERIALIZATIONFAILED;
 
-            case CORE::TTaskStatus::TASKSTATUS_TASKTYPE_INVALID: 
-                return TCreateState::CREATESTATE_NOTSUPPORTED;
+            case CORE::TASKSTATUS_TASKTYPE_INVALID: 
+                return CIHTTPServerResource::CREATESTATE_NOTSUPPORTED;
 
             default:
-            case CORE::TTaskStatus::TASKSTATUS_UNDEFINED:
-            case CORE::TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE: 
-            case CORE::TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED:
-            case CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED:
-            case CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED:
-                return TCreateState::CREATESTATE_FAILED; 
+            case CORE::TASKSTATUS_UNDEFINED:
+            case CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE: 
+            case CORE::TASKSTATUS_RESOURCE_LIMIT_REACHED:
+            case CORE::TASKSTATUS_SETUP_FAILED:
+            case CORE::TASKSTATUS_STARTUP_FAILED:
+                return CIHTTPServerResource::CREATESTATE_FAILED; 
         }
     }
 }

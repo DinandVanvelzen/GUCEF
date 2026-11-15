@@ -30,26 +30,28 @@ kind( "StaticLib" )
 
 configuration( {} )
 links( { "aws-c-cal", "aws-c-common" } )
+
+configuration( {} )
 links( { "aws-c-cal", "aws-c-common" } )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=aws_c_io", "MODULE_NAME=aws_c_io" } )
-  
 
-configuration( { LINUX32 } )
+
+configuration( { "LINUX32" } )
 defines( { "BYO_CRYPTO" } )
-  
 
-configuration( { LINUX64 } )
+
+configuration( { "LINUX64" } )
 defines( { "BYO_CRYPTO" } )
-  
 
-configuration( { WIN32 } )
+
+configuration( { "WIN32" } )
 defines( { "AWS_USE_IO_COMPLETION_PORTS" } )
-  
 
-configuration( { WIN64 } )
+
+configuration( { "WIN64" } )
 defines( { "AWS_USE_IO_COMPLETION_PORTS" } )
 
 

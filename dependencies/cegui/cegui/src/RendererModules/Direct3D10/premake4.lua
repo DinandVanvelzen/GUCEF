@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "SharedLib" )
 configuration( { "WIN64" } )
 
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
 kind( "SharedLib" )
-  
-configuration( { WIN32 } )
-links( { "CEGUI" } )
-  links( { "CEGUI", "d3d10", "d3dx10" } )
-  
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
+links( { "CEGUI" } )
+
+configuration( { "WIN32" } )
+links( { "CEGUI", "d3d10", "d3dx10" } )
+
+
+configuration( { "WIN32" } )
 defines( { "CEGUIDIRECT3D10RENDERER_EXPORTS", "MODULE_NAME=CEGUI_RendererModule_Direct3D10" } )
-  
-configuration( { WIN64 } )
-links( { "CEGUI" } )
-  links( { "CEGUI", "d3d10", "d3dx10" } )
-  
 
-configuration( { WIN64 } )
+configuration( { "WIN64" } )
+links( { "CEGUI" } )
+
+configuration( { "WIN64" } )
+links( { "CEGUI", "d3d10", "d3dx10" } )
+
+
+configuration( { "WIN64" } )
 defines( { "CEGUIDIRECT3D10RENDERER_EXPORTS", "MODULE_NAME=CEGUI_RendererModule_Direct3D10" } )
 
 

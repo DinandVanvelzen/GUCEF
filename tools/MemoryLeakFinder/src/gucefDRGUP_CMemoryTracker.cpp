@@ -133,14 +133,14 @@ static const char* const s_allocationTypes[] =
 //-------------------------------------------------------------------------*/
 
 #if defined( _MSC_VER )
-  static __declspec(thread) SOwnerContextNode* tl_ownerStack = NULL;
+  static __declspec(thread) SOwnerContextNode* tl_ownerStack = GUCEF_NULL;
   static __declspec(thread) bool               tl_inTracker  = false;
 #elif defined( __GNUC__ )
-  static __thread SOwnerContextNode* tl_ownerStack = NULL;
+  static __thread SOwnerContextNode* tl_ownerStack = GUCEF_NULL;
   static __thread bool               tl_inTracker  = false;
 #else
   /* Fallback: no TLS — use global (not ideal, but better than crashing) */
-  static SOwnerContextNode* tl_ownerStack = NULL;
+  static SOwnerContextNode* tl_ownerStack = GUCEF_NULL;
   static bool               tl_inTracker  = false;
 #endif
 

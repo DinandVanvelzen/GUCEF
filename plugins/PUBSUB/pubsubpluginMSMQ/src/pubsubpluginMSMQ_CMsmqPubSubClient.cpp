@@ -402,7 +402,7 @@ CMsmqPubSubClient::GetPrivateQueues( const std::wstring& computerName ,
     mgmtprops.cProp = cPropId;                         // Number of management properties  
     mgmtprops.aPropID = aMgmtPropId;                   // IDs of the management properties  
     mgmtprops.aPropVar = aMgmtPropVar;                 // Values of management properties  
-    mgmtprops.aStatus  = NULL;                         // No storage for error codes  
+    mgmtprops.aStatus  = GUCEF_NULL;                         // No storage for error codes  
   
     // Call MQMgmtGetInfo to retrieve the information.  
     hr = ::MQMgmtGetInfo( computerName.c_str() ,     // Name of the computer  
@@ -515,11 +515,11 @@ CMsmqPubSubClient::GetPublicQueues( CORE::CString::StringVector& queueIDs )
   
     // Call MQLocateBegin to start a Active Directory query.  
     // This won't work if you are not in an Active Directory domain
-    HANDLE hEnum = NULL;  
-    HRESULT hr = ::MQLocateBegin( NULL    ,   // Start search at the top  
-                                  NULL    ,   // Search criteria  (NULL = return everything, no filters)
+    HANDLE hEnum = GUCEF_NULL;  
+    HRESULT hr = ::MQLocateBegin( GUCEF_NULL    ,   // Start search at the top  
+                                  GUCEF_NULL    ,   // Search criteria  (NULL = return everything, no filters)
                                   &column ,   // Properties to return  
-                                  NULL    ,   // No sort order  
+                                  GUCEF_NULL    ,   // No sort order  
                                   &hEnum  );  // Enumeration handle  
   
     if ( FAILED( hr ) )  
@@ -928,11 +928,11 @@ CMsmqPubSubClient::GetMsmqComputerMetric( const CORE::CString& metricDescription
     mgmtprops.cProp = cPropId;   // number of management properties  
     mgmtprops.aPropID = aMgmtPropId;// management property IDs  
     mgmtprops.aPropVar = aMgmtPropVar;// management property values  
-    mgmtprops.aStatus  = NULL;// no storage for error codes   
+    mgmtprops.aStatus  = GUCEF_NULL;// no storage for error codes   
 
     // Now that we formulated the request
     // actually ask for the info
-    HRESULT computerInfoFetchResult = ::MQMgmtGetInfo( NULL, L"MACHINE", &mgmtprops );
+    HRESULT computerInfoFetchResult = ::MQMgmtGetInfo( GUCEF_NULL, L"MACHINE", &mgmtprops );
     if ( MQ_OK == computerInfoFetchResult )
     {
         switch ( propType )

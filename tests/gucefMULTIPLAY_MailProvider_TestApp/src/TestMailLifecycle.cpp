@@ -475,7 +475,7 @@ PerformMailLifecycleTests( void )
         MULTIPLAY::CMatchPackage package, other;
         MULTIPLAY::CMatchPreview preview, otherPreview;
         ASSERT_TRUE( table.MakeTurn( 1, id, 2, "b1", MULTIPLAY::MATCHSTATUS_ACTIVE, package, preview ) && table.MakeTurn( 1, id, 2, "b1-different", MULTIPLAY::MATCHSTATUS_ACTIVE, other, otherPreview ) );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 1 ).provider->Submit( id, 1, preview, package, future ) );
         // the call is answered when the turn is signed and in the outbox, not when the mail has arrived
@@ -568,7 +568,7 @@ PerformMailLifecycleTests( void )
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
 
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->Nudge( id, table.P( 1 ).identity.userId, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         bool nudged = false;
@@ -673,7 +673,7 @@ PerformMailLifecycleTests( void )
         ASSERT_TRUE( MULTIPLAY::MATCHPARTICIPANT_ACTIVE == table.StatusOf( 0, id, 1 ) );
 
         // the real one
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 2 ).provider->Resign( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         ASSERT_TRUE( MULTIPLAY::MATCHPARTICIPANT_LEFT == table.StatusOf( 2, id, 2 ) );
@@ -702,7 +702,7 @@ PerformMailLifecycleTests( void )
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
 
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 1 ).provider->Remove( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         ASSERT_TRUE( 1 == table.P( 1 ).recorder.removed.size() && table.P( 1 ).recorder.removed[ 0 ] == id );
@@ -742,7 +742,7 @@ PerformMailLifecycleTests( void )
         ASSERT_FALSE( id.IsNULLOrEmpty() );
 
         // not while the match is going on
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->Rematch( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_REJECTED == result.status );
 
@@ -849,7 +849,7 @@ PerformMailLifecycleTests( void )
         MULTIPLAY::CMatchPackage package;
         MULTIPLAY::CMatchPreview preview;
         ASSERT_TRUE( table.MakeTurn( 1, id, 2, "b1", MULTIPLAY::MATCHSTATUS_ACTIVE, package, preview ) );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( book.Submit( id, preview, package, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         ASSERT_TRUE( 0 == book.GetYourTurnCount() );
         MULTIPLAY::CMatchEntry entry;

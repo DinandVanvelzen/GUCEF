@@ -287,8 +287,8 @@ CFileAccess::Open( const CString& file               ,
     m_filename = RelativePath( file );
     m_mode = mode;
     
-    _readable = ( strchr( mode, 'r' ) != NULL ) || ( strchr( mode, 'a' ) != NULL );
-    _writeable = ( strchr( mode, 'w' ) != NULL ) || ( strchr( mode, 'a' ) != NULL );
+    _readable = ( strchr( mode, 'r' ) != GUCEF_NULL ) || ( strchr( mode, 'a' ) != GUCEF_NULL );
+    _writeable = ( strchr( mode, 'w' ) != GUCEF_NULL ) || ( strchr( mode, 'a' ) != GUCEF_NULL );
 
     if ( _writeable )
     {
@@ -352,11 +352,11 @@ CFileAccess::Open( const CString& file               ,
     // Open using Win32
     HANDLE hFile = INVALID_HANDLE_VALUE;
     if ( _readable && !_writeable )
-        hFile = ::CreateFileW( wFilename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, data.dwFileAttributes, NULL );
+        hFile = ::CreateFileW( wFilename.c_str(), GENERIC_READ, FILE_SHARE_READ, GUCEF_NULL, OPEN_EXISTING, data.dwFileAttributes, GUCEF_NULL );
     else if ( _readable && _writeable )
-        hFile = ::CreateFileW( wFilename.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, data.dwFileAttributes, NULL );
+        hFile = ::CreateFileW( wFilename.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, GUCEF_NULL, OPEN_ALWAYS, data.dwFileAttributes, GUCEF_NULL );
     else if ( !_readable && _writeable )
-        hFile = ::CreateFileW( wFilename.c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, data.dwFileAttributes, NULL );
+        hFile = ::CreateFileW( wFilename.c_str(), GENERIC_WRITE, FILE_SHARE_READ, GUCEF_NULL, CREATE_ALWAYS, data.dwFileAttributes, GUCEF_NULL );
 
     if ( INVALID_HANDLE_VALUE == hFile ) 
     {
@@ -388,7 +388,7 @@ CFileAccess::Open( const CString& file               ,
     // Convert file descriptor to FILE*
     // This transfers ownership of the file descriptor to the FILE*
     m_file = ::_fdopen( fd, mode );
-    if ( m_file == NULL) 
+    if ( m_file == GUCEF_NULL) 
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "FileAccess:Open: Failed to convert file descriptor to FILE*" );
         _close( fd );
@@ -404,12 +404,12 @@ CFileAccess::Open( const CString& file               ,
 
     #endif
 
-    if ( m_file == NULL && 0 != errno )
+    if ( m_file == GUCEF_NULL && 0 != errno )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "FileAccess:Open: Failed to open file with meta-data \"" + file + "\". mode=" + CString(mode) + " error=" + GetErrorString( errno ) );
     }
     
-    return m_file != NULL;
+    return m_file != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -481,10 +481,10 @@ void
 CFileAccess::Close( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     { 
         fclose( m_file );
-        m_file = NULL;
+        m_file = GUCEF_NULL;
     }
 }
 
@@ -494,7 +494,7 @@ bool
 CFileAccess::Opened( void ) const
 {GUCEF_TRACE;
 
-    return m_file != NULL;
+    return m_file != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -505,7 +505,7 @@ CFileAccess::Read( void *dest      ,
                     UInt32 elements )
 {GUCEF_TRACE;
     
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     {
         return (UInt32) fread( dest     ,
                                esize    ,
@@ -566,7 +566,7 @@ char
 CFileAccess::GetChar( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     {
         return (char) fgetc( m_file );
     }
@@ -579,7 +579,7 @@ bool
 CFileAccess::Eof( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     {
         return feof( m_file ) != 0;
     }
@@ -757,7 +757,7 @@ CFileAccess::SetFileToUse( const CString& filename  ,
     {
         // We already have a file open.
         fclose( m_file );
-        m_file = NULL;
+        m_file = GUCEF_NULL;
 
         if ( moveIfCurrentlyOpen )
         {

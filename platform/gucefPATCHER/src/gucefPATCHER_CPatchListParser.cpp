@@ -78,9 +78,9 @@ CPatchListParser::ParsePatchList( const CORE::CDataNode& patchListData ,
 
     const CORE::CDataNode* patchListNode = patchListData.Find( "PatchList" );
 
-    if ( patchListNode != NULL )
+    if ( patchListNode != GUCEF_NULL )
     {
-        const CORE::CDataNode* patchListEntry( NULL );
+        const CORE::CDataNode* patchListEntry( GUCEF_NULL );
         CORE::CDataNode::const_iterator i = patchListNode->ConstBegin();
         while ( i != patchListNode->ConstEnd() )
         {
@@ -89,12 +89,12 @@ CPatchListParser::ParsePatchList( const CORE::CDataNode& patchListData ,
             {
                 // Validate that the patch set has a name property
                 const CORE::CDataNode::TKeyValuePair* attData = patchListEntry->GetAttribute( "Name" );
-                if ( attData != NULL )
+                if ( attData != GUCEF_NULL )
                 {
                     // A name was found, we can continue on to parse the patch set's locations
                     CORE::CString patchSetName = attData->second;
 
-                    const CORE::CDataNode* patchSetLocEntry( NULL );
+                    const CORE::CDataNode* patchSetLocEntry( GUCEF_NULL );
                     CORE::CDataNode::const_iterator n = patchListEntry->ConstBegin();
                     while ( n != patchListEntry->ConstEnd() )
                     {
@@ -104,14 +104,14 @@ CPatchListParser::ParsePatchList( const CORE::CDataNode& patchListData ,
                         {
                             // Get the URL of the patch set location
                             attData = patchSetLocEntry->GetAttribute( "URL" );
-                            if ( attData != NULL )
+                            if ( attData != GUCEF_NULL )
                             {
                                 // We have a URL
                                 CORE::CString patchSetLocURL = attData->second;
 
                                 // Get the codec name for the patch set data
                                 attData = patchSetLocEntry->GetAttribute( "Codec" );
-                                if ( attData != NULL )
+                                if ( attData != GUCEF_NULL )
                                 {
                                     // We have the codec name
                                     CORE::CString patchSetDataCodec = attData->second;

@@ -117,11 +117,11 @@ class CMainPatcherAppLogic : public CORE::CObservingNotifier
 
     virtual void OnFirstAppCycle( CORE::CNotifier* notifier           ,
                                   const CORE::CEvent& eventid         ,
-                                  CORE::CICloneable* eventdata = NULL );
+                                  CORE::CICloneable* eventdata = GUCEF_NULL );
 
     virtual void OnPatchingProgress( CORE::CNotifier* notifier           ,
                                      const CORE::CEvent& eventid         ,
-                                     CORE::CICloneable* eventdata = NULL );
+                                     CORE::CICloneable* eventdata = GUCEF_NULL );
     
     void ShutdownLogging( void );
 

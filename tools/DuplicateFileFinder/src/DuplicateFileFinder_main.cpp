@@ -115,7 +115,7 @@ BuildFileInfoList( const CORE::CString& srcRoot ,
 {GUCEF_TRACE;
 
     struct CORE::SDI_Data* dirIt = CORE::DI_First_Dir_Entry( srcRoot.C_String() );
-    if ( NULL != dirIt )
+    if ( GUCEF_NULL != dirIt )
     {
         do
         {
@@ -406,7 +406,7 @@ GUCEF_OSMAIN_BEGIN
             
             // Attempt to obtain the code
             codecPtr = GUCEF::CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry().Lookup( listCodec );
-            if ( codecPtr == NULL )
+            if ( codecPtr == GUCEF_NULL )
             {
                 // No point in proceeding if we don't have a valid codec with which we can
                 // store the result

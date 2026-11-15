@@ -170,7 +170,7 @@ CUDPMasterSocket::GetChannelForAddress( const CIPv4Address& remoteAddr )
     {
         return (*i).second;
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -181,7 +181,7 @@ CUDPMasterSocket::ReserveChannelForAddress( const CIPv4Address& remoteAddr )
 
     // Check for an existing channel for the given address
     CUDPChannel* channel = GetChannelForAddress( remoteAddr );
-    if ( NULL == channel )
+    if ( GUCEF_NULL == channel )
     {
         // Reserve a new channel for the given address
         channel = GUCEF_NEW CUDPChannel( *this, remoteAddr );
@@ -225,7 +225,7 @@ CUDPMasterSocket::DestroyAllChannels( void )
         NotifyObservers( UDPChannelToBeDestroyedEvent, &eData );
         
         GUCEF_DELETE (*i).second;
-        (*i).second = NULL;
+        (*i).second = GUCEF_NULL;
         ++i;
     }
     m_channelMap.clear();

@@ -269,7 +269,7 @@ RestApiPubSub2PubSubConfigResource::UpdateGlobalConfig( const CORE::CDataNode& c
 
     // First put the app in standby mode before we mess with the settings
     if ( !m_app->SetStandbyMode( true ) )
-        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
 
     // Grab a copy of the current global config for rollback if needed
     CORE::CDataNode oldGlobalConfig = m_app->GetGlobalConfig();
@@ -291,7 +291,7 @@ RestApiPubSub2PubSubConfigResource::UpdateGlobalConfig( const CORE::CDataNode& c
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "RestApiPubSub2PubSubConfigResource: Failed to obtain access to app config after applying new consolidated global config and subsequently also failed to roll back to previous global config" );
             }
 
-            return TDeserializeState::DESERIALIZESTATE_CORRUPTEDINPUT;
+            return CIHTTPServerResource::DESERIALIZESTATE_CORRUPTEDINPUT;
         }
 
         if ( GUCEF_NULL != oldAppConfigData )
@@ -313,14 +313,14 @@ RestApiPubSub2PubSubConfigResource::UpdateGlobalConfig( const CORE::CDataNode& c
         if ( !m_app->IsGlobalStandbyEnabled() )
         {
             if ( m_app->SetStandbyMode( false ) )
-                return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+                return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
             else
-                return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+                return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
         }
         else
         {
             GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "RestApiPubSub2PubSubConfigResource: IsGlobalStandbyEnabled is true. We will leave the app in standby mode" );
-            return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+            return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
         }
     }
     else
@@ -335,7 +335,7 @@ RestApiPubSub2PubSubConfigResource::UpdateGlobalConfig( const CORE::CDataNode& c
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "RestApiUdp2RedisConfigResource: Failed to apply new global config and subsequently also failed to roll back to previous global config" );
         }                
-        return TDeserializeState::DESERIALIZESTATE_UNABLETOUPDATE;
+        return CIHTTPServerResource::DESERIALIZESTATE_UNABLETOUPDATE;
     }        
 }
 
@@ -359,7 +359,7 @@ RestApiPubSub2PubSubConfigResource::Deserialize( const CORE::CString& resourcePa
             // Not supported yet. @TODO
             // requires proper tree merging support
 
-            return TDeserializeState::DESERIALIZESTATE_NOTSUPPORTED;
+            return CIHTTPServerResource::DESERIALIZESTATE_NOTSUPPORTED;
         }
         else
         {
@@ -379,7 +379,7 @@ RestApiPubSub2PubSubConfigResource::Deserialize( const CORE::CString& resourcePa
             // Not supported yet. @TODO
             // requires proper tree merging support
 
-            return TDeserializeState::DESERIALIZESTATE_NOTSUPPORTED;
+            return CIHTTPServerResource::DESERIALIZESTATE_NOTSUPPORTED;
         }
         else
         {

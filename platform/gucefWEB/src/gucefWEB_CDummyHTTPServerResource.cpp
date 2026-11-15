@@ -116,7 +116,7 @@ CDummyHTTPServerResource::CreateResource( const CORE::CString& resourcePath     
 {GUCEF_TRACE;
 
     // For the dummy resource everything always fake succeeds
-    return TCreateState::CREATESTATE_CREATED;
+    return CIHTTPServerResource::CREATESTATE_CREATED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -152,7 +152,7 @@ CDummyHTTPServerResource::Deserialize( const CORE::CString& resourcePath       ,
 {GUCEF_TRACE;
 
     // For the dummy resource everything always fake succeeds
-    return TDeserializeState::DESERIALIZESTATE_SUCCEEDED;
+    return CIHTTPServerResource::DESERIALIZESTATE_SUCCEEDED;
 }
 
 /*-------------------------------------------------------------------------//

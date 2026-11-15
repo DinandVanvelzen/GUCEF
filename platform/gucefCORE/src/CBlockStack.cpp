@@ -144,7 +144,7 @@ CBlockStack::PeekTop( void ) const
         {
                 return _pool.GetBlock( _itemcount-1 );
         }
-        return NULL;                
+        return GUCEF_NULL;                
 }
 
 /*-------------------------------------------------------------------------*/       
@@ -157,7 +157,7 @@ CBlockStack::Peek( void ) const
         {                
                 return _pool.GetBlock( 0 );
         }
-        return NULL;                 
+        return GUCEF_NULL;                 
 }
 
 /*-------------------------------------------------------------------------*/

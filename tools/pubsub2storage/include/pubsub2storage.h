@@ -128,7 +128,7 @@ class ChannelSettings : public CORE::CIConfigurable
     public:
 
     typedef PUBSUB::CPubSubClientConfig::TPubSubClientTopicConfigPtrVector TTopicConfigVector;
-    enum EChannelMode : CORE::Int32
+    enum EChannelMode GUCEF_ENUM_BASE( CORE::Int32 )
     {
         CHANNELMODE_UNKNOWN = 0 ,
 

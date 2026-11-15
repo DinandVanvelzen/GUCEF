@@ -25,16 +25,17 @@ LOCAL_SRC_FILES := \
   src/TestAbstractFactory.cpp \
   src/TestAbstractFactoryParity.cpp \
   src/TestAllocationCounter.cpp \
+  src/TestAppStopWithTasks.cpp \
   src/TestAsyncUriResourceRetriever.cpp \
   src/TestBase64Url.cpp \
   src/TestBigInteger.cpp \
   src/TestBigUnsigned.cpp \
   src/TestBinaryWire.cpp \
-  src/TestBusyWaitPulseGeneratorDriver.cpp \
   src/TestBrowserLauncher.cpp \
+  src/TestBusyWaitPulseGeneratorDriver.cpp \
   src/TestCodecPlugins.cpp \
   src/TestConfigStore.cpp \
-  src/TestCpuIsaFeatures.cpp \
+  src/TestCoreGlobalTeardown.cpp \
   src/TestCronSchedule.cpp \
   src/TestCryptoCodecs.cpp \
   src/TestCsvTableCodec.cpp \
@@ -70,6 +71,7 @@ LOCAL_SRC_FILES := \
   src/TestFileSystemAccess.cpp \
   src/TestFileSystemAccessResultC.c \
   src/TestFileUtils.cpp \
+  src/TestFloatText.cpp \
   src/TestFraction.cpp \
   src/TestFrameworkSkip.cpp \
   src/TestFrameworkSuites.cpp \
@@ -80,12 +82,8 @@ LOCAL_SRC_FILES := \
   src/TestJsonDataNodeFidelity.cpp \
   src/TestJsonSchema.cpp \
   src/TestJsonSyntaxValidator.cpp \
-  src/TestLogging.cpp \
   src/TestLogManagerLockOrder.cpp \
-  src/TestPumpedObserverLockOrder.cpp \
-  src/TestPumpedObserverMail.cpp \
-  src/TestAppStopWithTasks.cpp \
-  src/TestCoreGlobalTeardown.cpp \
+  src/TestLogging.cpp \
   src/TestMemoryDataTable.cpp \
   src/TestNotificationCost.cpp \
   src/TestNotifierDelivery.cpp \
@@ -93,10 +91,13 @@ LOCAL_SRC_FILES := \
   src/TestPbkdf2HmacSha256.cpp \
   src/TestPluginUnload.cpp \
   src/TestProcess.cpp \
+  src/TestPumpedObserverLockOrder.cpp \
+  src/TestPumpedObserverMail.cpp \
   src/TestRandom.cpp \
   src/TestRateLimiting.cpp \
   src/TestRedactor.cpp \
   src/TestSchedule.cpp \
+  src/TestScheduleTrigger.cpp \
   src/TestScopedValue.cpp \
   src/TestSecureBuffer.cpp \
   src/TestServiceHealthRegistry.cpp \

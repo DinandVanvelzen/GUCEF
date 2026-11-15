@@ -30,6 +30,8 @@ kind( "SharedLib" )
 
 configuration( {} )
 links( { "aws-cpp-sdk-sns", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB", "pluginglueAWSSDK" } )
+
+configuration( {} )
 links( { "aws-cpp-sdk-sns", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB", "pluginglueAWSSDK" } )
 
 

@@ -130,7 +130,7 @@ CEMailAttachment::MakeSafeFileName( const CORE::CString& name, const CORE::CStri
     for ( UInt32 i=start; i<size && clean.size()<200; ++i )
     {
         const UInt8 c = (UInt8) p[ i ];
-        if ( c < 0x20 || 0x7F == c || NULL != strchr( ":*?\"<>|", (char) c ) )
+        if ( c < 0x20 || 0x7F == c || GUCEF_NULL != strchr( ":*?\"<>|", (char) c ) )
             clean.push_back( '_' );
         else
             clean.push_back( (char) c );

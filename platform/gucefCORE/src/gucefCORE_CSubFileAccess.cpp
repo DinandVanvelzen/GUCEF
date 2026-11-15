@@ -55,7 +55,7 @@ namespace CORE {
 
 CSubFileAccess::CSubFileAccess( void )
     : CIOAccess()      ,
-      m_file( NULL )   ,
+      m_file( GUCEF_NULL )   ,
       m_filename()     ,
       m_size( 0 )      ,
       m_totalSize( 0 ) ,
@@ -80,7 +80,7 @@ CSubFileAccess::Load( const CString& file ,
     m_file = fopen( m_filename.C_String() ,
                     "rb"                  );
 
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     {
         fseek( m_file, (long) m_offset, SEEK_SET );
         m_totalSize = FileSize( m_filename );
@@ -117,10 +117,10 @@ void
 CSubFileAccess::Close( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     { 
         fclose( m_file );
-        m_file = NULL;
+        m_file = GUCEF_NULL;
     }
 }
 
@@ -130,7 +130,7 @@ bool
 CSubFileAccess::Opened( void ) const
 {GUCEF_TRACE;
 
-    return m_file != NULL;
+    return m_file != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,7 +277,7 @@ bool
 CSubFileAccess::IsValid( void )
 {GUCEF_TRACE;
 
-    return m_file != NULL;
+    return m_file != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -295,7 +295,7 @@ void
 CSubFileAccess::Flush( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_file )
+    if ( GUCEF_NULL != m_file )
     {
         fflush( m_file );
     }
@@ -316,7 +316,7 @@ CSubFileAccess::Clone( void ) const
     }
     
     GUCEF_DELETE access;
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,6 +36,8 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 
@@ -55,6 +57,7 @@ files( {
   "include/TestCode_TlsClient.h",
   "include/TestCode_TlsLayer.h",
   "include/TestCode_TlsOpenSsl.h",
+  "include/TestCode_TlsServer.h",
   "include/TestDatabaseClient.h",
   "include/TestDatabaseClientFake.h",
   "include/TestNoTlsProvider.h",
@@ -69,10 +72,10 @@ files( {
   "include/TestRpcNotesService.h",
   "include/TestRpcPerf.h",
   "include/TestRpcSession.h",
-  "include/TestSocketReadiness.h",
-  "include/TestTcpSocketThreads.h",
   "include/TestRpcSupport.h",
-  "include/TestRpcTransportSuite.h"
+  "include/TestRpcTransportSuite.h",
+  "include/TestSocketReadiness.h",
+  "include/TestTcpSocketThreads.h"
  } )
 
 
@@ -87,6 +90,9 @@ files( {
   "src/TestCode_SimpleTCPClient.cpp",
   "src/TestCode_TlsLayer.cpp",
   "src/TestCode_TlsOpenSsl.cpp",
+  "src/TestCode_TlsServer.cpp",
+  "src/TestDatabaseClient.cpp",
+  "src/TestDatabaseClientFake.cpp",
   "src/TestRpcCodec.cpp",
   "src/TestRpcContract.cpp",
   "src/TestRpcEndpoint.cpp",
@@ -95,9 +101,7 @@ files( {
   "src/TestRpcSession.cpp",
   "src/TestSocketReadiness.cpp",
   "src/TestTcpSocketThreads.cpp",
-  "src/gucefCOMCORE_TestApp.cpp",
-  "src/TestDatabaseClient.cpp",
-  "src/TestDatabaseClientFake.cpp"
+  "src/gucefCOMCORE_TestApp.cpp"
  } )
 
 

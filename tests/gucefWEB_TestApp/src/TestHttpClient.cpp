@@ -22,7 +22,6 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
-#include <thread>
 
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
@@ -209,7 +208,7 @@ class CScriptedHttpServer : public CORE::CObserver
         , m_pulseGenerator( CORE::CPulseGenerator::CreateSharedObj() )
         , m_socket( m_pulseGenerator, false )
         , m_running( false )
-        , m_thread()
+        , m_thread( GUCEF_NULL )
         , m_connections()
         , m_lock()
         , m_requestCount( 0 )
@@ -232,15 +231,26 @@ class CScriptedHttpServer : public CORE::CObserver
             return false;
         m_port = m_socket.GetBoundPort();
         m_running = true;
-        m_thread = std::thread( [this]() { Run(); } );
+        m_thread = MT::ThreadDataReserve();
+        if ( 0 == MT::ThreadCreate( m_thread, &RunThread, this ) )
+        {
+            m_running = false;
+            MT::ThreadDataCleanup( m_thread );
+            m_thread = GUCEF_NULL;
+            return false;
+        }
         return true;
     }
 
     void Stop( void )
     {
         m_running = false;
-        if ( m_thread.joinable() )
-            m_thread.join();
+        if ( GUCEF_NULL != m_thread )
+        {
+            MT::ThreadWait( m_thread, -1 );
+            MT::ThreadDataCleanup( m_thread );
+            m_thread = GUCEF_NULL;
+        }
         m_socket.Close();
     }
 
@@ -320,6 +330,13 @@ class CScriptedHttpServer : public CORE::CObserver
 
         SConnection( void ) : connection( GUCEF_NULL ), request(), pieces(), nextPiece( 0 ), answered( false ), closeAfterAnswer( true ), nextRequestAfterAnswer( false ) {}
     };
+
+    static UInt32 GUCEF_CALLSPEC_PREFIX
+    RunThread( void* server ) GUCEF_CALLSPEC_SUFFIX
+    {
+        static_cast< CScriptedHttpServer* >( server )->Run();
+        return 0;
+    }
 
     void Run( void )
     {
@@ -612,7 +629,7 @@ class CScriptedHttpServer : public CORE::CObserver
     CORE::PulseGeneratorPtr m_pulseGenerator;
     COMCORE::CTCPServerSocket m_socket;
     MT::CTAtomic< bool > m_running;     /**< read by the thread of the server, set by Start() and Stop() */
-    std::thread m_thread;
+    MT::SThreadData* m_thread;          /**< the thread of the server while it runs */
     GUCEF::map< void*, SConnection > m_connections;
     MT::CMutex m_lock;
     UInt32 m_requestCount;

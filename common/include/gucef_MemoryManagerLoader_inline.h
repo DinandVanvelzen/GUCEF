@@ -99,7 +99,7 @@ DRGUP_calloc( const char* file, int line, size_t num, size_t size )
 {
     return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              calloc( num, size ) :
-             fp_DRGUP_AllocateMemory( file, line, size * num, MM_CALLOC, NULL, GUCEF_NULL ) );
+             fp_DRGUP_AllocateMemory( file, line, size * num, MM_CALLOC, GUCEF_NULL, GUCEF_NULL ) );
 }
 
 /*-------------------------------------------------------------------------*/

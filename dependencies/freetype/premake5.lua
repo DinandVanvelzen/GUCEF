@@ -31,32 +31,48 @@ kind( "SharedLib" )
 
 configuration( {} )
 defines( { "FT2_BUILD_LIBRARY", "FT_CONFIG_OPTION_SYSTEM_ZLIB", "FT_CONFIG_OPTION_USE_ZLIB", "FT_DVEDIT_BUILD_DLL", "FT_DVEDIT_DLL_API", "MODULE_CONSENSUS_NAME=freetype", "MODULE_NAME=freetype" } )
-  links( { "z" } )
-  links( { "z" } )
-  
-configuration( { EMSCRIPTEN32 } )
+
+configuration( { "ANDROID32" } )
+links( { "z" } )
+
+configuration( { "ANDROID64" } )
+links( { "z" } )
+
+configuration( { "EMSCRIPTEN32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { EMSCRIPTEN64 } )
+
+configuration( { "EMSCRIPTEN32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "EMSCRIPTEN64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { LINUX64 } )
+
+configuration( { "EMSCRIPTEN64" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
+
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+configuration( { "LINUX64" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
 
 
 configuration( {} )

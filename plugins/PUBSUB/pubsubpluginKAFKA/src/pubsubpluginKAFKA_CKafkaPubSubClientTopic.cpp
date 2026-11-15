@@ -716,7 +716,7 @@ CKafkaPubSubClientTopic::SetupBasedOnConfig( void )
         // This may have already been set by the generic custom property setting that occured above
         std::string confValue;
         RdKafka::Conf::ConfResult configResult = m_kafkaConsumerConf->get( "group.id", confValue );
-        if ( RdKafka::Conf::ConfResult::CONF_OK != configResult ||
+        if ( RdKafka::Conf::CONF_OK != configResult ||
              confValue.empty()                                  ||
              confValue.size() == 0                               )
         {
@@ -750,7 +750,7 @@ CKafkaPubSubClientTopic::SetupBasedOnConfig( void )
         // Check for the mandatory group member ID property.
         // This may have already been set by the generic custom property setting that occured above
         configResult = m_kafkaConsumerConf->get( "group.instance.id", confValue );
-        if ( RdKafka::Conf::ConfResult::CONF_OK != configResult ||
+        if ( RdKafka::Conf::CONF_OK != configResult ||
              confValue.empty()                                  ||
              confValue.size() == 0                               )
         {
@@ -2840,17 +2840,17 @@ CKafkaPubSubClientTopic::MsgStatusToString( RdKafka::Message::Status status )
 
     switch ( status )
     {
-        case RdKafka::Message::Status::MSG_STATUS_NOT_PERSISTED:
+        case RdKafka::Message::MSG_STATUS_NOT_PERSISTED:
         {
             static const std::string statusStr = "status:not_persisted";
             return statusStr;
         }
-        case RdKafka::Message::Status::MSG_STATUS_POSSIBLY_PERSISTED:
+        case RdKafka::Message::MSG_STATUS_POSSIBLY_PERSISTED:
         {
             static const std::string statusStr = "status:possibly_persisted";
             return statusStr;
         }
-        case RdKafka::Message::Status::MSG_STATUS_PERSISTED:
+        case RdKafka::Message::MSG_STATUS_PERSISTED:
         {
             static const std::string statusStr = "status:persisted";
             return statusStr;

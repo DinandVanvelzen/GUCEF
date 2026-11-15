@@ -97,7 +97,7 @@ CIrcChatService::~CIrcChatService()
     if ( m_connectPending )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The chat service was destroyed" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The chat service was destroyed" );
     }
     m_client.Disconnect();
 }
@@ -125,7 +125,7 @@ CIrcChatService::Connect( const CPlayerIdentity& identity, CORE::CFutureResult& 
     if ( m_connectPending )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "A new connect replaced this one" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "A new connect replaced this one" );
     }
     m_client.Disconnect();
     m_channels.clear();
@@ -143,7 +143,7 @@ CIrcChatService::Connect( const CPlayerIdentity& identity, CORE::CFutureResult& 
     if ( !m_client.Connect( settings ) )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "Could not connect to the IRC server" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "Could not connect to the IRC server" );
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "IrcChatService: Could not connect to " << settings.server << ":" << settings.port );
         return false;
     }
@@ -159,7 +159,7 @@ CIrcChatService::Disconnect( void )
     if ( m_connectPending )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "Disconnected before the server accepted the user" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "Disconnected before the server accepted the user" );
     }
     m_client.Disconnect();
     m_channels.clear();
@@ -467,7 +467,7 @@ CIrcChatService::OnDisconnected( void )
     if ( m_connectPending )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The IRC server closed the connection" );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "The IRC server closed the connection" );
     }
     TChatErrorEventData error( "Disconnected from the IRC server" );
     return NotifyObservers( ChatErrorEvent, &error );
@@ -664,7 +664,7 @@ CIrcChatService::OnError( const COM::CIrcMessageEventData* data )
     if ( m_connectPending && !m_client.IsConnected() )
     {
         m_connectPending = false;
-        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, description );
+        m_connectResult.Fail( CORE::TASKSTATUS_STARTUP_FAILED, description );
     }
 
     TChatErrorEventData error( description );

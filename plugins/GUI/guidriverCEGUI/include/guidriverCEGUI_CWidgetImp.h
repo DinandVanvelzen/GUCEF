@@ -210,7 +210,7 @@ typedef CWidgetImp< GUCEF::GUI::CWidget > TBasicWidgetImp;
 template < class BaseClass >
 CWidgetImp< BaseClass >::CWidgetImp( void )
     : BaseClass()      ,
-      m_window( NULL )
+      m_window( GUCEF_NULL )
 {GUCEF_TRACE;
 
 
@@ -276,7 +276,7 @@ GUCEF::GUI::CWidget*
 CWidgetImp< BaseClass >::GetChildWidget( const CString& widgetName )
 {GUCEF_TRACE;
 
-    CEGUI::Window* childWidget = NULL;
+    CEGUI::Window* childWidget = GUCEF_NULL;
     
     try
     {
@@ -284,7 +284,7 @@ CWidgetImp< BaseClass >::GetChildWidget( const CString& widgetName )
     }
     catch ( CEGUI::Exception& )
     {
-        return NULL;
+        return GUCEF_NULL;
     }
     
     return static_cast< GUI::CWidget* >( childWidget->getUserData() );
@@ -297,7 +297,7 @@ CString
 CWidgetImp< BaseClass >::GetName( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
         return m_window->getName().c_str();
     }
@@ -506,20 +506,20 @@ CWidgetImp< BaseClass >::SetParentWidget( GUCEF::GUI::CWidget* parentWidget )
 {GUCEF_TRACE;
 
     // First make sure we are no longer attached to another parent window
-    if ( NULL != m_window )
+    if ( GUCEF_NULL != m_window )
     {
-        if ( NULL != m_window->getParent() )
+        if ( GUCEF_NULL != m_window->getParent() )
         {
             m_window->getParent()->removeChild( m_window );
         }
     }
 
     // Check if we have received a new parent
-    if ( NULL != parentWidget )
+    if ( GUCEF_NULL != parentWidget )
     {
         // Try to get access to the implementation
         CEGUI::Window* newParent = static_cast< CEGUI::Window* >( parentWidget->GetImplementationPtr() );
-        if ( NULL != newParent )
+        if ( GUCEF_NULL != newParent )
         {
             // Set the new parent
             newParent->addChild( m_window );
@@ -537,11 +537,11 @@ CWidgetImp< BaseClass >::GetParentWidget( void )
 {GUCEF_TRACE;
 
     CEGUI::Window* parent = m_window->getParent();
-    if ( NULL != parent )
+    if ( GUCEF_NULL != parent )
     {
         return static_cast< GUI::CWidget* >( parent->getUserData() );
     }
-    return NULL;
+    return GUCEF_NULL;
 }
     
 /*-------------------------------------------------------------------------*/
@@ -554,10 +554,10 @@ CWidgetImp< BaseClass >::GetChildWidgetSet( TWidgetSet& childSet )
     for ( UInt32 i=0; i < m_window->getChildCount(); ++i )
     {
         CEGUI::Window* childWindow = m_window->getChildAtIdx( i );
-        if ( NULL != childWindow )
+        if ( GUCEF_NULL != childWindow )
         {
             GUCEF::GUI::CWidget* wrapWindow = static_cast< GUI::CWidget* >( childWindow->getUserData() );
-            if ( NULL != wrapWindow )
+            if ( GUCEF_NULL != wrapWindow )
             {
                 childSet.insert( wrapWindow );
             }

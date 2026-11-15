@@ -580,7 +580,7 @@ bool
 CSteamAuthProvider::TrySilentLogin( CORE::CFutureResult& future )
 {GUCEF_TRACE;
 
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     return Start( false, future );
 }
 
@@ -592,7 +592,7 @@ CSteamAuthProvider::BeginLogin( const AUTH::CAuthOptions& options, CORE::CFuture
 
     // With the Steam client there is no browser step: the login is the same as the silent one. Without a client that can be
     // used the browser is the way, unless that is not available either: then the login ends with the reason the client gives
-    future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     if ( CanUseClient() || !AUTH::CDescriptorAuthProvider::IsAvailable() )
         return Start( true, future );
     return AUTH::CDescriptorAuthProvider::BeginLogin( options, future );

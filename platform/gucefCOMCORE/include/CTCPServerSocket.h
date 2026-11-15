@@ -297,7 +297,7 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     
     void OnPulse( CORE::CNotifier* notifier           ,
                   const CORE::CEvent& eventid         ,
-                  CORE::CICloneable* eventdata = NULL );
+                  CORE::CICloneable* eventdata = GUCEF_NULL );
     
     /**
      *	default constructor cannot be used, we need to know 

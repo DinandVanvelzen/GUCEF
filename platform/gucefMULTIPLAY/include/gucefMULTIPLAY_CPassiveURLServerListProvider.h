@@ -85,7 +85,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPassiveURLServerListProvider : public CServerL
     
     virtual void OnNotify( CORE::CNotifier* notifier           ,
                            const CORE::CEvent& eventid         ,
-                           CORE::CICloneable* eventdata = NULL );    
+                           CORE::CICloneable* eventdata = GUCEF_NULL );    
     
     private:
     

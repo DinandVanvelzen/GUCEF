@@ -52,7 +52,7 @@ namespace PATCHER {
 
 CPatchTaskConsumer::CPatchTaskConsumer( void )
     : CTaskConsumer()       ,
-      m_patchEngine( NULL ) ,
+      m_patchEngine( GUCEF_NULL ) ,
       m_taskName()          
 {GUCEF_TRACE;
 
@@ -65,7 +65,7 @@ CPatchTaskConsumer::~CPatchTaskConsumer()
 {GUCEF_TRACE;
 
     delete m_patchEngine;
-    m_patchEngine = NULL;
+    m_patchEngine = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

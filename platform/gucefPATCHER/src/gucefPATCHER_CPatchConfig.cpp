@@ -159,28 +159,28 @@ CPatchConfig::LoadConfig( const CORE::CDataNode& treeroot )
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchConfig: Loading configuration" );
 
     const CORE::CDataNode* infoNode = treeroot.Find( "CPatchConfig" );
-    if ( infoNode != NULL )
+    if ( infoNode != GUCEF_NULL )
     {
         // First we obtain the mandatory atributes
         const CORE::CDataNode::TKeyValuePair* att = infoNode->GetAttribute( "LocalRootDir" );
-        if ( att == NULL ) return false;
+        if ( att == GUCEF_NULL ) return false;
         SetLocalRootDir( att->second );
 
         att = infoNode->GetAttribute( "TempStorageRoot" );
-        if ( att == NULL ) return false;
+        if ( att == GUCEF_NULL ) return false;
         SetLocalTempStorageRootDir( att->second );
 
         att = infoNode->GetAttribute( "PatchListURL" );
-        if ( att == NULL ) return false;
+        if ( att == GUCEF_NULL ) return false;
         SetPatchListURL( att->second );
 
         att = infoNode->GetAttribute( "PatchListCodec" );
-        if ( att == NULL ) return false;
+        if ( att == GUCEF_NULL ) return false;
         SetPatchListCodec( att->second );
 
         // Load optional attributes
         att = infoNode->GetAttribute( "StopOnFileReplacementFailure" );
-        if ( att == NULL )
+        if ( att == GUCEF_NULL )
         {
             m_stopOnReplacementFailure = true;
         }
@@ -190,7 +190,7 @@ CPatchConfig::LoadConfig( const CORE::CDataNode& treeroot )
         }
 
         // Try and find some optional engine trigger events
-        const CORE::CDataNode* childNode = NULL;
+        const CORE::CDataNode* childNode = GUCEF_NULL;
         CORE::CDataNode::const_iterator i = infoNode->ConstBegin();
         while ( i != infoNode->ConstEnd() )
         {
@@ -198,7 +198,7 @@ CPatchConfig::LoadConfig( const CORE::CDataNode& treeroot )
             if ( childNode->GetName() == "EngineStartTrigger" )
             {
                 att = infoNode->GetAttribute( "Event" );
-                if ( att != NULL )
+                if ( att != GUCEF_NULL )
                 {
                     AddEngineStartTriggerEvent( att->second.AsString() );
                 }
@@ -207,7 +207,7 @@ CPatchConfig::LoadConfig( const CORE::CDataNode& treeroot )
             if ( childNode->GetName() == "EngineStopTrigger" )
             {
                 att = infoNode->GetAttribute( "Event" );
-                if ( att != NULL )
+                if ( att != GUCEF_NULL )
                 {
                     AddEngineStopTriggerEvent( att->second.AsString() );
                 }

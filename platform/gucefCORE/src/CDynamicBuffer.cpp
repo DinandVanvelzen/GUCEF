@@ -91,7 +91,7 @@ const UInt32 CDynamicBuffer::DefaultGrowthBlockSize;
 
 CDynamicBuffer::CDynamicBuffer( void ) GUCEF_NOEXCEPT
     : CICloneable()
-    , _buffer( NULL )              
+    , _buffer( GUCEF_NULL )              
     , _bsize( 0 )                 
     , _autoenlarge( true )        
     , m_growthStrategy( GROWTHSTRATEGY_EXACT )
@@ -106,7 +106,7 @@ CDynamicBuffer::CDynamicBuffer( void ) GUCEF_NOEXCEPT
 
 CDynamicBuffer::CDynamicBuffer( bool autoenlarge ) 
     : CICloneable()
-    , _buffer( NULL )              
+    , _buffer( GUCEF_NULL )              
     , _bsize( 0 )                 
     , _autoenlarge( autoenlarge ) 
     , m_growthStrategy( GROWTHSTRATEGY_EXACT )
@@ -121,7 +121,7 @@ CDynamicBuffer::CDynamicBuffer( bool autoenlarge )
 
 CDynamicBuffer::CDynamicBuffer( CIOAccess& ioAccess )
     : CICloneable()
-    , _buffer( NULL )              
+    , _buffer( GUCEF_NULL )              
     , _bsize( 0 )                 
     , _autoenlarge( true )        
     , m_growthStrategy( GROWTHSTRATEGY_EXACT )
@@ -141,7 +141,7 @@ CDynamicBuffer::CDynamicBuffer( UInt32 initialsize ,
     , _autoenlarge( autoenlarge ) 
     , m_growthStrategy( GROWTHSTRATEGY_EXACT )
     , m_growthStrategyParam( 0 )
-    , _buffer( NULL )             
+    , _buffer( GUCEF_NULL )             
     , _bsize( 0 )                 
     , m_dataSize( 0 )             
     , m_linked( false )
@@ -162,7 +162,7 @@ CDynamicBuffer::CDynamicBuffer( UInt32 initialsize ,
 CDynamicBuffer::CDynamicBuffer( const CDynamicBuffer &src ,
                                 bool shrinkToDataSize     )
     : CICloneable( src )
-    , _buffer( NULL )                  
+    , _buffer( GUCEF_NULL )                  
     , _bsize( 0 )                      
     , m_dataSize( 0 )                  
     , _autoenlarge( src._autoenlarge ) 
@@ -213,7 +213,7 @@ CDynamicBuffer::CDynamicBuffer( const char* externalBuffer    ,
                                 const UInt32 bufferSize       ,
                                 bool autoenlarge /* = true */ )
     : CICloneable()
-    , _buffer( NULL )      
+    , _buffer( GUCEF_NULL )      
     , _bsize( 0 )          
     , m_dataSize( 0 )      
     , _autoenlarge( true ) 
@@ -727,7 +727,7 @@ CDynamicBuffer::WriteContentToFile( const CORE::CString& filepath ,
     const char* mode = overwrite ? "wb" : "rb+";
 
     FILE* fptr = fopen( filepath.C_String(), mode );
-    if ( NULL != fptr )
+    if ( GUCEF_NULL != fptr )
     {
         fseek( fptr, (long) offset, SEEK_SET );
         bool success = 1 == fwrite( _buffer, m_dataSize, 1, fptr );
@@ -754,7 +754,7 @@ CDynamicBuffer::AppendContentToFile( const CORE::CString& filepath ) const
 {GUCEF_TRACE;
     
     FILE* fptr = fopen( filepath.C_String(), "ab" );
-    if ( NULL != fptr )
+    if ( GUCEF_NULL != fptr )
     {
         bool success = 1 == fwrite( _buffer, m_dataSize, 1, fptr );
         fclose( fptr );

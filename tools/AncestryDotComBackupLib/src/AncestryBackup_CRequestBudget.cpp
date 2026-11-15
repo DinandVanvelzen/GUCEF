@@ -149,7 +149,7 @@ CRequestBudget::Save( void ) const
 
     if ( m_stateFile.IsNULLOrEmpty() )
         return;
-    CORE::WriteStringAsTextFile( m_stateFile, CORE::CString( ( "day=" + m_day + "\ncount=" + std::to_string( (unsigned long long) m_todayCount ) + "\n" ).c_str() ) );
+    CORE::WriteStringAsTextFile( m_stateFile, CORE::CString( ( "day=" + m_day + "\ncount=" + CORE::ToString( (CORE::UInt64) m_todayCount ).STL_String() + "\n" ).c_str() ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -168,12 +168,12 @@ CRequestBudget::CanRequest( UInt64 nowInMs, std::string& reason )
 
     if ( m_maxPerRun > 0 && m_runCount >= m_maxPerRun )
     {
-        reason = "the maximum of " + std::to_string( (unsigned long long) m_maxPerRun ) + " requests for one run was reached";
+        reason = "the maximum of " + CORE::ToString( (CORE::UInt64) m_maxPerRun ).STL_String() + " requests for one run was reached";
         return false;
     }
     if ( m_maxPerDay > 0 && m_todayCount >= m_maxPerDay )
     {
-        reason = "the maximum of " + std::to_string( (unsigned long long) m_maxPerDay ) + " requests for one day was reached";
+        reason = "the maximum of " + CORE::ToString( (CORE::UInt64) m_maxPerDay ).STL_String() + " requests for one day was reached";
         return false;
     }
     return true;
@@ -305,12 +305,12 @@ CSiteResponseCheck::IsTrouble( Int32 status, const std::string& contentType, con
     }
     if ( status == 403 || status == 401 )
     {
-        reason = "the site answered " + std::to_string( (long long) status ) + " (refused)";
+        reason = "the site answered " + CORE::ToString( (CORE::Int64) status ).STL_String() + " (refused)";
         return true;
     }
     if ( status == 503 || status == 502 || status == 504 )
     {
-        reason = "the site answered " + std::to_string( (long long) status ) + " (unavailable or overloaded)";
+        reason = "the site answered " + CORE::ToString( (CORE::Int64) status ).STL_String() + " (unavailable or overloaded)";
         return true;
     }
     if ( !mitigationHeader.empty() )

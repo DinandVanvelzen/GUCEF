@@ -176,7 +176,7 @@ struct SRouterFixture
         GUCEF::vector< MULTIPLAY::CMatchPackage >& list = packages[ info.matchId ];
         MULTIPLAY::CMatchPackage next = TESTFW::MakeTestPackage( list.back().revision + 1, &list.back(), "my turn" );
         MULTIPLAY::CMatchPreview preview = TESTFW::MakeTestPreview( info, ids[ 0 ], next, &ids[ holder ], MULTIPLAY::MATCHSTATUS_ACTIVE, 0 );
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         bool ok = book.Submit( info.matchId, preview, next, future );
         if ( ok )
             list.push_back( next );

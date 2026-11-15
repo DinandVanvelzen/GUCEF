@@ -15,7 +15,8 @@
             <Define String="ENABLE_SPIRV" />
             <Define String="ENABLE_OPT=0" />
         </Preprocessor>
-        <Compiler>
+        <!-- the glslang bundled with ncnn uses generic lambdas, a C++14 feature -->
+        <Compiler MinCppStandard="14">
             <CompilerFlags CompilerName="G++" Flags="-fopenmp -ffast-math -msse -msse2 -mrecip=none -fvisibility=hidden -fvisibility-inlines-hidden" />
         </Compiler>
     </Module>

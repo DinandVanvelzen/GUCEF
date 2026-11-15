@@ -513,7 +513,7 @@ PerformNatPmpTests( void )
             CMapperRecorder recorder;
             recorder.SubscribeTo( &mapper );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 7777, 0, 3600, future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
 
@@ -544,7 +544,7 @@ PerformNatPmpTests( void )
             COM::CNatPmpPortMapper mapper;
             mapper.SetGateway( gateway.GetAddress() );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_TCP, 8888, 0, 3600, future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
 
@@ -559,7 +559,7 @@ PerformNatPmpTests( void )
             ASSERT_TRUE( 1 == gateway.natPmpAddressRequests );
 
             // From now on it goes NAT-PMP right away
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 9999, 0, 3600, second ) );
             ASSERT_TRUE( PumpUntilReady( second, 5000 ) );
             ASSERT_TRUE( COMCORE::CPortMappingResult::TryGetFromFuture( second, result ) );
@@ -581,7 +581,7 @@ PerformNatPmpTests( void )
                 COM::CNatPmpPortMapper mapper;
                 mapper.SetGateway( gateway.GetAddress() );
 
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( mapper.GetExternalAddress( future ) );
                 ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
                 COMCORE::CPortMappingResult result;
@@ -595,18 +595,18 @@ PerformNatPmpTests( void )
                 COM::CNatPmpPortMapper mapper;
                 mapper.SetGateway( gateway.GetAddress() );
 
-                CORE::CFutureResult unknown( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult unknown( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( mapper.GetExternalAddress( unknown ) );
                 ASSERT_TRUE( PumpUntilReady( unknown, 5000 ) );
                 COMCORE::CPortMappingResult result;
                 ASSERT_FALSE( COMCORE::CPortMappingResult::TryGetFromFuture( unknown, result ) );
 
-                CORE::CFutureResult mapping( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult mapping( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 7777, 0, 3600, mapping ) );
                 ASSERT_TRUE( PumpUntilReady( mapping, 5000 ) );
                 ASSERT_TRUE( COMCORE::CPortMappingResult::TryGetFromFuture( mapping, result ) );
 
-                CORE::CFutureResult known( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult known( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( mapper.GetExternalAddress( known ) );
                 ASSERT_TRUE( PumpUntilReady( known, 5000 ) );
                 ASSERT_TRUE( COMCORE::CPortMappingResult::TryGetFromFuture( known, result ) );
@@ -627,7 +627,7 @@ PerformNatPmpTests( void )
             COM::CNatPmpPortMapper mapper;
             mapper.SetGateway( gateway.GetAddress() );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 7777, 0, 2, future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
             ASSERT_TRUE( 1 == gateway.pcpMapRequests );
@@ -636,7 +636,7 @@ PerformNatPmpTests( void )
             ASSERT_TRUE( 2 == gateway.lastLifetime );
             ASSERT_TRUE( 1 == mapper.GetMappingCount() );
 
-            CORE::CFutureResult removal( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult removal( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RemoveMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 7777, removal ) );
             ASSERT_TRUE( PumpUntilReady( removal, 5000 ) );
             COMCORE::CPortMappingResult result;
@@ -661,7 +661,7 @@ PerformNatPmpTests( void )
             CMapperRecorder recorder;
             recorder.SubscribeTo( &mapper );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 7777, 0, 1, future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
             ASSERT_TRUE( 1 == recorder.created );
@@ -670,7 +670,7 @@ PerformNatPmpTests( void )
             ASSERT_TRUE( PumpUntilAtLeast( recorder.lost, 1, 5000 ) );
             ASSERT_TRUE( 0 == mapper.GetMappingCount() );
 
-            CORE::CFutureResult failing( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult failing( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( mapper.RequestMapping( COMCORE::CPortMappingResult::PROTOCOL_UDP, 7778, 0, 60, failing ) );
             ASSERT_TRUE( PumpUntilReady( failing, 5000 ) );
             COMCORE::CPortMappingResult result;
@@ -736,7 +736,7 @@ PerformStunTests( void )
             ASSERT_TRUE( socket.Open( "127.0.0.1", StunClientPort ) );
             COM::CStunClient stun( socket );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( stun.QueryReflexiveAddress( COMCORE::CHostAddress( "127.0.0.1", FakeStunPort ), future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
 
@@ -749,7 +749,7 @@ PerformStunTests( void )
 
             // The old style answer works too
             server.classicAnswer = true;
-            CORE::CFutureResult classic( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult classic( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( stun.QueryReflexiveAddress( COMCORE::CHostAddress( "127.0.0.1", FakeStunPort ), classic ) );
             ASSERT_TRUE( PumpUntilReady( classic, 5000 ) );
             ASSERT_TRUE( COM::CStunClient::TryGetResultFromFuture( classic, result ) );
@@ -774,7 +774,7 @@ PerformStunTests( void )
             COM::CStunClient stun( socket );
             stun.SetRetransmission( 50, 3 );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( stun.QueryReflexiveAddress( COMCORE::CHostAddress( "127.0.0.1", FakeStunPort ), future ) );
             ASSERT_TRUE( PumpUntilReady( future, 5000 ) );
             COM::CStunClient::CStunResult result;
@@ -782,7 +782,7 @@ PerformStunTests( void )
             ASSERT_TRUE( 2 == server.requests );
 
             server.requestsToIgnore = 100;
-            CORE::CFutureResult silent( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult silent( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( stun.QueryReflexiveAddress( COMCORE::CHostAddress( "127.0.0.1", FakeStunPort ), silent ) );
             ASSERT_TRUE( PumpUntilReady( silent, 5000 ) );
             ASSERT_FALSE( COM::CStunClient::TryGetResultFromFuture( silent, result ) );
@@ -790,7 +790,7 @@ PerformStunTests( void )
 
             server.requestsToIgnore = 0;
             server.errorAnswer = true;
-            CORE::CFutureResult refused( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult refused( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( stun.QueryReflexiveAddress( COMCORE::CHostAddress( "127.0.0.1", FakeStunPort ), refused ) );
             ASSERT_TRUE( PumpUntilReady( refused, 5000 ) );
             ASSERT_FALSE( COM::CStunClient::TryGetResultFromFuture( refused, result ) );
@@ -899,7 +899,7 @@ PerformUpnpPluginTests( void )
                 recorder.SubscribeTo( mapper.GetPointerAlways() );
 
                 // Harmless on any network: it only asks, there may or may not be a gateway to answer
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( mapper->GetExternalAddress( future ) );
                 ASSERT_TRUE( PumpUntilReady( future, 20000 ) );
 

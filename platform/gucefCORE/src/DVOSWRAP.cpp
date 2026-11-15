@@ -165,7 +165,7 @@ class GUCEF_HIDDEN LinuxCpuFreqInfo
     float ReadFreqFromFile( const std::string& filePath )
     {GUCEF_TRACE;
 
-        std::ifstream file(filePath);
+        std::ifstream file( filePath.c_str() );
         if (file.is_open()) {
             int freqKHz = 0;
             file >> freqKHz;
@@ -239,7 +239,7 @@ class GUCEF_HIDDEN LinuxSysDevicesCpuFreqReader
         {
             std::ostringstream path;
             path << "/sys/devices/system/cpu/cpu" << coreId;
-            std::ifstream dir( path.str() );
+            std::ifstream dir( path.str().c_str() );
             if ( !dir.good() )
                 break; // No more CPUs
 
@@ -705,7 +705,7 @@ class GUCEF_HIDDEN CLinuxProcStatusParser
     bool ParseFile( const CString& filePath )
     {GUCEF_TRACE;
 
-        std::ifstream statusFile( filePath );
+        std::ifstream statusFile( filePath.C_String() );
         if ( !statusFile.is_open() )
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "CLinuxProcStatusParser: Cannot open file: " + filePath );
@@ -893,7 +893,7 @@ class GUCEF_HIDDEN CLinuxProcStatmParser
     bool ParseFile( const CString& filePath )
     {GUCEF_TRACE;
 
-        std::ifstream statmFile( filePath );
+        std::ifstream statmFile( filePath.C_String() );
         if ( !statmFile.is_open() )
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "CLinuxProcStatmParser: Cannot open file: " + filePath );
@@ -1003,7 +1003,7 @@ class GUCEF_HIDDEN LinuxProcStatParser
     bool ParseFile( const CString& filePath )
     {GUCEF_TRACE;
 
-        std::ifstream statFile( filePath );
+        std::ifstream statFile( filePath.C_String() );
         if ( !statFile.is_open() )
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "LinuxProcStatParser: Cannot open file: " + filePath );
@@ -1220,7 +1220,7 @@ static HWND
 GetCurrentHWND( void )
 {
         const char* hwndstr;
-        HWND whandle = NULL;
+        HWND whandle = GUCEF_NULL;
 
         #ifdef SDL_SUPPORT
 
@@ -1300,7 +1300,7 @@ StringToClipboard( const char *str )
          */
         hglbcopy = GlobalAlloc( GMEM_MOVEABLE                 ,
                                 (strlength+1) * sizeof(TCHAR) );
-        if ( hglbcopy == NULL )
+        if ( hglbcopy == GUCEF_NULL )
         {
                 CloseClipboard();
                 return OSWRAP_FALSE;
@@ -1394,10 +1394,10 @@ StringFromClipboard( char *dest     ,
                  *      into the buffer provided by the user
                  */
                 hglb = GetClipboardData( CF_TEXT );
-                if ( hglb != NULL )
+                if ( hglb != GUCEF_NULL )
                 {
                         LPTSTR lptstr = (LPTSTR) GlobalLock( hglb );
-                        if ( lptstr != NULL )
+                        if ( lptstr != GUCEF_NULL )
                         {
                                 UInt32 offset = *wbytes;
                                 UInt32 dsize = (UInt32) strlen( lptstr );
@@ -2154,7 +2154,7 @@ Int64
 GetDurationSinceFiletimeInMs( LPFILETIME since )
 {GUCEF_TRACE;
 
-    if ( NULL == since )
+    if ( GUCEF_NULL == since )
         return 0;
 
     FILETIME systemNowTime;
@@ -2222,7 +2222,7 @@ GetProcUptimeAndThreads( pid_t pid, UInt64* uptimeInMs, UInt32* nrOfThreads )
             return false;
         }
 
-        time_t nowTime = ::time( NULL );
+        time_t nowTime = ::time( GUCEF_NULL );
         *uptimeInMs = ( ( nowTime - statBuffer.st_mtim.tv_sec ) * 1000 ) + ( statBuffer.st_mtim.tv_nsec / 100000000 );
         return true;
     }
@@ -2283,8 +2283,8 @@ GetGlobalJiffies( UInt64* totalJiffies )
     if ( GUCEF_NULL == totalJiffies )
         return false;
 
-    FILE* fp = NULL;
-    if ( ( fp = ::fopen( "/proc/stat", "r" ) ) == NULL )
+    FILE* fp = GUCEF_NULL;
+    if ( ( fp = ::fopen( "/proc/stat", "r" ) ) == GUCEF_NULL )
         return false;
 
     char cpuLine[ 1024 ];
@@ -2740,7 +2740,7 @@ GetCpuStats( TCpuDataPoint* previousCpuDataDataPoint ,
     NTSTATUS ntStatus = TryNtQuerySystemInformation( SystemProcessorPerformanceInformation                                                        ,
                                                      previousCpuDataDataPoint->cpuPerfInfo                                                        ,
                                                      sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * previousCpuDataDataPoint->logicalCpuCount ,
-                                                     NULL                                                                                         );
+                                                     GUCEF_NULL                                                                                         );
     if ( WIN32_NT_SUCCESS( ntStatus ) )
     {
         for ( UInt32 i=0; i<previousCpuDataDataPoint->logicalCpuCount; ++i )
@@ -2775,7 +2775,7 @@ GetCpuStats( TCpuDataPoint* previousCpuDataDataPoint ,
     }
 
     LONG retVal = ::CallNtPowerInformation( ProcessorInformation,
-                                            NULL,
+                                            GUCEF_NULL,
                                             0,
                                             previousCpuDataDataPoint->cpuPowerInfo,
                                             sizeof(PROCESSOR_POWER_INFORMATION) * previousCpuDataDataPoint->logicalCpuCount );

@@ -157,7 +157,7 @@ LoadCMakeFileAdditionTemplates( const CORE::CString& templateDir )
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Attempting to load CMake file addition templates from: " + pathToTemplates );
 
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( pathToTemplates.C_String() );
-    if ( NULL != sdiData )
+    if ( GUCEF_NULL != sdiData )
     {
         do
         {
@@ -205,7 +205,7 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntr
     CModuleInfoPtr moduleInfo;
     const CORE::CString* moduleName = moduleInfoEntry->GetModuleName( platformName, &moduleInfo );
 
-    if ( ( NULL != moduleName ) && ( !moduleInfo.IsNULL() ) )
+    if ( ( GUCEF_NULL != moduleName ) && ( !moduleInfo.IsNULL() ) )
     {
         // Use the module type as the index to find a template.
         // We can make this more advanced later if needed but for now differentiating based on module
@@ -1037,7 +1037,7 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
                          ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
                          ( MODULETYPE_BINARY_PACKAGE != moduleType )             )
                     {
-                        if ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PRIVATE != linkedLibScope )
+                        if ( LINKEDDEPENDENCYSCOPE_PRIVATE != linkedLibScope )
                         {
                             // Considering its one module we control in the project depending on another module we control
                             // we will treat unknown / auto as public. Can create bulkier linkage but safer that way wrt at least getting a working build
@@ -1053,7 +1053,7 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
                 }
                 else
                 {
-                    if ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PUBLIC == linkedLibScope )
+                    if ( LINKEDDEPENDENCYSCOPE_PUBLIC == linkedLibScope )
                     {
                         publicScopeLibs.insert( libName );
                     }
@@ -1116,6 +1116,15 @@ GenerateCMakeModuleCompilerFlagsLine( const CModuleInfoPtr& moduleInfo  ,
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
+
+    // The minimum C++ standard as a compile feature. PUBLIC since code using the module's headers needs it as well.
+    // Below C++11 there is nothing to request beyond what any C++ compiler provides
+    UInt32 minCppStandardYear = CppStandardToYear( moduleInfo->compilerSettings.GetMinCppStandard() );
+    if ( minCppStandardYear >= 2011 )
+    {
+        sectionContent += "target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_" + CppStandardYearToName( minCppStandardYear ) + " )\n";
+    }
+
     const CORE::CStringMap& flagsPerCompiler = moduleInfo->compilerSettings.GetCompilerFlags();
 
     CORE::CStringMap::const_iterator i = flagsPerCompiler.begin();
@@ -1461,6 +1470,257 @@ GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo            
 
 /*---------------------------------------------------------------------------*/
 
+bool
+IsCMakeTargetModuleType( const TModuleType moduleType )
+{GUCEF_TRACE;
+
+    return ( MODULETYPE_EXECUTABLE == moduleType )     ||
+           ( MODULETYPE_SHARED_LIBRARY == moduleType ) ||
+           ( MODULETYPE_STATIC_LIBRARY == moduleType );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+IsCMakeLibraryModuleType( const TModuleType moduleType )
+{GUCEF_TRACE;
+
+    return ( MODULETYPE_SHARED_LIBRARY == moduleType ) ||
+           ( MODULETYPE_STATIC_LIBRARY == moduleType );
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  The include dirs of the module itself which are include search paths, relative to the module root dir with "." for
+ *  the root dir itself. Dirs outside the module root, from integrated code of other modules, are left out: those reach
+ *  dependents through the module they belong to.
+ */
+void
+GetCMakeModuleOwnIncludeDirs( const CModuleInfoPtr& moduleInfo ,
+                              TStringSet& ownIncludeDirs       )
+{GUCEF_TRACE;
+
+    const TStringSetMap& includeDirs = moduleInfo->GetIncludeDirs();
+    TStringSetMap::const_iterator i = includeDirs.begin();
+    while ( i != includeDirs.end() )
+    {
+        const CORE::CString& includeDirKey = (*i).first;
+        if ( !moduleInfo->IsIncludeDirExcludedFromSearchPaths( includeDirKey ) )
+        {
+            CORE::CString includeDir = includeDirKey.ReplaceChar( '\\', '/' ).Trim( true ).Trim( false );
+            while ( includeDir.Length() > 0 && includeDir[ includeDir.Length()-1 ] == '/' )
+                includeDir = includeDir.CutChars( 1, false );
+
+            if ( includeDir.IsNULLOrEmpty() || includeDir == "." )
+            {
+                ownIncludeDirs.insert( "." );
+            }
+            else
+            if ( 0 != includeDir.HasSubstr( "..", true ) && 0 > includeDir.HasSubstr( "ENVVAR", true ) && !CORE::IsAbsolutePath( includeDir ) )
+            {
+                ownIncludeDirs.insert( includeDir.ReplaceSubstr( " ", "\\ " ) );
+            }
+        }
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+CORE::CString
+GenerateCMakeModuleUsageLines( const CProjectInfo& projectInfo   ,
+                               const CModuleInfoPtr& moduleInfo  ,
+                               const TModuleType moduleType      ,
+                               const CORE::CString& platformName )
+{GUCEF_TRACE;
+
+    CORE::CString lines;
+
+    // What dependents of a library need: its include dirs
+    if ( IsCMakeLibraryModuleType( moduleType ) )
+    {
+        TStringSet ownIncludeDirs;
+        GetCMakeModuleOwnIncludeDirs( moduleInfo, ownIncludeDirs );
+        if ( !ownIncludeDirs.empty() )
+        {
+            lines += "GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS";
+            TStringSet::iterator i = ownIncludeDirs.begin();
+            while ( i != ownIncludeDirs.end() )
+            {
+                lines += ' ' + (*i);
+                ++i;
+            }
+            lines += " )\n";
+        }
+    }
+
+    // Dependencies of which the module only uses headers
+    TStringSet headerModules;
+    TStringSet includeOnlyModules;
+    const TLinkedLibrarySettingsPtrMap& linkedLibraries = moduleInfo->linkerSettings.GetLinkedLibraries();
+
+    // Dependencies on header locations have been moved to the logical dependencies during processing
+    TStringSet dependencyNames = moduleInfo->GetNamesOfDependencies();
+    dependencyNames.insert( moduleInfo->GetNamesOfLogicalDependencies().begin(), moduleInfo->GetNamesOfLogicalDependencies().end() );
+
+    TStringSet::const_iterator d = dependencyNames.begin();
+    while ( d != dependencyNames.end() )
+    {
+        const CORE::CString& dependencyName = (*d);
+        const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( dependencyName, platformName );
+        if ( !dependencyModule.IsNULL() )
+        {
+            TModuleType dependencyType = dependencyModule->GetModuleType( platformName );
+            if ( MODULETYPE_HEADER_INCLUDE_LOCATION == dependencyType )
+            {
+                headerModules.insert( dependencyName );
+            }
+            else
+            if ( IsCMakeLibraryModuleType( dependencyType ) && linkedLibraries.find( dependencyName ) == linkedLibraries.end() )
+            {
+                includeOnlyModules.insert( dependencyName );
+            }
+        }
+        ++d;
+    }
+    if ( !headerModules.empty() || !includeOnlyModules.empty() )
+    {
+        lines += "GUCEF_module_uses( ${MODULE_NAME}";
+        if ( !headerModules.empty() )
+        {
+            lines += " HEADER_MODULES";
+            TStringSet::iterator i = headerModules.begin();
+            while ( i != headerModules.end() )
+            {
+                lines += ' ' + (*i);
+                ++i;
+            }
+        }
+        if ( !includeOnlyModules.empty() )
+        {
+            lines += " INCLUDE_ONLY_MODULES";
+            TStringSet::iterator i = includeOnlyModules.begin();
+            while ( i != includeOnlyModules.end() )
+            {
+                lines += ' ' + (*i);
+                ++i;
+            }
+        }
+        lines += " )\n";
+    }
+
+    return lines;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Usage requirements of a module: the include dirs it offers to its dependents and the header only dependencies it
+ *  uses. These make the module usable as a target with the same usage from an installed build as from the source tree.
+ */
+CORE::CString
+GenerateCMakeModuleUsageSection( const CProjectInfo& projectInfo            ,
+                                 const CModuleInfoEntryPtr& moduleInfoEntry )
+{GUCEF_TRACE;
+
+    CORE::CString sectionContent;
+
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( KnownPlatforms::AllPlatforms );
+    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        TModuleType moduleType = moduleInfoEntry->GetModuleType( KnownPlatforms::AllPlatforms );
+        if ( IsCMakeTargetModuleType( moduleType ) )
+            sectionContent += GenerateCMakeModuleUsageLines( projectInfo, (*i).second, moduleType, KnownPlatforms::AllPlatforms );
+    }
+
+    i = moduleInfoEntry->GetModulesPerPlatform().begin();
+    while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        if ( platformName != KnownPlatforms::AllPlatforms )
+        {
+            TModuleType moduleType = moduleInfoEntry->GetModuleType( platformName );
+            if ( IsCMakeTargetModuleType( moduleType ) )
+            {
+                CORE::CString platformLines = GenerateCMakeModuleUsageLines( projectInfo, (*i).second, moduleType, platformName );
+                if ( !platformLines.IsNULLOrEmpty() )
+                {
+                    sectionContent += "if ( " + platformName.Uppercase() + " )\n  " + platformLines + "endif( " + platformName.Uppercase() + " )\n";
+                }
+            }
+        }
+        ++i;
+    }
+
+    if ( !sectionContent.IsNULLOrEmpty() )
+    {
+        sectionContent = "\n# Usage requirements: what dependents need from this module, from the source tree or from an installed build\n" + sectionContent;
+    }
+    return sectionContent;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Lines setting MODULE_MIN_CPP_STANDARD to the minimum C++ standard of the module including what the modules it
+ *  depends on need, per platform where that differs. Empty if there is no minimum.
+ */
+CORE::CString
+GenerateCMakeModuleMinCppStandardLines( const CProjectInfo& projectInfo            ,
+                                        const CModuleInfoEntryPtr& moduleInfoEntry )
+{GUCEF_TRACE;
+
+    UInt32 allPlatformsMinYear = projectInfo.GetEffectiveMinCppStandardYear( moduleInfoEntry, KnownPlatforms::AllPlatforms );
+    CORE::CString lines;
+    if ( 0 != allPlatformsMinYear )
+        lines += "set( MODULE_MIN_CPP_STANDARD " + CppStandardYearToName( allPlatformsMinYear ) + " )\n";
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().begin();
+    while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        if ( platformName != KnownPlatforms::AllPlatforms )
+        {
+            UInt32 platformMinYear = projectInfo.GetEffectiveMinCppStandardYear( moduleInfoEntry, platformName );
+            if ( platformMinYear > allPlatformsMinYear )
+            {
+                lines += "if ( " + platformName.Uppercase() + " )\n  set( MODULE_MIN_CPP_STANDARD " +
+                         CppStandardYearToName( platformMinYear ) + " )\nendif( " + platformName.Uppercase() + " )\n";
+            }
+        }
+        ++i;
+    }
+    return lines;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Section which skips the module when the selected C++ standard (CMAKE_CXX_STANDARD) is below the minimum the
+ *  module and the modules it depends on need. The GUCEF modules of one build share an ABI which depends on the C++
+ *  standard, so such a module is not built with a raised standard. The name remains as an empty target so that
+ *  dependencies on it as a runtime plugin still resolve.
+ */
+CORE::CString
+GenerateCMakeModuleMinCppStandardSkipSection( const CProjectInfo& projectInfo            ,
+                                              const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                              const CORE::CString& moduleName            )
+{GUCEF_TRACE;
+
+    CORE::CString minLines = GenerateCMakeModuleMinCppStandardLines( projectInfo, moduleInfoEntry );
+    if ( minLines.IsNULLOrEmpty() )
+        return CORE::CString::Empty;
+
+    return "# The minimum C++ standard of " + moduleName + " and the modules it depends on\n" + minLines +
+           "GUCEF_cpp_standard_is_below( \"${MODULE_MIN_CPP_STANDARD}\" MODULE_CPP_STANDARD_TOO_LOW )\n"
+           "if ( MODULE_CPP_STANDARD_TOO_LOW )\n"
+           "  GUCEF_add_skipped_module( " + moduleName + " \"${MODULE_MIN_CPP_STANDARD}\" )\n"
+           "  return()\n"
+           "endif()\n\n";
+}
+
+/*---------------------------------------------------------------------------*/
+
 CORE::CString
 GenerateCMakeListsFileContent( const CProjectInfo& projectInfo            ,
                                const CModuleInfoEntryPtr& moduleInfoEntry ,
@@ -1490,6 +1750,9 @@ GenerateCMakeListsFileContent( const CProjectInfo& projectInfo            ,
 
     fileContent += "# For ease of use make a variable that has all files for this module\nset( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )\n\n";
 
+    // Skip the module when the selected C++ standard is below its minimum
+    fileContent += GenerateCMakeModuleMinCppStandardSkipSection( projectInfo, moduleInfoEntry, consensusModuleName );
+
     // Check if we need to add a legacy suffix file section
     CORE::CString suffixFileContent = LoadLegacyCMakeListsSuffixFileFromDisk( moduleInfoEntry );
     if ( suffixFileContent.Length() > 0 )
@@ -1517,6 +1780,9 @@ GenerateCMakeListsFileContent( const CProjectInfo& projectInfo            ,
 
         // Add all the include directories for this module
         fileContent += GenerateCMakeModuleIncludesSection( moduleInfoEntry );
+
+        // Add the usage requirements which make the module usable from an installed build
+        fileContent += GenerateCMakeModuleUsageSection( projectInfo, moduleInfoEntry );
 
         // Add the templated addition section which is halfway between a completely manually defined
         // addition and completely autogenerated content
@@ -2317,6 +2583,245 @@ CCMakeProjectGenerator::~CCMakeProjectGenerator()
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The type which decides how a module root builds the module: the type for all platforms when defined,
+ *  otherwise the first type of a platform specific definition which is a CMake target or a header location
+ */
+TModuleType
+GetCMakeModuleRootType( const CModuleInfoEntryPtr& moduleInfoEntry )
+{GUCEF_TRACE;
+
+    TModuleType moduleType = moduleInfoEntry->GetModuleType( KnownPlatforms::AllPlatforms );
+    if ( IsCMakeTargetModuleType( moduleType ) || MODULETYPE_HEADER_INCLUDE_LOCATION == moduleType )
+        return moduleType;
+
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().begin();
+    while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        moduleType = moduleInfoEntry->GetModuleType( (*i).first );
+        if ( IsCMakeTargetModuleType( moduleType ) || MODULETYPE_HEADER_INCLUDE_LOCATION == moduleType )
+            return moduleType;
+        ++i;
+    }
+    return MODULETYPE_UNDEFINED;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  The modules a module depends on for building, which a module root finds as packages:
+ *  dependencies and linked libraries which are CMake targets or header locations
+ */
+void
+GetCMakeModuleRootDependencies( const CProjectInfo& projectInfo   ,
+                                const CModuleInfoPtr& moduleInfo  ,
+                                const CORE::CString& platformName ,
+                                TStringSet& dependencies          )
+{GUCEF_TRACE;
+
+    // Dependencies on header locations have been moved to the logical dependencies during processing
+    TStringSet candidates = moduleInfo->GetNamesOfDependencies();
+    candidates.insert( moduleInfo->GetNamesOfLogicalDependencies().begin(), moduleInfo->GetNamesOfLogicalDependencies().end() );
+    TLinkedLibrarySettingsPtrMap::const_iterator l = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
+    while ( l != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
+    {
+        candidates.insert( (*l).first );
+        ++l;
+    }
+
+    TStringSet::iterator i = candidates.begin();
+    while ( i != candidates.end() )
+    {
+        const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i), platformName );
+        if ( !dependencyModule.IsNULL() )
+        {
+            TModuleType dependencyType = dependencyModule->GetModuleType( platformName );
+            if ( IsCMakeTargetModuleType( dependencyType ) || MODULETYPE_HEADER_INCLUDE_LOCATION == dependencyType )
+                dependencies.insert( (*i) );
+        }
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+CORE::CString
+GenerateCMakeModuleRootFileContent( const CProjectInfo& projectInfo            ,
+                                    const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                    const CORE::CString& moduleName            ,
+                                    const TModuleType moduleType               ,
+                                    bool addCompileDate                        )
+{GUCEF_TRACE;
+
+    // Every GUCEF build has the GUCEF common headers on its include path, see GUCEFBuildSetup.cmake
+    static const CORE::CString commonHeadersModule = "gucefHeaders";
+    bool isCommonHeadersModule = moduleName == commonHeadersModule;
+
+    CORE::CString fileContent = GetCMakeListsFileHeader( addCompileDate );
+    fileContent += "\n# Packages of the modules " + moduleName + " depends on\n";
+
+    // Dependencies for all platforms
+    TStringSet allPlatformsDependencies;
+    if ( !isCommonHeadersModule )
+        allPlatformsDependencies.insert( commonHeadersModule );
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( KnownPlatforms::AllPlatforms );
+    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+        GetCMakeModuleRootDependencies( projectInfo, (*i).second, KnownPlatforms::AllPlatforms, allPlatformsDependencies );
+    allPlatformsDependencies.erase( moduleName );
+
+    fileContent += "set( MODULE_DEPENDENCIES";
+    TStringSet::iterator d = allPlatformsDependencies.begin();
+    while ( d != allPlatformsDependencies.end() )
+    {
+        fileContent += ' ' + (*d);
+        ++d;
+    }
+    fileContent += " )\n";
+
+    // Additional dependencies per platform
+    i = moduleInfoEntry->GetModulesPerPlatform().begin();
+    while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        if ( platformName != KnownPlatforms::AllPlatforms )
+        {
+            TStringSet platformDependencies;
+            GetCMakeModuleRootDependencies( projectInfo, (*i).second, platformName, platformDependencies );
+            platformDependencies.erase( moduleName );
+            d = allPlatformsDependencies.begin();
+            while ( d != allPlatformsDependencies.end() )
+            {
+                platformDependencies.erase( (*d) );
+                ++d;
+            }
+            if ( !platformDependencies.empty() )
+            {
+                fileContent += "if ( " + platformName.Uppercase() + " )\n  list( APPEND MODULE_DEPENDENCIES";
+                d = platformDependencies.begin();
+                while ( d != platformDependencies.end() )
+                {
+                    fileContent += ' ' + (*d);
+                    ++d;
+                }
+                fileContent += " )\nendif( " + platformName.Uppercase() + " )\n";
+            }
+        }
+        ++i;
+    }
+    // The minimum C++ standard of the module including what the modules it depends on need
+    CORE::CString minCppStandardSection = GenerateCMakeModuleMinCppStandardLines( projectInfo, moduleInfoEntry );
+    if ( !minCppStandardSection.IsNULLOrEmpty() )
+    {
+        fileContent += "\n# The minimum C++ standard of " + moduleName + " and the modules it depends on\n" + minCppStandardSection +
+                       "GUCEF_check_min_cpp_standard( " + moduleName + " \"${MODULE_MIN_CPP_STANDARD}\" )\n\n";
+    }
+
+    fileContent += "list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )\n"
+                   "foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )\n"
+                   "  find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )\n"
+                   "endforeach()\n";
+
+    CORE::CString moduleDir = "${GUCEF_SOURCE_DIR}/" + moduleInfoEntry->GetProjectRelativePathToModuleRootDir().ReplaceChar( '\\', '/' );
+    if ( MODULETYPE_HEADER_INCLUDE_LOCATION == moduleType )
+    {
+        // A header location has no build of its own, it is an interface target over its include dirs
+        TStringSet includeDirs;
+        includeDirs.insert( "." );
+        i = moduleInfoEntry->GetModulesPerPlatform().begin();
+        while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+        {
+            GetCMakeModuleOwnIncludeDirs( (*i).second, includeDirs );
+            ++i;
+        }
+
+        fileContent += "\n# The header module itself\n"
+                       "add_library( " + moduleName + " INTERFACE )\n"
+                       "GUCEF_module_usage( " + moduleName + " BASE_DIR \"" + moduleDir + "\" INCLUDE_DIRS";
+        d = includeDirs.begin();
+        while ( d != includeDirs.end() )
+        {
+            fileContent += ' ' + (*d);
+            ++d;
+        }
+        fileContent += " )\n"
+                       "foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )\n"
+                       "  target_link_libraries( " + moduleName + " INTERFACE ${MODULE_DEPENDENCY} )\n"
+                       "endforeach()\n"
+                       "GUCEF_install_target( " + moduleName + " \"\" )\n";
+    }
+    else
+    {
+        fileContent += "\n# The module itself\n"
+                       "add_subdirectory( \"" + moduleDir + "\" \"${CMAKE_BINARY_DIR}/" + moduleName + "\" )\n"
+                       "if ( NOT TARGET " + moduleName + " )\n"
+                       "  message( FATAL_ERROR \"Module " + moduleName + " is not available for target platform ${GUCEF_TARGET_PLATFORM}\" )\n"
+                       "endif()\n";
+        if ( !isCommonHeadersModule )
+            fileContent += "target_link_libraries( " + moduleName + " PUBLIC " + commonHeadersModule + " )\n";
+    }
+
+    fileContent += "\n# The package of the module, for building dependents against it\n"
+                   "GUCEF_install_module_package( " + moduleName + " DEPENDENCIES ${MODULE_DEPENDENCIES} )\n";
+    return fileContent;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Writes a standalone CMake root per module which builds, installs and packages that single module against the
+ *  installed packages of the modules it depends on. This is what per module packaging builds use.
+ */
+void
+WriteCMakeModuleRootsToDisk( const CProjectInfo& projectInfo     ,
+                             const CORE::CString& modulesOutputDir ,
+                             bool addCompileDate                 )
+{GUCEF_TRACE;
+
+    CORE::CStringMap::iterator t = cmakeAdditionTemplates.find( "moduleroot" );
+    if ( t == cmakeAdditionTemplates.end() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "WriteCMakeModuleRootsToDisk: There is no ModuleRoot.cmt template, module roots cannot be generated" );
+        return;
+    }
+    const CORE::CString& rootTemplate = (*t).second;
+
+    UInt32 rootCount = 0;
+    TStringToModuleInfoEntryPtrMap::const_iterator m = projectInfo.modules.begin();
+    while ( m != projectInfo.modules.end() )
+    {
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*m).second;
+        TModuleType moduleType = GetCMakeModuleRootType( moduleInfoEntry );
+        if ( MODULETYPE_UNDEFINED != moduleType && !ShouldModuleBeIgnored( moduleInfoEntry, KnownPlatforms::AllPlatforms ) )
+        {
+            const CORE::CString& moduleName = moduleInfoEntry->GetConsensusName();
+            CORE::CString rootDir = CORE::CombinePath( modulesOutputDir, moduleName );
+            if ( CORE::CreateDirs( rootDir ) )
+            {
+                CORE::CString rootFileContent = GenerateCMakeModuleRootFileContent( projectInfo, moduleInfoEntry, moduleName, moduleType, addCompileDate );
+                CORE::CString rootFilePath = CORE::CombinePath( rootDir, moduleName + "_ModuleRoot.cmake" );
+                CORE::CString listsFilePath = CORE::CombinePath( rootDir, "CMakeLists.txt" );
+                if ( CORE::WriteStringAsTextFile( rootFilePath, rootFileContent, true, "\n", true ) &&
+                     CORE::WriteStringAsTextFile( listsFilePath, rootTemplate.ReplaceSubstr( "$#$PROJECTNAME$#$", moduleName ), true, "\n", true ) )
+                {
+                    ++rootCount;
+                }
+                else
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "WriteCMakeModuleRootsToDisk: Failed to write the module root for module " + moduleName + " in dir: " + rootDir );
+                }
+            }
+            else
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "WriteCMakeModuleRootsToDisk: Failed to create the module root dir: " + rootDir );
+            }
+        }
+        ++m;
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "WriteCMakeModuleRootsToDisk: Wrote " + CORE::ToString( rootCount ) + " module roots to: " + modulesOutputDir );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CCMakeProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                          const CORE::CString& outputDir       ,
@@ -2371,6 +2876,14 @@ CCMakeProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                  addGeneratorCompileTimeToOutput , 
                                  treatTagsAsOptions              , 
                                  taggedOptionsEnabledDefault     );
+
+    // Standalone roots per module, for building and packaging a single module against packages of its dependencies
+    CORE::CString modulesOutputDir = params.GetValueAlways( "cmakegen:ModulesDir" ).AsString( CORE::CString::Empty, true );
+    if ( !modulesOutputDir.IsNULLOrEmpty() )
+    {
+        modulesOutputDir = CORE::RelativePath( modulesOutputDir, true );
+        WriteCMakeModuleRootsToDisk( projectInfo, modulesOutputDir, addGeneratorCompileTimeToOutput );
+    }
 
     CProjectTargetInfoBundle targets;
     projectInfo.GetAllTargets( targets, treatTagsAsTargets, true );

@@ -219,7 +219,7 @@ CInputActionMap::Clear( void )
     m_deviceBoolOnMap.clear();
     m_deviceBoolOffMap.clear();
     m_deviceVarChangeMap.clear();
-    m_name = NULL;      
+    m_name = GUCEF_NULL;      
 }
 
 /*-------------------------------------------------------------------------*/

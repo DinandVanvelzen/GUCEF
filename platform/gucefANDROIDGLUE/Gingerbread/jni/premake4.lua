@@ -30,28 +30,32 @@ language( "C" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "SharedLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
-  
-configuration( { ANDROID32 } )
-links( { "gucefLOADER" } )
-  links( { "android", "android_native_app_glue" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "gucefLOADER" } )
+
+configuration( { "ANDROID32" } )
+links( { "android", "android_native_app_glue" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "MODULE_NAME=main" } )
-  
-configuration( { ANDROID64 } )
-links( { "gucefLOADER" } )
-  links( { "android", "android_native_app_glue" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "gucefLOADER" } )
+
+configuration( { "ANDROID64" } )
+links( { "android", "android_native_app_glue" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "MODULE_NAME=main" } )
 
 

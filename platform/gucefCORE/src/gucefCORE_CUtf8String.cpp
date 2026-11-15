@@ -2987,7 +2987,7 @@ CUtf8String::Scan( const char* newStr     ,
                    const UInt32 maxLength )
 {GUCEF_TRACE;
 
-    if ( newStr != NULL )
+    if ( newStr != GUCEF_NULL )
     {
         for ( UInt32 i=0; i<maxLength; ++i )
         {

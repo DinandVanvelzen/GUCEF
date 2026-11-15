@@ -131,7 +131,7 @@ GetProcessingBuffer( TDestFileData* fd, size_t spaceNeeded )
     if ( fd->processingBufferSize < spaceNeeded )
     {
         char* newBuffer = (char*) realloc( fd->processingBuffer, spaceNeeded );
-        if ( NULL != newBuffer )
+        if ( GUCEF_NULL != newBuffer )
         {
             fd->processingBuffer = newBuffer;
             fd->processingBufferSize = spaceNeeded;
@@ -425,7 +425,7 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
     if ( outFile != GUCEF_NULL )
     {
         TDestFileData* fd = (TDestFileData*) malloc( sizeof( TDestFileData ) );
-        if ( NULL != fd )
+        if ( GUCEF_NULL != fd )
         {
             memset( fd, 0, sizeof( TDestFileData ) );
             fd->fptr = outFile;

@@ -59,7 +59,7 @@ namespace PROJECTGEN {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CProjectGenGlobal* CProjectGenGlobal::g_instance = NULL;
+CProjectGenGlobal* CProjectGenGlobal::g_instance = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,7 +71,7 @@ CProjectGenGlobal*
 CProjectGenGlobal::Instance()
 {GUCEF_TRACE;
 
-    if ( NULL == g_instance )
+    if ( GUCEF_NULL == g_instance )
     {
         g_instance = new CProjectGenGlobal();
         g_instance->Initialize();
@@ -86,7 +86,7 @@ CProjectGenGlobal::Deinstance( void )
 {GUCEF_TRACE;
 
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -109,8 +109,8 @@ CProjectGenGlobal::Initialize( void )
 /*-------------------------------------------------------------------------*/
 
 CProjectGenGlobal::CProjectGenGlobal( void )
-    : m_dirPreprocessorManager( NULL )     ,
-      m_projectPreprocessorManager( NULL )
+    : m_dirPreprocessorManager( GUCEF_NULL )     ,
+      m_projectPreprocessorManager( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -126,9 +126,9 @@ CProjectGenGlobal::~CProjectGenGlobal()
      *      cleanup all singletons
      */
     delete m_dirPreprocessorManager;
-    m_dirPreprocessorManager = NULL;
+    m_dirPreprocessorManager = GUCEF_NULL;
     delete m_projectPreprocessorManager;
-    m_projectPreprocessorManager = NULL;
+    m_projectPreprocessorManager = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

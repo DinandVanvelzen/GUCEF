@@ -77,7 +77,7 @@ typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TOGREPLUGFPTR_StopPlugin ) ( void )
 
 COgrePluginAdapter::COgrePluginAdapter( void )
     : CIPlugin()             ,
-      m_moduleHandle( NULL ) ,
+      m_moduleHandle( GUCEF_NULL ) ,
       m_modulePath()         ,
       m_params()             ,
       m_metaData()
@@ -154,8 +154,8 @@ COgrePluginAdapter::Link( void* modulePtr                         ,
                                                                                    0               ).funcPtr;
 
         // Verify that all function pointers are loaded correctly
-        if ( ( NULL != m_funcPointers[ OGREPLUGINFUNCPTR_STARTPLUGIN ] ) &&
-             ( NULL != m_funcPointers[ OGREPLUGINFUNCPTR_STOPPLUGIN ] )  )
+        if ( ( GUCEF_NULL != m_funcPointers[ OGREPLUGINFUNCPTR_STARTPLUGIN ] ) &&
+             ( GUCEF_NULL != m_funcPointers[ OGREPLUGINFUNCPTR_STOPPLUGIN ] )  )
         {
             // Call the module's dllStartPlugin()
             reinterpret_cast< TOGREPLUGFPTR_StartPlugin >( m_funcPointers[ OGREPLUGINFUNCPTR_STARTPLUGIN ] )();

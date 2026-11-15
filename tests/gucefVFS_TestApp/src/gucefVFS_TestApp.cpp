@@ -324,7 +324,7 @@ RunManualTests( int argc, char** argv )
         // Now actually run the tests...
         //PerformVFSFileLoadUnloadTest();
 
-        auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+        CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
         app.GetPulseGenerator()->RequestPulseInterval( 10 );
         int appReturnValue = app.main( argc, argv, true );
 

@@ -295,7 +295,7 @@ GUCEF_OSSERVICEMAIN_BEGIN( "udp2redis" )
         return -2;
     }
 
-    auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
+    CORE::CGUCEFApplication& app = CORE::CCoreGlobal::Instance()->GetApplication();
     app.GetPulseGenerator()->RequestPulseInterval( 10 );
     return app.main( argc, argv, true );
 }

@@ -106,7 +106,7 @@ class CPluginInputContext : public CInputContext
 
     CPluginInputContext( CInputDriverPlugin* pluginAPI  ,
                          const CORE::CValueList& params ,
-                         void* data = NULL              )
+                         void* data = GUCEF_NULL              )
      : CInputContext( *pluginAPI, params )  ,
        m_contextData( data )
     {GUCEF_TRACE;
@@ -351,12 +351,12 @@ CInputDriverPlugin::OnDeviceVarChanged( void* userData          ,
 
 CInputDriverPlugin::CInputDriverPlugin( void )
         : CInputDriver()     ,
-          m_sohandle( NULL ) ,
-          m_plugdata( NULL ) ,
+          m_sohandle( GUCEF_NULL ) ,
+          m_plugdata( GUCEF_NULL ) ,
           m_metaData()
 {GUCEF_TRACE;
 
-    memset( m_fptable, NULL, sizeof( m_fptable ) );
+    memset( m_fptable, 0, sizeof( m_fptable ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -383,7 +383,7 @@ CInputDriverPlugin::Link( void* modulePtr                         ,
                           CORE::TPluginMetaDataPtr pluginMetaData )
 {GUCEF_TRACE;
 
-    if ( NULL == modulePtr ) return false;
+    if ( GUCEF_NULL == modulePtr ) return false;
 
     Unlink();
     m_sohandle = modulePtr;
@@ -433,8 +433,8 @@ CInputDriverPlugin::Link( void* modulePtr                         ,
          ( !m_fptable[ INPUTDRIVERPLUG_CREATECONTEXT ] ) ||
          ( !m_fptable[ INPUTDRIVERPLUG_DESTROYCONTEXT ] ) )
     {
-            memset( m_fptable, NULL, sizeof(void*) * INPUTDRIVERPLUG_LASTPTR );
-            m_sohandle = NULL;
+            memset( m_fptable, 0, sizeof(void*) * INPUTDRIVERPLUG_LASTPTR );
+            m_sohandle = GUCEF_NULL;
 
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Invalid input driver module: " + CORE::PointerToString( modulePtr ) );
             return false;
@@ -467,13 +467,13 @@ void
 CInputDriverPlugin::Unlink( void )
 {GUCEF_TRACE;
 
-    if ( NULL != m_sohandle )
+    if ( GUCEF_NULL != m_sohandle )
     {
         ( (TINPUTDRIVERPLUGFPTR_Shutdown) m_fptable[ INPUTDRIVERPLUG_SHUTDOWN ] )( m_plugdata );
     }
     m_metaData.Unlink();
-    memset( m_fptable, NULL, sizeof(void*) * INPUTDRIVERPLUG_LASTPTR );
-    m_sohandle = NULL;
+    memset( m_fptable, 0, sizeof(void*) * INPUTDRIVERPLUG_LASTPTR );
+    m_sohandle = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -484,7 +484,7 @@ CInputDriverPlugin::OnUpdate( const UInt64 tickcount               ,
                               CInputContext* context               )
 {GUCEF_TRACE;
 
-    if ( NULL != m_sohandle )
+    if ( GUCEF_NULL != m_sohandle )
     {
         return ( (TINPUTDRIVERPLUGFPTR_Update) m_fptable[ INPUTDRIVERPLUG_UPDATE ] )( m_plugdata, static_cast<CPluginInputContext*>( context )->GetContextData() ) > 0;
     }
@@ -575,7 +575,7 @@ CInputDriverPlugin::CreateContext( const CORE::CValueList& params )
     }
     delete context;
     DestroyArgMatrix( argv, argc );
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -612,7 +612,7 @@ CString
 CInputDriverPlugin::GetName( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_sohandle )
+    if ( GUCEF_NULL != m_sohandle )
     {
         return ( (TINPUTDRIVERPLUGFPTR_Name) m_fptable[ INPUTDRIVERPLUG_NAME ] )( m_plugdata );
     }

@@ -139,7 +139,7 @@ CMySQLClient::CMySQLClient( bool blocking )
         socket.Subscribe( &AsObserver() );
         mysql_connection_state = MYSQL_DISCONNECTED;
         query_busy = false;
-        iface = NULL;
+        iface = GUCEF_NULL;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -388,7 +388,7 @@ CMySQLClient::OnRead( COMCORE::CTCPClientSocket &socket ,
                                         temp_len = data[i]; // field length
                                         if(temp_len == (UInt8)0xfb) {
                                                 i++;
-                                                query->Field(row, column)->value = NULL;
+                                                query->Field(row, column)->value = GUCEF_NULL;
                                         }
                                         else {
                                                 i++;
@@ -508,7 +508,7 @@ CMySQLClient::Login( const char *data, UInt32 length )
         CORE::tsprintf("\n");
         #endif /* DEBUG_MODE */
 
-        char *reply(NULL);
+        char *reply(GUCEF_NULL);
         if( !mysql_database.Length() )
         {
                 length = 10 + mysql_username.Length() + mysql_password.Length()+1;

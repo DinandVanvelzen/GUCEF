@@ -80,11 +80,12 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefGEOMETRY/include \
   $(MY_MODULE_PATH)/../../platform/gucefMATH/include \
+  $(MY_MODULE_PATH)/../../platform/gucefMATH/src \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEF_GEOMETRY_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefGEOMETRY_TestApp -DMODULE_NAME=gucefGEOMETRY_TestApp
 
-LOCAL_CPPFLAGS += -ffp-contract=off
+LOCAL_CPPFLAGS +=-ffp-contract=off
 
 
 LOCAL_SHARED_LIBRARIES := \

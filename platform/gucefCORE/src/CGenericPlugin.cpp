@@ -77,7 +77,7 @@ enum TGenericPluginFuncPtrType
 
 CGenericPlugin::CGenericPlugin( void )
     : CIPlugin()             ,
-      m_moduleHandle( NULL ) ,
+      m_moduleHandle( GUCEF_NULL ) ,
       m_modulePath()         ,
       m_params()             ,
       m_metaData()
@@ -141,7 +141,7 @@ CGenericPlugin::Link( void* modulePtr                   ,
         return false;
     
     m_moduleHandle = modulePtr;
-    if ( NULL != m_moduleHandle )
+    if ( GUCEF_NULL != m_moduleHandle )
     {
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "GenericPlugin: Linking API using module pointer: " + PointerToString( modulePtr ) );
             
@@ -170,14 +170,14 @@ CGenericPlugin::Link( void* modulePtr                   ,
                                                                                   0                                          ).funcPtr;
 
         // Verify that all mandatory function pointers are loaded correctly
-        if ( ( NULL != m_funcPointers[ GPLUGINFUNCPTR_LOAD ] )        &&
-             ( NULL != m_funcPointers[ GPLUGINFUNCPTR_UNLOAD ] )      &&
-             ( NULL != m_funcPointers[ GPLUGINFUNCPTR_VERSION ] )     &&
-             ( NULL != m_funcPointers[ GPLUGINFUNCPTR_DESCRIPTION ] ) &&
-             ( NULL != m_funcPointers[ GPLUGINFUNCPTR_COPYRIGHT ] )    )
+        if ( ( GUCEF_NULL != m_funcPointers[ GPLUGINFUNCPTR_LOAD ] )        &&
+             ( GUCEF_NULL != m_funcPointers[ GPLUGINFUNCPTR_UNLOAD ] )      &&
+             ( GUCEF_NULL != m_funcPointers[ GPLUGINFUNCPTR_VERSION ] )     &&
+             ( GUCEF_NULL != m_funcPointers[ GPLUGINFUNCPTR_DESCRIPTION ] ) &&
+             ( GUCEF_NULL != m_funcPointers[ GPLUGINFUNCPTR_COPYRIGHT ] )    )
         {
             // Make the module parameter list
-            const char** argv = NULL;
+            const char** argv = GUCEF_NULL;
             UInt32 argc = m_params.GetKeyCount();
             if ( argc > 0 )
             {
@@ -225,7 +225,7 @@ CGenericPlugin::Link( void* modulePtr                   ,
                     delete[] argv[ i ];
                 }
                 delete[] argv;
-                argv = NULL;
+                argv = GUCEF_NULL;
             }
                 
             // Check whether the load was successfull
@@ -247,11 +247,11 @@ CGenericPlugin::Link( void* modulePtr                   ,
                 // If the plugin exports the optional LinkBack dependencies function, use its
                 // return value to supplement or override whatever was set in the config metadata.
                 // The hardcoded list from the binary is authoritative over the config.
-                if ( NULL != m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )
+                if ( GUCEF_NULL != m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )
                 {
                     const char* linkBackDeps = reinterpret_cast< TGUCEFGENERICPLUGFPTR_GetLinkBackModuleDependencies >(
                             m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )();
-                    if ( NULL != linkBackDeps && '\0' != linkBackDeps[ 0 ] )
+                    if ( GUCEF_NULL != linkBackDeps && '\0' != linkBackDeps[ 0 ] )
                     {
                         m_metaData->SetAllLinkBackModules( CString( linkBackDeps ) );
                         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "GenericPlugin: Plugin declared LinkBack module dependencies: " + CString( linkBackDeps ) );
@@ -285,7 +285,7 @@ CGenericPlugin::Link( void* modulePtr                   ,
 
         // We failed to link the functions :(
         memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
-        m_moduleHandle = NULL;
+        m_moduleHandle = GUCEF_NULL;
         return false;
     }
 
@@ -326,7 +326,7 @@ CGenericPlugin::Unlink( void )
 
         // Cleanup recources
         memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
-        m_moduleHandle = NULL;
+        m_moduleHandle = GUCEF_NULL;
         m_metaData.Unlink();
     }
 
@@ -339,7 +339,7 @@ bool
 CGenericPlugin::IsLoaded( void ) const
 {GUCEF_TRACE;
 
-    return NULL != m_moduleHandle;
+    return GUCEF_NULL != m_moduleHandle;
 }
 
 /*-------------------------------------------------------------------------*/

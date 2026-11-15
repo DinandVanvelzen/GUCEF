@@ -120,7 +120,7 @@ CImageUpscaler::UpscaleAsync( const TPixelMapPtr& source, UInt32 factor, const C
     {
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "ImageUpscaler:UpscaleAsync: Failed to queue the task: " << e.what() );
     }
-    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
+    return CORE::CFutureResult( CORE::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/

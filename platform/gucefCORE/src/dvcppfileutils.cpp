@@ -450,7 +450,7 @@ TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath )
     }
 
     WCHAR* path = GUCEF_NULL;
-    if ( S_OK != ::SHGetKnownFolderPath( folderId, 0, NULL, &path ) )
+    if ( S_OK != ::SHGetKnownFolderPath( folderId, 0, GUCEF_NULL, &path ) )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "TryResolveSpecialDir: SHGetKnownFolderPath failed" );
         return false;
@@ -804,7 +804,7 @@ SetFileMetaData( const CString& filePath           ,
 
         // Open the file for writing attributes without needing a handle for data read/write operations
         // we dont want to touch the file contents
-        HANDLE hFile = ::CreateFileW( wFilepath.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
+        HANDLE hFile = ::CreateFileW( wFilepath.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, GUCEF_NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, GUCEF_NULL );
         if ( INVALID_HANDLE_VALUE != hFile )
         {
             if ( 0 == ::SetFileTime( hFile, &data.ftCreationTime, &data.ftLastAccessTime, &data.ftLastWriteTime ) )
@@ -951,7 +951,7 @@ recursive_mkdir(const char* dir, int accessPerms)
     GUCEF_TRACE;
 
     char tmp[PATH_MAX];
-    char* p = NULL;
+    char* p = GUCEF_NULL;
     size_t len;
     int retValue = 0;
 
@@ -1016,7 +1016,7 @@ CreateDirs( const CString& path )
     {
         CString dirSegment = actualPath.SubstrToIndex( (UInt32) dirSepCharIndex, true );
         std::wstring wDirSegment = ToWString( dirSegment );
-        if ( FALSE == ::CreateDirectoryW( wDirSegment.c_str(), NULL ) && ::GetLastError() != ERROR_ALREADY_EXISTS )
+        if ( FALSE == ::CreateDirectoryW( wDirSegment.c_str(), GUCEF_NULL ) && ::GetLastError() != ERROR_ALREADY_EXISTS )
         {
             GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CreateDirs: Unable to create dir: \"" + dirSegment + "\" ErrorCode=" + ToString( (UInt32) ::GetLastError() ) );
             return false;
@@ -1026,7 +1026,7 @@ CreateDirs( const CString& path )
     }
 
     std::wstring wActualPath = ToWString( actualPath );
-    if ( FALSE == ::CreateDirectoryW( wActualPath.c_str(), NULL ) && ::GetLastError() != ERROR_ALREADY_EXISTS )
+    if ( FALSE == ::CreateDirectoryW( wActualPath.c_str(), GUCEF_NULL ) && ::GetLastError() != ERROR_ALREADY_EXISTS )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CreateDirs: Unable to create dir: \"" + actualPath + "\" ErrorCode=" + ToString( (UInt32) ::GetLastError() ) );
         return false;
@@ -1404,12 +1404,12 @@ SetOwnerOnlyAccess( const CString& path )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    HANDLE token = NULL;
+    HANDLE token = GUCEF_NULL;
     if ( FALSE == ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &token ) )
         return false;
 
     DWORD userInfoSize = 0;
-    ::GetTokenInformation( token, TokenUser, NULL, 0, &userInfoSize );
+    ::GetTokenInformation( token, TokenUser, GUCEF_NULL, 0, &userInfoSize );
     if ( 0 == userInfoSize )
     {
         ::CloseHandle( token );
@@ -1431,12 +1431,12 @@ SetOwnerOnlyAccess( const CString& path )
     access.Trustee.TrusteeType = TRUSTEE_IS_USER;
     access.Trustee.ptstrName = (LPWSTR) user->User.Sid;
 
-    PACL acl = NULL;
-    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, NULL, &acl ) )
+    PACL acl = GUCEF_NULL;
+    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, GUCEF_NULL, &acl ) )
         return false;
 
     std::wstring wActualPath = ToWString( actualPath );
-    DWORD result = ::SetNamedSecurityInfoW( (LPWSTR) wActualPath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, NULL, NULL, acl, NULL );
+    DWORD result = ::SetNamedSecurityInfoW( (LPWSTR) wActualPath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, GUCEF_NULL, GUCEF_NULL, acl, GUCEF_NULL );
     ::LocalFree( acl );
     return ERROR_SUCCESS == result;
 
@@ -1464,11 +1464,11 @@ static PSID
 GetProcessUserSid( CDynamicBuffer& storage )
 {GUCEF_TRACE;
 
-    HANDLE token = NULL;
+    HANDLE token = GUCEF_NULL;
     if ( FALSE == ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &token ) )
         return GUCEF_NULL;
     DWORD size = 0;
-    ::GetTokenInformation( token, TokenUser, NULL, 0, &size );
+    ::GetTokenInformation( token, TokenUser, GUCEF_NULL, 0, &size );
     if ( 0 == size )
     {
         ::CloseHandle( token );
@@ -1491,7 +1491,7 @@ IsWellKnownSid( PSID sid, WELL_KNOWN_SID_TYPE type )
 
     BYTE storage[ SECURITY_MAX_SID_SIZE ];
     DWORD size = sizeof( storage );
-    if ( FALSE == ::CreateWellKnownSid( type, NULL, storage, &size ) )
+    if ( FALSE == ::CreateWellKnownSid( type, GUCEF_NULL, storage, &size ) )
         return false;
     return FALSE != ::EqualSid( sid, storage );
 }
@@ -1534,8 +1534,8 @@ CreateOwnerOnlyFile( const CString& path      ,
     access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
     access.Trustee.TrusteeType = TRUSTEE_IS_USER;
     access.Trustee.ptstrName = (LPWSTR) userSid;
-    PACL acl = NULL;
-    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, NULL, &acl ) )
+    PACL acl = GUCEF_NULL;
+    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, GUCEF_NULL, &acl ) )
     {
         problem = "the access list cannot be made";
         return false;
@@ -1556,7 +1556,7 @@ CreateOwnerOnlyFile( const CString& path      ,
 
     // CREATE_NEW fails for anything that exists, a symbolic link included
     std::wstring wPath = ToWString( actualPath );
-    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_WRITE, 0, &attributes, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL );
+    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_WRITE, 0, &attributes, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, GUCEF_NULL );
     const DWORD createError = ::GetLastError();
     ::LocalFree( acl );
     if ( INVALID_HANDLE_VALUE == file )
@@ -1570,7 +1570,7 @@ CreateOwnerOnlyFile( const CString& path      ,
     while ( written < dataSizeInBytes )
     {
         DWORD chunk = 0;
-        if ( FALSE == ::WriteFile( file, bytes + written, dataSizeInBytes - written, &chunk, NULL ) || 0 == chunk )
+        if ( FALSE == ::WriteFile( file, bytes + written, dataSizeInBytes - written, &chunk, GUCEF_NULL ) || 0 == chunk )
         {
             success = false;
             break;
@@ -1672,7 +1672,7 @@ ReadOwnerOnlyFile( const CString& path      ,
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     std::wstring wPath = ToWString( actualPath );
-    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_READ | READ_CONTROL, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL );
+    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_READ | READ_CONTROL, FILE_SHARE_READ, GUCEF_NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, GUCEF_NULL );
     if ( INVALID_HANDLE_VALUE == file )
     {
         const DWORD openError = ::GetLastError();
@@ -1700,21 +1700,21 @@ ReadOwnerOnlyFile( const CString& path      ,
 
     CDynamicBuffer userInfo;
     PSID userSid = safe ? GetProcessUserSid( userInfo ) : GUCEF_NULL;
-    PSID owner = NULL;
-    PACL dacl = NULL;
-    PSECURITY_DESCRIPTOR descriptor = NULL;
+    PSID owner = GUCEF_NULL;
+    PACL dacl = GUCEF_NULL;
+    PSECURITY_DESCRIPTOR descriptor = GUCEF_NULL;
     if ( safe && ( GUCEF_NULL == userSid ||
-                   ERROR_SUCCESS != ::GetSecurityInfo( file, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &owner, NULL, &dacl, NULL, &descriptor ) ) )
+                   ERROR_SUCCESS != ::GetSecurityInfo( file, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &owner, GUCEF_NULL, &dacl, GUCEF_NULL, &descriptor ) ) )
     {
         safe = false;
         problem = "the owner and the access list of the file cannot be read";
     }
-    if ( safe && ( NULL == owner || ( FALSE == ::EqualSid( owner, userSid ) && !IsWellKnownSid( owner, WinBuiltinAdministratorsSid ) ) ) )
+    if ( safe && ( GUCEF_NULL == owner || ( FALSE == ::EqualSid( owner, userSid ) && !IsWellKnownSid( owner, WinBuiltinAdministratorsSid ) ) ) )
     {
         safe = false;
         problem = "the file is not owned by the user of the process";
     }
-    if ( safe && NULL == dacl )
+    if ( safe && GUCEF_NULL == dacl )
     {
         // no DACL at all grants everybody everything
         safe = false;
@@ -1722,7 +1722,7 @@ ReadOwnerOnlyFile( const CString& path      ,
     }
     for ( DWORD i=0; safe && i<dacl->AceCount; ++i )
     {
-        LPVOID ace = NULL;
+        LPVOID ace = GUCEF_NULL;
         if ( FALSE == ::GetAce( dacl, i, &ace ) )
         {
             safe = false;
@@ -1746,7 +1746,7 @@ ReadOwnerOnlyFile( const CString& path      ,
             problem = "others than the user of the process can access the file";
         }
     }
-    if ( NULL != descriptor )
+    if ( GUCEF_NULL != descriptor )
         ::LocalFree( descriptor );
 
     if ( safe )
@@ -1765,7 +1765,7 @@ ReadOwnerOnlyFile( const CString& path      ,
             while ( got < total )
             {
                 DWORD chunk = 0;
-                if ( FALSE == ::ReadFile( file, static_cast< char* >( content.GetBufferPtr() ) + got, total - got, &chunk, NULL ) || 0 == chunk )
+                if ( FALSE == ::ReadFile( file, static_cast< char* >( content.GetBufferPtr() ) + got, total - got, &chunk, GUCEF_NULL ) || 0 == chunk )
                     break;
                 got += chunk;
             }
@@ -2357,7 +2357,7 @@ GetDeviceUUIDFromUdev( int major, int minor, CString& uuid )
     uuid.Clear();
 
     CString udevPath = "/run/udev/data/b" + ToString( (Int32)major ) + ":" + ToString( (Int32)minor );
-    std::ifstream udevFile( udevPath.STL_String() );
+    std::ifstream udevFile( udevPath.STL_String().c_str() );
     if ( udevFile.is_open() )
     {
         std::string line;
@@ -2389,7 +2389,7 @@ GetDeviceVersionNumbers( const CString& device, int& major, int& minor )
     minor = 0;
 
     std::string devPath = "/sys/class/block/" + device + "/dev";
-    std::ifstream devFile( devPath );
+    std::ifstream devFile( devPath.c_str() );
     std::string devNumbers;
     if ( devFile.is_open() )
     {
@@ -2623,7 +2623,7 @@ FileSize( const CString& filename )
                 if ( IsLinuxUserSpaceApiFile( filename ) )
                 {
                     FILE* fptr = fopen( filename.C_String(), "rb" );
-                    if ( NULL != fptr )
+                    if ( GUCEF_NULL != fptr )
                     {
                         // Only way to get the data size for these is to actually read the data
                         // data size is normally small so this should not take long
@@ -2637,7 +2637,7 @@ FileSize( const CString& filename )
                         }
                         while ( bytesRead >= 256 );
                         fclose( fptr );
-                        fptr = NULL;
+                        fptr = GUCEF_NULL;
 
                         return filesize;
                     }
@@ -2904,8 +2904,8 @@ Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info )
     std::wstring wDeviceId = ToWString( info.deviceId );
 
     HANDLE hDevice = ::CreateFileW( wDeviceId.c_str(), GENERIC_READ,
-                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                                OPEN_EXISTING, 0, NULL);
+                                FILE_SHARE_READ | FILE_SHARE_WRITE, GUCEF_NULL,
+                                OPEN_EXISTING, 0, GUCEF_NULL);
 
     if ( hDevice == INVALID_HANDLE_VALUE )
     {
@@ -2917,8 +2917,8 @@ Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info )
     memset( &dg, 0, sizeof(dg) ); // Initialize the structure to zero
     DWORD bytesReturned = 0;
 
-    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0,
-                             &dg, sizeof(dg), &bytesReturned, NULL);
+    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, GUCEF_NULL, 0,
+                             &dg, sizeof(dg), &bytesReturned, GUCEF_NULL);
     if ( 0 != success )
     {
         info.geometry.hasCylinderCount = true;
@@ -2967,8 +2967,8 @@ Win32GetStoragePerfStatsFromDriver( const std::wstring& filePath ,
 {GUCEF_TRACE;
 
     HANDLE hDevice = ::CreateFileW( filePath.c_str(), GENERIC_READ,
-                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-                                OPEN_EXISTING, 0, NULL);
+                                FILE_SHARE_READ | FILE_SHARE_WRITE, GUCEF_NULL,
+                                OPEN_EXISTING, 0, GUCEF_NULL);
 
     if ( hDevice == INVALID_HANDLE_VALUE )
     {
@@ -2980,9 +2980,9 @@ Win32GetStoragePerfStatsFromDriver( const std::wstring& filePath ,
     memset( &diskPerformance, 0, sizeof(diskPerformance) ); // Initialize the structure to zero
     DWORD bytesReturned;
 
-    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_PERFORMANCE, NULL, 0,
+    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_PERFORMANCE, GUCEF_NULL, 0,
                                         &diskPerformance, sizeof(diskPerformance),
-                                        &bytesReturned, NULL );
+                                        &bytesReturned, GUCEF_NULL );
 
     if ( 0 != success )
     {
@@ -3959,7 +3959,7 @@ GetAllFileSystemPathNamesForVolume( const CString& volumeId       ,
     // first get the size of the buffer we need
     DWORD listSizeInWChars = 0;
     BOOL success = ::GetVolumePathNamesForVolumeNameW( volumeIdWide.c_str() ,
-                                                       NULL                 ,
+                                                       GUCEF_NULL                 ,
                                                        0                    ,
                                                        &listSizeInWChars    );
     if ( success == TRUE )

@@ -541,7 +541,7 @@ TryNtReadVirtualMemory( HANDLE ProcessHandle       ,
         (p)->Attributes = a;                                \
         (p)->ObjectName = n;                                \
         (p)->SecurityDescriptor = s;                        \
-        (p)->SecurityQualityOfService = NULL;               \
+        (p)->SecurityQualityOfService = GUCEF_NULL;               \
         }
 #endif
 

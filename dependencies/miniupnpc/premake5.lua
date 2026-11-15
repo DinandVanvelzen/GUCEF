@@ -31,16 +31,20 @@ kind( "StaticLib" )
 
 configuration( {} )
 defines( { "MINIUPNP_EXPORTS", "MODULE_CONSENSUS_NAME=miniupnpc", "MODULE_NAME=miniupnpc", "STATICLIB" } )
-  
 
-configuration( { ANDROID32 } )
-defines( { "__sun" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID32" } )
 defines( { "__sun" } )
-  links( { "WS2_32.lib" } )
-  links( { "WS2_32.lib" } )
+
+
+configuration( { "ANDROID64" } )
+defines( { "__sun" } )
+
+configuration( { "WIN32" } )
+links( { "WS2_32.lib" } )
+
+configuration( { "WIN64" } )
+links( { "WS2_32.lib" } )
 
 
 configuration( {} )

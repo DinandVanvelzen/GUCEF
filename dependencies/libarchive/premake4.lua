@@ -31,24 +31,36 @@ kind( "StaticLib" )
 
 configuration( {} )
 defines( { "HAVE_CONFIG_H", "LIBARCHIVE_STATIC", "MODULE_CONSENSUS_NAME=libarchive", "MODULE_NAME=libarchive", "__LIBARCHIVE_BUILD" } )
-  links( { "z" } )
-  links( { "z" } )
-  
-configuration( { LINUX32 } )
+
+configuration( { "ANDROID32" } )
+links( { "z" } )
+
+configuration( { "ANDROID64" } )
+links( { "z" } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { LINUX64 } )
+
+configuration( { "LINUX32" } )
 links( { "zlib" } )
-  links( { "zlib" } )
-  
-configuration( { WIN32 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "Bcrypt.lib", "zlib" } )
-  
-configuration( { WIN64 } )
+
+configuration( { "LINUX64" } )
 links( { "zlib" } )
-  links( { "Bcrypt.lib", "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "zlib" } )
+
+configuration( { "WIN32" } )
+links( { "Bcrypt.lib", "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "zlib" } )
+
+configuration( { "WIN64" } )
+links( { "Bcrypt.lib", "zlib" } )
 
 
 configuration( {} )

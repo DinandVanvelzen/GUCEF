@@ -26,7 +26,7 @@ language( "C++" )
 configuration( { "WIN32" } )
 
 
-configuration( { WIN32 } )
+configuration( { "WIN32" } )
 kind( "WindowedApp" )
 configuration( { "NOT WIN32" } )
   
@@ -36,18 +36,19 @@ kind( "ConsoleApp" )
 
 configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
+
+configuration( {} )
 links( { "gucefCORE", "gucefMT" } )
-
-
-configuration( { "LINUX32" } )
-  links( { "X11" } )
-
-configuration( { "LINUX64" } )
-  links( { "X11" } )
 
 
 configuration( {} )
 defines( { "GUCEF_CORE_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCORE_TestApp", "MODULE_NAME=gucefCORE_TestApp" } )
+
+configuration( { "LINUX32" } )
+links( { "X11" } )
+
+configuration( { "LINUX64" } )
+links( { "X11" } )
 
 
 configuration( {} )
@@ -57,16 +58,17 @@ files( {
   "include/TestAbstractFactory.h",
   "include/TestAbstractFactoryParity.h",
   "include/TestAllocationCounter.h",
+  "include/TestAppStopWithTasks.h",
   "include/TestAsyncUriResourceRetriever.h",
   "include/TestBase64Url.h",
   "include/TestBigInteger.h",
   "include/TestBigUnsigned.h",
   "include/TestBinaryWire.h",
-  "include/TestBusyWaitPulseGeneratorDriver.h",
   "include/TestBrowserLauncher.h",
+  "include/TestBusyWaitPulseGeneratorDriver.h",
   "include/TestCodecPlugins.h",
   "include/TestConfigStore.h",
-  "include/TestCpuIsaFeatures.h",
+  "include/TestCoreGlobalTeardown.h",
   "include/TestCronSchedule.h",
   "include/TestCryptoCodecs.h",
   "include/TestCsvTableCodec.h",
@@ -106,6 +108,7 @@ files( {
   "include/TestFileDataTable.h",
   "include/TestFileSystemAccess.h",
   "include/TestFileUtils.h",
+  "include/TestFloatText.h",
   "include/TestFraction.h",
   "include/TestFrameworkSkip.h",
   "include/TestFrameworkSuites.h",
@@ -115,12 +118,8 @@ files( {
   "include/TestJsonDataNodeFidelity.h",
   "include/TestJsonSchema.h",
   "include/TestJsonSyntaxValidator.h",
-  "include/TestLogging.h",
   "include/TestLogManagerLockOrder.h",
-  "include/TestPumpedObserverLockOrder.h",
-  "include/TestPumpedObserverMail.h",
-  "include/TestAppStopWithTasks.h",
-  "include/TestCoreGlobalTeardown.h",
+  "include/TestLogging.h",
   "include/TestMemoryDataTable.h",
   "include/TestNotificationCost.h",
   "include/TestNotifierDelivery.h",
@@ -128,11 +127,14 @@ files( {
   "include/TestPbkdf2HmacSha256.h",
   "include/TestPluginUnload.h",
   "include/TestProcess.h",
+  "include/TestPumpedObserverLockOrder.h",
+  "include/TestPumpedObserverMail.h",
   "include/TestRandom.h",
   "include/TestRateLimiting.h",
   "include/TestRedactor.h",
   "include/TestRsaVectors.h",
   "include/TestSchedule.h",
+  "include/TestScheduleTrigger.h",
   "include/TestScopedValue.h",
   "include/TestSecureBuffer.h",
   "include/TestServiceHealthRegistry.h",
@@ -165,8 +167,6 @@ files( {
   "include/TestX11ClipboardPeer.h",
   "include/TestX11EventDispatcher.h",
   "include/TestXmlDStoreCodec.h",
-  "src/TestBinaryWire.cpp",
-  "src/TestBusyWaitPulseGeneratorDriver.cpp",
   "src/TestFreeList.h"
  } )
 
@@ -179,14 +179,17 @@ files( {
   "src/TestAbstractFactory.cpp",
   "src/TestAbstractFactoryParity.cpp",
   "src/TestAllocationCounter.cpp",
+  "src/TestAppStopWithTasks.cpp",
   "src/TestAsyncUriResourceRetriever.cpp",
   "src/TestBase64Url.cpp",
   "src/TestBigInteger.cpp",
   "src/TestBigUnsigned.cpp",
+  "src/TestBinaryWire.cpp",
   "src/TestBrowserLauncher.cpp",
+  "src/TestBusyWaitPulseGeneratorDriver.cpp",
   "src/TestCodecPlugins.cpp",
   "src/TestConfigStore.cpp",
-  "src/TestCpuIsaFeatures.cpp",
+  "src/TestCoreGlobalTeardown.cpp",
   "src/TestCronSchedule.cpp",
   "src/TestCryptoCodecs.cpp",
   "src/TestCsvTableCodec.cpp",
@@ -222,6 +225,7 @@ files( {
   "src/TestFileSystemAccess.cpp",
   "src/TestFileSystemAccessResultC.c",
   "src/TestFileUtils.cpp",
+  "src/TestFloatText.cpp",
   "src/TestFraction.cpp",
   "src/TestFrameworkSkip.cpp",
   "src/TestFrameworkSuites.cpp",
@@ -232,12 +236,8 @@ files( {
   "src/TestJsonDataNodeFidelity.cpp",
   "src/TestJsonSchema.cpp",
   "src/TestJsonSyntaxValidator.cpp",
-  "src/TestLogging.cpp",
   "src/TestLogManagerLockOrder.cpp",
-  "src/TestPumpedObserverLockOrder.cpp",
-  "src/TestPumpedObserverMail.cpp",
-  "src/TestAppStopWithTasks.cpp",
-  "src/TestCoreGlobalTeardown.cpp",
+  "src/TestLogging.cpp",
   "src/TestMemoryDataTable.cpp",
   "src/TestNotificationCost.cpp",
   "src/TestNotifierDelivery.cpp",
@@ -245,10 +245,13 @@ files( {
   "src/TestPbkdf2HmacSha256.cpp",
   "src/TestPluginUnload.cpp",
   "src/TestProcess.cpp",
+  "src/TestPumpedObserverLockOrder.cpp",
+  "src/TestPumpedObserverMail.cpp",
   "src/TestRandom.cpp",
   "src/TestRateLimiting.cpp",
   "src/TestRedactor.cpp",
   "src/TestSchedule.cpp",
+  "src/TestScheduleTrigger.cpp",
   "src/TestScopedValue.cpp",
   "src/TestSecureBuffer.cpp",
   "src/TestServiceHealthRegistry.cpp",

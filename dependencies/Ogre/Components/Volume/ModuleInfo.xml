@@ -16,8 +16,8 @@
         <Preprocessor>
             <Define String="OgreVolume_EXPORTS" />
         </Preprocessor>
-        <Compiler>
-            <CompilerFlags CompilerName="G++" Flags="-std=c++14 -fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math" />
+        <Compiler MinCppStandard="14">
+            <CompilerFlags CompilerName="G++" Flags="-fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno -ffp-contract=fast -fno-trapping-math" />
             <CompilerFlags CompilerName="GCC" Flags="-fvisibility=hidden" />
             <CompilerFlags CompilerName="MSVC" Flags="/bigobj /fp:contract" />
         </Compiler>

@@ -407,7 +407,7 @@ CWmiAccessImpl::Initialize( void )
     // Initialize COM library
     if ( !m_comInitialized )
     {
-        hres = CoInitializeEx( NULL, COINIT_MULTITHREADED );
+        hres = CoInitializeEx( GUCEF_NULL, COINIT_MULTITHREADED );
         if ( FAILED( hres ) ) 
             return -2;
         m_comInitialized = true;
@@ -416,8 +416,8 @@ CWmiAccessImpl::Initialize( void )
     // Initialize COM security
     if ( !m_comSecurityInitialized )
     {
-        hres = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT,
-                                    RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+        hres = CoInitializeSecurity(GUCEF_NULL, -1, GUCEF_NULL, GUCEF_NULL, RPC_C_AUTHN_LEVEL_DEFAULT,
+                                    RPC_C_IMP_LEVEL_IMPERSONATE, GUCEF_NULL, EOAC_NONE, GUCEF_NULL);
         if (FAILED(hres)) 
             return -3;
         m_comSecurityInitialized = true;
@@ -426,7 +426,7 @@ CWmiAccessImpl::Initialize( void )
     if ( GUCEF_NULL == m_pLocator )
     {
         hres = CoCreateInstance( CLSID_WbemLocator,         // The CLSID of the WbemLocator class
-                                 NULL,                      // No context
+                                 GUCEF_NULL,                      // No context
                                  CLSCTX_INPROC_SERVER,      // Run in the same process
                                  IID_IWbemLocator,          // The interface to obtain (IWbemLocator)
                                  (LPVOID*)&m_pLocator);     // Pointer to store the interface pointer
@@ -436,8 +436,8 @@ CWmiAccessImpl::Initialize( void )
 
     if ( GUCEF_NULL == m_pServices )
     {
-        hres = m_pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, NULL,
-                                            0, NULL, NULL, &m_pServices);
+        hres = m_pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), GUCEF_NULL, GUCEF_NULL, GUCEF_NULL,
+                                            0, GUCEF_NULL, GUCEF_NULL, &m_pServices);
         if ( FAILED( hres ) ) 
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to connect to WMI service. Error code: " + ToString( hres ) );
@@ -448,8 +448,8 @@ CWmiAccessImpl::Initialize( void )
     if ( !m_wmiSecurityInitialized )
     {
         // Set security levels on WMI connection
-        hres = CoSetProxyBlanket( m_pServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL,
-                                    RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+        hres = CoSetProxyBlanket( m_pServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, GUCEF_NULL,
+                                    RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, GUCEF_NULL, EOAC_NONE);
         if ( FAILED( hres ) ) 
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to set security levels on WMI connection. Error code: " + ToString( hres ) );
@@ -522,7 +522,7 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
         IEnumWbemClassObject* pVolEnum  = GUCEF_NULL;
         hres = m_pServices->ExecQuery(bstr_t(L"WQL"), bstr_t(wqlVolQuery.c_str()),
                              WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
-                             NULL, &pVolEnum );
+                             GUCEF_NULL, &pVolEnum );
         if ( FAILED( hres ) ) 
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "WMI query to get drive letter for volume GUID path failed. Error code: " + ToString( hres ) );
@@ -554,7 +554,7 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
 
         VARIANT varDrive;
         VariantInit( &varDrive );
-        hres = pVolObj->Get( L"DriveLetter", 0, &varDrive, NULL, NULL );
+        hres = pVolObj->Get( L"DriveLetter", 0, &varDrive, GUCEF_NULL, GUCEF_NULL );
         if ( FAILED( hres ) || varDrive.vt != VT_BSTR ) 
         {
             // maybe the volume is mounted only by GUID, not a drive letter
@@ -580,7 +580,7 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
                                     bstr_t( L"WQL" ),
                                     bstr_t( q1.c_str() ),
                                     WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
-                                    NULL,
+                                    GUCEF_NULL,
                                     &pPartEnum);
         if ( FAILED( hres ) ) 
         {
@@ -596,7 +596,7 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
             // Grab the __RELPATH so we can use it in the next query
             VARIANT varRel;
             VariantInit(&varRel);
-            hres = pPartObj->Get(L"__RELPATH", 0, &varRel, NULL, NULL);
+            hres = pPartObj->Get(L"__RELPATH", 0, &varRel, GUCEF_NULL, GUCEF_NULL);
             if ( FAILED( hres ) ) 
             {
                 pPartObj->Release();
@@ -609,8 +609,8 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
 
             VARIANT varDiskIndex, varPartitionIndex;
             VariantInit(&varDiskIndex); VariantInit(&varPartitionIndex);
-            HRESULT hrDisk = pPartObj->Get(L"DiskIndex", 0, &varDiskIndex, NULL, NULL);
-            HRESULT hrIndex = pPartObj->Get(L"Index", 0, &varPartitionIndex, NULL, NULL);
+            HRESULT hrDisk = pPartObj->Get(L"DiskIndex", 0, &varDiskIndex, GUCEF_NULL, GUCEF_NULL);
+            HRESULT hrIndex = pPartObj->Get(L"Index", 0, &varPartitionIndex, GUCEF_NULL, GUCEF_NULL);
 
             if ( SUCCEEDED(hrDisk) && SUCCEEDED(hrIndex) &&
                   varDiskIndex.vt == VT_I4 && varPartitionIndex.vt == VT_I4) 
@@ -643,7 +643,7 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
                                         bstr_t(L"WQL"),
                                         bstr_t(q2.c_str()),
                                         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
-                                        NULL,
+                                        GUCEF_NULL,
                                         &pDriveEnum);
             if ( FAILED( hres ) ) 
             {
@@ -658,7 +658,7 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
             {
                 VARIANT varDevID;
                 VariantInit(&varDevID);
-                hres = pDriveObj->Get( L"DeviceID", 0, &varDevID, NULL, NULL );
+                hres = pDriveObj->Get( L"DeviceID", 0, &varDevID, GUCEF_NULL, GUCEF_NULL );
                 if ( SUCCEEDED(hres) && varDevID.vt == VT_BSTR) 
                 {
                     CString deviceId = ToString( varDevID.bstrVal );
@@ -1458,8 +1458,8 @@ CPdhAccessImpl::GetListOfStatCategories( CStringSet& statCategories ) const
             return -1;
 
         DWORD dwInstanceSize = 0;
-        LPWSTR szCounterList = NULL;
-        LPWSTR szInstanceList = NULL;
+        LPWSTR szCounterList = GUCEF_NULL;
+        LPWSTR szInstanceList = GUCEF_NULL;
     
         // Get buffer sizes
         DWORD requiredBufferSize = 0;
@@ -1506,8 +1506,8 @@ CPdhAccessImpl::GetListOfStatCountersInCategory( const CString& statCategory ,
             return -1;
 
         DWORD dwInstanceSize = 0;
-        LPWSTR szCounterList = NULL;
-        LPWSTR szInstanceList = NULL;
+        LPWSTR szCounterList = GUCEF_NULL;
+        LPWSTR szInstanceList = GUCEF_NULL;
     
         // Get buffer sizes
         DWORD requiredBufferSize = 0;
@@ -1557,8 +1557,8 @@ CPdhAccessImpl::GetListOfStatInstancesInCategory( const CString& statCategory ,
             return -1;
 
         DWORD dwInstanceSize = 0;
-        LPWSTR szCounterList = NULL;
-        LPWSTR szInstanceList = NULL;
+        LPWSTR szCounterList = GUCEF_NULL;
+        LPWSTR szInstanceList = GUCEF_NULL;
     
         // Get buffer sizes
         DWORD counterBufferSize = 0;

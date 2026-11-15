@@ -209,6 +209,19 @@ public:
 
         ::new( static_cast< void* >( p ) ) value_type( std::forward<Args>(args)... );
     }
+    #else
+    void
+    construct( pointer p )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
+
+        #endif
+
+        ::new( static_cast< void* >( p ) ) value_type();
+    }
     #endif
 
     template <typename U>
@@ -356,6 +369,19 @@ public:
 
         ::new( static_cast< void* >( p ) ) value_type( std::forward<Args>(args)... );
     }
+    #else
+    void
+    construct( pointer p )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
+
+        #endif
+
+        ::new( static_cast< void* >( p ) ) value_type();
+    }
     #endif
 
     template <typename U>
@@ -498,6 +524,18 @@ public:
     // Allow construction from the underlying base allocator (std::allocator<T> or gucef_platform_diagnostic_allocator<T>)
     gucef_allocator( const base_type& src ) GUCEF_NOEXCEPT
         : base_type( src ) { GUCEF_TRACE; }
+
+    #ifndef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    // Before C++11 the standard allocator only constructs from a value: default construction is added here
+    using base_type::construct;
+
+    void
+    construct( pointer p )
+    {GUCEF_TRACE;
+
+        ::new( static_cast< void* >( p ) ) value_type();
+    }
+    #endif
   };
 
 /*-------------------------------------------------------------------------*/

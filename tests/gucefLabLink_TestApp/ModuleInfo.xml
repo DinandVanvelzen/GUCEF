@@ -21,6 +21,19 @@
         <Preprocessor>
             <Define String="GUCEF_LABLINK_TESTAPP_BUILD_MODULE" />
         </Preprocessor>
+        <!-- the headers of the tool under test -->
+        <Includes Source="Dependency">
+            <Include Path="../../tools/gucefLabLink/include" />
+        </Includes>
+        <!-- the tool sources under test are compiled into the test app -->
+        <Files Type="Source">
+            <Dir Path="../../tools/gucefLabLink/src">
+                <File Name="gucefLabLink_Cluster.cpp" />
+                <File Name="gucefLabLink_Machine.cpp" />
+                <File Name="gucefLabLink_Protocol.cpp" />
+                <File Name="gucefLabLink_Store.cpp" />
+            </Dir>
+        </Files>
         <RuntimeDependencies>
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
         </RuntimeDependencies>

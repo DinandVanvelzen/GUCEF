@@ -113,7 +113,7 @@ CTestChatService::Connect( const MULTIPLAY::CPlayerIdentity& identity, CORE::CFu
     CORE::CFutureResultSource source;
     if ( identity.displayName.IsNULLOrEmpty() )
     {
-        source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "A chat user needs a name" );
+        source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, "A chat user needs a name" );
         future = source.GetFuture();
         return false;
     }

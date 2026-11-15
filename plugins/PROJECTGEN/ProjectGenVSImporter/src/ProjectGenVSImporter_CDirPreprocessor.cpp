@@ -141,7 +141,7 @@ CDirPreprocessor::FindProjectFiles( const CORE::CString& path ,
 {GUCEF_TRACE;
 
     struct CORE::SDI_Data* di = CORE::DI_First_Dir_Entry( path.C_String() );
-    if ( NULL != di )
+    if ( GUCEF_NULL != di )
     {
         do
         {
@@ -388,7 +388,7 @@ CDirPreprocessor::ProccessProjectFiles( const CProjectInfo& projectInfo       ,
             if ( buildConfigToUse == (*n)->GetAttributeValue( "Condition" ) )
             {
                 CORE::CDataNode* clCompileNode = (*n)->FindChild( "ClCompile" );
-                if ( NULL != clCompileNode )
+                if ( GUCEF_NULL != clCompileNode )
                 {                
                     PROJECTGEN::TStringSet newDefines = PROJECTGEN::StringVectorToStringSet( clCompileNode->GetChildValueByName( "PreprocessorDefinitions" ).AsString().ParseElements( ';', false ) );
                     PROJECTGEN::TStringSet::iterator m = newDefines.begin();
@@ -407,7 +407,7 @@ CDirPreprocessor::ProccessProjectFiles( const CProjectInfo& projectInfo       ,
                     }
                 }
                 CORE::CDataNode* linkNode = (*n)->FindChild( "Link" );
-                if ( NULL != linkNode )
+                if ( GUCEF_NULL != linkNode )
                 {
                     //PROJECTGEN::TStringSet newLibDirs = PROJECTGEN::StringVectorToStringSet( (*n)->GetChildValueByName( "AdditionalLibraryDirectories" ).ParseElements( ';', false ) );
                     //moduleInfo.linkerSettings.linkedLibraries[ ];

@@ -73,7 +73,7 @@ namespace GUIDRIVERCEGUI {
 CFormBackendImp::CFormBackendImp( void )
     : CFormBackend()        ,
       m_widgetMap()         ,
-      m_rootWindow( NULL )  ,
+      m_rootWindow( GUCEF_NULL )  ,
       m_widgetNamePrefix()
 {GUCEF_TRACE;
 
@@ -92,7 +92,7 @@ GUCEF::GUI::CWidget*
 CFormBackendImp::CreateAndHookWrapperForWindow( CEGUI::Window* window )
 {GUCEF_TRACE;
 
-    GUCEF::GUI::CWidget* widgetWrapper = NULL;
+    GUCEF::GUI::CWidget* widgetWrapper = GUCEF_NULL;
     CString typeName( CString( window->getType().c_str() ).SubstrToChar( '/', false ) );
     
     //if ( "Button" == typeName )
@@ -192,15 +192,15 @@ void
 CFormBackendImp::WrapAndHookChildWindows( CEGUI::Window* window )
 {GUCEF_TRACE;
 
-    GUCEF::GUI::CWidget* widget = NULL;
-    CEGUI::Window* childWindow = NULL;
+    GUCEF::GUI::CWidget* widget = GUCEF_NULL;
+    CEGUI::Window* childWindow = GUCEF_NULL;
     size_t i=0;
     size_t childCount = window->getChildCount();
     while ( i < childCount )
     {
         childWindow = window->getChildAtIdx( i );
         widget = CreateAndHookWrapperForWindow( childWindow );
-        if ( NULL != widget )
+        if ( GUCEF_NULL != widget )
         {
             CString localWidgetName = widget->GetName().SubstrToChar( '/', false );
             m_widgetMap[ localWidgetName ] = widget;
@@ -237,7 +237,7 @@ bool
 CFormBackendImp::LoadLayout( GUCEF::CORE::CIOAccess& layoutStorage )
 {GUCEF_TRACE;
     
-    CEGUI::Window* rootWindow = NULL;
+    CEGUI::Window* rootWindow = GUCEF_NULL;
     CEGUI::WindowManager* wmgr = CEGUI::WindowManager::getSingletonPtr();
     
     GUCEF_DEBUG_LOG( 0, "Starting layout load for a GUI Form" );
@@ -252,7 +252,7 @@ CFormBackendImp::LoadLayout( GUCEF::CORE::CIOAccess& layoutStorage )
 
         rootWindow = wmgr->loadLayoutFromContainer( container );
 
-        container.setData( (CEGUI::uint8*) NULL );
+        container.setData( (CEGUI::uint8*) GUCEF_NULL );
         container.setSize( (size_t) 0 );
     }
     catch ( CEGUI::Exception& e )
@@ -262,11 +262,11 @@ CFormBackendImp::LoadLayout( GUCEF::CORE::CIOAccess& layoutStorage )
     }
     
     // Now that we completed loading lets see what we got from CEGUI
-    if ( NULL != rootWindow )
+    if ( GUCEF_NULL != rootWindow )
     {
         // Begin by providing a wrapper for the root window
         m_rootWindow = CreateAndHookWrapperForWindow( rootWindow );
-        if ( NULL != m_rootWindow )
+        if ( GUCEF_NULL != m_rootWindow )
         {
             CString localWidgetName = m_rootWindow->GetName().SubstrToChar( '/', false );
             m_widgetMap[ localWidgetName ] = m_rootWindow;
@@ -275,7 +275,7 @@ CFormBackendImp::LoadLayout( GUCEF::CORE::CIOAccess& layoutStorage )
             // We will directly add the form as a child of the root for now
             // Note: This assumes that you have a GUISheet already set, otherwise this will result in a segfault!
             CEGUI::Window* globalRootWindow = CEGUI::System::getSingleton().getDefaultGUIContext().getRootWindow();
-            if ( NULL != globalRootWindow )
+            if ( GUCEF_NULL != globalRootWindow )
             {
                 globalRootWindow->addChild( rootWindow );
                 
@@ -352,7 +352,7 @@ CFormBackendImp::GetWidget( const CString& widgetName )
         return (*i).second;
     }
     
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

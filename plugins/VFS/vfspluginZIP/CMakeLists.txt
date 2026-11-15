@@ -86,7 +86,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../dependencies/minizip ../../../dependencies/zziplib ../../../dependencies/zziplib/zzip ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
+include_directories( ../../../common/include ../../../dependencies/minizip ../../../dependencies/zziplib ../../../dependencies/zziplib/zzip ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
@@ -119,6 +119,15 @@ endif( WIN32 )
 if ( WIN64 )
   include_directories( ../../../dependencies/zlib ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
 endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include )
+if ( EMSCRIPTEN32 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES zlib )
+endif( EMSCRIPTEN32 )
+if ( EMSCRIPTEN64 )
+  GUCEF_module_uses( ${MODULE_NAME} INCLUDE_ONLY_MODULES zlib )
+endif( EMSCRIPTEN64 )
 
 
 

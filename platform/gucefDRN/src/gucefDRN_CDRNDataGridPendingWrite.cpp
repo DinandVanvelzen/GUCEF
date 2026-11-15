@@ -255,7 +255,7 @@ bool
 CDRNDataGridPendingWrite::Fail( const CORE::CString& statusText )
 {GUCEF_TRACE;
 
-    return m_source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, statusText );
+    return m_source.Fail( CORE::TASKSTATUS_STARTUP_FAILED, statusText );
 }
 
 /*-------------------------------------------------------------------------//

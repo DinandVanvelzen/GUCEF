@@ -197,6 +197,39 @@ PumpUntil( Condition condition, UInt32 timeoutInMs )
 
 /*-------------------------------------------------------------------------*/
 
+/** Condition for PumpUntil(): the recorder saw the end of a retrieval */
+class CIsFinished
+{
+    public:
+
+    CIsFinished( const CProviderRecorder& recorder ) : m_recorder( recorder ) {}
+    bool operator()( void ) const { return m_recorder.IsFinished(); }
+
+    private:
+
+    const CProviderRecorder& m_recorder;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Condition for PumpUntil(): the downloads manager accepted a new retrieval of the list, noted in 'restarted' */
+class CRetrievalRestarted
+{
+    public:
+
+    CRetrievalRestarted( PRODMAN::CDownloadsManager& manager, const CORE::CString& listUri, bool& restarted )
+        : m_manager( manager ), m_listUri( listUri ), m_restarted( restarted ) {}
+    bool operator()( void ) const { m_restarted = m_manager.ObtainAvailableDownloadsList( m_listUri ); return m_restarted; }
+
+    private:
+
+    PRODMAN::CDownloadsManager& m_manager;
+    const CORE::CString& m_listUri;
+    bool& m_restarted;
+};
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformProductListRetrievalTests( void )
 {GUCEF_TRACE;
@@ -231,7 +264,7 @@ PerformProductListRetrievalTests( void )
 
             ASSERT_TRUE( provider.RetrieveList( listUri ) );
             ASSERT_FALSE( provider.RetrieveList( listUri ) );       // busy
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
             ASSERT_TRUE( 1 == recorder.started && 1 == recorder.retrieved && 0 == recorder.failed );
             ASSERT_TRUE( recorder.hadList );
             ASSERT_TRUE( recorder.source == listUri );
@@ -239,7 +272,7 @@ PerformProductListRetrievalTests( void )
             // the same list, as a data uri
             CProviderRecorder dataRecorder( provider );
             ASSERT_TRUE( provider.RetrieveList( "data:text/xml;base64,PFByb2R1Y3RMaXN0PjwvUHJvZHVjdExpc3Q+" ) );
-            ASSERT_TRUE( PumpUntil( [&dataRecorder]() { return dataRecorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( dataRecorder ), 10000 ) );
             ASSERT_TRUE( 1 == dataRecorder.retrieved && 0 == dataRecorder.failed );
         }
         catch ( ... )
@@ -260,7 +293,7 @@ PerformProductListRetrievalTests( void )
             CORE::CString missingUri = "file://" + CORE::CombinePath( workDir, "missing.xml" );
             #endif
             ASSERT_TRUE( provider.RetrieveList( missingUri ) );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsFinished(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
             ASSERT_TRUE( 1 == recorder.failed && 0 == recorder.retrieved );
         }
         catch ( ... )
@@ -278,7 +311,7 @@ PerformProductListRetrievalTests( void )
 
             // once the retrieval has ended a new one can be started
             bool restarted = false;
-            ASSERT_TRUE( PumpUntil( [&manager, &restarted, &listUri]() { restarted = manager.ObtainAvailableDownloadsList( listUri ); return restarted; }, 10000 ) );
+            ASSERT_TRUE( PumpUntil( CRetrievalRestarted( manager, listUri, restarted ), 10000 ) );
             ASSERT_TRUE( restarted );
         }
         catch ( ... )

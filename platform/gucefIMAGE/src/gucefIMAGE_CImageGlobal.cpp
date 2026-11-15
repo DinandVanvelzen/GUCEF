@@ -94,7 +94,7 @@ namespace IMAGE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CImageGlobal* CImageGlobal::g_instance = NULL;
+CImageGlobal* CImageGlobal::g_instance = GUCEF_NULL;
 
 TAsyncImageUpscaleTaskFactory g_asyncImageUpscaleTaskFactory;
 
@@ -108,7 +108,7 @@ CImageGlobal*
 CImageGlobal::Instance()
 {GUCEF_TRACE;
 
-    if ( NULL == g_instance )
+    if ( GUCEF_NULL == g_instance )
     {
         g_instance = new CImageGlobal();
         g_instance->Initialize();
@@ -123,7 +123,7 @@ CImageGlobal::Deinstance( void )
 {GUCEF_TRACE;
 
     delete g_instance;
-    g_instance = NULL;
+    g_instance = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -172,10 +172,10 @@ CImageGlobal::Initialize( void )
 /*-------------------------------------------------------------------------*/
 
 CImageGlobal::CImageGlobal( void )
-    : m_imageCodecPluginManager( NULL ) ,
-      m_imageCodecRegistry( NULL )      ,
-      m_imageUpscalerRegistry( NULL )   ,
-      m_mmpxUpscaler( NULL )            ,
+    : m_imageCodecPluginManager( GUCEF_NULL ) ,
+      m_imageCodecRegistry( GUCEF_NULL )      ,
+      m_imageUpscalerRegistry( GUCEF_NULL )   ,
+      m_mmpxUpscaler( GUCEF_NULL )            ,
       m_pngCodec()
 {GUCEF_TRACE;
 
@@ -208,13 +208,13 @@ CImageGlobal::~CImageGlobal()
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncImageUpscale::TaskType );
 
     delete m_imageCodecPluginManager;
-    m_imageCodecPluginManager = NULL;
+    m_imageCodecPluginManager = GUCEF_NULL;
     delete m_imageCodecRegistry;
-    m_imageCodecRegistry = NULL;
+    m_imageCodecRegistry = GUCEF_NULL;
     delete m_imageUpscalerRegistry;
-    m_imageUpscalerRegistry = NULL;
+    m_imageUpscalerRegistry = GUCEF_NULL;
     delete m_mmpxUpscaler;
-    m_mmpxUpscaler = NULL;
+    m_mmpxUpscaler = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

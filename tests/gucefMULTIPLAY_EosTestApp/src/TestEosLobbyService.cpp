@@ -464,7 +464,7 @@ PerformEosLobbyServiceTests( void )
 
             // the answer of creating comes after the time is up
             fixture[ 0 ].peer.latencyMs = 700;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fixture[ 0 ].service.CreateLobby( CEosFixture::MakeParams(), future ) );
             ASSERT_TRUE( PumpUntilReady( future, 3000 ) );
             ASSERT_TRUE( FailureOf( future ).HasSubstr( "before the SDK answered" ) >= 0 || FailureOf( future ).HasSubstr( "timed out" ) >= 0 || FailureOf( future ).HasSubstr( "time" ) >= 0 );
@@ -481,7 +481,7 @@ PerformEosLobbyServiceTests( void )
 
             // the SDK does not answer at all
             fixture[ 1 ].peer.failures.neverAnswer = true;
-            CORE::CFutureResult browse( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult browse( CORE::TASKSTATUS_UNDEFINED );
             MULTIPLAY::CGameListingFilter filter;
             filter.gameId = "testgame";
             ASSERT_TRUE( fixture[ 1 ].service.Browse( filter, browse ) );
@@ -507,7 +507,7 @@ PerformEosLobbyServiceTests( void )
             REQUIRE_TRUE( !host.IsNULL() );
 
             fixture[ 1 ].peer.latencyMs = 100;
-            CORE::CFutureResult join( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult join( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fixture[ 1 ].service.JoinLobby( LobbyIdOf( host ), CORE::CString::Empty, false, join ) );
             ASSERT_TRUE( join.RequestCancellation() );
             ASSERT_TRUE( PumpUntilReady( join, 3000 ) );
@@ -518,7 +518,7 @@ PerformEosLobbyServiceTests( void )
             PumpFor( 300 );
             ASSERT_TRUE( 0 == fixture[ 1 ].serviceRecorder.lobbyJoined && 1 == host->GetState().members.size() );
 
-            CORE::CFutureResult create( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult create( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( fixture[ 1 ].service.CreateLobby( CEosFixture::MakeParams(), create ) );
             ASSERT_TRUE( create.RequestCancellation() );
             ASSERT_TRUE( PumpUntilReady( create, 3000 ) );
@@ -541,9 +541,9 @@ PerformEosLobbyServiceTests( void )
 
             // under way: a create, a join and a browse
             fixture[ 1 ].peer.latencyMs = 200;
-            CORE::CFutureResult create( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-            CORE::CFutureResult join( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-            CORE::CFutureResult browse( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult create( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult join( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult browse( CORE::TASKSTATUS_UNDEFINED );
             MULTIPLAY::CGameListingFilter filter;
             filter.gameId = "testgame";
             ASSERT_TRUE( fixture[ 1 ].service.CreateLobby( CEosFixture::MakeParams( "In flight" ), create ) );
@@ -569,7 +569,7 @@ PerformEosLobbyServiceTests( void )
                 MULTIPLAY::CILobbyPtr own = extra.Create( CEosFixture::MakeParams( "Short lived" ) );
                 ASSERT_TRUE( !own.IsNULL() );
                 extra.peer.latencyMs = 200;
-                CORE::CFutureResult pending( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult pending( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( extra.service.JoinLobby( LobbyIdOf( host ), CORE::CString::Empty, false, pending ) );
                 // the lobby object that the application still holds goes on without a service
                 CLobbyRecorder watched;
@@ -683,7 +683,7 @@ PerformEosLobbyServiceTests( void )
                     parameters->SetAttribute( "encryptionKey", "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff" );
                     parameters->SetAttribute( "tickIntervalInMs", 5 );
                     REQUIRE_TRUE( provider.LoadConfig( node ) );
-                    CORE::CFutureResult login( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                    CORE::CFutureResult login( CORE::TASKSTATUS_UNDEFINED );
                     REQUIRE_TRUE( provider.TrySilentLogin( login ) && PumpUntilReady( login, 3000 ) );
                     REQUIRE_TRUE( host.Connect() );
                     for ( UInt32 i=1; i<3; ++i )
@@ -782,7 +782,7 @@ PerformEosLobbyServiceTests( void )
             PLUGINGLUE::EOS::SEosP2PShim p2p = player.peer.P2PShim();
             eos->SetSettings( CEosFixture::MakeFastSettings() );
             eos->SetShim( player.peer.LobbyShim(), &p2p );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             REQUIRE_TRUE( service->Connect( player.identity, future ) && PumpUntilReady( future, 3000 ) );
             REQUIRE_TRUE( service->IsConnected() );
             REQUIRE_TRUE( other.Connect() );
@@ -809,7 +809,7 @@ PerformEosLobbyServiceTests( void )
             ASSERT_TRUE( 1 == found.endpoints.size() && found.endpoints[ 0 ].HasSubstr( "eos-p2p://" ) == 0 );
 
             // it goes when the lobby does
-            CORE::CFutureResult none( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult none( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( otherLobby->Leave() );
             otherLobby = MULTIPLAY::CILobbyPtr();
             CLobbyCountIs empty( world, 0 );

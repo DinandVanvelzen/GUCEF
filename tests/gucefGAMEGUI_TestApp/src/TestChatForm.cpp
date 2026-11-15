@@ -114,7 +114,7 @@ ConnectUser( CTestChatService& service, const char* name )
     MULTIPLAY::CPlayerIdentity identity;
     identity.userId = CORE::CString( name ) + "-id";
     identity.displayName = name;
-    CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
     return service.Connect( identity, future ) && service.IsConnected();
 }
 

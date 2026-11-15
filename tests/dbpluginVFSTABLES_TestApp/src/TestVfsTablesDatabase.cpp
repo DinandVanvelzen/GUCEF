@@ -312,11 +312,11 @@ AwaitFuture( const CFutureResult& future, UInt32 timeoutMs, CTaskPtr& task )
     while ( !future.IsReady() )
     {
         if ( MT::PrecisionTimerTicksToMs( MT::PrecisionTickCount() - start ) > timeoutMs )
-            return TTaskStatus::TASKSTATUS_UNDEFINED;
+            return CORE::TASKSTATUS_UNDEFINED;
         MT::PrecisionDelay( 2 );
     }
     task = future.GetResult( 0 );
-    return task.IsNULL() ? TTaskStatus::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
+    return task.IsNULL() ? CORE::TASKSTATUS_UNDEFINED : task->GetTaskStatus();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1668,29 +1668,29 @@ PerformVfsTablesDatabaseTests( void )
             MountFreshDirectory( "async", "vfstests/async", true );
             COMCORE::CIDatabaseClientPtr client = factory.Create( "vfstables" );
             CTaskPtr task;
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( client->OpenAsync( MakeSettings( "vfstests/async", false ) ), 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( client->OpenAsync( MakeSettings( "vfstests/async", false ) ), 20000, task ) );
             ASSERT_TRUE( client->IsOpen() );
             CFutureResult created = client->CreateTableAsync( MakeEventsDefinition( "events" ) );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( created, 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( created, 20000, task ) );
             CIDataTablePtr table;
             REQUIRE_TRUE( COMCORE::CDatabaseTableResult::TryGetFromFuture( created, table ) && !table.IsNULL() );
 
             static const char* const regions[] = { "EU", "US" };
             CFutureResult written = table->WriteAsync( MakeBatch( table->GetSchema(), MakeEvents( regions, 2, 2020, 2021, 10, 1.0 ) ), DATATABLE_WRITE_INSERT );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( written, 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( written, 20000, task ) );
             const CDataTableWriteResult* writeResult = static_cast< const CDataTableWriteResult* >( task->GetTaskData() );
             ASSERT_TRUE( GUCEF_NULL != writeResult && 40 == writeResult->GetTotalRowsWritten() );
             CFutureResult conflict = table->WriteAsync( MakeBatch( table->GetSchema(), MakeEvents( regions, 1, 2020, 2020, 1, 1.0 ) ), DATATABLE_WRITE_INSERT );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_STARTUP_FAILED == AwaitFuture( conflict, 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_STARTUP_FAILED == AwaitFuture( conflict, 20000, task ) );
             ASSERT_TRUE( task->GetTaskStatusExtraInfo().HasSubstr( "CONFLICT" ) >= 0 );
 
             CFutureResult listed = table->ListPartitionsAsync( CDataTableQuery(), true );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( listed, 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( listed, 20000, task ) );
             const CDataTablePartitionInfoList* list = static_cast< const CDataTablePartitionInfoList* >( task->GetTaskData() );
             ASSERT_TRUE( GUCEF_NULL != list && 4 == list->partitions.size() );
 
             CFutureResult names = client->ListTablesAsync();
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( names, 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( names, 20000, task ) );
             CString::StringSet tableNames;
             ASSERT_TRUE( COMCORE::CDatabaseTableNamesResult::TryGetFromFuture( names, tableNames ) && 1 == tableNames.size() );
 
@@ -1699,7 +1699,7 @@ PerformVfsTablesDatabaseTests( void )
             ASSERT_TRUE( 20 == rows.size() );
             table.Unlink();
             CFutureResult dropped = client->DropTableAsync( "events", true );
-            ASSERT_TRUE( TTaskStatus::TASKSTATUS_FINISHED == AwaitFuture( dropped, 20000, task ) );
+            ASSERT_TRUE( CORE::TASKSTATUS_FINISHED == AwaitFuture( dropped, 20000, task ) );
             client.Unlink();
             UnmountDirectory( "async" );
         }

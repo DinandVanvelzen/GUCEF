@@ -108,7 +108,7 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowContext : public GUI::CWindowContext
    
     virtual void OnNotify( CORE::CNotifier* notifier          ,
                            const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
+                           CORE::CICloneable* evenData = GUCEF_NULL );
     
     private:
     

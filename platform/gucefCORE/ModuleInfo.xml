@@ -22,6 +22,10 @@
         <Preprocessor>
             <Define String="GUCEF_CORE_BUILD_MODULE" />
         </Preprocessor>
+        <!-- headers in src are private to gucefCORE: they are not include search paths for gucefCORE nor its dependents -->
+        <Includes Source="ExcludedFromSearchPaths">
+            <Include Path="src" />
+        </Includes>
     </Module>
     <Module Platform="mswin">
         <Linker>

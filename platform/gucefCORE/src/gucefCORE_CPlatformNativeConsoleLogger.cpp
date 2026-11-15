@@ -138,7 +138,7 @@ CPlatformNativeConsoleLogger::~CPlatformNativeConsoleLogger()
     if ( GUCEF_NULL != m_nativeConsoleLogger )
         CCoreGlobal::Instance()->GetLogManager().RemoveLogger( m_nativeConsoleLogger );
     GUCEF_DELETE m_nativeConsoleLogger;
-    m_nativeConsoleLogger = NULL;
+    m_nativeConsoleLogger = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

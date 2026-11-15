@@ -120,8 +120,8 @@ ConvertButtonIndexToCEGui( const UInt32 buttonindex )
 CCEGUIInputAdapter::CCEGUIInputAdapter( void )
     : GUCEF::CORE::CObserver()  ,
       m_guisystem( CEGUI::System::getSingletonPtr() )  ,
-      m_inputContext( NULL )                           ,
-      m_ceGuiContext( NULL )                           ,
+      m_inputContext( GUCEF_NULL )                           ,
+      m_ceGuiContext( GUCEF_NULL )                           ,
       m_inputController( &INPUT::CInputGlobal::Instance()->GetInputController() )
 {GUCEF_TRACE;
 
@@ -132,8 +132,8 @@ CCEGUIInputAdapter::CCEGUIInputAdapter( void )
 CCEGUIInputAdapter::~CCEGUIInputAdapter()
 {GUCEF_TRACE;
 
-    m_inputContext = NULL;
-    m_ceGuiContext = NULL;
+    m_inputContext = GUCEF_NULL;
+    m_ceGuiContext = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -203,7 +203,7 @@ CCEGUIInputAdapter::OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
                               GUCEF::CORE::CICloneable* eventdata /* = NULL */ )
 {GUCEF_TRACE;
 
-    if ( NULL != m_ceGuiContext )
+    if ( GUCEF_NULL != m_ceGuiContext )
     {
         if ( GUCEF::INPUT::CMouse::MouseButtonEvent == eventid )
         {

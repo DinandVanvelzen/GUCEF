@@ -13,7 +13,7 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/vorbis/codec.h
     include/vorbis/vorbisenc.h
@@ -62,7 +62,7 @@ if (ANDROID)
     lib/modes/setup_X.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -90,7 +90,87 @@ if (ANDROID)
     lib/window.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/vorbis/codec.h
+    include/vorbis/vorbisenc.h
+    include/vorbis/vorbisfile.h
+    lib/backends.h
+    lib/bitrate.h
+    lib/codebook.h
+    lib/codec_internal.h
+    lib/envelope.h
+    lib/highlevel.h
+    lib/lookup.h
+    lib/lookup_data.h
+    lib/lpc.h
+    lib/lsp.h
+    lib/masking.h
+    lib/mdct.h
+    lib/misc.h
+    lib/os.h
+    lib/psy.h
+    lib/registry.h
+    lib/scales.h
+    lib/smallft.h
+    lib/window.h
+    lib/books/coupled/res_books_51.h
+    lib/books/coupled/res_books_stereo.h
+    lib/books/floor/floor_books.h
+    lib/books/uncoupled/res_books_uncoupled.h
+    lib/modes/floor_all.h
+    lib/modes/psych_11.h
+    lib/modes/psych_16.h
+    lib/modes/psych_44.h
+    lib/modes/psych_8.h
+    lib/modes/residue_16.h
+    lib/modes/residue_44.h
+    lib/modes/residue_44p51.h
+    lib/modes/residue_44u.h
+    lib/modes/residue_8.h
+    lib/modes/setup_11.h
+    lib/modes/setup_16.h
+    lib/modes/setup_22.h
+    lib/modes/setup_32.h
+    lib/modes/setup_44.h
+    lib/modes/setup_44p51.h
+    lib/modes/setup_44u.h
+    lib/modes/setup_8.h
+    lib/modes/setup_X.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    lib/analysis.c
+    lib/bitrate.c
+    lib/block.c
+    lib/codebook.c
+    lib/envelope.c
+    lib/floor0.c
+    lib/floor1.c
+    lib/info.c
+    lib/lookup.c
+    lib/lpc.c
+    lib/lsp.c
+    lib/mapping0.c
+    lib/mdct.c
+    lib/psy.c
+    lib/registry.c
+    lib/res0.c
+    lib/sharedbook.c
+    lib/smallft.c
+    lib/synthesis.c
+    lib/vorbisenc.c
+    lib/vorbisfile.c
+    lib/window.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -419,7 +499,9 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "libvorbis" )
+elseif( ANDROID64 )
   set( MODULE_NAME "libvorbis" )
 elseif( LINUX32 )
   set( MODULE_NAME "libvorbis" )
@@ -430,7 +512,9 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "libvorbis" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 elseif( LINUX32 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
@@ -442,7 +526,7 @@ elseif( WIN64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 endif()
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} libogg )
   target_link_libraries( ${MODULE_NAME} PUBLIC libogg )
 target_link_libraries( ${MODULE_NAME} PRIVATE m )
@@ -450,7 +534,17 @@ target_link_libraries( ${MODULE_NAME} PRIVATE m )
 if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
   target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
 endif()
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} libogg )
+  target_link_libraries( ${MODULE_NAME} PUBLIC libogg )
+target_link_libraries( ${MODULE_NAME} PRIVATE m )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "HAVE_ALLOCA_H;MODULE_NAME=libvorbis;MODULE_SEMVER=1_3_7_0" )
+if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
+  target_compile_options( ${MODULE_NAME} PRIVATE $<$<COMPILE_LANGUAGE:C>:-O2> )
+endif()
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} libogg )
@@ -490,9 +584,13 @@ if ( CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang" )
 endif()
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src include include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src include include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src include include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
@@ -508,6 +606,26 @@ endif( WIN32 )
 
 if ( WIN64 )
   include_directories( ../libogg/include ../libogg/include/ogg ../libogg/src include include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( WIN64 )
+
+# Usage requirements: what dependents need from this module, from the source tree or from an installed build
+if ( ANDROID32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( ANDROID32 )
+if ( ANDROID64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( ANDROID64 )
+if ( LINUX32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( LINUX32 )
+if ( LINUX64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( LINUX64 )
+if ( WIN32 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
+endif( WIN32 )
+if ( WIN64 )
+  GUCEF_module_usage( ${MODULE_NAME} INCLUDE_DIRS include/vorbis lib lib/books/coupled lib/books/floor lib/books/uncoupled lib/modes )
 endif( WIN64 )
 
 
@@ -517,7 +635,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )

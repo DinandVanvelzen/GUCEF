@@ -188,7 +188,7 @@ CPHUDPSocket::OnNotify( CORE::CNotifier* notifier                 ,
         {                        
             // Obtain data and pass it along for processing
             COMCORE::CUDPSocket::UDPPacketsRecievedEventData* eventData = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventdata );
-            assert( NULL != eventData );
+            assert( GUCEF_NULL != eventData );
             const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = eventData->GetData();
 
             for ( UInt32 p=0; p<data.packetsReceived; ++p )

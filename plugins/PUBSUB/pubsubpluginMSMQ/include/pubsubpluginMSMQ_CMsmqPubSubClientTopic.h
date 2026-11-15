@@ -277,7 +277,7 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopic : public PUBSU
 
     private:
 
-    enum EMsmqHresultSeverityCode : char
+    enum EMsmqHresultSeverityCode GUCEF_ENUM_BASE( char )
     {
         Success       = 0,  // bits 00
         Informational = 1,  // bits 01

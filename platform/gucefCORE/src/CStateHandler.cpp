@@ -41,7 +41,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CStateHandler::CStateHandler( void )
-        : _machine( NULL )
+        : _machine( GUCEF_NULL )
 {
 
 }

@@ -95,7 +95,7 @@ CPatchSetGenerator::GeneratePatchSet( const CORE::CString& localRoot      ,
 
     CORE::CString subDir = CORE::LastSubDir( localRoot );
 
-    if ( NULL != dirsToIgnore )
+    if ( GUCEF_NULL != dirsToIgnore )
     {
         if ( dirsToIgnore->find( subDir ) != dirsToIgnore->end() )
         {
@@ -136,7 +136,7 @@ CPatchSetGenerator::GeneratePatchSet( const CORE::CString& localRoot      ,
     currentDir.hash = currentDir.name;
 
     struct CORE::SDI_Data* dirEntry = CORE::DI_First_Dir_Entry( localRoot.C_String() );
-    if ( dirEntry != NULL )
+    if ( dirEntry != GUCEF_NULL )
     {
         do
         {
@@ -147,7 +147,7 @@ CPatchSetGenerator::GeneratePatchSet( const CORE::CString& localRoot      ,
                 if ( 0 == CORE::DI_Is_It_A_File( dirEntry ) )
                 {
                     // We found a sub-dir
-                    if ( NULL != dirsToIgnore )
+                    if ( GUCEF_NULL != dirsToIgnore )
                     {
                         if ( dirsToIgnore->find( entryName ) != dirsToIgnore->end() )
                         {
@@ -181,7 +181,7 @@ CPatchSetGenerator::GeneratePatchSet( const CORE::CString& localRoot      ,
                 else
                 {
                     // We found a file in this dir, check if we should ignore the file based on file type
-                    if ( NULL != fileTypesToIgnore )
+                    if ( GUCEF_NULL != fileTypesToIgnore )
                     {
                         CORE::CString fileExtention = CORE::ExtractFileExtention( entryName );
                         if ( fileTypesToIgnore->find( fileExtention ) != fileTypesToIgnore->end() )

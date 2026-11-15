@@ -215,7 +215,7 @@ CPFileAccess::Close( void )
 bool 
 CPFileAccess::Opened( void ) const
 {
-        return ( _pafilecontrol != NULL ) && ( _pafile != NULL );
+        return ( _pafilecontrol != GUCEF_NULL ) && ( _pafile != GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/

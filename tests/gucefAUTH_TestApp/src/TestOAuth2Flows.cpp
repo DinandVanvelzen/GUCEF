@@ -689,7 +689,7 @@ PerformListenerFlowTests( void )
             ASSERT_TRUE( g.ready );
             ASSERT_TRUE( g.ConfigureOne( "google", g.LocalSettings() ) );
             g.browser.SetMode( CTestBrowser::MODE_WRONG_STATE_ONLY );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( g.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             for ( UInt32 waited=0; waited<3000 && g.browser.GetStatuses().empty(); ++waited )
                 PumpFor( 1 );
@@ -723,7 +723,7 @@ PerformListenerFlowTests( void )
             ASSERT_TRUE( f.ConfigureOne( "google", f.LocalSettings() ) );
             f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             for ( UInt32 waited=0; waited<5000 && f.browser.GetRedirects().empty(); ++waited )
                 PumpFor( 1 );
@@ -818,7 +818,7 @@ PerformListenerFlowTests( void )
             ASSERT_TRUE( !redirectUri.IsNULLOrEmpty() && ListenerIsGone( redirectUri ) );
 
             // cancelled when the action was announced
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( PumpUntilAction( f, 2 ) );
             redirectUri = f.LastUrlParameters()[ "redirect_uri" ];
@@ -927,7 +927,7 @@ PerformBrowserTests( void )
 
             // the launch fails: the event is there, a person who copies the address finishes the login
             f.browser.SetLaunchResult( false );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( PumpUntilAction( f, 1 ) );
             CORE::CString url = f.recorder.Last( CAuthRecorder::KIND_ACTION )->action.url;
@@ -945,7 +945,7 @@ PerformBrowserTests( void )
             // the options say that the application opens the address itself
             AUTH::CAuthOptions own;
             own.preferBrowser = false;
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", own, future ) );
             ASSERT_TRUE( PumpUntilAction( f, 2 ) );
             url = f.recorder.Last( CAuthRecorder::KIND_ACTION )->action.url;
@@ -962,7 +962,7 @@ PerformBrowserTests( void )
             AUTH::COAuth2EngineSettings settings = f.engine->GetSettings();
             settings.launchBrowser = false;
             f.engine->SetSettings( settings );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             ASSERT_TRUE( PumpUntilAction( f, 3 ) );
             url = f.recorder.Last( CAuthRecorder::KIND_ACTION )->action.url;
@@ -1001,7 +1001,7 @@ PerformBrowserTests( void )
                 // nothing waits for it
                 ASSERT_FALSE( provider->SubmitRedirectUrl( "com.example.game:/oauth2redirect?code=x&state=y" ) );
 
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), future ) );
                 for ( UInt32 waited=0; waited<5000 && f.browser.GetRedirects().empty(); ++waited )
                     PumpFor( 1 );
@@ -1160,7 +1160,7 @@ PerformDeviceTests( void )
             ASSERT_TRUE( took >= 450 && took < 4000 );
 
             // cancelled by the requester, polling stops
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             UInt32 failures = f.FailureCount();
             UInt32 actions = f.recorder.Count( CAuthRecorder::KIND_ACTION );
             ASSERT_TRUE( f.manager.Login( "google", options, future ) );
@@ -1227,7 +1227,7 @@ PerformRefreshTests( void )
 
             const AUTH::CAccountRef account( "google", "sub-1000" );
             CORE::CString oldToken = f.fake.IssueRefreshToken( "sub-1000" );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( account, AUTH::CSecretString( oldToken ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1241,7 +1241,7 @@ PerformRefreshTests( void )
             ASSERT_TRUE( 0 == f.browser.GetOpenCount() );
 
             // the old token again: the provider does not accept it, the reason is that the grant is no good
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( account, AUTH::CSecretString( oldToken ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1254,7 +1254,7 @@ PerformRefreshTests( void )
             behavior.rotateRefreshTokens = false;
             f.fake.SetBehavior( behavior );
             CORE::CString steady = f.fake.IssueRefreshToken( "sub-1000" );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( account, AUTH::CSecretString( steady ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1263,14 +1263,14 @@ PerformRefreshTests( void )
             // a renewed id token is validated and has to be of the account that is renewed
             behavior.refreshIssuesIdToken = true;
             f.fake.SetBehavior( behavior );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( account, AUTH::CSecretString( steady ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
             ASSERT_TRUE( future.IsReady() && AUTH::CAuthResult::TryGetFromFuture( future, result ) && account == result.accountRef );
             ASSERT_TRUE( AUTH::CAuthProof::KindOidcIdToken == result.proof.kind && !result.proof.data.IsEmpty() && "Fake Player" == result.displayName );
             CORE::CString other = f.fake.IssueRefreshToken( "sub-2000" );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( account, AUTH::CSecretString( other ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1281,7 +1281,7 @@ PerformRefreshTests( void )
             CFakeTokenSpec spec;
             spec.expiresInSeconds = -3600;
             f.fake.SetTokenSpec( spec );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( account, AUTH::CSecretString( steady ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1312,7 +1312,7 @@ PerformRefreshTests( void )
             // a stored token that works
             CORE::CString token = f.fake.IssueRefreshToken( "sub-1000" );
             ASSERT_TRUE( f.credentials.Store( "google", "google:sub-1000", AUTH::CSecretString( token ) ) );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.AutoLogin( future ) );
             ASSERT_TRUE( PumpUntilRecorded( f.recorder, CAuthRecorder::KIND_AUTOFINISHED, 1, 15000 ) );
             AUTH::CSecretString stored;
@@ -1330,7 +1330,7 @@ PerformRefreshTests( void )
             gs.lastUsedProviders.push_back( "google" );
             ASSERT_TRUE( g.Configure( gs ) );
             ASSERT_TRUE( g.credentials.Store( "google", "google:sub-1000", AUTH::CSecretString( "revoked-token-value" ) ) );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( g.manager.AutoLogin( future ) );
             ASSERT_TRUE( PumpUntilRecorded( g.recorder, CAuthRecorder::KIND_AUTOFINISHED, 1, 15000 ) );
             ASSERT_FALSE( g.credentials.Load( "google", "google:sub-1000", stored ) );
@@ -1346,7 +1346,7 @@ PerformRefreshTests( void )
             hs.lastUsedProviders.push_back( "google" );
             ASSERT_TRUE( h.Configure( hs ) );
             ASSERT_TRUE( h.credentials.Store( "google", "google:sub-1000", AUTH::CSecretString( "kept-token-value" ) ) );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( h.manager.AutoLogin( future ) );
             ASSERT_TRUE( PumpUntilRecorded( h.recorder, CAuthRecorder::KIND_AUTOFINISHED, 1, 15000 ) );
             ASSERT_TRUE( h.credentials.Load( "google", "google:sub-1000", stored ) && "kept-token-value" == stored.Reveal() );
@@ -1461,7 +1461,7 @@ PerformBodyStyleTests( void )
             // the refresh carries it as well
             AUTH::CIAuthProvider* provider = f.manager.GetProvider( "google" );
             ASSERT_TRUE( GUCEF_NULL != provider );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             CORE::CString token = f.fake.IssueRefreshToken( "sub-1000" );
             ASSERT_TRUE( GUCEF_NULL != provider && provider->Refresh( AUTH::CAccountRef( "google", "sub-1000" ), AUTH::CSecretString( token ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
@@ -1518,7 +1518,7 @@ PerformBodyStyleTests( void )
             // the refresh uses the same style
             AUTH::CIAuthProvider* provider = f.manager.GetProvider( "basicprov" );
             ASSERT_TRUE( GUCEF_NULL != provider );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             CORE::CString token = f.fake.IssueRefreshToken( "sub-1000" );
             ASSERT_TRUE( GUCEF_NULL != provider && provider->Refresh( AUTH::CAccountRef( "google", "sub-1000" ), AUTH::CSecretString( token ), future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
@@ -1670,7 +1670,7 @@ PerformParametersAccountTests( void )
             ASSERT_TRUE( f.manager.IsProviderOffered( "brokerx" ) );
             f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             CORE::CString redirect = StartBrokerLogin( f, future );
             ASSERT_TRUE( redirect.StartsWith( "https://127.0.0.1?" ) );
             CORE::CString::StringMap asked = f.fake.GetLastAuthorizeParameters();
@@ -1698,7 +1698,7 @@ PerformParametersAccountTests( void )
             // a refresh keeps the account and asks no user info either
             AUTH::CSecretString stored;
             ASSERT_TRUE( f.credentials.Load( "brokerx", "brokerx:primary", stored ) && stored == result.refreshToken );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( provider->Refresh( result.accountRef, stored, future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1712,7 +1712,7 @@ PerformParametersAccountTests( void )
             AUTH::CAuthSettings all = f.manager.GetSettings();
             all.SetProviderSettings( "brokerx", spouse );
             f.manager.SetSettings( all );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             redirect = StartBrokerLogin( f, future );
             query = redirect.SubstrToChar( '?', false, true );
             // scheme and host in capitals, the default port and a fragment the browser added: the same address
@@ -1749,7 +1749,7 @@ PerformParametersAccountTests( void )
             ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?code=x&state=y", check ) );
             ASSERT_TRUE( AUTH::REDIRECTCHECK_NO_LOGIN_WAITING == check );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             CORE::CString redirect = StartBrokerLogin( f, future );
             ASSERT_FALSE( redirect.IsNULLOrEmpty() );
             CORE::CString query = redirect.SubstrToChar( '?', false, true );
@@ -1829,7 +1829,7 @@ PerformParametersAccountTests( void )
             ASSERT_TRUE( f.manager.GetUnavailableProvider( "brokerx", unavailable ) );
             ASSERT_TRUE( AUTH::AUTHUNAVAILABLE_MISSING_SETTING == unavailable.reason && "Auth/Providers/brokerx/Parameters/accountAlias" == unavailable.configKey );
             ASSERT_TRUE( unavailable.message.HasSubstr( "My Account" ) < 0 );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             f.manager.Login( "brokerx", AUTH::CAuthOptions(), future );
             for ( UInt32 waited=0; waited<3000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1859,7 +1859,7 @@ PerformParametersAccountTests( void )
             if ( GUCEF_NULL == provider )
                 return;
             f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             CORE::CString redirect = StartBrokerLogin( f, future );
             AUTH::TRedirectCheck check = AUTH::REDIRECTCHECK_REFUSED;
             ASSERT_TRUE( provider->SubmitRedirectUrl( "https://127.0.0.1/?" + redirect.SubstrToChar( '?', false, true ), check ) );
@@ -1886,7 +1886,7 @@ PerformParametersAccountTests( void )
             // the API refused the token: one renewal at the token endpoint, the rotated refresh token is kept, the old one is dead at the provider
             const CORE::CString firstRefresh = login.refreshToken.Reveal();
             UInt32 tokenRequests = f.fake.GetStats().token;
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( keeper.ReportTokenRejected( token, future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1905,7 +1905,7 @@ PerformParametersAccountTests( void )
             behavior.tokenError = "invalid_client";
             behavior.tokenErrorStatus = 401;
             f.fake.SetBehavior( behavior );
-            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            future = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( keeper.ReportTokenRejected( renewed, future ) );
             for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                 PumpFor( 1 );
@@ -1949,7 +1949,7 @@ PerformOpenId2Tests( void )
             ASSERT_TRUE( 300 == f.engine->GetSettings().openId2MaxAgeInSeconds );
             f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
 
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "testopenid", AUTH::CAuthOptions(), future ) );
             for ( UInt32 waited=0; waited<5000 && f.browser.GetRedirects().empty(); ++waited )
                 PumpFor( 1 );
@@ -2215,7 +2215,7 @@ PerformOpenId2Tests( void )
             ASSERT_TRUE( f.manager.IsProviderOffered( "testopenid" ) );
             TestOpenId2Profile().relayAllowed = false;
             ASSERT_FALSE( f.manager.IsProviderOffered( "testopenid" ) );
-            CORE::CFutureResult none( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult none( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.manager.Login( "testopenid", AUTH::CAuthOptions(), none ) );
             // without a relay the same profile is fine
             AUTH::CAuthProviderSettings plain;
@@ -2416,7 +2416,7 @@ PerformOpenId2RelayTests( void )
             {
                 f.browser.ClearHistory();
                 f.browser.SetMode( modes[ i ] );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( f.manager.Login( "testopenid", AUTH::CAuthOptions(), future ) );
                 for ( UInt32 waited=0; waited<3000 && f.browser.GetStatuses().empty(); ++waited )
                     PumpFor( 1 );
@@ -2551,7 +2551,7 @@ PerformPolicyTests( void )
             settings.allowInsecureHttp = false;
             engine->SetSettings( settings );
             ASSERT_FALSE( manager.IsProviderOffered( "google" ) );
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( manager.Login( "google", AUTH::CAuthOptions(), future ) );
 
             // the default is that it is not allowed, and the engine has a provider without the plugins it needs unavailable
@@ -2665,8 +2665,8 @@ PerformLifecycleTests( void )
             settings.SetProviderSettings( "aws-cognito", cognito );
             ASSERT_TRUE( f.Configure( settings ) );
 
-            CORE::CFutureResult first( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult first( CORE::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), first ) && f.manager.Login( "aws-cognito", AUTH::CAuthOptions(), second ) );
             for ( UInt32 waited=0; waited<20000 && !( first.IsReady() && second.IsReady() ); ++waited )
                 PumpFor( 1 );
@@ -2680,7 +2680,7 @@ PerformLifecycleTests( void )
             // the provider is removed while the user is still at the provider
             f.browser.SetMode( CTestBrowser::MODE_IGNORE );
             f.manager.Unlink( a.accountRef );
-            CORE::CFutureResult pending( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult pending( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), pending ) );
             ASSERT_TRUE( PumpUntilAction( f, 3 ) );
             ASSERT_TRUE( 1 == f.engine->GetActiveLoginCount() );
@@ -2691,7 +2691,7 @@ PerformLifecycleTests( void )
             ASSERT_TRUE( ListenerIsGone( redirectUri ) );
 
             // the engine is told to cancel everything
-            CORE::CFutureResult again( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult again( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "aws-cognito", AUTH::CAuthOptions(), again ) );
             ASSERT_TRUE( PumpUntilAction( f, 4 ) );
             ASSERT_TRUE( 1 == f.engine->GetActiveLoginCount() );
@@ -2722,9 +2722,9 @@ PerformLifecycleTests( void )
             all.SetProviderSettings( "microsoft", f.LocalSettings() );
             ASSERT_TRUE( f.Configure( all ) );
             f.browser.SetMode( CTestBrowser::MODE_IGNORE );
-            CORE::CFutureResult first( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult first( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( f.manager.Login( "google", AUTH::CAuthOptions(), first ) );
-            CORE::CFutureResult second( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult second( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( f.manager.Login( "microsoft", AUTH::CAuthOptions(), second ) );
             f.manager.CancelLogin( "google" );
             for ( UInt32 waited=0; waited<3000 && !first.IsReady(); ++waited )
@@ -2741,7 +2741,7 @@ PerformLifecycleTests( void )
             AUTH::CAuthProviderSettings anonymous = g.LocalSettings();
             anonymous.clientId = CORE::CString::Empty;
             ASSERT_TRUE( g.ConfigureOne( "google", anonymous ) );
-            CORE::CFutureResult none( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult none( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_FALSE( g.manager.Login( "google", AUTH::CAuthOptions(), none ) );
         }
         catch ( ... )
@@ -2818,7 +2818,7 @@ PerformLogTests( void )
                 AUTH::CIAuthProvider* provider = f.manager.GetProvider( "google" );
                 CORE::CString oldRefresh = f.fake.IssueRefreshToken( "sub-1000" );
                 secrets.push_back( oldRefresh );
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( provider->Refresh( result.accountRef, AUTH::CSecretString( oldRefresh ), future ) );
                 for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
                     PumpFor( 1 );
@@ -3156,7 +3156,7 @@ PerformResponseLimitTests( void )
                 providerEvents.SubscribeTo( provider );
 
                 const UInt64 startMs = MonotonicMs();
-                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
                 ASSERT_TRUE( provider->Refresh( AUTH::CAccountRef( "google", "sub-1000" ), AUTH::CSecretString( "refresh-token-value" ), future ) );
                 for ( UInt32 waited=0; waited<20000 && !future.IsReady(); ++waited )
                     PumpFor( 1 );

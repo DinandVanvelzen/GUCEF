@@ -36,28 +36,32 @@ language( "C++" )
 configuration( { "LINUX32" } )
 
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
 kind( "SharedLib" )
 configuration( { "LINUX64" } )
 
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  
 
-configuration( { LINUX32 } )
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "LINUX32" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+
+configuration( { "LINUX32" } )
 defines( { "GUCEF_AUDIODRIVER_ALSA_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverALSA", "MODULE_SEMVER=0_1_0_0" } )
-  
-configuration( { LINUX64 } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-  
 
-configuration( { LINUX64 } )
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+configuration( { "LINUX64" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+
+
+configuration( { "LINUX64" } )
 defines( { "GUCEF_AUDIODRIVER_ALSA_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=audiodriverALSA", "MODULE_SEMVER=0_1_0_0" } )
 
 
@@ -99,7 +103,7 @@ configuration( { "LINUX64" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../../platform/gucefCORE/include/linux", "include" } )

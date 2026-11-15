@@ -219,7 +219,7 @@ typedef CWidgetImp< GUCEF::GUI::CWidget > TBasicWidgetImp;
 template < class BaseClass >
 CWidgetImp< BaseClass >::CWidgetImp( void )
     : BaseClass()      ,
-      m_widget( NULL )
+      m_widget( GUCEF_NULL )
 {GUCEF_TRACE;
 
 
@@ -380,7 +380,7 @@ CWidgetImp< BaseClass >::Hook( MyGUI::Widget* widget )
     m_widget = widget;
     GUI::CWidget::SetImplementationPtr( m_widget );
 
-    if ( NULL != m_widget )
+    if ( GUCEF_NULL != m_widget )
     {
         m_widget->setUserData( this );
 
@@ -406,7 +406,7 @@ CWidgetImp< BaseClass >::ConvertXDim( const GUCEF::GUI::CUDim& x ) const
 {GUCEF_TRACE;
 
     MyGUI::Widget* parent = m_widget->getParent();
-    if ( NULL != parent )
+    if ( GUCEF_NULL != parent )
     {
         return (int) ( x.GetRelativeValue() * parent->getWidth() ) + x.GetPixelValue();
     }
@@ -422,7 +422,7 @@ CWidgetImp< BaseClass >::ConvertYDim( const GUCEF::GUI::CUDim& y ) const
 {GUCEF_TRACE;
 
     MyGUI::Widget* parent = m_widget->getParent();
-    if ( NULL != parent )
+    if ( GUCEF_NULL != parent )
     {
         return (int) ( y.GetRelativeValue() * parent->getHeight() ) + y.GetPixelValue();
     }
@@ -461,7 +461,7 @@ CWidgetImp< BaseClass >::ConvertVectorToPoint( const GUCEF::GUI::CUVector& vecto
 
     MyGUI::IntPoint convertedValue;
     MyGUI::Widget* parent = m_widget->getParent();
-    if ( NULL != parent )
+    if ( GUCEF_NULL != parent )
     {
         convertedValue.left = (int) ( vector.GetX().GetRelativeValue() * parent->getWidth() ) + vector.GetX().GetPixelValue();
         convertedValue.top = (int) ( vector.GetY().GetRelativeValue() * parent->getHeight() ) + vector.GetY().GetPixelValue();
@@ -482,7 +482,7 @@ CWidgetImp< BaseClass >::ConvertVectorToSize( const GUCEF::GUI::CUVector& vector
 
     MyGUI::IntSize convertedValue;
     MyGUI::Widget* parent = m_widget->getParent();
-    if ( NULL != parent )
+    if ( GUCEF_NULL != parent )
     {
         convertedValue.width = (int) ( vector.GetX().GetRelativeValue() * parent->getWidth() ) + vector.GetX().GetPixelValue();
         convertedValue.height = (int) ( vector.GetY().GetRelativeValue() * parent->getHeight() ) + vector.GetY().GetPixelValue();
@@ -525,17 +525,17 @@ CWidgetImp< BaseClass >::GetChildWidget( const CString& widgetName )
     try
     {
         MyGUI::WidgetPtr childWidget = m_widget->findWidget( widgetName );
-        if ( NULL != childWidget )
+        if ( GUCEF_NULL != childWidget )
         {
             return *childWidget->getUserData< GUCEF::GUI::CWidget* >( false );
         }
     }
     catch ( std::exception& )
     {
-        return NULL;
+        return GUCEF_NULL;
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -545,7 +545,7 @@ CString
 CWidgetImp< BaseClass >::GetName( void ) const
 {GUCEF_TRACE;
 
-    if ( NULL != m_widget )
+    if ( GUCEF_NULL != m_widget )
     {
         return m_widget->getName();
     }
@@ -690,11 +690,11 @@ CWidgetImp< BaseClass >::SetParentWidget( GUCEF::GUI::CWidget* parentWidget )
 {GUCEF_TRACE;
 
     // Check if we have received a new parent
-    if ( NULL != parentWidget )
+    if ( GUCEF_NULL != parentWidget )
     {
         // Try to get access to the implementation
         MyGUI::Widget* newParent = static_cast< MyGUI::Widget* >( parentWidget->GetImplementationPtr() );
-        if ( NULL != newParent )
+        if ( GUCEF_NULL != newParent )
         {
             // Set the new parent
             m_widget->attachToWidget( newParent );
@@ -717,11 +717,11 @@ CWidgetImp< BaseClass >::GetParentWidget( void )
 {GUCEF_TRACE;
 
     MyGUI::Widget* parent = m_widget->getParent();
-    if ( NULL != parent )
+    if ( GUCEF_NULL != parent )
     {
         return *parent->getUserData< GUI::CWidget* >( false );
     }
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -736,7 +736,7 @@ CWidgetImp< BaseClass >::GetChildWidgetSet( TWidgetSet& childSet )
     {
         MyGUI::WidgetPtr child = childrenEnumerator.current();
         GUCEF::GUI::CWidget* wrapWindow = *child->getUserData< GUI::CWidget* >( false );
-        if ( NULL != wrapWindow )
+        if ( GUCEF_NULL != wrapWindow )
         {
             childSet.insert( wrapWindow );
         }

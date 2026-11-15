@@ -30,32 +30,36 @@ language( "C" )
 configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
 kind( "SharedLib" )
 configuration( { "ANDROID64" } )
 
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
 kind( "SharedLib" )
 
 
 configuration( {} )
 defines( { "MODULE_CONSENSUS_NAME=inputdriverNANDROID" } )
-  
-configuration( { ANDROID32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "android", "android_native_app_glue", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { ANDROID32 } )
+configuration( { "ANDROID32" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "ANDROID32" } )
+links( { "android", "android_native_app_glue", "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "ANDROID32" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERANDROID_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverNANDROID" } )
-  
-configuration( { ANDROID64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  links( { "android", "android_native_app_glue", "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
 
-configuration( { ANDROID64 } )
+configuration( { "ANDROID64" } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+configuration( { "ANDROID64" } )
+links( { "android", "android_native_app_glue", "gucefCORE", "gucefINPUT", "gucefMT" } )
+
+
+configuration( { "ANDROID64" } )
 defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERANDROID_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverNANDROID" } )
 
 

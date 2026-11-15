@@ -604,7 +604,7 @@ CUtf32String::CUtf32String( const int NULLvalue )
     , m_linked( false )
 {GUCEF_TRACE;
 
-    assert( NULLvalue == static_cast<int>( GUCEF_NULL ) );
+    assert( NULLvalue == 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -762,7 +762,7 @@ bool
 CUtf32String::operator==( const int NULLvalue ) const
 {GUCEF_TRACE;
 
-    if ( NULLvalue == static_cast<int>( GUCEF_NULL ) )
+    if ( NULLvalue == 0 )
     {
         return m_length == 0u;
     }
@@ -803,7 +803,7 @@ bool
 CUtf32String::operator!=( const int NULLvalue ) const
 {GUCEF_TRACE;
 
-    if ( NULLvalue == static_cast<int>( GUCEF_NULL ) )
+    if ( NULLvalue == 0 )
     {
         return m_length > 0u;
     }

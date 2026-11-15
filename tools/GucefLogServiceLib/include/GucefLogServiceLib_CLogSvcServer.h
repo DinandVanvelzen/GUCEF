@@ -115,31 +115,31 @@ class GUCEF_LOGSERVICELIB_EXPORT_CPP CLogSvcServer : public CORE::CObservingNoti
     
     void OnClientConnectionDataReceived( CORE::CNotifier* notifier           ,
                                          const CORE::CEvent& eventid         ,
-                                         CORE::CICloneable* eventdata = NULL );
+                                         CORE::CICloneable* eventdata = GUCEF_NULL );
     
     void OnServerSocketClientConnected( CORE::CNotifier* notifier           ,
                                         const CORE::CEvent& eventid         ,
-                                        CORE::CICloneable* eventdata = NULL );
+                                        CORE::CICloneable* eventdata = GUCEF_NULL );
 
     void OnServerSocketClientDisconnected( CORE::CNotifier* notifier           ,
                                            const CORE::CEvent& eventid         ,
-                                           CORE::CICloneable* eventdata = NULL );
+                                           CORE::CICloneable* eventdata = GUCEF_NULL );
 
     void OnServerSocketClientError( CORE::CNotifier* notifier           ,
                                     const CORE::CEvent& eventid         ,
-                                    CORE::CICloneable* eventdata = NULL );
+                                    CORE::CICloneable* eventdata = GUCEF_NULL );
                                            
     void OnServerSocketServerSocketClosed( CORE::CNotifier* notifier           ,
                                            const CORE::CEvent& eventid         ,
-                                           CORE::CICloneable* eventdata = NULL );
+                                           CORE::CICloneable* eventdata = GUCEF_NULL );
                                            
     void OnServerSocketServerSocketError( CORE::CNotifier* notifier           ,
                                           const CORE::CEvent& eventid         ,
-                                          CORE::CICloneable* eventdata = NULL );
+                                          CORE::CICloneable* eventdata = GUCEF_NULL );
                                            
     void OnServerSocketServerSocketClientError( CORE::CNotifier* notifier           ,
                                                 const CORE::CEvent& eventid         ,
-                                                CORE::CICloneable* eventdata = NULL );    
+                                                CORE::CICloneable* eventdata = GUCEF_NULL );    
 
     void ProcessReceivedMessage( TClientInfo& clientInfo                   ,
                                  COMCORE::CTCPServerConnection* connection ,

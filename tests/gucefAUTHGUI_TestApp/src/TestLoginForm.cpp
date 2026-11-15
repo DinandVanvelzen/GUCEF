@@ -624,7 +624,7 @@ PerformLoginFormTests( void )
 
         // what happens meanwhile is there when it opens
         google->mode = CFakeLoginProvider::MODE_INSTANT;
-        CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+        CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
         ASSERT_TRUE( fixture.manager.Login( "google", AUTH::CAuthOptions(), future ) );
         PumpFor( 30 );
         ASSERT_TRUE( form.Open() && form.IsVisible() );
@@ -652,7 +652,7 @@ PerformLoginFormTests( void )
             CFakeLoginProvider* google = inner.AddProvider( "google" );
             REQUIRE_TRUE( GUCEF_NULL != google );
             google->mode = CFakeLoginProvider::MODE_BROWSER;
-            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CFutureResult future( CORE::TASKSTATUS_UNDEFINED );
             ASSERT_TRUE( inner.manager.Login( "google", AUTH::CAuthOptions(), future ) );
             form.SetAuthManager( &inner.manager );
             ASSERT_TRUE( AUTHGUI::CLoginForm::LOGINPROGRESS_WAITING_FOR_BROWSER == form.GetProgress( "google" ) );

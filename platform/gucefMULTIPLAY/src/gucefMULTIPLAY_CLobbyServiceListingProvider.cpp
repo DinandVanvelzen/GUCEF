@@ -80,7 +80,7 @@ CLobbyServiceListingProvider::CLobbyServiceListingProvider( void )
     , m_serviceName()
     , m_serviceConfig()
     , m_timer( GUCEF_MULTIPLAY_LOBBYSERVICELISTING_POLL_MS )
-    , m_browseFuture( CORE::TTaskStatus::TASKSTATUS_UNDEFINED )
+    , m_browseFuture( CORE::TASKSTATUS_UNDEFINED )
     , m_browsing( false )
     , m_nextBrowseInMs( 0 )
     , m_refreshIntervalInSecs( 10 )
@@ -131,7 +131,7 @@ CLobbyServiceListingProvider::StartBrowse( void )
     if ( m_browsing )
         return true;
 
-    m_browseFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    m_browseFuture = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     if ( m_service.IsNULL() || !m_service->Browse( GetFilter(), m_browseFuture ) )
     {
         m_nextBrowseInMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + m_refreshIntervalInSecs * 1000;
@@ -173,7 +173,7 @@ CLobbyServiceListingProvider::Stop( void )
     m_active = false;
     m_browsing = false;
     m_timer.SetEnabled( false );
-    m_browseFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+    m_browseFuture = CORE::CFutureResult( CORE::TASKSTATUS_UNDEFINED );
     RemoveAllListings();
 }
 

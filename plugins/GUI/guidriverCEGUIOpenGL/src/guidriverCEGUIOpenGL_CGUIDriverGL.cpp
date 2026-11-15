@@ -101,7 +101,7 @@ CGUIDriverGL::~CGUIDriverGL()
 
     m_contextSet.clear();
 
-    if ( NULL != m_guiSystem )
+    if ( GUCEF_NULL != m_guiSystem )
         m_guiSystem->destroy();
 }
 

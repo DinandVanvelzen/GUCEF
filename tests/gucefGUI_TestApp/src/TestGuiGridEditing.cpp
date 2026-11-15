@@ -403,7 +403,7 @@ PerformGuiGridEditingTests( void )
         // F2: the value as text, the caret at the end
         ASSERT_TRUE( scene.Select( 2, CTestModel::COL_NAME ) );
         PressKey( scene.context, INPUT::KEYCODE_F2 );
-        ASSERT_TRUE( grid->IsEditing() && NULL != grid->GetCellEditor() );
+        ASSERT_TRUE( grid->IsEditing() && GUCEF_NULL != grid->GetCellEditor() );
         const TEditor* editor = grid->GetCellEditor();
         ASSERT_TRUE( TEditor::KIND_TEXT == editor->GetKind() && 2 == editor->GetRow() && CTestModel::COL_NAME == editor->GetColumn() && "name 2" == editor->GetText() && 6 == editor->GetCaret() && !editor->HasSelection() );
         ASSERT_TRUE( 1 == events.Count( GUI::CGridView::CellEditStartedEvent ) && 2 == events.Last( GUI::CGridView::CellEditStartedEvent )->report.row );
@@ -412,7 +412,7 @@ PerformGuiGridEditingTests( void )
 
         // Enter: commit, and on to the cell below
         PressKey( scene.context, INPUT::KEYCODE_RETURN );
-        ASSERT_TRUE( !grid->IsEditing() && NULL == grid->GetCellEditor() && "name 2X" == Shown( scene.model, 2, CTestModel::COL_NAME ) && 1 == scene.model->setCalls );
+        ASSERT_TRUE( !grid->IsEditing() && GUCEF_NULL == grid->GetCellEditor() && "name 2X" == Shown( scene.model, 2, CTestModel::COL_NAME ) && 1 == scene.model->setCalls );
         ASSERT_TRUE( 3 == grid->GetCursorRow() && CTestModel::COL_NAME == grid->GetCursorColumn() );
         const CEditEvents::SEvent* committed = events.Last( GUI::CGridView::CellEditCommittedEvent );
         ASSERT_TRUE( 1 == events.Count( GUI::CGridView::CellEditCommittedEvent ) && GUCEF_NULL != committed && 2 == committed->report.row && CTestModel::COL_NAME == committed->report.column && 1 == committed->report.cellsApplied );

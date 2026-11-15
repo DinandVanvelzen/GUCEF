@@ -91,7 +91,7 @@ CPatchSetParser::ValidateAndParseFileLocEntries( const CORE::CDataNode& patchSet
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPatchSetParser: Parsing patch set" );
 
-    const CORE::CDataNode* locationEntry( NULL );
+    const CORE::CDataNode* locationEntry( GUCEF_NULL );
     CORE::CDataNode::const_iterator i = patchSetFileNode.ConstBegin();
     while ( i != patchSetFileNode.ConstEnd() )
     {
@@ -100,20 +100,20 @@ CPatchSetParser::ValidateAndParseFileLocEntries( const CORE::CDataNode& patchSet
         {
             // Validate that the file location has a URL property
             const CORE::CDataNode::TKeyValuePair* attData = locationEntry->GetAttribute( "URL" );
-            if ( attData != NULL )
+            if ( attData != GUCEF_NULL )
             {
                 TFileLocation fileLocation;
                 fileLocation.URL = attData->second;
 
                 // Check for an optional codec property
                 const CORE::CDataNode::TKeyValuePair* attData = locationEntry->GetAttribute( "Codec" );
-                if ( attData != NULL )
+                if ( attData != GUCEF_NULL )
                 {
                     fileLocation.codec = attData->second;
 
                     // Check for an optional codec parameter property
                     const CORE::CDataNode::TKeyValuePair* attData = locationEntry->GetAttribute( "CodecParams" );
-                    if ( attData != NULL )
+                    if ( attData != GUCEF_NULL )
                     {
                         fileLocation.codecParams = attData->second;
                     }
@@ -154,14 +154,14 @@ CPatchSetParser::ValidateAndParseFileEntry( const CORE::CDataNode& patchSetFileN
 
     // Validate that the file has a name property
     const CORE::CDataNode::TKeyValuePair* attData = patchSetFileNode.GetAttribute( "Name" );
-    if ( attData != NULL )
+    if ( attData != GUCEF_NULL )
     {
         // We found our filename
         const CORE::CString& filename = attData->second;
 
         // Validate that the file has a size property
         const CORE::CDataNode::TKeyValuePair* attData = patchSetFileNode.GetAttribute( "Size" );
-        if ( attData != NULL )
+        if ( attData != GUCEF_NULL )
         {
             // We found our file's size
             const CORE::CString& fileSizeStr = attData->second;
@@ -169,7 +169,7 @@ CPatchSetParser::ValidateAndParseFileEntry( const CORE::CDataNode& patchSetFileN
 
             // Validate that the file has a hash property
             const CORE::CDataNode::TKeyValuePair* attData = patchSetFileNode.GetAttribute( "Hash" );
-            if ( attData != NULL )
+            if ( attData != GUCEF_NULL )
             {
                 const CORE::CString& fileHash = attData->second;
 
@@ -202,14 +202,14 @@ CPatchSetParser::ValidateAndParseDirEntry( const CORE::CDataNode& patchSetDirNod
 
     // Validate that the directory has a name property
     const CORE::CDataNode::TKeyValuePair* attData = patchSetDirNode.GetAttribute( "Name" );
-    if ( attData != NULL )
+    if ( attData != GUCEF_NULL )
     {
         // We found our directory name
         const CORE::CString& dirName = attData->second;
 
         // Validate that the directory has a total size property
         const CORE::CDataNode::TKeyValuePair* attData = patchSetDirNode.GetAttribute( "TotalSize" );
-        if ( attData != NULL )
+        if ( attData != GUCEF_NULL )
         {
             // We found our directory's total size
             const CORE::CString& dirTotalSizeStr = attData->second;
@@ -217,7 +217,7 @@ CPatchSetParser::ValidateAndParseDirEntry( const CORE::CDataNode& patchSetDirNod
 
             // Validate that the directory has a hash property
             const CORE::CDataNode::TKeyValuePair* attData = patchSetDirNode.GetAttribute( "Hash" );
-            if ( attData != NULL )
+            if ( attData != GUCEF_NULL )
             {
                 // Our directory entry has everything we expected
                 // It can now be added to the patch set
@@ -241,7 +241,7 @@ CPatchSetParser::ParseAndWalkDirTree( const CORE::CDataNode& patchSetDirNode ,
 {
     // The directory info has been validated and parsed
     // We now iterate the directory entries
-    const CORE::CDataNode* patchSetDirEntry( NULL );
+    const CORE::CDataNode* patchSetDirEntry( GUCEF_NULL );
     CORE::CDataNode::const_iterator i = patchSetDirNode.ConstBegin();
     while ( i != patchSetDirNode.ConstEnd() )
     {
@@ -322,10 +322,10 @@ CPatchSetParser::ParsePatchSet( const CORE::CDataNode& patchSetData ,
 
     const CORE::CDataNode* patchSetNode = patchSetData.Find( "PatchSet" );
 
-    if ( patchSetNode != NULL )
+    if ( patchSetNode != GUCEF_NULL )
     {
         // We found our patch set, now we go trough all top-level directories
-        const CORE::CDataNode* patchSetEntry( NULL );
+        const CORE::CDataNode* patchSetEntry( GUCEF_NULL );
         CORE::CDataNode::const_iterator i = patchSetNode->ConstBegin();
         while ( i != patchSetNode->ConstEnd() )
         {
@@ -366,7 +366,7 @@ CPatchSetParser::SerializeFileEntry( const TFileEntry& fileEntry ,
     fileNode.SetAttribute( "Size", CORE::ToString( fileEntry.sizeInBytes ) );
 
     const TFileLocations& locList = fileEntry.fileLocations;
-    const TFileLocation* fileLoc = NULL;
+    const TFileLocation* fileLoc = GUCEF_NULL;
     CORE::CDataNode fileLocNode;
     fileLocNode.SetName( "FileLocation" );
     for ( UInt32 n=0; n<locList.size(); ++n )

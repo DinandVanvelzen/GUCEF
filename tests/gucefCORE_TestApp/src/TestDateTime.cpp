@@ -59,119 +59,148 @@ using namespace GUCEF;
 //-------------------------------------------------------------------------*/
 
 static const CORE::CString testDateTimeString1 = "2020-07-10 15:01:02.300";
-static const GUCEF::vector< Int32 > testDateTimeString1Result = { 2020, 7, 10, 15, 1, 2, 300 };
+static const Int32 testDateTimeString1ResultItems[] = { 2020, 7, 10, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString1Result( testDateTimeString1ResultItems, testDateTimeString1ResultItems + ( sizeof( testDateTimeString1ResultItems ) / sizeof( testDateTimeString1ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString1TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString2 = "2013-07-16T19:23:51Z";
-static const GUCEF::vector< Int32 > testDateTimeString2Result = { 2013, 7, 16, 19, 23, 51, 0 };
+static const Int32 testDateTimeString2ResultItems[] = { 2013, 7, 16, 19, 23, 51, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString2Result( testDateTimeString2ResultItems, testDateTimeString2ResultItems + ( sizeof( testDateTimeString2ResultItems ) / sizeof( testDateTimeString2ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString2TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString3 = "2020-07-10 15:01:02.300Z";
-static const GUCEF::vector< Int32 > testDateTimeString3Result = { 2020, 7, 10, 15, 1, 2, 300 };
+static const Int32 testDateTimeString3ResultItems[] = { 2020, 7, 10, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString3Result( testDateTimeString3ResultItems, testDateTimeString3ResultItems + ( sizeof( testDateTimeString3ResultItems ) / sizeof( testDateTimeString3ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString3TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString4 = "2020/07/10 15:01:02.300Z";
-static const GUCEF::vector< Int32 > testDateTimeString4Result = { 2020, 7, 10, 15, 1, 2, 300 };
+static const Int32 testDateTimeString4ResultItems[] = { 2020, 7, 10, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString4Result( testDateTimeString4ResultItems, testDateTimeString4ResultItems + ( sizeof( testDateTimeString4ResultItems ) / sizeof( testDateTimeString4ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString4TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString5 = "2020:07:10 15:01:02.300Z";
-static const GUCEF::vector< Int32 > testDateTimeString5Result = { 2020, 7, 10, 15, 1, 2, 300 };
+static const Int32 testDateTimeString5ResultItems[] = { 2020, 7, 10, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString5Result( testDateTimeString5ResultItems, testDateTimeString5ResultItems + ( sizeof( testDateTimeString5ResultItems ) / sizeof( testDateTimeString5ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString5TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString6 = "2020.07.10 15.01.02.300Z";
-static const GUCEF::vector< Int32 > testDateTimeString6Result = { 2020, 7, 10, 15, 1, 2, 300 };
+static const Int32 testDateTimeString6ResultItems[] = { 2020, 7, 10, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString6Result( testDateTimeString6ResultItems, testDateTimeString6ResultItems + ( sizeof( testDateTimeString6ResultItems ) / sizeof( testDateTimeString6ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString6TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString7 = "+20:07:10";
-static const GUCEF::vector< Int32 > testDateTimeString7Result = { 0, 0, 0, 20, 7, 10, 0 };
+static const Int32 testDateTimeString7ResultItems[] = { 0, 0, 0, 20, 7, 10, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString7Result( testDateTimeString7ResultItems, testDateTimeString7ResultItems + ( sizeof( testDateTimeString7ResultItems ) / sizeof( testDateTimeString7ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString7TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString8 = "-20:07:10";
-static const GUCEF::vector< Int32 > testDateTimeString8Result = { 0, 0, 0, -20, -07, -10, 0 };
+static const Int32 testDateTimeString8ResultItems[] = { 0, 0, 0, -20, -07, -10, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString8Result( testDateTimeString8ResultItems, testDateTimeString8ResultItems + ( sizeof( testDateTimeString8ResultItems ) / sizeof( testDateTimeString8ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString8TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString9 = "+20:07:10.300";
-static const GUCEF::vector< Int32 > testDateTimeString9Result = { 0, 0, 0, 20, 7, 10, 300 };
+static const Int32 testDateTimeString9ResultItems[] = { 0, 0, 0, 20, 7, 10, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString9Result( testDateTimeString9ResultItems, testDateTimeString9ResultItems + ( sizeof( testDateTimeString9ResultItems ) / sizeof( testDateTimeString9ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString9TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString10 = "2013-07-16T19:23:51+04:30";
-static const GUCEF::vector< Int32 > testDateTimeString10Result = { 2013, 7, 16, 19, 23, 51, 0 };
+static const Int32 testDateTimeString10ResultItems[] = { 2013, 7, 16, 19, 23, 51, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString10Result( testDateTimeString10ResultItems, testDateTimeString10ResultItems + ( sizeof( testDateTimeString10ResultItems ) / sizeof( testDateTimeString10ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString10TzOffsetResult = 30+(4*60);
 
 static const CORE::CString testDateTimeString11 = "2013-07-16T19:23:51-04:30";
-static const GUCEF::vector< Int32 > testDateTimeString11Result = { 2013, 7, 16, 19, 23, 51, 0 };
+static const Int32 testDateTimeString11ResultItems[] = { 2013, 7, 16, 19, 23, 51, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString11Result( testDateTimeString11ResultItems, testDateTimeString11ResultItems + ( sizeof( testDateTimeString11ResultItems ) / sizeof( testDateTimeString11ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString11TzOffsetResult = -(30+(4*60));
 
 static const CORE::CString testDateTimeString12 = "2020/07/10";
-static const GUCEF::vector< Int32 > testDateTimeString12Result = { 2020, 7, 10, 0, 0, 0, 0 };
+static const Int32 testDateTimeString12ResultItems[] = { 2020, 7, 10, 0, 0, 0, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString12Result( testDateTimeString12ResultItems, testDateTimeString12ResultItems + ( sizeof( testDateTimeString12ResultItems ) / sizeof( testDateTimeString12ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString12TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString13 = "2020-07-10";
-static const GUCEF::vector< Int32 > testDateTimeString13Result = { 2020, 7, 10, 0, 0, 0, 0 };
+static const Int32 testDateTimeString13ResultItems[] = { 2020, 7, 10, 0, 0, 0, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString13Result( testDateTimeString13ResultItems, testDateTimeString13ResultItems + ( sizeof( testDateTimeString13ResultItems ) / sizeof( testDateTimeString13ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString13TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString14 = "2020 07 10";
-static const GUCEF::vector< Int32 > testDateTimeString14Result = { 2020, 7, 10, 0, 0, 0, 0 };
+static const Int32 testDateTimeString14ResultItems[] = { 2020, 7, 10, 0, 0, 0, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString14Result( testDateTimeString14ResultItems, testDateTimeString14ResultItems + ( sizeof( testDateTimeString14ResultItems ) / sizeof( testDateTimeString14ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString14TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString15 = "20 07 10";
-static const GUCEF::vector< Int32 > testDateTimeString15Result = { 0, 0, 0, 20, 7, 10, 0 };
+static const Int32 testDateTimeString15ResultItems[] = { 0, 0, 0, 20, 7, 10, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString15Result( testDateTimeString15ResultItems, testDateTimeString15ResultItems + ( sizeof( testDateTimeString15ResultItems ) / sizeof( testDateTimeString15ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString15TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString16 = "200710";
-static const GUCEF::vector< Int32 > testDateTimeString16Result = { 0, 0, 0, 20, 7, 10, 0 };
+static const Int32 testDateTimeString16ResultItems[] = { 0, 0, 0, 20, 7, 10, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString16Result( testDateTimeString16ResultItems, testDateTimeString16ResultItems + ( sizeof( testDateTimeString16ResultItems ) / sizeof( testDateTimeString16ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString16TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString17 = "20200710";
-static const GUCEF::vector< Int32 > testDateTimeString17Result = { 2020, 7, 10, 0, 0, 0, 0 };
+static const Int32 testDateTimeString17ResultItems[] = { 2020, 7, 10, 0, 0, 0, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString17Result( testDateTimeString17ResultItems, testDateTimeString17ResultItems + ( sizeof( testDateTimeString17ResultItems ) / sizeof( testDateTimeString17ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString17TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString18 = "20200710060730";
-static const GUCEF::vector< Int32 > testDateTimeString18Result = { 2020, 7, 10, 6, 7, 30, 0 };
+static const Int32 testDateTimeString18ResultItems[] = { 2020, 7, 10, 6, 7, 30, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString18Result( testDateTimeString18ResultItems, testDateTimeString18ResultItems + ( sizeof( testDateTimeString18ResultItems ) / sizeof( testDateTimeString18ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString18TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString19 = "20200710060730.600";
-static const GUCEF::vector< Int32 > testDateTimeString19Result = { 2020, 7, 10, 6, 7, 30, 600 };
+static const Int32 testDateTimeString19ResultItems[] = { 2020, 7, 10, 6, 7, 30, 600 };
+static const GUCEF::vector< Int32 > testDateTimeString19Result( testDateTimeString19ResultItems, testDateTimeString19ResultItems + ( sizeof( testDateTimeString19ResultItems ) / sizeof( testDateTimeString19ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString19TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString20 = "2020-7-1";
-static const GUCEF::vector< Int32 > testDateTimeString20Result = { 2020, 7, 1, 0, 0, 0, 0 };
+static const Int32 testDateTimeString20ResultItems[] = { 2020, 7, 1, 0, 0, 0, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString20Result( testDateTimeString20ResultItems, testDateTimeString20ResultItems + ( sizeof( testDateTimeString20ResultItems ) / sizeof( testDateTimeString20ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString20TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString21 = "+20:7:1";
-static const GUCEF::vector< Int32 > testDateTimeString21Result = { 0, 0, 0, 20, 7, 1, 0 };
+static const Int32 testDateTimeString21ResultItems[] = { 0, 0, 0, 20, 7, 1, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString21Result( testDateTimeString21ResultItems, testDateTimeString21ResultItems + ( sizeof( testDateTimeString21ResultItems ) / sizeof( testDateTimeString21ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString21TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString22 = "2020-7-1 15:1:2.300";
-static const GUCEF::vector< Int32 > testDateTimeString22Result = { 2020, 7, 1, 15, 1, 2, 300 };
+static const Int32 testDateTimeString22ResultItems[] = { 2020, 7, 1, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString22Result( testDateTimeString22ResultItems, testDateTimeString22ResultItems + ( sizeof( testDateTimeString22ResultItems ) / sizeof( testDateTimeString22ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString22TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString23 = "2020-7-1 15:1:2.300+04:30";
-static const GUCEF::vector< Int32 > testDateTimeString23Result = { 2020, 7, 1, 15, 1, 2, 300 };
+static const Int32 testDateTimeString23ResultItems[] = { 2020, 7, 1, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString23Result( testDateTimeString23ResultItems, testDateTimeString23ResultItems + ( sizeof( testDateTimeString23ResultItems ) / sizeof( testDateTimeString23ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString23TzOffsetResult = 30+(4*60);
 
 static const CORE::CString testDateTimeString24 = "2020-7-1 15:1:2.300-4:30";
-static const GUCEF::vector< Int32 > testDateTimeString24Result = { 2020, 7, 1, 15, 1, 2, 300 };
+static const Int32 testDateTimeString24ResultItems[] = { 2020, 7, 1, 15, 1, 2, 300 };
+static const GUCEF::vector< Int32 > testDateTimeString24Result( testDateTimeString24ResultItems, testDateTimeString24ResultItems + ( sizeof( testDateTimeString24ResultItems ) / sizeof( testDateTimeString24ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString24TzOffsetResult = -(30+(4*60));
 
 static const CORE::CString testDateTimeString25 = "2024-265";
-static const GUCEF::vector< Int32 > testDateTimeString25Result = { 2024, 9, 21, 0, 0, 0, 0 };
+static const Int32 testDateTimeString25ResultItems[] = { 2024, 9, 21, 0, 0, 0, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString25Result( testDateTimeString25ResultItems, testDateTimeString25ResultItems + ( sizeof( testDateTimeString25ResultItems ) / sizeof( testDateTimeString25ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString25TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString26 = "2013-07-16T19:23:51Z\0This is a test, this should not be included";
-static const GUCEF::vector< Int32 > testDateTimeString26Result = { 2013, 7, 16, 19, 23, 51, 0 };
+static const Int32 testDateTimeString26ResultItems[] = { 2013, 7, 16, 19, 23, 51, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString26Result( testDateTimeString26ResultItems, testDateTimeString26ResultItems + ( sizeof( testDateTimeString26ResultItems ) / sizeof( testDateTimeString26ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString26TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString27 = "2013-07-16T19:23:51Z This is a test, this should not be included";
-static const GUCEF::vector< Int32 > testDateTimeString27Result = { 2013, 7, 16, 19, 23, 51, 0 };
+static const Int32 testDateTimeString27ResultItems[] = { 2013, 7, 16, 19, 23, 51, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString27Result( testDateTimeString27ResultItems, testDateTimeString27ResultItems + ( sizeof( testDateTimeString27ResultItems ) / sizeof( testDateTimeString27ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString27TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString28 = "2013-07-16T19:23:51Z. This is a test, this should not be included";
-static const GUCEF::vector< Int32 > testDateTimeString28Result = { 2013, 7, 16, 19, 23, 51, 0 };
+static const Int32 testDateTimeString28ResultItems[] = { 2013, 7, 16, 19, 23, 51, 0 };
+static const GUCEF::vector< Int32 > testDateTimeString28Result( testDateTimeString28ResultItems, testDateTimeString28ResultItems + ( sizeof( testDateTimeString28ResultItems ) / sizeof( testDateTimeString28ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString28TzOffsetResult = 0;
 
 static const CORE::CString testDateTimeString29 = "20241017090031.330Z";
-static const GUCEF::vector< Int32 > testDateTimeString29Result = { 2024, 10, 17, 9, 0, 31, 330 };
+static const Int32 testDateTimeString29ResultItems[] = { 2024, 10, 17, 9, 0, 31, 330 };
+static const GUCEF::vector< Int32 > testDateTimeString29Result( testDateTimeString29ResultItems, testDateTimeString29ResultItems + ( sizeof( testDateTimeString29ResultItems ) / sizeof( testDateTimeString29ResultItems[ 0 ] ) ) );
 static const Int32 testDateTimeString29TzOffsetResult = 0;
 
 struct StringParseTestCase
@@ -181,7 +210,7 @@ struct StringParseTestCase
     const Int32& tzOffsetResult;
 };
 
-static const GUCEF::vector< StringParseTestCase > stringParseTestCases = {
+static const StringParseTestCase stringParseTestCases[] = {
     { testDateTimeString1, testDateTimeString1Result, testDateTimeString1TzOffsetResult },
     { testDateTimeString2, testDateTimeString2Result, testDateTimeString2TzOffsetResult },
     { testDateTimeString3, testDateTimeString3Result, testDateTimeString3TzOffsetResult },
@@ -214,6 +243,8 @@ static const GUCEF::vector< StringParseTestCase > stringParseTestCases = {
 
 };
 
+static const UInt32 stringParseTestCaseCount = (UInt32) ( sizeof( stringParseTestCases ) / sizeof( stringParseTestCases[ 0 ] ) );
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -226,7 +257,7 @@ PerformDateTimeStringParsingTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: DateTime string parsing" )
         try
         {
-            for ( UInt32 i=0; i<stringParseTestCases.size(); ++i )
+            for ( UInt32 i=0; i<stringParseTestCaseCount; ++i )
             {
                 const StringParseTestCase& testCase = stringParseTestCases[ i ];
                 CORE::CDateTime dateTime;
