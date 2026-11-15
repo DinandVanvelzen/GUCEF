@@ -58,5 +58,6 @@ plugins/VIDEO/videocodecpluginWEBM/*
 tests/gucefAUTHGUI_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*
+tests/gucefWEB_TestApp/src//*
 tests/guidriverImGuiOpenGL_TestApp/*
 tests/guidriverImGui_TestApp/*

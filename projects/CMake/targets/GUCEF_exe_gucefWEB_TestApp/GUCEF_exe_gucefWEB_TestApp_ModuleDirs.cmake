@@ -17,6 +17,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/stbrumme-
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefIMAGE ${CMAKE_BINARY_DIR}/gucefIMAGE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefVFS ${CMAKE_BINARY_DIR}/gucefVFS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefWEB ${CMAKE_BINARY_DIR}/gucefWEB )
@@ -26,6 +27,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstoreplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPARSIFALXML ${CMAKE_BINARY_DIR}/dstorepluginPARSIFALXML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginYAML ${CMAKE_BINARY_DIR}/dstorepluginYAML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/WEB/httpclientpluginCURL ${CMAKE_BINARY_DIR}/httpclientpluginCURL )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/WEB/webviewpluginNULL ${CMAKE_BINARY_DIR}/webviewpluginNULL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefWEB_TestApp ${CMAKE_BINARY_DIR}/gucefWEB_TestApp )
 
 

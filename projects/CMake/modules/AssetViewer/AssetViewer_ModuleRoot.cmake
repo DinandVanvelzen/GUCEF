@@ -12,16 +12,16 @@
 # Packages of the modules AssetViewer depends on
 set( MODULE_DEPENDENCIES gucefHeaders )
 if ( LINUX32 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTHGUI gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
 endif( LINUX32 )
 if ( LINUX64 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTHGUI gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
 endif( LINUX64 )
 if ( WIN32 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTHGUI gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
 endif( WIN32 )
 if ( WIN64 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTHGUI gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
 endif( WIN64 )
 
 # The minimum C++ standard of AssetViewer and the modules it depends on

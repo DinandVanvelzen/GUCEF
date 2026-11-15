@@ -17,6 +17,7 @@ dependencies/Ogre/OgreMain/*
 dependencies/Ogre/PlugIns/Assimp/*
 dependencies/Ogre/PlugIns/DotScene/*
 dependencies/Ogre/PlugIns/GLSLang/*
+dependencies/Ogre/PlugIns/ParticleFX/*
 dependencies/Ogre/RenderSystems/GL3Plus/*
 dependencies/Ogre/RenderSystems/GLSupport/*
 dependencies/Ogre/RenderSystems/Vulkan/*
@@ -44,6 +45,7 @@ dependencies/aws-crt-cpp/crt/aws-c-sdkutils/include/*
 dependencies/aws-crt-cpp/crt/aws-checksums/include/*
 dependencies/aws-crt-cpp/include/*
 dependencies/cegui/cegui/*
+dependencies/cgltf/*
 dependencies/curl/include/*
 dependencies/curl/lib/*
 dependencies/flic/*
@@ -57,6 +59,7 @@ dependencies/libjpeg/*
 dependencies/libmng/*
 dependencies/libogg/*
 dependencies/libpng/*
+dependencies/libpq/*
 dependencies/libsquish/*
 dependencies/libvorbis/*
 dependencies/libvpx/*
@@ -68,8 +71,10 @@ dependencies/opus/*
 dependencies/pcre/*
 dependencies/pugixml/*
 dependencies/tiff/libtiff/*
+dependencies/ufbx/*
 dependencies/utfcpp/*
 dependencies/zlib/*
+platform/gucefASSETSTORE/*
 platform/gucefAUDIO/include/*
 platform/gucefAUTH/include/*
 platform/gucefAUTHGUI/*
@@ -79,6 +84,7 @@ platform/gucefCORE/include/*
 platform/gucefDRN/include/*
 platform/gucefDRNUTILS/*
 platform/gucefGAMEGUI/*
+platform/gucefGEOMETRY/include/*
 platform/gucefGUI/*
 platform/gucefIMAGE/include/*
 platform/gucefINPUT/*
@@ -90,9 +96,15 @@ platform/gucefPUBSUB/include/*
 platform/gucefVFS/include/*
 platform/gucefVIDEO/include/*
 platform/gucefWEB/include/*
+plugins/ASSETS/assetcookerOGRE/*
+plugins/ASSETS/assetpluginFBX/*
+plugins/ASSETS/assetpluginGLTF/*
+plugins/ASSETS/assetpluginGODOT/*
+plugins/ASSETS/assetpluginUNITY/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverALSA/*
 plugins/AUDIO/audiovoicecodecOPUS/*
+plugins/COMCORE/dbpluginPOSTGRESQL/*
 plugins/CORE/codecspluginOPENSSL/*
 plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverCEGUI/*
@@ -121,11 +133,21 @@ plugins/SHARED/pluginglueAWSSDK/include/*
 plugins/SHARED/pluginglueOGRE/*
 plugins/SHARED/pluginglueWAYLAND/*
 plugins/VIDEO/videocodecpluginWEBM/*
+tests/AssetConverterLib_TestApp/*
+tests/AssetStoreConverterHook_TestApp/*
 tests/AssetViewerLib_TestApp/*
 tests/OgreTools_TestApp/*
+tests/assetcookerOGRE_TestApp/*
+tests/assetpluginFBX_TestApp/*
+tests/assetpluginGLTF_TestApp/*
+tests/assetpluginGODOT_TestApp/*
+tests/assetpluginUNITY_TestApp/*
+tests/dbpluginPOSTGRESQL_TestApp/*
+tests/gucefASSETSTORE_TestApp/*
 tests/gucefAUTHGUI_TestApp/*
 tests/gucefCOMCORE_TestApp/include/*
 tests/gucefCOM_TestApp/include/*
+tests/gucefCORE_TestApp/include/*
 tests/gucefDRNUTILSGUI_TestApp/*
 tests/gucefDRNUTILS_TestApp/*
 tests/gucefDRN_TestApp/*
@@ -135,6 +157,7 @@ tests/gucefGUI_WaylandTestApp/*
 tests/gucefIMAGE_TestApp/*
 tests/gucefINPUT_TestApp/*
 tests/gucefMULTIPLAY_DesktopNotifyTestApp/*
+tests/gucefWEB_TestApp/src//*
 tests/guidriverImGuiOgre_TestApp/*
 tests/guidriverImGuiOpenGL_TestApp/*
 tests/guidriverImGui_TestApp/*
@@ -142,4 +165,6 @@ tests/guidriverMyGUI_TestApp/*
 tests/guidriverOgre_TestApp/*
 tests/guidriverRmlUIOgre_TestApp/*
 tests/pluginglueOGRE_TestApp/*
+tools/AssetConverterLib/*
+tools/AssetStoreConverterHook/*
 tools/AssetViewerLib/*

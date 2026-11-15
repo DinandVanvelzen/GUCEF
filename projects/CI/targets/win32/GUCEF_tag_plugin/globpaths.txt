@@ -36,6 +36,7 @@ dependencies/libjpeg/*
 dependencies/libmng/*
 dependencies/libogg/*
 dependencies/libpng/*
+dependencies/libpq/*
 dependencies/libsquish/*
 dependencies/libvorbis/*
 dependencies/libvpx/*
@@ -65,6 +66,7 @@ platform/gucefWEB/include/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverWASAPI/*
 plugins/AUDIO/audiovoicecodecOPUS/*
+plugins/COMCORE/dbpluginPOSTGRESQL/*
 plugins/GUI/guidriverWin32/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFreeImage/*

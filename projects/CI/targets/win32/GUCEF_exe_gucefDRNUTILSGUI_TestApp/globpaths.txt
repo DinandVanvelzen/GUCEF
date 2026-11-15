@@ -1,6 +1,7 @@
 common/include/*
 common/test/include/*
 platform/gucefAUDIO/*
+platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*

@@ -96,11 +96,11 @@ target_link_libraries( ${MODULE_NAME} PRIVATE Mqrt.lib )
 endif( WIN64 )
 
 if ( WIN32 )
-  include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
 endif( WIN64 )
 
 # Usage requirements: what dependents need from this module, from the source tree or from an installed build

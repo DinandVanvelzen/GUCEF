@@ -3,6 +3,7 @@ dependencies/monocypher/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*

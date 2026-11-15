@@ -8,6 +8,7 @@ dependencies/zlib/*
 platform/gucefCOMCORE/include/*
 platform/gucefCOM/include/*
 platform/gucefCORE/include/*
+platform/gucefIMAGE/include/*
 platform/gucefMT/include/*
 platform/gucefPUBSUB/include/*
 platform/gucefVFS/include/*

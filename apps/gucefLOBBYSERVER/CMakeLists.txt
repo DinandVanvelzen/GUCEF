@@ -35,7 +35,7 @@ target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE guc
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefLOBBYSERVER;MODULE_NAME=gucefLOBBYSERVER;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
+include_directories( ../../common/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

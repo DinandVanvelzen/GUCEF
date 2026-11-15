@@ -79,7 +79,8 @@ enum EMonoCodecKind
     MONOCODEC_BLAKE2B,
     MONOCODEC_SHA512,
     MONOCODEC_HKDF_SHA512,
-    MONOCODEC_ARGON2I
+    MONOCODEC_ARGON2I,
+    MONOCODEC_ARGON2ID
 };
 
 struct SMonoCodec
@@ -95,6 +96,7 @@ const SMonoCodec blake2bCodec = { MONOCODEC_BLAKE2B };
 const SMonoCodec sha512Codec = { MONOCODEC_SHA512 };
 const SMonoCodec hkdfSha512Codec = { MONOCODEC_HKDF_SHA512 };
 const SMonoCodec argon2iCodec = { MONOCODEC_ARGON2I };
+const SMonoCodec argon2idCodec = { MONOCODEC_ARGON2ID };
 
 /*-------------------------------------------------------------------------*/
 
@@ -454,7 +456,7 @@ DeriveKey( EMonoCodecKind kind, const TVariantMapApi* params, const UInt8* secre
         return GUCEF_CODEC_STATUS_OK;
     }
 
-    // Argon2i
+    // Argon2i and Argon2id
     if ( GUCEF_NULL == salt )
         return SetError( error, GUCEF_CODEC_STATUS_MISSING_PARAMETER, "The parameter \"salt\" is required, 16 random bytes are recommended" );
     if ( saltSize < 8 )
@@ -472,7 +474,7 @@ DeriveKey( EMonoCodecKind kind, const TVariantMapApi* params, const UInt8* secre
         return status;
 
     crypto_argon2_config config;
-    config.algorithm = CRYPTO_ARGON2_I;
+    config.algorithm = MONOCODEC_ARGON2ID == kind ? CRYPTO_ARGON2_ID : CRYPTO_ARGON2_I;
     config.nb_blocks = (uint32_t) memory;
     config.nb_passes = (uint32_t) iterations;
     config.nb_lanes = (uint32_t) lanes;
@@ -642,6 +644,7 @@ MonoEncode( void* pluginData             ,
         }
         case MONOCODEC_HKDF_SHA512 :
         case MONOCODEC_ARGON2I :
+        case MONOCODEC_ARGON2ID :
         {
             CSecureBuffer derived;
             TCodecStatus status = DeriveKey( codec->kind, params, message.Data(), message.Size(), derived, error );
@@ -829,7 +832,8 @@ MonoGetParameterInfo( void* pluginData          ,
         case MONOCODEC_BLAKE2B : { list = blake2bParams; count = sizeof( blake2bParams ) / sizeof( blake2bParams[ 0 ] ); break; }
         case MONOCODEC_SHA512 : { list = sha512Params; count = sizeof( sha512Params ) / sizeof( sha512Params[ 0 ] ); break; }
         case MONOCODEC_HKDF_SHA512 : { list = hkdfParams; count = sizeof( hkdfParams ) / sizeof( hkdfParams[ 0 ] ); break; }
-        case MONOCODEC_ARGON2I : { list = argon2Params; count = sizeof( argon2Params ) / sizeof( argon2Params[ 0 ] ); break; }
+        case MONOCODEC_ARGON2I :
+        case MONOCODEC_ARGON2ID : { list = argon2Params; count = sizeof( argon2Params ) / sizeof( argon2Params[ 0 ] ); break; }
     }
     if ( index >= count )
         return GUCEF_CODEC_STATUS_UNSUPPORTED;
@@ -1112,7 +1116,8 @@ const TCodecPluginLink codecLinks[] =
     MONO_LINK( "CryptographicHashCodec", "blake2b", blake2bCodec, MONO_HASH_CAPABILITIES, 0 ),
     MONO_LINK( "CryptographicHashCodec", "sha512", sha512Codec, MONO_HASH_CAPABILITIES, 0 ),
     MONO_LINK( "KeyDerivationCodec", "hkdf-sha512", hkdfSha512Codec, MONO_KDF_CAPABILITIES, 0 ),
-    MONO_LINK( "KeyDerivationCodec", "argon2i", argon2iCodec, MONO_KDF_CAPABILITIES, 0 )
+    MONO_LINK( "KeyDerivationCodec", "argon2i", argon2iCodec, MONO_KDF_CAPABILITIES, 0 ),
+    MONO_LINK( "KeyDerivationCodec", "argon2id", argon2idCodec, MONO_KDF_CAPABILITIES, 0 )
 };
 const UInt32 codecLinkCount = (UInt32) ( sizeof( codecLinks ) / sizeof( codecLinks[ 0 ] ) );
 
@@ -1156,7 +1161,7 @@ CODECPLUGIN_Shutdown( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 CODECPLUGIN_Description( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    return "codecspluginMONOCYPHER: XChaCha20-Poly1305, ChaCha20-Poly1305, X25519, Ed25519, BLAKE2b, SHA-512, HKDF-SHA512 and Argon2i codecs using Monocypher";
+    return "codecspluginMONOCYPHER: XChaCha20-Poly1305, ChaCha20-Poly1305, X25519, Ed25519, BLAKE2b, SHA-512, HKDF-SHA512, Argon2i and Argon2id codecs using Monocypher";
 }
 
 /*---------------------------------------------------------------------------*/

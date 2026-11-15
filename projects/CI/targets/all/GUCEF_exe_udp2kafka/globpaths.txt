@@ -5,6 +5,7 @@ dependencies/libparsifal/*
 dependencies/librdkafka/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*

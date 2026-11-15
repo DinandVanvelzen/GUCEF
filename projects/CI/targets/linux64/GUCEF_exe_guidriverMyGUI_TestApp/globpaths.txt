@@ -13,6 +13,7 @@ dependencies/utfcpp/*
 dependencies/zlib/*
 dependencies/zziplib/*
 platform/gucefAUDIO/*
+platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
@@ -21,6 +22,7 @@ platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
+platform/gucefWEB/*
 plugins/CORE/codecspluginZLIB/*
 plugins/GUI/guidriverEGL/*
 plugins/GUI/guidriverMyGUI/*

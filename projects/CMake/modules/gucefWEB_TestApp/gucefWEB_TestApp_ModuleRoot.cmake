@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefWEB_TestApp depends on
-set( MODULE_DEPENDENCIES gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefMT gucefTestHeaders gucefWEB )
+set( MODULE_DEPENDENCIES gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefIMAGE gucefMT gucefTestHeaders gucefWEB )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

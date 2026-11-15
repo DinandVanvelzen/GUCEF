@@ -1,0 +1,12 @@
+common/include/*
+common/test/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
+dependencies/libpq/*
+platform/gucefCOMCORE/*
+platform/gucefCORE/*
+platform/gucefMT/*
+plugins/COMCORE/dbpluginPOSTGRESQL/*
+plugins/CORE/dstorepluginJSONPARSER/*
+tests/dbpluginPOSTGRESQL_TestApp/*
+tests/gucefCORE_TestApp/include/*

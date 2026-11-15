@@ -43,7 +43,7 @@ add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefM
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_LABLINK_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefLabLink_TestApp;MODULE_NAME=gucefLabLink_TestApp" )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tools/gucefLabLink/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../../tools/gucefLabLink/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

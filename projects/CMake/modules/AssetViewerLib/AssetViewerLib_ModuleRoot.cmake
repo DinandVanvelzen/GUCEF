@@ -12,16 +12,16 @@
 # Packages of the modules AssetViewerLib depends on
 set( MODULE_DEPENDENCIES gucefHeaders )
 if ( LINUX32 )
-  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook Ogre Ogre.CommonInclude OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
 endif( LINUX32 )
 if ( LINUX64 )
-  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook Ogre Ogre.CommonInclude OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
 endif( LINUX64 )
 if ( WIN32 )
-  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook Ogre Ogre.CommonInclude OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
 endif( WIN32 )
 if ( WIN64 )
-  list( APPEND MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreRTShaderSystem gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook Ogre Ogre.CommonInclude OgreRTShaderSystem gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE )
 endif( WIN64 )
 
 # The minimum C++ standard of AssetViewerLib and the modules it depends on

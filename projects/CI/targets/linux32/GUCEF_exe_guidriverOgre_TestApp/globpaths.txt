@@ -10,6 +10,7 @@ dependencies/Ogre/include/*
 dependencies/Vulkan-Headers/include/*
 dependencies/glslang/*
 platform/gucefAUDIO/*
+platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
@@ -18,6 +19,7 @@ platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
+platform/gucefWEB/*
 plugins/GUI/guidriverOgre/*
 plugins/GUI/guidriverWAYLAND/*
 plugins/GUI/guidriverXWinGL/*

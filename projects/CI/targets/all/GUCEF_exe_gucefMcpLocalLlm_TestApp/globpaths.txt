@@ -4,6 +4,7 @@ dependencies/json-builder/*
 dependencies/json-parser/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*

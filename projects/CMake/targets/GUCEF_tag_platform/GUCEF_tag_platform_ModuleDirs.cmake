@@ -8,6 +8,7 @@
 # free to make use of it in any way you like.
 #-------------------------------------------------------------------
 #
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefASSETSTORE ${CMAKE_BINARY_DIR}/gucefASSETSTORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefAUDIO ${CMAKE_BINARY_DIR}/gucefAUDIO )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefAUTH ${CMAKE_BINARY_DIR}/gucefAUTH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefAUTHGUI ${CMAKE_BINARY_DIR}/gucefAUTHGUI )

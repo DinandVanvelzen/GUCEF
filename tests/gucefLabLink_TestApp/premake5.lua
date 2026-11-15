@@ -66,7 +66,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../tools/gucefLabLink/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../../tools/gucefLabLink/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

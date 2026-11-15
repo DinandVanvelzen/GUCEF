@@ -22,6 +22,7 @@ workspace( "GUCEF_exe_gucefDRNUTILSGUI_TestApp" )
 
 filter "LINUX32"
   include( "platform/gucefAUDIO" )
+  include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -41,6 +42,7 @@ filter "LINUX32"
 
 filter "LINUX64"
   include( "platform/gucefAUDIO" )
+  include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -60,6 +62,7 @@ filter "LINUX64"
 
 filter "WIN32"
   include( "platform/gucefAUDIO" )
+  include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
@@ -79,6 +82,7 @@ filter "WIN32"
 
 filter "WIN64"
   include( "platform/gucefAUDIO" )
+  include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

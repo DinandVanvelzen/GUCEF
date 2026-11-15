@@ -19,6 +19,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/stbrumme-
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefIMAGE ${CMAKE_BINARY_DIR}/gucefIMAGE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPUBSUB ${CMAKE_BINARY_DIR}/gucefPUBSUB )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefVFS ${CMAKE_BINARY_DIR}/gucefVFS )

@@ -6,6 +6,7 @@ dependencies/libarchive/*
 dependencies/stbrumme-hash-library/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*

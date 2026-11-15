@@ -28,6 +28,7 @@ dependencies/pugixml/*
 dependencies/utfcpp/*
 dependencies/zziplib/*
 platform/gucefAUDIO/*
+platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
@@ -36,6 +37,7 @@ platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
+platform/gucefWEB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 plugins/GUI/fontpluginFREETYPE/*
@@ -57,3 +59,4 @@ plugins/VFS/vfspluginITV/*
 plugins/VFS/vfspluginVP/*
 plugins/VFS/vfspluginZIP/*
 tests/gucefGUI_TestApp/*
+tests/gucefWEB_TestApp/src//*

@@ -30,6 +30,8 @@ dependencies/opus/*
 dependencies/pugixml/src/*
 dependencies/utfcpp/*
 platform/gucefAUDIO/include/*
+platform/gucefCOM/include/*
+platform/gucefCOMCORE/include/*
 platform/gucefCORE/include/*
 platform/gucefGUI/include/*
 platform/gucefIMAGE/include/*
@@ -39,6 +41,7 @@ platform/gucefMATH/src/*
 platform/gucefMT/include/*
 platform/gucefVFS/include/*
 platform/gucefVIDEO/include/*
+platform/gucefWEB/include/*
 plugins/AUDIO/audiocodecpluginOGG/*
 plugins/AUDIO/audiodriverAAUDIO/*
 plugins/AUDIO/audiovoicecodecOPUS/*

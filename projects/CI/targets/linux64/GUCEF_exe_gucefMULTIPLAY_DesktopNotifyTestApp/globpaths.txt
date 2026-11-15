@@ -5,6 +5,7 @@ platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefMULTIPLAY/*
 platform/gucefVFS/*

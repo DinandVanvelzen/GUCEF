@@ -30,6 +30,7 @@ filter "ALL"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -39,6 +40,7 @@ filter "ALL"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "ANDROID"
@@ -51,6 +53,7 @@ filter "ANDROID"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -60,6 +63,7 @@ filter "ANDROID"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "ANDROID32"
@@ -72,6 +76,7 @@ filter "ANDROID32"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -81,6 +86,7 @@ filter "ANDROID32"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "ANDROID64"
@@ -93,6 +99,7 @@ filter "ANDROID64"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -102,6 +109,7 @@ filter "ANDROID64"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "ARDUINO"
@@ -114,6 +122,7 @@ filter "ARDUINO"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -123,6 +132,7 @@ filter "ARDUINO"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "EMSCRIPTEN"
@@ -135,6 +145,7 @@ filter "EMSCRIPTEN"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -144,6 +155,7 @@ filter "EMSCRIPTEN"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "EMSCRIPTEN32"
@@ -157,6 +169,7 @@ filter "EMSCRIPTEN32"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -166,6 +179,7 @@ filter "EMSCRIPTEN32"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "EMSCRIPTEN64"
@@ -179,6 +193,7 @@ filter "EMSCRIPTEN64"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -188,6 +203,7 @@ filter "EMSCRIPTEN64"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "IOS"
@@ -200,6 +216,7 @@ filter "IOS"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -209,6 +226,7 @@ filter "IOS"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "IPHONE"
@@ -221,6 +239,7 @@ filter "IPHONE"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -230,6 +249,7 @@ filter "IPHONE"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "IPHONEOS"
@@ -242,6 +262,7 @@ filter "IPHONEOS"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -251,6 +272,7 @@ filter "IPHONEOS"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "LINUX"
@@ -263,6 +285,7 @@ filter "LINUX"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -272,6 +295,7 @@ filter "LINUX"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "LINUX32"
@@ -285,6 +309,7 @@ filter "LINUX32"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -294,6 +319,7 @@ filter "LINUX32"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "LINUX64"
@@ -307,6 +333,7 @@ filter "LINUX64"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -316,6 +343,7 @@ filter "LINUX64"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "MAC"
@@ -328,6 +356,7 @@ filter "MAC"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -337,6 +366,7 @@ filter "MAC"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "MACOS"
@@ -349,6 +379,7 @@ filter "MACOS"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -358,6 +389,7 @@ filter "MACOS"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "MACOSX"
@@ -370,6 +402,7 @@ filter "MACOSX"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -379,6 +412,7 @@ filter "MACOSX"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "MSWIN"
@@ -391,6 +425,7 @@ filter "MSWIN"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -400,6 +435,7 @@ filter "MSWIN"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "OSX"
@@ -412,6 +448,7 @@ filter "OSX"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -421,6 +458,7 @@ filter "OSX"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
 
 filter "WIN32"
@@ -434,6 +472,7 @@ filter "WIN32"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -443,6 +482,7 @@ filter "WIN32"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
   include( "tools/MemoryLeakFinder" )
 
@@ -457,6 +497,7 @@ filter "WIN64"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -466,6 +507,7 @@ filter "WIN64"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )
   include( "tools/MemoryLeakFinder" )
 
@@ -479,6 +521,7 @@ filter "WINDOWS"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
+  include( "platform/gucefIMAGE" )
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
@@ -488,4 +531,5 @@ filter "WINDOWS"
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/WEB/httpclientpluginCURL" )
+  include( "plugins/WEB/webviewpluginNULL" )
   include( "tests/gucefWEB_TestApp" )

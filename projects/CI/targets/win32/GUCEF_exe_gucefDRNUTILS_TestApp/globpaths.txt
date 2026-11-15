@@ -2,12 +2,16 @@ common/include/*
 common/test/include/*
 dependencies/json-builder/*
 dependencies/json-parser/*
+dependencies/monocypher/*
+platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
 plugins/CORE/dstorepluginJSONPARSER/*
 tests/gucefCOMCORE_TestApp/include/*
 tests/gucefDRNUTILS_TestApp/*

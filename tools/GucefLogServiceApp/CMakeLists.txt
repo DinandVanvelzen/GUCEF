@@ -34,7 +34,7 @@ add_dependencies( ${MODULE_NAME} GucefLogServiceLib gucefCOM gucefCOMCORE gucefC
 target_link_libraries( ${MODULE_NAME} PUBLIC GucefLogServiceLib gucefCOM gucefCOMCORE gucefCORE gucefMT gucefVFS gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEFLOGSERVICE_BUILD_MODULE;MODULE_CONSENSUS_NAME=GucefLogServiceApp;MODULE_NAME=GucefLogServiceApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../GucefLogServiceLib/include )
+include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include ../GucefLogServiceLib/include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

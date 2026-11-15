@@ -4,6 +4,7 @@ dependencies/freetype/*
 dependencies/imgui/*
 dependencies/zlib/*
 platform/gucefAUDIO/*
+platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
@@ -12,6 +13,7 @@ platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
+platform/gucefWEB/*
 plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverImGui/*
 tests/guidriverImGui_TestApp/*

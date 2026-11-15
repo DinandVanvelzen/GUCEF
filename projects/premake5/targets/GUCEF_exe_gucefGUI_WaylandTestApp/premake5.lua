@@ -22,6 +22,8 @@ workspace( "GUCEF_exe_gucefGUI_WaylandTestApp" )
 
 filter "LINUX32"
   include( "platform/gucefAUDIO" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefGUI" )
   include( "platform/gucefIMAGE" )
@@ -30,6 +32,7 @@ filter "LINUX32"
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefVIDEO" )
+  include( "platform/gucefWEB" )
   include( "plugins/GUI/guidriverWAYLAND" )
   include( "plugins/INPUT/inputdriverWAYLAND" )
   include( "plugins/SHARED/pluginglueWAYLAND" )
@@ -37,6 +40,8 @@ filter "LINUX32"
 
 filter "LINUX64"
   include( "platform/gucefAUDIO" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefGUI" )
   include( "platform/gucefIMAGE" )
@@ -45,6 +50,7 @@ filter "LINUX64"
   include( "platform/gucefMT" )
   include( "platform/gucefVFS" )
   include( "platform/gucefVIDEO" )
+  include( "platform/gucefWEB" )
   include( "plugins/GUI/guidriverWAYLAND" )
   include( "plugins/INPUT/inputdriverWAYLAND" )
   include( "plugins/SHARED/pluginglueWAYLAND" )

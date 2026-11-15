@@ -10,6 +10,7 @@ dependencies/Ogre/OgreMain/*
 dependencies/Ogre/PlugIns/Assimp/*
 dependencies/Ogre/PlugIns/DotScene/*
 dependencies/Ogre/PlugIns/GLSLang/*
+dependencies/Ogre/PlugIns/ParticleFX/*
 dependencies/Ogre/RenderSystems/GL3Plus/*
 dependencies/Ogre/RenderSystems/GLSupport/*
 dependencies/Ogre/RenderSystems/Vulkan/*
@@ -20,6 +21,7 @@ dependencies/Ogre/Tools/XMLConverter/*
 dependencies/Ogre/include/*
 dependencies/Vulkan-Headers/include/*
 dependencies/assimp/*
+dependencies/cgltf/*
 dependencies/freetype/*
 dependencies/glslang/*
 dependencies/imgui/*
@@ -32,9 +34,15 @@ dependencies/libsquish/*
 dependencies/openexr/*
 dependencies/pugixml/*
 dependencies/tiff/libtiff/*
+dependencies/ufbx/*
 dependencies/zlib/*
+platform/gucefASSETSTORE/*
 platform/gucefAUDIO/*
+platform/gucefAUTH/*
+platform/gucefCOM/include/*
+platform/gucefCOMCORE/include/*
 platform/gucefCORE/include/*
+platform/gucefGEOMETRY/*
 platform/gucefGUI/*
 platform/gucefIMAGE/include/*
 platform/gucefINPUT/*
@@ -42,6 +50,14 @@ platform/gucefMATH/*
 platform/gucefMT/include/*
 platform/gucefVFS/include/*
 platform/gucefVIDEO/*
+platform/gucefWEB/include/*
+plugins/ASSETS/assetcookerOGRE/*
+plugins/ASSETS/assetpluginFBX/*
+plugins/ASSETS/assetpluginGLTF/*
+plugins/ASSETS/assetpluginGODOT/*
+plugins/ASSETS/assetpluginUNITY/*
+plugins/COMCORE/dbpluginVFSTABLES/*
+plugins/CORE/tablecodecpluginPARQUET/*
 plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverImGui/*
 plugins/GUI/guidriverOgre/*
@@ -53,5 +69,7 @@ plugins/OGRE/OgreCodec_GucefIMAGE/*
 plugins/OGRE/OgrePlugin_GucefVFS/*
 plugins/SHARED/pluginglueOGRE/*
 plugins/VFS/vfspluginUNITYPACKAGE/*
+tools/AssetConverter/*
+tools/AssetStoreConverterHook/*
 tools/AssetViewer/*
 tools/CMakeListGenerator/*

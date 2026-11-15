@@ -53,7 +53,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../AncestryDotComBackupLib/include" } )
+includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../AncestryDotComBackupLib/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

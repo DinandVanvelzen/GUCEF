@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefWEB depends on
-set( MODULE_DEPENDENCIES gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefMT gucefVFS )
+set( MODULE_DEPENDENCIES gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefIMAGE gucefMT gucefVFS )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

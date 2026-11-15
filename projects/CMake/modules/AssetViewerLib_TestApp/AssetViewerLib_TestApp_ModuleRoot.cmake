@@ -12,16 +12,16 @@
 # Packages of the modules AssetViewerLib_TestApp depends on
 set( MODULE_DEPENDENCIES gucefHeaders )
 if ( LINUX32 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
 endif( LINUX32 )
 if ( LINUX64 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
 endif( LINUX64 )
 if ( WIN32 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
 endif( WIN32 )
 if ( WIN64 )
-  list( APPEND MODULE_DEPENDENCIES AssetViewerLib Ogre Ogre.CommonInclude gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
+  list( APPEND MODULE_DEPENDENCIES AssetConverterLib AssetStoreConverterHook AssetViewerLib Ogre Ogre.CommonInclude gucefASSETSTORE gucefAUTH gucefAUTHGUI gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefTestHeaders gucefVFS gucefWEB guidriverImGuiOgre guidriverOgre pluginglueOGRE pluginglueOGRECOMMON )
 endif( WIN64 )
 
 # The minimum C++ standard of AssetViewerLib_TestApp and the modules it depends on

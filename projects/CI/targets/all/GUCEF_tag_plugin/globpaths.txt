@@ -6,6 +6,7 @@ platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
+platform/gucefGEOMETRY/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
 platform/gucefINPUT/*

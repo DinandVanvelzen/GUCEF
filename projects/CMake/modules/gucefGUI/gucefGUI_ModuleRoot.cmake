@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefGUI depends on
-set( MODULE_DEPENDENCIES gucefAUDIO gucefCORE gucefHeaders gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO )
+set( MODULE_DEPENDENCIES gucefAUDIO gucefCORE gucefHeaders gucefIMAGE gucefINPUT gucefMT gucefVFS gucefVIDEO gucefWEB )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

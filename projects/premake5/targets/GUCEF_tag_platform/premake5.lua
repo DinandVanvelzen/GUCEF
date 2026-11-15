@@ -21,6 +21,7 @@ workspace( "GUCEF_tag_platform" )
   --
 
 filter "ALL"
+  include( "platform/gucefASSETSTORE" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefAUTH" )
   include( "platform/gucefAUTHGUI" )

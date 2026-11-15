@@ -5,6 +5,7 @@ dependencies/json-parser/*
 dependencies/miniupnpc/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*

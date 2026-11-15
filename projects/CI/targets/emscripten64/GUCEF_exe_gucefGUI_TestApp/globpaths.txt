@@ -5,6 +5,7 @@ dependencies/RmlUi/Source/Core/*
 dependencies/freetype/*
 dependencies/zlib/*
 platform/gucefAUDIO/*
+platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
@@ -13,9 +14,11 @@ platform/gucefMATH/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
+platform/gucefWEB/*
 plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverEmscripten/*
 plugins/GUI/guidriverNull/*
 plugins/GUI/guidriverRmlUI/*
 plugins/INPUT/inputdriverEMSCRIPTEN/*
 tests/gucefGUI_TestApp/*
+tests/gucefWEB_TestApp/src//*

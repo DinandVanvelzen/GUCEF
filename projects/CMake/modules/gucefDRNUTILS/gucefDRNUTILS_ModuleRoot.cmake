@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefDRNUTILS depends on
-set( MODULE_DEPENDENCIES gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefHeaders gucefMT gucefWEB )
+set( MODULE_DEPENDENCIES gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefHeaders gucefMT gucefWEB )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

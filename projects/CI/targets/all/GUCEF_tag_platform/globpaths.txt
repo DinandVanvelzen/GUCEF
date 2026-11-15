@@ -1,4 +1,5 @@
 common/include/*
+platform/gucefASSETSTORE/*
 platform/gucefAUDIO/*
 platform/gucefAUTH/*
 platform/gucefCOM/*

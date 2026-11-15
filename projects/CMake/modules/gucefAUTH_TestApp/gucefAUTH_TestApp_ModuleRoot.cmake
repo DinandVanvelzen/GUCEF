@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules gucefAUTH_TestApp depends on
-set( MODULE_DEPENDENCIES gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefMT gucefTestHeaders gucefWEB )
+set( MODULE_DEPENDENCIES gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefHeaders gucefMT gucefTestHeaders gucefWEB monocypher )
 list( REMOVE_DUPLICATES MODULE_DEPENDENCIES )
 foreach( MODULE_DEPENDENCY ${MODULE_DEPENDENCIES} )
   find_package( ${MODULE_DEPENDENCY} CONFIG REQUIRED )

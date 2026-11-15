@@ -3,6 +3,7 @@ dependencies/zlib/*
 platform/gucefCOMCORE/include/*
 platform/gucefCOM/include/*
 platform/gucefCORE/include/*
+platform/gucefIMAGE/include/*
 platform/gucefMT/include/*
 platform/gucefMT/src//*
 platform/gucefPUBSUB/include/*

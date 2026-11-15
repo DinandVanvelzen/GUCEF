@@ -39,7 +39,7 @@ add_dependencies( ${MODULE_NAME} RdKafka gucefCOM gucefCOMCORE gucefCORE gucefMT
 target_link_libraries( ${MODULE_NAME} PUBLIC RdKafka gucefCOM gucefCOMCORE gucefCORE gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=udp2kafka;MODULE_NAME=udp2kafka" )
 
-include_directories( ../../common/include ../../dependencies/librdkafka ../../dependencies/librdkafka/src ../../dependencies/librdkafka/src-cpp ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
+include_directories( ../../common/include ../../dependencies/librdkafka ../../dependencies/librdkafka/src ../../dependencies/librdkafka/src-cpp ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

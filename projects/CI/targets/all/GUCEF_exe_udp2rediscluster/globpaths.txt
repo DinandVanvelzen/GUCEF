@@ -2,6 +2,7 @@ common/include/*
 dependencies//*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*

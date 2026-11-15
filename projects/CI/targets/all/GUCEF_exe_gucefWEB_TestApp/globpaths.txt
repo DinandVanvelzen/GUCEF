@@ -8,6 +8,7 @@ dependencies/libyaml/*
 dependencies/stbrumme-hash-library/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefIMAGE/*
 platform/gucefMT/*
 platform/gucefVFS/*
 platform/gucefWEB/*
@@ -17,4 +18,5 @@ plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 plugins/CORE/dstorepluginYAML/*
 plugins/WEB/httpclientpluginCURL/*
+plugins/WEB/webviewpluginNULL/*
 tests/gucefWEB_TestApp/*
