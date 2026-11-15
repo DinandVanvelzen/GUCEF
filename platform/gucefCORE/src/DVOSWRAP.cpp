@@ -271,251 +271,16 @@ class GUCEF_HIDDEN LinuxSysDevicesCpuFreqReader
 
 /*--------------------------------------------------------------------------*/
 
-class GUCEF_HIDDEN LinuxLogicalCpuInfo
-{
-    public:
-
-    UInt16 processor;
-    CString vendor_id;
-    UInt32 cpuFamily;
-    UInt32 model;
-    CString modelName;
-    UInt32 stepping;
-    Float32 cpuMhz;             // per the docs this is just a snapshot, not a sampling over a time interval
-    UInt32 cacheSizeInBytes;
-    UInt16 physicalId;
-    UInt16 siblings;
-    UInt16 coreId;
-    UInt16 cpuCores;
-    UInt32 apicid;
-    UInt32 initialApicid;
-    bool fpu;
-    bool fpu_exception;
-    UInt32 cpuidLevel;
-    bool wp;
-    CString::StringSet flags;
-    CString::StringSet vmxFlags;
-    CString::StringSet bugs;
-    Float32 bogomips;
-    UInt16 clflushSize;
-    UInt16 cache_alignment;
-    CString addressSizes;
-
-    LinuxLogicalCpuInfo( void )
-        : processor( 0 )
-        , vendor_id()
-        , cpuFamily( 0 )
-        , model( 0 )
-        , modelName()
-        , stepping( 0 )
-        , cpuMhz( 0.0 )
-        , cacheSizeInBytes( 0 )
-        , physicalId( 0 )
-        , siblings( 0 )
-        , coreId( 0 )
-        , cpuCores( 0 )
-        , apicid( 0 )
-        , initialApicid( 0 )
-        , fpu( false )
-        , fpu_exception( false )
-        , cpuidLevel( 0 )
-        , wp( false )
-        , flags()
-        , vmxFlags()
-        , bugs()
-        , bogomips( 0.0 )
-        , clflushSize( 0 )
-        , cache_alignment( 0 )
-        , addressSizes()
-    {GUCEF_TRACE;
-
-    }
-};
-
-/*--------------------------------------------------------------------------*/
-
 class GUCEF_HIDDEN AllLinuxProcCpuInfo
 {
     public:
 
-    typedef GUCEF::vector< LinuxLogicalCpuInfo >     LinuxLogicalCpuInfoVector;
-
-    LinuxLogicalCpuInfoVector allCpuInfo;
+    TLogicalCpuDescriptionVector allCpuInfo;
 
     bool InitFromOS( void )
     {GUCEF_TRACE;
 
-        FILE* procCpuInfoFile = fopen( "/proc/cpuinfo", "r" );
-        if ( GUCEF_NULL != procCpuInfoFile )
-        {
-            allCpuInfo.clear();
-
-            LinuxLogicalCpuInfo cpuInfo;
-            char lineBuffer[ 2048 ];
-
-            while ( GUCEF_NULL != fgets( lineBuffer, 2048, procCpuInfoFile ) )
-            {
-                // Lines with content have the form <key name><\t><:><value><\n>
-                const char* tabChar = strchr( lineBuffer, '\t' );
-                if ( GUCEF_NULL != tabChar )
-                {
-                    const char* colonChar = strchr( tabChar, ':' );
-                    UInt32 keyStrLength = 0;
-                    if ( GUCEF_NULL != colonChar )
-                    {
-                        keyStrLength = (UInt32) ( tabChar - lineBuffer );
-
-                        if ( 0 == strncmp( "processor", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.processor = (UInt16) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "vendor_id", lineBuffer, keyStrLength ) )
-                        {
-                            const char* eolChar = strchr( colonChar+1, '\n' );
-                            if ( GUCEF_NULL != eolChar )
-                            {
-                                cpuInfo.vendor_id.Set( colonChar+1, eolChar-(colonChar+1) );
-                                cpuInfo.vendor_id.Trim( true );
-                            }
-                        }
-                        else
-                        if ( 0 == strncmp( "cpu family", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.cpuFamily = (UInt32) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "model", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.model = (UInt16) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "model name", lineBuffer, keyStrLength ) )
-                        {
-                            cpuInfo.modelName = colonChar+1;
-                        }
-                        else
-                        if ( 0 == strncmp( "stepping", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.stepping = (UInt32) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "cpu MHz", lineBuffer, keyStrLength ) )
-                        {
-                            sscanf( colonChar+1, "%f", &cpuInfo.cpuMhz );
-                        }
-                        else
-                        if ( 0 == strncmp( "cache size", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-
-                            // Use old convention of KB == 1024 not 1000
-                            cpuInfo.cacheSizeInBytes = (UInt32) value * 1024;
-                        }
-                        else
-                        if ( 0 == strncmp( "physical id", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.physicalId = (UInt16) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "core id", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.coreId = (UInt16) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "cpu cores", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.cpuCores = (UInt16) value;
-                        }
-                        if ( 0 == strncmp( "apicid", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.apicid = (UInt32) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "initial apicid", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.initialApicid = (UInt32) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "fpu", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 boolInt = String_To_Boolint( colonChar+1 );
-                            cpuInfo.fpu = boolInt > 0;
-                        }
-                        else
-                        if ( 0 == strncmp( "fpu_exception", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 boolInt = String_To_Boolint( colonChar+1 );
-                            cpuInfo.fpu_exception = boolInt > 0;
-                        }
-                        else
-                        if ( 0 == strncmp( "cpuid level", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.cpuidLevel = (UInt32) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "wp", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 boolInt = String_To_Boolint( colonChar+1 );
-                            cpuInfo.wp = boolInt > 0;
-                        }
-                        else
-                        if ( 0 == strncmp( "bogomips", lineBuffer, keyStrLength ) )
-                        {
-                            sscanf( colonChar+1, "%f", &cpuInfo.bogomips );
-                        }
-                        else
-                        if ( 0 == strncmp( "clflush size", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.clflushSize = (UInt16) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "cache_alignment", lineBuffer, keyStrLength ) )
-                        {
-                            Int32 value = 0;
-                            sscanf( colonChar+1, "%d", &value );
-                            cpuInfo.cache_alignment = (UInt16) value;
-                        }
-                        else
-                        if ( 0 == strncmp( "address sizes", lineBuffer, keyStrLength ) )
-                        {
-                            cpuInfo.addressSizes = colonChar+1;
-                        }
-                    }
-                }
-                else
-                {
-                    // Empty lines seperate the different sections
-                    allCpuInfo.push_back( cpuInfo );
-                }
-            }
-            fclose( procCpuInfoFile );
-            return true;
-        }
-        return false;
+        return GetLogicalCpuDescriptions( allCpuInfo );
     }
 
     AllLinuxProcCpuInfo( void )
@@ -1763,18 +1528,20 @@ GetProcessList( TProcessId** processList ,
         return OSWRAP_FALSE;
 
     // Just call the C++ implementation and convert the result for C
+    *processList = GUCEF_NULL;
+    *processCount = 0;
     TProcessIdVector procIds;
     if ( GetProcessList( procIds ) )
     {
-        *processList = (TProcessId*) calloc( procIds.size(), sizeof(TProcessId) );
+        // never ask for 0 bytes: that may give a null pointer which is indistinguishable from failure
+        const size_t count = procIds.size();
+        *processList = (TProcessId*) calloc( count > 0 ? count : 1, sizeof(TProcessId) );
         if ( GUCEF_NULL != *processList )
         {
-            for ( size_t i=0; i<procIds.size(); ++i )
-            {
+            for ( size_t i=0; i<count; ++i )
                 (*processList)[ i ] = procIds[ i ];
-                ++i;
-            }
-            OSWRAP_TRUE;
+            *processCount = (UInt32) count;
+            return OSWRAP_TRUE;
         }
     }
 

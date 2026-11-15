@@ -253,6 +253,77 @@ GetProcessList( TProcessIdVector& processList );
 
 /*--------------------------------------------------------------------------*/
 
+/**
+ *  What the operating system reports about one logical CPU. A field the operating system does not report keeps
+ *  its default value (0, false or empty).
+ *  On Linux and Android the source is /proc/cpuinfo; the names of the fields are the names used there.
+ */
+class GUCEF_CORE_PUBLIC_CPP CLogicalCpuDescription
+{
+    public:
+
+    UInt32 processor;
+    CString vendorId;
+    UInt32 cpuFamily;
+    UInt32 model;
+    CString modelName;
+    UInt32 stepping;
+    Float32 cpuMhz;                     // per the operating system this is a snapshot, not a sampling over a time interval
+    UInt32 cacheSizeInBytes;
+    UInt32 physicalId;
+    UInt32 siblings;
+    UInt32 coreId;
+    UInt32 cpuCores;
+    UInt32 apicId;
+    UInt32 initialApicId;
+    bool fpu;
+    bool fpuException;
+    UInt32 cpuidLevel;
+    bool wp;
+    CString::StringSet flags;           // the instruction set and feature names, as the operating system spells them: "sse2", "avx2", ... ( ARM: the "Features" line )
+    CString::StringSet vmxFlags;
+    CString::StringSet bugs;
+    Float32 bogomips;
+    UInt32 clflushSize;
+    UInt32 cacheAlignment;
+    CString addressSizes;
+
+    CLogicalCpuDescription( void );
+
+    /** Whether 'flags' contains the given feature name */
+    bool HasFlag( const CString& flag ) const;
+};
+
+typedef GUCEF::vector< CLogicalCpuDescription, gucef_allocator< CLogicalCpuDescription > >    TLogicalCpuDescriptionVector;
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Parses text in the format of /proc/cpuinfo: one 'key : value' line per field, sections of one logical CPU
+ *  separated by empty lines, a line has no length limit. The key is what precedes the first ':' without its
+ *  surrounding white space, the value what follows it without its surrounding white space. Flag lists
+ *  ( "flags", "vmx flags", "bugs", ARM "Features" ) are split at white space. A section that is not
+ *  followed by an empty line at the end of the text is still reported. Keys that are not known are ignored.
+ *  Works on every platform; it does not read anything.
+ *  @return whether at least one logical CPU was found, the descriptions found are always appended to 'descriptions'
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+ParseProcCpuInfo( const char* text                          ,
+                  UInt32 textLength                         ,
+                  TLogicalCpuDescriptionVector& descriptions );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Describes every logical CPU of the system as far as the operating system reports it.
+ *  Linux and Android: parses /proc/cpuinfo. Other platforms: nothing is reported and false is returned.
+ *  The list is cleared first.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+GetLogicalCpuDescriptions( TLogicalCpuDescriptionVector& descriptions );
+
+/*--------------------------------------------------------------------------*/
+
 
 /**
  * @brief Attempts to check if the process with the given process Id is still alive

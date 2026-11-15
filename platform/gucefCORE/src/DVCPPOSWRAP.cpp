@@ -1669,6 +1669,7 @@ GetProcessList( TProcessIdVector& processList )
 
         if ( 0 == ::EnumProcesses( win32ProcessList, reservedListSizeInBytes, &usedListSizeInBytes ) )
         {
+            free( win32ProcessList );
             return false;
         }
 
@@ -1701,6 +1702,9 @@ GetProcessList( TProcessIdVector& processList )
     processList.reserve( 1024 );
 
     DIR* dp = ::opendir( "/proc/" );
+    if ( GUCEF_NULL == dp )
+        return false;
+
     struct dirent* dirFilesys = GUCEF_NULL;
     while ( GUCEF_NULL != ( dirFilesys = ::readdir( dp ) ) )
     {
@@ -2072,6 +2076,269 @@ CProcessInformation::TryGetProcessInformation( TProcessId pid            ,
     }
 
     return false;
+}
+
+/*--------------------------------------------------------------------------*/
+
+CLogicalCpuDescription::CLogicalCpuDescription( void )
+    : processor( 0 )
+    , vendorId()
+    , cpuFamily( 0 )
+    , model( 0 )
+    , modelName()
+    , stepping( 0 )
+    , cpuMhz( 0.0f )
+    , cacheSizeInBytes( 0 )
+    , physicalId( 0 )
+    , siblings( 0 )
+    , coreId( 0 )
+    , cpuCores( 0 )
+    , apicId( 0 )
+    , initialApicId( 0 )
+    , fpu( false )
+    , fpuException( false )
+    , cpuidLevel( 0 )
+    , wp( false )
+    , flags()
+    , vmxFlags()
+    , bugs()
+    , bogomips( 0.0f )
+    , clflushSize( 0 )
+    , cacheAlignment( 0 )
+    , addressSizes()
+{GUCEF_TRACE;
+
+}
+
+/*--------------------------------------------------------------------------*/
+
+bool
+CLogicalCpuDescription::HasFlag( const CString& flag ) const
+{GUCEF_TRACE;
+
+    return flags.find( flag ) != flags.end();
+}
+
+/*--------------------------------------------------------------------------*/
+
+namespace {
+
+bool
+IsCpuInfoSpace( char c )
+{
+    return ' ' == c || '\t' == c || '\r' == c || '\n' == c;
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** the text [begin,end) without surrounding white space */
+CString
+CpuInfoTrimmed( const char* begin, const char* end )
+{
+    while ( begin < end && IsCpuInfoSpace( *begin ) )
+        ++begin;
+    while ( end > begin && IsCpuInfoSpace( *( end-1 ) ) )
+        --end;
+
+    CString result;
+    if ( end > begin )
+        result.Set( begin, (UInt32) ( end - begin ) );
+    return result;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+CpuInfoSplitWords( const char* begin, const char* end, CString::StringSet& words )
+{
+    while ( begin < end )
+    {
+        while ( begin < end && IsCpuInfoSpace( *begin ) )
+            ++begin;
+        const char* wordStart = begin;
+        while ( begin < end && !IsCpuInfoSpace( *begin ) )
+            ++begin;
+        if ( begin > wordStart )
+        {
+            CString word;
+            word.Set( wordStart, (UInt32) ( begin - wordStart ) );
+            words.insert( word );
+        }
+    }
+}
+
+/*--------------------------------------------------------------------------*/
+
+UInt32
+CpuInfoToUInt32( const CString& value )
+{
+    // sscanf does not read past the end of 'value': it is a terminated string
+    long parsed = 0;
+    if ( 1 != sscanf( value.C_String(), "%ld", &parsed ) || parsed < 0 )
+        return 0;
+    return (UInt32) parsed;
+}
+
+/*--------------------------------------------------------------------------*/
+
+Float32
+CpuInfoToFloat32( const CString& value )
+{
+    float parsed = 0.0f;
+    if ( 1 != sscanf( value.C_String(), "%f", &parsed ) )
+        return 0.0f;
+    return parsed;
+}
+
+/*--------------------------------------------------------------------------*/
+
+bool
+CpuInfoToBool( const CString& value )
+{
+    return value.Equals( "yes", false ) || value.Equals( "true", false ) || value.Equals( "1", false );
+}
+
+/*--------------------------------------------------------------------------*/
+
+/** Stores a key and value in the description, unknown keys are ignored. Returns whether the key was a known one. */
+bool
+SetCpuInfoField( CLogicalCpuDescription& cpu, const CString& key, const char* valueBegin, const char* valueEnd )
+{
+    if ( key.Equals( "flags" ) || key.Equals( "Features" ) )
+    {
+        CpuInfoSplitWords( valueBegin, valueEnd, cpu.flags );
+        return true;
+    }
+    if ( key.Equals( "vmx flags" ) )
+    {
+        CpuInfoSplitWords( valueBegin, valueEnd, cpu.vmxFlags );
+        return true;
+    }
+    if ( key.Equals( "bugs" ) )
+    {
+        CpuInfoSplitWords( valueBegin, valueEnd, cpu.bugs );
+        return true;
+    }
+
+    const CString value = CpuInfoTrimmed( valueBegin, valueEnd );
+    if ( key.Equals( "processor" ) )             cpu.processor = CpuInfoToUInt32( value );
+    else if ( key.Equals( "vendor_id" ) )        cpu.vendorId = value;
+    else if ( key.Equals( "cpu family" ) )       cpu.cpuFamily = CpuInfoToUInt32( value );
+    else if ( key.Equals( "model" ) )            cpu.model = CpuInfoToUInt32( value );
+    else if ( key.Equals( "model name" ) )       cpu.modelName = value;
+    else if ( key.Equals( "stepping" ) )         cpu.stepping = CpuInfoToUInt32( value );
+    else if ( key.Equals( "cpu MHz" ) )          cpu.cpuMhz = CpuInfoToFloat32( value );
+    else if ( key.Equals( "cache size" ) )       cpu.cacheSizeInBytes = CpuInfoToUInt32( value ) * 1024;     // old convention: KB is 1024 bytes
+    else if ( key.Equals( "physical id" ) )      cpu.physicalId = CpuInfoToUInt32( value );
+    else if ( key.Equals( "siblings" ) )         cpu.siblings = CpuInfoToUInt32( value );
+    else if ( key.Equals( "core id" ) )          cpu.coreId = CpuInfoToUInt32( value );
+    else if ( key.Equals( "cpu cores" ) )        cpu.cpuCores = CpuInfoToUInt32( value );
+    else if ( key.Equals( "apicid" ) )           cpu.apicId = CpuInfoToUInt32( value );
+    else if ( key.Equals( "initial apicid" ) )   cpu.initialApicId = CpuInfoToUInt32( value );
+    else if ( key.Equals( "fpu" ) )              cpu.fpu = CpuInfoToBool( value );
+    else if ( key.Equals( "fpu_exception" ) )    cpu.fpuException = CpuInfoToBool( value );
+    else if ( key.Equals( "cpuid level" ) )      cpu.cpuidLevel = CpuInfoToUInt32( value );
+    else if ( key.Equals( "wp" ) )               cpu.wp = CpuInfoToBool( value );
+    else if ( key.Equals( "bogomips" ) || key.Equals( "BogoMIPS" ) ) cpu.bogomips = CpuInfoToFloat32( value );
+    else if ( key.Equals( "clflush size" ) )     cpu.clflushSize = CpuInfoToUInt32( value );
+    else if ( key.Equals( "cache_alignment" ) )  cpu.cacheAlignment = CpuInfoToUInt32( value );
+    else if ( key.Equals( "address sizes" ) )    cpu.addressSizes = value;
+    else
+        return false;
+
+    return true;
+}
+
+}; /* anonymous namespace */
+
+/*--------------------------------------------------------------------------*/
+
+bool
+ParseProcCpuInfo( const char* text                          ,
+                  UInt32 textLength                         ,
+                  TLogicalCpuDescriptionVector& descriptions )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == text || 0 == textLength )
+        return false;
+
+    bool foundCpu = false;
+    bool sectionHasFields = false;
+    CLogicalCpuDescription current;
+
+    const char* const textEnd = text + textLength;
+    const char* lineBegin = text;
+    while ( lineBegin < textEnd )
+    {
+        const char* lineEnd = lineBegin;
+        while ( lineEnd < textEnd && '\n' != *lineEnd )
+            ++lineEnd;
+
+        // An empty line ends the section of one logical CPU
+        const CString line = CpuInfoTrimmed( lineBegin, lineEnd );
+        if ( 0 == line.Length() )
+        {
+            if ( sectionHasFields )
+            {
+                descriptions.push_back( current );
+                foundCpu = true;
+            }
+            current = CLogicalCpuDescription();
+            sectionHasFields = false;
+        }
+        else
+        {
+            const char* colon = lineBegin;
+            while ( colon < lineEnd && ':' != *colon )
+                ++colon;
+            if ( colon < lineEnd )
+            {
+                const CString key = CpuInfoTrimmed( lineBegin, colon );
+                if ( SetCpuInfoField( current, key, colon+1, lineEnd ) )
+                    sectionHasFields = true;
+            }
+        }
+
+        lineBegin = lineEnd + 1;
+    }
+
+    if ( sectionHasFields )
+    {
+        descriptions.push_back( current );
+        foundCpu = true;
+    }
+    return foundCpu;
+}
+
+/*--------------------------------------------------------------------------*/
+
+bool
+GetLogicalCpuDescriptions( TLogicalCpuDescriptionVector& descriptions )
+{GUCEF_TRACE;
+
+    descriptions.clear();
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    FILE* procCpuInfoFile = fopen( "/proc/cpuinfo", "r" );
+    if ( GUCEF_NULL == procCpuInfoFile )
+        return false;
+
+    // The size of a proc file is reported as 0: read until the end
+    CString text;
+    char buffer[ 4096 ];
+    size_t bytesRead = 0;
+    while ( 0 != ( bytesRead = fread( buffer, 1, sizeof(buffer), procCpuInfoFile ) ) )
+        text.Append( buffer, (UInt32) bytesRead );
+    fclose( procCpuInfoFile );
+
+    return ParseProcCpuInfo( text.C_String(), text.Length(), descriptions );
+
+    #else
+
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------//

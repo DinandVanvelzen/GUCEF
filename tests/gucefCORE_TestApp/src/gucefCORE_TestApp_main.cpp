@@ -353,6 +353,8 @@
 #ifndef GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H
 #include "TestCodecPlugins.h"
 #include "TestCpuIsaFeatures.h"
+#include "TestOsWrapProcessAndCpu.h"
+#include "TestGlobalONRegistry.h"
 #include "TestCryptoCodecs.h"
 #define GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H
 #endif /* GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H ? */
@@ -692,10 +694,12 @@ GUCEF_OSMAIN_BEGIN
         PerformServiceHostingTests();
         PerformServiceHealthRegistryTests();
         PerformCpuIsaFeaturesTests();
+        PerformOsWrapProcessAndCpuTests();
         PerformTaskPoolHotPathTests();
         PerformTaskManagerCounterTests();
         PerformJobSchedulerPolicyTests();
         PerformJobSchedulerTests();
+        PerformGlobalONRegistryTests();     // last: it unregisters all plugins of the process
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefCORE_TestApp_Results.xml" );

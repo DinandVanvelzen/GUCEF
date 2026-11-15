@@ -114,6 +114,8 @@ class CTONRegistry : public CTObservingNotifierExpansion< CTRegistry< T, LockTyp
 
     virtual void Unregister( const CString& name ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool TryUnregister( const CString& name ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual void UnregisterAll( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -234,8 +236,25 @@ CTONRegistry< T, LockType >::Unregister( const CString& name )
     MT::CObjectScopeLock lock( AsLockable() );
 
     CTObservingNotifierExpansion< CTRegistry< T, LockType > >::Unregister( name );
-    ItemRegisteredEventData eData( name );
-    TExpansionBase::NotifyObservers( ItemRegisteredEvent, &eData );
+    ItemUnregisteredEventData eData( name );
+    TExpansionBase::NotifyObservers( ItemUnregisteredEvent, &eData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< class T, class LockType >
+bool
+CTONRegistry< T, LockType >::TryUnregister( const CString& name )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( AsLockable() );
+
+    if ( !CTObservingNotifierExpansion< CTRegistry< T, LockType > >::TryUnregister( name ) )
+        return false;
+
+    ItemUnregisteredEventData eData( name );
+    TExpansionBase::NotifyObservers( ItemUnregisteredEvent, &eData );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

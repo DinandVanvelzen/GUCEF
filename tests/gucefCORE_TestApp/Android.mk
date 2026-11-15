@@ -79,6 +79,7 @@ LOCAL_SRC_FILES := \
   src/TestFrameworkSuites.cpp \
   src/TestFreeList.cpp \
   src/TestFutureResultSource.cpp \
+  src/TestGlobalONRegistry.cpp \
   src/TestIniParser.cpp \
   src/TestInt128.cpp \
   src/TestJobScheduler.cpp \
@@ -94,6 +95,7 @@ LOCAL_SRC_FILES := \
   src/TestNotificationCost.cpp \
   src/TestNotifierDelivery.cpp \
   src/TestNotifierObserver.cpp \
+  src/TestOsWrapProcessAndCpu.cpp \
   src/TestPbkdf2HmacSha256.cpp \
   src/TestPluginUnload.cpp \
   src/TestProcess.cpp \

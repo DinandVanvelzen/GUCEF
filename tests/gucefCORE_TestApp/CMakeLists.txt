@@ -73,6 +73,7 @@ set( HEADER_FILES
   include/TestFrameworkSkip.h
   include/TestFrameworkSuites.h
   include/TestFutureResultSource.h
+  include/TestGlobalONRegistry.h
   include/TestIniParser.h
   include/TestInt128.h
   include/TestJobScheduler.h
@@ -89,6 +90,7 @@ set( HEADER_FILES
   include/TestNotificationCost.h
   include/TestNotifierDelivery.h
   include/TestNotifierObserver.h
+  include/TestOsWrapProcessAndCpu.h
   include/TestPbkdf2HmacSha256.h
   include/TestPluginUnload.h
   include/TestProcess.h
@@ -196,6 +198,7 @@ set( SOURCE_FILES
   src/TestFrameworkSuites.cpp
   src/TestFreeList.cpp
   src/TestFutureResultSource.cpp
+  src/TestGlobalONRegistry.cpp
   src/TestIniParser.cpp
   src/TestInt128.cpp
   src/TestJobScheduler.cpp
@@ -211,6 +214,7 @@ set( SOURCE_FILES
   src/TestNotificationCost.cpp
   src/TestNotifierDelivery.cpp
   src/TestNotifierObserver.cpp
+  src/TestOsWrapProcessAndCpu.cpp
   src/TestPbkdf2HmacSha256.cpp
   src/TestPluginUnload.cpp
   src/TestProcess.cpp
