@@ -86,6 +86,21 @@ static bool IsBinarySTL(const char *buffer, size_t fileSize) {
     return expectedBinaryFileSize == fileSize;
 }
 
+// DV edit: the normal of a facet whose stored normal is zero (or not a number), from the order of its vertices. STL writers
+// may leave the normal zero and leave it to the reader; a zero normal would draw the facet black. A degenerate facet keeps it.
+static void RepairFacetNormal(aiVector3D *normals, const aiVector3D *positions) {
+    const ai_real length = normals[0].SquareLength();
+    if (length > (ai_real)1e-12 && length == length) {
+        return;
+    }
+    aiVector3D normal = (positions[1] - positions[0]) ^ (positions[2] - positions[0]);
+    if (normal.SquareLength() <= (ai_real)1e-24) {
+        return;
+    }
+    normal.Normalize();
+    normals[0] = normals[1] = normals[2] = normal;
+}
+
 static const size_t BufferSize = 500;
 static const char UnicodeBoundary = 127;
 
@@ -372,6 +387,9 @@ void STLImporter::LoadASCIIFile(aiNode *root) {
                 pMesh->mNormals[i].z = normalBuffer[i].z;
             }
             normalBuffer.clear();
+            for (size_t i = 0; i + 2 < pMesh->mNumVertices; i += 3) {
+                RepairFacetNormal(&pMesh->mNormals[i], &pMesh->mVertices[i]); // DV edit
+            }
         }
 
         // now copy faces
@@ -494,6 +512,7 @@ bool STLImporter::LoadBinaryFile() {
         ++vp;
 
         sz = (const unsigned char *)theVec;
+        RepairFacetNormal(vn - 3, vp - 3); // DV edit
 
         uint16_t color = *((uint16_t *)sz);
         sz += 2;

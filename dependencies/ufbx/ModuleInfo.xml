@@ -1,0 +1,12 @@
+<ModuleInfoEntry>
+    <Module Name="ufbx" Type="StaticLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>MIT OR Unlicense</License>
+            <SemVer>0.23.1.0</SemVer>
+            <DescriptionHeadline>ufbx (Samuli Raivio): a single source file FBX loader</DescriptionHeadline>
+            <DescriptionDetails>ufbx v0.23.1 as released upstream, see dependencies/README.txt. ufbx.h and ufbx.c are unmodified.</DescriptionDetails>
+        </ModuleMetaData>
+        <Preprocessor>
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

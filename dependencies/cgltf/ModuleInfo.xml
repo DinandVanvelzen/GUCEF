@@ -1,0 +1,12 @@
+<ModuleInfoEntry>
+    <Module Name="cgltf" Type="StaticLibrary" Platform="All">
+        <ModuleMetaData>
+            <License>MIT</License>
+            <SemVer>1.15.0.0</SemVer>
+            <DescriptionHeadline>cgltf (Johannes Kuhlmann): a single file glTF 2.0 loader and validator</DescriptionHeadline>
+            <DescriptionDetails>cgltf 1.15 as released upstream, see dependencies/README.txt. The header cgltf.h is unmodified; src/cgltf.c only defines CGLTF_IMPLEMENTATION and includes it, which is how the single file library is compiled once.</DescriptionDetails>
+        </ModuleMetaData>
+        <Preprocessor>
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

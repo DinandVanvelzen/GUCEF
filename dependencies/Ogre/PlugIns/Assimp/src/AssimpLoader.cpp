@@ -88,10 +88,21 @@ struct OgreIOStream : public Assimp::IOStream
     size_t Write(const void* pvBuffer, size_t pSize, size_t pCount) override { return 0; }
     aiReturn Seek(size_t pOffset, aiOrigin pOrigin) override
     {
-        if (pOrigin != aiOrigin_SET)
+        // DV edit: also from the current position and from the end, with the offset taken as signed as the stdio
+        // stream of Assimp does. Zip based formats (3MF) seek from the end to find the central directory.
+        const ptrdiff_t offset = static_cast<ptrdiff_t>(pOffset);
+        ptrdiff_t target = 0;
+        switch (pOrigin)
+        {
+        case aiOrigin_SET: target = offset; break;
+        case aiOrigin_CUR: target = static_cast<ptrdiff_t>(stream->tell()) + offset; break;
+        case aiOrigin_END: target = static_cast<ptrdiff_t>(stream->size()) + offset; break;
+        default: return AI_FAILURE;
+        }
+        if (target < 0 || static_cast<size_t>(target) > stream->size())
             return AI_FAILURE;
 
-        stream->seek(pOffset);
+        stream->seek(static_cast<size_t>(target));
         return AI_SUCCESS;
     }
     void Flush() override {}
@@ -1364,10 +1375,13 @@ bool AssimpLoader::createSubMesh(const String& name, int index, const aiNode* pN
     submesh->setMaterial(matptr);
 
     // We create the hardware vertex buffer
+    // DV edit: the buffer usage and the shadow buffer that the mesh asks for (MeshManager::load(), setVertexBufferPolicy()),
+    // as the mesh serializer does, instead of always static write only without a shadow; the defaults are the same.
+    // A shadow buffer lets tools read the geometry back on every render system.
     HardwareVertexBufferSharedPtr vbuffer = HardwareBufferManager::getSingleton().createVertexBuffer(
         declaration->getVertexSize(source), // == offset
         submesh->vertexData->vertexCount,   // == nbVertices
-        HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+        mMesh->getVertexBufferUsage(), mMesh->isVertexBufferShadowed());
 
     Affine3 aiM = mNodeDerivedTransformByName.find(pNode->mName.data)->second;
 
@@ -1477,7 +1491,7 @@ bool AssimpLoader::createSubMesh(const String& name, int index, const aiNode* pN
     {
         submesh->indexData->indexBuffer = HardwareBufferManager::getSingleton().createIndexBuffer(
             HardwareIndexBuffer::IT_32BIT, submesh->indexData->indexCount,
-            HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+            mMesh->getIndexBufferUsage(), mMesh->isIndexBufferShadowed()); // DV edit
 
         uint32* indexData =
             static_cast<uint32*>(submesh->indexData->indexBuffer->lock(HardwareBuffer::HBL_DISCARD));
@@ -1494,7 +1508,7 @@ bool AssimpLoader::createSubMesh(const String& name, int index, const aiNode* pN
     {
         submesh->indexData->indexBuffer = HardwareBufferManager::getSingleton().createIndexBuffer(
             HardwareIndexBuffer::IT_16BIT, submesh->indexData->indexCount,
-            HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+            mMesh->getIndexBufferUsage(), mMesh->isIndexBufferShadowed()); // DV edit
 
         uint16* indexData =
             static_cast<uint16*>(submesh->indexData->indexBuffer->lock(HardwareBuffer::HBL_DISCARD));
