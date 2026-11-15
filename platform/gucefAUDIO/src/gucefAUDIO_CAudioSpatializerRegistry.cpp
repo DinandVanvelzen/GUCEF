@@ -68,12 +68,13 @@ CAudioSpatializerRegistry::~CAudioSpatializerRegistry()
 /*-------------------------------------------------------------------------*/
 
 bool
-CAudioSpatializerRegistry::RegisterFactory( const TAudioSpatializerFactoryPtr& factory )
+CAudioSpatializerRegistry::RegisterFactory( const TAudioSpatializerFactoryPtr& factory, bool builtIn )
 {GUCEF_TRACE;
 
     if ( factory.IsNULL() || factory->GetSpatializerTypeName().IsNULLOrEmpty() )
         return false;
-    return TryRegister( factory->GetSpatializerTypeName().Lowercase(), factory );
+    const CString name = factory->GetSpatializerTypeName().Lowercase();
+    return builtIn ? TryRegisterBuiltIn( name, factory ) : TryRegister( name, factory );
 }
 
 /*-------------------------------------------------------------------------*/

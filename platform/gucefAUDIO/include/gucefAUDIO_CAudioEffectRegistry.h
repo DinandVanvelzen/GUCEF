@@ -66,7 +66,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEffectRegistry : public CORE::CTGlobalONRegis
     typedef CORE::CTONRegistry< CAudioEffectFactory, MT::CMutex >::TRegisteredObjPtr   TRegisteredFactoryPtr;
 
     /** Registers a factory under its effect type name. False when the name is taken (it stays with its first owner) */
-    bool RegisterFactory( const TAudioEffectFactoryPtr& factory );
+    /** @param builtIn whether the entry is functionality of the module itself instead of coming from a plugin: built-in entries survive the unregistration of all plugins */
+    bool RegisterFactory( const TAudioEffectFactoryPtr& factory, bool builtIn = false );
 
     /**
      *  Unregisters the factory of a type, unless effects it made are still alive: their code may be in the plugin that

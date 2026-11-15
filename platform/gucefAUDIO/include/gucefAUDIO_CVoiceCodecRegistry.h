@@ -67,7 +67,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CVoiceCodecRegistry : public CORE::CTGlobalONRegist
     typedef CORE::CTONRegistry< CVoiceCodecFactory, MT::CMutex >::TRegisteredObjPtr   TRegisteredFactoryPtr;
 
     /** Registers a factory under its codec type name. False when the name is taken (it stays with its first owner) */
-    bool RegisterFactory( const TVoiceCodecFactoryPtr& factory );
+    /** @param builtIn whether the entry is functionality of the module itself instead of coming from a plugin: built-in entries survive the unregistration of all plugins */
+    bool RegisterFactory( const TVoiceCodecFactoryPtr& factory, bool builtIn = false );
 
     /**
      *  Unregisters the factory of a codec, unless encoders or decoders it made are still alive: their code may be in the

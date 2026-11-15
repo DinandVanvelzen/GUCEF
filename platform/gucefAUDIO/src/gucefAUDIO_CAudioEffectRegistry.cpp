@@ -68,12 +68,13 @@ CAudioEffectRegistry::~CAudioEffectRegistry()
 /*-------------------------------------------------------------------------*/
 
 bool
-CAudioEffectRegistry::RegisterFactory( const TAudioEffectFactoryPtr& factory )
+CAudioEffectRegistry::RegisterFactory( const TAudioEffectFactoryPtr& factory, bool builtIn )
 {GUCEF_TRACE;
 
     if ( factory.IsNULL() || factory->GetEffectTypeName().IsNULLOrEmpty() )
         return false;
-    return TryRegister( factory->GetEffectTypeName().Lowercase(), factory );
+    const CString name = factory->GetEffectTypeName().Lowercase();
+    return builtIn ? TryRegisterBuiltIn( name, factory ) : TryRegister( name, factory );
 }
 
 /*-------------------------------------------------------------------------*/

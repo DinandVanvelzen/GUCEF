@@ -84,7 +84,8 @@ class GUCEF_COMPUTE_PUBLIC_CPP CComputeBackendRegistry : public CORE::CTGlobalON
      *  Registers a backend under its lower-case name and initialises it. True when it was registered, available or not
      *  (IsBackendAvailable() tells); false when the name is taken or the backend is null.
      */
-    bool RegisterBackend( const TComputeBackendPtr& backend );
+    /** @param builtIn whether the entry is functionality of the module itself instead of coming from a plugin: built-in entries survive the unregistration of all plugins */
+    bool RegisterBackend( const TComputeBackendPtr& backend, bool builtIn = false );
 
     /**
      *  Unregisters and shuts down the backend with the name (without regard for case). False when there is none.

@@ -326,6 +326,30 @@ PerformBackendAvailabilityTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "BackendAvailability: the CPU backend is built-in and stays when everything that came from a plugin is unregistered" )
+    try
+    {
+        ASSERT_TRUE( registry.IsRegistered( "cpu" ) );
+        ASSERT_TRUE( registry.IsBuiltIn( "cpu" ) );
+
+        // a backend a plugin would add is not built-in, and goes when the plugins are unregistered
+        ASSERT_TRUE( registry.RegisterBackend( TComputeBackendPtr( GUCEF_NEW CTestComputeBackend() ) ) );
+        ASSERT_FALSE( registry.IsBuiltIn( CTestComputeBackend::Name ) );
+        registry.UnregisterAllExceptBuiltIn();
+        ASSERT_FALSE( registry.IsRegistered( CTestComputeBackend::Name ) );
+        ASSERT_TRUE( registry.IsRegistered( "cpu" ) && registry.IsBuiltIn( "cpu" ) );
+
+        // and the CPU backend still makes devices
+        TComputeDevicePtr cpu = CreateCpuTestDevice();
+        ASSERT_FALSE( cpu.IsNULL() );
+    }
+    catch( ... )
+    {
+        registry.TryUnregister( CTestComputeBackend::Name );
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

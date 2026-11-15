@@ -328,29 +328,29 @@ CAudioGlobal::Initialize( void )
     m_voiceCodecRegistry = GUCEF_NEW CVoiceCodecRegistry();
 
     // The driver that needs no hardware and no plugin
-    m_audioDriverRegistry->TryRegister( "null", TAudioDriverPtr( GUCEF_NEW CNullAudioDriver() ) );
+    m_audioDriverRegistry->TryRegisterBuiltIn( "null", TAudioDriverPtr( GUCEF_NEW CNullAudioDriver() ) );
 
     // The codecs that need nothing but the library itself
-    m_audioCodecRegistry->TryRegister( "wav", TAudioCodecPtr( GUCEF_NEW CWavAudioCodec() ) );
-    m_audioCodecRegistry->TryRegister( "raw", TAudioCodecPtr( GUCEF_NEW CRawAudioCodec() ) );
+    m_audioCodecRegistry->TryRegisterBuiltIn( "wav", TAudioCodecPtr( GUCEF_NEW CWavAudioCodec() ) );
+    m_audioCodecRegistry->TryRegisterBuiltIn( "raw", TAudioCodecPtr( GUCEF_NEW CRawAudioCodec() ) );
 
     // The effects that need nothing but the library itself
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CLimiterEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CCompressorEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CEqualizerEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CFilterEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CDelayEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CDuckerEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseGateEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CAutomaticGainEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseSuppressorEffect >() ) );
-    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CReverbEffect >() ) );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CLimiterEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CCompressorEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CEqualizerEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CFilterEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CDelayEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CDuckerEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseGateEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CAutomaticGainEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseSuppressorEffect >() ), true );
+    m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CReverbEffect >() ), true );
 
     // The spatializer that needs nothing but the library itself, the default of the world settings
-    m_audioSpatializerRegistry->RegisterFactory( TAudioSpatializerFactoryPtr( GUCEF_NEW CTAudioSpatializerFactory< CPanningSpatializer >() ) );
+    m_audioSpatializerRegistry->RegisterFactory( TAudioSpatializerFactoryPtr( GUCEF_NEW CTAudioSpatializerFactory< CPanningSpatializer >() ), true );
 
     // The voice codecs that need nothing but the library itself
-    m_voiceCodecRegistry->RegisterFactory( TVoiceCodecFactoryPtr( GUCEF_NEW CPcmVoiceCodecFactory() ) );
+    m_voiceCodecRegistry->RegisterFactory( TVoiceCodecFactoryPtr( GUCEF_NEW CPcmVoiceCodecFactory() ), true );
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefAUDIO Global systems initialized" );
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefAUDIO" );

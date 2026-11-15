@@ -66,7 +66,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioSpatializerRegistry : public CORE::CTGlobalON
     typedef CORE::CTONRegistry< CAudioSpatializerFactory, MT::CMutex >::TRegisteredObjPtr   TRegisteredFactoryPtr;
 
     /** Registers a factory under its spatializer type name. False when the name is taken (it stays with its first owner) */
-    bool RegisterFactory( const TAudioSpatializerFactoryPtr& factory );
+    /** @param builtIn whether the entry is functionality of the module itself instead of coming from a plugin: built-in entries survive the unregistration of all plugins */
+    bool RegisterFactory( const TAudioSpatializerFactoryPtr& factory, bool builtIn = false );
 
     /**
      *  Unregisters the factory of a type, unless spatializers it made are still alive: their code may be in the plugin that

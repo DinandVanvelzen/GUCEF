@@ -219,7 +219,7 @@ CComputeGlobal::Initialize( void )
     m_backendRegistry = GUCEF_NEW CComputeBackendRegistry( this );
 
     // the backend that needs no runtime and no plugin
-    m_backendRegistry->RegisterBackend( TComputeBackendPtr( GUCEF_NEW CCpuComputeBackend() ) );
+    m_backendRegistry->RegisterBackend( TComputeBackendPtr( GUCEF_NEW CCpuComputeBackend() ), true );
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefCOMPUTE global systems initialized" );
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefCOMPUTE" );

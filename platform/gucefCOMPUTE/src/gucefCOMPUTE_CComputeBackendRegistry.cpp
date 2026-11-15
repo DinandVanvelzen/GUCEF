@@ -222,13 +222,15 @@ CComputeBackendRegistry::InitializeBackend( CComputeBackend& backend )
 /*-------------------------------------------------------------------------*/
 
 bool
-CComputeBackendRegistry::RegisterBackend( const TComputeBackendPtr& backend )
+CComputeBackendRegistry::RegisterBackend( const TComputeBackendPtr& backend, bool builtIn )
 {GUCEF_TRACE;
 
     if ( backend.IsNULL() )
         return false;
     const CString name = backend->GetName().Lowercase();
-    if ( name.IsNULLOrEmpty() || !TryRegister( name, backend ) )
+    if ( name.IsNULLOrEmpty() )
+        return false;
+    if ( !( builtIn ? TryRegisterBuiltIn( name, backend ) : TryRegister( name, backend ) ) )
         return false;
 
     TComputeBackendPtr registered( backend );

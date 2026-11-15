@@ -51,6 +51,8 @@
 #define GUCEF_CORE_CTASKMANAGER_H
 #endif /* GUCEF_CORE_CTASKMANAGER_H ? */
 
+#include "gucefAUDIO_CAudioEffectRegistry.h"
+#include "gucefAUDIO_CVoiceCodecRegistry.h"
 #include "TestAudioDevices.h"
 
 /*-------------------------------------------------------------------------//
@@ -448,6 +450,46 @@ PerformRegistryTests( void )
         registry.Unregister( "betterone" );
         registry.GetDriversByPriority( ordered );
         ASSERT_TRUE( 1 == ordered.size() && ordered[ 0 ]->GetName() == "null" );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "AudioGlobal: what the module registers for itself is built-in, so it stays when all plugins are unregistered" )
+    try
+    {
+        AUDIO::CAudioGlobal* global = AUDIO::CAudioGlobal::Instance();
+        ASSERT_TRUE( global->GetAudioDriverRegistry().IsBuiltIn( "null" ) );
+        ASSERT_TRUE( global->GetAudioCodecRegistry().IsBuiltIn( "wav" ) );
+        ASSERT_TRUE( global->GetAudioCodecRegistry().IsBuiltIn( "raw" ) );
+        ASSERT_TRUE( global->GetAudioSpatializerRegistry().IsBuiltIn( "panning" ) );
+
+        // the ten effects and the PCM voice codec of the module, whatever plugins added next to them
+        CORE::CString::StringVector names;
+        global->GetAudioEffectRegistry().GetRegisteredObjNames( names );
+        UInt32 builtInEffects = 0;
+        for ( UInt32 i=0; i<names.size(); ++i )
+            if ( global->GetAudioEffectRegistry().IsBuiltIn( names[ i ] ) )
+                ++builtInEffects;
+        ASSERT_TRUE( 10 == builtInEffects );
+
+        names.clear();
+        global->GetVoiceCodecRegistry().GetRegisteredObjNames( names );
+        UInt32 builtInVoiceCodecs = 0;
+        for ( UInt32 i=0; i<names.size(); ++i )
+            if ( global->GetVoiceCodecRegistry().IsBuiltIn( names[ i ] ) )
+                ++builtInVoiceCodecs;
+        ASSERT_TRUE( 1 == builtInVoiceCodecs );
+
+        // a driver that a plugin would add is not
+        AUDIO::CAudioDriverRegistry& drivers = global->GetAudioDriverRegistry();
+        ASSERT_TRUE( drivers.TryRegister( "pluginlike", AUDIO::TAudioDriverPtr( GUCEF_NEW CFakeDriver( "pluginlike", 1, true ) ) ) );
+        ASSERT_FALSE( drivers.IsBuiltIn( "pluginlike" ) );
+        drivers.UnregisterAllExceptBuiltIn();
+        ASSERT_FALSE( drivers.IsRegistered( "pluginlike" ) );
+        ASSERT_TRUE( drivers.IsRegistered( "null" ) && drivers.IsBuiltIn( "null" ) );
     }
     catch( ... )
     {

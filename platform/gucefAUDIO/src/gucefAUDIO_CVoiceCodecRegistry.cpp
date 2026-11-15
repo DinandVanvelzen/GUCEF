@@ -65,12 +65,13 @@ CVoiceCodecRegistry::~CVoiceCodecRegistry()
 /*-------------------------------------------------------------------------*/
 
 bool
-CVoiceCodecRegistry::RegisterFactory( const TVoiceCodecFactoryPtr& factory )
+CVoiceCodecRegistry::RegisterFactory( const TVoiceCodecFactoryPtr& factory, bool builtIn )
 {GUCEF_TRACE;
 
     if ( factory.IsNULL() || factory->GetCodecTypeName().IsNULLOrEmpty() )
         return false;
-    return TryRegister( factory->GetCodecTypeName().Lowercase(), factory );
+    const CString name = factory->GetCodecTypeName().Lowercase();
+    return builtIn ? TryRegisterBuiltIn( name, factory ) : TryRegister( name, factory );
 }
 
 /*-------------------------------------------------------------------------*/
