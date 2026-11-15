@@ -307,6 +307,43 @@ SetupPair( CLinkedPair& pair, const CORE::CString& channelType, const CORE::CStr
     return pair.Setup( settings, settings, listen, connect );
 }
 
+/*-------------------------------------------------------------------------*/
+
+/** Counts the pulses of a pulse generator, on whichever thread pulses it */
+class CPulseCounter : public CORE::CObserver
+{
+    public:
+
+    MT::CTAtomic< UInt32 > pulses;
+
+    CPulseCounter( void ) : CORE::CObserver(), pulses( 0 ) {}
+    virtual ~CPulseCounter() { UnsubscribeAllFromObserver(); }
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* /* notifier */, const CORE::CEvent& eventid, CORE::CICloneable* /* eventdata */ ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( CORE::CPulseGenerator::PulseEvent == eventid )
+            ++pulses;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The pulses of a node's own pulse generator over the given time, while the test thread only waits */
+static UInt32
+CountNodePulses( DRN::CDRNNode& node, UInt32 durationInMs )
+{
+    CPulseCounter counter;
+    counter.SubscribeTo( node.GetWorkPulseGenerator().GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+    MT::PrecisionDelay( 200 );
+    counter.pulses.Store( 0 );
+    MT::PrecisionDelay( durationInMs );
+    UInt32 pulses = counter.pulses.Load();
+    counter.UnsubscribeAllFromObserver();
+    return pulses;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      TESTS                                                              //
@@ -1082,6 +1119,79 @@ PerformDRNLinkTests( void )
             channels[ i ]->Close();
         channels.clear();
         host.Stop();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Idle: a node on a thread of its own that listens on tcp and udp and has no link pulses a few times per second, not every millisecond (a service that runs unattended)" )
+    try
+    {
+        DRN::CDRNNodeSettings settings = TestNodeSettings();
+        settings.ownThread = true;
+        DRN::CDRNNode node;
+        REQUIRE_TRUE( node.SetSettings( settings ) && node.IsRunningOwnThread() );
+        REQUIRE_TRUE( node.Listen( LoopbackEndpoint( "tcp", NextTestPort() ) ) );
+        REQUIRE_TRUE( node.Listen( LoopbackEndpoint( "udp", NextTestPort() ) ) );
+        UInt32 pulses = CountNodePulses( node, 2000 );
+        GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "Idle node on a thread of its own, tcp and udp listeners, no links: " << pulses << " pulses in 2000 ms" );
+        ASSERT_TRUE( pulses <= 20 );
+        node.Stop();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Idle: traffic to an idle node on a thread of its own does not wait for its idle interval: a tcp link after 1.5 s of idle is operational within 500 ms, and both nodes pulse at their pulse interval while it is up" )
+    try
+    {
+        DRN::CDRNNodeSettings settings = TestNodeSettings();
+        settings.ownThread = true;
+        DRN::CDRNNode nodeA;
+        DRN::CDRNNode nodeB;
+        REQUIRE_TRUE( nodeA.SetSettings( settings ) && nodeB.SetSettings( settings ) );
+        CLinkRecorder recorderA;
+        CLinkRecorder recorderB;
+        recorderA.WatchNode( nodeA );
+        recorderB.WatchNode( nodeB );
+        UInt16 port = NextTestPort();
+        REQUIRE_TRUE( nodeB.Listen( LoopbackEndpoint( "tcp", port ) ) );
+        MT::PrecisionDelay( 1500 );
+        ASSERT_TRUE( settings.idlePulseIntervalMs == nodeB.GetPulseIntervalInEffect() );
+
+        UInt64 start = MT::PrecisionTickCount();
+        DRN::CDRNConnectorPtr connector = nodeA.Connect( DRN::CDRNEndpointList( LoopbackEndpoint( "tcp", port ) ) );
+        REQUIRE_TRUE( PumpUntil( recorderA.operationalCount, 1, 5000 ) );
+        REQUIRE_TRUE( PumpUntil( recorderB.operationalCount, 1, 5000 ) );
+        UInt64 elapsedMs = ( MT::PrecisionTickCount() - start ) * 1000 / MT::PrecisionTimerResolution();
+        GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "Link to a node that idled for 1.5 s operational after " << elapsedMs << " ms" );
+        ASSERT_TRUE( elapsedMs < 500 );
+
+        // with a link the node works at its pulse interval (5 ms by default, 1 ms in these tests): its timers
+        // (acknowledgements, echoes, timeouts) need that
+        ASSERT_TRUE( settings.pulseIntervalMs == nodeB.GetPulseIntervalInEffect() );
+        UInt32 pulses = CountNodePulses( nodeB, 1000 );
+        GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "Node with a link: " << pulses << " pulses in 1000 ms" );
+        ASSERT_TRUE( pulses >= 1000 / ( 2 * settings.pulseIntervalMs ) );
+
+        // the link goes: back to the idle interval
+        recorderA.links.clear();
+        connector.Unlink();
+        nodeA.Stop();
+        REQUIRE_TRUE( PumpUntil( recorderB.closedCount, 1, 5000 ) );
+        recorderB.links.clear();
+        UInt64 waitStart = MT::PrecisionTickCount();
+        while ( settings.idlePulseIntervalMs != nodeB.GetPulseIntervalInEffect() && MT::PrecisionTickCount() - waitStart < 3 * MT::PrecisionTimerResolution() )
+            PumpFor( 10 );
+        ASSERT_TRUE( settings.idlePulseIntervalMs == nodeB.GetPulseIntervalInEffect() );
+        pulses = CountNodePulses( nodeB, 2000 );
+        GUCEF_LOG( CORE::LOGLEVEL_CRITICAL, "Node whose link closed: " << pulses << " pulses in 2000 ms" );
+        ASSERT_TRUE( pulses <= 20 );
+        nodeB.Stop();
     }
     catch ( ... )
     {

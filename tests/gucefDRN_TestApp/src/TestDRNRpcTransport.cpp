@@ -1950,12 +1950,24 @@ PerformDRNRpcTransportPerformanceTests( void )
     {
         const bool ownThreads[] = { false, true };
         const char* names[] = { "drn over tcp", "drn over tcp, nodes on threads of their own" };
+        Float64 pumpedMedianUs = 0.0;
         for ( UInt32 c=0; c<2; ++c )
         {
             CDRNConformanceTransports transports( "tcp", "", ownThreads[ c ], names[ c ] );
             SRpcUnaryFigures figures;
             ASSERT_TRUE( RpcPerfUnary( transports, RpcPerfCalls( 2000 ), RpcPerfCalls( 10000 ), figures ) );
             ASSERT_TRUE( figures.medianUs > 0.0 && figures.callsPerSecond > 0.0 );
+
+            // nodes on threads of their own sleep between their pulses (the idle interval without links, the pulse
+            // interval with): a call wakes them through the readiness of their sockets, so a round trip stays far
+            // below their pulse interval of 5 ms (debug build before the idle intervals: median 440 us, p99 475 us). On a
+            // loaded machine both cases slow down alike: the bound grows with the pumped case of the same run
+            if ( !ownThreads[ c ] )
+                pumpedMedianUs = figures.medianUs;
+            #if !defined( __SANITIZE_THREAD__ ) && !defined( __SANITIZE_ADDRESS__ )
+            if ( ownThreads[ c ] )
+                ASSERT_TRUE( figures.medianUs < 2000.0 || figures.medianUs < 3.0 * pumpedMedianUs );
+            #endif
         }
     }
     catch ( ... )

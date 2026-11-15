@@ -1112,6 +1112,7 @@ PerformDRNTablePublisherTests( void )
     {
         CPageWorld world( "pub-unlocked" );
         world.group.nodeSettings.ownThread = true;
+        world.group.nodeSettings.idlePulseIntervalMs = 0;  // the host has no links: it pulses at its pulse interval all the same, the test looks at the gaps
         REQUIRE_TRUE( world.group.Start( 1 ) );
         DRN::CDRNDataGridSettings gridSettings;
         gridSettings.name = "big";

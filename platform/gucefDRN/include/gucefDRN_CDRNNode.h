@@ -276,6 +276,12 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
 
     bool IsRunningOwnThread( void ) const;
 
+    /**
+     *  The interval the node asks its pulse generator for now: CDRNNodeSettings::pulseIntervalMs while it has links or
+     *  connectors, CDRNNodeSettings::idlePulseIntervalMs without (an idle node's thread sleeps)
+     */
+    UInt32 GetPulseIntervalInEffect( void ) const;
+
     /** The node lock, held by the node's thread while it works */
     MT::CMutex& GetLock( void ) const;
 
@@ -372,6 +378,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     void WaitForThreadWork( UInt32 timeoutInMs );
     void OnOwnThreadStarted( void );
     void OnAppPulse( void );
+    void UpdatePulseInterval( bool force );
 
     /** Mails an event of an object of the node to the application (CDRNApplicationNotifier), the data is copied */
     void PostApplicationEvent( CDRNApplicationNotifier& source, const CORE::CEvent& eventid, CORE::CICloneable* eventData );
@@ -425,6 +432,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNNode : public CORE::CTSGNotifier
     MT::CTAtomic< UInt32 > m_threadWakePending;     /**< a post that the own thread did not take yet */
     MT::CTAtomic< TThreadId > m_workingThreadId;     /**< the thread in RunThreadCycle(), 0 for none */
     GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_workingSystemThreadId; )   /**< display only, recorded with m_workingThreadId */
+    UInt32 m_pulseIntervalInEffectMs;               /**< what the node asked its pulse generator for (UpdatePulseInterval()), under the node lock */
 };
 
 /*-------------------------------------------------------------------------//

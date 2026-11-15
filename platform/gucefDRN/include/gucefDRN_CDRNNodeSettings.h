@@ -82,7 +82,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeSettings : public CORE::CIConfigurable
     UInt32 linkTimeoutMs;                   /**< default 10000 */
     UInt32 connectTimeoutMs;                /**< per endpoint candidate of the connector, default 2000 */
     UInt32 ackDelayMs;                      /**< default 5 */
-    UInt32 pulseIntervalMs;                 /**< how often the node works, default 5 */
+    UInt32 pulseIntervalMs;                 /**< how often the node works while it has links or connectors, default 5 */
+    UInt32 idlePulseIntervalMs;             /**< how often the node works without links and connectors, default 1000: traffic wakes it at once (sockets, WakeOwnThread()), this is for its timers (handshake windows, reaped channels) */
     bool ownThread;                         /**< run the node on a thread of its own, default false */
     CORE::CString threadPoolName;           /**< with ownThread: the task manager pool the node's dedicated task is set up on, default "gucef.drn" */
     UInt32 firstSequence;                   /**< first packet sequence of every link, default 1 (for tests of the wrap) */

@@ -248,6 +248,7 @@ CDRNNode::CDRNNode( void )
     , m_threadWakePending( 0 )
     , m_workingThreadId( 0 )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_workingSystemThreadId, 0 )
+    , m_pulseIntervalInEffectMs( 0 )
 {GUCEF_TRACE;
 
     Construct();
@@ -294,6 +295,7 @@ CDRNNode::CDRNNode( const CORE::PulseGeneratorPtr& appPulseGenerator )
     , m_threadWakePending( 0 )
     , m_workingThreadId( 0 )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_workingSystemThreadId, 0 )
+    , m_pulseIntervalInEffectMs( 0 )
 {GUCEF_TRACE;
 
     Construct();
@@ -328,8 +330,40 @@ CDRNNode::Construct( void )
     if ( m_settings.relayEnabled )
         m_relayService = GUCEF_NEW CDRNRelayService( *this );
     m_observer.SubscribeTo( m_pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
-    m_pulseGenerator->RequestPeriodicPulses( this, m_settings.pulseIntervalMs );
+    UpdatePulseInterval( true );
     m_appPulseObserver.SubscribeTo( m_appPulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNNode::UpdatePulseInterval( bool force )
+{GUCEF_TRACE;
+
+    // Under the node lock. The node's timers (retransmits, acknowledgements, echoes, link and handshake timeouts,
+    // connector attempts) belong to its links and connectors: with none of them the node asks its pulse generator for
+    // the idle interval only, so that the thread that drives it sleeps. Traffic does not wait for it: an accepted
+    // channel, a socket that becomes ready and work left by another thread wake the node at once, and a new link or
+    // connector asks for the pulse interval again (CreateLink(), Connect()).
+    UInt32 interval = m_settings.pulseIntervalMs;
+    if ( m_links.empty() && m_connectors.empty() && m_closedLinks.empty() && 0 != m_settings.idlePulseIntervalMs &&
+         m_settings.idlePulseIntervalMs > m_settings.pulseIntervalMs )
+        interval = m_settings.idlePulseIntervalMs;
+    if ( !force && interval == m_pulseIntervalInEffectMs )
+        return;
+    m_pulseIntervalInEffectMs = interval;
+    if ( !m_pulseGenerator.IsNULL() )
+        m_pulseGenerator->RequestPeriodicPulses( this, interval );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CDRNNode::GetPulseIntervalInEffect( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_nodeLock );
+    return m_pulseIntervalInEffectMs;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -590,8 +624,7 @@ CDRNNode::SetSettings( const CDRNNodeSettings& settings )
             GUCEF_DELETE m_relayService;
             m_relayService = GUCEF_NULL;
         }
-        if ( !m_pulseGenerator.IsNULL() )
-            m_pulseGenerator->RequestPeriodicPulses( this, m_settings.pulseIntervalMs );
+        UpdatePulseInterval( true );
     }
 
     if ( threadingChange && settings.ownThread )
@@ -640,7 +673,10 @@ CDRNNode::StartOwnThread( void )
             task->RequestTaskToStop( true );
         m_task.Unlink();
         m_appPulseObserver.SubscribeTo( m_appPulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
-        m_pulseGenerator->RequestPeriodicPulses( this, m_settings.pulseIntervalMs );
+        {
+            MT::CScopeMutex lock( m_nodeLock );
+            UpdatePulseInterval( true );
+        }
         return false;
     }
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DRNNode: Running on a dedicated task of the thread pool \"" << m_settings.threadPoolName << "\"" );
@@ -668,8 +704,10 @@ CDRNNode::StopOwnThread( void )
         return true;
 
     // waits until the task's thread is done with the node: it takes the node lock in its cycles. A thread that does not
-    // end in time keeps its task (and so the node's knowledge of it): it is never left running on a node that goes
+    // end in time keeps its task (and so the node's knowledge of it): it is never left running on a node that goes.
+    // The wake ends the wait between its cycles, which lasts up to the idle interval of a node without links
     m_task->RequestTaskToStop( false );
+    WakeOwnThread();
     if ( !m_task->WaitUntilEnded( OwnThreadStopTimeoutMs ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "DRNNode: The thread of the node did not end within " << OwnThreadStopTimeoutMs <<
@@ -943,6 +981,7 @@ CDRNNode::Connect( const CDRNEndpointList& remote, const CDRNAuthSettings* crede
     CDRNConnectorPtr connector = CDRNConnector::CreateSharedObj();
     connector->Initialize( this, remote, GUCEF_NULL != credentials ? *credentials : m_settings.auth, m_settings.connectTimeoutMs );
     m_connectors.push_back( connector );
+    UpdatePulseInterval( false );
     connector->Start();
     return connector;
 }
@@ -959,6 +998,7 @@ CDRNNode::ConnectToService( const CDRNEndpointList& remote, const UInt8* service
     connector->Initialize( this, remote, m_settings.auth, m_settings.connectTimeoutMs );
     connector->SetServicePolicyHash( servicePolicyHash );
     m_connectors.push_back( connector );
+    UpdatePulseInterval( false );
     connector->Start();
     return connector;
 }
@@ -975,6 +1015,7 @@ CDRNNode::CreateLink( void )
     link->SetChannelReaper( m_channelReaper );
     m_observer.SubscribeTo( link.GetPointerAlways() );
     m_links.push_back( link );
+    UpdatePulseInterval( false );
     return link;
 }
 
@@ -1629,6 +1670,9 @@ CDRNNode::OnPulse( void )
         CDRNPeerLinkPtr link = m_links[ i ];
         link->Tick( now );
     }
+
+    // the last link or connector went: the idle interval from now on
+    UpdatePulseInterval( false );
 }
 
 /*-------------------------------------------------------------------------*/

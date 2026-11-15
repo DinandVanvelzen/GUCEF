@@ -100,6 +100,18 @@ class GUCEF_DRN_EXPORT_CPP CDRNReplicator : public CIDRNSessionComponent
     bool RemoveItem( CDRNDataItem* item );
 
     /**
+     *  Withdraws an item of the local member as RemoveItem() does and deletes it at once: the pointer is invalid when
+     *  this returns, and the application lets go of what refers to it first (a table publisher, a data grid table, its
+     *  observers). For a session that lives as long as its process (a service publishing an item per page a terminal
+     *  opens): the items that RemoveItem() keeps until the session goes, and their data, would grow without bound.
+     *  Item ids are not reused. False for an item that is not an item of the local member here
+     */
+    bool DestroyItem( CDRNDataItem* item );
+
+    /** The item objects the replicator holds, removed ones included: published, announced and retired */
+    UInt32 GetItemObjectCount( void ) const;
+
+    /**
      *  The application wants the items of this name, of one owner or (ownerPeerId 0) of every owner, also those
      *  announced later. Their replicas fill after SnapshotCompleteEvent.
      */

@@ -78,6 +78,7 @@ CDRNNodeSettings::CDRNNodeSettings( void )
     , connectTimeoutMs( 2000 )
     , ackDelayMs( 5 )
     , pulseIntervalMs( 5 )
+    , idlePulseIntervalMs( 1000 )
     , ownThread( false )
     , threadPoolName( DefaultThreadPoolName )
     , firstSequence( 1 )
@@ -107,6 +108,7 @@ CDRNNodeSettings::CDRNNodeSettings( const CDRNNodeSettings& src )
     , connectTimeoutMs( src.connectTimeoutMs )
     , ackDelayMs( src.ackDelayMs )
     , pulseIntervalMs( src.pulseIntervalMs )
+    , idlePulseIntervalMs( src.idlePulseIntervalMs )
     , ownThread( src.ownThread )
     , threadPoolName( src.threadPoolName )
     , firstSequence( src.firstSequence )
@@ -148,6 +150,7 @@ CDRNNodeSettings::operator=( const CDRNNodeSettings& src )
         connectTimeoutMs = src.connectTimeoutMs;
         ackDelayMs = src.ackDelayMs;
         pulseIntervalMs = src.pulseIntervalMs;
+        idlePulseIntervalMs = src.idlePulseIntervalMs;
         ownThread = src.ownThread;
         threadPoolName = src.threadPoolName;
         firstSequence = src.firstSequence;
@@ -194,6 +197,7 @@ CDRNNodeSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "connectTimeoutMs", connectTimeoutMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "ackDelayMs", ackDelayMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "pulseIntervalMs", pulseIntervalMs ) && totalSuccess;
+    totalSuccess = cfg.SetAttribute( "idlePulseIntervalMs", idlePulseIntervalMs ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "ownThread", ownThread ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "threadPoolName", threadPoolName ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "firstSequence", firstSequence ) && totalSuccess;
@@ -228,6 +232,7 @@ CDRNNodeSettings::LoadConfig( const CORE::CDataNode& cfg )
     connectTimeoutMs = cfg.GetAttributeValueOrChildValueByName( "connectTimeoutMs" ).AsUInt32( connectTimeoutMs, true );
     ackDelayMs = cfg.GetAttributeValueOrChildValueByName( "ackDelayMs" ).AsUInt32( ackDelayMs, true );
     pulseIntervalMs = cfg.GetAttributeValueOrChildValueByName( "pulseIntervalMs" ).AsUInt32( pulseIntervalMs, true );
+    idlePulseIntervalMs = cfg.GetAttributeValueOrChildValueByName( "idlePulseIntervalMs" ).AsUInt32( idlePulseIntervalMs, true );
     ownThread = cfg.GetAttributeValueOrChildValueByName( "ownThread" ).AsBool( ownThread, true );
     threadPoolName = cfg.GetAttributeValueOrChildValueByName( "threadPoolName" ).AsString( threadPoolName, true );
     if ( threadPoolName.IsNULLOrEmpty() )

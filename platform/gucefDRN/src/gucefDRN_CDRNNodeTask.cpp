@@ -65,6 +65,7 @@ namespace DRN {
 //-------------------------------------------------------------------------*/
 
 const CORE::CString CDRNNodeTask::TaskType = "GUCEF::DRN::CDRNNodeTask";
+const UInt32 CDRNNodeTask::IdleWaitMaxMs = 1000;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -81,6 +82,8 @@ CDRNNodeTask::CDRNNodeTask( CDRNNode& node )
     , m_startState( STARTSTATE_PENDING )
     , m_startStateChanged( 0 )
     , m_immediatePulseRequested( 0 )
+    , m_sendRegularPulses( 0 )
+    , m_requestedPulseDeltaInMs( 0 )
     , m_driverTaskId( 0 )
     GUCEF_SYSTEM_THREAD_ID_MEMBER_INIT( m_driverTaskSystemThreadId, 0 )
     , m_readinessWaiter()
@@ -192,6 +195,9 @@ CDRNNodeTask::OnTaskStart( CORE::CTaskPtr task )
     MT::GetCurrentThreadIds( &ownerIds );
     m_driverTaskId.Store( ownerIds.threadId );
     GUCEF_SYSTEM_THREAD_ID_CODE( m_driverTaskSystemThreadId.Store( ownerIds.systemThreadId ); )
+    // what the pulse generator asks for until now; setting the driver passes the interval on as well
+    m_sendRegularPulses.Store( m_pulseGenerator->IsPulsingPeriodicly() ? 1 : 0 );
+    m_requestedPulseDeltaInMs.Store( m_pulseGenerator->GetRequiredPulseDeltaInMilliSecs() );
     m_pulseGenerator->SetPulseGeneratorDriver( this );
     m_pulseGenerator->SetPulseDriverThreadId( MT::GetCurrentThreadID() );
 
@@ -224,23 +230,26 @@ bool
 CDRNNodeTask::OnTaskCycle( CORE::CTaskPtr /* task */ )
 {GUCEF_TRACE;
 
-    // The task keeps the cycle itself: the delegator waits at least its minimal cycle delta between cycles, while a
-    // node works about once per millisecond, at once when a busy socket asks for it and when another thread left work
-    // for it (CDRNNode::WakeOwnThread()). The loop ends when the task is asked to stop, which the delegator then sees
-    // as well.
-    UInt64 ticksPerMs = MT::PrecisionTimerResolution() / 1000;
-    if ( 0 == ticksPerMs )
-        ticksPerMs = 1;
+    // The task keeps the cycle itself, as the delegator keeps the cycles of a task: a pulse at the interval the pulse
+    // generator asks for (the node's pulse interval while it has links, its idle interval without), at once when a busy
+    // socket asks for one, when a socket becomes ready (the readiness wake) and when another thread left work for the
+    // node (CDRNNode::WakeOwnThread()). Between pulses the thread waits on the node's semaphore, which every one of
+    // these posts. The loop ends when the task is asked to stop (CDRNNode::StopOwnThread() wakes it), which the
+    // delegator then sees as well.
     while ( !IsDeactivationRequested() )
     {
-        UInt64 cycleStart = MT::PrecisionTickCount();
         m_immediatePulseRequested.Store( 0 );
         m_node->RunThreadCycle();
 
-        if ( 0 != m_immediatePulseRequested.Load() )
+        if ( 0 != m_immediatePulseRequested.Load() || IsDeactivationRequested() )
             continue;
-        if ( ( MT::PrecisionTickCount() - cycleStart ) / ticksPerMs < 1 )
-            m_node->WaitForThreadWork( 1 );
+
+        // at least a millisecond between cycles that nothing asked for at once, as the delegator keeps its minimal
+        // cycle delta: the time left of the interval is counted in whole milliseconds
+        UInt32 waitMs = IdleWaitMaxMs;
+        if ( 0 != m_sendRegularPulses.Load() && !m_pulseGenerator.IsNULL() )
+            waitMs = m_pulseGenerator->GetTimeTillNextPulseWindowInMilliSecs( 1, IdleWaitMaxMs );
+        m_node->WaitForThreadWork( waitMs );
     }
     return false;
 }
@@ -320,19 +329,25 @@ CDRNNodeTask::RequestPulsesPerImmediatePulseRequest( CORE::CPulseGenerator& /* p
 
 void
 CDRNNodeTask::RequestPeriodicPulses( CORE::CPulseGenerator& /* pulseGenerator */ ,
-                                     const UInt32 /* pulseDeltaInMilliSecs */    )
+                                     const UInt32 pulseDeltaInMilliSecs          )
 {GUCEF_TRACE;
 
-    // the task pulses about once per millisecond, which covers any interval asked for
+    // as CORE::CTaskDelegator: the wait between cycles is the task thread's own state, it takes the request at its
+    // next cycle; a request of another thread ends the current wait, which may be for a longer interval
+    m_requestedPulseDeltaInMs.Store( pulseDeltaInMilliSecs );
+    m_sendRegularPulses.Store( 1 );
+    if ( MT::GetCurrentThreadID() != m_driverTaskId.Load() )
+        m_node->WakeOwnThread();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CDRNNodeTask::RequestPulseInterval( CORE::CPulseGenerator& /* pulseGenerator */ ,
-                                    const UInt32 /* pulseDeltaInMilliSecs */    )
+CDRNNodeTask::RequestPulseInterval( CORE::CPulseGenerator& pulseGenerator ,
+                                    const UInt32 pulseDeltaInMilliSecs    )
 {GUCEF_TRACE;
 
+    RequestPeriodicPulses( pulseGenerator, pulseDeltaInMilliSecs );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -341,6 +356,8 @@ void
 CDRNNodeTask::RequestStopOfPeriodicUpdates( CORE::CPulseGenerator& /* pulseGenerator */ )
 {GUCEF_TRACE;
 
+    // the cycles wait for work or IdleWaitMaxMs from now on
+    m_sendRegularPulses.Store( 0 );
 }
 
 /*-------------------------------------------------------------------------*/

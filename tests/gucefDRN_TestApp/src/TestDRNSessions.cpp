@@ -601,6 +601,7 @@ PerformDRNSessionTests( void )
         DRN::CDRNNodeSettings settings;
         settings.ownThread = true;
         settings.threadPoolName = "drntest.nodetask";
+        settings.idlePulseIntervalMs = 0;   // the pulse interval without links as well: the test looks at the pulses of a node that has none
         DRN::CDRNNode node;
         ASSERT_TRUE( node.SetSettings( settings ) );
         ASSERT_TRUE( node.IsRunningOwnThread() );
@@ -671,6 +672,7 @@ PerformDRNSessionTests( void )
         DRN::CDRNNodeSettings settings;
         settings.ownThread = true;
         settings.threadPoolName = "drntest.nodestop";
+        settings.idlePulseIntervalMs = 0;   // the thread cycles at the pulse interval, so it waits for the node lock held below within a cycle (an idle node's thread waits for work outside its cycles and ends at once)
         DRN::CDRNNode* node = GUCEF_NEW DRN::CDRNNode();
         REQUIRE_TRUE( node->SetSettings( settings ) && node->IsRunningOwnThread() );
         {

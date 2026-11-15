@@ -80,8 +80,12 @@ class CDRNNode;
  *  the task drives it while it runs, every pulse under the node lock (CDRNNode::RunThreadCycle()), and hands it back to
  *  the driver of the node when it ends. The pulse generator of the task's delegator, which the delegator also pulses
  *  itself (before the task starts and after its cycles ended), never reaches the node's objects. Requests for an immediate pulse (busy sockets) make the next cycle start at
- *  once, as does CDRNNode::WakeOwnThread() during the wait between cycles; otherwise the task cycles about once per
- *  millisecond.
+ *  once, as does CDRNNode::WakeOwnThread() during the wait between cycles. Otherwise the task keeps the periodic pulses
+ *  its pulse generator asks for, as a CORE::CTaskDelegator does for the pulse generator of a task: it waits on the
+ *  node's semaphore until the next pulse window of the requested interval (CPulseGenerator::GetTimeTillNextPulseWindowInMilliSecs()),
+ *  at most IdleWaitMaxMs, and pulses no more often than that. A node without links asks for its idle interval
+ *  (CDRNNodeSettings::idlePulseIntervalMs), so an idle node's thread sleeps; traffic wakes it through the socket
+ *  readiness wake and WakeOwnThread() at once.
  *
  *  Used by CDRNNode only.
  */
@@ -91,6 +95,9 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeTask : public CORE::CTaskConsumer         ,
     public:
 
     static const CORE::CString TaskType;
+
+    /** The longest wait between two cycles, also without periodic pulses: a stop asked by the task manager is seen within it */
+    static const UInt32 IdleWaitMaxMs;
 
     explicit CDRNNodeTask( CDRNNode& node );
 
@@ -170,6 +177,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNNodeTask : public CORE::CTaskConsumer         ,
     MT::CTAtomic< UInt32 > m_startState;
     MT::CSemaphore m_startStateChanged;             /**< posted on every change of m_startState */
     MT::CTAtomic< UInt32 > m_immediatePulseRequested;
+    MT::CTAtomic< UInt32 > m_sendRegularPulses;         /**< 1 while the pulse generator asks for periodic pulses */
+    MT::CTAtomic< UInt32 > m_requestedPulseDeltaInMs;   /**< the interval it asks for, the wait between cycles follows it */
     MT::CTAtomic< TThreadId > m_driverTaskId;   /**< MT::GetCurrentThreadID() of the task's thread, 0 before it started */
     GUCEF_SYSTEM_THREAD_ID_CODE( MT::CTAtomic< TSystemThreadId > m_driverTaskSystemThreadId; )   /**< display only, recorded with m_driverTaskId */
     COMCORE::CSocketReadinessWaiterPtr m_readinessWaiter;   /**< wakes the node for the sockets on its pulse generator while the task drives it */

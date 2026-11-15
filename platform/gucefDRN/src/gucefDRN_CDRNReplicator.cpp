@@ -591,6 +591,51 @@ CDRNReplicator::RemoveItem( CDRNDataItem* item )
 /*-------------------------------------------------------------------------*/
 
 bool
+CDRNReplicator::DestroyItem( CDRNDataItem* item )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_session->GetNode().GetLock() );
+    if ( GUCEF_NULL == item || !item->m_isOrigin || GetItem( item->m_ownerPeerId, item->m_itemId ) != item )
+        return false;
+
+    // the members are told as by RemoveItem(); then nothing of the replicator refers to the item any more: its slot is
+    // emptied (the id is not given out again, a late message for it finds no item), it leaves the list of the ticks
+    // and the items due this tick, and its mail to the application goes with it (CDRNApplicationNotifier)
+    if ( !item->m_removed )
+        RemoveItem( item );
+    m_items[ item->m_ownerPeerId ][ item->m_itemId ] = GUCEF_NULL;
+    for ( UInt32 i=0; i<m_itemList.size(); ++i )
+    {
+        if ( m_itemList[ i ] == item )
+        {
+            m_itemList.erase( m_itemList.begin() + i );
+            break;
+        }
+    }
+    for ( UInt32 i=0; i<m_dueItems.size(); )
+    {
+        if ( m_dueItems[ i ] == item )
+            m_dueItems.erase( m_dueItems.begin() + i );
+        else
+            ++i;
+    }
+    GUCEF_DELETE item;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CDRNReplicator::GetItemObjectCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_session->GetNode().GetLock() );
+    return (UInt32) ( m_itemList.size() + m_retired.size() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDRNReplicator::MatchesAppSubscription( const CDRNDataItem& item ) const
 {GUCEF_TRACE;
     for ( UInt32 i=0; i<m_appSubscriptions.size(); ++i )

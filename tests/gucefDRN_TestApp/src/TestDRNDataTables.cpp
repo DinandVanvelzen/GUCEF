@@ -984,6 +984,54 @@ PerformDRNDataTableTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Items: a host that publishes and destroys a grid again and again (a page per terminal request) holds no more item objects than it has live grids; the members see each one removed; RemoveItem keeps them until the session goes" )
+    try
+    {
+        CGroup group( DRN::DRN_TOPOLOGY_CLIENT_SERVER, "dt-destroyed", "mem" );
+        REQUIRE_TRUE( group.Start( 2 ) );
+        DRN::CDRNReplicator& host = group[ 0 ].GetReplicator();
+        const UInt32 before = host.GetItemObjectCount();
+        for ( UInt32 round=0; round<50; ++round )
+        {
+            const CORE::CString name = "page-" + CORE::ToString( round );
+            DRN::CDRNDataGrid* grid = group[ 0 ].CreateGrid( TypedGrid( name, DRN::DRN_AUTHORITY_HOST, CORE::DATATABLE_TYPE_UINT32, CORE::DATATABLE_TYPE_UINT32 ) );
+            REQUIRE_TRUE( GUCEF_NULL != grid );
+            for ( UInt32 k=0; k<100; ++k )
+                grid->SetValue( CORE::CVariant( k ), CORE::CVariant( k + round ) );
+            DRN::CDRNDataGrid* replica = Subscribed( group[ 1 ], name, 1, CORE::CVariant( (UInt32) 99 ), CORE::CVariant( (UInt32) ( 99 + round ) ) );
+            REQUIRE_TRUE( GUCEF_NULL != replica );
+            ASSERT_TRUE( host.DestroyItem( grid ) );
+            ASSERT_FALSE( host.DestroyItem( grid ) );
+            for ( UInt32 waited=0; waited<5000 && !replica->IsRemoved(); waited+=5 )
+                PumpFor( 5 );
+            ASSERT_TRUE( replica->IsRemoved() );
+            ASSERT_TRUE( GUCEF_NULL == host.FindGrid( name ) );
+        }
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Items: after 50 grids published and destroyed the host holds " << host.GetItemObjectCount() << " item objects (" << before << " before)" );
+        ASSERT_TRUE( before == host.GetItemObjectCount() );
+
+        // RemoveItem keeps the object (flagged removed) until the session goes, as it always did
+        DRN::CDRNDataGrid* kept = group[ 0 ].CreateGrid( TypedGrid( "kept", DRN::DRN_AUTHORITY_HOST, CORE::DATATABLE_TYPE_UINT32, CORE::DATATABLE_TYPE_UINT32 ) );
+        REQUIRE_TRUE( GUCEF_NULL != kept );
+        ASSERT_TRUE( host.RemoveItem( kept ) );
+        ASSERT_TRUE( kept->IsRemoved() && before + 1 == host.GetItemObjectCount() );
+        ASSERT_TRUE( host.DestroyItem( kept ) );
+        ASSERT_TRUE( before == host.GetItemObjectCount() );
+
+        // an item of another member is not the host's to destroy
+        DRN::CDRNDataGrid* owned = group[ 1 ].CreateGrid( TypedGrid( "owned", DRN::DRN_AUTHORITY_OWNER, CORE::DATATABLE_TYPE_UINT32, CORE::DATATABLE_TYPE_UINT32 ) );
+        REQUIRE_TRUE( GUCEF_NULL != owned );
+        owned->SetValue( CORE::CVariant( (UInt32) 1 ), CORE::CVariant( (UInt32) 1 ) );
+        DRN::CDRNDataGrid* ownedReplica = Subscribed( group[ 0 ], "owned", 2, CORE::CVariant( (UInt32) 1 ), CORE::CVariant( (UInt32) 1 ) );
+        REQUIRE_TRUE( GUCEF_NULL != ownedReplica );
+        ASSERT_FALSE( host.DestroyItem( ownedReplica ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Tables: A table ends when the item is removed and when the session ends; its async writes end with it" )
     try
     {
