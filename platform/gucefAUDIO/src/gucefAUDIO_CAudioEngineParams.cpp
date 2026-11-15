@@ -133,6 +133,7 @@ CAudioEngineParams::CAudioEngineParams( void )
     , m_maxCaptureEffects( 8 )
     , m_captureCommandQueueSize( 64 )
     , m_voiceActivitySettings()
+    , m_spatialParams()
 {GUCEF_TRACE;
 
     m_captureDeviceParams.SetDirection( AUDIODIRECTION_CAPTURE );
@@ -171,6 +172,7 @@ CAudioEngineParams::CAudioEngineParams( const CAudioEngineParams& src )
     , m_maxCaptureEffects( src.m_maxCaptureEffects )
     , m_captureCommandQueueSize( src.m_captureCommandQueueSize )
     , m_voiceActivitySettings( src.m_voiceActivitySettings )
+    , m_spatialParams( src.m_spatialParams )
 {GUCEF_TRACE;
 
 }
@@ -212,6 +214,7 @@ CAudioEngineParams::operator=( const CAudioEngineParams& src )
         m_maxCaptureEffects = src.m_maxCaptureEffects;
         m_captureCommandQueueSize = src.m_captureCommandQueueSize;
         m_voiceActivitySettings = src.m_voiceActivitySettings;
+        m_spatialParams = src.m_spatialParams;
     }
     return *this;
 }
@@ -802,6 +805,24 @@ CAudioEngineParams::GetVoiceActivitySettings( void )
 
 /*-------------------------------------------------------------------------*/
 
+const CAudioSpatialParams&
+CAudioEngineParams::GetSpatialParams( void ) const
+{GUCEF_TRACE;
+
+    return m_spatialParams;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioSpatialParams&
+CAudioEngineParams::GetSpatialParams( void )
+{GUCEF_TRACE;
+
+    return m_spatialParams;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CAudioEngineParams::ApplyLatencyProfile( TAudioLatencyProfile profile, UInt32 sampleRate )
 {GUCEF_TRACE;
@@ -910,6 +931,11 @@ CAudioEngineParams::SaveConfig( CORE::CDataNode& tree ) const
     section->DelChild( CVoiceActivitySettings::ConfigSectionName );
     if ( m_voiceActivitySettings != CVoiceActivitySettings() && !m_voiceActivitySettings.SaveConfig( *section ) )
         return false;
+
+    // the world settings of the spatial audio are only written when they are not the defaults
+    section->DelChild( CAudioSpatialParams::ConfigSectionName );
+    if ( m_spatialParams != CAudioSpatialParams() && !m_spatialParams.SaveConfig( *section ) )
+        return false;
     return m_deviceParams.SaveConfig( *section );
 }
 
@@ -978,6 +1004,7 @@ CAudioEngineParams::LoadConfig( const CORE::CDataNode& treeroot )
     if ( GUCEF_NULL != capture )
         m_captureDeviceParams.LoadConfig( *capture );
     m_voiceActivitySettings.LoadConfig( *section );
+    m_spatialParams.LoadConfig( *section );
     return true;
 }
 

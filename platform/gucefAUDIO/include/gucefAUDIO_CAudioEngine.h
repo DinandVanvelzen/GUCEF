@@ -45,6 +45,11 @@
 #define GUCEF_MT_CTSPSCQUEUE_H
 #endif /* GUCEF_MT_CTSPSCQUEUE_H ? */
 
+#ifndef GUCEF_MT_CTSLOTDATAEXCHANGE_H
+#include "gucefMT_CTSlotDataExchange.h"
+#define GUCEF_MT_CTSLOTDATAEXCHANGE_H
+#endif /* GUCEF_MT_CTSLOTDATAEXCHANGE_H ? */
+
 #ifndef GUCEF_CORE_CVALUELIST_H
 #include "CValueList.h"
 #define GUCEF_CORE_CVALUELIST_H
@@ -190,6 +195,38 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
      */
     CAudioEngineParams GetParams( void ) const;
 
+    /**
+     *  Replaces the world settings of the spatial audio (speed of sound, Doppler, default attenuation, panning options, see
+     *  CAudioSpatialParams). Any thread, also while the engine plays: the settings are copied (the engine keeps its own, GetSpatialParams() gives
+     *  them back, so do GetParams() and the next device reopen) and published to the audio thread as one snapshot, a plain value in a triple buffer
+     *  (MT::CTSlotDataExchange, latest only): the audio thread sees the settings of one call whole or those of the one before. Before Initialize() it
+     *  only keeps them for GetSpatialParams(): Initialize() takes those of the parameters it is given
+     */
+    void SetSpatialParams( const CAudioSpatialParams& params );
+
+    /** The world settings of the spatial audio in use: a copy, taken under the engine lock */
+    CAudioSpatialParams GetSpatialParams( void ) const;
+
+    /**
+     *  Audio thread (the one reader): copies the newest snapshot of the world settings into 'state'. True when it was set since the previous
+     *  call, false when it is the same as the one before. Realtime safe: no waiting, no allocation. The render of the engine reads it at its start and
+     *  hands it to the mixer (CAudioMixer::SetSpatialScene()), so nothing else may call this while the device renders: the exchange has one reader
+     */
+    bool ReadSpatialWorldState( SSpatialWorldState& state ) GUCEF_AUDIO_REALTIME_CONTEXT;
+
+    /**
+     *  The listener of the engine: where the spatial voices are heard from (design 5.3). Set its pose and velocity from any
+     *  thread at any time; the audio thread takes its newest snapshot at the start of every render. It lives as long as the engine
+     */
+    CAudioListener& GetListener( void );
+    const CAudioListener& GetListener( void ) const;
+
+    /**
+     *  Inline, for convenience: a new emitter in its default state (design 5.4), to give to voices with
+     *  CAudioVoice::SetEmitter() before they start. Emitters may also be made directly; they need no engine
+     */
+    TAudioEmitterPtr CreateEmitter( void );
+
     /** The format the device plays in, and the format the mixer works in: float, with the speakers and rate of the device */
     CAudioFormat GetDeviceFormat( void ) const;
     CAudioFormat GetMixFormat( void ) const;
@@ -215,7 +252,11 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
 
     /**
      *  A voice for a source (or a clip), to play into 'bus' (the master bus when null). Nothing is audible until Start().
-     *  The voice can have as many effects and sends as the engine parameters allow (maxVoiceEffects, maxVoiceSends)
+     *  The voice can have as many effects and sends as the engine parameters allow (maxVoiceEffects, maxVoiceSends).
+     *  A voice that is given an emitter (CAudioVoice::SetEmitter()) before Start() is spatial: Start() then makes the
+     *  spatializer named in the spatial parameters (CAudioSpatialParams::GetSpatializerName(), "panning" by default) for it,
+     *  unless the voice has one already, and refuses the voice with TASKSTATUS_SETUP_FAILED when no such spatializer type is
+     *  registered. A change of the spatializer name applies to voices started afterwards
      */
     TAudioVoicePtr CreateVoice( const TAudioSourcePtr& source, CAudioBus* bus = GUCEF_NULL );
     TAudioVoicePtr CreateVoice( const TAudioClipPtr& clip, CAudioBus* bus = GUCEF_NULL );
@@ -665,6 +706,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
     void PrepareForMixFormat( const CAudioFormat& mixFormat );
     void ApplyDeviceFormat( const CAudioFormat& deviceFormat );
     void ApplyLimiterParams( const CAudioEngineParams& params );
+    void PublishSpatialWorld( void );
     void AbandonReopen( void );
     void CompleteAllPending( void );
     CORE::CFutureResult MakeFailedFuture( CORE::TTaskStatus status );
@@ -676,6 +718,10 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngine : public CORE::CTSGNotifier ,
     mutable MT::CMutex m_lock;
     bool m_initialized;
     CAudioEngineParams m_params;
+    MT::CTSlotDataExchange< SSpatialWorldState, MT::SSlotDeliveryLatestOnly, MT::SSlotFullFail, 1 > m_spatialWorld;   /**< the world settings of the spatial audio on their way to the audio thread, written under the engine lock */
+    CAudioListener m_listener;                  /**< the listener of the spatial voices */
+    SListenerState m_renderListener;            /**< audio thread: the listener snapshot of the render */
+    SSpatialWorldState m_renderWorld;           /**< audio thread: the world snapshot of the render */
     CString m_usedDriverName;
     TAudioDevicePtr m_device;
     CAudioFormat m_deviceFormat;

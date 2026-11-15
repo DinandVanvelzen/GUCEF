@@ -137,6 +137,21 @@
 #define GUCEF_AUDIO_CREVERBEFFECT_H
 #endif /* GUCEF_AUDIO_CREVERBEFFECT_H ? */
 
+#ifndef GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H
+#include "gucefAUDIO_CAudioSpatializerRegistry.h"
+#define GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H
+#endif /* GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H ? */
+
+#ifndef GUCEF_AUDIO_CTAUDIOSPATIALIZERFACTORY_H
+#include "gucefAUDIO_CTAudioSpatializerFactory.h"
+#define GUCEF_AUDIO_CTAUDIOSPATIALIZERFACTORY_H
+#endif /* GUCEF_AUDIO_CTAUDIOSPATIALIZERFACTORY_H ? */
+
+#ifndef GUCEF_AUDIO_CPANNINGSPATIALIZER_H
+#include "gucefAUDIO_CPanningSpatializer.h"
+#define GUCEF_AUDIO_CPANNINGSPATIALIZER_H
+#endif /* GUCEF_AUDIO_CPANNINGSPATIALIZER_H ? */
+
 #ifndef GUCEF_AUDIO_CVOICECODECREGISTRY_H
 #include "gucefAUDIO_CVoiceCodecRegistry.h"
 #define GUCEF_AUDIO_CVOICECODECREGISTRY_H
@@ -201,6 +216,7 @@ CAudioGlobal::CAudioGlobal( void )
     , m_audioDriverRegistry( GUCEF_NULL )
     , m_audioCodecPluginManager( GUCEF_NULL )
     , m_audioEffectRegistry( GUCEF_NULL )
+    , m_audioSpatializerRegistry( GUCEF_NULL )
     , m_voiceCodecRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
@@ -226,6 +242,9 @@ CAudioGlobal::~CAudioGlobal()
 
     GUCEF_DELETE m_audioDriverRegistry;
     m_audioDriverRegistry = GUCEF_NULL;
+
+    GUCEF_DELETE m_audioSpatializerRegistry;
+    m_audioSpatializerRegistry = GUCEF_NULL;
 
     GUCEF_DELETE m_audioEffectRegistry;
     m_audioEffectRegistry = GUCEF_NULL;
@@ -272,6 +291,15 @@ CAudioGlobal::GetAudioEffectRegistry( void )
 
 /*-------------------------------------------------------------------------*/
 
+CAudioSpatializerRegistry&
+CAudioGlobal::GetAudioSpatializerRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_audioSpatializerRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CVoiceCodecRegistry&
 CAudioGlobal::GetVoiceCodecRegistry( void )
 {GUCEF_TRACE;
@@ -296,6 +324,7 @@ CAudioGlobal::Initialize( void )
     m_audioDriverRegistry = GUCEF_NEW CAudioDriverRegistry();
     m_audioCodecPluginManager = GUCEF_NEW CAudioCodecPluginManager();
     m_audioEffectRegistry = GUCEF_NEW CAudioEffectRegistry();
+    m_audioSpatializerRegistry = GUCEF_NEW CAudioSpatializerRegistry();
     m_voiceCodecRegistry = GUCEF_NEW CVoiceCodecRegistry();
 
     // The driver that needs no hardware and no plugin
@@ -316,6 +345,9 @@ CAudioGlobal::Initialize( void )
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CAutomaticGainEffect >() ) );
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CNoiseSuppressorEffect >() ) );
     m_audioEffectRegistry->RegisterFactory( TAudioEffectFactoryPtr( GUCEF_NEW CTAudioEffectFactory< CReverbEffect >() ) );
+
+    // The spatializer that needs nothing but the library itself, the default of the world settings
+    m_audioSpatializerRegistry->RegisterFactory( TAudioSpatializerFactoryPtr( GUCEF_NEW CTAudioSpatializerFactory< CPanningSpatializer >() ) );
 
     // The voice codecs that need nothing but the library itself
     m_voiceCodecRegistry->RegisterFactory( TVoiceCodecFactoryPtr( GUCEF_NEW CPcmVoiceCodecFactory() ) );

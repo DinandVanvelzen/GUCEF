@@ -45,6 +45,7 @@ LOCAL_SRC_FILES := \
   src/TestAudioEngine.cpp \
   src/TestAudioEngineReopen.cpp \
   src/TestAudioFormat.cpp \
+  src/TestAudioGeoSpace.cpp \
   src/TestAudioHalfDuplex.cpp \
   src/TestAudioIntercomHardware.cpp \
   src/TestAudioMixer.cpp \
@@ -56,6 +57,8 @@ LOCAL_SRC_FILES := \
   src/TestAudioRouting.cpp \
   src/TestAudioSettings.cpp \
   src/TestAudioSincResampler.cpp \
+  src/TestAudioSpatial.cpp \
+  src/TestAudioSpatialVoice.cpp \
   src/TestAudioStream.cpp \
   src/TestAudioStreaming.cpp \
   src/TestAudioTestSignals.cpp \
@@ -79,6 +82,8 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefAUDIO/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../platform/gucefGEOMETRY/include \
+  $(MY_MODULE_PATH)/../../platform/gucefMATH/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include
 
 LOCAL_CFLAGS := -DGUCEF_AUDIO_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefAUDIO_TestApp -DMODULE_NAME=gucefAUDIO_TestApp
@@ -87,6 +92,8 @@ LOCAL_CFLAGS := -DGUCEF_AUDIO_TESTAPP_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucef
 LOCAL_SHARED_LIBRARIES := \
   gucefAUDIO \
   gucefCORE \
+  gucefGEOMETRY \
+  gucefMATH \
   gucefMT
 
 include $(BUILD_EXECUTABLE)

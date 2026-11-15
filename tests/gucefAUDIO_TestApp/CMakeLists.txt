@@ -40,6 +40,7 @@ set( HEADER_FILES
   include/TestAudioEngine.h
   include/TestAudioEngineReopen.h
   include/TestAudioFormat.h
+  include/TestAudioGeoSpace.h
   include/TestAudioHalfDuplex.h
   include/TestAudioIntercomHardware.h
   include/TestAudioIntercomScenario.h
@@ -55,6 +56,8 @@ set( HEADER_FILES
   include/TestAudioSettings.h
   include/TestAudioSimulatedVoiceLink.h
   include/TestAudioSincResampler.h
+  include/TestAudioSpatial.h
+  include/TestAudioSpatialVoice.h
   include/TestAudioStream.h
   include/TestAudioStreaming.h
   include/TestAudioTestEffect.h
@@ -99,6 +102,7 @@ set( SOURCE_FILES
   src/TestAudioEngine.cpp
   src/TestAudioEngineReopen.cpp
   src/TestAudioFormat.cpp
+  src/TestAudioGeoSpace.cpp
   src/TestAudioHalfDuplex.cpp
   src/TestAudioIntercomHardware.cpp
   src/TestAudioMixer.cpp
@@ -110,6 +114,8 @@ set( SOURCE_FILES
   src/TestAudioRouting.cpp
   src/TestAudioSettings.cpp
   src/TestAudioSincResampler.cpp
+  src/TestAudioSpatial.cpp
+  src/TestAudioSpatialVoice.cpp
   src/TestAudioStream.cpp
   src/TestAudioStreaming.cpp
   src/TestAudioTestSignals.cpp
@@ -141,8 +147,8 @@ if ( WIN32 )
 else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefMT )
+add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefGEOMETRY gucefMATH gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefGEOMETRY gucefMATH gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_AUDIO_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefAUDIO_TestApp;MODULE_NAME=gucefAUDIO_TestApp" )
 
 if ( EMSCRIPTEN32 )
@@ -155,7 +161,7 @@ if ( EMSCRIPTEN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC audiodriverWEBAUDIO )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefGEOMETRY/include ../../platform/gucefMATH/include ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

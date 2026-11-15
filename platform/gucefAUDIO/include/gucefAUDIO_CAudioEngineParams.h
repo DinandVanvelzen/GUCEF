@@ -45,6 +45,11 @@
 #define GUCEF_AUDIO_CVOICEACTIVITYSETTINGS_H
 #endif /* GUCEF_AUDIO_CVOICEACTIVITYSETTINGS_H ? */
 
+#ifndef GUCEF_AUDIO_CAUDIOSPATIALPARAMS_H
+#include "gucefAUDIO_CAudioSpatialParams.h"
+#define GUCEF_AUDIO_CAUDIOSPATIALPARAMS_H
+#endif /* GUCEF_AUDIO_CAUDIOSPATIALPARAMS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -218,6 +223,10 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
     const CVoiceActivitySettings& GetVoiceActivitySettings( void ) const;
     CVoiceActivitySettings& GetVoiceActivitySettings( void );
 
+    /** The world settings of the spatial audio (the child "Spatial" of the configuration): speed of sound, Doppler, default attenuation, panning options. The engine publishes them to the audio thread, see CAudioEngine::SetSpatialParams() */
+    const CAudioSpatialParams& GetSpatialParams( void ) const;
+    CAudioSpatialParams& GetSpatialParams( void );
+
     /**
      *  Writes the values of a latency profile into the parameters, so a saved configuration has them explicitly and
      *  they can be edited afterwards. It sets, for the playback device and in the same way for the capture device:
@@ -257,7 +266,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
      *  limiterReleaseMs, maxEffectsPerBus, maxSendsPerBus, maxVoiceEffects, maxVoiceSends, captureEnabled,
      *  captureProcessingRate, captureChannel, maxCaptureConsumers, maxCaptureEffects and captureCommandQueueSize; the child
      *  "AudioDevice" with the device parameters, and the child "CaptureDevice" with the capture device parameters (as its
-     *  own child "AudioDevice"), and the child "VoiceActivity" with the settings of the voice activity detection (only when they are not the defaults)
+     *  own child "AudioDevice"), the child "VoiceActivity" with the settings of the voice activity detection (only when they are not the defaults)
+     *  and the child "Spatial" with the world settings of the spatial audio (CAudioSpatialParams, only when they are not the defaults)
      */
     virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -301,6 +311,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioEngineParams : public CORE::CIConfigurable
     UInt32 m_maxCaptureEffects;
     UInt32 m_captureCommandQueueSize;
     CVoiceActivitySettings m_voiceActivitySettings;
+    CAudioSpatialParams m_spatialParams;
 };
 
 /*-------------------------------------------------------------------------//

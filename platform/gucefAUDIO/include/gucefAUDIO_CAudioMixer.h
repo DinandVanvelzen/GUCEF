@@ -178,6 +178,20 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioMixer
 
     void SetListener( IAudioMixerListener* listener );
 
+    /**
+     *  Mixing thread: the listener and the world settings the spatial voices are placed with from the next block on
+     *  (design 5.5). Copies them: realtime safe. CAudioEngine passes the newest snapshots of its listener and world
+     *  settings at the start of every render; a mixer on its own starts with the defaults (a listener at the origin facing
+     *  -Z, the default world settings)
+     */
+    void SetSpatialScene( const SListenerState& listener, const SSpatialWorldState& world ) GUCEF_AUDIO_REALTIME_CONTEXT;
+
+    /** The listener the spatial voices are placed with now. Mixing thread */
+    const SListenerState& GetSpatialListener( void ) const;
+
+    /** The world settings the spatial voices are placed with now. Mixing thread */
+    const SSpatialWorldState& GetSpatialWorld( void ) const;
+
     void SetPanLaw( TAudioPanLaw panLaw );
 
     /**
@@ -266,6 +280,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioMixer
     GUCEF::vector< CAudioVoice* > m_voices;
     IAudioMixerListener* m_listener;
     TAudioPanLaw m_panLaw;
+    SListenerState m_spatialListener;           /**< the listener of the spatial voices, mixing thread */
+    SSpatialWorldState m_spatialWorld;          /**< the world settings of the spatial voices, mixing thread */
     UInt64 m_totalFrames;
     UInt64 m_clipped;
     bool m_limiterEnabled;

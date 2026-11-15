@@ -103,6 +103,9 @@
 #include "TestAudioNoiseSuppressor.h"
 #include "TestAudioEchoCanceller.h"
 #include "TestAudioIntercomHardware.h"
+#include "TestAudioSpatial.h"
+#include "TestAudioSpatialVoice.h"
+#include "TestAudioGeoSpace.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -172,6 +175,9 @@ GUCEF_OSMAIN_BEGIN
         PerformAudioRealtimeTests();
         PerformAudioSettingsTests();
         PerformAudioBusLayoutTests();
+        PerformAudioSpatialTests();
+        PerformAudioSpatialVoiceTests();
+        PerformAudioGeoSpaceTests();
         PerformAudioSincResamplerTests();
         PerformAudioRealFftTests();
         PerformAudioStreamTests();

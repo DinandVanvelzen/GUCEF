@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
   src/CGUCEFAUDIOModule.cpp \
   src/gucefAUDIO.cpp \
   src/gucefAUDIO_CAcousticEchoCanceller.cpp \
+  src/gucefAUDIO_CAudioAttenuation.cpp \
   src/gucefAUDIO_CAudioBuffer.cpp \
   src/gucefAUDIO_CAudioBus.cpp \
   src/gucefAUDIO_CAudioBusLayout.cpp \
@@ -46,17 +47,24 @@ LOCAL_SRC_FILES := \
   src/gucefAUDIO_CAudioEffectFactory.cpp \
   src/gucefAUDIO_CAudioEffectParameterInfo.cpp \
   src/gucefAUDIO_CAudioEffectRegistry.cpp \
+  src/gucefAUDIO_CAudioEmitter.cpp \
   src/gucefAUDIO_CAudioEngine.cpp \
   src/gucefAUDIO_CAudioEngineParams.cpp \
   src/gucefAUDIO_CAudioFormat.cpp \
   src/gucefAUDIO_CAudioFrameRing.cpp \
   src/gucefAUDIO_CAudioGlobal.cpp \
   src/gucefAUDIO_CAudioLevelMeter.cpp \
+  src/gucefAUDIO_CAudioListener.cpp \
   src/gucefAUDIO_CAudioMixer.cpp \
+  src/gucefAUDIO_CAudioPanner.cpp \
   src/gucefAUDIO_CAudioParameterBlock.cpp \
   src/gucefAUDIO_CAudioParameterSmoother.cpp \
   src/gucefAUDIO_CAudioPushDevice.cpp \
   src/gucefAUDIO_CAudioSettings.cpp \
+  src/gucefAUDIO_CAudioSpatialMath.cpp \
+  src/gucefAUDIO_CAudioSpatialParams.cpp \
+  src/gucefAUDIO_CAudioSpatializerFactory.cpp \
+  src/gucefAUDIO_CAudioSpatializerRegistry.cpp \
   src/gucefAUDIO_CAudioStream.cpp \
   src/gucefAUDIO_CAudioVoice.cpp \
   src/gucefAUDIO_CAutomaticGainEffect.cpp \
@@ -81,6 +89,7 @@ LOCAL_SRC_FILES := \
   src/gucefAUDIO_CNoiseSuppressorEffect.cpp \
   src/gucefAUDIO_CNullAudioDriver.cpp \
   src/gucefAUDIO_CPacketLossConcealer.cpp \
+  src/gucefAUDIO_CPanningSpatializer.cpp \
   src/gucefAUDIO_CPcmStreamSource.cpp \
   src/gucefAUDIO_CPcmVoiceCodecFactory.cpp \
   src/gucefAUDIO_CPcmVoiceDecoder.cpp \
@@ -115,7 +124,8 @@ LOCAL_SRC_FILES := \
   src/gucefAUDIO_CVoiceSenderConfig.cpp \
   src/gucefAUDIO_CVoiceSenderStats.cpp \
   src/gucefAUDIO_CWavAudioCodec.cpp \
-  src/gucefAUDIO_IAudioSource.cpp
+  src/gucefAUDIO_IAudioSource.cpp \
+  src/gucefAUDIO_IAudioSpatializer.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

@@ -50,6 +50,7 @@ class CAudioCodecRegistry;
 class CAudioDriverRegistry;
 class CAudioCodecPluginManager;
 class CAudioEffectRegistry;
+class CAudioSpatializerRegistry;
 class CVoiceCodecRegistry;
 
 /*-------------------------------------------------------------------------*/
@@ -76,6 +77,9 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioGlobal
     /** All audio effect types by type name. Built-in effects are registered when the module starts, effect plugins add theirs */
     CAudioEffectRegistry& GetAudioEffectRegistry( void );
 
+    /** All spatializer types by type name. The panning spatializer ("panning") is registered when the module starts, spatializer plugins add theirs */
+    CAudioSpatializerRegistry& GetAudioSpatializerRegistry( void );
+
     /** All voice codec types by codec name. The pcm codec is registered when the module starts, voice codec plugins add theirs */
     CVoiceCodecRegistry& GetVoiceCodecRegistry( void );
 
@@ -101,6 +105,7 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioGlobal
     CAudioDriverRegistry* m_audioDriverRegistry;
     CAudioCodecPluginManager* m_audioCodecPluginManager;
     CAudioEffectRegistry* m_audioEffectRegistry;
+    CAudioSpatializerRegistry* m_audioSpatializerRegistry;
     CVoiceCodecRegistry* m_voiceCodecRegistry;
 
     static CAudioGlobal* g_instance;

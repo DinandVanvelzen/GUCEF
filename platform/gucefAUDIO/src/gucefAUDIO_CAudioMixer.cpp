@@ -60,6 +60,8 @@ CAudioMixer::CAudioMixer( const CAudioFormat& mixFormat  ,
     , m_voices()
     , m_listener( GUCEF_NULL )
     , m_panLaw( AUDIOPANLAW_CONSTANT_POWER )
+    , m_spatialListener()
+    , m_spatialWorld()
     , m_totalFrames( 0 )
     , m_clipped( 0 )
     , m_limiterEnabled( false )
@@ -378,6 +380,34 @@ CAudioMixer::SetListener( IAudioMixerListener* listener )
 /*-------------------------------------------------------------------------*/
 
 void
+CAudioMixer::SetSpatialScene( const SListenerState& listener, const SSpatialWorldState& world ) GUCEF_AUDIO_REALTIME_CONTEXT
+{
+    // no trace macro: this runs where the audio is mixed
+    m_spatialListener = listener;
+    m_spatialWorld = world;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const SListenerState&
+CAudioMixer::GetSpatialListener( void ) const
+{GUCEF_TRACE;
+
+    return m_spatialListener;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const SSpatialWorldState&
+CAudioMixer::GetSpatialWorld( void ) const
+{GUCEF_TRACE;
+
+    return m_spatialWorld;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CAudioMixer::SetPanLaw( TAudioPanLaw panLaw )
 {GUCEF_TRACE;
 
@@ -651,7 +681,7 @@ CAudioMixer::MixBlock( Float32* output, UInt32 frames )
     {
         CAudioVoice* voice = m_voices[ v ];
         CAudioBus* bus = voice->m_bus;
-        voice->RenderBlock( &bus->m_buffer[ 0 ], frames, m_panLaw );
+        voice->RenderBlock( &bus->m_buffer[ 0 ], frames, m_panLaw, m_spatialListener, m_spatialWorld );
 
         if ( AUDIOVOICESTATE_ENDED == voice->m_state.Load( MT::MEMORDER_ACQUIRE ) )
         {

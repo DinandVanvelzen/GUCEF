@@ -16,6 +16,7 @@ set( HEADER_FILES
   include/gucefAUDIO.h
   include/gucefAUDIO_CAcousticEchoCanceller.h
   include/gucefAUDIO_CAtomicFloat.h
+  include/gucefAUDIO_CAudioAttenuation.h
   include/gucefAUDIO_CAudioBuffer.h
   include/gucefAUDIO_CAudioBus.h
   include/gucefAUDIO_CAudioBusLayout.h
@@ -37,17 +38,24 @@ set( HEADER_FILES
   include/gucefAUDIO_CAudioEffectFactory.h
   include/gucefAUDIO_CAudioEffectParameterInfo.h
   include/gucefAUDIO_CAudioEffectRegistry.h
+  include/gucefAUDIO_CAudioEmitter.h
   include/gucefAUDIO_CAudioEngine.h
   include/gucefAUDIO_CAudioEngineParams.h
   include/gucefAUDIO_CAudioFormat.h
   include/gucefAUDIO_CAudioFrameRing.h
   include/gucefAUDIO_CAudioGlobal.h
   include/gucefAUDIO_CAudioLevelMeter.h
+  include/gucefAUDIO_CAudioListener.h
   include/gucefAUDIO_CAudioMixer.h
+  include/gucefAUDIO_CAudioPanner.h
   include/gucefAUDIO_CAudioParameterBlock.h
   include/gucefAUDIO_CAudioParameterSmoother.h
   include/gucefAUDIO_CAudioPushDevice.h
   include/gucefAUDIO_CAudioSettings.h
+  include/gucefAUDIO_CAudioSpatialMath.h
+  include/gucefAUDIO_CAudioSpatialParams.h
+  include/gucefAUDIO_CAudioSpatializerFactory.h
+  include/gucefAUDIO_CAudioSpatializerRegistry.h
   include/gucefAUDIO_CAudioStream.h
   include/gucefAUDIO_CAudioVoice.h
   include/gucefAUDIO_CAutomaticGainEffect.h
@@ -72,6 +80,7 @@ set( HEADER_FILES
   include/gucefAUDIO_CNoiseSuppressorEffect.h
   include/gucefAUDIO_CNullAudioDriver.h
   include/gucefAUDIO_CPacketLossConcealer.h
+  include/gucefAUDIO_CPanningSpatializer.h
   include/gucefAUDIO_CPcmStreamSource.h
   include/gucefAUDIO_CPcmVoiceCodecFactory.h
   include/gucefAUDIO_CPcmVoiceDecoder.h
@@ -82,11 +91,13 @@ set( HEADER_FILES
   include/gucefAUDIO_CRtpHeader.h
   include/gucefAUDIO_CRtpVoicePacketCodec.h
   include/gucefAUDIO_CSincResampler.h
+  include/gucefAUDIO_SpatialSnapshotAdapters.h
   include/gucefAUDIO_CSlidingMinimum.h
   include/gucefAUDIO_CSlidingQuantile.h
   include/gucefAUDIO_CSpectralSuppressor.h
   include/gucefAUDIO_CSvfFilter.h
   include/gucefAUDIO_CTAudioEffectFactory.h
+  include/gucefAUDIO_CTAudioSpatializerFactory.h
   include/gucefAUDIO_CToneSequenceSource.h
   include/gucefAUDIO_CVoiceActivityDetector.h
   include/gucefAUDIO_CVoiceActivitySettings.h
@@ -113,6 +124,7 @@ set( HEADER_FILES
   include/gucefAUDIO_IAudioDeviceCallback.h
   include/gucefAUDIO_IAudioResampler.h
   include/gucefAUDIO_IAudioSource.h
+  include/gucefAUDIO_IAudioSpatializer.h
   include/gucefAUDIO_config.h
   include/gucefAUDIO_macros.h
   include/c_api/gucefAUDIO_c_audiocodec_plugin_api.h
@@ -122,6 +134,7 @@ set( SOURCE_FILES
   src/CGUCEFAUDIOModule.cpp
   src/gucefAUDIO.cpp
   src/gucefAUDIO_CAcousticEchoCanceller.cpp
+  src/gucefAUDIO_CAudioAttenuation.cpp
   src/gucefAUDIO_CAudioBuffer.cpp
   src/gucefAUDIO_CAudioBus.cpp
   src/gucefAUDIO_CAudioBusLayout.cpp
@@ -143,17 +156,24 @@ set( SOURCE_FILES
   src/gucefAUDIO_CAudioEffectFactory.cpp
   src/gucefAUDIO_CAudioEffectParameterInfo.cpp
   src/gucefAUDIO_CAudioEffectRegistry.cpp
+  src/gucefAUDIO_CAudioEmitter.cpp
   src/gucefAUDIO_CAudioEngine.cpp
   src/gucefAUDIO_CAudioEngineParams.cpp
   src/gucefAUDIO_CAudioFormat.cpp
   src/gucefAUDIO_CAudioFrameRing.cpp
   src/gucefAUDIO_CAudioGlobal.cpp
   src/gucefAUDIO_CAudioLevelMeter.cpp
+  src/gucefAUDIO_CAudioListener.cpp
   src/gucefAUDIO_CAudioMixer.cpp
+  src/gucefAUDIO_CAudioPanner.cpp
   src/gucefAUDIO_CAudioParameterBlock.cpp
   src/gucefAUDIO_CAudioParameterSmoother.cpp
   src/gucefAUDIO_CAudioPushDevice.cpp
   src/gucefAUDIO_CAudioSettings.cpp
+  src/gucefAUDIO_CAudioSpatialMath.cpp
+  src/gucefAUDIO_CAudioSpatialParams.cpp
+  src/gucefAUDIO_CAudioSpatializerFactory.cpp
+  src/gucefAUDIO_CAudioSpatializerRegistry.cpp
   src/gucefAUDIO_CAudioStream.cpp
   src/gucefAUDIO_CAudioVoice.cpp
   src/gucefAUDIO_CAutomaticGainEffect.cpp
@@ -178,6 +198,7 @@ set( SOURCE_FILES
   src/gucefAUDIO_CNoiseSuppressorEffect.cpp
   src/gucefAUDIO_CNullAudioDriver.cpp
   src/gucefAUDIO_CPacketLossConcealer.cpp
+  src/gucefAUDIO_CPanningSpatializer.cpp
   src/gucefAUDIO_CPcmStreamSource.cpp
   src/gucefAUDIO_CPcmVoiceCodecFactory.cpp
   src/gucefAUDIO_CPcmVoiceDecoder.cpp
@@ -213,6 +234,7 @@ set( SOURCE_FILES
   src/gucefAUDIO_CVoiceSenderStats.cpp
   src/gucefAUDIO_CWavAudioCodec.cpp
   src/gucefAUDIO_IAudioSource.cpp
+  src/gucefAUDIO_IAudioSpatializer.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

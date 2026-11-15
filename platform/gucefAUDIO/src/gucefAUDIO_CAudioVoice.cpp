@@ -35,6 +35,21 @@
 #define GUCEF_AUDIO_CAUDIOCONVERTER_H
 #endif /* GUCEF_AUDIO_CAUDIOCONVERTER_H ? */
 
+#ifndef GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H
+#include "gucefAUDIO_CAudioSpatializerRegistry.h"
+#define GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H
+#endif /* GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H ? */
+
+#ifndef GUCEF_AUDIO_CPANNINGSPATIALIZER_H
+#include "gucefAUDIO_CPanningSpatializer.h"
+#define GUCEF_AUDIO_CPANNINGSPATIALIZER_H
+#endif /* GUCEF_AUDIO_CPANNINGSPATIALIZER_H ? */
+
+#ifndef GUCEF_AUDIO_CAUDIOGLOBAL_H
+#include "gucefAUDIO_CAudioGlobal.h"
+#define GUCEF_AUDIO_CAUDIOGLOBAL_H
+#endif /* GUCEF_AUDIO_CAUDIOGLOBAL_H ? */
+
 #include "gucefAUDIO_CAudioVoice.h"
 
 /*-------------------------------------------------------------------------//
@@ -72,6 +87,12 @@ const Float64 LogOf2 = 0.69314718055994531;
 
 /** An effect that can sound forever has rung out once the voice gave nothing above this level (-100 dBFS) for one second */
 const Float32 RingOutSilenceLevel = 1.0e-5f;
+
+/** The low pass of a spatial voice: Butterworth, its cutoff glides like the pitch (a one pole on log2, stepped per sub-block) */
+const Float64 SpatialLowPassQ = 0.70710678118654752;
+
+/** A cutoff glide has arrived when it is this close to the target, log2 of Hz */
+const Float64 CutoffArrivedLog2 = 1.0e-4;
 
 Float64
 Log2( Float64 value )
@@ -167,6 +188,26 @@ CAudioVoice::CAudioVoice( const TAudioSourcePtr& source )
     , m_prepared( false )
     , m_sourceEnded( false )
     , m_resamplerRatio( 0.0 )
+    , m_emitter()
+    , m_emitterRaw( GUCEF_NULL )
+    , m_spatializer()
+    , m_spatializerRaw( GUCEF_NULL )
+    , m_emitterState()
+    , m_spatialFrame()
+    , m_spatialBuffer()
+    , m_spatialKnown( false )
+    , m_directGain( 1.0f )
+    , m_lastDirectGain( 1.0f )
+    , m_sendGain( 1.0f )
+    , m_lastSendGain( 1.0f )
+    , m_dopplerNow( 1.0f )
+    , m_dopplerPublished( 1.0f )
+    , m_lowPass()
+    , m_lowPassActive( false )
+    , m_cutoffLog2( 0.0 )
+    , m_cutoffTargetLog2( 0.0 )
+    , m_cutoffFramesLeft( 0 )
+    , m_cutoffAppliedLog2( -1.0 )
 {GUCEF_TRACE;
 
     m_sourceRaw = m_source.GetPointerAlways();
@@ -229,6 +270,26 @@ CAudioVoice::CAudioVoice( const TAudioSourcePtr& source, UInt32 maxEffects, UInt
     , m_prepared( false )
     , m_sourceEnded( false )
     , m_resamplerRatio( 0.0 )
+    , m_emitter()
+    , m_emitterRaw( GUCEF_NULL )
+    , m_spatializer()
+    , m_spatializerRaw( GUCEF_NULL )
+    , m_emitterState()
+    , m_spatialFrame()
+    , m_spatialBuffer()
+    , m_spatialKnown( false )
+    , m_directGain( 1.0f )
+    , m_lastDirectGain( 1.0f )
+    , m_sendGain( 1.0f )
+    , m_lastSendGain( 1.0f )
+    , m_dopplerNow( 1.0f )
+    , m_dopplerPublished( 1.0f )
+    , m_lowPass()
+    , m_lowPassActive( false )
+    , m_cutoffLog2( 0.0 )
+    , m_cutoffTargetLog2( 0.0 )
+    , m_cutoffFramesLeft( 0 )
+    , m_cutoffAppliedLog2( -1.0 )
 {GUCEF_TRACE;
 
     m_sourceRaw = m_source.GetPointerAlways();
@@ -508,6 +569,68 @@ CAudioVoice::GetSendLevel( UInt32 index ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CAudioVoice::SetEmitter( const TAudioEmitterPtr& emitter )
+{GUCEF_TRACE;
+
+    if ( m_prepared || AUDIOVOICESTATE_IDLE != m_state.Load( MT::MEMORDER_ACQUIRE ) )
+        return false;
+    m_emitter = emitter;
+    m_emitterRaw = m_emitter.GetPointerAlways();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const TAudioEmitterPtr&
+CAudioVoice::GetEmitter( void ) const
+{GUCEF_TRACE;
+
+    return m_emitter;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioVoice::IsSpatial( void ) const
+{GUCEF_TRACE;
+
+    return !m_emitter.IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioVoice::SetSpatializer( const TAudioSpatializerPtr& spatializer )
+{GUCEF_TRACE;
+
+    if ( m_prepared || AUDIOVOICESTATE_IDLE != m_state.Load( MT::MEMORDER_ACQUIRE ) )
+        return false;
+    m_spatializer = spatializer;
+    m_spatializerRaw = m_spatializer.GetPointerAlways();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioSpatializerPtr
+CAudioVoice::GetSpatializer( void ) const
+{GUCEF_TRACE;
+
+    return m_spatializer;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Float32
+CAudioVoice::GetDopplerRatio( void ) const
+{GUCEF_TRACE;
+
+    return m_dopplerPublished.Load();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CAudioVoice::SetLoopCount( UInt32 plays )
 {GUCEF_TRACE;
@@ -601,10 +724,10 @@ CAudioVoice::Prepare( const CAudioFormat& mixFormat, UInt32 maxBlockFrames )
     if ( !m_sourceFormat.IsValid() )
         return false;
 
-    // The working channels are those of the mix. A spatial voice (steps 13 to 15 of the design) will work in mono up to its
-    // spatializer: the matrix, the converted and block buffers, the resampler and the effects follow m_workFormat
+    // The working channels are those of the mix. A spatial voice works in mono up to its spatializer: the matrix, the
+    // converted and block buffers, the resampler and the effects follow m_workFormat
     m_mixFormat = mixFormat;
-    m_workFormat = mixFormat;
+    m_workFormat = m_emitter.IsNULL() ? mixFormat : CAudioFormat( mixFormat.GetSampleRate(), 1, SAMPLETYPE_FLOAT32 );
     if ( !CAudioConverter::BuildChannelMatrix( m_sourceFormat, m_workFormat, m_matrix ) )
         return false;
 
@@ -634,9 +757,49 @@ CAudioVoice::Prepare( const CAudioFormat& mixFormat, UInt32 maxBlockFrames )
     m_pitchCoefficient = 1.0 - exp( -(Float64) PitchGlideSubBlockFrames / ( PitchGlideInSeconds * (Float64) mixFormat.GetSampleRate() ) );
     m_pitchFramesLeft = 0;
 
-    if ( !PrepareEffects( maxBlockFrames ) || !CheckSends( maxBlockFrames ) )
+    if ( !PrepareEffects( maxBlockFrames ) || !CheckSends( maxBlockFrames ) || !PrepareSpatial( maxBlockFrames ) )
         return false;
     m_prepared = true;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioVoice::PrepareSpatial( UInt32 maxBlockFrames )
+{GUCEF_TRACE;
+
+    m_spatialKnown = false;
+    m_dopplerNow = 1.0f;
+    m_dopplerPublished.Store( 1.0f );
+    m_directGain = m_lastDirectGain = 1.0f;
+    m_sendGain = m_lastSendGain = 1.0f;
+    m_lowPassActive = false;
+    m_cutoffFramesLeft = 0;
+    m_cutoffAppliedLog2 = -1.0;
+    if ( m_emitter.IsNULL() )
+    {
+        m_spatialBuffer.clear();
+        return true;
+    }
+
+    // the spatializer: the one given, else the panning spatializer of the registry (the engine gives the one of its settings)
+    if ( m_spatializer.IsNULL() )
+    {
+        m_spatializer = CAudioGlobal::Instance()->GetAudioSpatializerRegistry().CreateSpatializer( CPanningSpatializer::TypeName );
+        m_spatializerRaw = m_spatializer.GetPointerAlways();
+        if ( GUCEF_NULL == m_spatializerRaw )
+            return false;
+    }
+    if ( !m_spatializerRaw->Prepare( m_mixFormat, maxBlockFrames ) )
+        return false;
+
+    m_spatialBuffer.assign( m_hasSends ? (size_t) maxBlockFrames * m_mixFormat.GetChannelCount() : 0, 0.0f );
+    if ( !m_lowPass.Prepare( 1 ) )
+        return false;
+
+    // the state as the owner side knows it, until the audio thread takes its first snapshot (the exchange has one reader: the audio thread)
+    m_emitter->GetState( m_emitterState );
     return true;
 }
 
@@ -736,8 +899,8 @@ CAudioVoice::Reprepare( const CAudioFormat& mixFormat, UInt32 maxBlockFrames )
     if ( !mixFormat.IsValid() || 0 == maxBlockFrames )
         return false;
 
-    // Source audio that was read and converted but not yet mixed goes along to the new speakers
-    const CAudioFormat newWorkFormat( mixFormat );
+    // Source audio that was read and converted but not yet mixed goes along to the new speakers (a spatial voice stays mono)
+    const CAudioFormat newWorkFormat( m_emitter.IsNULL() ? mixFormat : CAudioFormat( mixFormat.GetSampleRate(), 1, SAMPLETYPE_FLOAT32 ) );
     const UInt32 oldChannels = m_workFormat.GetChannelCount();
     const UInt32 newChannels = newWorkFormat.GetChannelCount();
     GUCEF::vector< Float32 > pending;
@@ -774,8 +937,9 @@ CAudioVoice::Reprepare( const CAudioFormat& mixFormat, UInt32 maxBlockFrames )
     if ( !pending.empty() )
         memcpy( &m_convertedBuffer[ 0 ], &pending[ 0 ], pending.size() * sizeof( Float32 ) );
 
-    // the effects work in the new format from the start again; a tail that was ringing out is counted afresh
-    if ( !PrepareEffects( maxBlockFrames ) || !CheckSends( maxBlockFrames ) )
+    // the effects work in the new format from the start again; a tail that was ringing out is counted afresh. The
+    // spatializer is prepared for the new speakers, the spatial stage starts without a ramp
+    if ( !PrepareEffects( maxBlockFrames ) || !CheckSends( maxBlockFrames ) || !PrepareSpatial( maxBlockFrames ) )
     {
         m_prepared = false;
         return false;
@@ -845,7 +1009,8 @@ CAudioVoice::HandleSourceEnd( void )
 void
 CAudioVoice::ApplyResamplerRate( Float64 playbackRate )
 {
-    Float64 speed = playbackRate * m_pitchNow;
+    // the Doppler ratio of a spatial voice is the third factor; 1 for any other voice, which changes nothing
+    Float64 speed = playbackRate * m_pitchNow * (Float64) m_dopplerNow;
     if ( speed < (Float64) MinPlaybackRate )
         speed = (Float64) MinPlaybackRate;
     else if ( speed > (Float64) MaxPlaybackRate )
@@ -887,8 +1052,8 @@ CAudioVoice::GatherBlock( UInt32 frames )
     const bool sameChannels = ( sourceChannels == workChannels && m_sourceFormat.GetChannelLayout() == m_workFormat.GetChannelLayout() );
 
     // Speed: how many source frames pass for each frame that is mixed, the playback rate times the pitch. The playback rate
-    // applies at once, the pitch glides to where it was asked to be, in steps of a sub-block. (The Doppler ratio of a spatial
-    // voice is the third factor, steps 13 to 15 of the design: it glides the same way)
+    // applies at once, the pitch glides to where it was asked to be, in steps of a sub-block. The Doppler ratio of a spatial
+    // voice is the third factor: it is smoothed from block to block (UpdateSpatial()) and constant within a block
     const Float64 rate = (Float64) m_playbackRate.Load();
     const Float32 pitch = m_pitch.Load();
     if ( pitch != m_pitchTarget )
@@ -900,7 +1065,7 @@ CAudioVoice::GatherBlock( UInt32 frames )
 
     // Once the resampler is in use it stays in use: it holds source audio that was read ahead and a position between two
     // source frames, so going back to reading the source directly would skip audio
-    if ( !m_resampling && ( gliding || rate * m_pitchNow != 1.0 || m_sourceFormat.GetSampleRate() != m_mixFormat.GetSampleRate() ) )
+    if ( !m_resampling && ( gliding || rate * m_pitchNow * (Float64) m_dopplerNow != 1.0 || m_sourceFormat.GetSampleRate() != m_mixFormat.GetSampleRate() ) )
         m_resampling = true;
     if ( m_resampling )
         ApplyResamplerRate( rate );
@@ -1004,8 +1169,10 @@ CAudioVoice::IsRingOutOver( UInt32 produced, UInt32 frames )
 /*-------------------------------------------------------------------------*/
 
 void
-CAudioVoice::DeliverSends( const Float32* block, UInt32 frames, UInt32 channels )
+CAudioVoice::DeliverSends( const Float32* block, UInt32 frames, UInt32 channels, Float32 scaleFrom, Float32 scaleTo )
 {
+    const bool scaled = ( 1.0f != scaleFrom || 1.0f != scaleTo );
+    const Float32 scaleStep = ( scaleTo - scaleFrom ) / (Float32) frames;
     for ( UInt32 s=0; s<m_maxSends; ++s )
     {
         SSend& send = m_sends[ s ];
@@ -1018,7 +1185,20 @@ CAudioVoice::DeliverSends( const Float32* block, UInt32 frames, UInt32 channels 
         send.levelKnown = true;
 
         Float32* into = &send.bus->m_buffer[ 0 ];
-        if ( from == target )
+        if ( scaled )
+        {
+            // a spatial voice: the level times the send gain of its emitter, both ramped over the block
+            if ( 0.0f == from && 0.0f == target )
+                continue;
+            const Float32 step = ( target - from ) / (Float32) frames;
+            for ( UInt32 f=0; f<frames; ++f )
+            {
+                const Float32 g = ( from + step * (Float32) ( f + 1 ) ) * ( scaleFrom + scaleStep * (Float32) ( f + 1 ) );
+                for ( UInt32 c=0; c<channels; ++c )
+                    into[ (size_t) f * channels + c ] += block[ (size_t) f * channels + c ] * g;
+            }
+        }
+        else if ( from == target )
         {
             if ( 0.0f == target )
                 continue;
@@ -1115,7 +1295,7 @@ CAudioVoice::RenderOutput( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLa
         const size_t samples = (size_t) frames * mixChannels;
         for ( size_t i=0; i<samples; ++i )
             busBuffer[ i ] += block[ i ];
-        DeliverSends( block, frames, mixChannels );
+        DeliverSends( block, frames, mixChannels, 1.0f, 1.0f );
     }
     for ( UInt32 c=0; c<limited; ++c )
         m_lastGains[ c ] = gains[ c ];
@@ -1124,7 +1304,186 @@ CAudioVoice::RenderOutput( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLa
 /*-------------------------------------------------------------------------*/
 
 void
-CAudioVoice::RenderBlock( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw )
+CAudioVoice::UpdateSpatial( const SListenerState& listener, const SSpatialWorldState& world, UInt32 frames ) GUCEF_AUDIO_REALTIME_CONTEXT
+{
+    // 1. the newest emitter snapshot (the listener and the world are read once per block by the mixer's owner)
+    m_emitterRaw->ReadState( m_emitterState );
+    const SEmitterState& emitter = m_emitterState;
+    const bool flat = ( AUDIOSPATIAL_2D == emitter.mode );
+
+    // 2. and 3. where the sound is heard from. A listener relative emitter is in the frame of the listener, which is then at the origin and does not move
+    CAudioSpatialMath::SFix fix;
+    if ( flat )
+        CAudioSpatialMath::Locate2D( listener.position, listener.panWidth2D, emitter.position, emitter.listenerRelative, fix );
+    else
+        CAudioSpatialMath::Locate( listener.position, listener.forward, listener.up, emitter.position, emitter.listenerRelative, fix );
+
+    CAudioSpatialMath::TPoint3 listenerPosition = emitter.listenerRelative ? CAudioSpatialMath::TPoint3() : listener.position;
+    CAudioSpatialMath::TVector3 listenerVelocity = emitter.listenerRelative ? CAudioSpatialMath::TVector3() : listener.velocity;
+    CAudioSpatialMath::TPoint3 sourcePosition = emitter.position;
+    CAudioSpatialMath::TVector3 sourceVelocity = emitter.velocity;
+    if ( flat )
+    {
+        // the 2D mode lives in the XY plane: the cone and Doppler see no depth
+        listenerPosition.z = 0.0f;
+        listenerVelocity.z = 0.0f;
+        sourcePosition.z = 0.0f;
+        sourceVelocity.z = 0.0f;
+    }
+
+    // 4. the gains: distance, cone, occlusion. Obstruction and the cone are on the direct path only, the sends get the
+    //    distance gain (when they follow it) and the occlusion
+    const CAudioAttenuation::TEvaluator& attenuation = emitter.GetEffectiveAttenuation( world );
+    const Float32 distanceGain = attenuation.Evaluate( fix.distance );
+    CAudioSpatialMath::SConeResult cone;
+    CAudioSpatialMath::EvaluateCone( emitter.direction, listenerPosition - sourcePosition, emitter.coneInnerAngle, emitter.coneOuterAngle,
+                                     emitter.coneOuterGain, emitter.coneOuterCutoff, cone );
+    const Float32 directOcclusion = CAudioSpatialMath::GetDirectOcclusionAmount( emitter.occlusion, emitter.obstruction );
+    m_directGain = distanceGain * cone.gain * CAudioSpatialMath::GetOcclusionGain( directOcclusion, emitter.occlusionGainInDecibels );
+    m_sendGain = ( emitter.sendsFollowAttenuation ? distanceGain : 1.0f ) * CAudioSpatialMath::GetOcclusionGain( emitter.occlusion, emitter.occlusionGainInDecibels );
+
+    // 5. the low pass: the lowest of the distance, cone and occlusion cutoffs
+    Float32 cutoff = CAudioSpatialMath::GetOcclusionCutoff( directOcclusion, emitter.occlusionCutoff );
+    if ( cone.cutoff < cutoff )
+        cutoff = cone.cutoff;
+    if ( emitter.distanceCutoff > 0.0f )
+    {
+        const Float32 distanceCutoff = attenuation.EvaluateLogLerpCutoff( fix.distance, CAudioSpatialMath::NoCutoffInHz, emitter.distanceCutoff );
+        if ( distanceCutoff < cutoff )
+            cutoff = distanceCutoff;
+    }
+    // 20 kHz and above is no low pass; the logarithmic interpolations give 20 kHz with a rounding error, which counts as 20 kHz
+    if ( !( cutoff < CAudioSpatialMath::NoCutoffInHz * 0.9999f ) )
+        cutoff = CAudioSpatialMath::NoCutoffInHz;
+    m_cutoffTargetLog2 = Log2( (Float64) cutoff );
+
+    // 6. what the spatializer needs; the volume is added by the output stage
+    m_spatialFrame.azimuth = fix.azimuth;
+    m_spatialFrame.elevation = fix.elevation;
+    m_spatialFrame.distance = fix.distance;
+    m_spatialFrame.pan = fix.pan;
+    m_spatialFrame.spreadFactor = CAudioPanner::GetSpreadFactor( fix.distance, emitter.GetEffectiveSpreadRadius( world ) );
+    m_spatialFrame.rearGain = world.rearAttenuationGain;
+    m_spatialFrame.lfeGain = world.lfeSendGain;
+    m_spatialFrame.useCenterSpeaker = world.useCenterSpeaker;
+
+    // 7. the Doppler ratio, smoothed, the third factor of the speed of this block
+    const Float32 doppler = CAudioSpatialMath::GetDopplerRatio( listenerPosition, listenerVelocity, sourcePosition, sourceVelocity,
+                                                                world.speedOfSoundInUnits, world.dopplerFactor * emitter.dopplerFactor,
+                                                                world.dopplerMinRatio, world.dopplerMaxRatio );
+    if ( !m_spatialKnown )
+    {
+        // the first block starts where the sound is: no ramp, no glide
+        m_dopplerNow = doppler;
+        m_lastDirectGain = m_directGain;
+        m_lastSendGain = m_sendGain;
+        m_cutoffLog2 = m_cutoffTargetLog2;
+        m_spatialKnown = true;
+    }
+    else
+    {
+        m_dopplerNow = CAudioSpatialMath::SmoothDopplerRatio( m_dopplerNow, doppler, (Float32) frames / (Float32) m_mixFormat.GetSampleRate(),
+                                                              world.dopplerSmoothingInMs );
+    }
+    m_dopplerPublished.Store( m_dopplerNow );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioVoice::ApplySpatialLowPass( UInt32 frames ) GUCEF_AUDIO_REALTIME_CONTEXT
+{
+    const Float64 noCutoffLog2 = Log2( (Float64) CAudioSpatialMath::NoCutoffInHz );
+    if ( !m_lowPassActive )
+    {
+        if ( m_cutoffTargetLog2 >= noCutoffLog2 && m_cutoffLog2 >= noCutoffLog2 )
+        {
+            m_cutoffLog2 = m_cutoffTargetLog2;
+            return;                                 // nothing to filter: the low pass is left out
+        }
+        m_lowPassActive = true;
+        m_lowPass.Reset();
+        m_cutoffFramesLeft = 0;
+        m_cutoffAppliedLog2 = -1.0;
+    }
+
+    // the cutoff glides to its target in sub-blocks, as the pitch does; at rest the response is set once
+    const Float64 sampleRate = (Float64) m_mixFormat.GetSampleRate();
+    Float32* block = &m_blockBuffer[ 0 ];
+    UInt32 done = 0;
+    while ( done < frames )
+    {
+        if ( 0 == m_cutoffFramesLeft )
+        {
+            if ( m_cutoffLog2 != m_cutoffTargetLog2 )
+            {
+                m_cutoffLog2 += ( m_cutoffTargetLog2 - m_cutoffLog2 ) * m_pitchCoefficient;
+                if ( fabs( m_cutoffTargetLog2 - m_cutoffLog2 ) < CutoffArrivedLog2 )
+                    m_cutoffLog2 = m_cutoffTargetLog2;
+            }
+            if ( m_cutoffLog2 != m_cutoffAppliedLog2 )
+            {
+                m_lowPass.SetResponse( FILTERRESPONSE_LOWPASS, sampleRate, exp( m_cutoffLog2 * LogOf2 ), SpatialLowPassQ );
+                m_cutoffAppliedLog2 = m_cutoffLog2;
+            }
+            m_cutoffFramesLeft = ( m_cutoffLog2 == m_cutoffTargetLog2 ) ? frames - done : PitchGlideSubBlockFrames;
+        }
+        const UInt32 piece = ( frames - done < m_cutoffFramesLeft ) ? frames - done : m_cutoffFramesLeft;
+        m_lowPass.ProcessChannel( 0, block + done, block + done, piece );
+        done += piece;
+        m_cutoffFramesLeft -= piece;
+    }
+    if ( m_cutoffLog2 == m_cutoffTargetLog2 )
+        m_cutoffFramesLeft = 0;                     // a block at rest does not decide the sub-blocks of the next
+    m_lowPass.FlushDenormals();
+
+    // back at the top of the range the low pass is left out again
+    if ( m_cutoffTargetLog2 >= noCutoffLog2 && m_cutoffLog2 >= noCutoffLog2 )
+        m_lowPassActive = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioVoice::RenderSpatialOutput( Float32* busBuffer, UInt32 frames ) GUCEF_AUDIO_REALTIME_CONTEXT
+{
+    const Float32 volume = m_volume.Load();
+    const Float32* mono = &m_blockBuffer[ 0 ];
+    if ( !m_hasSends )
+    {
+        // the spatializer ramps volume times the direct gain together with its speaker gains, straight into the bus
+        m_spatialFrame.gain = volume * m_directGain;
+        m_spatializerRaw->Render( mono, frames, m_spatialFrame, busBuffer );
+    }
+    else
+    {
+        // the speaker signal at the voice volume, then the direct gain for the bus and the send gain for the sends, each ramped
+        const UInt32 channels = m_mixFormat.GetChannelCount();
+        const size_t samples = (size_t) frames * channels;
+        Float32* speakers = &m_spatialBuffer[ 0 ];
+        memset( speakers, 0, samples * sizeof( Float32 ) );
+        m_spatialFrame.gain = volume;
+        m_spatializerRaw->Render( mono, frames, m_spatialFrame, speakers );
+
+        const Float32 from = m_lastDirectGain;
+        const Float32 step = ( m_directGain - from ) / (Float32) frames;
+        for ( UInt32 f=0; f<frames; ++f )
+        {
+            const Float32 g = from + step * (Float32) ( f + 1 );
+            for ( UInt32 c=0; c<channels; ++c )
+                busBuffer[ (size_t) f * channels + c ] += speakers[ (size_t) f * channels + c ] * g;
+        }
+        DeliverSends( speakers, frames, channels, m_lastSendGain, m_sendGain );
+    }
+    m_lastDirectGain = m_directGain;
+    m_lastSendGain = m_sendGain;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioVoice::RenderBlock( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw, const SListenerState& listener,
+                          const SSpatialWorldState& world ) GUCEF_AUDIO_REALTIME_CONTEXT
 {
     if ( !m_prepared || frames > m_maxBlock || 0 == frames )
     {
@@ -1147,6 +1506,11 @@ CAudioVoice::RenderBlock( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw
     if ( AUDIOVOICESTATE_PAUSED == m_state.Load( MT::MEMORDER_RELAXED ) )
         m_state.Store( AUDIOVOICESTATE_PLAYING, MT::MEMORDER_RELEASE );
 
+    // the place of a spatial voice for this block: its gains, cutoff and the Doppler factor of the speed
+    const bool spatial = ( GUCEF_NULL != m_spatializerRaw && GUCEF_NULL != m_emitterRaw );
+    if ( spatial )
+        UpdateSpatial( listener, world, frames );
+
     // 1. and 2. the source, in the working channels at the mix rate (silence once it is over)
     const UInt32 workChannels = m_workFormat.GetChannelCount();
     const UInt32 produced = GatherBlock( frames );
@@ -1159,9 +1523,15 @@ CAudioVoice::RenderBlock( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw
         m_effects.Process( &m_blockBuffer[ 0 ], frames );
     const bool over = m_sourceEnded && ( !m_hasEffects || IsRingOutOver( produced, frames ) );
 
-    // 4. and 5. the output stage, into the bus and the sends. For a voice with an emitter the spatial stage (steps 13 to 15
-    //    of the design) takes the place of RenderOutput() here: mono working signal in, the speakers of the mix out
-    RenderOutput( busBuffer, frames, panLaw );
+    // 4. and 5. the output stage, into the bus and the sends. For a voice with an emitter the spatial stage takes the place
+    //    of RenderOutput(): the low pass on the mono working signal, then the spatializer to the speakers of the mix
+    if ( spatial )
+    {
+        ApplySpatialLowPass( frames );
+        RenderSpatialOutput( busBuffer, frames );
+    }
+    else
+        RenderOutput( busBuffer, frames, panLaw );
 
     if ( over )
         End( AUDIOVOICEEND_FINISHED );

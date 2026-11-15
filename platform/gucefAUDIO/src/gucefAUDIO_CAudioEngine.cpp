@@ -69,6 +69,11 @@
 #define GUCEF_AUDIO_CAUDIOEFFECTREGISTRY_H
 #endif /* GUCEF_AUDIO_CAUDIOEFFECTREGISTRY_H ? */
 
+#ifndef GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H
+#include "gucefAUDIO_CAudioSpatializerRegistry.h"
+#define GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H
+#endif /* GUCEF_AUDIO_CAUDIOSPATIALIZERREGISTRY_H ? */
+
 #ifndef GUCEF_AUDIO_CAUDIOBUSROUTING_H
 #include "gucefAUDIO_CAudioBusRouting.h"
 #define GUCEF_AUDIO_CAUDIOBUSROUTING_H
@@ -491,6 +496,7 @@ CAudioEngine::Initialize( const CAudioEngineParams& params )
 
     m_params = params;
     m_params.GetDeviceParams().SetDirection( AUDIODIRECTION_PLAYBACK );
+    PublishSpatialWorld();
 
     // Everything the audio thread will touch is made before the device can call it
     m_commands = GUCEF_NEW MT::CTSpscQueue< SCommand >( params.GetCommandQueueSize() );
@@ -710,6 +716,75 @@ CAudioEngine::GetParams( void ) const
 
     MT::CScopeMutex lock( m_lock );
     return m_params;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::SetSpatialParams( const CAudioSpatialParams& params )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_params.GetSpatialParams() = params;
+    PublishSpatialWorld();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioSpatialParams
+CAudioEngine::GetSpatialParams( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_params.GetSpatialParams();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAudioEngine::ReadSpatialWorldState( SSpatialWorldState& state ) GUCEF_AUDIO_REALTIME_CONTEXT
+{
+    // no trace macro: this runs where the audio is mixed
+    return m_spatialWorld.Read( state );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioListener&
+CAudioEngine::GetListener( void )
+{GUCEF_TRACE;
+
+    return m_listener;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CAudioListener&
+CAudioEngine::GetListener( void ) const
+{GUCEF_TRACE;
+
+    return m_listener;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TAudioEmitterPtr
+CAudioEngine::CreateEmitter( void )
+{GUCEF_TRACE;
+
+    return TAudioEmitterPtr( GUCEF_NEW CAudioEmitter() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAudioEngine::PublishSpatialWorld( void )
+{GUCEF_TRACE;
+
+    // the caller holds the engine lock: the one writer of the exchange
+    SSpatialWorldState state;
+    m_params.GetSpatialParams().GetWorldState( state );
+    m_spatialWorld.Write( state );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -948,7 +1023,22 @@ CAudioEngine::Start( const TAudioVoicePtr& voice )
     CAudioVoice* raw = RawVoice( voice );
     if ( GUCEF_NULL == raw->GetBus() )
         raw->SetBus( m_mixer->GetMasterBus() );
-    if ( !CheckVoiceRouting( raw ) || !m_mixer->PrepareVoice( raw ) )
+    if ( !CheckVoiceRouting( raw ) )
+        return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+
+    // a spatial voice gets the spatializer of the engine's settings, made here on the owner side
+    if ( raw->IsSpatial() && raw->GetSpatializer().IsNULL() )
+    {
+        const CString& name = m_params.GetSpatialParams().GetSpatializerName();
+        TAudioSpatializerPtr spatializer = CAudioGlobal::Instance()->GetAudioSpatializerRegistry().CreateSpatializer( name );
+        if ( spatializer.IsNULL() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "AudioEngine: A spatial voice cannot be started: there is no spatializer of the type \"" << name << "\"" );
+            return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
+        }
+        raw->SetSpatializer( spatializer );
+    }
+    if ( !m_mixer->PrepareVoice( raw ) )
         return MakeFailedFuture( CORE::TTaskStatus::TASKSTATUS_SETUP_FAILED );
 
     SCommand command;
@@ -3518,6 +3608,11 @@ CAudioEngine::OnRenderAudio( void* buffer, UInt32 frameCount ) GUCEF_AUDIO_REALT
     CORE::CDenormalFlushScope denormalFlushScope;
 
     ProcessCommands();
+
+    // the newest listener and world snapshots, the same for every block of this render
+    m_listener.ReadState( m_renderListener );
+    m_spatialWorld.Read( m_renderWorld );
+    m_mixer->SetSpatialScene( m_renderListener, m_renderWorld );
 
     const UInt32 channels = m_deviceFormat.GetChannelCount();
     const UInt32 frameBytes = m_deviceFormat.GetBytesPerFrame();

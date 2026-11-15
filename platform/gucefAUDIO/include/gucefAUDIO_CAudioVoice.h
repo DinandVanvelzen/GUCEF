@@ -55,6 +55,26 @@
 #define GUCEF_AUDIO_CAUDIOEFFECTCHAIN_H
 #endif /* GUCEF_AUDIO_CAUDIOEFFECTCHAIN_H ? */
 
+#ifndef GUCEF_AUDIO_CSVFFILTER_H
+#include "gucefAUDIO_CSvfFilter.h"
+#define GUCEF_AUDIO_CSVFFILTER_H
+#endif /* GUCEF_AUDIO_CSVFFILTER_H ? */
+
+#ifndef GUCEF_AUDIO_CAUDIOLISTENER_H
+#include "gucefAUDIO_CAudioListener.h"
+#define GUCEF_AUDIO_CAUDIOLISTENER_H
+#endif /* GUCEF_AUDIO_CAUDIOLISTENER_H ? */
+
+#ifndef GUCEF_AUDIO_CAUDIOEMITTER_H
+#include "gucefAUDIO_CAudioEmitter.h"
+#define GUCEF_AUDIO_CAUDIOEMITTER_H
+#endif /* GUCEF_AUDIO_CAUDIOEMITTER_H ? */
+
+#ifndef GUCEF_AUDIO_IAUDIOSPATIALIZER_H
+#include "gucefAUDIO_IAudioSpatializer.h"
+#define GUCEF_AUDIO_IAUDIOSPATIALIZER_H
+#endif /* GUCEF_AUDIO_IAUDIOSPATIALIZER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -118,6 +138,15 @@ typedef enum EAudioPanLaw TAudioPanLaw;
  *   5. it is added to the bus of the voice, and to the aux buses of its sends at their levels (SetSend()), after the
  *      volume and pan of step 4
  *  A voice without effects and sends costs what it did before they existed, and sounds bit for bit the same.
+ *
+ *  A spatial voice (one with an emitter, SetEmitter(), design 5.5) works in mono up to its output stage: the source is
+ *  mixed down to one channel in step 1, and the Doppler ratio is a third factor of the speed in step 2 (smoothed with the
+ *  time constant of the world settings). Its output stage is the spatial stage: the gains of distance, cone and occlusion,
+ *  one low pass for the lowest cutoff of distance, cone and occlusion (gliding, left out at 20 kHz and above), and the
+ *  spatializer of the engine (CAudioSpatialParams::GetSpatializerName(), the panning spatializer by default), which takes
+ *  the mono signal with the volume to the speakers of the mix. SetPan() is not used. The sends get what the spatializer
+ *  made at their level, times the distance gain (unless the emitter says the sends do not follow the attenuation) and the
+ *  occlusion gain (obstruction and cone affect the direct path only).
  *
  *  Effects and sends are set up before the voice starts, as its bus is; the engine prepares the effects for the mix
  *  format when the voice is started (CAudioEngine::Start()) and lets go of them on the owner side once the voice has ended
@@ -217,6 +246,27 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioVoice
     void SetSendLevel( UInt32 index, Float32 level );
     Float32 GetSendLevel( UInt32 index ) const;
 
+    /**
+     *  Makes the voice spatial: it is heard from where the emitter is, as the listener of the engine hears it (design 5).
+     *  Owner thread, before the voice starts (like SetBus()); null makes it an ordinary voice again. An emitter may be
+     *  shared by any number of voices. The voice keeps its reference until it is destroyed, so the emitter outlives the
+     *  audio thread's use of it. False when the voice was started
+     */
+    bool SetEmitter( const TAudioEmitterPtr& emitter );
+    const TAudioEmitterPtr& GetEmitter( void ) const;
+    bool IsSpatial( void ) const;
+
+    /**
+     *  The spatializer of a spatial voice, owner thread, before the voice starts. Not needed normally: the engine makes the
+     *  one named in its spatial parameters when the voice is started, and a voice that is prepared without one (a mixer on
+     *  its own) makes the panning spatializer. A spatializer belongs to one voice. False when the voice was started
+     */
+    bool SetSpatializer( const TAudioSpatializerPtr& spatializer );
+    TAudioSpatializerPtr GetSpatializer( void ) const;
+
+    /** The Doppler ratio the voice played its last block at, 1 for a voice that is not spatial. Any thread, for display and tests */
+    Float32 GetDopplerRatio( void ) const;
+
     /** How many times the sound plays: 1 once (default), 3 three times in a row, 0 until stopped. Needs a source that can seek */
     void SetLoopCount( UInt32 plays );
     UInt32 GetLoopCount( void ) const;
@@ -283,8 +333,27 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioVoice
      */
     void ReleaseEffects( void );
 
-    /** Mixes the next 'frames' frames of the voice into 'busBuffer' (adds), and into the buses of its sends. Audio thread only, never allocates */
-    void RenderBlock( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw );
+    /**
+     *  Mixes the next 'frames' frames of the voice into 'busBuffer' (adds), and into the buses of its sends. Audio thread
+     *  only, never allocates. 'listener' and 'world' are the spatial snapshots of this block, used by a spatial voice
+     */
+    void RenderBlock( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw, const SListenerState& listener,
+                      const SSpatialWorldState& world ) GUCEF_AUDIO_REALTIME_CONTEXT;
+
+    /** Owner thread, from Prepare(): the spatializer, the low pass and the starting state of a spatial voice. False when it cannot be made or prepared */
+    bool PrepareSpatial( UInt32 maxBlockFrames );
+
+    /**
+     *  Audio thread, once per block before the source is read: takes the emitter snapshot and works out where the sound
+     *  is heard from, the gains of the direct path and of the sends, the low pass cutoff and the Doppler ratio (design 5.5)
+     */
+    void UpdateSpatial( const SListenerState& listener, const SSpatialWorldState& world, UInt32 frames ) GUCEF_AUDIO_REALTIME_CONTEXT;
+
+    /** Audio thread: the low pass of the spatial stage on the mono block, its cutoff gliding in sub-blocks */
+    void ApplySpatialLowPass( UInt32 frames ) GUCEF_AUDIO_REALTIME_CONTEXT;
+
+    /** Audio thread: the output stage of a spatial voice, the spatializer into the bus and the sends */
+    void RenderSpatialOutput( Float32* busBuffer, UInt32 frames ) GUCEF_AUDIO_REALTIME_CONTEXT;
 
     void End( TAudioVoiceEndReason reason );
 
@@ -322,8 +391,12 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioVoice
      */
     void RenderOutput( Float32* busBuffer, UInt32 frames, TAudioPanLaw panLaw );
 
-    /** Audio thread: adds 'block' (mix layout) to the buses of the sends at their levels, a change ramped over the block */
-    void DeliverSends( const Float32* block, UInt32 frames, UInt32 channels );
+    /**
+     *  Audio thread: adds 'block' (mix layout) to the buses of the sends at their levels, a change ramped over the block. The
+     *  level is multiplied by a scale that is ramped from 'scaleFrom' to 'scaleTo' over the block (the send gain of a spatial
+     *  voice; 1 and 1 for any other voice, which leaves the sends as they were without it)
+     */
+    void DeliverSends( const Float32* block, UInt32 frames, UInt32 channels, Float32 scaleFrom, Float32 scaleTo );
 
     private:
 
@@ -382,6 +455,28 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioVoice
     bool m_prepared;
     bool m_sourceEnded;
     Float64 m_resamplerRatio;
+
+    // spatial: set up on the owner side before the voice starts, the rest audio thread only after Prepare()
+    TAudioEmitterPtr m_emitter;                     /**< the reference that keeps the emitter alive, owner side */
+    CAudioEmitter* m_emitterRaw;                    /**< the emitter for the audio thread */
+    TAudioSpatializerPtr m_spatializer;             /**< the reference that keeps the spatializer alive, owner side */
+    IAudioSpatializer* m_spatializerRaw;            /**< the spatializer for the audio thread */
+    SEmitterState m_emitterState;                   /**< the emitter snapshot of this block */
+    SSpatialFrame m_spatialFrame;                   /**< where the sound is heard from in this block, for the spatializer */
+    GUCEF::vector< Float32 > m_spatialBuffer;       /**< the speaker signal of a spatial voice with sends, in the mix layout */
+    bool m_spatialKnown;                            /**< a block was placed: there are previous gains, cutoff and Doppler ratio to move on from */
+    Float32 m_directGain;                           /**< distance x cone x occlusion of the direct path, this block */
+    Float32 m_lastDirectGain;
+    Float32 m_sendGain;                             /**< distance (when the sends follow it) x occlusion, this block */
+    Float32 m_lastSendGain;
+    Float32 m_dopplerNow;                           /**< the smoothed Doppler ratio, the third factor of the speed */
+    CAtomicFloat m_dopplerPublished;                /**< m_dopplerNow for GetDopplerRatio() */
+    CSvfFilter m_lowPass;                           /**< mono low pass of the spatial stage */
+    bool m_lowPassActive;                           /**< false while the cutoff is at 20 kHz or above: the low pass is left out */
+    Float64 m_cutoffLog2;                           /**< the cutoff now, log2 of Hz */
+    Float64 m_cutoffTargetLog2;                     /**< the cutoff of this block, log2 of Hz */
+    UInt32 m_cutoffFramesLeft;                      /**< frames left in the sub-block of the cutoff glide */
+    Float64 m_cutoffAppliedLog2;                    /**< the cutoff the filter response was last set to, log2 of Hz, below 0 for none */
 };
 
 typedef CAudioVoice::TAudioVoicePtr TAudioVoicePtr;

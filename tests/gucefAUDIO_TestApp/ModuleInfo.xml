@@ -5,11 +5,15 @@
             <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
             <Dependency Name="gucefAUDIO" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMATH" />
+            <Dependency Name="gucefGEOMETRY" />
             <Dependency Name="gucefAUDIO" />
         </Linker>
         <Preprocessor>

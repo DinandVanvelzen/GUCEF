@@ -35,8 +35,8 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
-links( { "gucefAUDIO", "gucefCORE", "gucefMT" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGEOMETRY", "gucefMATH", "gucefMT" } )
+links( { "gucefAUDIO", "gucefCORE", "gucefGEOMETRY", "gucefMATH", "gucefMT" } )
 
 
 configuration( {} )
@@ -82,6 +82,7 @@ files( {
   "include/TestAudioEngine.h",
   "include/TestAudioEngineReopen.h",
   "include/TestAudioFormat.h",
+  "include/TestAudioGeoSpace.h",
   "include/TestAudioHalfDuplex.h",
   "include/TestAudioIntercomHardware.h",
   "include/TestAudioIntercomScenario.h",
@@ -97,6 +98,8 @@ files( {
   "include/TestAudioSettings.h",
   "include/TestAudioSimulatedVoiceLink.h",
   "include/TestAudioSincResampler.h",
+  "include/TestAudioSpatial.h",
+  "include/TestAudioSpatialVoice.h",
   "include/TestAudioStream.h",
   "include/TestAudioStreaming.h",
   "include/TestAudioTestEffect.h",
@@ -114,7 +117,7 @@ files( {
   "include/TestAudioVoiceSignals.h",
   "include/TestAudioVoiceStreamSupport.h",
   "include/TestAudioWebAudio.h"
- } )
+} )
 
 
 
@@ -145,6 +148,7 @@ files( {
   "src/TestAudioEngine.cpp",
   "src/TestAudioEngineReopen.cpp",
   "src/TestAudioFormat.cpp",
+  "src/TestAudioGeoSpace.cpp",
   "src/TestAudioHalfDuplex.cpp",
   "src/TestAudioIntercomHardware.cpp",
   "src/TestAudioMixer.cpp",
@@ -156,6 +160,8 @@ files( {
   "src/TestAudioRouting.cpp",
   "src/TestAudioSettings.cpp",
   "src/TestAudioSincResampler.cpp",
+  "src/TestAudioSpatial.cpp",
+  "src/TestAudioSpatialVoice.cpp",
   "src/TestAudioStream.cpp",
   "src/TestAudioStreaming.cpp",
   "src/TestAudioTestSignals.cpp",
@@ -170,11 +176,11 @@ files( {
   "src/TestAudioVoiceSender.cpp",
   "src/TestAudioWebAudio.cpp",
   "src/gucefAUDIO_TestApp.cpp"
- } )
+} )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGEOMETRY/include", "../../platform/gucefMATH/include", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

@@ -10,6 +10,7 @@
 #
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefAUDIO ${CMAKE_BINARY_DIR}/gucefAUDIO )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGEOMETRY ${CMAKE_BINARY_DIR}/gucefGEOMETRY )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMATH ${CMAKE_BINARY_DIR}/gucefMATH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiocodecpluginAU ${CMAKE_BINARY_DIR}/audiocodecpluginAU )
