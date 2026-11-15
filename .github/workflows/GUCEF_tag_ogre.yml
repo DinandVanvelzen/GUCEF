@@ -1,0 +1,165 @@
+name: target_GUCEF_tag_ogre
+
+on:
+  workflow_dispatch:
+    inputs:
+      archiveBuildArtifacts:
+        description: 'Archive Build Artifacts?'
+        required: false
+        default: 'false'
+      targetPlatform:
+        description: 'Target platform to build?'
+        required: false
+        default: 'all'
+
+jobs:
+
+  GUCEF_tag_ogre-all:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_ogre
+      TARGET_PLATFORM: all
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_tag_ogre
+      PRODUCT_NAME: GUCEF_tag_ogre
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_ogre for platform all
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-all/packages/*GUCEF_tag_ogre*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-all/packages/*GUCEF_tag_ogre*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-all/packages/*GUCEF_tag_ogre*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-all/packages/*GUCEF_tag_ogre*.tar.xz
+  GUCEF_tag_ogre-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_ogre
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_tag_ogre
+      PRODUCT_NAME: GUCEF_tag_ogre
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_ogre for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux32/packages/*GUCEF_tag_ogre*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux32/packages/*GUCEF_tag_ogre*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux32/packages/*GUCEF_tag_ogre*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux32/packages/*GUCEF_tag_ogre*.tar.xz
+  GUCEF_tag_ogre-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_ogre
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_tag_ogre
+      PRODUCT_NAME: GUCEF_tag_ogre
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_ogre for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux64/packages/*GUCEF_tag_ogre*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux64/packages/*GUCEF_tag_ogre*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux64/packages/*GUCEF_tag_ogre*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-linux64/packages/*GUCEF_tag_ogre*.tar.xz
+  GUCEF_tag_ogre-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_ogre
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_tag_ogre
+      PRODUCT_NAME: GUCEF_tag_ogre
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_ogre for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-win32/packages/*GUCEF_tag_ogre*.zip
+  GUCEF_tag_ogre-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_ogre
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_tag_ogre
+      PRODUCT_NAME: GUCEF_tag_ogre
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_ogre for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_tag_ogre-win64/packages/*GUCEF_tag_ogre*.zip
