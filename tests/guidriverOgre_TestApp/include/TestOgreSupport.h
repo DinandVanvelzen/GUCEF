@@ -70,7 +70,19 @@ ETestWindowMode GetTestWindowMode( void );
 /** Why there are no windows, for the skip notice */
 GUCEF::CORE::CString GetNoWindowReason( void );
 
-/** Loads the support library, the render system, the VFS archive and image codec plugins of Ogre and the window drivers */
+/**
+ *  The renderer the test windows ask for in their video settings: GUCEF_TEST_OGRE_RENDERER ("OpenGL", "Vulkan", ...),
+ *  "OpenGL" without it. The window suite runs on the renderer the Root takes for it (GetExpectedTestRenderer())
+ */
+GUCEF::CORE::CString GetTestRenderer( void );
+
+/** The renderer the Root draws with for the test windows: GetTestRenderer() when it is available, else the first available one */
+GUCEF::CORE::CString GetExpectedTestRenderer( void );
+
+/**
+ *  Loads the support library, the render systems (OpenGL 3+ and Vulkan with the glslang plugin, in that configured
+ *  order), the VFS archive and image codec plugins of Ogre and the window drivers
+ */
 bool SetUpOgreForTests( void );
 
 /** Unloads what SetUpOgreForTests() loaded, the Root goes with the support library */

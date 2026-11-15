@@ -142,7 +142,7 @@ AcquireSharedResources( void )
     const CORE::CString language = COgreGuiMaterial::GetShadingLanguage();
     if ( language.IsNULLOrEmpty() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreGuiMaterial: The render system has none of the shading languages of the GUI programs (GLSL, GLSL ES, HLSL)" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreGuiMaterial: The render system has none of the shading languages of the GUI programs (GLSL, GLSL ES, HLSL, glslang for Vulkan: load the plugin OgrePlugin_GLSLangProgramManager)" );
         return false;
     }
     try
@@ -230,6 +230,9 @@ COgreGuiMaterial::GetShadingLanguage( void )
         return "glsles";
     if ( programs->isLanguageSupported( "glsl" ) )
         return "glsl";
+    // Vulkan: GLSL compiled to SPIR-V by the glslang plugin of Ogre
+    if ( programs->isLanguageSupported( "glslang" ) )
+        return "glslang";
     return CORE::CString::Empty;
 }
 

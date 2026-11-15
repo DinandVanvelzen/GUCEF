@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <algorithm>
 
 #include <Ogre.h>
 #include <OgreCodec.h>
@@ -178,6 +179,55 @@ class CQuadOverlay : public GUIDRIVEROGRE::CIOgreWindowOverlay
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Draws a quad, then makes the vertex buffers of a second quad and a texture for it, then draws that: in the middle of
+ *  drawing, as a GUI that makes its geometry and its font textures while it draws does (RmlUi)
+ */
+class CMidFrameUploadOverlay : public GUIDRIVEROGRE::CIOgreWindowOverlay
+{
+    public:
+
+    CMidFrameUploadOverlay( void )
+        : m_material( GUIDRIVEROGRE::COgreGuiMaterial::BLENDMODE_PREMULTIPLIED ), m_first(), m_later(), m_texture(), m_frames( 0 ) {}
+
+    virtual ~CMidFrameUploadOverlay()
+    {
+        for ( UInt32 i=0; i<(UInt32)m_later.size(); ++i )
+            delete m_later[ i ];
+    }
+
+    virtual Int32 GetOverlayOrder( void ) const GUCEF_VIRTUAL_OVERRIDE { return 0; }
+
+    virtual void RenderOverlay( Ogre::RenderSystem& renderSystem, Ogre::Viewport& viewport, Ogre::SceneManager* sceneManager, bool isCapture ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        const Ogre::Matrix4 projection = GUIDRIVEROGRE::COgreGuiMaterial::MakeProjection( 0.0f, 0.0f, 1.0f, 1.0f,
+            (UInt32) viewport.getActualWidth(), (UInt32) viewport.getActualHeight(), viewport.getTarget()->requiresTextureFlipping() );
+        m_material.BeginDrawing( renderSystem, projection );
+        m_material.SetTexture( renderSystem, Ogre::TexturePtr() );
+        m_material.Render( renderSystem, m_first.GetOperation() );
+
+        // new geometry and a new texture of this frame, uploaded between the draws
+        CTestQuadBatch* later = new CTestQuadBatch();
+        later->AddQuad( 200.0f, 100.0f, 40.0f, 40.0f, 255, 255, 255, 255 );
+        later->Build();
+        m_later.push_back( later );
+        if ( !m_texture )
+            m_texture = MakeSolidTexture( "OgreTest/MidFrame", 4, 4, 255, 0, 255, 255 );
+
+        m_material.SetTexture( renderSystem, m_texture );
+        m_material.Render( renderSystem, later->GetOperation() );
+        ++m_frames;
+    }
+
+    GUIDRIVEROGRE::COgreGuiMaterial m_material;
+    CTestQuadBatch m_first;
+    GUCEF::vector< CTestQuadBatch* > m_later;
+    Ogre::TexturePtr m_texture;
+    UInt32 m_frames;
+};
+
+/*-------------------------------------------------------------------------*/
+
 /** The image codec of the test: "OGW1" and the four bytes of a colour become a 4 x 4 RGBA picture of that colour */
 class CTestTextureCodec : public IMAGE::CIImageCodec
 {
@@ -317,6 +367,62 @@ PerformOgreWindowTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Renderers: the backend offers the render systems of the configuration that are loaded and can draw here, by renderer name, in the configured order" )
+    try
+    {
+        PLUGINGLUE::OGRE::COgreRootSetup& rootSetup = PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup();
+        ASSERT_TRUE( "Vulkan" == PLUGINGLUE::OGRE::COgreRootSetup::GetRendererName( "Vulkan Rendering Subsystem" ) );
+        ASSERT_TRUE( "OpenGL" == PLUGINGLUE::OGRE::COgreRootSetup::GetRendererName( "OpenGL 3+ Rendering Subsystem" ) );
+        ASSERT_TRUE( "OpenGL ES" == PLUGINGLUE::OGRE::COgreRootSetup::GetRendererName( "OpenGL ES 2.x Rendering Subsystem" ) );
+        ASSERT_TRUE( "Direct3D 11" == PLUGINGLUE::OGRE::COgreRootSetup::GetRendererName( "Direct3D11 Rendering Subsystem" ) );
+        ASSERT_TRUE( "Some Rendering Subsystem" == PLUGINGLUE::OGRE::COgreRootSetup::GetRendererName( "Some Rendering Subsystem" ) );
+
+        CORE::CString::StringVector renderers;
+        backend->GetAvailableRenderers( renderers );
+        CORE::CString::StringVector fromRootSetup;
+        rootSetup.GetAvailableRenderers( fromRootSetup );
+        ASSERT_TRUE( renderers == fromRootSetup );
+        ASSERT_TRUE( !renderers.empty() && "OpenGL" == renderers.front() );
+
+        // Vulkan is offered when its render system is loaded and found a Vulkan device. With only the driver of a GPU
+        // that is not there (VK_DRIVER_FILES naming it) the render system cannot list devices and does not load; without a
+        // driver (VK_DRIVER_FILES naming none) it loads without a Vulkan instance and has no device option
+        Ogre::RenderSystem* vulkan = Ogre::Root::getSingleton().getRenderSystemByName( "Vulkan Rendering Subsystem" );
+        const bool vulkanOffered = renderers.end() != std::find( renderers.begin(), renderers.end(), CORE::CString( "Vulkan" ) );
+        ASSERT_TRUE( vulkanOffered == ( GUCEF_NULL != vulkan && PLUGINGLUE::OGRE::COgreRootSetup::IsRenderSystemUsable( *vulkan ) ) );
+        if ( GUCEF_NULL != vulkan )
+        {
+            const Ogre::ConfigOptionMap& options = vulkan->getConfigOptions();
+            Ogre::ConfigOptionMap::const_iterator device = options.find( "Device" );
+            const UInt32 devices = device == options.end() ? 0 : (UInt32) (*device).second.possibleValues.size();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "guidriverOgre_TestApp: the Vulkan render system found " << devices << " Vulkan devices"
+                << ( device == options.end() ? " (it has no Vulkan instance)" : "" ) );
+            ASSERT_TRUE( vulkanOffered == ( devices > 0 ) );
+        }
+
+        // the configured order, which can name renderers as well; render systems that are not loaded are left out
+        CORE::CString::StringVector configured = rootSetup.GetRenderSystems();
+        CORE::CString::StringVector byRendererName;
+        byRendererName.push_back( "vulkan" );
+        byRendererName.push_back( "No Such Rendering Subsystem" );
+        byRendererName.push_back( "OpenGL" );
+        rootSetup.SetRenderSystems( byRendererName );
+        CORE::CString::StringVector reordered;
+        backend->GetAvailableRenderers( reordered );
+        rootSetup.SetRenderSystems( configured );
+        ASSERT_TRUE( reordered.size() == renderers.size() );
+        ASSERT_TRUE( "OpenGL" == reordered.back() );
+        if ( vulkanOffered )
+            ASSERT_TRUE( "Vulkan" == reordered.front() );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "guidriverOgre_TestApp: renderers " << CORE::CString().Combine( renderers, ',' ) << ", the test windows ask for "
+            << GetTestRenderer() << " and get " << GetExpectedTestRenderer() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     const ETestWindowMode mode = GetTestWindowMode();
     const CORE::CString skipReason = GetNoWindowReason();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "guidriverOgre_TestApp: window mode " << (Int32) mode << ( TESTWINDOWMODE_NONE == mode ? GetNoWindowReason() : CORE::CString() ) );
@@ -348,7 +454,10 @@ PerformOgreWindowTests( void )
 
             ASSERT_TRUE( GUCEF_NULL != window->GetOgreRenderWindow() );
             ASSERT_TRUE( GUCEF_NULL != window->GetOgreRoot() && window->GetOgreRoot()->isInitialised() );
-            ASSERT_TRUE( "OpenGL 3+ Rendering Subsystem" == window->GetOgreRoot()->getRenderSystem()->getName() );
+            // the renderer of the video settings of the window when it is available, the first of the configuration otherwise
+            ASSERT_TRUE( !GetExpectedTestRenderer().IsNULLOrEmpty() );
+            ASSERT_TRUE( GetExpectedTestRenderer() == window->GetProperty( "RENDERER" ) );
+            ASSERT_TRUE( GetExpectedTestRenderer() == PLUGINGLUE::OGRE::COgreRootSetup::GetRendererName( window->GetOgreRoot()->getRenderSystem()->getName().c_str() ) );
             ASSERT_TRUE( 320 == window->GetWidth() && 240 == window->GetHeight() );
             ASSERT_TRUE( 320 == window->GetOgreRenderWindow()->getWidth() && 240 == window->GetOgreRenderWindow()->getHeight() );
             ASSERT_FALSE( window->GetOgreRenderWindow()->isAutoUpdated() );
@@ -524,6 +633,172 @@ PerformOgreWindowTests( void )
         textured.m_texture.reset();
 
         renderWindow->removeViewport( viewport->getZOrder() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "RTSS: materials without programs are drawn with generated shaders, unlit and lit, in depth order, and the scene managers are tracked" )
+    try
+    {
+        PLUGINGLUE::OGRE::COgreRootSetup& rootSetup = PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup();
+        ASSERT_TRUE( rootSetup.IsShaderGeneratorStarted() );
+        PLUGINGLUE::OGRE::COgreShaderGeneratorSceneTracker* tracker = rootSetup.GetShaderGeneratorSceneTracker();
+        PLUGINGLUE::OGRE::COgreShaderTechniqueResolver* resolver = rootSetup.GetShaderTechniqueResolver();
+        ASSERT_TRUE( GUCEF_NULL != tracker && GUCEF_NULL != resolver );
+
+        const UInt32 trackedBefore = tracker->GetTrackedSceneManagerCount();
+        Ogre::Viewport* viewport = AddColourViewport( renderWindow, "Rtss", Ogre::ColourValue( 0.0f, 0.0f, 1.0f, 1.0f ) );
+        Ogre::SceneManager* sceneManager = Ogre::Root::getSingleton().getSceneManager( "Rtss" );
+        Ogre::Camera* camera = sceneManager->getCamera( "Rtss" );
+        camera->setProjectionType( Ogre::PT_ORTHOGRAPHIC );
+        camera->setOrthoWindow( 4.0f, 3.0f );
+        camera->setNearClipDistance( 0.1f );
+        camera->setFarClipDistance( 100.0f );
+        camera->getParentSceneNode()->setPosition( 0.0f, 0.0f, 10.0f );
+        camera->setAspectRatio( 4.0f / 3.0f );
+
+        // unlit: the colour of the vertices; lit: the diffuse colour of the material under a white light from the camera
+        Ogre::MaterialPtr unlit = Ogre::MaterialManager::getSingleton().create( "RtssTest/Unlit", Ogre::RGN_DEFAULT );
+        unlit->getTechnique( 0 )->getPass( 0 )->setLightingEnabled( false );
+        unlit->getTechnique( 0 )->getPass( 0 )->setVertexColourTracking( Ogre::TVC_DIFFUSE );
+        Ogre::MaterialPtr lit = Ogre::MaterialManager::getSingleton().create( "RtssTest/Lit", Ogre::RGN_DEFAULT );
+        lit->getTechnique( 0 )->getPass( 0 )->setLightingEnabled( true );
+        lit->getTechnique( 0 )->getPass( 0 )->setAmbient( 0.0f, 0.0f, 0.0f );
+        lit->getTechnique( 0 )->getPass( 0 )->setDiffuse( 0.0f, 1.0f, 0.0f, 1.0f );
+        lit->getTechnique( 0 )->getPass( 0 )->setSpecular( 0.0f, 0.0f, 0.0f, 1.0f );
+        sceneManager->setAmbientLight( Ogre::ColourValue::Black );
+        Ogre::Light* light = sceneManager->createLight( "RtssLight", Ogre::Light::LT_DIRECTIONAL );
+        light->setDiffuseColour( Ogre::ColourValue::White );
+        light->setSpecularColour( Ogre::ColourValue::Black );
+        Ogre::SceneNode* lightNode = sceneManager->getRootSceneNode()->createChildSceneNode();
+        lightNode->attachObject( light );
+        lightNode->setDirection( Ogre::Vector3( 0.0f, 0.0f, -1.0f ), Ogre::Node::TS_WORLD );
+
+        // a red unlit quad in front over the left two thirds, a lit quad behind over the right two thirds: the middle
+        // third shows whether the depth test keeps the nearer one
+        Ogre::ManualObject* front = sceneManager->createManualObject( "RtssFront" );
+        front->begin( "RtssTest/Unlit", Ogre::RenderOperation::OT_TRIANGLE_LIST );
+        front->position( -2.0f, -1.5f, 0.0f ); front->colour( 1.0f, 0.0f, 0.0f );
+        front->position( 0.6667f, -1.5f, 0.0f ); front->colour( 1.0f, 0.0f, 0.0f );
+        front->position( 0.6667f, 1.5f, 0.0f ); front->colour( 1.0f, 0.0f, 0.0f );
+        front->position( -2.0f, 1.5f, 0.0f ); front->colour( 1.0f, 0.0f, 0.0f );
+        front->quad( 0, 1, 2, 3 );
+        front->end();
+        Ogre::ManualObject* back = sceneManager->createManualObject( "RtssBack" );
+        back->begin( "RtssTest/Lit", Ogre::RenderOperation::OT_TRIANGLE_LIST );
+        back->position( -0.6667f, -1.5f, -2.0f ); back->normal( 0.0f, 0.0f, 1.0f );
+        back->position( 2.0f, -1.5f, -2.0f ); back->normal( 0.0f, 0.0f, 1.0f );
+        back->position( 2.0f, 1.5f, -2.0f ); back->normal( 0.0f, 0.0f, 1.0f );
+        back->position( -0.6667f, 1.5f, -2.0f ); back->normal( 0.0f, 0.0f, 1.0f );
+        back->quad( 0, 1, 2, 3 );
+        back->end();
+        sceneManager->getRootSceneNode()->createChildSceneNode()->attachObject( front );
+        sceneManager->getRootSceneNode()->createChildSceneNode()->attachObject( back );
+
+        const UInt32 techniquesBefore = resolver->GetTechniquesCreated();
+        IMAGE::TPixelMapPtr pixels;
+        ASSERT_TRUE( window->RenderFrame( &pixels ) );
+        ASSERT_TRUE( !pixels.IsNULL() && 320 == pixels->GetWidthInPixels() && 240 == pixels->GetHeightInPixels() );
+
+        // the scene manager made after the start was added at the start of the frame, both materials got a technique
+        ASSERT_TRUE( tracker->GetTrackedSceneManagerCount() == trackedBefore + 1 );
+        ASSERT_TRUE( resolver->GetTechniquesCreated() >= techniquesBefore + 2 );
+
+        ASSERT_TRUE( PixelIs( pixels, 40, 120, 255, 0, 0 ) );       // the front quad alone
+        ASSERT_TRUE( PixelIs( pixels, 160, 120, 255, 0, 0 ) );      // both: the front one is nearer
+        ASSERT_TRUE( PixelIs( pixels, 280, 120, 0, 255, 0, 8 ) );   // the lit quad alone, facing the light
+        ASSERT_TRUE( PixelIs( pixels, 160, 5, 255, 0, 0 ) );
+
+        renderWindow->removeViewport( viewport->getZOrder() );
+        Ogre::MaterialManager::getSingleton().remove( unlit );
+        Ogre::MaterialManager::getSingleton().remove( lit );
+        Ogre::Root::getSingleton().destroySceneManager( sceneManager );
+
+        // the generator let go of the destroyed scene manager
+        ASSERT_TRUE( tracker->GetTrackedSceneManagerCount() == trackedBefore );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Pixels: viewports that only clear clear their own area, and what an earlier viewport of the frame drew stays under the later ones and under the GUI" )
+    try
+    {
+        // nothing is drawn in either viewport: the clears alone must show, the second one on the left half only, and the
+        // GUI quad over them is drawn after the viewports, in a pass of its own on Vulkan, which must keep both
+        Ogre::Viewport* back = AddColourViewport( renderWindow, "ClearBack", Ogre::ColourValue( 0.0f, 0.0f, 1.0f, 1.0f ) );
+        Ogre::Root& root = Ogre::Root::getSingleton();
+        Ogre::SceneManager* leftScene = root.hasSceneManager( "ClearLeft" ) ? root.getSceneManager( "ClearLeft" ) : root.createSceneManager( "DefaultSceneManager", "ClearLeft" );
+        Ogre::Camera* leftCamera = leftScene->hasCamera( "ClearLeft" ) ? leftScene->getCamera( "ClearLeft" ) : leftScene->createCamera( "ClearLeft" );
+        if ( GUCEF_NULL == leftCamera->getParentSceneNode() )
+            leftScene->getRootSceneNode()->createChildSceneNode()->attachObject( leftCamera );
+        Ogre::Viewport* left = renderWindow->addViewport( leftCamera, back->getZOrder() + 1, 0.0f, 0.0f, 0.5f, 1.0f );
+        left->setBackgroundColour( Ogre::ColourValue( 1.0f, 0.0f, 0.0f, 1.0f ) );
+        left->setOverlaysEnabled( false );
+
+        CQuadOverlay quad( GUIDRIVEROGRE::COgreGuiMaterial::BLENDMODE_PREMULTIPLIED, 0 );
+        ASSERT_TRUE( quad.m_material.Initialize() );
+        quad.m_batch.AddQuad( 20.0f, 20.0f, 40.0f, 40.0f, 0, 255, 0, 255 );
+        ASSERT_TRUE( quad.m_batch.Build() );
+        window->RegisterOverlay( &quad );
+
+        IMAGE::TPixelMapPtr pixels;
+        for ( UInt32 frame=0; frame<2; ++frame )
+        {
+            ASSERT_TRUE( window->RenderFrame( &pixels ) );
+            ASSERT_TRUE( PixelIs( pixels, 30, 30, 0, 255, 0 ) );
+            ASSERT_TRUE( PixelIs( pixels, 5, 5, 255, 0, 0 ) );
+            ASSERT_TRUE( PixelIs( pixels, 100, 200, 255, 0, 0 ) );
+            ASSERT_TRUE( PixelIs( pixels, 159, 120, 255, 0, 0 ) );
+            ASSERT_TRUE( PixelIs( pixels, 161, 120, 0, 0, 255 ) );
+            ASSERT_TRUE( PixelIs( pixels, 300, 230, 0, 0, 255 ) );
+        }
+
+        // without the GUI as well: only the clears
+        window->UnregisterOverlay( &quad );
+        ASSERT_TRUE( window->RenderFrame( &pixels ) );
+        ASSERT_TRUE( PixelIs( pixels, 30, 30, 255, 0, 0 ) );
+        ASSERT_TRUE( PixelIs( pixels, 300, 230, 0, 0, 255 ) );
+
+        renderWindow->removeViewport( left->getZOrder() );
+        renderWindow->removeViewport( back->getZOrder() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Pixels: geometry and a texture made in the middle of drawing the GUI, between two of its draws, keep what was drawn before them" )
+    try
+    {
+        Ogre::Viewport* viewport = AddColourViewport( renderWindow, "MidFrame", Ogre::ColourValue( 0.0f, 0.0f, 1.0f, 1.0f ) );
+        CMidFrameUploadOverlay overlay;
+        ASSERT_TRUE( overlay.m_material.Initialize() );
+        overlay.m_first.AddQuad( 10.0f, 20.0f, 100.0f, 50.0f, 255, 0, 0, 255 );
+        ASSERT_TRUE( overlay.m_first.Build() );
+        window->RegisterOverlay( &overlay );
+
+        IMAGE::TPixelMapPtr pixels;
+        for ( UInt32 frame=0; frame<2; ++frame )
+        {
+            ASSERT_TRUE( window->RenderFrame( &pixels ) );
+            ASSERT_TRUE( PixelIs( pixels, 50, 40, 255, 0, 0 ) );
+            ASSERT_TRUE( PixelIs( pixels, 220, 120, 255, 0, 255 ) );
+            ASSERT_TRUE( PixelIs( pixels, 5, 5, 0, 0, 255 ) );
+            ASSERT_TRUE( PixelIs( pixels, 300, 230, 0, 0, 255 ) );
+        }
+        ASSERT_TRUE( 2 == overlay.m_frames );
+
+        window->UnregisterOverlay( &overlay );
+        renderWindow->removeViewport( viewport->getZOrder() );
+        Ogre::TextureManager::getSingleton().remove( overlay.m_texture );
+        overlay.m_texture.reset();
     }
     catch ( ... )
     {
@@ -718,15 +993,22 @@ PerformOgreWindowTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF_TESTFW_TESTCASE( "Windows: a second Ogre window draws and goes while the first stays" )
+    GUCEF_TESTFW_TESTCASE( "Windows: a second Ogre window draws and goes while the first stays, with the renderer of the first whatever its video settings ask for" )
     try
     {
-        GUI::TWindowContextPtr secondPtr = MakeTestOgreWindow( 100, 80 );
+        // the Root has its renderer: another one in the settings of the second window is used from the next start
+        GUI::CVideoSettings settings;
+        settings.SetResolution( 100, 80, 32 );
+        settings.SetFrequency( TESTWINDOWMODE_OFFSCREEN == mode ? 0 : 60 );
+        settings.SetRenderer( "OpenGL" == GetExpectedTestRenderer() ? "Vulkan" : "OpenGL" );
+        CORE::CValueList params = GetTestWindowParams();
+        GUI::TWindowContextPtr secondPtr = backend->CreateWindowContext( "OgreTest", settings, &params );
         GUIDRIVEROGRE::COgreWindowContext* second = AsOgreWindow( secondPtr );
         ASSERT_TRUE( GUCEF_NULL != second );
         if ( GUCEF_NULL != second )
         {
             ASSERT_TRUE( second->GetOgreRenderWindow() != renderWindow );
+            ASSERT_TRUE( GetExpectedTestRenderer() == second->GetProperty( "RENDERER" ) );
             Ogre::Viewport* viewport = AddColourViewport( second->GetOgreRenderWindow(), "Second", Ogre::ColourValue( 1.0f, 1.0f, 0.0f, 1.0f ) );
             IMAGE::TPixelMapPtr pixels;
             ASSERT_TRUE( second->RenderFrame( &pixels ) );

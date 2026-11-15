@@ -202,6 +202,15 @@ class GUIDRIVERIMGUI_PUBLIC_CPP CImGuiContext : public GUI::CGUIContext
     /** Goes up with every change of an image of the context */
     UInt32 GetImageGeneration( void ) const;
 
+    /**
+     *  A renderer context that has textures of its own backend to show (a render texture of the application) can give the
+     *  texture reference of an image of the context here. The image stays registered with the context as the stand-in
+     *  that the drawing commands name, its size is the one the source rectangles of the commands refer to; when this
+     *  returns true the retained painter draws the image with the reference, over the whole backend texture for the whole
+     *  stand-in, with linear sampling, and makes no texture of the pixels of the stand-in. False by default
+     */
+    virtual bool GetBackendImageTextureRef( const CString& reference, ImTextureRef& textureRef ) const;
+
     /*
      *  For renderers
      */

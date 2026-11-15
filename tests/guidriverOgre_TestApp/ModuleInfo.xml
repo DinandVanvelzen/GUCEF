@@ -29,6 +29,8 @@
         <Compiler MinCppStandard="14" />
         <RuntimeDependencies>
             <RuntimeDependency Name="OgreRenderSystem_GL3Plus" />
+            <RuntimeDependency Name="OgreRenderSystem_Vulkan" />
+            <RuntimeDependency Name="OgrePlugin_GLSLangProgramManager" />
             <RuntimeDependency Name="OgrePlugin_GucefVFS" />
             <RuntimeDependency Name="OgreCodec_GucefIMAGE" />
         </RuntimeDependencies>
@@ -41,6 +43,7 @@
             <RuntimeDependency Name="guidriverXWinGL" />
             <RuntimeDependency Name="guidriverWAYLAND" />
             <RuntimeDependency Name="OgreRenderSystem_GL3Plus_Wayland" />
+            <RuntimeDependency Name="OgreRenderSystem_Vulkan_Wayland" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="mswin">

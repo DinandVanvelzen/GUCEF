@@ -20,6 +20,8 @@ set( HEADER_FILES
   include/pluginglueOGRE_COgrePluginManager.h
   include/pluginglueOGRE_COgreResourceRequest.h
   include/pluginglueOGRE_COgreRootSetup.h
+  include/pluginglueOGRE_COgreShaderGeneratorSceneTracker.h
+  include/pluginglueOGRE_COgreShaderTechniqueResolver.h
   include/pluginglueOGRE_COgreTaskWorkQueue.h
   include/pluginglueOGRE_COgreWorkQueueCore.h
   include/pluginglueOGRE_COgreWorkQueueTaskConsumer.h
@@ -37,6 +39,8 @@ set( SOURCE_FILES
   src/pluginglueOGRE_COgrePluginManager.cpp
   src/pluginglueOGRE_COgreResourceRequest.cpp
   src/pluginglueOGRE_COgreRootSetup.cpp
+  src/pluginglueOGRE_COgreShaderGeneratorSceneTracker.cpp
+  src/pluginglueOGRE_COgreShaderTechniqueResolver.cpp
   src/pluginglueOGRE_COgreTaskWorkQueue.cpp
   src/pluginglueOGRE_COgreWorkQueueCore.cpp
   src/pluginglueOGRE_COgreWorkQueueTaskConsumer.cpp
@@ -69,8 +73,8 @@ elseif( EMSCRIPTEN64 )
 else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} Ogre gucefCORE gucefMT gucefVFS )
-target_link_libraries( ${MODULE_NAME} PUBLIC Ogre gucefCORE gucefMT gucefVFS )
+add_dependencies( ${MODULE_NAME} Ogre OgreRTShaderSystem gucefCORE gucefMT gucefVFS )
+target_link_libraries( ${MODULE_NAME} PUBLIC Ogre OgreRTShaderSystem gucefCORE gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_PLUGINGLUE_OGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=pluginglueOGRE;MODULE_IS_PLUGIN=1;MODULE_NAME=pluginglueOGRE;MODULE_SEMVER=0_1_0_0" )
 target_compile_features( ${MODULE_NAME} PUBLIC cxx_std_14 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
@@ -84,7 +88,7 @@ if ( EMSCRIPTEN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=pluginglueOGRE" )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../pluginglueOGRECOMMON ../pluginglueOGRECOMMON/include include )
+include_directories( ../../../common/include ../../../dependencies/Ogre/Components/RTShaderSystem/include ../../../dependencies/Ogre/Components/RTShaderSystem/src ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../pluginglueOGRECOMMON ../pluginglueOGRECOMMON/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )

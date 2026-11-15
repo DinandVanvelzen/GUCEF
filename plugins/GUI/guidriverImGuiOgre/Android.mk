@@ -24,12 +24,15 @@ LOCAL_MODULE_FILENAME := libguidriverImGuiOgre
 LOCAL_SRC_FILES := \
   src/guidriverImGuiOgre_CImGuiOgreContext.cpp \
   src/guidriverImGuiOgre_CImGuiOgreDriver.cpp \
+  src/guidriverImGuiOgre_CImGuiOgreRenderContext.cpp \
   src/guidriverImGuiOgre_CImGuiOgreRenderer.cpp \
   src/guidriverImGuiOgre_pluginAPI.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/Components/RTShaderSystem/include \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/Components/RTShaderSystem/src \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src \

@@ -243,7 +243,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../plugins/SHARED/pluginglueOGRE/include", "../../plugins/SHARED/pluginglueOGRECOMMON", "../../plugins/SHARED/pluginglueOGRECOMMON/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/Ogre/Components/RTShaderSystem/include", "../../dependencies/Ogre/Components/RTShaderSystem/src", "../../dependencies/Ogre/OgreMain/include", "../../dependencies/Ogre/OgreMain/include/Threading", "../../dependencies/Ogre/OgreMain/src", "../../dependencies/Ogre/OgreMain/src/zip", "../../dependencies/Ogre/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../plugins/SHARED/pluginglueOGRE/include", "../../plugins/SHARED/pluginglueOGRECOMMON", "../../plugins/SHARED/pluginglueOGRECOMMON/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../dependencies/Ogre/OgreMain/src", "../../platform/gucefCORE/include/linux", "include" } )

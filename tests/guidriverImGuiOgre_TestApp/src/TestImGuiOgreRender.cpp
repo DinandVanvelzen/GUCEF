@@ -78,6 +78,21 @@ AsOgre( const GUI::TGuiContextPtr& context )
     return static_cast< CImGuiOgreContext* >( AsImGui( context ) );
 }
 
+/** A viewport of a render target on a scene manager and camera of its own that clears to a colour */
+Ogre::Viewport*
+AddColourViewport( Ogre::RenderTarget* target, const char* name, const Ogre::ColourValue& colour )
+{
+    Ogre::Root& root = Ogre::Root::getSingleton();
+    Ogre::SceneManager* sceneManager = root.hasSceneManager( name ) ? root.getSceneManager( name ) : root.createSceneManager( "DefaultSceneManager", name );
+    Ogre::Camera* camera = sceneManager->hasCamera( name ) ? sceneManager->getCamera( name ) : sceneManager->createCamera( name );
+    if ( GUCEF_NULL == camera->getParentSceneNode() )
+        sceneManager->getRootSceneNode()->createChildSceneNode()->attachObject( camera );
+    Ogre::Viewport* viewport = target->addViewport( camera );
+    viewport->setBackgroundColour( colour );
+    viewport->setOverlaysEnabled( false );
+    return viewport;
+}
+
 /** The Ogre window of the tests, or NULL, with the reason for the skip notice in the log */
 bool
 HaveWindow( void )
@@ -421,6 +436,135 @@ PerformImGuiOgreRenderTests( void )
             ASSERT_TRUE( context->CaptureFrame( pixels ) );
             ASSERT_TRUE( Near( PixelAt( pixels, 210, 210 ), Black, 0 ) );
         }
+    }
+    catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
+    {
+        throw;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Render texture: a DrawSurface widget shows an Ogre texture of the application scaled into its target rectangle, without a copy, and its later content" )
+    try
+    {
+        if ( !HaveWindow() )
+            GUCEF_TESTFW_SKIP( "no Ogre window can be made" );
+
+        // the application's render texture, drawn by its own viewport
+        Ogre::TexturePtr target = Ogre::TextureManager::getSingleton().createManual( "ImGuiOgreTest/Target", Ogre::RGN_INTERNAL, Ogre::TEX_TYPE_2D,
+                                                                                   64, 64, 0, Ogre::PF_BYTE_RGBA, Ogre::TU_RENDERTARGET );
+        Ogre::RenderTarget* renderTarget = target->getBuffer()->getRenderTarget();
+        renderTarget->setAutoUpdated( false );
+        Ogre::Viewport* viewport = AddColourViewport( renderTarget, "ImGuiOgreTest/Target", Ogre::ColourValue( 0.0f, 1.0f, 1.0f, 1.0f ) );
+        renderTarget->update();
+
+        GUI::TGuiContextPtr contextPtr = CreateImGuiOgreContext();
+        CImGuiOgreContext* context = AsOgre( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL != context )
+        {
+            GUI::CWidget* screen = Screen( context );
+            GUI::CDrawSurface* surface = static_cast< GUI::CDrawSurface* >( context->CreateWidget( "DrawSurface", "View", screen ) );
+            surface->SetProperty( "Position", "0,100 0,100" );
+            surface->SetProperty( "Size", "0,200 0,150" );
+            surface->FillRect( GUI::CRect( 0, 0, 200, 150 ), Red );
+            surface->Commit();
+            context->RenderFrame( 16 );
+            IMAGE::TPixelMapPtr pixels;
+            ASSERT_TRUE( context->CaptureFrame( pixels ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 150 ), Red, 1 ) );
+            const UInt32 texturesBefore = CountImGuiOgreTextures();
+
+            // the whole texture in the target rectangle: widget coordinates 20,10 and 100 x 80 are window 120,110 to 220,190
+            ASSERT_TRUE( CImGuiOgreRenderContext::GetOgreTexture( *surface ).get() == GUCEF_NULL );
+            ASSERT_TRUE( CImGuiOgreRenderContext::SetOgreTexture( *surface, target, GUI::CRect( 20, 10, 100, 80 ) ) );
+            ASSERT_TRUE( CImGuiOgreRenderContext::GetOgreTexture( *surface ) == target );
+            ASSERT_TRUE( CImGuiOgreRenderContext::GetImageAlias( *surface ) == CImGuiOgreRenderContext::GetImageAlias( *surface ) );
+            ASSERT_FALSE( CImGuiOgreRenderContext::GetImageAlias( *surface ).IsNULLOrEmpty() );
+            ASSERT_FALSE( CImGuiOgreRenderContext::GetImageAlias( *surface ) == CImGuiOgreRenderContext::GetImageAlias( *screen ) );
+            context->RenderFrame( 16 );
+            ASSERT_TRUE( context->CaptureFrame( pixels ) );
+            const GUI::CColour cyan( 0, 255, 255, 255 );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 150 ), cyan, 1 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 120, 110 ), cyan, 1 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 219, 189 ), cyan, 1 ) );
+            // outside of the rectangle nothing: the red of the own drawing of the widget is gone
+            ASSERT_TRUE( Near( PixelAt( pixels, 119, 150 ), Black, 0 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 220, 150 ), Black, 0 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 109 ), Black, 0 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 190 ), Black, 0 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 280, 240 ), Black, 0 ) );
+            // no texture of the driver was made for it, the application's texture is drawn as it is
+            ASSERT_TRUE( texturesBefore == CountImGuiOgreTextures() );
+
+            // the application draws something else into its texture: the widget shows it at once
+            viewport->setBackgroundColour( Ogre::ColourValue( 1.0f, 0.0f, 1.0f, 1.0f ) );
+            renderTarget->update();
+            context->RenderFrame( 16 );
+            ASSERT_TRUE( context->CaptureFrame( pixels ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 150 ), GUI::CColour( 255, 0, 255, 255 ), 1 ) );
+
+            // another texture under the same widget replaces it, and is scaled whole: left half red, right half green
+            Ogre::TexturePtr halves = MakeSolidTexture( "ImGuiOgreTest/Halves", 2, 1, 255, 0, 0, 255 );
+            {
+                UInt8 pair[ 8 ] = { 255, 0, 0, 255, 0, 255, 0, 255 };
+                halves->getBuffer()->blitFromMemory( Ogre::PixelBox( 2, 1, 1, Ogre::PF_BYTE_RGBA, pair ) );
+            }
+            ASSERT_TRUE( CImGuiOgreRenderContext::SetOgreTexture( *surface, halves, GUI::CRect( 20, 10, 100, 80 ) ) );
+            ASSERT_TRUE( CImGuiOgreRenderContext::GetOgreTexture( *surface ) == halves );
+            context->RenderFrame( 16 );
+            ASSERT_TRUE( context->CaptureFrame( pixels ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 125, 150 ), Red, 1 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 214, 150 ), Green, 1 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 119, 150 ), Black, 0 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 220, 150 ), Black, 0 ) );
+            ASSERT_TRUE( texturesBefore == CountImGuiOgreTextures() );
+
+            // the widget shows its own drawing again once the texture is let go
+            ASSERT_TRUE( CImGuiOgreRenderContext::ClearOgreTexture( *surface ) );
+            ASSERT_TRUE( CImGuiOgreRenderContext::GetOgreTexture( *surface ).get() == GUCEF_NULL );
+            surface->FillRect( GUI::CRect( 0, 0, 200, 150 ), Green );
+            surface->Commit();
+            context->RenderFrame( 16 );
+            ASSERT_TRUE( context->CaptureFrame( pixels ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 150 ), Green, 1 ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 125, 150 ), Green, 1 ) );
+
+            // a NULL texture is refused and changes nothing
+            ASSERT_FALSE( CImGuiOgreRenderContext::SetOgreTexture( *surface, Ogre::TexturePtr(), GUI::CRect( 0, 0, 10, 10 ) ) );
+            ASSERT_TRUE( CImGuiOgreRenderContext::GetOgreTexture( *surface ).get() == GUCEF_NULL );
+            context->RenderFrame( 16 );
+            ASSERT_TRUE( context->CaptureFrame( pixels ) );
+            ASSERT_TRUE( Near( PixelAt( pixels, 150, 150 ), Green, 1 ) );
+
+            // the texture is let go with the context
+            ASSERT_TRUE( CImGuiOgreRenderContext::SetOgreTexture( *surface, target, GUI::CRect( 0, 0, 100, 80 ) ) );
+            halves.reset();
+            Ogre::TextureManager::getSingleton().remove( "ImGuiOgreTest/Halves" );
+        }
+
+        // a widget of a context of another driver is refused
+        GUI::TGuiContextPtr softwarePtr = CreateSoftwareContext();
+        CImGuiContext* software = AsImGui( softwarePtr );
+        ASSERT_TRUE( GUCEF_NULL != software );
+        if ( GUCEF_NULL != software )
+        {
+            GUI::CDrawSurface* surface = static_cast< GUI::CDrawSurface* >( software->CreateWidget( "DrawSurface", "View", GUCEF_NULL ) );
+            ASSERT_TRUE( GUCEF_NULL != surface );
+            if ( GUCEF_NULL != surface )
+            {
+                ASSERT_FALSE( CImGuiOgreRenderContext::SetOgreTexture( *surface, target, GUI::CRect( 0, 0, 10, 10 ) ) );
+                ASSERT_TRUE( CImGuiOgreRenderContext::GetOgreTexture( *surface ).get() == GUCEF_NULL );
+                ASSERT_FALSE( CImGuiOgreRenderContext::ClearOgreTexture( *surface ) );
+            }
+        }
+        contextPtr.Unlink();
+        softwarePtr.Unlink();
+        renderTarget->removeAllViewports();
+        Ogre::TextureManager::getSingleton().remove( target );
     }
     catch ( const ::GUCEF::TESTFW::STestSkipRequest& )
     {

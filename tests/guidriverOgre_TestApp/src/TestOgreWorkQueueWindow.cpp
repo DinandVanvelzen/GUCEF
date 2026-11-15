@@ -375,6 +375,8 @@ PerformOgreWorkQueueWindowTests( GUIDRIVEROGRE::COgreWindowContext* window )
     GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Work queue: worker threads that may use the render system register with it between preExtraThreadsStarted() and postExtraThreadsStarted(), each with a GL context of its own sharing with the main one" )
+    if ( "OpenGL" != PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup().GetActiveRenderer() )
+        GUCEF_TESTFW_SKIP( "the GL contexts of worker threads are a matter of the OpenGL render system, the Root draws with another one" );
     try
     {
         // the default of this build: the render system is for the render thread only

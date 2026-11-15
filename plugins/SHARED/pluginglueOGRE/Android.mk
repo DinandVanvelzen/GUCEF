@@ -29,6 +29,8 @@ LOCAL_SRC_FILES := \
   src/pluginglueOGRE_COgrePluginManager.cpp \
   src/pluginglueOGRE_COgreResourceRequest.cpp \
   src/pluginglueOGRE_COgreRootSetup.cpp \
+  src/pluginglueOGRE_COgreShaderGeneratorSceneTracker.cpp \
+  src/pluginglueOGRE_COgreShaderTechniqueResolver.cpp \
   src/pluginglueOGRE_COgreTaskWorkQueue.cpp \
   src/pluginglueOGRE_COgreWorkQueueCore.cpp \
   src/pluginglueOGRE_COgreWorkQueueTaskConsumer.cpp \
@@ -38,6 +40,8 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/Components/RTShaderSystem/include \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/Components/RTShaderSystem/src \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src \
@@ -55,6 +59,7 @@ LOCAL_CFLAGS := -DGUCEF_PLUGINGLUE_OGRE_BUILD_MODULE -DMODULE_CONSENSUS_NAME=plu
 
 LOCAL_SHARED_LIBRARIES := \
   Ogre \
+  OgreRTShaderSystem \
   gucefCORE \
   gucefMT \
   gucefVFS

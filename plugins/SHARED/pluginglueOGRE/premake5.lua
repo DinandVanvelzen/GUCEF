@@ -39,10 +39,10 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "Ogre", "gucefCORE", "gucefMT", "gucefVFS" } )
+links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefMT", "gucefVFS" } )
 
 configuration( {} )
-links( { "Ogre", "gucefCORE", "gucefMT", "gucefVFS" } )
+links( { "Ogre", "OgreRTShaderSystem", "gucefCORE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
@@ -68,6 +68,8 @@ files( {
   "include/pluginglueOGRE_COgrePluginManager.h",
   "include/pluginglueOGRE_COgreResourceRequest.h",
   "include/pluginglueOGRE_COgreRootSetup.h",
+  "include/pluginglueOGRE_COgreShaderGeneratorSceneTracker.h",
+  "include/pluginglueOGRE_COgreShaderTechniqueResolver.h",
   "include/pluginglueOGRE_COgreTaskWorkQueue.h",
   "include/pluginglueOGRE_COgreWorkQueueCore.h",
   "include/pluginglueOGRE_COgreWorkQueueTaskConsumer.h",
@@ -89,6 +91,8 @@ files( {
   "src/pluginglueOGRE_COgrePluginManager.cpp",
   "src/pluginglueOGRE_COgreResourceRequest.cpp",
   "src/pluginglueOGRE_COgreRootSetup.cpp",
+  "src/pluginglueOGRE_COgreShaderGeneratorSceneTracker.cpp",
+  "src/pluginglueOGRE_COgreShaderTechniqueResolver.cpp",
   "src/pluginglueOGRE_COgreTaskWorkQueue.cpp",
   "src/pluginglueOGRE_COgreWorkQueueCore.cpp",
   "src/pluginglueOGRE_COgreWorkQueueTaskConsumer.cpp",
@@ -98,7 +102,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../pluginglueOGRECOMMON", "../pluginglueOGRECOMMON/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/Ogre/Components/RTShaderSystem/include", "../../../dependencies/Ogre/Components/RTShaderSystem/src", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../pluginglueOGRECOMMON", "../pluginglueOGRECOMMON/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )

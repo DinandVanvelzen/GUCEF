@@ -1,0 +1,27 @@
+#version 450
+
+// Vertex program of the GUI material of guidriverOgre (COgreGuiMaterial) for the Vulkan render system: GLSL that the
+// glslang plugin of Ogre compiles to SPIR-V. The uniforms of a stage are the block OgreUniforms at the binding of the
+// stage (0 for vertex programs), stored row major as Ogre writes its matrices; the vertex attributes are at the
+// locations of the Vulkan render system of Ogre: position 0, diffuse colour 3, first texture coordinates 8.
+
+layout( binding = 0, row_major ) uniform OgreUniforms
+{
+    mat4 projection;
+    mat4 transform;
+    vec2 translation;
+};
+
+layout( location = 0 ) in vec4 vertex;
+layout( location = 3 ) in vec4 colour;
+layout( location = 8 ) in vec4 uv0;
+
+layout( location = 0 ) out vec4 guiColour;
+layout( location = 1 ) out vec2 guiUv;
+
+void main()
+{
+    guiColour = colour;
+    guiUv = uv0.xy;
+    gl_Position = projection * ( transform * vec4( vertex.xy + translation, 0.0, 1.0 ) );
+}

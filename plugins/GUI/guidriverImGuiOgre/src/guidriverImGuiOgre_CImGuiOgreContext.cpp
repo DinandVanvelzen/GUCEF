@@ -117,6 +117,7 @@ CImGuiOgreContext::~CImGuiOgreContext()
     m_drawData = GUCEF_NULL;
     DestroyAllWidgets();
     ShutdownRenderer();
+    m_ogreTextures.clear();
     GUCEF_DELETE m_renderer;
     m_renderer = GUCEF_NULL;
 }
@@ -169,6 +170,72 @@ CImGuiOgreContext::GetTextureRef( const Ogre::TexturePtr& texture ) const
     if ( !texture )
         return ImTextureRef();
     return ImTextureRef( (ImTextureID) texture->getHandle() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CImGuiOgreContext::RegisterOgreTexture( const CORE::CString& alias, const Ogre::TexturePtr& texture )
+{GUCEF_TRACE;
+
+    if ( alias.IsNULLOrEmpty() || !texture )
+        return false;
+    const bool known = m_ogreTextures.find( alias ) != m_ogreTextures.end();
+    m_ogreTextures[ alias ] = texture;
+    if ( known )
+        return UpdateImage( alias );
+
+    // the image the drawing commands name: one pixel, so the whole texture is its source rectangle (0, 0, 1, 1)
+    IMAGE::TPixelMapPtr placeholder( GUCEF_NEW IMAGE::CPixelMap( GUCEF_NULL, 1, 1, IMAGE::PSF_RGBA, GUCEF::DATATYPE_UINT8 ) );
+    UInt8* data = static_cast< UInt8* >( placeholder->GetDataPtr() );
+    data[ 0 ] = data[ 1 ] = data[ 2 ] = 0;
+    data[ 3 ] = 255;
+    if ( !RegisterImage( alias, placeholder ) )
+    {
+        m_ogreTextures.erase( alias );
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CImGuiOgreContext::UnregisterOgreTexture( const CORE::CString& alias )
+{GUCEF_TRACE;
+
+    TOgreTextureMap::iterator i = m_ogreTextures.find( alias );
+    if ( i == m_ogreTextures.end() )
+        return false;
+    m_ogreTextures.erase( i );
+    return UnregisterImage( alias );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Ogre::TexturePtr
+CImGuiOgreContext::GetRegisteredOgreTexture( const CORE::CString& alias ) const
+{GUCEF_TRACE;
+
+    TOgreTextureMap::const_iterator i = m_ogreTextures.find( alias );
+    if ( i == m_ogreTextures.end() )
+        return Ogre::TexturePtr();
+    return (*i).second;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CImGuiOgreContext::GetBackendImageTextureRef( const CORE::CString& reference, ImTextureRef& textureRef ) const
+{GUCEF_TRACE;
+
+    if ( m_ogreTextures.empty() )
+        return false;
+    TOgreTextureMap::const_iterator i = m_ogreTextures.find( reference );
+    if ( i == m_ogreTextures.end() )
+        return false;
+    textureRef = GetTextureRef( (*i).second );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

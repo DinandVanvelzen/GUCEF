@@ -140,6 +140,34 @@ GetNoWindowReason( void )
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CString
+GetTestRenderer( void )
+{GUCEF_TRACE;
+
+    // Ogre's headless surface is one of EGL: offscreen windows are OpenGL ones
+    const char* renderer = ::getenv( "GUCEF_TEST_OGRE_RENDERER" );
+    if ( GUCEF_NULL == renderer || '\0' == renderer[ 0 ] || TESTWINDOWMODE_OFFSCREEN == GetTestWindowMode() )
+        return "OpenGL";
+    return renderer;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+GetExpectedTestRenderer( void )
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector renderers;
+    PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup().GetAvailableRenderers( renderers );
+    const CORE::CString asked = GetTestRenderer();
+    for ( UInt32 i=0; i<(UInt32)renderers.size(); ++i )
+        if ( renderers[ i ].Equals( asked, false ) )
+            return renderers[ i ];
+    return renderers.empty() ? CORE::CString::Empty : renderers.front();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 SetUpOgreForTests( void )
 {GUCEF_TRACE;
@@ -158,12 +186,17 @@ SetUpOgreForTests( void )
     // Ogre chooses X11 or Wayland when it is compiled: Wayland windows need the Wayland flavour of the render system
     const bool wayland = TESTWINDOWMODE_WAYLAND == GetTestWindowMode();
     AddOgrePluginEntry( *group, wayland ? "OgreRenderSystem_GL3Plus_Wayland" : "OgreRenderSystem_GL3Plus", true );
+    // Vulkan: the render system, which finds the Vulkan devices when it loads, and the compiler of its programs
+    AddOgrePluginEntry( *group, wayland ? "OgreRenderSystem_Vulkan_Wayland" : "OgreRenderSystem_Vulkan", true );
+    AddOgrePluginEntry( *group, "OgrePlugin_GLSLangProgramManager", true );
     AddOgrePluginEntry( *group, "OgrePlugin_GucefVFS", true );
     AddOgrePluginEntry( *group, "OgreCodec_GucefIMAGE", true );
     CORE::CCoreGlobal::Instance()->GetPluginControl().LoadConfig( config );
 
+    // OpenGL is the renderer of the configuration; the test windows ask for GetTestRenderer() in their video settings
     CORE::CString::StringVector renderSystems;
     renderSystems.push_back( "OpenGL 3+ Rendering Subsystem" );
+    renderSystems.push_back( "Vulkan Rendering Subsystem" );
     PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup().SetRenderSystems( renderSystems );
 
     // the window backend and the platform window driver
@@ -229,6 +262,7 @@ MakeTestOgreWindow( UInt32 width, UInt32 height )
     settings.SetResolution( width, height, 32 );
     settings.SetFullscreenState( false );
     settings.SetVSyncState( false );
+    settings.SetRenderer( GetTestRenderer() );
     // the tests draw the frames themselves; the X11 window paces its own (60 a second) when the application pulses
     settings.SetFrequency( TESTWINDOWMODE_OFFSCREEN == GetTestWindowMode() ? 0 : 60 );
     CORE::CValueList params = GetTestWindowParams();

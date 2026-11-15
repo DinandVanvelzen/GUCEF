@@ -236,6 +236,8 @@ COgreWindowContext::GetProperty( const GUI::CString& propertyName ) const
         return GUI::CString::Empty;
     if ( "PLATFORM_BACKEND" == propertyName )
         return m_platformBackendName;
+    if ( "RENDERER" == propertyName )
+        return GUCEF_NULL != m_renderWindow ? PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup().GetActiveRenderer() : GUI::CString::Empty;
     if ( "Ogre::RenderWindow" == propertyName )
         return CORE::PointerToString( m_renderWindow );
     if ( "Ogre::SceneManager" == propertyName )
@@ -351,9 +353,10 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
         return false;
     }
 
-    // the Root of the support library, initialised with the render system of its configuration
+    // the Root of the support library, initialised with the renderer of the video settings when it is available there,
+    // with the render system of its configuration otherwise
     PLUGINGLUE::OGRE::COgreRootSetup& rootSetup = PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup();
-    if ( !rootSetup.CreateRoot() || !rootSetup.InitialiseRoot() )
+    if ( !rootSetup.CreateRoot() || !rootSetup.InitialiseRoot( videoSettings.GetRenderer() ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: There is no initialised Ogre Root with a render system, no window is made" );
         return false;
@@ -361,6 +364,13 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
 
     if ( OffscreenPlatformBackend == m_platformBackendName )
     {
+        // the headless surface is one of Ogre's EGL support: the OpenGL render systems have it, Vulkan and Direct3D do not
+        if ( Ogre::String::npos == GetOgreRoot()->getRenderSystem()->getName().find( "OpenGL" ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: An offscreen Ogre window needs an OpenGL render system, the Root draws with "
+                << GetOgreRoot()->getRenderSystem()->getName() );
+            return false;
+        }
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
         // with a display server Ogre's EGL support makes a top level X11 window of its own instead of a headless surface
         const char* display = ::getenv( "DISPLAY" );
@@ -383,6 +393,14 @@ COgreWindowContext::Initialize( const GUI::CString& title                ,
     {
         Shutdown();
         return false;
+    }
+
+    // the render system has its shader languages once a render window exists: the shaders of every material without
+    // programs of its own come from the run time shader system. Without it the window still works, for overlays
+    if ( !rootSetup.StartShaderGenerator() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "OgreWindowContext: The run time shader system did not start: materials "
+            "without programs of their own cannot be drawn" );
     }
 
     const UInt32 pulseInterval = COgrePlatformWindowSupport::GetPulseIntervalInMs( videoSettings.GetFrequency() );

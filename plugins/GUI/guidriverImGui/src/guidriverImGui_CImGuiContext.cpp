@@ -644,6 +644,15 @@ CImGuiContext::Image( const CString& reference )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CImGuiContext::GetBackendImageTextureRef( const CString& reference, ImTextureRef& textureRef ) const
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CImGuiContext::GetImageGeneration( void ) const
 {GUCEF_TRACE;

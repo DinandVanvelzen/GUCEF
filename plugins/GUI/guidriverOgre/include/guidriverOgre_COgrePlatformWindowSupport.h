@@ -81,7 +81,7 @@ namespace GUIDRIVEROGRE {
  *      AndroidGLES  externalWindowHandle = WINDOW (the ANativeWindow), androidConfig = ANDROID_CONFIG, preserveContext:
  *                   the EGL context, and with it the resources, outlives the native window when the app is paused
  *      Emscripten   externalWindowHandle = WINDOW (the CSS selector of the canvas)
- *      Offscreen    none: Ogre's own headless surface
+ *      Offscreen    none: Ogre's own headless EGL surface, so the OpenGL render systems only
  *
  *  and from the video settings: title, vsync, FSAA (anti aliasing factor above 1), displayFrequency. The render window
  *  is never full screen in Ogre's sense: full screen is the platform window's.

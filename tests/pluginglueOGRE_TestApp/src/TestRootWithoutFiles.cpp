@@ -247,7 +247,18 @@ TestRootInitialisationWithoutRenderSystem( void )
             second->SetAttribute( "archiveType", "FileSystem" );
             groups->AddChild( "", GUCEF_DATATYPE_OBJECT )->SetAttribute( "name", "NoPath" );
 
+            // the run time shader system: on by default, without a cache folder
+            ASSERT_TRUE( setup.GetShaderGeneratorEnabled() );
+            ASSERT_TRUE( setup.GetShaderCachePath().IsNULLOrEmpty() );
+            section->SetAttribute( "shaderGenerator", false );
+            section->SetAttribute( "shaderCachePath", "/tmp/rtsscache" );
+
             ASSERT_TRUE( setup.LoadConfig( config ) );
+            ASSERT_FALSE( setup.GetShaderGeneratorEnabled() );
+            ASSERT_TRUE( "/tmp/rtsscache" == setup.GetShaderCachePath() );
+            // disabled, it is not started and that is not an error
+            ASSERT_TRUE( setup.StartShaderGenerator() );
+            ASSERT_FALSE( setup.IsShaderGeneratorStarted() );
             ASSERT_TRUE( 2 == setup.GetRenderSystems().size() );
             ASSERT_TRUE( 2 == setup.GetResourceGroups().size() );
             if ( 2 == setup.GetRenderSystems().size() && 2 == setup.GetResourceGroups().size() )
@@ -269,6 +280,8 @@ TestRootInitialisationWithoutRenderSystem( void )
             ASSERT_TRUE( other.LoadConfig( saved ) );
             ASSERT_TRUE( 2 == other.GetRenderSystems().size() );
             ASSERT_TRUE( 2 == other.GetResourceGroups().size() );
+            ASSERT_FALSE( other.GetShaderGeneratorEnabled() );
+            ASSERT_TRUE( "/tmp/rtsscache" == other.GetShaderCachePath() );
 
             // no render system of the list is there: initialising fails and says so
             ASSERT_FALSE( setup.InitialiseRoot() );

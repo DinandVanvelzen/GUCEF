@@ -89,6 +89,12 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowManagerImp : public GUI::CWindowManage
     /** None of the values: the windows are drawn by Ogre, which makes its own surface */
     virtual bool IsGraphicsApiSupported( const GUI::CString& graphicsApi ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  The Ogre render systems the configuration of the support library allows, that loaded plugins provide and that can
+     *  draw on this system, by renderer name (COgreRootSetup::GetAvailableRenderers()): "Vulkan", "OpenGL", ...
+     */
+    virtual void GetAvailableRenderers( CORE::CString::StringVector& rendererNames ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:

@@ -698,8 +698,10 @@ void
 CXWinGLWindowContext::OnWindowPaint( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    // an expose only says the window is shown: the next pulse draws it (OnPulse() draws every pulse). A frame per expose event
+    // made a resize, which brings an expose event per step, draw a whole frame per step while the dispatcher drains the X queue,
+    // and the frames read the events of the next steps: a drag of the edge of the window kept the event loop drawing until it stopped
     m_shown = true;
-    Redraw();
 }
 
 /*-------------------------------------------------------------------------*/

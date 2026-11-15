@@ -4,7 +4,7 @@
             <License>Apache 2.0</License>
             <SemVer>0.1.0.0</SemVer>
             <DescriptionHeadline>Support library of the Ogre 1.x plugin set: Ogre Root setup, log, plugin loading and the work queue on GUCEF thread pools</DescriptionHeadline>
-            <DescriptionDetails>Makes the Ogre Root without plugin, configuration and log files, directs the Ogre log to the GUCEF logs, loads the Ogre plugins that the bootstrap configuration lists (plugin type OgrePlugin, installed in the Root; on platforms without module loading the plugin objects are handed over by the application) and holds the Ogre section of the global configuration: the render systems to use, the resource groups over the VFS and the work queue. The background work of Ogre runs as GUCEF tasks on a thread pool of the task manager (COgreTaskWorkQueue), and resources load in the background with GUCEF futures (COgreFutureBridge). It is also a GUCEF plugin, so the bootstrap configuration can load it before the Ogre plugins.</DescriptionDetails>
+            <DescriptionDetails>Makes the Ogre Root without plugin, configuration and log files, directs the Ogre log to the GUCEF logs, loads the Ogre plugins that the bootstrap configuration lists (plugin type OgrePlugin, installed in the Root; on platforms without module loading the plugin objects are handed over by the application) and holds the Ogre section of the global configuration: the render systems to use, the resource groups over the VFS, the work queue and the run time shader system, which it starts once the first render window exists. The background work of Ogre runs as GUCEF tasks on a thread pool of the task manager (COgreTaskWorkQueue), and resources load in the background with GUCEF futures (COgreFutureBridge). It is also a GUCEF plugin, so the bootstrap configuration can load it before the Ogre plugins.</DescriptionDetails>
             <Authors>
                 <Author>Dinand Vanvelzen</Author>
             </Authors>
@@ -20,12 +20,14 @@
             <Dependency Name="pluginglueOGRECOMMON" />
             <Dependency Name="Ogre.CommonInclude" />
             <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="Ogre" />
+            <Dependency Name="OgreRTShaderSystem" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_PLUGINGLUE_OGRE_BUILD_MODULE" />

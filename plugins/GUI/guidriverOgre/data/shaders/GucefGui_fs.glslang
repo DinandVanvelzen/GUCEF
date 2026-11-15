@@ -1,0 +1,17 @@
+#version 450
+
+// Fragment program of the GUI material of guidriverOgre (COgreGuiMaterial) for the Vulkan render system: GLSL that the
+// glslang plugin of Ogre compiles to SPIR-V. Texture unit 0 is binding 2: the Vulkan render system of Ogre puts the
+// uniform blocks of the vertex and fragment stages at the bindings 0 and 1 and the texture units after them.
+
+layout( binding = 2 ) uniform sampler2D guiTexture;
+
+layout( location = 0 ) in vec4 guiColour;
+layout( location = 1 ) in vec2 guiUv;
+
+layout( location = 0 ) out vec4 fragColour;
+
+void main()
+{
+    fragColour = guiColour * texture( guiTexture, guiUv );
+}

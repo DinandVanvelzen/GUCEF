@@ -80,7 +80,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../SHARED/pluginglueOGRE/include", "../../SHARED/pluginglueOGRECOMMON", "../../SHARED/pluginglueOGRECOMMON/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/Ogre/Components/RTShaderSystem/include", "../../../dependencies/Ogre/Components/RTShaderSystem/src", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../SHARED/pluginglueOGRE/include", "../../SHARED/pluginglueOGRECOMMON", "../../SHARED/pluginglueOGRECOMMON/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )

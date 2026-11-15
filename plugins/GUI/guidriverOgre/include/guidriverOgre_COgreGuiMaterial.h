@@ -157,7 +157,7 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreGuiMaterial
                                          UInt32 targetHeight ,
                                          bool flipY          );
 
-    /** "glsl", "glsles" or "hlsl": the shading language of the programs for the render system, empty when there is none */
+    /** "hlsl", "glsles", "glsl" or "glslang" (Vulkan): the shading language of the programs for the render system, empty when there is none */
     static CORE::CString GetShadingLanguage( void );
 
     /** The white texture bound for geometry without a texture; NULL before the first Initialize() */

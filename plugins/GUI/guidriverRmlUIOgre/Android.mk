@@ -31,6 +31,8 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/Components/RTShaderSystem/include \
+  $(MY_MODULE_PATH)/../../../dependencies/Ogre/Components/RTShaderSystem/src \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/include/Threading \
   $(MY_MODULE_PATH)/../../../dependencies/Ogre/OgreMain/src \

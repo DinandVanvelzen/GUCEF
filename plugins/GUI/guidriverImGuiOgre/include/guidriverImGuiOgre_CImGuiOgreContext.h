@@ -100,6 +100,22 @@ class GUIDRIVERIMGUIOGRE_PUBLIC_CPP CImGuiOgreContext : public GUIDRIVERIMGUI::C
     /** An Ogre texture of the application as a texture reference for ImGui::Image(): its resource handle is the ImTextureID */
     ImTextureRef GetTextureRef( const Ogre::TexturePtr& texture ) const;
 
+    /**
+     *  Makes an Ogre texture of the application an image of the context under 'alias', for the drawing commands of
+     *  widgets (CImGuiOgreRenderContext shows one in a DrawSurface): a one pixel stand-in is registered as the image, the
+     *  texture is drawn through its texture reference without a copy, and the context keeps the texture alive until it is
+     *  unregistered or the context goes. The source rectangle (0, 0, 1, 1) of a drawing command is the whole texture.
+     *  Registering an alias again replaces its texture. False for an empty alias or a NULL texture
+     */
+    bool RegisterOgreTexture( const CORE::CString& alias, const Ogre::TexturePtr& texture );
+
+    bool UnregisterOgreTexture( const CORE::CString& alias );
+
+    /** The texture registered under the alias, NULL for none */
+    Ogre::TexturePtr GetRegisteredOgreTexture( const CORE::CString& alias ) const;
+
+    virtual bool GetBackendImageTextureRef( const CORE::CString& reference, ImTextureRef& textureRef ) const GUCEF_VIRTUAL_OVERRIDE;
+
     /** How often the window let this context draw its overlay (not the captures) */
     UInt32 GetOverlayDrawCount( void ) const;
 
@@ -131,7 +147,10 @@ class GUIDRIVERIMGUIOGRE_PUBLIC_CPP CImGuiOgreContext : public GUIDRIVERIMGUI::C
 
     private:
 
+    typedef GUCEF::map< CORE::CString, Ogre::TexturePtr > TOgreTextureMap;
+
     CImGuiOgreRenderer* m_renderer;
+    TOgreTextureMap m_ogreTextures;     /**< the application textures that are images of this context, by alias */
     const ImDrawData* m_drawData;       /**< what the overlay draws: of the last frame, valid until the next one */
     UInt32 m_overlayDrawCount;
     bool m_registered;

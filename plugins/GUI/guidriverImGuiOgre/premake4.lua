@@ -63,6 +63,7 @@ files( {
   "include/guidriverImGuiOgre.h",
   "include/guidriverImGuiOgre_CImGuiOgreContext.h",
   "include/guidriverImGuiOgre_CImGuiOgreDriver.h",
+  "include/guidriverImGuiOgre_CImGuiOgreRenderContext.h",
   "include/guidriverImGuiOgre_CImGuiOgreRenderer.h",
   "include/guidriverImGuiOgre_config.h",
   "include/guidriverImGuiOgre_macros.h",
@@ -76,13 +77,14 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/guidriverImGuiOgre_CImGuiOgreContext.cpp",
   "src/guidriverImGuiOgre_CImGuiOgreDriver.cpp",
+  "src/guidriverImGuiOgre_CImGuiOgreRenderContext.cpp",
   "src/guidriverImGuiOgre_CImGuiOgreRenderer.cpp",
   "src/guidriverImGuiOgre_pluginAPI.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../dependencies/imgui", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../../SHARED/pluginglueOGRE/include", "../../SHARED/pluginglueOGRECOMMON", "../../SHARED/pluginglueOGRECOMMON/include", "../guidriverImGui/include", "../guidriverOgre/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/Ogre/Components/RTShaderSystem/include", "../../../dependencies/Ogre/Components/RTShaderSystem/src", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/zip", "../../../dependencies/Ogre/include", "../../../dependencies/imgui", "../../../platform/gucefAUDIO/include", "../../../platform/gucefAUDIO/include/c_api", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMATH/include", "../../../platform/gucefMATH/src", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../../../platform/gucefVIDEO/include", "../../../platform/gucefVIDEO/include/c_api", "../../SHARED/pluginglueOGRE/include", "../../SHARED/pluginglueOGRECOMMON", "../../SHARED/pluginglueOGRECOMMON/include", "../guidriverImGui/include", "../guidriverOgre/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/Android", "../../../platform/gucefCORE/include/android" } )

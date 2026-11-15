@@ -205,7 +205,8 @@ class GUIDRIVEROGRE_PUBLIC_CPP COgreWindowContext : public GUI::CWindowContext  
     /**
      *  GRAPHICS_API is "Ogre", GL_* properties are empty, "Ogre::RenderWindow" and "Ogre::SceneManager" (the scene manager of
      *  the camera of the last viewport, NULL while there is none) are pointers for GUI drivers that draw through Ogre scene
-     *  rendering, everything else is the platform window's (WINDOW, DISPLAY, ...)
+     *  rendering, RENDERER is the renderer the window draws with ("Vulkan", "OpenGL", ..., COgreRootSetup::GetRendererName()),
+     *  everything else is the platform window's (WINDOW, DISPLAY, ...)
      */
     virtual GUI::CString GetProperty( const GUI::CString& propertyName ) const GUCEF_VIRTUAL_OVERRIDE;
 

@@ -66,7 +66,7 @@ if ( EMSCRIPTEN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=OgreCodec_GucefIMAGE" )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../SHARED/pluginglueOGRE/include ../../SHARED/pluginglueOGRECOMMON ../../SHARED/pluginglueOGRECOMMON/include include )
+include_directories( ../../../common/include ../../../dependencies/Ogre/Components/RTShaderSystem/include ../../../dependencies/Ogre/Components/RTShaderSystem/src ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../SHARED/pluginglueOGRE/include ../../SHARED/pluginglueOGRECOMMON ../../SHARED/pluginglueOGRECOMMON/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )

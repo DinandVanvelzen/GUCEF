@@ -15,6 +15,7 @@ set( HEADER_FILES
   include/guidriverImGuiOgre.h
   include/guidriverImGuiOgre_CImGuiOgreContext.h
   include/guidriverImGuiOgre_CImGuiOgreDriver.h
+  include/guidriverImGuiOgre_CImGuiOgreRenderContext.h
   include/guidriverImGuiOgre_CImGuiOgreRenderer.h
   include/guidriverImGuiOgre_config.h
   include/guidriverImGuiOgre_macros.h
@@ -24,6 +25,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/guidriverImGuiOgre_CImGuiOgreContext.cpp
   src/guidriverImGuiOgre_CImGuiOgreDriver.cpp
+  src/guidriverImGuiOgre_CImGuiOgreRenderContext.cpp
   src/guidriverImGuiOgre_CImGuiOgreRenderer.cpp
   src/guidriverImGuiOgre_pluginAPI.cpp
 )
@@ -68,7 +70,7 @@ if ( EMSCRIPTEN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=guidriverImGuiOgre" )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../dependencies/imgui ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../../SHARED/pluginglueOGRE/include ../../SHARED/pluginglueOGRECOMMON ../../SHARED/pluginglueOGRECOMMON/include ../guidriverImGui/include ../guidriverOgre/include include )
+include_directories( ../../../common/include ../../../dependencies/Ogre/Components/RTShaderSystem/include ../../../dependencies/Ogre/Components/RTShaderSystem/src ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/zip ../../../dependencies/Ogre/include ../../../dependencies/imgui ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMATH/include ../../../platform/gucefMATH/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../../../platform/gucefVIDEO/include ../../../platform/gucefVIDEO/include/c_api ../../SHARED/pluginglueOGRE/include ../../SHARED/pluginglueOGRECOMMON ../../SHARED/pluginglueOGRECOMMON/include ../guidriverImGui/include ../guidriverOgre/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/Android ../../../platform/gucefCORE/include/android )

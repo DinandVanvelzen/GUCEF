@@ -37,6 +37,16 @@
 #define GUIDRIVEROGRE_COGREWINDOWCONTEXT_H
 #endif /* GUIDRIVEROGRE_COGREWINDOWCONTEXT_H ? */
 
+#ifndef GUCEF_PLUGINGLUE_OGRE_COGREGLOBAL_H
+#include "pluginglueOGRE_COgreGlobal.h"
+#define GUCEF_PLUGINGLUE_OGRE_COGREGLOBAL_H
+#endif /* GUCEF_PLUGINGLUE_OGRE_COGREGLOBAL_H ? */
+
+#ifndef GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H
+#include "pluginglueOGRE_COgreRootSetup.h"
+#define GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H
+#endif /* GUCEF_PLUGINGLUE_OGRE_COGREROOTSETUP_H ? */
+
 #include "guidriverOgre_COgreWindowManagerImp.h"
 
 /*-------------------------------------------------------------------------//
@@ -153,6 +163,19 @@ COgreWindowManagerImp::IsGraphicsApiSupported( const GUI::CString& graphicsApi )
 {GUCEF_TRACE;
 
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+COgreWindowManagerImp::GetAvailableRenderers( CORE::CString::StringVector& rendererNames ) const
+{GUCEF_TRACE;
+
+    // the render system plugins are loaded into the Root, which the support library makes when the first plugin needs it
+    PLUGINGLUE::OGRE::COgreRootSetup& rootSetup = PLUGINGLUE::OGRE::COgreGlobal::Instance()->GetRootSetup();
+    rendererNames.clear();
+    if ( rootSetup.CreateRoot() )
+        rootSetup.GetAvailableRenderers( rendererNames );
 }
 
 /*-------------------------------------------------------------------------*/

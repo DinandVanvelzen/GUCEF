@@ -252,20 +252,45 @@ CImGuiDrawListPainter::PaintImage( const GUI::CDrawSurface::TCommand& command, c
     const UInt32 alpha = ScaledAlpha( command.colour.a, opacity );
     if ( target.IsEmpty() || 0 == alpha )
         return;
-    ::ImTextureData* texture = m_context.GetTextureCache().GetImageTexture( command.image );
-    if ( GUCEF_NULL == texture )
+    // a texture of the backend of the renderer (an application texture) stands in for the pixels of the image: the pixels
+    // only give the size the source rectangle refers to, and the texture is scaled, so it is sampled linearly
+    ::ImTextureRef textureRef;
+    ::ImTextureData* texture = GUCEF_NULL;
+    Int32 imageWidth = 0;
+    Int32 imageHeight = 0;
+    bool backendTexture = false;
+    if ( m_context.GetBackendImageTextureRef( command.image, textureRef ) )
+    {
+        IMAGE::TPixelMapPtr pixels;
+        UInt32 revision = 0;
+        if ( !m_context.ResolveImage( command.image, pixels, revision ) || pixels.IsNULL() )
+            return;
+        imageWidth = (Int32) pixels->GetWidthInPixels();
+        imageHeight = (Int32) pixels->GetHeightInPixels();
+        backendTexture = true;
+    }
+    else
+    {
+        texture = m_context.GetTextureCache().GetImageTexture( command.image );
+        if ( GUCEF_NULL == texture )
+            return;
+        textureRef = texture->GetTexRef();
+        imageWidth = texture->Width;
+        imageHeight = texture->Height;
+    }
+    if ( imageWidth <= 0 || imageHeight <= 0 )
         return;
 
     // the source is in logical pixels of the image: its pixels divided by its density
     const Int32 density = (Int32) m_context.GetImageDensity( command.image );
-    GUI::CRect source = command.source.IsEmpty() ? GUI::CRect( 0, 0, texture->Width, texture->Height ) : ScaledRect( command.source, density );
+    GUI::CRect source = command.source.IsEmpty() ? GUI::CRect( 0, 0, imageWidth, imageHeight ) : ScaledRect( command.source, density );
     if ( source.IsEmpty() )
         return;
 
-    const float width = (float) texture->Width;
-    const float height = (float) texture->Height;
-    SetNearestSampling( true );
-    m_drawList.AddImage( texture->GetTexRef(),
+    const float width = (float) imageWidth;
+    const float height = (float) imageHeight;
+    SetNearestSampling( !backendTexture );
+    m_drawList.AddImage( textureRef,
                          ImVec2( (float) target.left, (float) target.top ), ImVec2( (float) target.Right(), (float) target.Bottom() ),
                          ImVec2( source.left / width, source.top / height ), ImVec2( source.Right() / width, source.Bottom() / height ),
                          PackColour( command.colour, alpha ) );
