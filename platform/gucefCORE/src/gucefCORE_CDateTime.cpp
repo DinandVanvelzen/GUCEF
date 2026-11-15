@@ -59,39 +59,6 @@
 namespace GUCEF {
 namespace CORE {
 
-namespace {
-
-/*
- *  Calendar helpers of the proleptic Gregorian calendar, days counted from 1970-01-01. Kept in this file so that the
- *  date and time class does not depend on the time zone rules (which not every module that builds this file includes).
- */
-Int64
-SystemLocalDaysFromCivil( Int64 year, Int32 month, Int32 day )
-{
-    year -= month <= 2 ? 1 : 0;
-    const Int64 era = ( year >= 0 ? year : year - 399 ) / 400;
-    const Int64 yearOfEra = year - era * 400;
-    const Int64 dayOfYear = ( 153 * ( month + ( month > 2 ? -3 : 9 ) ) + 2 ) / 5 + day - 1;
-    const Int64 dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear;
-    return era * 146097 + dayOfEra - 719468;
-}
-
-void
-SystemLocalCivilFromDays( Int64 days, Int64& year, Int32& month, Int32& day )
-{
-    days += 719468;
-    const Int64 era = ( days >= 0 ? days : days - 146096 ) / 146097;
-    const Int64 dayOfEra = days - era * 146097;
-    const Int64 yearOfEra = ( dayOfEra - dayOfEra / 1460 + dayOfEra / 36524 - dayOfEra / 146096 ) / 365;
-    const Int64 dayOfYear = dayOfEra - ( 365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100 );
-    const Int64 monthPart = ( 5 * dayOfYear + 2 ) / 153;
-    day = (Int32) ( dayOfYear - ( 153 * monthPart + 2 ) / 5 + 1 );
-    month = (Int32) ( monthPart < 10 ? monthPart + 3 : monthPart - 9 );
-    year = yearOfEra + era * 400 + ( month <= 2 ? 1 : 0 );
-}
-
-}
-
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -265,6 +232,45 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
         return quadDiff;
     }
 
+    /** The offset of the operating system zone from UTC at an instant, in minutes east of UTC, daylight saving applied. False when it cannot be told */
+    static bool GetUtcOffsetInMinsAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
+    {
+        // SYSTEMTIME covers the years 1601 to 30827
+        Int64 days = utcSeconds / 86400;
+        Int64 secondOfDay = utcSeconds % 86400;
+        if ( secondOfDay < 0 )
+        {
+            secondOfDay += 86400;
+            --days;
+        }
+        if ( days < GUCEF_INT32MIN || days > GUCEF_INT32MAX )
+            return false;
+        CDate utcDate;
+        if ( !utcDate.FromDaysSinceUnixEpoch( (Int32) days ) || utcDate.GetYear() < 1602 || utcDate.GetYear() > 30826 )
+            return false;
+
+        ::SYSTEMTIME utcSystemTime;
+        memset( &utcSystemTime, 0, sizeof( utcSystemTime ) );
+        utcSystemTime.wYear = (WORD) utcDate.GetYear();
+        utcSystemTime.wMonth = (WORD) utcDate.GetMonth();
+        utcSystemTime.wDay = (WORD) utcDate.GetDay();
+        utcSystemTime.wHour = (WORD) ( secondOfDay / 3600 );
+        utcSystemTime.wMinute = (WORD) ( ( secondOfDay % 3600 ) / 60 );
+        utcSystemTime.wSecond = (WORD) ( secondOfDay % 60 );
+
+        ::SYSTEMTIME localSystemTime;
+        memset( &localSystemTime, 0, sizeof( localSystemTime ) );
+        if ( 0 == ::SystemTimeToTzSpecificLocalTime( GUCEF_NULL, &utcSystemTime, &localSystemTime ) )
+            return false;
+
+        Int64 localSeconds = (Int64) CDate( localSystemTime.wYear, (UInt8) localSystemTime.wMonth, (UInt8) localSystemTime.wDay ).ToDaysSinceUnixEpoch() * 86400 +
+                             localSystemTime.wHour * 3600 + localSystemTime.wMinute * 60 + localSystemTime.wSecond;
+        offsetMinutes = (Int32) ( ( localSeconds - utcSeconds ) / 60 );
+        return true;
+    }
+
+    /*-------------------------------------------------------------------------*/
+
     static CDateTime NowLocalDateTime( void )
     {
         ::SYSTEMTIME utcSystemTime;
@@ -373,6 +379,25 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
                       (UInt16) ( tspec.tv_nsec / 1000000 ),
                       0 );
     }
+
+    /** The offset of the operating system zone from UTC at an instant, in minutes east of UTC, daylight saving applied. False when it cannot be told */
+    static bool GetUtcOffsetInMinsAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
+    {
+        time_t instant = (time_t) utcSeconds;
+        if ( (Int64) instant != utcSeconds )
+            return false;
+
+        // localtime_r() is not required to look at the TZ variable again: tzset() makes it follow the variable
+        ::tzset();
+        struct ::tm localTime;
+        memset( &localTime, 0, sizeof( localTime ) );
+        if ( GUCEF_NULL == ::localtime_r( &instant, &localTime ) )
+            return false;
+        offsetMinutes = (Int32) ( localTime.tm_gmtoff / 60 );
+        return true;
+    }
+
+    /*-------------------------------------------------------------------------*/
 
     static CDateTime NowLocalDateTime( void )
     {
@@ -517,6 +542,14 @@ class GUCEF_CORE_PRIVATE_CPP COSDateTimeUtils
     {
         return 0;
     }
+
+    /** The offset of the operating system zone from UTC at an instant: no way to ask this platform, the caller shows UTC */
+    static bool GetUtcOffsetInMinsAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
+    {
+        return false;
+    }
+
+    /*-------------------------------------------------------------------------*/
 
     static CDateTime NowLocalDateTime( void )
     {
@@ -933,86 +966,15 @@ CDateTime::ToUTC( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-namespace {
-
-/** The offset of the operating system zone from UTC at the instant, in minutes east of UTC, with daylight saving applied. False when the platform cannot say */
-bool
-GetSystemZoneOffsetMinutesAtUtcSeconds( Int64 utcSeconds, Int32& offsetMinutes )
-{GUCEF_TRACE;
-
-    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-
-    // SYSTEMTIME covers the years 1601 to 30827
-    Int64 days = utcSeconds / 86400;
-    Int64 secondOfDay = utcSeconds % 86400;
-    if ( secondOfDay < 0 )
-    {
-        secondOfDay += 86400;
-        --days;
-    }
-    Int64 year = 0;
-    Int32 month = 0, day = 0;
-    SystemLocalCivilFromDays( days, year, month, day );
-    if ( year < 1602 || year > 30826 )
-        return false;
-
-    ::SYSTEMTIME utcSystemTime;
-    memset( &utcSystemTime, 0, sizeof( utcSystemTime ) );
-    utcSystemTime.wYear = (WORD) year;
-    utcSystemTime.wMonth = (WORD) month;
-    utcSystemTime.wDay = (WORD) day;
-    utcSystemTime.wHour = (WORD) ( secondOfDay / 3600 );
-    utcSystemTime.wMinute = (WORD) ( ( secondOfDay % 3600 ) / 60 );
-    utcSystemTime.wSecond = (WORD) ( secondOfDay % 60 );
-
-    ::SYSTEMTIME localSystemTime;
-    memset( &localSystemTime, 0, sizeof( localSystemTime ) );
-    if ( 0 == ::SystemTimeToTzSpecificLocalTime( GUCEF_NULL, &utcSystemTime, &localSystemTime ) )
-        return false;
-
-    Int64 localSeconds = SystemLocalDaysFromCivil( localSystemTime.wYear, localSystemTime.wMonth, localSystemTime.wDay ) * 86400 +
-                         localSystemTime.wHour * 3600 + localSystemTime.wMinute * 60 + localSystemTime.wSecond;
-    offsetMinutes = (Int32) ( ( localSeconds - utcSeconds ) / 60 );
-    return true;
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    time_t instant = (time_t) utcSeconds;
-    if ( (Int64) instant != utcSeconds )
-        return false;
-
-    // localtime_r() is not required to look at the TZ variable again: tzset() makes it follow the variable
-    ::tzset();
-    struct tm localTime;
-    memset( &localTime, 0, sizeof( localTime ) );
-    if ( GUCEF_NULL == ::localtime_r( &instant, &localTime ) )
-        return false;
-    offsetMinutes = (Int32) ( localTime.tm_gmtoff / 60 );
-    return true;
-
-    #else
-
-    // no way to ask this platform: the caller shows UTC
-    return false;
-
-    #endif
-}
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 CDateTime
 CDateTime::ToSystemLocal( void ) const
 {GUCEF_TRACE;
 
     // The instant in whole seconds plus milliseconds, from the date and time and the offset this value carries
-    Int64 days = SystemLocalDaysFromCivil( GetYear(), GetMonth(), GetDay() );
-    Int64 utcSeconds = days * 86400 + (Int64) GetHours() * 3600 + (Int64) GetMinutes() * 60 + GetSeconds() - (Int64) m_timezoneOffsetInMins * 60;
-    Int32 milliseconds = GetMilliseconds();
+    Int64 utcSeconds = (Int64) ToDaysSinceUnixEpoch() * 86400 + (Int64) GetHours() * 3600 + (Int64) GetMinutes() * 60 + GetSeconds() - (Int64) m_timezoneOffsetInMins * 60;
 
     Int32 offsetMinutes = 0;
-    if ( !GetSystemZoneOffsetMinutesAtUtcSeconds( utcSeconds, offsetMinutes ) )
+    if ( !COSDateTimeUtils::GetUtcOffsetInMinsAtUtcSeconds( utcSeconds, offsetMinutes ) )
         offsetMinutes = 0;      // the platform cannot say: the value is shown as UTC, which is always correct
 
     Int64 localSeconds = utcSeconds + (Int64) offsetMinutes * 60;
@@ -1023,16 +985,17 @@ CDateTime::ToSystemLocal( void ) const
         secondOfDay += 86400;
         --localDays;
     }
-    Int64 year = 0;
-    Int32 month = 0, day = 0;
-    SystemLocalCivilFromDays( localDays, year, month, day );
 
-    return CDateTime( (Int16) year, (UInt8) month, (UInt8) day                  ,
-                      (Int8) ( secondOfDay / 3600 )                             ,
-                      (Int8) ( ( secondOfDay % 3600 ) / 60 )                    ,
-                      (Int8) ( secondOfDay % 60 )                               ,
-                      (Int16) milliseconds                                      ,
-                      (Int16) offsetMinutes                                     );
+    CDate localDate;
+    if ( localDays < GUCEF_INT32MIN || localDays > GUCEF_INT32MAX || !localDate.FromDaysSinceUnixEpoch( (Int32) localDays ) )
+        return *this;
+
+    return CDateTime( localDate.GetYear(), localDate.GetMonth(), localDate.GetDay() ,
+                      (Int8) ( secondOfDay / 3600 )                                 ,
+                      (Int8) ( ( secondOfDay % 3600 ) / 60 )                        ,
+                      (Int8) ( secondOfDay % 60 )                                   ,
+                      GetMilliseconds()                                             ,
+                      (Int16) offsetMinutes                                         );
 }
 
 /*-------------------------------------------------------------------------*/
