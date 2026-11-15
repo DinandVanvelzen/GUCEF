@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="gucefDRNUTILS_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_DRNUTILS_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <!-- test support headers shared from other modules -->
+        <Includes Source="Dependency">
+            <Include Path="../../tests/gucefCOMCORE_TestApp/include" />
+        </Includes>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

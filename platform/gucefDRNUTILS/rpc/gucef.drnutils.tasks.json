@@ -1,0 +1,213 @@
+{
+    "contract": "gucef.drnutils.tasks",
+    "version": "1.0",
+    "doc": "View and control of the task manager of a node: thread pools, threads, tasks and the scheduled jobs of its job schedulers. Task data is never exposed. All times are UTC milliseconds",
+    "enums": [
+        {
+            "name": "TaskControlAction",
+            "values": [
+                { "name": "TASK_CONTROL_ACTION_UNSPECIFIED", "number": 0 },
+                { "name": "RESIZE_POOL", "number": 1 },
+                { "name": "CANCEL_TASK", "number": 2 },
+                { "name": "STOP_TASK", "number": 3 }
+            ],
+            "reserved": { "numbers": [ 4, 5, 6, 7 ], "names": [ "PAUSE_TASK", "RESUME_TASK", "PAUSE_POOL", "RESUME_POOL" ] }
+        },
+        {
+            "name": "ExecutionTarget",
+            "values": [
+                { "name": "EXECUTION_TARGET_UNSPECIFIED", "number": 0 },
+                { "name": "POOL", "number": 1 },
+                { "name": "MAIN_THREAD", "number": 2 }
+            ]
+        }
+    ],
+    "types": [
+        { "name": "Empty", "fields": [] },
+        {
+            "name": "TaskManagerInfo",
+            "fields": [
+                { "number": 1, "name": "hostName", "type": "string" },
+                { "number": 2, "name": "hostInstanceId", "type": "uint64" },
+                { "number": 3, "name": "serverTimeUtc", "type": "timestamp" },
+                { "number": 4, "name": "capabilities", "type": "string", "cardinality": "repeated" },
+                { "number": 5, "name": "controllablePools", "type": "string", "cardinality": "repeated" },
+                { "number": 6, "name": "tableNames", "type": "map<string,string>" }
+            ]
+        },
+        {
+            "name": "PoolRow",
+            "fields": [
+                { "number": 1, "name": "name", "type": "string" },
+                { "number": 2, "name": "activeWorkers", "type": "uint32" },
+                { "number": 3, "name": "desiredMinWorkers", "type": "uint32" },
+                { "number": 4, "name": "desiredMaxThreads", "type": "int32" },
+                { "number": 5, "name": "dedicatedThreads", "type": "uint32" },
+                { "number": 6, "name": "queued", "type": "uint32" },
+                { "number": 7, "name": "running", "type": "uint32" },
+                { "number": 8, "name": "startedPerSecond", "type": "float64" },
+                { "number": 9, "name": "finishedPerSecond", "type": "float64" },
+                { "number": 10, "name": "failedPerSecond", "type": "float64" },
+                { "number": 11, "name": "cancelledPerSecond", "type": "float64" },
+                { "number": 12, "name": "avgQueueWaitMs", "type": "float64" },
+                { "number": 13, "name": "avgRunMs", "type": "float64" },
+                { "number": 14, "name": "utilisationPercent", "type": "float32" },
+                { "number": 15, "name": "startedTotal", "type": "uint64" },
+                { "number": 16, "name": "finishedTotal", "type": "uint64" },
+                { "number": 17, "name": "failedTotal", "type": "uint64" },
+                { "number": 21, "name": "scheduledJobs", "type": "uint32" },
+                { "number": 22, "name": "cancelledTotal", "type": "uint64" }
+            ],
+            "reserved": { "numbers": [ 18, 19, 20 ], "names": [ "dispatchPaused", "parkedTasks", "parkOverdueTasks" ] }
+        },
+        {
+            "name": "PoolList",
+            "fields": [
+                { "number": 1, "name": "pools", "type": "PoolRow", "cardinality": "repeated" },
+                { "number": 2, "name": "sampleUtc", "type": "timestamp" }
+            ]
+        },
+        {
+            "name": "ListThreadsRequest",
+            "fields": [
+                { "number": 1, "name": "pool", "type": "string" }
+            ]
+        },
+        {
+            "name": "ThreadRow",
+            "fields": [
+                { "number": 1, "name": "systemThreadId", "type": "uint64" },
+                { "number": 2, "name": "name", "type": "string" },
+                { "number": 3, "name": "pool", "type": "string" },
+                { "number": 4, "name": "status", "type": "string" },
+                { "number": 5, "name": "taskId", "type": "uint32" },
+                { "number": 6, "name": "taskType", "type": "string" },
+                { "number": 7, "name": "busySinceUtc", "type": "timestamp" },
+                { "number": 8, "name": "external", "type": "bool" }
+            ],
+            "reserved": { "numbers": [ 9 ], "names": [ "parkedInPlace" ] }
+        },
+        {
+            "name": "ThreadList",
+            "fields": [
+                { "number": 1, "name": "threads", "type": "ThreadRow", "cardinality": "repeated" }
+            ]
+        },
+        {
+            "name": "ListTasksRequest",
+            "fields": [
+                { "number": 1, "name": "pool", "type": "string" },
+                { "number": 2, "name": "includeQueued", "type": "bool" },
+                { "number": 3, "name": "includeEnded", "type": "bool" },
+                { "number": 4, "name": "maxRows", "type": "uint32" }
+            ]
+        },
+        {
+            "name": "TaskRow",
+            "fields": [
+                { "number": 1, "name": "taskId", "type": "uint32" },
+                { "number": 2, "name": "pool", "type": "string" },
+                { "number": 3, "name": "taskType", "type": "string" },
+                { "number": 4, "name": "status", "type": "string" },
+                { "number": 5, "name": "extraInfo", "type": "string" },
+                { "number": 6, "name": "queuedUtc", "type": "timestamp" },
+                { "number": 7, "name": "startedUtc", "type": "timestamp" },
+                { "number": 8, "name": "runningForMs", "type": "uint64" },
+                { "number": 9, "name": "systemThreadId", "type": "uint64" },
+                { "number": 17, "name": "schedulerName", "type": "string" },
+                { "number": 18, "name": "jobId", "type": "string" },
+                { "number": 19, "name": "runId", "type": "uint64" }
+            ],
+            "reserved": { "numbers": [ 10, 11, 12, 13, 14, 15, 16 ], "names": [ "parkState", "parkSupport", "parkRequestedUtc", "parkedSinceUtc", "parkOverdue", "parkReason", "threadReleased" ] }
+        },
+        {
+            "name": "TaskList",
+            "fields": [
+                { "number": 1, "name": "tasks", "type": "TaskRow", "cardinality": "repeated" },
+                { "number": 2, "name": "truncated", "type": "bool" }
+            ]
+        },
+        {
+            "name": "ScheduledJobRow",
+            "fields": [
+                { "number": 1, "name": "jobKey", "type": "string" },
+                { "number": 2, "name": "schedulerName", "type": "string" },
+                { "number": 3, "name": "jobId", "type": "string" },
+                { "number": 4, "name": "title", "type": "string" },
+                { "number": 5, "name": "taskType", "type": "string" },
+                { "number": 6, "name": "executionTarget", "type": "ExecutionTarget" },
+                { "number": 7, "name": "pool", "type": "string" },
+                { "number": 8, "name": "lane", "type": "string" },
+                { "number": 9, "name": "state", "type": "string" },
+                { "number": 10, "name": "nextDueUtc", "type": "timestamp" },
+                { "number": 11, "name": "activeRuns", "type": "uint32" },
+                { "number": 12, "name": "lastRunState", "type": "string" },
+                { "number": 13, "name": "lastRunEndedUtc", "type": "timestamp" },
+                { "number": 14, "name": "origin", "type": "string" }
+            ]
+        },
+        {
+            "name": "ScheduledJobList",
+            "fields": [
+                { "number": 1, "name": "jobs", "type": "ScheduledJobRow", "cardinality": "repeated" }
+            ]
+        },
+        {
+            "name": "WatchRequest",
+            "fields": [
+                { "number": 1, "name": "sampleIntervalMs", "type": "uint32" },
+                { "number": 2, "name": "includeThreads", "type": "bool" },
+                { "number": 3, "name": "includeTasks", "type": "bool" },
+                { "number": 4, "name": "includeScheduledJobs", "type": "bool" }
+            ]
+        },
+        {
+            "name": "Sample",
+            "fields": [
+                { "number": 1, "name": "sampleUtc", "type": "timestamp" },
+                { "number": 2, "name": "pools", "type": "PoolRow", "cardinality": "repeated" },
+                { "number": 3, "name": "threads", "type": "ThreadRow", "cardinality": "repeated" },
+                { "number": 4, "name": "tasks", "type": "TaskRow", "cardinality": "repeated" },
+                { "number": 5, "name": "truncated", "type": "bool" },
+                { "number": 6, "name": "scheduledJobs", "type": "ScheduledJobRow", "cardinality": "repeated" }
+            ]
+        },
+        {
+            "name": "ControlRequest",
+            "fields": [
+                { "number": 1, "name": "commandId", "type": "string" },
+                { "number": 2, "name": "action", "type": "TaskControlAction" },
+                { "number": 3, "name": "pool", "type": "string" },
+                { "number": 4, "name": "taskId", "type": "uint32" },
+                { "number": 5, "name": "minWorkers", "type": "uint32" },
+                { "number": 6, "name": "maxThreads", "type": "int32" },
+                { "number": 7, "name": "reason", "type": "string" },
+                { "number": 8, "name": "dryRun", "type": "bool" }
+            ],
+            "reserved": { "numbers": [ 9 ], "names": [ "parkRunning" ] }
+        },
+        {
+            "name": "ControlOutcome",
+            "fields": [
+                { "number": 1, "name": "replayed", "type": "bool" },
+                { "number": 2, "name": "messages", "type": "string", "cardinality": "repeated" }
+            ],
+            "reserved": { "numbers": [ 3 ], "names": [ "parkState" ] }
+        }
+    ],
+    "services": [
+        {
+            "name": "TaskManager",
+            "number": 1,
+            "methods": [
+                { "number": 1, "name": "GetInfo", "kind": "unary", "request": "Empty", "response": "TaskManagerInfo", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 2, "name": "ListPools", "kind": "unary", "request": "Empty", "response": "PoolList", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 3, "name": "ListThreads", "kind": "unary", "request": "ListThreadsRequest", "response": "ThreadList", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 4, "name": "ListTasks", "kind": "unary", "request": "ListTasksRequest", "response": "TaskList", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 5, "name": "Watch", "kind": "server_stream", "request": "WatchRequest", "response": "Sample", "initialCredit": 16 },
+                { "number": 6, "name": "Control", "kind": "unary", "request": "ControlRequest", "response": "ControlOutcome", "deadlineMs": 30000 },
+                { "number": 7, "name": "ListScheduledJobs", "kind": "unary", "request": "Empty", "response": "ScheduledJobList", "flags": [ "idempotent" ], "deadlineMs": 10000 }
+            ]
+        }
+    ]
+}

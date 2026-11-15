@@ -16,6 +16,8 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE 
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMPUTE ${CMAKE_BINARY_DIR}/gucefCOMPUTE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefDRN ${CMAKE_BINARY_DIR}/gucefDRN )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefDRNUTILS ${CMAKE_BINARY_DIR}/gucefDRNUTILS )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefDRNUTILSGUI ${CMAKE_BINARY_DIR}/gucefDRNUTILSGUI )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGAMEGUI ${CMAKE_BINARY_DIR}/gucefGAMEGUI )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGEOMETRY ${CMAKE_BINARY_DIR}/gucefGEOMETRY )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGUI ${CMAKE_BINARY_DIR}/gucefGUI )

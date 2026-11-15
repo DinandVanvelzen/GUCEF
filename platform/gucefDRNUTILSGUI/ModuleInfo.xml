@@ -1,0 +1,50 @@
+<ModuleInfoEntry>
+    <Module Name="gucefDRNUTILSGUI" Type="SharedLibrary" Platform="All" Tags="platform">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>GUCEF module providing the forms that view and control job schedulers and the task manager</DescriptionHeadline>
+            <DescriptionDetails></DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefVFS" Scope="public" />
+            <Dependency Name="gucefIMAGE" Scope="public" />
+            <Dependency Name="gucefINPUT" Scope="public" />
+            <Dependency Name="gucefAUDIO" Scope="public" />
+            <Dependency Name="gucefVIDEO" Scope="public" />
+            <Dependency Name="gucefGUI" Scope="public" />
+            <Dependency Name="gucefCOMCORE" Scope="public" />
+            <Dependency Name="gucefCOM" Scope="public" />
+            <Dependency Name="gucefWEB" Scope="public" />
+            <Dependency Name="gucefDRN" Scope="public" />
+            <Dependency Name="gucefDRNUTILS" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_DRNUTILSGUI_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

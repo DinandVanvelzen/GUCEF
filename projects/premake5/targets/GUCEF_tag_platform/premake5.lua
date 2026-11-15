@@ -29,6 +29,8 @@ filter "ALL"
   include( "platform/gucefCOMPUTE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefDRN" )
+  include( "platform/gucefDRNUTILS" )
+  include( "platform/gucefDRNUTILSGUI" )
   include( "platform/gucefGAMEGUI" )
   include( "platform/gucefGEOMETRY" )
   include( "platform/gucefGUI" )

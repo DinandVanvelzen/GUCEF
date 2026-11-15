@@ -1,0 +1,357 @@
+{
+    "contract": "gucef.drnutils.scheduler",
+    "version": "1.0",
+    "doc": "View and control of one job scheduler of a node, and submission of jobs as data for the task types the node allows. All times are UTC milliseconds",
+    "enums": [
+        {
+            "name": "JobState",
+            "values": [
+                { "name": "JOB_STATE_UNSPECIFIED", "number": 0 },
+                { "name": "SCHEDULED", "number": 1 },
+                { "name": "QUEUED", "number": 2 },
+                { "name": "WAITING", "number": 3 },
+                { "name": "RUNNING", "number": 4 },
+                { "name": "DISABLED", "number": 6 },
+                { "name": "UNAVAILABLE", "number": 7 },
+                { "name": "ENDED", "number": 8 }
+            ],
+            "reserved": { "numbers": [ 5 ], "names": [ "PAUSED" ] }
+        },
+        {
+            "name": "RunState",
+            "values": [
+                { "name": "RUN_STATE_UNSPECIFIED", "number": 0 },
+                { "name": "RUN_QUEUED", "number": 1 },
+                { "name": "RUN_WAITING", "number": 2 },
+                { "name": "RUN_RUNNING", "number": 3 },
+                { "name": "SUCCEEDED", "number": 4 },
+                { "name": "FAILED", "number": 5 },
+                { "name": "CANCELLED", "number": 6 },
+                { "name": "TIMED_OUT", "number": 7 },
+                { "name": "SKIPPED", "number": 8 }
+            ],
+            "reserved": { "numbers": [ 9, 10, 11 ], "names": [ "RUN_PARKING", "RUN_PARKED", "RUN_RESUMING" ] }
+        },
+        {
+            "name": "ControlAction",
+            "values": [
+                { "name": "CONTROL_ACTION_UNSPECIFIED", "number": 0 },
+                { "name": "RUN_NOW", "number": 3 },
+                { "name": "CANCEL_RUN", "number": 4 },
+                { "name": "ENABLE", "number": 5 },
+                { "name": "DISABLE", "number": 6 },
+                { "name": "SET_PRIORITY", "number": 7 },
+                { "name": "SET_LANE_MODE", "number": 8 },
+                { "name": "CUSTOM", "number": 9 },
+                { "name": "REMOVE_JOB", "number": 10 }
+            ],
+            "reserved": { "numbers": [ 1, 2 ], "names": [ "PAUSE", "RESUME" ] }
+        },
+        {
+            "name": "TargetKind",
+            "values": [
+                { "name": "TARGET_KIND_UNSPECIFIED", "number": 0 },
+                { "name": "JOB", "number": 1 },
+                { "name": "LANE", "number": 2 },
+                { "name": "RUN", "number": 3 },
+                { "name": "HOST", "number": 4 }
+            ]
+        },
+        {
+            "name": "ChangeKind",
+            "values": [
+                { "name": "CHANGE_KIND_UNSPECIFIED", "number": 0 },
+                { "name": "JOB_CHANGED", "number": 1 },
+                { "name": "LANE_CHANGED", "number": 2 },
+                { "name": "RUN_CHANGED", "number": 3 },
+                { "name": "RESET", "number": 4 },
+                { "name": "SNAPSHOT_END", "number": 5 },
+                { "name": "HOST_CHANGED", "number": 6 }
+            ]
+        },
+        {
+            "name": "ExecutionTarget",
+            "values": [
+                { "name": "EXECUTION_TARGET_UNSPECIFIED", "number": 0 },
+                { "name": "POOL", "number": 1 },
+                { "name": "MAIN_THREAD", "number": 2 }
+            ]
+        },
+        {
+            "name": "TriggerKind",
+            "values": [
+                { "name": "TRIGGER_KIND_UNSPECIFIED", "number": 0 },
+                { "name": "SCHEDULE", "number": 1 },
+                { "name": "INTERVAL", "number": 2 },
+                { "name": "ONCE_AT", "number": 3 },
+                { "name": "MANUAL", "number": 4 },
+                { "name": "WORK_SOURCE", "number": 5 }
+            ]
+        },
+        {
+            "name": "IntervalFrom",
+            "values": [
+                { "name": "INTERVAL_FROM_UNSPECIFIED", "number": 0 },
+                { "name": "FROM_START", "number": 1 },
+                { "name": "FROM_END", "number": 2 }
+            ]
+        },
+        {
+            "name": "JobOrigin",
+            "values": [
+                { "name": "JOB_ORIGIN_UNSPECIFIED", "number": 0 },
+                { "name": "CODE", "number": 1 },
+                { "name": "SUBMITTED", "number": 2 }
+            ]
+        }
+    ],
+    "types": [
+        { "name": "Empty", "fields": [] },
+        {
+            "name": "ActionInfo",
+            "fields": [
+                { "number": 1, "name": "action", "type": "ControlAction" },
+                { "number": 2, "name": "targetKind", "type": "TargetKind" },
+                { "number": 3, "name": "customName", "type": "string" },
+                { "number": 4, "name": "title", "type": "string" },
+                { "number": 5, "name": "argumentNames", "type": "string", "cardinality": "repeated" }
+            ]
+        },
+        {
+            "name": "HostInfo",
+            "fields": [
+                { "number": 1, "name": "hostName", "type": "string" },
+                { "number": 2, "name": "hostInstanceId", "type": "uint64" },
+                { "number": 3, "name": "revision", "type": "uint64" },
+                { "number": 4, "name": "serverTimeUtc", "type": "timestamp" },
+                { "number": 5, "name": "state", "type": "string" },
+                { "number": 6, "name": "allowedActions", "type": "ActionInfo", "cardinality": "repeated" },
+                { "number": 7, "name": "tableNames", "type": "map<string,string>" },
+                { "number": 8, "name": "submittableTaskTypes", "type": "string", "cardinality": "repeated" },
+                { "number": 9, "name": "maxSubmitPayloadBytes", "type": "uint32" }
+            ]
+        },
+        {
+            "name": "JobRow",
+            "fields": [
+                { "number": 1, "name": "jobId", "type": "string" },
+                { "number": 2, "name": "title", "type": "string" },
+                { "number": 3, "name": "lane", "type": "string" },
+                { "number": 4, "name": "state", "type": "JobState" },
+                { "number": 5, "name": "priority", "type": "uint32" },
+                { "number": 6, "name": "trigger", "type": "string" },
+                { "number": 7, "name": "nextDueUtc", "type": "timestamp" },
+                { "number": 8, "name": "waitingFor", "type": "string" },
+                { "number": 9, "name": "waitingUntilUtc", "type": "timestamp" },
+                { "number": 12, "name": "lastRunId", "type": "uint64" },
+                { "number": 13, "name": "lastRunState", "type": "RunState" },
+                { "number": 14, "name": "lastRunEndedUtc", "type": "timestamp" },
+                { "number": 15, "name": "runCount", "type": "uint64" },
+                { "number": 16, "name": "failureCount", "type": "uint64" },
+                { "number": 17, "name": "consecutiveFailures", "type": "uint32" },
+                { "number": 18, "name": "revision", "type": "uint64" },
+                { "number": 19, "name": "allowedActions", "type": "ActionInfo", "cardinality": "repeated" },
+                { "number": 20, "name": "taskType", "type": "string" },
+                { "number": 21, "name": "executionTarget", "type": "ExecutionTarget" },
+                { "number": 22, "name": "threadPool", "type": "string" },
+                { "number": 23, "name": "origin", "type": "JobOrigin" },
+                { "number": 24, "name": "submittedBy", "type": "string" },
+                { "number": 25, "name": "unavailableReason", "type": "string" },
+                { "number": 26, "name": "activeRuns", "type": "uint32" }
+            ],
+            "reserved": { "numbers": [ 10, 11 ], "names": [ "pausedUntilUtc", "pausedBy" ] }
+        },
+        {
+            "name": "LaneRow",
+            "fields": [
+                { "number": 1, "name": "lane", "type": "string" },
+                { "number": 2, "name": "mode", "type": "string" },
+                { "number": 3, "name": "state", "type": "string" },
+                { "number": 4, "name": "inFlight", "type": "uint32" },
+                { "number": 5, "name": "maxConcurrent", "type": "uint32" },
+                { "number": 6, "name": "queuedByPriority", "type": "uint32", "cardinality": "repeated" },
+                { "number": 7, "name": "waitingFor", "type": "string" },
+                { "number": 8, "name": "waitingUntilUtc", "type": "timestamp" },
+                { "number": 10, "name": "unavailableReason", "type": "string" },
+                { "number": 11, "name": "heldBy", "type": "string" },
+                { "number": 12, "name": "throttle", "type": "datanode" },
+                { "number": 13, "name": "revision", "type": "uint64" }
+            ],
+            "reserved": { "numbers": [ 9 ], "names": [ "pausedUntilUtc" ] }
+        },
+        {
+            "name": "RunRow",
+            "fields": [
+                { "number": 1, "name": "runId", "type": "uint64" },
+                { "number": 2, "name": "jobId", "type": "string" },
+                { "number": 3, "name": "itemLabel", "type": "string" },
+                { "number": 4, "name": "cause", "type": "string" },
+                { "number": 5, "name": "state", "type": "RunState" },
+                { "number": 6, "name": "scheduledUtc", "type": "timestamp" },
+                { "number": 7, "name": "startedUtc", "type": "timestamp" },
+                { "number": 8, "name": "endedUtc", "type": "timestamp" },
+                { "number": 9, "name": "attempt", "type": "uint32" },
+                { "number": 10, "name": "progressDone", "type": "uint64" },
+                { "number": 11, "name": "progressTotal", "type": "uint64" },
+                { "number": 12, "name": "note", "type": "string" },
+                { "number": 13, "name": "message", "type": "string" },
+                { "number": 14, "name": "requestedBy", "type": "string" },
+                { "number": 15, "name": "taskId", "type": "uint32" },
+                { "number": 16, "name": "revision", "type": "uint64" },
+                { "number": 19, "name": "taskType", "type": "string" },
+                { "number": 20, "name": "executionTarget", "type": "ExecutionTarget" },
+                { "number": 21, "name": "threadPool", "type": "string" }
+            ],
+            "reserved": { "numbers": [ 17, 18 ], "names": [ "parkedSinceUtc", "parkReason" ] }
+        },
+        {
+            "name": "ListRequest",
+            "fields": [
+                { "number": 1, "name": "jobId", "type": "string" },
+                { "number": 2, "name": "lane", "type": "string" },
+                { "number": 3, "name": "maxRows", "type": "uint32" },
+                { "number": 4, "name": "pageToken", "type": "string" },
+                { "number": 5, "name": "includeEnded", "type": "bool" }
+            ]
+        },
+        {
+            "name": "JobList",
+            "fields": [
+                { "number": 1, "name": "jobs", "type": "JobRow", "cardinality": "repeated" },
+                { "number": 2, "name": "nextPageToken", "type": "string" },
+                { "number": 3, "name": "revision", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "LaneList",
+            "fields": [
+                { "number": 1, "name": "lanes", "type": "LaneRow", "cardinality": "repeated" },
+                { "number": 2, "name": "revision", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "RunList",
+            "fields": [
+                { "number": 1, "name": "runs", "type": "RunRow", "cardinality": "repeated" },
+                { "number": 2, "name": "nextPageToken", "type": "string" },
+                { "number": 3, "name": "revision", "type": "uint64" }
+            ]
+        },
+        {
+            "name": "GetJobRequest",
+            "fields": [
+                { "number": 1, "name": "jobId", "type": "string" },
+                { "number": 2, "name": "recentRuns", "type": "uint32" },
+                { "number": 3, "name": "includeSourceStatus", "type": "bool" }
+            ]
+        },
+        {
+            "name": "JobDetail",
+            "fields": [
+                { "number": 1, "name": "job", "type": "JobRow" },
+                { "number": 2, "name": "recentRuns", "type": "RunRow", "cardinality": "repeated" },
+                { "number": 3, "name": "sourceStatus", "type": "datanode" },
+                { "number": 4, "name": "description", "type": "string" },
+                { "number": 5, "name": "payload", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "WatchRequest",
+            "fields": [
+                { "number": 1, "name": "hostInstanceId", "type": "uint64" },
+                { "number": 2, "name": "afterRevision", "type": "uint64" },
+                { "number": 3, "name": "includeRuns", "type": "bool" },
+                { "number": 4, "name": "maxMessagesPerSecond", "type": "uint32" }
+            ]
+        },
+        {
+            "name": "Change",
+            "fields": [
+                { "number": 1, "name": "kind", "type": "ChangeKind" },
+                { "number": 2, "name": "revision", "type": "uint64" },
+                { "number": 3, "name": "job", "type": "JobRow" },
+                { "number": 4, "name": "lane", "type": "LaneRow" },
+                { "number": 5, "name": "run", "type": "RunRow" },
+                { "number": 6, "name": "hostInstanceId", "type": "uint64" },
+                { "number": 7, "name": "removedKey", "type": "string" }
+            ]
+        },
+        {
+            "name": "ControlRequest",
+            "fields": [
+                { "number": 1, "name": "commandId", "type": "string" },
+                { "number": 2, "name": "action", "type": "ControlAction" },
+                { "number": 3, "name": "targetKind", "type": "TargetKind" },
+                { "number": 4, "name": "targetId", "type": "string" },
+                { "number": 5, "name": "customName", "type": "string" },
+                { "number": 6, "name": "arguments", "type": "map<string,string>" },
+                { "number": 8, "name": "priority", "type": "uint32", "cardinality": "optional" },
+                { "number": 9, "name": "mode", "type": "string" },
+                { "number": 10, "name": "reason", "type": "string" },
+                { "number": 11, "name": "expectedRevision", "type": "uint64" },
+                { "number": 12, "name": "dryRun", "type": "bool" },
+                { "number": 13, "name": "waitForRun", "type": "bool" }
+            ],
+            "reserved": { "numbers": [ 7, 14 ], "names": [ "pauseForSeconds", "parkRunning" ] }
+        },
+        {
+            "name": "ControlOutcome",
+            "fields": [
+                { "number": 1, "name": "replayed", "type": "bool" },
+                { "number": 2, "name": "revision", "type": "uint64" },
+                { "number": 3, "name": "runId", "type": "uint64" },
+                { "number": 4, "name": "messages", "type": "string", "cardinality": "repeated" },
+                { "number": 5, "name": "run", "type": "RunRow" },
+                { "number": 6, "name": "detail", "type": "datanode" }
+            ]
+        },
+        {
+            "name": "TriggerSpec",
+            "fields": [
+                { "number": 1, "name": "kind", "type": "TriggerKind" },
+                { "number": 2, "name": "cron", "type": "string" },
+                { "number": 3, "name": "rangeStartUtc", "type": "timestamp", "cardinality": "optional" },
+                { "number": 4, "name": "rangeEndUtc", "type": "timestamp", "cardinality": "optional" },
+                { "number": 5, "name": "periodMs", "type": "uint64" },
+                { "number": 6, "name": "intervalFrom", "type": "IntervalFrom" },
+                { "number": 7, "name": "alignToUtc", "type": "timestamp", "cardinality": "optional" },
+                { "number": 8, "name": "onceAtUtc", "type": "timestamp" }
+            ]
+        },
+        {
+            "name": "SubmitJobRequest",
+            "fields": [
+                { "number": 1, "name": "commandId", "type": "string" },
+                { "number": 2, "name": "jobId", "type": "string" },
+                { "number": 3, "name": "title", "type": "string" },
+                { "number": 4, "name": "taskType", "type": "string" },
+                { "number": 5, "name": "payload", "type": "datanode" },
+                { "number": 6, "name": "trigger", "type": "TriggerSpec" },
+                { "number": 7, "name": "executionTarget", "type": "ExecutionTarget" },
+                { "number": 8, "name": "threadPool", "type": "string" },
+                { "number": 9, "name": "lane", "type": "string" },
+                { "number": 10, "name": "priority", "type": "uint32", "cardinality": "optional" },
+                { "number": 11, "name": "replaceExisting", "type": "bool" },
+                { "number": 12, "name": "dryRun", "type": "bool" },
+                { "number": 13, "name": "reason", "type": "string" },
+                { "number": 14, "name": "description", "type": "string" }
+            ]
+        }
+    ],
+    "services": [
+        {
+            "name": "Scheduler",
+            "number": 1,
+            "methods": [
+                { "number": 1, "name": "GetInfo", "kind": "unary", "request": "Empty", "response": "HostInfo", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 2, "name": "ListJobs", "kind": "unary", "request": "ListRequest", "response": "JobList", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 3, "name": "GetJob", "kind": "unary", "request": "GetJobRequest", "response": "JobDetail", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 4, "name": "ListLanes", "kind": "unary", "request": "ListRequest", "response": "LaneList", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 5, "name": "ListRuns", "kind": "unary", "request": "ListRequest", "response": "RunList", "flags": [ "idempotent" ], "deadlineMs": 10000 },
+                { "number": 6, "name": "Watch", "kind": "server_stream", "request": "WatchRequest", "response": "Change", "initialCredit": 64 },
+                { "number": 7, "name": "Control", "kind": "unary", "request": "ControlRequest", "response": "ControlOutcome", "flags": [ "mayAnswerAsync" ], "deadlineMs": 30000 },
+                { "number": 8, "name": "SubmitJob", "kind": "unary", "request": "SubmitJobRequest", "response": "ControlOutcome", "flags": [ "sensitive" ], "deadlineMs": 30000 }
+            ]
+        }
+    ]
+}

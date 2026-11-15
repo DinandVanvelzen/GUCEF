@@ -204,6 +204,9 @@ include $(MY_MODULE_PATH)/Android.mk
 MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../platform/gucefDRN
 include $(MY_MODULE_PATH)/Android.mk
 
+MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../platform/gucefDRNUTILS
+include $(MY_MODULE_PATH)/Android.mk
+
 MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../platform/gucefIMAGE
 include $(MY_MODULE_PATH)/Android.mk
 
@@ -331,6 +334,9 @@ MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../dependencies/cegui/cegui/src/
 include $(MY_MODULE_PATH)/Android.mk
 
 MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../platform/gucefGUI
+include $(MY_MODULE_PATH)/Android.mk
+
+MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../platform/gucefDRNUTILSGUI
 include $(MY_MODULE_PATH)/Android.mk
 
 MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../plugins/GUI/guidriverOgre

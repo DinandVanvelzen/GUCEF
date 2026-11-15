@@ -1,0 +1,47 @@
+<ModuleInfoEntry>
+    <Module Name="gucefDRNUTILSGUI_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+            <Dependency Name="gucefDRNUTILSGUI" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefDRNUTILS" />
+            <Dependency Name="gucefDRNUTILSGUI" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_DRNUTILSGUI_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <!-- test support headers shared from other modules -->
+        <Includes Source="Dependency">
+            <Include Path="../../tests/gucefCOMCORE_TestApp/include" />
+        </Includes>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverNull" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
