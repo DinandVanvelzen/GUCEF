@@ -21,6 +21,7 @@ workspace( "GUCEF_exe_guidriverImGuiOgre_TestApp" )
   --
 
 filter "LINUX32"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
@@ -50,6 +51,7 @@ filter "LINUX32"
   include( "tests/guidriverImGuiOgre_TestApp" )
 
 filter "LINUX64"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
@@ -79,6 +81,7 @@ filter "LINUX64"
   include( "tests/guidriverImGuiOgre_TestApp" )
 
 filter "WIN32"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
@@ -108,6 +111,7 @@ filter "WIN32"
   include( "tests/guidriverImGuiOgre_TestApp" )
 
 filter "WIN64"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )

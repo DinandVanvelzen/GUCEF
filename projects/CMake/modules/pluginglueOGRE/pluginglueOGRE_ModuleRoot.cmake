@@ -10,7 +10,7 @@
 #
 
 # Packages of the modules pluginglueOGRE depends on
-set( MODULE_DEPENDENCIES Ogre Ogre.CommonInclude gucefCORE gucefHeaders gucefMT gucefVFS pluginglueOGRECOMMON )
+set( MODULE_DEPENDENCIES Ogre Ogre.CommonInclude OgreRTShaderSystem gucefCORE gucefHeaders gucefMT gucefVFS pluginglueOGRECOMMON )
 
 # The minimum C++ standard of pluginglueOGRE and the modules it depends on
 set( MODULE_MIN_CPP_STANDARD 14 )

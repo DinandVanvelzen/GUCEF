@@ -1,0 +1,9 @@
+common/include/*
+common/test/include/*
+dependencies/libarchive/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+plugins/VFS/vfspluginLIBARCHIVE/*
+plugins/VFS/vfspluginUNITYPACKAGE/*
+tests/vfspluginUNITYPACKAGE_TestApp/*

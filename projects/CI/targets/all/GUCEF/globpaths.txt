@@ -8,7 +8,9 @@ dependencies/*
 platform/*
 plugins/*
 tests/AncestryDotComBackup_TestApp/*
+tests/AssetViewerLib_TestApp/*
 tests/MemoryLeakFinder_TestApp/*
+tests/OgreTools_TestApp/*
 tests/ProjectGen_TestApp/*
 tests/dbpluginVFSTABLES_TestApp/*
 tests/gucefAUDIO_TestApp/*
@@ -54,4 +56,5 @@ tests/guidriverOgre_TestApp/*
 tests/guidriverRmlUIOgre_TestApp/*
 tests/pluginglueOGRE_TestApp/*
 tests/tablecodecpluginPARQUET_TestApp/*
+tests/vfspluginUNITYPACKAGE_TestApp/*
 tools/*

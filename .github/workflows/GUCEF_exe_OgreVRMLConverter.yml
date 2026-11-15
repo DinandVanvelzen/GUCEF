@@ -1,0 +1,128 @@
+name: target_GUCEF_exe_OgreVRMLConverter
+
+on:
+  workflow_dispatch:
+    inputs:
+      archiveBuildArtifacts:
+        description: 'Archive Build Artifacts?'
+        required: false
+        default: 'false'
+      targetPlatform:
+        description: 'Target platform to build?'
+        required: false
+        default: 'all'
+
+jobs:
+
+  GUCEF_exe_OgreVRMLConverter-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreVRMLConverter
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_OgreVRMLConverter
+      PRODUCT_NAME: OgreVRMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreVRMLConverter for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux32/packages/*OgreVRMLConverter*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux32/packages/*OgreVRMLConverter*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux32/packages/*OgreVRMLConverter*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux32/packages/*OgreVRMLConverter*.tar.xz
+  GUCEF_exe_OgreVRMLConverter-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreVRMLConverter
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_OgreVRMLConverter
+      PRODUCT_NAME: OgreVRMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreVRMLConverter for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux64/packages/*OgreVRMLConverter*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux64/packages/*OgreVRMLConverter*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux64/packages/*OgreVRMLConverter*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-linux64/packages/*OgreVRMLConverter*.tar.xz
+  GUCEF_exe_OgreVRMLConverter-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreVRMLConverter
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_OgreVRMLConverter
+      PRODUCT_NAME: OgreVRMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreVRMLConverter for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-win32/packages/*OgreVRMLConverter*.zip
+  GUCEF_exe_OgreVRMLConverter-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreVRMLConverter
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_OgreVRMLConverter
+      PRODUCT_NAME: OgreVRMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreVRMLConverter for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreVRMLConverter-win64/packages/*OgreVRMLConverter*.zip

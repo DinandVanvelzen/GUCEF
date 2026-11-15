@@ -22,6 +22,7 @@ workspace( "GUCEF_exe_pluginglueOGRE_TestApp" )
 
 filter "LINUX32"
   include( "dependencies/FreeImage" )
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/flic" )
   include( "dependencies/minizip" )
@@ -42,6 +43,7 @@ filter "LINUX32"
 
 filter "LINUX64"
   include( "dependencies/FreeImage" )
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/flic" )
   include( "dependencies/minizip" )
@@ -62,6 +64,7 @@ filter "LINUX64"
 
 filter "WIN32"
   include( "dependencies/FreeImage" )
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/flic" )
   include( "dependencies/minizip" )
@@ -82,6 +85,7 @@ filter "WIN32"
 
 filter "WIN64"
   include( "dependencies/FreeImage" )
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
   include( "dependencies/flic" )
   include( "dependencies/minizip" )

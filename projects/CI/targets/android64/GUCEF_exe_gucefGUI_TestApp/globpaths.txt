@@ -5,6 +5,7 @@ dependencies/MyGui/MyGUIEngine/*
 dependencies/MyGui/Platforms/OgrePlatform/*
 dependencies/MyGui/Platforms/OpenGLESPlatform/*
 dependencies/MyGui/Platforms/Utils/*
+dependencies/Ogre/Components/RTShaderSystem/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/include/*
 dependencies/RmlUi/Include/*

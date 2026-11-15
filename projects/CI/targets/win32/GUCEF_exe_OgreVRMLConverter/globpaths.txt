@@ -1,0 +1,3 @@
+dependencies/Ogre/OgreMain/*
+dependencies/Ogre/Tools/VRMLConverter/*
+dependencies/Ogre/include/*

@@ -1,0 +1,4 @@
+dependencies/Ogre/Components/MeshLodGenerator/*
+dependencies/Ogre/OgreMain/*
+dependencies/Ogre/Tools/MeshUpgrader/*
+dependencies/Ogre/include/*

@@ -1,0 +1,128 @@
+name: target_GUCEF_exe_OgreXMLConverter
+
+on:
+  workflow_dispatch:
+    inputs:
+      archiveBuildArtifacts:
+        description: 'Archive Build Artifacts?'
+        required: false
+        default: 'false'
+      targetPlatform:
+        description: 'Target platform to build?'
+        required: false
+        default: 'all'
+
+jobs:
+
+  GUCEF_exe_OgreXMLConverter-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreXMLConverter
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_OgreXMLConverter
+      PRODUCT_NAME: OgreXMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreXMLConverter for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux32/packages/*OgreXMLConverter*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux32/packages/*OgreXMLConverter*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux32/packages/*OgreXMLConverter*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux32/packages/*OgreXMLConverter*.tar.xz
+  GUCEF_exe_OgreXMLConverter-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreXMLConverter
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_OgreXMLConverter
+      PRODUCT_NAME: OgreXMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreXMLConverter for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux64/packages/*OgreXMLConverter*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux64/packages/*OgreXMLConverter*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux64/packages/*OgreXMLConverter*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-linux64/packages/*OgreXMLConverter*.tar.xz
+  GUCEF_exe_OgreXMLConverter-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreXMLConverter
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_OgreXMLConverter
+      PRODUCT_NAME: OgreXMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreXMLConverter for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-win32/packages/*OgreXMLConverter*.zip
+  GUCEF_exe_OgreXMLConverter-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_OgreXMLConverter
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_OgreXMLConverter
+      PRODUCT_NAME: OgreXMLConverter
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build OgreXMLConverter for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_OgreXMLConverter-win64/packages/*OgreXMLConverter*.zip

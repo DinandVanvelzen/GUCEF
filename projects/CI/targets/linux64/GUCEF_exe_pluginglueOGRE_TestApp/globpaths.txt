@@ -1,6 +1,7 @@
 common/include/*
 common/test/include/*
 dependencies/FreeImage/*
+dependencies/Ogre/Components/RTShaderSystem/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/include/*
 dependencies/flic/*

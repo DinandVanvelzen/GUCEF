@@ -11,6 +11,7 @@
 
 
 if (LINUX32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/Components/RTShaderSystem ${CMAKE_BINARY_DIR}/OgreRTShaderSystem )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/OgreMain ${CMAKE_BINARY_DIR}/Ogre )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GL3Plus ${CMAKE_BINARY_DIR}/OgreRenderSystem_GL3Plus )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GLSupport ${CMAKE_BINARY_DIR}/OgreGLSupport )
@@ -39,6 +40,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/OGRE/OgrePlugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/SHARED/pluginglueOGRE ${CMAKE_BINARY_DIR}/pluginglueOGRE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/guidriverImGuiOgre_TestApp ${CMAKE_BINARY_DIR}/guidriverImGuiOgre_TestApp )
 elseif (LINUX64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/Components/RTShaderSystem ${CMAKE_BINARY_DIR}/OgreRTShaderSystem )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/OgreMain ${CMAKE_BINARY_DIR}/Ogre )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GL3Plus ${CMAKE_BINARY_DIR}/OgreRenderSystem_GL3Plus )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GLSupport ${CMAKE_BINARY_DIR}/OgreGLSupport )
@@ -67,6 +69,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/OGRE/OgrePlugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/SHARED/pluginglueOGRE ${CMAKE_BINARY_DIR}/pluginglueOGRE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/guidriverImGuiOgre_TestApp ${CMAKE_BINARY_DIR}/guidriverImGuiOgre_TestApp )
 elseif (WIN32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/Components/RTShaderSystem ${CMAKE_BINARY_DIR}/OgreRTShaderSystem )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/OgreMain ${CMAKE_BINARY_DIR}/Ogre )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GL3Plus ${CMAKE_BINARY_DIR}/OgreRenderSystem_GL3Plus )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GLSupport ${CMAKE_BINARY_DIR}/OgreGLSupport )
@@ -95,6 +98,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/OGRE/OgrePlugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/SHARED/pluginglueOGRE ${CMAKE_BINARY_DIR}/pluginglueOGRE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/guidriverImGuiOgre_TestApp ${CMAKE_BINARY_DIR}/guidriverImGuiOgre_TestApp )
 elseif (WIN64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/Components/RTShaderSystem ${CMAKE_BINARY_DIR}/OgreRTShaderSystem )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/OgreMain ${CMAKE_BINARY_DIR}/Ogre )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GL3Plus ${CMAKE_BINARY_DIR}/OgreRenderSystem_GL3Plus )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GLSupport ${CMAKE_BINARY_DIR}/OgreGLSupport )

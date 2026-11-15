@@ -22,8 +22,8 @@
     { "name": "GUCEF_tag_test", "platform": "win64", "minCppStandard": "17", "minCppStandardYear": 2017, "project": "projects/CMake/targets/GUCEF_tag_test", "globpaths": "projects/CI/targets/win64/GUCEF_tag_test/globpaths.txt" },
     { "name": "GUCEF_tag_tools", "platform": "android64", "minCppStandard": "", "minCppStandardYear": 0, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/android64/GUCEF_tag_tools/globpaths.txt" },
     { "name": "GUCEF_tag_tools", "platform": "emscripten64", "minCppStandard": "", "minCppStandardYear": 0, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/emscripten64/GUCEF_tag_tools/globpaths.txt" },
-    { "name": "GUCEF_tag_tools", "platform": "linux64", "minCppStandard": "14", "minCppStandardYear": 2014, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/linux64/GUCEF_tag_tools/globpaths.txt" },
+    { "name": "GUCEF_tag_tools", "platform": "linux64", "minCppStandard": "17", "minCppStandardYear": 2017, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/linux64/GUCEF_tag_tools/globpaths.txt" },
     { "name": "GUCEF_tag_tools", "platform": "osx", "minCppStandard": "", "minCppStandardYear": 0, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/osx/GUCEF_tag_tools/globpaths.txt" },
-    { "name": "GUCEF_tag_tools", "platform": "win64", "minCppStandard": "14", "minCppStandardYear": 2014, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/win64/GUCEF_tag_tools/globpaths.txt" }
+    { "name": "GUCEF_tag_tools", "platform": "win64", "minCppStandard": "17", "minCppStandardYear": 2017, "project": "projects/CMake/targets/GUCEF_tag_tools", "globpaths": "projects/CI/targets/win64/GUCEF_tag_tools/globpaths.txt" }
   ]
 }

@@ -21,11 +21,16 @@ workspace( "GUCEF_exe_guidriverOgre_TestApp" )
   --
 
 filter "LINUX32"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
+  include( "dependencies/Ogre/PlugIns/GLSLang" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus_Wayland" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
   include( "dependencies/Ogre/RenderSystems/GLSupport_Wayland" )
+  include( "dependencies/Ogre/RenderSystems/Vulkan" )
+  include( "dependencies/Ogre/RenderSystems/Vulkan_Wayland" )
+  include( "dependencies/glslang" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefGUI" )
@@ -45,11 +50,16 @@ filter "LINUX32"
   include( "tests/guidriverOgre_TestApp" )
 
 filter "LINUX64"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
+  include( "dependencies/Ogre/PlugIns/GLSLang" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus_Wayland" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
   include( "dependencies/Ogre/RenderSystems/GLSupport_Wayland" )
+  include( "dependencies/Ogre/RenderSystems/Vulkan" )
+  include( "dependencies/Ogre/RenderSystems/Vulkan_Wayland" )
+  include( "dependencies/glslang" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefGUI" )
@@ -69,9 +79,13 @@ filter "LINUX64"
   include( "tests/guidriverOgre_TestApp" )
 
 filter "WIN32"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
+  include( "dependencies/Ogre/PlugIns/GLSLang" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
+  include( "dependencies/Ogre/RenderSystems/Vulkan" )
+  include( "dependencies/glslang" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefGUI" )
@@ -89,9 +103,13 @@ filter "WIN32"
   include( "tests/guidriverOgre_TestApp" )
 
 filter "WIN64"
+  include( "dependencies/Ogre/Components/RTShaderSystem" )
   include( "dependencies/Ogre/OgreMain" )
+  include( "dependencies/Ogre/PlugIns/GLSLang" )
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/Ogre/RenderSystems/GLSupport" )
+  include( "dependencies/Ogre/RenderSystems/Vulkan" )
+  include( "dependencies/glslang" )
   include( "platform/gucefAUDIO" )
   include( "platform/gucefCORE" )
   include( "platform/gucefGUI" )

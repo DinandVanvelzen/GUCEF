@@ -10,6 +10,7 @@ dependencies/MyGui/Platforms/OpenGL3Platform/*
 dependencies/MyGui/Platforms/OpenGLPlatform/*
 dependencies/MyGui/Platforms/Utils/*
 dependencies/OIS/*
+dependencies/Ogre/Components/RTShaderSystem/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/include/*
 dependencies/RmlUi/Include/*

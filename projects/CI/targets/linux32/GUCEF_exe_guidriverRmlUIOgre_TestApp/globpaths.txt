@@ -1,5 +1,6 @@
 common/include/*
 common/test/include/*
+dependencies/Ogre/Components/RTShaderSystem/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/RenderSystems/GL3Plus/*
 dependencies/Ogre/RenderSystems/GLSupport/*

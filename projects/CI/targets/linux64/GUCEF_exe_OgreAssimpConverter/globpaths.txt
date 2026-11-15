@@ -1,0 +1,8 @@
+dependencies/Ogre/Components/RTShaderSystem/*
+dependencies/Ogre/OgreMain/*
+dependencies/Ogre/PlugIns/Assimp/*
+dependencies/Ogre/Tools/AssimpConverter/*
+dependencies/Ogre/include/*
+dependencies/assimp/*
+dependencies/pugixml/*
+dependencies/zlib/*

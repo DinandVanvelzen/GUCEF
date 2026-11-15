@@ -1,9 +1,14 @@
 common/include/*
 common/test/include/*
+dependencies/Ogre/Components/RTShaderSystem/*
 dependencies/Ogre/OgreMain/*
+dependencies/Ogre/PlugIns/GLSLang/*
 dependencies/Ogre/RenderSystems/GL3Plus/*
 dependencies/Ogre/RenderSystems/GLSupport/*
+dependencies/Ogre/RenderSystems/Vulkan/*
 dependencies/Ogre/include/*
+dependencies/Vulkan-Headers/include/*
+dependencies/glslang/*
 platform/gucefAUDIO/*
 platform/gucefCORE/*
 platform/gucefGUI/*
